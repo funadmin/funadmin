@@ -37,7 +37,7 @@ final class DefinitionValidator
     ];
     private const OPTION_SOURCE_KEYS = ['name', 'type', 'endpoint', 'dictionary', 'labelField', 'valueField'];
     private const FEATURE_KEYS = [
-        'softDelete', 'batchDelete', 'status', 'detail', 'import', 'export', 'upload', 'dictionary',
+        'batchDelete', 'status', 'detail', 'import', 'export', 'upload', 'dictionary',
         'referenceProtection', 'formMode', 'importLimit', 'exportLimit',
     ];
 
@@ -317,7 +317,7 @@ final class DefinitionValidator
         if (!is_array($features) || array_diff(array_keys($features), self::FEATURE_KEYS) !== []) {
             throw new InvalidArgumentException('features 配置不完整或包含未知能力');
         }
-        foreach (['softDelete', 'batchDelete', 'status', 'detail', 'import', 'export', 'upload', 'dictionary', 'referenceProtection'] as $flag) {
+        foreach (['batchDelete', 'status', 'detail', 'import', 'export', 'upload', 'dictionary', 'referenceProtection'] as $flag) {
             if (!isset($features[$flag]) || !is_bool($features[$flag])) {
                 throw new InvalidArgumentException('features 缺少布尔能力：' . $flag);
             }

@@ -60,7 +60,7 @@ final class ProductionTemplateContext
             }
         }
         $names = array_column($data['fields'], 'name');
-        if (($data['features']['softDelete'] ?? false) && !in_array('deleted_at', $names, true)) {
+        if ($data['softDeletes'] && !in_array('deleted_at', $names, true)) {
             $columns[] = '  `deleted_at` datetime NULL';
         }
         $lines = array_merge($columns, ["  PRIMARY KEY (`{$primary['name']}`)"], $indexes);
@@ -91,9 +91,9 @@ final class ProductionTemplateContext
             $methods[] = "    public function {$relation['name']}()\n    {\n"
                 . "        return \$this->{$relation['type']}({$arguments});\n    }";
         }
-        $softImport = ($data['features']['softDelete'] ?? false)
+        $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
-        $softTrait = ($data['features']['softDelete'] ?? false) ? "    use LaravelSoftDelete;\n\n" : '';
+        $softTrait = $data['softDeletes'] ? "    use LaravelSoftDelete;\n\n" : '';
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\model;\n\n"
             . $softImport
             . "\nfinal class {$class} extends BackendModel\n{\n{$softTrait}"
@@ -201,6 +201,9 @@ final class ProductionTemplateContext
         $referenceMethod = ($data['features']['referenceProtection'] ?? false) === true
             ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) {\n            \$ids[] = \$model->{$primary['name']};\n        }\n        if (\$ids === []) return null;\n        \$references = Db::query('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) (\$reference['TABLE_NAME'] ?? \$reference['table_name'] ?? '');\n            \$column = (string) (\$reference['COLUMN_NAME'] ?? \$reference['column_name'] ?? '');\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) {\n                throw new \\RuntimeException('数据库引用元数据包含非法标识符');\n            }\n            if (Db::table(\$table)->whereIn(\$column, \$ids)->limit(1)->count() > 0) {\n                return '记录仍被 ' . \$table . '.' . \$column . ' 引用，无法删除';\n            }\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
+        $querySource = $data['softDeletes']
+            ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
+            : "        \$query = {$class}::with(self::WITH_RELATIONS);\n";
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\service;\n\n"
             . "use app\\console\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
             . "final class {$class}Service\n{\n"
@@ -208,7 +211,8 @@ final class ProductionTemplateContext
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
             . $prepareCreateMethod
             . "    public function query(?array \$departmentIds = null, bool \$recycled = false)\n    {\n"
-            . "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n{$scope}        return \$query;\n    }\n\n"
+            . $querySource
+            . "{$scope}        return \$query;\n    }\n\n"
             . "    public function save(?{$class} \$model, array \$payload, callable \$relations): {$class}\n    {\n"
             . "        return Db::transaction(function () use (\$model, \$payload, \$relations): {$class} {\n"
             . "            \$model ??= new {$class}();\n"
@@ -653,7 +657,7 @@ final class ProductionTemplateContext
         $features = $data['features'];
         $enabled = static fn (string $name): bool => ($capabilities[$name] ?? true) === true;
         $delete = $enabled('delete');
-        $softDelete = $delete && ($features['softDelete'] ?? false);
+        $softDelete = $delete && $data['softDeletes'];
         $dictionary = $enabled('form') && ($features['dictionary'] ?? false);
         $optionSources = self::enabledOptionSources($data, ['dictionary' => $dictionary]);
         return [

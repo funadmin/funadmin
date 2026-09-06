@@ -35,8 +35,7 @@ final class CrudDefinition implements JsonSerializable
         $data['routePath'] ??= (string) $data['apiPrefix'];
         $data['primaryKey'] ??= (string) (($primary[0]['name'] ?? ''));
         $data['timestamps'] ??= in_array('created_at', $fieldNames, true) && in_array('updated_at', $fieldNames, true);
-        $data['softDeletes'] ??= in_array('deleted_at', $fieldNames, true)
-            || (($data['features']['softDelete'] ?? false) === true);
+        $data['softDeletes'] ??= true;
         $data['generationTargets'] ??= is_array($data['paths'] ?? null) ? $data['paths'] : [];
         $entity = (string) $data['entity'];
         $class = self::studly($entity);

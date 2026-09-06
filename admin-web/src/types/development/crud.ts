@@ -44,7 +44,7 @@ export interface CrudCapabilities {
 }
 export interface CrudRelation { name: string; type: 'belongsTo' | 'hasOne' | 'hasMany' | 'belongsToMany'; field: string; target: string; targetField: string; pivotTable?: string; optionsSource?: string; with?: boolean }
 export interface CrudOptionsSource { name: string; type: 'relation' | 'dictionary' | 'endpoint'; endpoint?: string; dictionary?: string; labelField: string; valueField: string }
-export interface CrudFeatures { softDelete: boolean; batchDelete: boolean; status: boolean; detail: boolean; import: boolean; export: boolean; upload: boolean; dictionary: boolean; referenceProtection: boolean; formMode: 'dialog' | 'drawer'; importLimit: number; exportLimit: number }
+export interface CrudFeatures { batchDelete: boolean; status: boolean; detail: boolean; import: boolean; export: boolean; upload: boolean; dictionary: boolean; referenceProtection: boolean; formMode: 'dialog' | 'drawer'; importLimit: number; exportLimit: number }
 export interface CrudArtifactMap {
   migration: string; model: string; validate: string; service: string; controller: string;
   permissionMigration: string; api: string; view: string; form: string; detail: string;

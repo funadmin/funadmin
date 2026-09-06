@@ -73,7 +73,6 @@
 - **gzip 压缩**：`vite-plugin-compression` 生成 `.gz`
 - **Vitest 单测**：`useCrud / csv / tree` 三个核心工具的单元测试
 - **i18n 扫描脚本**：`pnpm scan:i18n` 自动盘点硬编码中文，输出 `docs/i18n-gap.md`
-- **CRUD 代码生成器**：`pnpm gen:crud` 一键产出列表页 + API 模板
 
 ---
 
@@ -104,8 +103,6 @@
 admin-web/
 ├─ public/                  # 静态资源
 ├─ scripts/
-│  ├─ crud-gen.mjs          # CRUD 代码生成器（pnpm gen:crud）
-│  ├─ crud.example.json     # 生成器示例配置
 │  └─ scan-i18n.mjs         # i18n 缺失扫描（pnpm scan:i18n）
 ├─ src/
 │  ├─ api/                  # 后端 API 模块
@@ -191,7 +188,6 @@ pnpm build
 pnpm preview
 
 # 5. 工具脚本
-pnpm gen:crud     # 按 scripts/crud.example.json 生成 CRUD 模板
 pnpm scan:i18n    # 扫描硬编码中文，写入 docs/i18n-gap.md
 ```
 
@@ -264,15 +260,6 @@ CACHE_KEYS.PERMISSION     // 'ADMIN_PERMISSION'
 ## 七、开发指南
 
 ### 1. 新增一个业务列表页（推荐路径）
-
-```bash
-# 复制示例配置后改字段
-cp scripts/crud.example.json scripts/crud.order.json
-# 生成 API + 列表页 + 弹窗模板
-pnpm gen:crud scripts/crud.order.json
-```
-
-或者手写：
 
 1. 在 `src/api/` 新增模块（导出 `list / detail / add / update / remove / removeMany`）
 2. 在 `src/views/` 创建 `index.vue`，使用：

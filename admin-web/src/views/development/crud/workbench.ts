@@ -35,7 +35,7 @@ export function createCrudDefinition(connection: string, table: string, fields: 
     permissionPrefix: `generated:${name}`, fields, relations: [], optionsSource: [],
     templates: { migration: 'database/migration.sql.tpl', model: 'console/model.php.tpl', validate: 'console/validate.php.tpl', service: 'console/service.php.tpl', controller: 'console/controller.php.tpl', permissionMigration: 'database/permissions.sql.tpl', api: 'frontend/api.ts.tpl', view: 'frontend/index.vue.tpl', form: 'frontend/form.vue.tpl', detail: 'frontend/detail.vue.tpl', phpTest: 'tests/php-test.php.tpl', vitestTest: 'tests/vitest-test.ts.tpl' },
     capabilities: { list: true, search: true, form: true, detail: true, create: true, update: true, delete: true, import: true, export: true },
-    features: { softDelete: true, batchDelete: true, status: hasWritableStatus, detail: true, import: true, export: true, upload: true, dictionary: true, referenceProtection: true, formMode: 'dialog', importLimit: 10000, exportLimit: 10000 },
+    features: { batchDelete: true, status: hasWritableStatus, detail: true, import: true, export: true, upload: true, dictionary: true, referenceProtection: true, formMode: 'dialog', importLimit: 10000, exportLimit: 10000 },
     dataScope: { enabled: false, field: '' }
   };
 }

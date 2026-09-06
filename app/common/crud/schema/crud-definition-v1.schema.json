@@ -29,9 +29,9 @@
       "create": { "type": "boolean" }, "update": { "type": "boolean" }, "delete": { "type": "boolean" }, "import": { "type": "boolean" }, "export": { "type": "boolean" }
     }},
     "features": { "type": "object", "additionalProperties": false,
-      "required": ["softDelete", "batchDelete", "status", "detail", "import", "export", "upload", "dictionary", "referenceProtection", "formMode", "importLimit", "exportLimit"],
+      "required": ["batchDelete", "status", "detail", "import", "export", "upload", "dictionary", "referenceProtection", "formMode", "importLimit", "exportLimit"],
       "properties": {
-        "softDelete": { "type": "boolean" }, "batchDelete": { "type": "boolean" }, "status": { "type": "boolean" }, "detail": { "type": "boolean" },
+        "batchDelete": { "type": "boolean" }, "status": { "type": "boolean" }, "detail": { "type": "boolean" },
         "import": { "type": "boolean" }, "export": { "type": "boolean" }, "upload": { "type": "boolean" }, "dictionary": { "type": "boolean" },
         "referenceProtection": { "type": "boolean" }, "formMode": { "enum": ["dialog", "drawer"] },
         "importLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }, "exportLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }
