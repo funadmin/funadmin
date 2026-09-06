@@ -51,7 +51,7 @@ final class DevCrud extends AdminApiController
         return $this->execute(fn (): array => $this->crud->tables($this->connection()));
     }
 
-    #[Get('table/:table')]
+    #[Get('tables/:table/schema')]
     #[Pattern('table', '[a-z_][a-z0-9_]*')]
     public function tableSchema(string $table): Response
     {
@@ -67,7 +67,7 @@ final class DevCrud extends AdminApiController
         ));
     }
 
-    #[Post('validate')]
+    #[Post('definitions/validate')]
     public function validateDefinition(): Response
     {
         return $this->execute(fn (): array => $this->crud->validate($this->definition()));

@@ -176,7 +176,7 @@ class ResourceRegistryService extends AbstractService
             $href = trim((string) ($item['href'] ?? $item['path'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
             $itemAppName = strtolower(trim((string) ($item['appName'] ?? $appName))) ?: 'console';
-            $referencedCode = strtolower(trim((string) ($item['permission'] ?? ''));
+            $referencedCode = strtolower(trim((string) ($item['permission'] ?? '')));
             $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemAppName, $href);
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;
             if ($referencedCode !== '') {
