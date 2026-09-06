@@ -27,6 +27,15 @@ final class PluginOperationRecorder
     ) {
     }
 
+    public static function stagesThrough(int $currentProgress, string $targetStage): array
+    {
+        $targetProgress = self::PROGRESS[$targetStage] ?? throw new RuntimeException('未知插件生命周期阶段：' . $targetStage);
+        return array_filter(
+            self::PROGRESS,
+            static fn (int $progress): bool => $progress > $currentProgress && $progress <= $targetProgress
+        );
+    }
+
     public function start(string $name, string $operation, string $token, array $context = []): void
     {
         if ($token === '' || isset($this->operations[$token])) {

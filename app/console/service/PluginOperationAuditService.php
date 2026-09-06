@@ -52,7 +52,9 @@ final class PluginOperationAuditService
             'operation' => 'purge',
             'operation_token' => bin2hex(random_bytes(16)),
             'stage' => 'complete',
-            'progress' => $audit['result'] === 'success' ? 100 : 0,
+            'progress' => $audit['result'] === 'success'
+                ? PluginOperationRecorder::stagesThrough(0, 'complete')['complete']
+                : 0,
             'result' => (string) $audit['result'],
             'error_message' => $audit['error'] ?? null,
         ]);

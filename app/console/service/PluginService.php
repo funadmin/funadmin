@@ -10,6 +10,7 @@ use fun\plugins\DependencyValidator;
 use fun\plugins\LifecycleLock;
 use fun\plugins\LifecycleState;
 use fun\plugins\Manifest;
+use fun\plugins\PluginOperationRecorder;
 use fun\plugins\PluginPurgeCoordinator;
 use fun\plugins\PluginRuntimeCache;
 use fun\plugins\PluginStorage;
@@ -538,14 +539,9 @@ class PluginService extends AbstractService
 
     private function recordStage(string $name, string $operation, string $stage, ?string $recoveryPath = null): void
     {
-        $stages = ['validate' => 5, 'deploy' => 20, 'hooks' => 35, 'migration' => 55, 'resources' => 75, 'permissions' => 90, 'complete' => 100];
-        $targetProgress = $stages[$stage] ?? throw new RuntimeException('未知插件生命周期阶段：' . $stage);
         $context = $this->packageContexts[$name] ?? ['operation' => $operation];
         $token = $this->activeOperationTokens[$name] ?? throw new RuntimeException('插件生命周期操作令牌不存在');
-        foreach ($stages as $candidate => $progress) {
-            if ($progress <= ($this->operationProgress[$name] ?? 0) || $progress > $targetProgress) {
-                continue;
-            }
+        foreach (PluginOperationRecorder::stagesThrough($this->operationProgress[$name] ?? 0, $stage) as $candidate => $progress) {
             $this->operationStages[$name] = $candidate;
             $this->operationProgress[$name] = $progress;
             $this->audit()->stage($name, $operation, $token, $candidate, $context, $candidate === $stage ? $recoveryPath : null);
