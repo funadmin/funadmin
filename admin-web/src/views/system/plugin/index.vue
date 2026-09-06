@@ -14,8 +14,8 @@
     </el-tabs>
 
     <el-table v-if="activeTab !== 'market'" v-loading="loading" :data="items" border>
-      <el-table-column prop="name" label="code" min-width="120" />
-      <el-table-column prop="title" label="名称" min-width="130" />
+      <el-table-column prop="code" label="code" min-width="120" />
+      <el-table-column prop="name" label="名称" min-width="130" />
       <el-table-column prop="version" label="当前版本" width="110" />
       <el-table-column prop="latestVersion" label="latest version" width="120" />
       <el-table-column prop="dbVersion" label="db version" width="110" />
@@ -44,7 +44,7 @@
     <template v-else>
       <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" @click="loadMarket">搜索</el-button></div>
       <el-table v-loading="loading" :data="marketItems" border>
-        <el-table-column prop="name" label="code" width="130" /><el-table-column prop="title" label="名称" width="150" />
+        <el-table-column prop="code" label="code" width="130" /><el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
         <el-table-column label="latest version" width="120"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
         <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
@@ -53,9 +53,9 @@
 
     <InstallDialog v-model="installVisible" @installed="installedFromZip" />
     <Account v-model="accountVisible" @changed="loadMarket" />
-    <Market v-model="marketVisible" :name="selectedName" @install="installSelectedVersion" />
-    <ConfigDialog v-model="configVisible" :name="selectedName" @saved="load" />
-    <LifecycleDrawer v-model="historyVisible" :name="selectedName" :redeploy-disabled-reason="historyRedeployReason" />
+    <Market v-model="marketVisible" :code="selectedCode" @install="installSelectedVersion" />
+    <ConfigDialog v-model="configVisible" :code="selectedCode" @saved="load" />
+    <LifecycleDrawer v-model="historyVisible" :code="selectedCode" :redeploy-disabled-reason="historyRedeployReason" />
   </PageWrapper>
 </template>
 
@@ -79,7 +79,7 @@ const items = ref<PluginItem[]>([]);
 const marketItems = ref<MarketplacePlugin[]>([]);
 const marketQuery = reactive({ page: 1, pageSize: 20, keyword: '' });
 const updateInput = ref<HTMLInputElement>();
-const selectedName = ref('');
+const selectedCode = ref('');
 const historyRedeployReason = ref('');
 const pageError = ref('');
 const installVisible = ref(false);
@@ -113,10 +113,10 @@ async function load() {
     items.value = loaded;
     if (activeTab.value !== 'installed' || loaded.length === 0) return;
     try {
-      const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ name: item.name, version: item.version })));
-      const updatesByName = new Map(updates.map((item) => [item.name, item]));
+      const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ code: item.code, version: item.version })));
+      const updatesByCode = new Map(updates.map((item) => [item.code, item]));
       items.value = loaded.map((item) => {
-        const update = updatesByName.get(item.name);
+        const update = updatesByCode.get(item.code);
         return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '' };
       });
     } catch (error) {
@@ -130,19 +130,19 @@ async function load() {
 }
 async function loadMarket() { pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
 async function installedFromZip() { activeTab.value = 'installed'; await load(); }
-function selectLocalUpdate(row: PluginItem) { selectedName.value = row.name; updateInput.value?.click(); }
-async function updateLocalZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedName.value) return; try { await confirmAction(() => ElMessageBox.confirm(`确认使用 ${file.name} 更新插件 ${selectedName.value} 吗？`, '本地更新确认'), async () => { await pluginApi.updateLocal(selectedName.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
+function selectLocalUpdate(row: PluginItem) { selectedCode.value = row.code; updateInput.value?.click(); }
+async function updateLocalZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(`确认使用 ${file.name} 更新插件 ${selectedCode.value} 吗？`, '本地更新确认'), async () => { await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
 async function syncPluginRoutes() { await loadPluginModulesSafely(router); }
-async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: '确认迁移插件', enable: '确认启用插件', disable: '确认禁用插件' } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.name} 吗？`, '操作确认'), async () => { await pluginApi[action](row.name); await syncPluginRoutes(); await load(); }); }
-async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认将 ${row.name} 更新到 ${row.latestVersion} 吗？`, '更新确认'), async () => { await pluginApi.update(row.name, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
-async function installDiscovered(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认安装发现目录中的插件 ${row.name} 吗？`, '安装确认'), async () => { await pluginApi.installDiscovered(row.name); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
-async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认卸载插件 ${row.name} 吗？业务数据与配置将保留。`, '卸载确认'), async () => { await pluginApi.uninstall(row.name); await syncPluginRoutes(); await load(); }); }
-async function purge(row: PluginItem) { pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(`此操作仅清除插件业务数据，不卸载插件。请输入插件名称 ${row.name} 二次确认`, '危险操作').then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.name, confirmation); await pluginApi.purge(row.name, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
-async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认删除本地插件包 ${row.name} 吗？`, '删除确认'), async () => { await pluginApi.deletePackage(row.name); await load(); }); }
-function openConfig(row: PluginItem) { selectedName.value = row.name; configVisible.value = true; }
-function openHistory(row: PluginItem) { selectedName.value = row.name; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
-function openMarket(row: MarketplacePlugin) { selectedName.value = row.name; marketVisible.value = true; }
-async function installMarket(row: MarketplacePlugin) { const version = row.versions[0]?.version; if (!version) return; await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${row.name} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(row.name, version); activeTab.value = 'installed'; await load(); }); }
-async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${selectedName.value} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(selectedName.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: '确认迁移插件', enable: '确认启用插件', disable: '确认禁用插件' } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} 吗？`, '操作确认'), async () => { await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
+async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认将 ${row.code} 更新到 ${row.latestVersion} 吗？`, '更新确认'), async () => { await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
+async function installDiscovered(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认安装发现目录中的插件 ${row.code} 吗？`, '安装确认'), async () => { await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
+async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认卸载插件 ${row.code} 吗？业务数据与配置将保留。`, '卸载确认'), async () => { await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
+async function purge(row: PluginItem) { pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(`此操作仅清除插件业务数据，不卸载插件。请输入插件标识 ${row.code} 二次确认`, '危险操作').then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
+async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认删除本地插件包 ${row.code} 吗？`, '删除确认'), async () => { await pluginApi.deletePackage(row.code); await load(); }); }
+function openConfig(row: PluginItem) { selectedCode.value = row.code; configVisible.value = true; }
+function openHistory(row: PluginItem) { selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
+function openMarket(row: MarketplacePlugin) { selectedCode.value = row.code; marketVisible.value = true; }
+async function installMarket(row: MarketplacePlugin) { const version = row.versions[0]?.version; if (!version) return; await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${row.code} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
+async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${selectedCode.value} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
 onMounted(load);
 </script>

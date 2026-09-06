@@ -31,7 +31,7 @@ const ElTableColumn = defineComponent({
   setup(props, { slots }) {
     const rows = inject<{ value: Row[] }>(rowsKey, { value: [] });
     return () => h('div', { class: 'column', 'data-label': props.label }, rows.value.map((row) =>
-      h('div', { class: 'cell', 'data-row': row.name }, slots.default?.({ row }) ?? String(row[props.prop || ''] ?? ''))
+      h('div', { class: 'cell', 'data-row': row.code }, slots.default?.({ row }) ?? String(row[props.prop || ''] ?? ''))
     ));
   }
 });
@@ -51,7 +51,7 @@ const passthrough = defineComponent({ setup(_, { slots }) { return () => h('div'
 const ElAlert = defineComponent({ props: { title: String }, setup(props) { return () => h('div', { role: 'alert' }, props.title); } });
 
 const plugin = (overrides: Partial<Row> = {}) => ({
-  name: 'demo', title: 'Demo', version: '1.0.0', latestVersion: '', dbVersion: '001',
+  code: 'demo', name: 'Demo', version: '1.0.0', latestVersion: '', dbVersion: '001',
   state: 'disabled', dependencies: {}, migrationPending: false, lastError: '', source: 'installed',
   needsReinstall: false, operation: '', progress: 0, disabledReason: '', ...overrides
 });
@@ -109,7 +109,7 @@ describe('插件中心页面 mount 行为', () => {
     dialogs.prompt.mockResolvedValueOnce({ value: 'other' });
     await visibleButton(wrapper, '清除数据')?.trigger('click');
     await flushPromises();
-    expect(wrapper.text()).toContain('彻底清理数据时必须输入插件名称 demo');
+    expect(wrapper.text()).toContain('彻底清理数据时必须输入插件标识 demo');
     expect(api.purge).not.toHaveBeenCalled();
 
     dialogs.prompt.mockResolvedValueOnce({ value: 'demo' });
@@ -121,7 +121,7 @@ describe('插件中心页面 mount 行为', () => {
 
   it('按权限隐藏写操作，并按生命周期与进行中操作禁用按钮且展示原因', async () => {
     api.installed.mockResolvedValue([plugin({ operation: 'update', progress: 45, disabledReason: '插件正在执行 update（45%）' })]);
-    api.checkUpdates.mockResolvedValue([{ name: 'demo', installedVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true }]);
+    api.checkUpdates.mockResolvedValue([{ code: 'demo', installedVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true }]);
     const wrapper = mountPage(['system:plugin:update']);
     await flushPromises();
 

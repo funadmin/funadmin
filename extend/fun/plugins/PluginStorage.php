@@ -20,7 +20,7 @@ final class PluginStorage
             throw new RuntimeException('插件未声明 storage.path');
         }
         return rtrim($this->root, DIRECTORY_SEPARATOR)
-            . DIRECTORY_SEPARATOR . $manifest->name()
+            . DIRECTORY_SEPARATOR . $manifest->code()
             . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
     }
 
@@ -33,12 +33,12 @@ final class PluginStorage
         return $path;
     }
 
-    public function remove(string $name): void
+    public function remove(string $code): void
     {
-        if (preg_match('/^[a-z][a-z0-9]*$/', $name) !== 1) {
-            throw new RuntimeException('插件名格式错误');
+        if (preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {
+            throw new RuntimeException('插件标识格式错误');
         }
-        $directory = rtrim($this->root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name;
+        $directory = rtrim($this->root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $code;
         if (!is_dir($directory)) {
             return;
         }

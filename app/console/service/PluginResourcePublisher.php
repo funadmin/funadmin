@@ -29,9 +29,9 @@ final class PluginResourcePublisher
         $existing = $this->repository->all();
         $owned = array_values(array_filter(
             $existing,
-            static fn (array $row): bool => ($row['plugin_name'] ?? '') === $manifest->name()
+            static fn (array $row): bool => ($row['plugin_code'] ?? '') === $manifest->code()
         ));
-        $snapshot = $this->snapshot($manifest->name(), $owned, $roots);
+        $snapshot = $this->snapshot($manifest->code(), $owned, $roots);
         $next = [];
         $publishPlan = [];
         $touchedTargets = [];
@@ -41,7 +41,7 @@ final class PluginResourcePublisher
                 $sourceRoot = $this->canonicalSourceDirectory($manifest->directory(), $resource['source']);
                 $targetRoot = $this->targetDirectory(
                     $resource['root'],
-                    $manifest->name(),
+                    $manifest->code(),
                     $resource['target'],
                     $resource['type']
                 );
@@ -50,14 +50,14 @@ final class PluginResourcePublisher
                     $target = $targetRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
                     $rootRelative = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($resource['root']) + 1));
                     $targetPath = $this->registryPath($resource['type'], $rootRelative);
-                    $this->assertAvailable($target, $targetPath, $manifest->name(), $existing);
+                    $this->assertAvailable($target, $targetPath, $manifest->code(), $existing);
                     $sha256 = hash_file('sha256', $source);
                     if ($sha256 === false) {
                         throw new RuntimeException('无法计算资源 SHA-256：' . $source);
                     }
                     $publishPlan[] = ['source' => $source, 'target' => $target, 'target_path' => $targetPath];
                     $next[] = [
-                        'plugin_name' => $manifest->name(),
+                        'plugin_code' => $manifest->code(),
                         'version' => $manifest->version(),
                         'source_path' => str_replace(
                             DIRECTORY_SEPARATOR,
@@ -82,7 +82,7 @@ final class PluginResourcePublisher
                     $this->deleteOwnedFile($roots, (string) $old['target_path']);
                 }
             }
-            $this->repository->replaceForPlugin($manifest->name(), $next);
+            $this->repository->replaceForPlugin($manifest->code(), $next);
             return $snapshot;
         } catch (Throwable $exception) {
             try {
@@ -98,21 +98,21 @@ final class PluginResourcePublisher
         }
     }
 
-    public function remove(string $pluginName): array
+    public function remove(string $pluginCode): array
     {
-        $this->assertPluginName($pluginName);
+        $this->assertPluginCode($pluginCode);
         $owned = array_values(array_filter(
             $this->repository->all(),
-            static fn (array $row): bool => ($row['plugin_name'] ?? '') === $pluginName
+            static fn (array $row): bool => ($row['plugin_code'] ?? '') === $pluginCode
         ));
         $roots = $this->roots();
-        $snapshot = $this->snapshot($pluginName, $owned, $roots);
+        $snapshot = $this->snapshot($pluginCode, $owned, $roots);
 
         try {
             foreach ($owned as $record) {
                 $this->deleteOwnedFile($roots, (string) $record['target_path']);
             }
-            $this->repository->replaceForPlugin($pluginName, []);
+            $this->repository->replaceForPlugin($pluginCode, []);
             return $snapshot;
         } catch (Throwable $exception) {
             $this->restoreSnapshot($snapshot, []);
@@ -125,7 +125,7 @@ final class PluginResourcePublisher
         $currentTargets = array_column(
             array_values(array_filter(
                 $this->repository->all(),
-                static fn (array $row): bool => ($row['plugin_name'] ?? '') === ($snapshot['plugin_name'] ?? '')
+                static fn (array $row): bool => ($row['plugin_code'] ?? '') === ($snapshot['plugin_code'] ?? '')
             )),
             'target_path'
         );
@@ -134,8 +134,8 @@ final class PluginResourcePublisher
 
     private function restoreSnapshot(array $snapshot, array $touchedTargets): void
     {
-        $pluginName = (string) ($snapshot['plugin_name'] ?? '');
-        $this->assertPluginName($pluginName);
+        $pluginCode = (string) ($snapshot['plugin_code'] ?? '');
+        $this->assertPluginCode($pluginCode);
         $roots = $this->roots();
         foreach (array_unique($touchedTargets) as $targetPath) {
             $this->deleteOwnedFile($roots, (string) $targetPath);
@@ -144,10 +144,10 @@ final class PluginResourcePublisher
             [$root, $relative] = $this->resolveRegistryPath($roots, (string) $targetPath);
             $this->write($this->safeTarget($root, $relative), (string) $contents);
         }
-        $this->repository->replaceForPlugin($pluginName, (array) ($snapshot['records'] ?? []));
+        $this->repository->replaceForPlugin($pluginCode, (array) ($snapshot['records'] ?? []));
     }
 
-    private function snapshot(string $pluginName, array $records, array $roots): array
+    private function snapshot(string $pluginCode, array $records, array $roots): array
     {
         $files = [];
         foreach ($records as $record) {
@@ -159,14 +159,14 @@ final class PluginResourcePublisher
             }
         }
         return [
-            'plugin_name' => $pluginName,
+            'plugin_code' => $pluginCode,
             'records' => $records,
             'files' => $files,
             'rebuildRequired' => true,
         ];
     }
 
-    private function assertAvailable(string $target, string $targetPath, string $pluginName, array $registry): void
+    private function assertAvailable(string $target, string $targetPath, string $pluginCode, array $registry): void
     {
         if (is_link($target)) {
             throw new RuntimeException('资源目标路径禁止符号链接：' . $targetPath);
@@ -175,7 +175,7 @@ final class PluginResourcePublisher
             if (($record['target_path'] ?? '') !== $targetPath) {
                 continue;
             }
-            if (($record['plugin_name'] ?? '') !== $pluginName) {
+            if (($record['plugin_code'] ?? '') !== $pluginCode) {
                 throw new RuntimeException('资源目标已属于其他插件：' . $targetPath);
             }
             return;
@@ -195,7 +195,7 @@ final class PluginResourcePublisher
         if (is_array($data['adminWeb'] ?? null)) {
             $publications[] = [
                 'source' => (string) ($data['adminWeb']['source'] ?? 'admin-web'),
-                'target' => 'src/modules/' . $manifest->name(),
+                'target' => 'src/modules/' . $manifest->code(),
                 'root' => $roots['admin-web'],
                 'type' => 'admin-web',
             ];
@@ -239,9 +239,9 @@ final class PluginResourcePublisher
         return rtrim($source, DIRECTORY_SEPARATOR);
     }
 
-    private function targetDirectory(string $root, string $pluginName, string $relative, string $type): string
+    private function targetDirectory(string $root, string $pluginCode, string $relative, string $type): string
     {
-        $prefix = $type === 'admin-web' ? 'src/modules/' . $pluginName : 'plugin-assets/' . $pluginName;
+        $prefix = $type === 'admin-web' ? 'src/modules/' . $pluginCode : 'plugin-assets/' . $pluginCode;
         if ($relative !== $prefix && !str_starts_with($relative, $prefix . '/')) {
             throw new RuntimeException('资源目标必须位于 ' . $prefix . '/');
         }
@@ -347,10 +347,10 @@ final class PluginResourcePublisher
         }
     }
 
-    private function assertPluginName(string $name): void
+    private function assertPluginCode(string $code): void
     {
-        if (preg_match('/^[a-z][a-z0-9]*$/', $name) !== 1) {
-            throw new RuntimeException('插件名称不合法');
+        if (preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {
+            throw new RuntimeException('插件标识不合法');
         }
     }
 }

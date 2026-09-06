@@ -4,7 +4,7 @@
       <el-steps :active="workbench.step" finish-status="success" align-center class="workbench-steps"><el-step v-for="item in workbench.steps" :key="item.index" :title="item.title" /></el-steps>
       <el-alert v-if="workbench.error" :title="workbench.error" type="error" show-icon closable class="mb-4" @close="workbench.error = ''" />
       <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :model="definition" :schema="schema" :inferring="inferring" />
-      <FieldsStep v-else-if="workbench.step === 1 && definition" :fields="definition.fields" />
+      <FieldsStep v-else-if="workbench.step === 1 && definition" :definition="definition" />
       <CapabilitiesPreviewStep v-else-if="workbench.step === 2 && definition" :model="definition" :preview="workbench.preview" :loading="loading" :invalidated="workbench.previewInvalidated" @refresh="refreshPreview" />
       <ConfirmResultStep v-else-if="workbench.step === 3 && workbench.preview" v-model:allow-overwrite="workbench.allowOverwrite" :preview="workbench.preview" :result="workbench.result" :conflicts="workbench.conflicts()" :can-overwrite="canOverwrite" />
       <div class="workbench-actions">
@@ -23,7 +23,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { crudDevelopmentApi } from '@/api/development/crud';
 import { useUserStore } from '@/store/modules/user';
 import type { CrudConnection, CrudDefinition, CrudTable } from '@/types/development/crud';
-import { createCrudDefinition, createCrudWorkbench, validateWorkbenchStep } from './workbench';
+import { createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, validateWorkbenchStep } from './workbench';
 import BasicsStep from './components/BasicsStep.vue';
 import CapabilitiesPreviewStep from './components/CapabilitiesPreviewStep.vue';
 import ConfirmResultStep from './components/ConfirmResultStep.vue';
@@ -41,18 +41,31 @@ const table = ref('');
 const definition = ref<CrudDefinition | null>(null);
 const schema = ref<Record<string, unknown> | null>(null);
 let definitionSnapshot = '';
+let previewRequestSnapshot = '';
 let inferSequence = 0;
+const tablesRequest = createLatestRequestGate();
+const previewRequest = createLatestRequestGate();
 const canOverwrite = computed(() => userStore.permissions.includes('development:crud:overwrite'));
 const hasBlocked = computed(() => workbench.preview?.plan.files.some((file) => file.status === 'blocked') || false);
 
 watch(connection, async (value) => {
   inferSequence += 1;
+  const request = tablesRequest.begin();
   table.value = '';
   definition.value = null;
   schema.value = null;
   workbench.definition = null;
   workbench.invalidatePreview();
-  tables.value = value ? await crudDevelopmentApi.tables(value) : [];
+  tables.value = [];
+  if (!value) return;
+  try {
+    const response = await crudDevelopmentApi.tables(value, request.signal);
+    tablesRequest.accept(request.sequence, () => {
+      if (connection.value === value) tables.value = response;
+    });
+  } catch (error) {
+    if (!request.signal.aborted && tablesRequest.isLatest(request.sequence)) workbench.fail(error instanceof Error ? error.message : '数据表加载失败');
+  }
 });
 watch(table, async (value) => {
   const sequence = ++inferSequence;
@@ -75,8 +88,16 @@ watch(table, async (value) => {
   }
 });
 watch(definition, (value) => {
-  const current = value ? JSON.stringify(value) : '';
-  if (definitionSnapshot && current !== definitionSnapshot) workbench.invalidatePreview();
+  const current = value ? snapshotCrudDefinition(value).serialized : '';
+  if (previewRequestSnapshot && current !== previewRequestSnapshot) {
+    previewRequest.invalidate();
+    previewRequestSnapshot = '';
+    loading.value = false;
+    workbench.invalidatePreview();
+    workbench.previewInvalidated = true;
+  } else if (definitionSnapshot && current !== definitionSnapshot) {
+    workbench.invalidatePreview();
+  }
 }, { deep: true, flush: 'sync' });
 
 const validationContext = () => ({ fields: definition.value?.fields, capabilities: definition.value?.capabilities, dataScope: definition.value?.dataScope });
@@ -97,17 +118,27 @@ const next = async () => {
 };
 const refreshPreview = async () => {
   if (!definition.value) return;
+  const snapshot = snapshotCrudDefinition(definition.value);
+  const request = previewRequest.begin();
+  previewRequestSnapshot = snapshot.serialized;
   workbench.error = '';
+  workbench.invalidatePreview();
   try {
     loading.value = true;
     requireValidStep();
-    await crudDevelopmentApi.validate(definition.value);
-    workbench.setPreview(await crudDevelopmentApi.preview(definition.value));
-    definitionSnapshot = JSON.stringify(definition.value);
+    await crudDevelopmentApi.validate(snapshot.definition, request.signal);
+    const preview = await crudDevelopmentApi.preview(snapshot.definition, request.signal);
+    const current = definition.value ? snapshotCrudDefinition(definition.value).serialized : '';
+    if (!previewRequest.isLatest(request.sequence) || current !== snapshot.serialized) return;
+    workbench.setPreview(preview, snapshot.serialized);
+    definitionSnapshot = snapshot.serialized;
   } catch (error) {
-    workbench.fail(error instanceof Error ? error.message : '预览失败');
+    if (!request.signal.aborted && previewRequest.isLatest(request.sequence)) workbench.fail(error instanceof Error ? error.message : '预览失败');
   } finally {
-    loading.value = false;
+    if (previewRequest.isLatest(request.sequence)) {
+      loading.value = false;
+      previewRequestSnapshot = '';
+    }
   }
 };
 const previous = () => {
@@ -142,12 +173,19 @@ const reset = () => {
   schema.value = null;
   table.value = '';
   definitionSnapshot = '';
+  previewRequestSnapshot = '';
+  previewRequest.invalidate();
 };
 onMounted(async () => {
   connections.value = await crudDevelopmentApi.connections();
   connection.value = connections.value[0]?.name || '';
 });
-onBeforeUnmount(workbench.clearSensitive);
+onBeforeUnmount(() => {
+  inferSequence += 1;
+  tablesRequest.invalidate();
+  previewRequest.invalidate();
+  workbench.clearSensitive();
+});
 </script>
 
 <style scoped>

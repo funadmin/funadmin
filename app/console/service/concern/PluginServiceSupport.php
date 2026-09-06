@@ -15,49 +15,49 @@ use RuntimeException;
 
 trait PluginServiceSupport
 {
-    private function assertName(string $name): void
+    private function assertCode(string $code): void
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
-            throw new RuntimeException('插件名称不合法');
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
+            throw new RuntimeException('插件标识不合法');
         }
     }
 
-    private function plugin(string $name): object
+    private function plugin(string $code): object
     {
-        $manifest = $this->validatedManifest($name);
+        $manifest = $this->validatedManifest($code);
         try {
             return (new \fun\plugins\RuntimeLoader())->instantiateEntry(
                 $manifest,
                 static fn (string $class): object => app()->make($class)
             );
         } catch (\Throwable $exception) {
-            throw new RuntimeException(sprintf('插件 %s 尚未就绪：%s', $name, $exception->getMessage()), 0, $exception);
+            throw new RuntimeException(sprintf('插件 %s 尚未就绪：%s', $code, $exception->getMessage()), 0, $exception);
         }
     }
 
-    private function validatedManifest(string $name): Manifest
+    private function validatedManifest(string $code): Manifest
     {
-        $manifest = Manifest::fromDirectory(Service::getPluginsNamePath($name));
+        $manifest = Manifest::fromDirectory(Service::getPluginCodePath($code));
         $this->assertDependencies($manifest);
         $manifests = $this->allManifests();
-        $manifests[$manifest->name()] = $manifest;
+        $manifests[$manifest->code()] = $manifest;
         $this->dependencyValidator()->assertAcyclic($manifests);
         return $manifest;
     }
 
-    private function packageContext(string $name): array
+    private function packageContext(string $code): array
     {
-        return $this->filterPluginColumns($this->packageContexts[$name] ?? []);
+        return $this->filterPluginColumns($this->packageContexts[$code] ?? []);
     }
 
-    private function recordStage(string $name, string $operation, string $stage, ?string $recoveryPath = null): void
+    private function recordStage(string $code, string $operation, string $stage, ?string $recoveryPath = null): void
     {
-        $context = $this->packageContexts[$name] ?? ['operation' => $operation];
-        $token = $this->activeOperationTokens[$name] ?? throw new RuntimeException('插件生命周期操作令牌不存在');
-        foreach (\fun\plugins\PluginOperationRecorder::stagesThrough($this->operationProgress[$name] ?? 0, $stage) as $candidate => $progress) {
-            $this->operationStages[$name] = $candidate;
-            $this->operationProgress[$name] = $progress;
-            $this->audit()->stage($name, $operation, $token, $candidate, $context, $candidate === $stage ? $recoveryPath : null);
+        $context = $this->packageContexts[$code] ?? ['operation' => $operation];
+        $token = $this->activeOperationTokens[$code] ?? throw new RuntimeException('插件生命周期操作令牌不存在');
+        foreach (\fun\plugins\PluginOperationRecorder::stagesThrough($this->operationProgress[$code] ?? 0, $stage) as $candidate => $progress) {
+            $this->operationStages[$code] = $candidate;
+            $this->operationProgress[$code] = $progress;
+            $this->audit()->stage($code, $operation, $token, $candidate, $context, $candidate === $stage ? $recoveryPath : null);
         }
     }
 
@@ -72,8 +72,8 @@ trait PluginServiceSupport
     {
         $data = $manifest->toArray();
         return [
+            'code' => $manifest->code(),
             'name' => $manifest->name(),
-            'title' => $manifest->title(),
             'version' => $manifest->version(),
             'code_version' => $manifest->version(),
             'needs_reinstall' => 0,
@@ -87,9 +87,9 @@ trait PluginServiceSupport
         $this->dependencyValidator()->assertSatisfied($manifest, $this->installedRecords());
     }
 
-    private function assertNoEnabledDependents(string $name): void
+    private function assertNoEnabledDependents(string $code): void
     {
-        $this->dependencyValidator()->assertNoEnabledDependents($name, $this->allManifests(), $this->installedRecords());
+        $this->dependencyValidator()->assertNoEnabledDependents($code, $this->allManifests(), $this->installedRecords());
     }
 
     private function dependencyValidator(): DependencyValidator
@@ -106,7 +106,7 @@ trait PluginServiceSupport
     {
         $records = [];
         foreach (Plugin::select() as $record) {
-            $records[(string) $record->name] = [
+            $records[(string) $record->code] = [
                 'version' => (string) $record->version,
                 'lifecycle_state' => (string) $record->lifecycle_state,
                 'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
@@ -115,24 +115,24 @@ trait PluginServiceSupport
         return $records;
     }
 
-    private function restorePublishedResources(string $name): void
+    private function restorePublishedResources(string $code): void
     {
-        $this->infrastructure()->publisher()->publish($this->validatedManifest($name));
+        $this->infrastructure()->publisher()->publish($this->validatedManifest($code));
     }
 
-    private function registerMenu(string $name): void
+    private function registerMenu(string $code): void
     {
-        $manifestData = $this->validatedManifest($name)->toArray();
+        $manifestData = $this->validatedManifest($code)->toArray();
         $this->infrastructure()->registerResources(
             (array) ($manifestData['adminWeb']['permissions'] ?? []),
             (array) ($manifestData['adminWeb']['menu'] ?? []),
-            $name
+            $code
         );
     }
 
-    private function migrate(string $name): array
+    private function migrate(string $code): array
     {
-        return $this->infrastructure()->migrate($this->validatedManifest($name));
+        return $this->infrastructure()->migrate($this->validatedManifest($code));
     }
 
     public function refreshRuntimeCache(): void
@@ -149,11 +149,11 @@ trait PluginServiceSupport
     {
         $records = $this->installedRecords();
         $enabled = [];
-        foreach ($this->allManifests() as $name => $manifest) {
-            $record = $records[$name] ?? null;
+        foreach ($this->allManifests() as $code => $manifest) {
+            $record = $records[$code] ?? null;
             if (is_array($record) && ($record['lifecycle_state'] ?? '') === 'enabled'
                 && (int) ($record['needs_reinstall'] ?? 0) === 0) {
-                $enabled[$name] = $manifest;
+                $enabled[$code] = $manifest;
             }
         }
         $this->runtimeCache()->rebuildOrInvalidate($enabled);

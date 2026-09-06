@@ -16,25 +16,25 @@ export async function syncPluginModules(
   router: Router,
   descriptors: EnabledPluginModule[],
   options: SyncOptions = {}
-): Promise<{ loaded: string[]; errors: Array<{ name: string; stage: PluginModuleErrorStage; message: string }> }> {
+): Promise<{ loaded: string[]; errors: Array<{ code: string; stage: PluginModuleErrorStage; message: string }> }> {
   const modules = options.modules ?? sourceModules;
-  const activeNames = new Set(descriptors.map((item) => item.name));
+  const activeCodes = new Set(descriptors.map((item) => item.code));
 
-  mounted.forEach((state, name) => {
-    if (activeNames.has(name)) return;
+  mounted.forEach((state, code) => {
+    if (activeCodes.has(code)) return;
     state.routeNames.forEach((routeName) => {
       if (router.hasRoute(routeName)) router.removeRoute(routeName);
     });
-    mounted.delete(name);
+    mounted.delete(code);
   });
 
   const loaded: string[] = [];
-  const errors: Array<{ name: string; stage: PluginModuleErrorStage; message: string }> = [];
+  const errors: Array<{ code: string; stage: PluginModuleErrorStage; message: string }> = [];
   for (const descriptor of descriptors) {
     const signature = `${descriptor.version}:${JSON.stringify(descriptor.components)}:${JSON.stringify(descriptor.routes)}`;
-    const previous = mounted.get(descriptor.name);
+    const previous = mounted.get(descriptor.code);
     if (previous?.signature === signature && previous.routeNames.every((routeName) => router.hasRoute(routeName))) {
-      loaded.push(descriptor.name);
+      loaded.push(descriptor.code);
       continue;
     }
 
@@ -45,14 +45,14 @@ export async function syncPluginModules(
       });
       const components = resolveComponents(descriptor, modules);
       stage = 'route';
-      const routes = descriptor.routes.map((route) => routeFromDto(route, components, descriptor.name));
+      const routes = descriptor.routes.map((route) => routeFromDto(route, components, descriptor.code));
       routes.forEach((route) => router.addRoute(route));
-      mounted.set(descriptor.name, { signature, routeNames: routes.map((route) => String(route.name)) });
-      loaded.push(descriptor.name);
+      mounted.set(descriptor.code, { signature, routeNames: routes.map((route) => String(route.name)) });
+      loaded.push(descriptor.code);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       mountErrorRoute(router, descriptor, stage, message);
-      errors.push({ name: descriptor.name, stage, message });
+      errors.push({ code: descriptor.code, stage, message });
     }
   }
   return { loaded, errors };
@@ -70,7 +70,7 @@ const resolveComponents = (
   modules: Record<string, Component>
 ): Record<string, Component> => Object.fromEntries(
   Object.entries(descriptor.components).map(([name, relativePath]) => {
-    const key = `../modules/${descriptor.name}/${relativePath}`;
+    const key = `../modules/${descriptor.code}/${relativePath}`;
     const component = modules[key];
     if (!component) throw new Error(`插件组件未包含在当前构建中：${name}`);
     return [name, component];
@@ -78,20 +78,20 @@ const resolveComponents = (
 );
 
 function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage: PluginModuleErrorStage, message: string): void {
-  const name = `Plugin_${descriptor.name}_Error`;
+  const name = `Plugin_${descriptor.code}_Error`;
   if (router.hasRoute(name)) router.removeRoute(name);
   router.addRoute({
-    path: `/plugin/${descriptor.name}/error`,
+    path: `/plugin/${descriptor.code}/error`,
     name,
     component: PluginModuleError,
-    props: { plugin: descriptor.name, stage, message },
-    meta: { title: `${descriptor.name} 插件错误` }
+    props: { plugin: descriptor.code, stage, message },
+    meta: { title: `${descriptor.code} 插件错误` }
   });
-  mounted.set(descriptor.name, { signature: `${descriptor.version}:error`, routeNames: [name] });
+  mounted.set(descriptor.code, { signature: `${descriptor.version}:error`, routeNames: [name] });
 }
 
-function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginName: string): RouteRecordRaw {
-  if (!dto.path.startsWith(`/plugin/${pluginName}/`) || !dto.name.startsWith(`Plugin_${pluginName}`)) {
+function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginCode: string): RouteRecordRaw {
+  if (!dto.path.startsWith(`/plugin/${pluginCode}/`) || !dto.name.startsWith(`Plugin_${pluginCode}`)) {
     throw new Error('插件路由 DTO 越界');
   }
   const component = components[dto.component];

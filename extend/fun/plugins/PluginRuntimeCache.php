@@ -30,13 +30,13 @@ final class PluginRuntimeCache
         try {
             $ordered = (new DependencyValidator('', PHP_VERSION))->topologicalSort($manifests);
             $payloads = array_fill_keys(self::APPLICATIONS, []);
-            foreach ($ordered as $name => $manifest) {
+            foreach ($ordered as $code => $manifest) {
                 $data = $manifest->toArray();
-                $payloads['console'][$name] = $data;
+                $payloads['console'][$code] = $data;
                 foreach (['api', 'frontend'] as $application) {
                     if (isset($data['load']['routes']) || isset($data['channels'][$application]['routes'])
                         || isset($data['load']['services']) || isset($data['load']['events'])) {
-                        $payloads[$application][$name] = $data;
+                        $payloads[$application][$code] = $data;
                     }
                 }
             }
@@ -65,12 +65,12 @@ final class PluginRuntimeCache
             throw new RuntimeException('插件运行时清单格式无效：' . $application);
         }
         $manifests = [];
-        foreach ($payload as $name => $data) {
-            if (!is_string($name) || !is_array($data)) {
+        foreach ($payload as $code => $data) {
+            if (!is_string($code) || !is_array($data)) {
                 throw new RuntimeException('插件运行时清单内容无效：' . $application);
             }
-            $directory = rtrim($this->pluginsPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name;
-            $manifests[$name] = Manifest::fromCompiled($directory, $data);
+            $directory = rtrim($this->pluginsPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $code;
+            $manifests[$code] = Manifest::fromCompiled($directory, $data);
         }
         return $manifests;
     }
@@ -112,8 +112,8 @@ final class PluginRuntimeCache
     private function dependencyClosure(array $selected, array $ordered): array
     {
         $include = array_fill_keys(array_keys($selected), true);
-        $visit = function (string $name) use (&$visit, &$include, $ordered): void {
-            $manifest = $ordered[$name] ?? null;
+        $visit = function (string $code) use (&$visit, &$include, $ordered): void {
+            $manifest = $ordered[$code] ?? null;
             if (!$manifest instanceof Manifest) {
                 return;
             }
@@ -124,13 +124,13 @@ final class PluginRuntimeCache
                 }
             }
         };
-        foreach (array_keys($selected) as $name) {
-            $visit((string) $name);
+        foreach (array_keys($selected) as $code) {
+            $visit((string) $code);
         }
         $payload = [];
-        foreach ($ordered as $name => $manifest) {
-            if (isset($include[$name])) {
-                $payload[$name] = $manifest->toArray();
+        foreach ($ordered as $code => $manifest) {
+            if (isset($include[$code])) {
+                $payload[$code] = $manifest->toArray();
             }
         }
         return $payload;

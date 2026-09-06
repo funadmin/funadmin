@@ -55,7 +55,7 @@ describe('M6 插件标准 Admin Web 契约', () => {
     const loader = readFileSync(resolve(root, 'admin-web/src/router/pluginModules.ts'), 'utf8');
     expect(loader).toContain('import.meta.glob');
     expect(loader).toContain("'../modules/**/*.{vue,tsx}'");
-    expect(loader).toContain('`../modules/${descriptor.name}/${relativePath}`');
+    expect(loader).toContain('`../modules/${descriptor.code}/${relativePath}`');
     expect(loader).not.toContain('@vite-ignore');
     expect(loader).not.toContain('entryUrl');
     expect(loader).not.toContain('/plugin-assets/');

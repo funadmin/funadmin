@@ -133,7 +133,7 @@ final class Data extends AdminApiController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         $action = (string) ($this->request->action(true) ?: '');
-        if ($action !== '' && !$this->authorization->nodeAccess('console/formdata:' . $action)) {
+        if ($action !== '' && !$this->authorization->nodeAccess('console/form.data:' . $action)) {
             return $this->fail(msg: '没有访问权限', code: 403);
         }
         try {

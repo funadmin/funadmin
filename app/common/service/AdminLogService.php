@@ -28,10 +28,10 @@ class AdminLogService extends AbstractService
         int $durationMs = 0,
         string $errorMessage = ''
     ): void {
-        $pluginName = trim((string) ($request->plugin ?? ''));
+        $pluginCode = trim((string) ($request->plugin ?? ''));
         $appName = trim((string) ($request->plugin_app_name ?? app('http')->getName()));
-        $sourceType = $pluginName === '' ? 'system' : 'plugin';
-        $sourceName = $pluginName === '' ? 'core' : $pluginName;
+        $sourceType = $pluginCode === '' ? 'system' : 'plugin';
+        $sourceName = $pluginCode === '' ? 'core' : $pluginCode;
         $controller = (string) $request->controller(true);
         $action = (string) ($request->action() ?: 'index');
         $url = str_replace('.' . config('view.view_suffix'), '', $request->pathinfo());

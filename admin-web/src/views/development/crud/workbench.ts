@@ -1,7 +1,109 @@
 import { reactive } from 'vue';
-import type { CrudCapabilities, CrudDefinition, CrudField, CrudGeneration, CrudPreview } from '@/types/development/crud';
+import type { CrudCapabilities, CrudDefinition, CrudField, CrudGeneration, CrudOption, CrudOptionsSource, CrudPreview, CrudRelation } from '@/types/development/crud';
 
 export const CRUD_STEPS = ['数据与模块', '字段设计', '功能与预览', '确认与结果'].map((title, index) => ({ index, title }));
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((result, key) => {
+      result[key] = stableValue((value as Record<string, unknown>)[key]);
+      return result;
+    }, {});
+  }
+  return value;
+}
+
+export function snapshotCrudDefinition(definition: CrudDefinition): { definition: CrudDefinition; serialized: string } {
+  const serialized = JSON.stringify(stableValue(definition));
+  return { definition: JSON.parse(serialized) as CrudDefinition, serialized };
+}
+
+export function createLatestRequestGate() {
+  let sequence = 0;
+  let controller: AbortController | null = null;
+  return {
+    begin() {
+      controller?.abort();
+      controller = new AbortController();
+      return { sequence: ++sequence, signal: controller.signal };
+    },
+    isLatest(value: number) { return value === sequence; },
+    accept(value: number, apply: () => void): boolean {
+      if (value !== sequence) return false;
+      apply();
+      return true;
+    },
+    invalidate() {
+      sequence += 1;
+      controller?.abort();
+      controller = null;
+    }
+  };
+}
+
+type FieldDataConfiguration =
+  | { kind: 'none' }
+  | { kind: 'static'; options: CrudOption[] }
+  | { kind: 'dictionary' | 'endpoint'; source: CrudOptionsSource }
+  | { kind: 'model'; source: CrudOptionsSource; relation: Omit<CrudRelation, 'field' | 'optionsSource'> };
+
+function configurationsEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
+}
+
+export function applyFieldDataConfiguration(definition: CrudDefinition, fieldName: string, configuration: FieldDataConfiguration): void {
+  const field = definition.fields.find((item) => item.name === fieldName);
+  if (!field) throw new Error(`字段不存在：${fieldName}`);
+
+  const source = configuration.kind === 'dictionary' || configuration.kind === 'endpoint' || configuration.kind === 'model'
+    ? configuration.source
+    : null;
+  if (source) {
+    const existingSource = definition.optionsSource.find((item) => item.name === source.name);
+    const usedByOtherField = definition.fields.some((item) => item !== field && item.optionsSource === source.name)
+      || definition.relations.some((relation) => relation.field !== fieldName && relation.optionsSource === source.name);
+    if (existingSource && usedByOtherField && !configurationsEqual(existingSource, source)) {
+      throw new Error(`数据源名称“${source.name}”已被其他字段使用且配置不同，请使用新名称`);
+    }
+  }
+
+  if (configuration.kind === 'model') {
+    const conflictingRelation = definition.relations.find((relation) => relation.name === configuration.relation.name && relation.field !== fieldName);
+    if (conflictingRelation) {
+      throw new Error(`关系名称“${configuration.relation.name}”已绑定字段“${conflictingRelation.field}”，请使用新名称`);
+    }
+  }
+
+  delete field.options;
+  delete field.optionsSource;
+  delete field.relation;
+  delete field.references;
+
+  if (configuration.kind === 'static') field.options = configuration.options;
+  if (source) {
+    field.optionsSource = source.name;
+    const sourceIndex = definition.optionsSource.findIndex((item) => item.name === source.name);
+    if (sourceIndex === -1) definition.optionsSource.push(source);
+    else if (!configurationsEqual(definition.optionsSource[sourceIndex], source)) definition.optionsSource[sourceIndex] = source;
+  }
+  if (configuration.kind === 'model') {
+    field.relation = configuration.relation.name;
+    field.references = `${configuration.relation.target}.${configuration.relation.targetField}`;
+    definition.relations = definition.relations.filter((relation) => relation.field !== fieldName);
+    definition.relations.push({ ...configuration.relation, field: fieldName, optionsSource: configuration.source.name });
+  } else {
+    definition.relations = definition.relations.filter((relation) => relation.field !== fieldName);
+  }
+
+  const relationNames = new Set(definition.fields.map((item) => item.relation).filter(Boolean));
+  definition.relations = definition.relations.filter((relation) => relationNames.has(relation.name));
+  const sourceNames = new Set([
+    ...definition.fields.map((item) => item.optionsSource),
+    ...definition.relations.map((relation) => relation.optionsSource)
+  ].filter(Boolean));
+  definition.optionsSource = definition.optionsSource.filter((item) => sourceNames.has(item.name));
+}
 
 export interface WorkbenchValidationContext {
   fields?: CrudField[];
@@ -51,8 +153,10 @@ export function createCrudWorkbench() {
     allowOverwrite: [] as string[],
     error: '',
     previewInvalidated: false,
-    setPreview(value: CrudPreview) {
+    previewSnapshot: '',
+    setPreview(value: CrudPreview, snapshot = '') {
       this.preview = value;
+      this.previewSnapshot = snapshot;
       this.confirmToken = value.sensitive?.confirmToken || '';
       this.allowOverwrite.splice(0);
       this.previewInvalidated = false;
@@ -71,6 +175,7 @@ export function createCrudWorkbench() {
     invalidatePreview() {
       const hadPreview = this.preview !== null || this.confirmToken !== '';
       this.preview = null;
+      this.previewSnapshot = '';
       this.clearSensitive();
       if (hadPreview) this.previewInvalidated = true;
     },

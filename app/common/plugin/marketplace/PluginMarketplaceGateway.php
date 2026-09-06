@@ -33,15 +33,15 @@ interface PluginMarketplaceGateway
 
     public function search(MarketplaceSearchRequestDto $request): MarketplaceSearchResultDto;
 
-    public function detail(string $name): PluginDetailDto;
+    public function detail(string $code): PluginDetailDto;
 
     /** @return list<PluginVersionDto> */
-    public function versions(string $name): array;
+    public function versions(string $code): array;
 
     /** @param array<string, string> $installed @return list<UpdateCheckDto> */
     public function checkUpdates(array $installed): array;
 
-    public function authorize(string $name, string $version): AuthorizationDto;
+    public function authorize(string $code, string $version): AuthorizationDto;
 
-    public function download(string $name, string $version): DownloadDescriptorDto;
+    public function download(string $code, string $version): DownloadDescriptorDto;
 }

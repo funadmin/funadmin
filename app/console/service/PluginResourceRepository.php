@@ -8,5 +8,5 @@ interface PluginResourceRepository
 {
     public function all(): array;
 
-    public function replaceForPlugin(string $pluginName, array $records): void;
+    public function replaceForPlugin(string $pluginCode, array $records): void;
 }

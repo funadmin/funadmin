@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="detail?.title || '市场详情'" size="620px">
+  <el-drawer v-model="visible" :title="detail?.name || '市场详情'" size="620px">
     <div v-loading="loading">
       <p class="text-sm text-gray-500">{{ detail?.description }}</p>
       <el-table :data="detail?.versions || []" class="mt-4">
@@ -16,9 +16,9 @@
 import { ref, watch } from 'vue';
 import { pluginApi, type MarketplacePlugin } from '@/api/plugin';
 const visible = defineModel<boolean>({ default: false });
-const props = defineProps<{ name: string }>();
+const props = defineProps<{ code: string }>();
 const emit = defineEmits<{ install: [version: string] }>();
 const detail = ref<MarketplacePlugin | null>(null);
 const loading = ref(false);
-watch(visible, async (open) => { if (!open || !props.name) return; loading.value = true; try { detail.value = await pluginApi.marketDetail(props.name); detail.value.versions = await pluginApi.marketVersions(props.name); } finally { loading.value = false; } });
+watch(visible, async (open) => { if (!open || !props.code) return; loading.value = true; try { detail.value = await pluginApi.marketDetail(props.code); detail.value.versions = await pluginApi.marketVersions(props.code); } finally { loading.value = false; } });
 </script>

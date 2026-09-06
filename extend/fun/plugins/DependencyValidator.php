@@ -27,17 +27,17 @@ final class DependencyValidator
         if ($funadmin !== null && !$this->matches($this->funadminVersion, $funadmin)) {
             throw new RuntimeException("FunAdmin {$this->funadminVersion} 不满足 {$funadmin}");
         }
-        foreach ($manifest->dependencies() as $name => $constraint) {
-            $dependency = $installed[$name] ?? null;
+        foreach ($manifest->dependencies() as $code => $constraint) {
+            $dependency = $installed[$code] ?? null;
             if (!is_array($dependency)) {
-                throw new RuntimeException('依赖插件未安装：' . $name);
+                throw new RuntimeException('依赖插件未安装：' . $code);
             }
             if (($dependency['lifecycle_state'] ?? '') !== 'enabled') {
-                throw new RuntimeException('依赖插件未启用：' . $name);
+                throw new RuntimeException('依赖插件未启用：' . $code);
             }
             $version = (string) ($dependency['version'] ?? '');
             if (!$this->matches($version, $constraint)) {
-                throw new RuntimeException("依赖插件 {$name} 版本不满足 {$constraint}，当前 {$version}");
+                throw new RuntimeException("依赖插件 {$code} 版本不满足 {$constraint}，当前 {$version}");
             }
         }
     }
@@ -58,37 +58,37 @@ final class DependencyValidator
         $visiting = [];
         $visited = [];
         $sorted = [];
-        $visit = function (string $name) use (&$visit, &$visiting, &$visited, &$sorted, $manifests): void {
-            if (isset($visiting[$name])) {
-                throw new RuntimeException('检测到插件循环依赖：' . $name);
+        $visit = function (string $code) use (&$visit, &$visiting, &$visited, &$sorted, $manifests): void {
+            if (isset($visiting[$code])) {
+                throw new RuntimeException('检测到插件循环依赖：' . $code);
             }
-            if (isset($visited[$name]) || !isset($manifests[$name])) {
+            if (isset($visited[$code]) || !isset($manifests[$code])) {
                 return;
             }
-            $visiting[$name] = true;
-            $dependencies = array_keys($manifests[$name]->dependencies());
+            $visiting[$code] = true;
+            $dependencies = array_keys($manifests[$code]->dependencies());
             sort($dependencies);
             foreach ($dependencies as $dependency) {
                 $visit((string) $dependency);
             }
-            unset($visiting[$name]);
-            $visited[$name] = true;
-            $sorted[$name] = $manifests[$name];
+            unset($visiting[$code]);
+            $visited[$code] = true;
+            $sorted[$code] = $manifests[$code];
         };
-        foreach (array_keys($manifests) as $name) {
-            $visit((string) $name);
+        foreach (array_keys($manifests) as $code) {
+            $visit((string) $code);
         }
         return $sorted;
     }
 
-    public function assertNoEnabledDependents(string $name, array $manifests, array $installed): void
+    public function assertNoEnabledDependents(string $code, array $manifests, array $installed): void
     {
         foreach ($manifests as $dependent => $manifest) {
-            if ($dependent === $name || ($installed[$dependent]['lifecycle_state'] ?? '') !== 'enabled') {
+            if ($dependent === $code || ($installed[$dependent]['lifecycle_state'] ?? '') !== 'enabled') {
                 continue;
             }
-            if (array_key_exists($name, $manifest->dependencies())) {
-                throw new RuntimeException("存在已启用的反向依赖：{$dependent} -> {$name}");
+            if (array_key_exists($code, $manifest->dependencies())) {
+                throw new RuntimeException("存在已启用的反向依赖：{$dependent} -> {$code}");
             }
         }
     }

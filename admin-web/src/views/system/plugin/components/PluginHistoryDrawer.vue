@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="`${name} 历史与恢复`" size="760px">
+  <el-drawer v-model="visible" :title="`${code} 历史与恢复`" size="760px">
     <el-alert
       v-if="recovery"
       class="mb-4"
@@ -20,7 +20,7 @@
           <a
             v-if="row.downloadable"
             class="mr-3 text-primary"
-            :href="pluginApi.historyDownloadUrl(name, row.id)"
+            :href="pluginApi.historyDownloadUrl(code, row.id)"
             v-perm="'system:plugin:history-download'"
           >下载</a>
           <el-button
@@ -56,7 +56,7 @@ import { ElMessageBox } from 'element-plus';
 import { pluginApi, type PluginOperation, type PluginRecoveryInfo, type PluginVersionHistory } from '@/api/plugin';
 
 const visible = defineModel<boolean>({ default: false });
-const props = defineProps<{ name: string; redeployDisabledReason?: string }>();
+const props = defineProps<{ code: string; redeployDisabledReason?: string }>();
 const operations = ref<PluginOperation[]>([]);
 const versions = ref<PluginVersionHistory[]>([]);
 const recovery = ref<PluginRecoveryInfo | null>(null);
@@ -64,13 +64,13 @@ const loading = ref(false);
 const redeploying = ref<number | null>(null);
 
 async function load() {
-  if (!props.name) return;
+  if (!props.code) return;
   loading.value = true;
   try {
     [operations.value, versions.value, recovery.value] = await Promise.all([
-      pluginApi.operations(props.name),
-      pluginApi.history(props.name),
-      pluginApi.recoveryInfo(props.name)
+      pluginApi.operations(props.code),
+      pluginApi.history(props.code),
+      pluginApi.recoveryInfo(props.code)
     ]);
   } finally {
     loading.value = false;
@@ -80,14 +80,14 @@ async function load() {
 async function redeploy(row: PluginVersionHistory) {
   if (props.redeployDisabledReason) return;
   try {
-    await ElMessageBox.confirm(`确认将插件 ${props.name} 重部署为历史版本 ${row.version} 吗？数据库不会自动降级。`, '历史版本重部署');
+    await ElMessageBox.confirm(`确认将插件 ${props.code} 重部署为历史版本 ${row.version} 吗？数据库不会自动降级。`, '历史版本重部署');
   } catch (reason) {
     if (reason === 'cancel' || reason === 'close') return;
     throw reason;
   }
   redeploying.value = row.id;
   try {
-    await pluginApi.redeployHistory(props.name, row.id, false);
+    await pluginApi.redeployHistory(props.code, row.id, false);
     await load();
   } finally {
     redeploying.value = null;

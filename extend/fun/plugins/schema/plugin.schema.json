@@ -4,7 +4,7 @@
   "title": "FunAdmin Plugin Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "name", "title", "version", "requires", "entry"],
+  "required": ["schema_version", "code", "name", "version", "requires", "entry"],
   "$defs": {
     "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*(?:^|/)\\.(?:/|$))[A-Za-z0-9._/-]+$" },
     "phpPath": { "allOf": [{ "$ref": "#/$defs/path" }, { "pattern": "\\.php$" }] },
@@ -19,8 +19,8 @@
   },
   "properties": {
     "schema_version": { "const": 1 },
-    "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" },
-    "title": { "type": "string", "minLength": 1, "maxLength": 250 },
+    "code": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 250 },
     "description": { "type": "string" },
     "author": { "type": "string", "maxLength": 100 },
     "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$" },

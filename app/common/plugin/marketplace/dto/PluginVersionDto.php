@@ -8,7 +8,7 @@ final class PluginVersionDto
 {
     public function __construct(
         public readonly int $id,
-        public readonly string $pluginName,
+        public readonly string $pluginCode,
         public readonly string $version,
         public readonly string $changelog = '',
         public readonly bool $compatible = true,
@@ -20,7 +20,7 @@ final class PluginVersionDto
         public readonly ?string $signatureAlgorithm = null,
         public readonly int $size = 0
     ) {
-        MarketplaceDtoValidator::pluginName($pluginName);
+        MarketplaceDtoValidator::pluginCode($pluginCode);
         MarketplaceDtoValidator::version($version);
         if ($sha256 !== '' && !preg_match('/^[a-f0-9]{64}$/i', $sha256)) {
             throw new \InvalidArgumentException('版本制品 SHA-256 无效');

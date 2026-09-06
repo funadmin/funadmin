@@ -48,20 +48,20 @@ final class Manifest
     public static function fromCompiled(string $directory, array $data): self
     {
         $directory = rtrim($directory, DIRECTORY_SEPARATOR);
-        if (($data['name'] ?? '') === '' || basename($directory) !== $data['name']) {
+        if (($data['code'] ?? '') === '' || basename($directory) !== $data['code']) {
             throw new RuntimeException('插件运行时快照与目录不一致');
         }
         return new self($directory, $data);
     }
 
+    public function code(): string
+    {
+        return $this->data['code'];
+    }
+
     public function name(): string
     {
         return $this->data['name'];
-    }
-
-    public function title(): string
-    {
-        return $this->data['title'];
     }
 
     public function version(): string
@@ -100,10 +100,10 @@ final class Manifest
     {
         $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
         JsonSchemaValidator::fromFile($schema)->validate($data);
-        if (basename($directory) !== $data['name']) {
-            throw new RuntimeException('插件目录名与 plugin.json name 不一致');
+        if (basename($directory) !== $data['code']) {
+            throw new RuntimeException('插件目录名与 plugin.json code 不一致');
         }
-        $expectedClass = 'plugins\\' . $data['name'] . '\\Plugin';
+        $expectedClass = 'plugins\\' . $data['code'] . '\\Plugin';
         if (($data['entry']['class'] ?? '') !== $expectedClass) {
             throw new RuntimeException('plugin.json entry namespace 必须是 ' . $expectedClass);
         }
@@ -118,8 +118,8 @@ final class Manifest
             }
         }
         $source = (string) file_get_contents($entryFile);
-        if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['name']) {
-            throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['name']);
+        if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['code']) {
+            throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['code']);
         }
         if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
@@ -157,12 +157,12 @@ final class Manifest
                 throw new RuntimeException('plugin.json adminWeb.routes.component 必须在 adminWeb.components 中声明：' . $component);
             }
         }
-        $name = (string) $data['name'];
+        $pluginCode = (string) $data['code'];
         $declared = [];
         foreach ((array) ($adminWeb['permissions'] ?? []) as $permission) {
             $code = (string) ($permission['code'] ?? '');
-            if (preg_match('/^' . preg_quote($name, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
-                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须属于插件命名空间并使用 name:resource:action 格式：' . $code);
+            if (preg_match('/^' . preg_quote($pluginCode, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
+                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须属于插件命名空间并使用 code:resource:action 格式：' . $code);
             }
             $declared[$code] = true;
         }

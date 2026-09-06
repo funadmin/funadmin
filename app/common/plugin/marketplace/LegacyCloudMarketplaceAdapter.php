@@ -102,15 +102,15 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
         return new MarketplaceSearchResultDto($items, (int) ($data['total'] ?? $data['count'] ?? count($items)), $request->page, $request->limit);
     }
 
-    public function detail(string $name): PluginDetailDto
+    public function detail(string $code): PluginDetailDto
     {
-        return $this->detailDto($this->call('/api/v2.plugins/detail', ['name' => $name], $this->token()));
+        return $this->detailDto($this->call('/api/v2.plugins/detail', ['name' => $code], $this->token()));
     }
 
-    public function versions(string $name): array
+    public function versions(string $code): array
     {
-        $data = $this->call('/api/v2.plugins/versionList', ['name' => $name], $this->token());
-        return array_map(fn (array $item): PluginVersionDto => $this->versionDto($item, $name), $data['list'] ?? $data);
+        $data = $this->call('/api/v2.plugins/versionList', ['name' => $code], $this->token());
+        return array_map(fn (array $item): PluginVersionDto => $this->versionDto($item, $code), $data['list'] ?? $data);
     }
 
     public function checkUpdates(array $installed): array
@@ -124,22 +124,22 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
         ), $data['list'] ?? $data);
     }
 
-    public function authorize(string $name, string $version): AuthorizationDto
+    public function authorize(string $code, string $version): AuthorizationDto
     {
-        $data = $this->call('/api/v2.plugins/auth', ['name' => $name, 'version' => $version], $this->token());
-        return new AuthorizationDto($name, $version, (bool) ($data['authorized'] ?? $data['auth'] ?? false), (string) ($data['message'] ?? $data['msg'] ?? ''));
+        $data = $this->call('/api/v2.plugins/auth', ['name' => $code, 'version' => $version], $this->token());
+        return new AuthorizationDto($code, $version, (bool) ($data['authorized'] ?? $data['auth'] ?? false), (string) ($data['message'] ?? $data['msg'] ?? ''));
     }
 
-    public function download(string $name, string $version): DownloadDescriptorDto
+    public function download(string $code, string $version): DownloadDescriptorDto
     {
-        $data = $this->call('/api/v2.plugins/down', ['name' => $name, 'version' => $version], $this->token());
+        $data = $this->call('/api/v2.plugins/down', ['name' => $code, 'version' => $version], $this->token());
         $descriptorVersion = (string) ($data['version'] ?? '');
         if ($descriptorVersion === '' || $descriptorVersion !== $version) {
             throw new MarketplaceException('云下载描述版本与请求版本不一致');
         }
         return new DownloadDescriptorDto(
             (string) ($data['url'] ?? $data['file_url'] ?? ''),
-            $name,
+            $code,
             $descriptorVersion,
             strtolower((string) ($data['sha256'] ?? $data['hash'] ?? '')),
             isset($data['signature']) ? (string) $data['signature'] : null,
@@ -181,12 +181,12 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 
     private function detailDto(array $item): PluginDetailDto
     {
-        $name = (string) ($item['name'] ?? $item['plugin_name'] ?? '');
-        $versions = array_map(fn (array $version): PluginVersionDto => $this->versionDto($version, $name), $item['versions'] ?? []);
-        return new PluginDetailDto((int) ($item['id'] ?? $item['plugins_id'] ?? 0), $name, (string) ($item['title'] ?? $name), (string) ($item['description'] ?? ''), (string) ($item['author'] ?? ''), $versions);
+        $code = (string) ($item['name'] ?? $item['plugin_name'] ?? '');
+        $versions = array_map(fn (array $version): PluginVersionDto => $this->versionDto($version, $code), $item['versions'] ?? []);
+        return new PluginDetailDto((int) ($item['id'] ?? $item['plugins_id'] ?? 0), $code, (string) ($item['title'] ?? $code), (string) ($item['description'] ?? ''), (string) ($item['author'] ?? ''), $versions);
     }
 
-    private function versionDto(array $item, string $name): PluginVersionDto
+    private function versionDto(array $item, string $code): PluginVersionDto
     {
         $requires = $item['requires'] ?? [];
         if (is_string($requires)) {
@@ -195,7 +195,7 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
         }
         return new PluginVersionDto(
             (int) ($item['id'] ?? $item['version_id'] ?? 0),
-            $name,
+            $code,
             (string) ($item['version'] ?? ''),
             (string) ($item['changelog'] ?? $item['content'] ?? ''),
             (bool) ($item['compatible'] ?? true),

@@ -4,7 +4,7 @@ import { syncPluginModules } from '@/router/pluginModules';
 
 export interface PluginModuleSyncResult {
   loaded: string[];
-  errors: Array<{ name: string; message: string }>;
+  errors: Array<{ code: string; message: string }>;
 }
 
 export async function loadPluginModulesSafely(
@@ -14,7 +14,7 @@ export async function loadPluginModulesSafely(
 ): Promise<PluginModuleSyncResult> {
   try {
     const result = await syncPluginModules(router, await fetchModules());
-    result.errors.forEach((error) => reportError(`[plugin:${error.name}] ${error.message}`));
+    result.errors.forEach((error) => reportError(`[plugin:${error.code}] ${error.message}`));
     return result;
   } catch (error) {
     reportError(error);

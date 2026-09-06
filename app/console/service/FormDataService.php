@@ -151,6 +151,9 @@ final class FormDataService
             if ($table === '' || $label === '' || $value === '') {
                 throw new InvalidArgumentException('关联选项源配置不完整');
             }
+            $this->assertIdentifier($table, '关联选项表');
+            $this->assertIdentifier($label, '关联选项显示字段');
+            $this->assertIdentifier($value, '关联选项值字段');
             return Db::connect((string) $this->form($key)->connection)->table($table)
                 ->field($value . ' as value,' . $label . ' as label')
                 ->limit(200)
@@ -190,7 +193,9 @@ final class FormDataService
             } elseif ($type === 'switch') {
                 $parts[] = 'in:0,1';
             } elseif ($type === 'date' || preg_match('/^(date|datetime)/', $columnType)) {
-                $parts[] = 'dateFormat:Y-m-d H:i:s|dateFormat:Y-m-d';
+                $parts[] = str_starts_with($columnType, 'datetime')
+                    ? 'dateFormat:Y-m-d H:i:s'
+                    : 'dateFormat:Y-m-d';
             }
             $extra = is_array($field['validate_rules'] ?? null) ? $field['validate_rules'] : [];
             if (isset($extra['minlen'], $extra['maxlen'])) {
@@ -253,8 +258,18 @@ final class FormDataService
     private function baseQuery(Form $form, $fields)
     {
         $table = (string) $form->table_name;
+        $this->assertIdentifier($table, '绑定表');
         $columns = array_keys(Db::connect((string) $form->connection)->getFields($table));
-        $query = Db::connect((string) $form->connection)->table($table);
+        $readable = array_values(array_intersect(['id', 'created_at', 'updated_at'], $columns));
+        foreach ($fields as $field) {
+            $name = (string) $field->field_name;
+            $this->assertIdentifier($name, '表单字段');
+            if (in_array($name, $columns, true)) {
+                $readable[] = $name;
+            }
+        }
+        $select = array_map(static fn (string $column): string => $table . '.' . $column, array_values(array_unique($readable)));
+        $query = Db::connect((string) $form->connection)->table($table)->field($select);
         if (in_array('deleted_at', $columns, true)) {
             $query->whereNull($table . '.deleted_at');
         }
@@ -269,6 +284,9 @@ final class FormDataService
             if ($relationTable === '' || $label === '' || $value === '') {
                 continue;
             }
+            $this->assertIdentifier($relationTable, '关联表');
+            $this->assertIdentifier($label, '关联显示字段');
+            $this->assertIdentifier($value, '关联值字段');
             $alias = 'rel_' . $aliasIndex;
             $aliasIndex++;
             $query->leftJoin($relationTable . ' ' . $alias, $alias . '.' . $value . ' = ' . $table . '.' . $field->field_name);
@@ -295,9 +313,25 @@ final class FormDataService
         if ($childTable === '' || $foreignKey === '') {
             return ['list' => [], 'total' => 0];
         }
-        $query = Db::table($childTable)->where($foreignKey, $id);
+        $this->assertIdentifier($childTable, '子表');
+        $this->assertIdentifier($foreignKey, '子表外键字段');
+        $columns = array_keys(Db::getFields($childTable));
+        $readable = array_values(array_intersect(['id', $foreignKey, 'created_at', 'updated_at'], $columns));
+        $childForm = Form::where('table_name', $childTable)->where('status', 1)->find();
+        if ($childForm) {
+            $configured = FormField::where('form_id', (int) $childForm->id)->column('field_name');
+            $readable = array_values(array_unique(array_merge($readable, array_intersect($configured, $columns))));
+        }
+        $query = Db::table($childTable)->field($readable)->where($foreignKey, $id);
         $total = (clone $query)->count();
         return ['list' => $query->page($page, $pageSize)->select()->toArray(), 'total' => (int) $total];
+    }
+
+    private function assertIdentifier(string $identifier, string $label): void
+    {
+        if (!preg_match('/^[a-z_][a-z0-9_]*$/', $identifier)) {
+            throw new InvalidArgumentException($label . '不合法');
+        }
     }
 
     private function assertValid($fields, array $data, bool $isUpdate): void

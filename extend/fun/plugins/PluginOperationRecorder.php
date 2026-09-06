@@ -36,13 +36,13 @@ final class PluginOperationRecorder
         );
     }
 
-    public function start(string $name, string $operation, string $token, array $context = []): void
+    public function start(string $code, string $operation, string $token, array $context = []): void
     {
         if ($token === '' || isset($this->operations[$token])) {
             throw new RuntimeException('插件生命周期操作令牌无效或重复');
         }
         $this->operations[$token] = [
-            'plugin_name' => $name,
+            'plugin_code' => $code,
             'operation' => $operation,
             'operation_token' => $token,
             'context' => $context,
@@ -63,7 +63,7 @@ final class PluginOperationRecorder
         $this->operations[$token]['progress'] = $progress;
         ($this->persistOperation)($this->row($operation, $stage, $progress, $stage === 'complete' ? 'success' : 'running', null, $recoveryPath));
         if ($stage === 'complete') {
-            ($this->updatePlugin)($operation['plugin_name'], [
+            ($this->updatePlugin)($operation['plugin_code'], [
                 'last_error' => null,
                 'error_stage' => null,
                 'recovery_path' => null,
@@ -76,7 +76,7 @@ final class PluginOperationRecorder
         $operation = $this->operation($token);
         $progress = (int) $operation['progress'];
         ($this->persistOperation)($this->row($operation, $stage, $progress, 'failed', $exception->getMessage(), $recoveryPath));
-        ($this->updatePlugin)($operation['plugin_name'], [
+        ($this->updatePlugin)($operation['plugin_code'], [
             'status' => 0,
             'last_error' => substr($exception->getMessage(), 0, 2000),
             'error_stage' => $stage,
@@ -96,7 +96,7 @@ final class PluginOperationRecorder
     {
         $context = (array) $operation['context'];
         return [
-            'plugin_name' => $operation['plugin_name'],
+            'plugin_code' => $operation['plugin_code'],
             'operation' => $operation['operation'],
             'operation_token' => $operation['operation_token'],
             'stage' => $stage,

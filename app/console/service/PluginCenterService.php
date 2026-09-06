@@ -20,10 +20,10 @@ final class PluginCenterService extends AbstractService
 {
     public function discovered(): array
     {
-        $installed = array_fill_keys(Plugin::column('name'), true);
+        $installed = array_fill_keys(Plugin::column('code'), true);
         $items = [];
-        foreach ($this->manifests() as $name => $manifest) {
-            if (!isset($installed[$name])) {
+        foreach ($this->manifests() as $code => $manifest) {
+            if (!isset($installed[$code])) {
                 $items[] = $this->manifestData($manifest, null, 'local');
             }
         }
@@ -35,30 +35,30 @@ final class PluginCenterService extends AbstractService
         $manifests = $this->manifests();
         $items = [];
         foreach (Plugin::order('id', 'desc')->select() as $record) {
-            $name = (string) $record->name;
-            $items[] = $this->manifestData($manifests[$name] ?? null, $record, 'installed');
+            $code = (string) $record->code;
+            $items[] = $this->manifestData($manifests[$code] ?? null, $record, 'installed');
         }
         return $items;
     }
 
-    public function detail(string $name): array
+    public function detail(string $code): array
     {
-        $this->assertName($name);
-        $record = Plugin::where('name', $name)->find();
-        $manifest = $this->manifests()[$name] ?? null;
+        $this->assertCode($code);
+        $record = Plugin::where('code', $code)->find();
+        $manifest = $this->manifests()[$code] ?? null;
         if (!$record && !$manifest) {
             throw new RuntimeException('插件不存在');
         }
         return $this->manifestData($manifest, $record, $record ? 'installed' : 'local');
     }
 
-    public function deletePackage(string $name): void
+    public function deletePackage(string $code): void
     {
-        $this->assertName($name);
-        if (Plugin::where('name', $name)->find()) {
+        $this->assertCode($code);
+        if (Plugin::where('code', $code)->find()) {
             throw new RuntimeException('请先卸载插件再删除本地包');
         }
-        $directory = root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $name;
+        $directory = root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code;
         if (!is_dir($directory)) {
             throw new RuntimeException('本地插件包不存在');
         }
@@ -82,8 +82,8 @@ final class PluginCenterService extends AbstractService
         $manifests = $this->manifests();
         $modules = [];
         foreach (Plugin::where('lifecycle_state', 'enabled')->where('needs_reinstall', 0)->select() as $record) {
-            $name = (string) $record->name;
-            $manifest = $manifests[$name] ?? null;
+            $code = (string) $record->code;
+            $manifest = $manifests[$code] ?? null;
             if (!$manifest) {
                 continue;
             }
@@ -92,18 +92,18 @@ final class PluginCenterService extends AbstractService
                 continue;
             }
             $modules[] = [
-                'name' => $name,
+                'code' => $code,
                 'version' => (string) $record->version,
                 'components' => $adminWeb['components'],
-                'routes' => $this->routeDtos($adminWeb['routes'] ?? [], $name),
+                'routes' => $this->routeDtos($adminWeb['routes'] ?? [], $code),
             ];
         }
         return $modules;
     }
 
-    public function get(string $name): array
+    public function get(string $code): array
     {
-        $config = $this->loadSchema($name);
+        $config = $this->loadSchema($code);
         foreach ($config as &$definition) {
             if (is_array($definition) && ($definition['type'] ?? '') === 'password') {
                 $definition['value'] = '';
@@ -113,18 +113,18 @@ final class PluginCenterService extends AbstractService
         return $config;
     }
 
-    public function save(string $name, array $values): bool
+    public function save(string $code, array $values): bool
     {
-        $this->assertName($name);
+        $this->assertCode($code);
         $this->assertConfigColumn();
-        $record = Plugin::where('name', $name)->find();
+        $record = Plugin::where('code', $code)->find();
         if (!$record) {
             throw new RuntimeException('插件尚未安装');
         }
 
-        $plugin = $this->plugin($name);
-        $config = $this->mergeValues($this->loadSchema($name), $values);
-        $file = $this->configFile($name);
+        $plugin = $this->plugin($code);
+        $config = $this->mergeValues($this->loadSchema($code), $values);
+        $file = $this->configFile($code);
         $previous = is_file($file) ? file_get_contents($file) : null;
         if ($previous === false) {
             throw new RuntimeException('无法读取插件原配置');
@@ -145,7 +145,7 @@ final class PluginCenterService extends AbstractService
             throw $exception;
         }
 
-        config([], "plugin_{$name}_config");
+        config([], "plugin_{$code}_config");
         Cache::delete('pluginslist');
         Cache::delete('plugins_data_list');
         Cache::delete('plugins_data_list_config');
@@ -161,10 +161,10 @@ final class PluginCenterService extends AbstractService
     {
         $data = $manifest?->toArray() ?? $this->decodedManifest($record);
         $dependencies = is_array($data['requires']['plugins'] ?? null) ? $data['requires']['plugins'] : [];
-        $operation = $record ? PluginOperation::where('plugin_name', (string) $record->name)->order('id', 'desc')->find() : null;
+        $operation = $record ? PluginOperation::where('plugin_code', (string) $record->code)->order('id', 'desc')->find() : null;
         return [
+            'code' => (string) ($record?->code ?? $manifest?->code() ?? ''),
             'name' => (string) ($record?->name ?? $manifest?->name() ?? ''),
-            'title' => (string) ($record?->title ?? $manifest?->title() ?? ''),
             'version' => (string) ($record?->version ?? $manifest?->version() ?? ''),
             'latestVersion' => '',
             'dbVersion' => (string) ($record?->db_version ?? ''),
@@ -190,7 +190,7 @@ final class PluginCenterService extends AbstractService
         return is_array($data) ? $data : [];
     }
 
-    private function routeDtos(mixed $routes, string $name): array
+    private function routeDtos(mixed $routes, string $code): array
     {
         if (!is_array($routes)) {
             return [];
@@ -202,9 +202,9 @@ final class PluginCenterService extends AbstractService
             }
             $path = (string) ($route['path'] ?? '');
             $component = (string) ($route['component'] ?? '');
-            $routeName = (string) ($route['name'] ?? 'Plugin_' . $name . '_' . count($result));
-            if (!preg_match('~^/plugin/' . preg_quote($name, '~') . '/[a-zA-Z0-9/_-]+$~', $path)
-                || !preg_match('/^Plugin_' . preg_quote($name, '/') . '(?:_[A-Za-z0-9_-]+)?$/', $routeName)
+            $routeName = (string) ($route['name'] ?? 'Plugin_' . $code . '_' . count($result));
+            if (!preg_match('~^/plugin/' . preg_quote($code, '~') . '/[a-zA-Z0-9/_-]+$~', $path)
+                || !preg_match('/^Plugin_' . preg_quote($code, '/') . '(?:_[A-Za-z0-9_-]+)?$/', $routeName)
                 || !preg_match('/^[A-Za-z][A-Za-z0-9_-]*$/', $component)) {
                 continue;
             }
@@ -241,19 +241,19 @@ final class PluginCenterService extends AbstractService
             return '';
         }
         $records = [];
-        foreach (Plugin::whereIn('name', array_keys($dependencies))->select() as $record) {
-            $records[(string) $record->name] = $record;
+        foreach (Plugin::whereIn('code', array_keys($dependencies))->select() as $record) {
+            $records[(string) $record->code] = $record;
         }
-        foreach ($dependencies as $name => $constraint) {
-            $dependency = $records[$name] ?? null;
+        foreach ($dependencies as $code => $constraint) {
+            $dependency = $records[$code] ?? null;
             if (!$dependency) {
-                return '依赖插件未安装：' . $name;
+                return '依赖插件未安装：' . $code;
             }
             if ((string) $dependency->lifecycle_state !== 'enabled' || (int) ($dependency->needs_reinstall ?? 0) === 1) {
-                return '依赖插件未启用：' . $name;
+                return '依赖插件未启用：' . $code;
             }
             if (!$this->matchesVersion((string) $dependency->version, (string) $constraint)) {
-                return "依赖插件 {$name} 版本不满足 {$constraint}，当前 {$dependency->version}";
+                return "依赖插件 {$code} 版本不满足 {$constraint}，当前 {$dependency->version}";
             }
         }
         return '';
@@ -281,10 +281,10 @@ final class PluginCenterService extends AbstractService
         return true;
     }
 
-    private function loadSchema(string $name): array
+    private function loadSchema(string $code): array
     {
-        $this->assertName($name);
-        $file = $this->configFile($name);
+        $this->assertCode($code);
+        $file = $this->configFile($code);
         if (!is_file($file)) {
             return [];
         }
@@ -393,24 +393,24 @@ final class PluginCenterService extends AbstractService
         }
     }
 
-    private function configFile(string $name): string
+    private function configFile(string $code): string
     {
-        return root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'config.php';
+        return root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'config.php';
     }
 
-    private function plugin(string $name): object
+    private function plugin(string $code): object
     {
-        $plugin = get_plugin_instance($name);
+        $plugin = get_plugin_instance($code);
         if (!$plugin) {
             throw new RuntimeException('插件入口类不存在');
         }
         return $plugin;
     }
 
-    private function assertName(string $name): void
+    private function assertCode(string $code): void
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
-            throw new RuntimeException('插件名称不合法');
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
+            throw new RuntimeException('插件标识不合法');
         }
     }
 }

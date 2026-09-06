@@ -9,12 +9,12 @@ final class PluginDetailDto
     /** @param list<PluginVersionDto> $versions */
     public function __construct(
         public readonly int $id,
+        public readonly string $code,
         public readonly string $name,
-        public readonly string $title,
         public readonly string $description = '',
         public readonly string $author = '',
         public readonly array $versions = []
     ) {
-        MarketplaceDtoValidator::pluginName($name);
+        MarketplaceDtoValidator::pluginCode($code);
     }
 }

@@ -29,7 +29,7 @@ use think\Response;
  * Admin Web 插件中心 REST API。
  */
 #[Group('system/plugin', ['complete_match' => true])]
-#[Pattern('name', '[a-z][a-z0-9]*')]
+#[Pattern('code', '[a-z][a-z0-9]*')]
 final class SystemPlugin extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -110,18 +110,18 @@ final class SystemPlugin extends AdminApiController
         });
     }
 
-    #[Get('market/:name')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function marketDetail(string $name): Response
+    #[Get('market/:code')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function marketDetail(string $code): Response
     {
-        return $this->execute(fn () => $this->marketItem($this->marketplace->detail($name)));
+        return $this->execute(fn () => $this->marketItem($this->marketplace->detail($code)));
     }
 
-    #[Get('market/:name/versions')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function marketVersions(string $name): Response
+    #[Get('market/:code/versions')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function marketVersions(string $code): Response
     {
-        return $this->execute(fn () => array_map(fn ($item): array => $this->versionItem($item), $this->marketplace->versions($name)));
+        return $this->execute(fn () => array_map(fn ($item): array => $this->versionItem($item), $this->marketplace->versions($code)));
     }
 
     #[Post('market/check-updates')]
@@ -145,11 +145,11 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(fn () => $this->center->installed());
     }
 
-    #[Get('local/:name')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function localDetail(string $name): Response
+    #[Get('local/:code')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function localDetail(string $code): Response
     {
-        return $this->execute(fn () => $this->center->detail($name));
+        return $this->execute(fn () => $this->center->detail($code));
     }
 
     #[Post('local/install')]
@@ -170,12 +170,12 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
     }
 
-    #[Post('local/:name/install')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function installDiscovered(string $name): Response
+    #[Post('local/:code/install')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function installDiscovered(string $code): Response
     {
-        return $this->execute(function () use ($name): array {
-            $archive = $this->packages->archiveDiscovered($name);
+        return $this->execute(function () use ($code): array {
+            $archive = $this->packages->archiveDiscovered($code);
             try {
                 return $this->pipeline->installLocal($archive);
             } finally {
@@ -186,16 +186,16 @@ final class SystemPlugin extends AdminApiController
         }, '安装成功');
     }
 
-    #[Post('cloud/:name/install')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function installCloud(string $name): Response
+    #[Post('cloud/:code/install')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function installCloud(string $code): Response
     {
-        return $this->execute(fn () => $this->marketplace->installCloud($name, $this->version()), '安装成功');
+        return $this->execute(fn () => $this->marketplace->installCloud($code, $this->version()), '安装成功');
     }
 
-    #[Post('local/:name/update')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function updateLocal(string $name): Response
+    #[Post('local/:code/update')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function updateLocal(string $code): Response
     {
         $file = $this->validZipUpload();
         if ($file instanceof Response) {
@@ -203,132 +203,132 @@ final class SystemPlugin extends AdminApiController
         }
         return $this->execute(fn () => $this->marketplace->updateLocal(
             $file->getPathname(),
-            $name,
+            $code,
             $this->boolean('migrate', true)
         ), '更新成功');
     }
 
-    #[Post(':name/update')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function update(string $name): Response
+    #[Post(':code/update')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function update(string $code): Response
     {
         return $this->execute(fn () => $this->marketplace->updateCloud(
-            $name,
+            $code,
             $this->version(),
             $this->boolean('migrate', true)
         ), '更新成功');
     }
 
-    #[Post(':name/migrate')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function migrate(string $name): Response
+    #[Post(':code/migrate')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function migrate(string $code): Response
     {
-        return $this->execute(fn () => $this->plugins->migratePlugin($name), '迁移成功');
+        return $this->execute(fn () => $this->plugins->migratePlugin($code), '迁移成功');
     }
 
-    #[Post(':name/enable')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function enable(string $name): Response
+    #[Post(':code/enable')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function enable(string $code): Response
     {
-        return $this->execute(fn () => $this->plugins->enablePlugin($name), '启用成功');
+        return $this->execute(fn () => $this->plugins->enablePlugin($code), '启用成功');
     }
 
-    #[Post(':name/disable')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function disable(string $name): Response
+    #[Post(':code/disable')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function disable(string $code): Response
     {
-        return $this->execute(fn () => $this->plugins->disablePlugin($name), '禁用成功');
+        return $this->execute(fn () => $this->plugins->disablePlugin($code), '禁用成功');
     }
 
-    #[Get(':name/config')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function getConfig(string $name): Response
+    #[Get(':code/config')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function getConfig(string $code): Response
     {
-        return $this->execute(fn () => $this->center->get($name));
+        return $this->execute(fn () => $this->center->get($code));
     }
 
-    #[Put(':name/config')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function saveConfig(string $name): Response
+    #[Put(':code/config')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function saveConfig(string $code): Response
     {
         $values = $this->request->post('values', []);
         return is_array($values)
-            ? $this->execute(fn () => $this->center->save($name, $values), '配置已保存')
+            ? $this->execute(fn () => $this->center->save($code, $values), '配置已保存')
             : $this->fail(msg: 'values 必须是对象', code: 422);
     }
 
-    #[Delete(':name/uninstall')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function uninstall(string $name): Response
+    #[Delete(':code/uninstall')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function uninstall(string $code): Response
     {
-        return $this->execute(function () use ($name): array {
-            $this->plugins->uninstallPlugin($name);
+        return $this->execute(function () use ($code): array {
+            $this->plugins->uninstallPlugin($code);
             return ['uninstalled' => true];
         }, '卸载成功，业务数据与迁移历史已保留');
     }
 
-    #[Delete(':name/purge')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function purge(string $name): Response
+    #[Delete(':code/purge')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function purge(string $code): Response
     {
         $confirmation = trim((string) $this->request->param('purgeConfirm', ''));
-        return $this->execute(fn () => $this->plugins->purgePluginData($name, $confirmation), '插件业务数据已清除');
+        return $this->execute(fn () => $this->plugins->purgePluginData($code, $confirmation), '插件业务数据已清除');
     }
 
-    #[Delete(':name/package')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function deletePackage(string $name): Response
+    #[Delete(':code/package')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function deletePackage(string $code): Response
     {
-        return $this->execute(function () use ($name): array {
-            $this->center->deletePackage($name);
+        return $this->execute(function () use ($code): array {
+            $this->center->deletePackage($code);
             return ['removed' => true];
         }, '本地包已删除');
     }
 
-    #[Get(':name/history')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function history(string $name): Response
+    #[Get(':code/history')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function history(string $code): Response
     {
-        return $this->execute(fn () => $this->packages->versions($name));
+        return $this->execute(fn () => $this->packages->versions($code));
     }
 
-    #[Get(':name/operations')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function operations(string $name): Response
+    #[Get(':code/operations')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function operations(string $code): Response
     {
-        return $this->execute(fn () => $this->packages->operations($name));
+        return $this->execute(fn () => $this->packages->operations($code));
     }
 
-    #[Get(':name/history/:id/download')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
+    #[Get(':code/history/:id/download')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
     #[Pattern('id', '\\d+')]
-    public function downloadHistory(string $name, int $id): Response
+    public function downloadHistory(string $code, int $id): Response
     {
-        $package = $this->packages->historyPackage($name, $id);
-        return download($package['path'], $name . '-' . $package['version'] . '.zip');
+        $package = $this->packages->historyPackage($code, $id);
+        return download($package['path'], $code . '-' . $package['version'] . '.zip');
     }
 
-    #[Post(':name/history/:id/redeploy')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
+    #[Post(':code/history/:id/redeploy')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
     #[Pattern('id', '\\d+')]
-    public function redeployHistory(string $name, int $id): Response
+    public function redeployHistory(string $code, int $id): Response
     {
-        return $this->execute(function () use ($name, $id): array {
-            $package = $this->packages->historyPackage($name, $id);
+        return $this->execute(function () use ($code, $id): array {
+            $package = $this->packages->historyPackage($code, $id);
             return $this->pipeline->redeployHistory(
                 $package['path'],
-                $name,
+                $code,
                 $package['version'],
                 $this->boolean('migrate', false)
             );
         }, '历史版本已重部署');
     }
 
-    #[Get(':name/recovery')]
-    #[Pattern('name', '[a-z][a-z0-9]*')]
-    public function recoveryInfo(string $name): Response
+    #[Get(':code/recovery')]
+    #[Pattern('code', '[a-z][a-z0-9]*')]
+    public function recoveryInfo(string $code): Response
     {
-        return $this->execute(fn () => $this->packages->recoveryInfo($name));
+        return $this->execute(fn () => $this->packages->recoveryInfo($code));
     }
 
     #[Get('modules/enabled')]
@@ -387,8 +387,8 @@ final class SystemPlugin extends AdminApiController
     {
         return [
             'id' => $item->id,
+            'code' => $item->code,
             'name' => $item->name,
-            'title' => $item->title,
             'description' => $item->description,
             'author' => $item->author,
             'versions' => array_map(fn ($version): array => $this->versionItem($version), $item->versions),
@@ -399,7 +399,7 @@ final class SystemPlugin extends AdminApiController
     {
         return [
             'id' => $item->id,
-            'pluginName' => $item->pluginName,
+            'pluginCode' => $item->pluginCode,
             'version' => $item->version,
             'changelog' => $item->changelog,
             'compatible' => $item->compatible,

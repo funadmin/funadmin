@@ -24,9 +24,9 @@ describe('插件权限节点注入契约', () => {
   });
 
   it('基础设施层提供权限生命周期及权限先于菜单的原子注册', () => {
-    expect(infrastructure).toMatch(/function enablePermissions\(array \$permissions, string \$name\): void/);
-    expect(infrastructure).toMatch(/function disablePermissions\(string \$name\): void/);
-    expect(infrastructure).toMatch(/function removePermissions\(string \$name\): void/);
+    expect(infrastructure).toMatch(/function enablePermissions\(array \$permissions, string \$code\): void/);
+    expect(infrastructure).toMatch(/function disablePermissions\(string \$code\): void/);
+    expect(infrastructure).toMatch(/function removePermissions\(string \$code\): void/);
     const registerBlock = infrastructure.match(/function registerResources\([\s\S]*?\n    \}/)?.[0] ?? '';
     expect(registerBlock).toMatch(/Db::transaction/);
     expect(registerBlock.indexOf('enablePermissions(')).toBeLessThan(registerBlock.indexOf('enableMenus('));

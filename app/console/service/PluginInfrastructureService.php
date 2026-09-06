@@ -44,10 +44,10 @@ final class PluginInfrastructureService
     public function migrate(Manifest $manifest): array
     {
         try {
-            $name = $manifest->name();
+            $code = $manifest->code();
             $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
             $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-            $scope = 'plugin:' . strtolower($name);
+            $scope = 'plugin:' . strtolower($code);
             $versions = is_dir($directory) ? MigrationService::instance()->runDirectory($directory, $scope) : [];
             return ['executed' => $versions, 'version' => MigrationService::instance()->latestAppliedVersion($scope)];
         } catch (\Throwable $exception) {
@@ -55,66 +55,66 @@ final class PluginInfrastructureService
         }
     }
 
-    public function registerResources(array $permissions, array $menus, string $name): void
+    public function registerResources(array $permissions, array $menus, string $code): void
     {
-        Db::transaction(function () use ($permissions, $menus, $name): void {
-            $this->enablePermissions($permissions, $name);
-            $this->enableMenus($menus, $name);
-            $this->disableUndeclaredPermissions($permissions, $name);
-            $this->disableUndeclaredMenus($menus, $name);
+        Db::transaction(function () use ($permissions, $menus, $code): void {
+            $this->enablePermissions($permissions, $code);
+            $this->enableMenus($menus, $code);
+            $this->disableUndeclaredPermissions($permissions, $code);
+            $this->disableUndeclaredMenus($menus, $code);
         });
     }
 
-    public function enableMenus(array $menus, string $name): void
+    public function enableMenus(array $menus, string $code): void
     {
         if ($menus === []) {
             return;
         }
-        ResourceRegistryService::instance()->registerTree($menus, 0, 0, 'console', 'plugin', $name);
+        ResourceRegistryService::instance()->registerTree($menus, 0, 0, 'console', 'plugin', $code);
     }
 
-    public function disableMenus(string $name): void
+    public function disableMenus(string $code): void
     {
-        AdminMenu::where('source_type', 'plugin')->where('source_name', $name)->update(['status' => 0]);
+        AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->update(['status' => 0]);
     }
 
-    public function removeMenus(string $name): void
+    public function removeMenus(string $code): void
     {
-        ResourceRegistryService::instance()->removeSource('plugin', $name);
+        ResourceRegistryService::instance()->removeSource('plugin', $code);
     }
 
-    public function enablePermissions(array $permissions, string $name): void
+    public function enablePermissions(array $permissions, string $code): void
     {
         if ($permissions === []) {
             return;
         }
-        ResourceRegistryService::instance()->registerPermissions($permissions, 'plugin', $name);
+        ResourceRegistryService::instance()->registerPermissions($permissions, 'plugin', $code);
     }
 
-    public function disablePermissions(string $name): void
+    public function disablePermissions(string $code): void
     {
-        ResourceRegistryService::instance()->disablePermissions('plugin', $name);
+        ResourceRegistryService::instance()->disablePermissions('plugin', $code);
     }
 
-    public function removePermissions(string $name): void
+    public function removePermissions(string $code): void
     {
-        ResourceRegistryService::instance()->removePermissions('plugin', $name);
+        ResourceRegistryService::instance()->removePermissions('plugin', $code);
     }
 
-    private function disableUndeclaredPermissions(array $permissions, string $name): void
+    private function disableUndeclaredPermissions(array $permissions, string $code): void
     {
         $codes = array_values(array_filter(array_map(static fn (array $permission): string => (string) ($permission['code'] ?? ''), $permissions)));
-        $query = \app\console\model\Permission::where('source_type', 'plugin')->where('source_name', $name);
+        $query = \app\console\model\Permission::where('source_type', 'plugin')->where('source_name', $code);
         if ($codes !== []) {
             $query->whereNotIn('code', $codes);
         }
         $query->update(['status' => 0]);
     }
 
-    private function disableUndeclaredMenus(array $menus, string $name): void
+    private function disableUndeclaredMenus(array $menus, string $code): void
     {
         $paths = array_values(array_filter(array_map(static fn (array $menu): string => strtolower((string) ($menu['path'] ?? $menu['href'] ?? '')), $menus)));
-        $query = AdminMenu::where('source_type', 'plugin')->where('source_name', $name);
+        $query = AdminMenu::where('source_type', 'plugin')->where('source_name', $code);
         if ($paths !== []) {
             $query->whereNotIn('href', $paths);
         }

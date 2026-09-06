@@ -39,19 +39,19 @@ final class PluginPackagePipeline
     {
         return new self(
             $packages ?? PluginPackageService::instance(),
-            static fn (string $operation, string $name, bool $migrate): bool => match ($operation) {
-                'install' => $plugins->installPlugin($name),
-                'redeploy' => $plugins->redeployPlugin($name, $migrate),
-                default => $plugins->updatePlugin($name, $migrate),
+            static fn (string $operation, string $code, bool $migrate): bool => match ($operation) {
+                'install' => $plugins->installPlugin($code),
+                'redeploy' => $plugins->redeployPlugin($code, $migrate),
+                default => $plugins->updatePlugin($code, $migrate),
             },
             static fn (): bool => $plugins->canRollbackDeployment(),
             static fn (array $data): mixed => PluginPackageService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
-            static fn (string $operation, string $name, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $name, $callback, $context),
-            static function (string $name, array $state) use ($plugins): void {
-                $plugins->restoreDeploymentState($name, $state);
+            static fn (string $operation, string $code, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $code, $callback, $context),
+            static function (string $code, array $state) use ($plugins): void {
+                $plugins->restoreDeploymentState($code, $state);
             },
-            static fn (string $name, string $version, string $maxDbVersion): mixed => $plugins->assertPackageDeployable($name, $version, $maxDbVersion)
+            static fn (string $code, string $version, string $maxDbVersion): mixed => $plugins->assertPackageDeployable($code, $version, $maxDbVersion)
         );
     }
 
@@ -60,57 +60,57 @@ final class PluginPackagePipeline
         return $this->run($archive, '', '', 'install', 'local', true);
     }
 
-    public function updateLocal(string $archive, string $expectedName, bool $migrate = true): array
+    public function updateLocal(string $archive, string $expectedCode, bool $migrate = true): array
     {
-        return $this->run($archive, $expectedName, '', 'update', 'local', $migrate);
+        return $this->run($archive, $expectedCode, '', 'update', 'local', $migrate);
     }
 
-    public function redeployHistory(string $archive, string $expectedName, string $expectedVersion, bool $migrate = false): array
+    public function redeployHistory(string $archive, string $expectedCode, string $expectedVersion, bool $migrate = false): array
     {
-        return $this->run($archive, $expectedName, $expectedVersion, 'redeploy', 'history', $migrate);
+        return $this->run($archive, $expectedCode, $expectedVersion, 'redeploy', 'history', $migrate);
     }
 
     public function installCloud(
         PluginMarketplaceGateway $gateway,
         PluginPackageDownloader $downloader,
-        string $name,
+        string $code,
         string $version
     ): array {
-        return $this->runCloud($gateway, $downloader, $name, $version, 'install', true);
+        return $this->runCloud($gateway, $downloader, $code, $version, 'install', true);
     }
 
     public function updateCloud(
         PluginMarketplaceGateway $gateway,
         PluginPackageDownloader $downloader,
-        string $name,
+        string $code,
         string $version,
         bool $migrate = true
     ): array {
-        return $this->runCloud($gateway, $downloader, $name, $version, 'update', $migrate);
+        return $this->runCloud($gateway, $downloader, $code, $version, 'update', $migrate);
     }
 
     private function runCloud(
         PluginMarketplaceGateway $gateway,
         PluginPackageDownloader $downloader,
-        string $name,
+        string $code,
         string $version,
         string $operation,
         bool $migrate
     ): array {
         $downloader->assertCloudInstallationAllowed();
-        $authorization = $gateway->authorize($name, $version);
+        $authorization = $gateway->authorize($code, $version);
         if (!$authorization->authorized) {
             throw new RuntimeException($authorization->message ?: '插件市场未授权下载');
         }
-        $descriptor = $gateway->download($name, $version);
-        if ($descriptor->name !== $name || $descriptor->version !== $version) {
-            throw new RuntimeException('云请求版本、下载描述版本或插件名称不一致');
+        $descriptor = $gateway->download($code, $version);
+        if ($descriptor->code !== $code || $descriptor->version !== $version) {
+            throw new RuntimeException('云请求版本、下载描述版本或插件标识不一致');
         }
         $archive = $downloader->download($descriptor);
         try {
             return $this->run(
                 $archive,
-                $name,
+                $code,
                 $version,
                 $operation,
                 'cloud',
@@ -124,7 +124,7 @@ final class PluginPackagePipeline
 
     private function run(
         string $archive,
-        string $expectedName,
+        string $expectedCode,
         string $expectedVersion,
         string $operation,
         string $source,
@@ -140,9 +140,9 @@ final class PluginPackagePipeline
         }
 
         $basic = method_exists($this->packages, 'inspect')
-            ? $this->packages->inspect($archive, $expectedName, $expectedVersion)
-            : ['name' => $expectedName ?: 'demo', 'version' => $expectedVersion];
-        $name = (string) ($basic['name'] ?? '');
+            ? $this->packages->inspect($archive, $expectedCode, $expectedVersion)
+            : ['code' => $expectedCode ?: 'demo', 'version' => $expectedVersion];
+        $code = (string) ($basic['code'] ?? '');
         $targetVersion = (string) ($basic['version'] ?? '');
         $context = [
             'source' => $source,
@@ -152,9 +152,9 @@ final class PluginPackagePipeline
         ];
         $execute = function (string $fromVersion = '', ?callable $phase = null, array $operationContext = []) use (
             $archive,
-            $expectedName,
+            $expectedCode,
             $expectedVersion,
-            $name,
+            $code,
             $operation,
             $source,
             $migrate,
@@ -168,21 +168,21 @@ final class PluginPackagePipeline
             $deployed = false;
             $deploymentState = (array) ($operationContext['pre_operation_state'] ?? []);
             try {
-                $staged = $this->packages->stage($archive, $expectedName, $expectedVersion);
+                $staged = $this->packages->stage($archive, $expectedCode, $expectedVersion);
                 $phase && $phase('validate');
                 $targetVersion = (string) ($staged['version'] ?? '');
                 $maxDbVersion = $this->maxDatabaseVersion($staged);
                 if (is_callable($this->deployGuard)) {
-                    ($this->deployGuard)($name, $targetVersion, $maxDbVersion);
+                    ($this->deployGuard)($code, $targetVersion, $maxDbVersion);
                 }
-                $backup = $this->packages->deploy($staged, $name);
+                $backup = $this->packages->deploy($staged, $code);
                 $deployed = true;
                 $phase && $phase('deploy');
-                ($this->lifecycle)($operation, $name, $migrate);
+                ($this->lifecycle)($operation, $code, $migrate);
             } catch (\Throwable $exception) {
-                $recoveryPath = $this->cleanupFailure($staged, $name, $backup, $deployed, $deploymentState, $exception);
+                $recoveryPath = $this->cleanupFailure($staged, $code, $backup, $deployed, $deploymentState, $exception);
                 $this->recordHistory([
-                    'name' => $name,
+                    'code' => $code,
                     'version' => $targetVersion,
                     'from_version' => $fromVersion,
                     'operation' => $operation,
@@ -205,14 +205,14 @@ final class PluginPackagePipeline
             }
 
             $packagePath = method_exists($this->packages, 'archiveHistoryPackage')
-                ? $this->packages->archiveHistoryPackage($staged, $name, $packageHash)
+                ? $this->packages->archiveHistoryPackage($staged, $code, $packageHash)
                 : null;
             if ($packagePath !== null) {
                 $this->assertPrivatePackagePath($packagePath);
             }
             $cleanupWarning = $this->finishSafely($staged, $backup);
             $result = [
-                'name' => $name,
+                'code' => $code,
                 'version' => $targetVersion,
                 'from_version' => $fromVersion,
                 'operation' => $operation,
@@ -232,7 +232,7 @@ final class PluginPackagePipeline
         };
 
         return is_callable($this->coordinator)
-            ? ($this->coordinator)($operation, $name, $execute, $context)
+            ? ($this->coordinator)($operation, $code, $execute, $context)
             : $execute('');
     }
 
@@ -260,16 +260,16 @@ final class PluginPackagePipeline
         return (string) ($versions === [] ? '' : end($versions));
     }
 
-    private function cleanupFailure(array $staged, string $name, ?string $backup, bool $deployed, array $deploymentState, \Throwable $original): ?string
+    private function cleanupFailure(array $staged, string $code, ?string $backup, bool $deployed, array $deploymentState, \Throwable $original): ?string
     {
         $recoveryPath = $backup ?: (string) ($staged['stage_directory'] ?? '');
         try {
             $rollbackAllowed = !$deployed || ($this->rollbackAllowed)();
             if ($deployed && $rollbackAllowed) {
-                $this->packages->rollback($name, $backup);
+                $this->packages->rollback($code, $backup);
             }
             if ($rollbackAllowed && $deploymentState !== [] && is_callable($this->restoreState)) {
-                ($this->restoreState)($name, $deploymentState);
+                ($this->restoreState)($code, $deploymentState);
             }
             if ($staged !== []) {
                 $this->packages->discard($staged);

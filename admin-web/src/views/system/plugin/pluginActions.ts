@@ -18,9 +18,9 @@ export async function confirmAction(
   return true;
 }
 
-export function buildPurgeConfirmation(pluginName: string, confirmation: string): PurgeConfirmation {
-  if (confirmation !== pluginName) {
-    throw new Error(`彻底清理数据时必须输入插件名称 ${pluginName}`);
+export function buildPurgeConfirmation(pluginCode: string, confirmation: string): PurgeConfirmation {
+  if (confirmation !== pluginCode) {
+    throw new Error(`彻底清理数据时必须输入插件标识 ${pluginCode}`);
   }
   return { purgeConfirm: confirmation };
 }

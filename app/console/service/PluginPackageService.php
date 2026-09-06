@@ -17,7 +17,7 @@ class PluginPackageService extends AbstractService
     private const MAX_ARCHIVE_BYTES = 104857600;
     private const MAX_UNPACKED_BYTES = 524288000;
 
-    public function inspect(string $archive, string $expectedName = '', string $expectedVersion = ''): array
+    public function inspect(string $archive, string $expectedCode = '', string $expectedVersion = ''): array
     {
         if (!is_file($archive)) {
             throw new RuntimeException('插件安装包不存在');
@@ -51,25 +51,25 @@ class PluginPackageService extends AbstractService
             if (!is_array($manifest)) {
                 throw new RuntimeException('plugin.json 格式错误');
             }
-            $name = (string) ($manifest['name'] ?? '');
+            $code = (string) ($manifest['code'] ?? '');
             $version = (string) ($manifest['version'] ?? '');
-            $this->assertName($name);
-            if ($expectedName !== '' && strcasecmp($name, $expectedName) !== 0) {
-                throw new RuntimeException('插件包名称与请求名称不一致');
+            $this->assertCode($code);
+            if ($expectedCode !== '' && strcasecmp($code, $expectedCode) !== 0) {
+                throw new RuntimeException('插件包标识与请求标识不一致');
             }
             if ($expectedVersion !== '' && $version !== $expectedVersion) {
                 throw new RuntimeException('插件包版本与请求版本不一致');
             }
-            return ['name' => $name, 'version' => $version, 'manifest' => $manifest];
+            return ['code' => $code, 'version' => $version, 'manifest' => $manifest];
         } finally {
             $zip->close();
         }
     }
 
-    public function stage(string $archive, string $expectedName = '', string $expectedVersion = ''): array
+    public function stage(string $archive, string $expectedCode = '', string $expectedVersion = ''): array
     {
-        if ($expectedName !== '') {
-            $this->assertName($expectedName);
+        if ($expectedCode !== '') {
+            $this->assertCode($expectedCode);
         }
         if ($expectedVersion !== '' && !preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $expectedVersion)) {
             throw new RuntimeException('插件请求版本格式错误');
@@ -115,9 +115,9 @@ class PluginPackageService extends AbstractService
                 }
                 $this->extractEntry($zip, $entry, $stageDirectory);
             }
-            $pluginDirectory = $this->locatePluginDirectory($stageDirectory, $expectedName);
-            $manifest = $this->validatePlugin($pluginDirectory, $expectedName);
-            $pluginName = $manifest->name();
+            $pluginDirectory = $this->locatePluginDirectory($stageDirectory, $expectedCode);
+            $manifest = $this->validatePlugin($pluginDirectory, $expectedCode);
+            $pluginCode = $manifest->code();
             if ($expectedVersion !== '' && $manifest->version() !== $expectedVersion) {
                 throw new RuntimeException('插件包版本与请求版本不一致');
             }
@@ -135,26 +135,26 @@ class PluginPackageService extends AbstractService
         return [
             'stage_directory' => $stageDirectory,
             'plugin_directory' => $pluginDirectory,
-            'name' => $pluginName,
+            'code' => $pluginCode,
             'version' => $manifest->version(),
             'manifest' => $manifest->toArray(),
         ];
     }
 
-    public function deploy(array $staged, string $name): ?string
+    public function deploy(array $staged, string $code): ?string
     {
-        $this->assertName($name);
+        $this->assertCode($code);
         $source = (string) ($staged['plugin_directory'] ?? '');
         if (!is_dir($source)) {
             throw new RuntimeException('暂存插件目录不存在');
         }
 
-        $target = $this->pluginDirectory($name);
+        $target = $this->pluginDirectory($code);
         $backup = null;
         if (is_dir($target)) {
             $backupRoot = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'backup');
             $this->createDirectory($backupRoot);
-            $backup = $backupRoot . DIRECTORY_SEPARATOR . $name . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+            $backup = $backupRoot . DIRECTORY_SEPARATOR . $code . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
             if (!rename($target, $backup)) {
                 throw new RuntimeException('无法备份当前插件目录');
             }
@@ -171,38 +171,38 @@ class PluginPackageService extends AbstractService
         return $backup;
     }
 
-    public function rollback(string $name, ?string $backup): void
+    public function rollback(string $code, ?string $backup): void
     {
-        $target = $this->pluginDirectory($name);
+        $target = $this->pluginDirectory($code);
         $this->removeDirectory($target);
         if ($backup !== null && is_dir($backup) && !rename($backup, $target)) {
             throw new RuntimeException('插件更新失败，且旧版本目录恢复失败：' . $backup);
         }
     }
 
-    public function archiveDiscovered(string $name): string
+    public function archiveDiscovered(string $code): string
     {
-        $this->assertName($name);
-        $source = $this->pluginDirectory($name);
-        $this->validatePlugin($source, $name);
+        $this->assertCode($code);
+        $source = $this->pluginDirectory($code);
+        $this->validatePlugin($source, $code);
         $directory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'discovered');
         $this->createDirectory($directory);
-        $archive = $directory . DIRECTORY_SEPARATOR . $name . '-' . bin2hex(random_bytes(8)) . '.zip';
+        $archive = $directory . DIRECTORY_SEPARATOR . $code . '-' . bin2hex(random_bytes(8)) . '.zip';
         $this->zipDirectory($source, $archive);
         return $archive;
     }
 
-    public function archiveHistoryPackage(array $staged, string $name, string $packageHash): string
+    public function archiveHistoryPackage(array $staged, string $code, string $packageHash): string
     {
-        $this->assertName($name);
+        $this->assertCode($code);
         if (!preg_match('/^[a-f0-9]{64}$/', $packageHash)) {
             throw new RuntimeException('历史插件包哈希无效');
         }
-        $source = $this->pluginDirectory($name);
+        $source = $this->pluginDirectory($code);
         if (!is_dir($source)) {
             throw new RuntimeException('无法归档不存在的已部署插件目录');
         }
-        $historyDirectory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $name);
+        $historyDirectory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $code);
         $this->createDirectory($historyDirectory);
         $archive = $historyDirectory . DIRECTORY_SEPARATOR . $packageHash . '.zip';
         if (is_file($archive)) {
@@ -219,22 +219,22 @@ class PluginPackageService extends AbstractService
         return $archive;
     }
 
-    public function versions(string $name): array
+    public function versions(string $code): array
     {
-        $this->assertName($name);
-        return array_map([$this, 'serializeRecord'], PluginVersionHistory::where('plugin_name', $name)->order('id', 'desc')->select()->toArray());
+        $this->assertCode($code);
+        return array_map([$this, 'serializeRecord'], PluginVersionHistory::where('plugin_code', $code)->order('id', 'desc')->select()->toArray());
     }
 
-    public function operations(string $name): array
+    public function operations(string $code): array
     {
-        $this->assertName($name);
-        return array_map([$this, 'serializeRecord'], PluginOperation::where('plugin_name', $name)->order('id', 'desc')->limit(100)->select()->toArray());
+        $this->assertCode($code);
+        return array_map([$this, 'serializeRecord'], PluginOperation::where('plugin_code', $code)->order('id', 'desc')->limit(100)->select()->toArray());
     }
 
-    public function historyPackage(string $name, int $id): array
+    public function historyPackage(string $code, int $id): array
     {
-        $this->assertName($name);
-        $record = PluginVersionHistory::where('plugin_name', $name)->where('id', $id)->find();
+        $this->assertCode($code);
+        $record = PluginVersionHistory::where('plugin_code', $code)->where('id', $id)->find();
         $path = (string) ($record?->package_path ?? '');
         $runtimeRoot = realpath(runtime_path());
         $realPath = $path === '' ? false : realpath($path);
@@ -245,10 +245,10 @@ class PluginPackageService extends AbstractService
         return ['path' => $realPath, 'version' => (string) $record->version];
     }
 
-    public function recoveryInfo(string $name): array
+    public function recoveryInfo(string $code): array
     {
-        $this->assertName($name);
-        $operation = PluginOperation::where('plugin_name', $name)->where('result', '<>', 'success')->order('id', 'desc')->find();
+        $this->assertCode($code);
+        $operation = PluginOperation::where('plugin_code', $code)->where('result', '<>', 'success')->order('id', 'desc')->find();
         return [
             'available' => $operation !== null,
             'stage' => (string) ($operation?->stage ?? ''),
@@ -262,7 +262,7 @@ class PluginPackageService extends AbstractService
     {
         Db::transaction(static function () use ($data): void {
             $common = [
-                'plugin_name' => (string) ($data['name'] ?? ''),
+                'plugin_code' => (string) ($data['code'] ?? ''),
                 'source' => (string) ($data['source'] ?? ''),
                 'package_hash' => (string) ($data['package_hash'] ?? ''),
                 'status' => 1,
@@ -385,10 +385,10 @@ class PluginPackageService extends AbstractService
         }
     }
 
-    private function locatePluginDirectory(string $stageDirectory, string $name): string
+    private function locatePluginDirectory(string $stageDirectory, string $code): string
     {
-        $direct = $stageDirectory . DIRECTORY_SEPARATOR . $name;
-        if ($name !== '' && is_dir($direct)) {
+        $direct = $stageDirectory . DIRECTORY_SEPARATOR . $code;
+        if ($code !== '' && is_dir($direct)) {
             return $direct;
         }
         if ($this->hasManifest($stageDirectory)) {
@@ -402,13 +402,13 @@ class PluginPackageService extends AbstractService
         throw new RuntimeException('插件包目录结构无效');
     }
 
-    private function validatePlugin(string $directory, string $expectedName): \fun\plugins\Manifest
+    private function validatePlugin(string $directory, string $expectedCode): \fun\plugins\Manifest
     {
         $manifest = \fun\plugins\Manifest::fromDirectory($directory);
-        $name = $manifest->name();
-        $this->assertName($name);
-        if ($expectedName !== '' && strcasecmp($name, $expectedName) !== 0) {
-            throw new RuntimeException('插件包名称与请求名称不一致');
+        $code = $manifest->code();
+        $this->assertCode($code);
+        if ($expectedCode !== '' && strcasecmp($code, $expectedCode) !== 0) {
+            throw new RuntimeException('插件包标识与请求标识不一致');
         }
         if (!is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php')) {
             throw new RuntimeException('插件入口文件不存在');
@@ -442,15 +442,15 @@ class PluginPackageService extends AbstractService
             && is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php');
     }
 
-    private function pluginDirectory(string $name): string
+    private function pluginDirectory(string $code): string
     {
-        return root_path() . 'plugins' . DIRECTORY_SEPARATOR . $name;
+        return root_path() . 'plugins' . DIRECTORY_SEPARATOR . $code;
     }
 
-    private function assertName(string $name): void
+    private function assertCode(string $code): void
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
-            throw new RuntimeException('插件名格式错误');
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
+            throw new RuntimeException('插件标识格式错误');
         }
     }
 

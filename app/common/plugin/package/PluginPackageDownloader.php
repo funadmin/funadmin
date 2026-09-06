@@ -44,7 +44,7 @@ final class PluginPackageDownloader
             throw new RuntimeException('生产云下载必须使用 HTTPS');
         }
         $this->createDirectory();
-        $target = $this->directory . DIRECTORY_SEPARATOR . $descriptor->name . '-' . bin2hex(random_bytes(8)) . '.zip';
+        $target = $this->directory . DIRECTORY_SEPARATOR . $descriptor->code . '-' . bin2hex(random_bytes(8)) . '.zip';
         try {
             ($this->streamDownload)($descriptor->url, $target, [
                 'timeout' => 120,

@@ -24,7 +24,7 @@ final class Registry
             }
             try {
                 $manifest = Manifest::fromDirectory($directory);
-                $entries[$manifest->name()] = $manifest;
+                $entries[$manifest->code()] = $manifest;
             } catch (\Throwable) {
                 // 不兼容或损坏的插件仅从发现结果隔离，绝不加载其入口代码。
                 continue;
@@ -38,14 +38,14 @@ final class Registry
     {
         $records = ($this->records)();
         $enabled = [];
-        foreach ($this->discover() as $name => $manifest) {
-            $record = $records[$name] ?? null;
+        foreach ($this->discover() as $code => $manifest) {
+            $record = $records[$code] ?? null;
             if (
                 is_array($record)
                 && ($record['lifecycle_state'] ?? '') === 'enabled'
                 && (int) ($record['needs_reinstall'] ?? 0) === 0
             ) {
-                $enabled[$name] = $manifest;
+                $enabled[$code] = $manifest;
             }
         }
         return $enabled;

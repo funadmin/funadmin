@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="`${name} 配置`" size="520px">
+  <el-drawer v-model="visible" :title="`${code} 配置`" size="520px">
     <el-form v-loading="loading" label-position="top">
       <el-form-item v-for="(definition, key) in schema" :key="key" :label="definition.title || key">
         <el-switch v-if="definition.type === 'switch'" :model-value="booleanValue(key)" @update:model-value="values[key] = $event" />
@@ -27,7 +27,7 @@ import { reactive, ref, watch } from 'vue';
 import { pluginApi, type PluginConfigDefinition } from '@/api/plugin';
 
 const visible = defineModel<boolean>({ default: false });
-const props = defineProps<{ name: string }>();
+const props = defineProps<{ code: string }>();
 const emit = defineEmits<{ saved: [] }>();
 type ConfigScalar = string | number | boolean | null;
 type ConfigValue = ConfigScalar | Array<string | number>;
@@ -41,7 +41,7 @@ const saving = ref(false);
 async function load() {
   loading.value = true;
   try {
-    schema.value = await pluginApi.config(props.name);
+    schema.value = await pluginApi.config(props.code);
     Object.keys(values).forEach((key) => delete values[key]);
     Object.entries(schema.value).forEach(([key, definition]) => { values[key] = normalizeValue(definition); });
   } finally {
@@ -72,7 +72,7 @@ function inputValue(key: string): string | number | null { const value = values[
 async function save() {
   saving.value = true;
   try {
-    await pluginApi.saveConfig(props.name, { ...values });
+    await pluginApi.saveConfig(props.code, { ...values });
     visible.value = false;
     emit('saved');
   } finally {
@@ -80,5 +80,5 @@ async function save() {
   }
 }
 
-watch(visible, (open) => { if (open && props.name) load(); });
+watch(visible, (open) => { if (open && props.code) load(); });
 </script>

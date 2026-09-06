@@ -14,10 +14,10 @@ final class DatabasePluginResourceRepository implements PluginResourceRepository
         return PluginResource::select()->toArray();
     }
 
-    public function replaceForPlugin(string $pluginName, array $records): void
+    public function replaceForPlugin(string $pluginCode, array $records): void
     {
-        Db::transaction(static function () use ($pluginName, $records): void {
-            PluginResource::where('plugin_name', $pluginName)->delete();
+        Db::transaction(static function () use ($pluginCode, $records): void {
+            PluginResource::where('plugin_code', $pluginCode)->delete();
             foreach ($records as $record) {
                 PluginResource::create($record);
             }

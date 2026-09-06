@@ -85,14 +85,14 @@ final class PluginMarketplaceService extends AbstractService
         return $this->gateway->search($request);
     }
 
-    public function detail(string $name): PluginDetailDto
+    public function detail(string $code): PluginDetailDto
     {
-        return $this->gateway->detail($name);
+        return $this->gateway->detail($code);
     }
 
-    public function versions(string $name): array
+    public function versions(string $code): array
     {
-        return $this->gateway->versions($name);
+        return $this->gateway->versions($code);
     }
 
     public function checkUpdates(array $installed): array
@@ -100,14 +100,14 @@ final class PluginMarketplaceService extends AbstractService
         return $this->gateway->checkUpdates($installed);
     }
 
-    public function installCloud(string $name, string $version): array
+    public function installCloud(string $code, string $version): array
     {
-        return $this->pipeline->installCloud($this->gateway, $this->downloader, $name, $version);
+        return $this->pipeline->installCloud($this->gateway, $this->downloader, $code, $version);
     }
 
-    public function updateCloud(string $name, string $version, bool $migrate = true): array
+    public function updateCloud(string $code, string $version, bool $migrate = true): array
     {
-        return $this->pipeline->updateCloud($this->gateway, $this->downloader, $name, $version, $migrate);
+        return $this->pipeline->updateCloud($this->gateway, $this->downloader, $code, $version, $migrate);
     }
 
     public function installLocal(string $archive): array
@@ -115,8 +115,8 @@ final class PluginMarketplaceService extends AbstractService
         return $this->pipeline->installLocal($archive);
     }
 
-    public function updateLocal(string $archive, string $name, bool $migrate = true): array
+    public function updateLocal(string $archive, string $code, bool $migrate = true): array
     {
-        return $this->pipeline->updateLocal($archive, $name, $migrate);
+        return $this->pipeline->updateLocal($archive, $code, $migrate);
     }
 }

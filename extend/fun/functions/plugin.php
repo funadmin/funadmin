@@ -20,13 +20,13 @@ define('PLUGIN_NAMESPACE', PLUGIN_DIR);
 
 /** 只读查询插件 manifest；状态必须从 fun_plugin 读取。 */
 if (!function_exists('get_plugin_info')) {
-    function get_plugin_info(string $name): array
+    function get_plugin_info(string $code): array
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
             return [];
         }
         try {
-            return Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $name)->toArray();
+            return Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code)->toArray();
         } catch (\Throwable) {
             return [];
         }
@@ -35,16 +35,16 @@ if (!function_exists('get_plugin_info')) {
 
 /** 仅允许 Registry 中已启用且无需重装的插件实例化。 */
 if (!function_exists('get_plugin_instance')) {
-    function get_plugin_instance(string $name): ?object
+    function get_plugin_instance(string $code): ?object
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
             return null;
         }
         $registry = new Registry(root_path() . PLUGIN_DIR, static function (): array {
             $records = [];
             try {
                 foreach (\app\common\model\Plugin::whereNull('deleted_at')->select() as $record) {
-                    $records[(string) $record->name] = [
+                    $records[(string) $record->code] = [
                         'lifecycle_state' => (string) $record->lifecycle_state,
                         'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
                     ];
@@ -54,7 +54,7 @@ if (!function_exists('get_plugin_instance')) {
             }
             return $records;
         });
-        $manifest = $registry->enabled()[$name] ?? null;
+        $manifest = $registry->enabled()[$code] ?? null;
         if (!$manifest instanceof Manifest) {
             return null;
         }
@@ -69,12 +69,12 @@ if (!function_exists('get_plugin_instance')) {
 
 /** 通过正式 MigrationService 执行 manifest 声明的迁移。 */
 if (!function_exists('run_plugin_migrations')) {
-    function run_plugin_migrations(string $name): array
+    function run_plugin_migrations(string $code): array
     {
-        $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $name);
+        $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code);
         $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
         $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'plugin:' . strtolower($name));
+        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'plugin:' . strtolower($code));
     }
 }
 

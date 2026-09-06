@@ -20,10 +20,10 @@ describe('mock/plugin safeguards', () => {
   beforeEach(resetPluginMockState);
 
   it('卸载保留数据且独立 purge 拒绝名称二次确认不匹配', async () => {
-    const uninstall = await route('DELETE', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/uninstall$/').handler(context('DELETE', {}, { name: 'demo' }));
+    const uninstall = await route('DELETE', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/uninstall$/').handler(context('DELETE', {}, { code: 'demo' }));
     expect(uninstall.code).toBe(200);
 
-    const purge = await route('DELETE', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/purge$/').handler(context('DELETE', { purgeConfirm: 'other' }, { name: 'demo' }));
+    const purge = await route('DELETE', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/purge$/').handler(context('DELETE', { purgeConfirm: 'other' }, { code: 'demo' }));
     expect(purge.code).toBe(422);
   });
 
@@ -32,7 +32,7 @@ describe('mock/plugin safeguards', () => {
       context('POST', {}, {})
     );
     expect(response.data).toEqual([{
-      name: 'demo',
+      code: 'demo',
       installedVersion: '1.0.0',
       latestVersion: '1.1.0',
       updateAvailable: true
@@ -46,51 +46,51 @@ describe('mock/plugin safeguards', () => {
     expect(login.data.username).toBe('developer');
 
     const install = route('POST', '/^\\/system\\/plugin\\/cloud\\/([a-z][a-z0-9]*)\\/install$/');
-    expect((await install.handler(context('POST', {}, { name: 'marketdemo' }, { version: '1.0.0' }))).code).toBe(200);
+    expect((await install.handler(context('POST', {}, { code: 'marketdemo' }, { version: '1.0.0' }))).code).toBe(200);
 
     const installed = route('GET', '/system/plugin/local/installed');
     expect((await installed.handler(context('GET', {}, {}))).data).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'marketdemo', version: '1.0.0', state: 'disabled', source: 'cloud' })])
+      expect.arrayContaining([expect.objectContaining({ code: 'marketdemo', name: '市场示例', version: '1.0.0', state: 'disabled', source: 'cloud' })])
     );
     const updates = await route('POST', '/system/plugin/market/check-updates').handler(
-      context('POST', {}, {}, { installed: [{ name: 'marketdemo', version: '1.0.0' }] })
+      context('POST', {}, {}, { installed: [{ code: 'marketdemo', version: '1.0.0' }] })
     );
     expect(updates.data).toContainEqual({
-      name: 'marketdemo',
+      code: 'marketdemo',
       installedVersion: '1.0.0',
       latestVersion: '1.1.0',
       updateAvailable: true
     });
 
     const lifecycle = route('POST', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/(update|migrate|enable|disable)$/');
-    await lifecycle.handler(context('POST', {}, { name: 'marketdemo', action: 'enable' }));
+    await lifecycle.handler(context('POST', {}, { code: 'marketdemo', action: 'enable' }));
     const modules = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
     expect(modules.data).toEqual([
       expect.objectContaining({
-        name: 'marketdemo',
+        code: 'marketdemo',
         version: '1.0.0',
         components: { Index: 'Index.vue' },
         routes: [expect.objectContaining({ path: '/plugin/marketdemo/index', name: 'Plugin_marketdemo' })]
       })
     ]);
 
-    await lifecycle.handler(context('POST', {}, { name: 'marketdemo', action: 'disable' }));
-    await lifecycle.handler(context('POST', {}, { name: 'marketdemo', action: 'update' }, { version: '1.1.0', migrate: true }));
+    await lifecycle.handler(context('POST', {}, { code: 'marketdemo', action: 'disable' }));
+    await lifecycle.handler(context('POST', {}, { code: 'marketdemo', action: 'update' }, { version: '1.1.0', migrate: true }));
     expect((await installed.handler(context('GET', {}, {}))).data).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'marketdemo', version: '1.1.0', dbVersion: '1.1.0', state: 'disabled' })])
+      expect.arrayContaining([expect.objectContaining({ code: 'marketdemo', name: '市场示例', version: '1.1.0', dbVersion: '1.1.0', state: 'disabled' })])
     );
 
-    await lifecycle.handler(context('POST', {}, { name: 'marketdemo', action: 'enable' }));
-    await lifecycle.handler(context('POST', {}, { name: 'marketdemo', action: 'disable' }));
+    await lifecycle.handler(context('POST', {}, { code: 'marketdemo', action: 'enable' }));
+    await lifecycle.handler(context('POST', {}, { code: 'marketdemo', action: 'disable' }));
     const uninstall = route('DELETE', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/uninstall$/');
-    await uninstall.handler(context('DELETE', {}, { name: 'marketdemo' }));
-    expect((await installed.handler(context('GET', {}, {}))).data.some((item: { name: string }) => item.name === 'marketdemo')).toBe(false);
+    await uninstall.handler(context('DELETE', {}, { code: 'marketdemo' }));
+    expect((await installed.handler(context('GET', {}, {}))).data.some((item: { code: string }) => item.code === 'marketdemo')).toBe(false);
     expect((await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}))).data).toEqual([]);
   });
 
   it('enabled module 仅返回构建期组件映射与路由描述', async () => {
     await route('POST', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/(update|migrate|enable|disable)$/').handler(
-      context('POST', {}, { name: 'demo', action: 'enable' })
+      context('POST', {}, { code: 'demo', action: 'enable' })
     );
     const modules = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
     expect(modules.data[0]).toMatchObject({

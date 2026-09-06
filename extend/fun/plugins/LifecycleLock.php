@@ -15,21 +15,21 @@ final class LifecycleLock
     {
     }
 
-    public function acquire(string $name): LockHandle
+    public function acquire(string $code): LockHandle
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
-            throw new RuntimeException('插件名格式错误');
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
+            throw new RuntimeException('插件标识格式错误');
         }
         if (!is_dir($this->directory) && !mkdir($this->directory, 0755, true) && !is_dir($this->directory)) {
             throw new RuntimeException('无法创建插件锁目录');
         }
-        $stream = fopen($this->directory . DIRECTORY_SEPARATOR . $name . '.lock', 'c+');
+        $stream = fopen($this->directory . DIRECTORY_SEPARATOR . $code . '.lock', 'c+');
         if ($stream === false) {
             throw new RuntimeException('无法打开插件生命周期锁');
         }
         if (!flock($stream, LOCK_EX | LOCK_NB)) {
             fclose($stream);
-            throw new RuntimeException('插件正在执行生命周期操作：' . $name);
+            throw new RuntimeException('插件正在执行生命周期操作：' . $code);
         }
         return new LockHandle($stream);
     }

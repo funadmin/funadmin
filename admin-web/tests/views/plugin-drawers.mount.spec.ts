@@ -219,7 +219,7 @@ describe('插件抽屉 mount 行为', () => {
   });
 
   it('历史抽屉加载版本与恢复指引并提供鉴权下载和重部署', async () => {
-    const wrapper = mount(PluginHistoryDrawer, { props: { modelValue: true, name: 'demo', redeployDisabledReason: '' }, global: globals });
+    const wrapper = mount(PluginHistoryDrawer, { props: { modelValue: true, code: 'demo', redeployDisabledReason: '' }, global: globals });
     await flushPromises();
 
     expect(api.history).toHaveBeenCalledWith('demo');
@@ -237,7 +237,7 @@ describe('插件抽屉 mount 行为', () => {
 
   it('历史重部署按生命周期门禁禁用并展示原因', async () => {
     const wrapper = mount(PluginHistoryDrawer, {
-      props: { modelValue: true, name: 'demo', redeployDisabledReason: '插件正在执行 update（35%）' },
+      props: { modelValue: true, code: 'demo', redeployDisabledReason: '插件正在执行 update（35%）' },
       global: globals
     });
     await flushPromises();

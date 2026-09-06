@@ -10,7 +10,7 @@ final class DownloadDescriptorDto
 {
     public function __construct(
         public readonly string $url,
-        public readonly string $name,
+        public readonly string $code,
         public readonly string $version,
         public readonly string $sha256,
         public readonly ?string $signature,
@@ -18,7 +18,7 @@ final class DownloadDescriptorDto
         public readonly int $size
     ) {
         MarketplaceDtoValidator::downloadUrl($url);
-        MarketplaceDtoValidator::pluginName($name);
+        MarketplaceDtoValidator::pluginCode($code);
         MarketplaceDtoValidator::version($version);
         if (!preg_match('/^[a-f0-9]{64}$/i', $sha256)) {
             throw new InvalidArgumentException('下载描述必须包含有效 SHA-256');

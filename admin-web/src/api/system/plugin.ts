@@ -12,8 +12,8 @@ export interface PluginAccount {
 }
 
 export interface PluginItem {
+  code: string;
   name: string;
-  title: string;
   version: string;
   latestVersion: string;
   dbVersion: string;
@@ -29,7 +29,7 @@ export interface PluginItem {
 }
 
 export interface UpdateCheck {
-  name: string;
+  code: string;
   installedVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
@@ -37,7 +37,7 @@ export interface UpdateCheck {
 
 export interface MarketplaceVersion {
   id: number;
-  pluginName: string;
+  pluginCode: string;
   version: string;
   changelog: string;
   compatible: boolean;
@@ -52,8 +52,8 @@ export interface MarketplaceVersion {
 
 export interface MarketplacePlugin {
   id: number;
+  code: string;
   name: string;
-  title: string;
   description: string;
   author: string;
   versions: MarketplaceVersion[];
@@ -105,7 +105,7 @@ export interface PluginRouteDto {
 }
 
 export interface EnabledPluginModule {
-  name: string;
+  code: string;
   version: string;
   components: Record<string, string>;
   routes: PluginRouteDto[];
@@ -120,38 +120,38 @@ export const pluginApi = {
   currentAccount: () => http.get<PluginAccount | null>(`${PREFIX}/account/current`),
   categories: () => http.get<Array<{ id: number; name: string }>>(`${PREFIX}/market/categories`),
   marketSearch: (params: API.PageQuery & { categoryId?: number }) => http.get<API.PageResult<MarketplacePlugin>>(`${PREFIX}/market/search`, params),
-  marketDetail: (name: string) => http.get<MarketplacePlugin>(`${PREFIX}/market/${name}`),
-  marketVersions: (name: string) => http.get<MarketplaceVersion[]>(`${PREFIX}/market/${name}/versions`),
-  checkUpdates: (installed: Array<{ name: string; version: string }>) => http.post<UpdateCheck[]>(`${PREFIX}/market/check-updates`, { installed }),
+  marketDetail: (code: string) => http.get<MarketplacePlugin>(`${PREFIX}/market/${code}`),
+  marketVersions: (code: string) => http.get<MarketplaceVersion[]>(`${PREFIX}/market/${code}/versions`),
+  checkUpdates: (installed: Array<{ code: string; version: string }>) => http.post<UpdateCheck[]>(`${PREFIX}/market/check-updates`, { installed }),
   discovered: () => http.get<PluginItem[]>(`${PREFIX}/local/discovered`),
   installed: () => http.get<PluginItem[]>(`${PREFIX}/local/installed`),
-  detail: (name: string) => http.get<PluginItem>(`${PREFIX}/local/${name}`),
+  detail: (code: string) => http.get<PluginItem>(`${PREFIX}/local/${code}`),
   installLocal: (file: File) => {
     const form = new FormData();
     form.append('file', file);
     return http.upload<unknown>(`${PREFIX}/local/install`, form, success);
   },
-  installDiscovered: (name: string) => http.post<unknown>(`${PREFIX}/local/${name}/install`, undefined, success),
-  updateLocal: (name: string, file: File, migrate = true) => {
+  installDiscovered: (code: string) => http.post<unknown>(`${PREFIX}/local/${code}/install`, undefined, success),
+  updateLocal: (code: string, file: File, migrate = true) => {
     const form = new FormData();
     form.append('file', file);
     form.append('migrate', String(migrate));
-    return http.upload<unknown>(`${PREFIX}/local/${name}/update`, form, success);
+    return http.upload<unknown>(`${PREFIX}/local/${code}/update`, form, success);
   },
-  installCloud: (name: string, version: string) => http.post<unknown>(`${PREFIX}/cloud/${name}/install`, { version }, success),
-  update: (name: string, version: string, migrate = true) => http.post<unknown>(`${PREFIX}/${name}/update`, { version, migrate }, success),
-  migrate: (name: string) => http.post<unknown>(`${PREFIX}/${name}/migrate`, undefined, success),
-  enable: (name: string) => http.post<unknown>(`${PREFIX}/${name}/enable`, undefined, success),
-  disable: (name: string) => http.post<unknown>(`${PREFIX}/${name}/disable`, undefined, success),
-  config: (name: string) => http.get<Record<string, PluginConfigDefinition>>(`${PREFIX}/${name}/config`),
-  saveConfig: (name: string, values: Record<string, unknown>) => http.put<unknown>(`${PREFIX}/${name}/config`, { values }, success),
-  uninstall: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/uninstall`, undefined, success),
-  purge: (name: string, purgeConfirm: string) => http.delete<unknown>(`${PREFIX}/${name}/purge`, { purgeConfirm }, success),
-  deletePackage: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/package`, undefined, success),
-  history: (name: string) => http.get<PluginVersionHistory[]>(`${PREFIX}/${name}/history`),
-  historyDownloadUrl: (name: string, id: number) => `${PREFIX}/${name}/history/${id}/download`,
-  redeployHistory: (name: string, id: number, migrate = false) => http.post<unknown>(`${PREFIX}/${name}/history/${id}/redeploy`, { migrate }, success),
-  recoveryInfo: (name: string) => http.get<PluginRecoveryInfo>(`${PREFIX}/${name}/recovery`),
-  operations: (name: string) => http.get<PluginOperation[]>(`${PREFIX}/${name}/operations`),
+  installCloud: (code: string, version: string) => http.post<unknown>(`${PREFIX}/cloud/${code}/install`, { version }, success),
+  update: (code: string, version: string, migrate = true) => http.post<unknown>(`${PREFIX}/${code}/update`, { version, migrate }, success),
+  migrate: (code: string) => http.post<unknown>(`${PREFIX}/${code}/migrate`, undefined, success),
+  enable: (code: string) => http.post<unknown>(`${PREFIX}/${code}/enable`, undefined, success),
+  disable: (code: string) => http.post<unknown>(`${PREFIX}/${code}/disable`, undefined, success),
+  config: (code: string) => http.get<Record<string, PluginConfigDefinition>>(`${PREFIX}/${code}/config`),
+  saveConfig: (code: string, values: Record<string, unknown>) => http.put<unknown>(`${PREFIX}/${code}/config`, { values }, success),
+  uninstall: (code: string) => http.delete<unknown>(`${PREFIX}/${code}/uninstall`, undefined, success),
+  purge: (code: string, purgeConfirm: string) => http.delete<unknown>(`${PREFIX}/${code}/purge`, { purgeConfirm }, success),
+  deletePackage: (code: string) => http.delete<unknown>(`${PREFIX}/${code}/package`, undefined, success),
+  history: (code: string) => http.get<PluginVersionHistory[]>(`${PREFIX}/${code}/history`),
+  historyDownloadUrl: (code: string, id: number) => `${PREFIX}/${code}/history/${id}/download`,
+  redeployHistory: (code: string, id: number, migrate = false) => http.post<unknown>(`${PREFIX}/${code}/history/${id}/redeploy`, { migrate }, success),
+  recoveryInfo: (code: string) => http.get<PluginRecoveryInfo>(`${PREFIX}/${code}/recovery`),
+  operations: (code: string) => http.get<PluginOperation[]>(`${PREFIX}/${code}/operations`),
   enabledModules: () => http.get<EnabledPluginModule[]>(`${PREFIX}/modules/enabled`)
 };

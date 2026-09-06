@@ -514,7 +514,7 @@ modernizationCheck(!$baseController->hasProperty('noNeedLogin'), 'BaseController
 modernizationCheck(!$baseController->hasProperty('onlyNeedLogin'), 'BaseController 必须删除 onlyNeedLogin');
 modernizationTypedProperty(fun\plugins\Service::class, 'plugins_path', 'string', 'protected', false, false);
 modernizationMethod(fun\plugins\Service::class, 'getPluginsPath', [], 'string');
-modernizationMethod(fun\plugins\Service::class, 'getPluginsNamePath', [['name', 'string', false]], 'string');
+modernizationMethod(fun\plugins\Service::class, 'getPluginCodePath', [['code', 'string', false]], 'string');
 modernizationCheck(!(new ReflectionClass(fun\plugins\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
 
 // 第三批：插件基类的扩展面保持 protected，并以准确类型和生命周期签名约束子类。
@@ -527,7 +527,7 @@ $pipelineParameters = $pipelineConstructor === null
 modernizationCheck(!in_array('captureState', $pipelineParameters, true), 'PluginPackagePipeline 构造参数必须删除 captureState');
 
 foreach ([
-    ['app', App::class], ['request', Request::class], ['name', 'string'], ['layout', 'bool'],
+    ['app', App::class], ['request', Request::class], ['code', 'string'], ['layout', 'bool'],
     ['plugin_path', 'string'], ['view', ThinkViewDriver::class], ['plugin_config', 'string'],
     ['info', 'array'], ['plugin_info', 'string'],
 ] as [$property, $type]) {
@@ -547,7 +547,7 @@ try {
     $failures[] = 'Plugins view 运行时类型验证异常：' . $exception->getMessage();
 }
 
-modernizationMethod(Plugins::class, 'getName', [], 'string');
+modernizationMethod(Plugins::class, 'getCode', [], 'string');
 modernizationMethod(Plugins::class, 'fetch', [['template', 'string', true], ['vars', 'array', true]], 'void');
 modernizationMethod(Plugins::class, 'display', [['content', 'string', true], ['vars', 'array', true]], 'void');
 modernizationMethod(Plugins::class, 'assign', [['name', 'mixed', false], ['value', 'mixed', true]], 'static');

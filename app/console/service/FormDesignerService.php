@@ -64,7 +64,7 @@ final class FormDesignerService
     }
 
     /** 服务端定义校验：不合法抛 InvalidArgumentException。 */
-    public function validateDefinition(array $payload): array
+    public function validateDefinition(array $payload, bool $allowEmptyFields = false): array
     {
         $formKey = trim((string) ($payload['form_key'] ?? ''));
         $name = trim((string) ($payload['name'] ?? ''));
@@ -83,7 +83,10 @@ final class FormDesignerService
             throw new InvalidArgumentException('来源类型只能为 created 或 adopted');
         }
         $fields = $payload['fields'] ?? [];
-        if (!is_array($fields) || $fields === []) {
+        if (!is_array($fields)) {
+            throw new InvalidArgumentException('fields 必须为数组');
+        }
+        if ($fields === [] && !$allowEmptyFields) {
             throw new InvalidArgumentException('至少需要一个字段');
         }
         $seen = [];
@@ -112,13 +115,18 @@ final class FormDesignerService
                 throw new InvalidArgumentException($label . '关联类型不合法');
             }
             if ($relationType === 'belongs_to') {
-                if (trim((string) ($field['relation_table'] ?? '')) === '' || trim((string) ($field['relation_label_field'] ?? '')) === '') {
-                    throw new InvalidArgumentException($label . ' belongs_to 必须指定关联表与显示字段');
-                }
+                $this->assertIdentifier((string) ($field['relation_table'] ?? ''), $label . '关联表');
+                $this->assertIdentifier((string) ($field['relation_label_field'] ?? ''), $label . '关联显示字段');
+                $this->assertIdentifier((string) ($field['relation_value_field'] ?? 'id'), $label . '关联值字段');
                 if (!array_key_exists((string) ($field['relation_on_delete'] ?? 'restrict'), self::ON_DELETE)) {
                     throw new InvalidArgumentException($label . '外键删除规则不合法');
                 }
             }
+            if ($relationType === 'has_many') {
+                $this->assertIdentifier((string) ($field['relation_table'] ?? ''), $label . '子表');
+                $this->assertIdentifier((string) ($field['relation_value_field'] ?? ''), $label . '子表外键字段');
+            }
+            $this->validateOptionsSource($field['options_source'] ?? null, $label);
             $span = (int) ($field['form_span'] ?? 24);
             if ($span < 1 || $span > 24) {
                 throw new InvalidArgumentException($label . '栅格 span 必须在 1-24');
@@ -128,6 +136,10 @@ final class FormDesignerService
                 if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/', $columnType)) {
                     throw new InvalidArgumentException($label . '列类型不合法：' . $columnType);
                 }
+                $default = (string) ($field['default_value'] ?? '');
+                if ($default !== '' && preg_match('/^(tinyint|int|bigint|decimal)/', $columnType) && !preg_match('/^-?\d+(?:\.\d+)?$/', $default)) {
+                    throw new InvalidArgumentException($label . '数字默认值不合法');
+                }
             }
         }
         return ['valid' => true];
@@ -136,7 +148,7 @@ final class FormDesignerService
     /** 保存表单与字段（事务＋乐观锁）。 */
     public function save(array $payload): array
     {
-        $this->validateDefinition($payload);
+        $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
         return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt): array {
@@ -243,7 +255,7 @@ final class FormDesignerService
         return [
             'mode' => $exists ? 'additive' : 'create',
             'sql' => $sql,
-            'file' => $this->migrationPath($payload),
+            'file' => $this->migrationPath($payload, $sql),
             'message' => $sql === '' ? '无结构变更' : ($exists ? '仅新增列/索引' : '创建新表'),
         ];
     }
@@ -263,25 +275,12 @@ final class FormDesignerService
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
             throw new InvalidArgumentException('无法创建迁移目录：' . $dir);
         }
-        if (is_file($file)) {
-            $existing = (string) file_get_contents($file);
-            if (trim($existing) !== trim($preview['sql'])) {
-                throw new InvalidArgumentException('迁移文件已存在且内容不同，禁止覆盖：' . basename($file));
-            }
-        } else {
-            if (file_put_contents($file, $preview['sql']) === false) {
-                throw new InvalidArgumentException('迁移文件写入失败：' . basename($file));
-            }
+        if (!is_file($file) && file_put_contents($file, $preview['sql']) === false) {
+            throw new InvalidArgumentException('迁移文件写入失败：' . basename($file));
         }
         $version = pathinfo($file, PATHINFO_FILENAME);
-        $statements = array_values(array_filter(array_map(
-            static fn (string $s): string => trim($s),
-            explode(';', $preview['sql'])
-        )));
-        Db::transaction(function () use ($statements, $file, $version): void {
-            foreach ($statements as $statement) {
-                Db::execute($statement);
-            }
+        Db::transaction(function () use ($preview, $file, $version): void {
+            Db::execute(rtrim(trim((string) $preview['sql']), ';'));
             $registered = SystemMigration::where('scope', 'generated')->where('version', $version)->find();
             if (!$registered) {
                 SystemMigration::create([
@@ -334,10 +333,11 @@ final class FormDesignerService
         ];
     }
 
-    private function migrationPath(array $payload): string
+    private function migrationPath(array $payload, string $sql): string
     {
         $key = trim((string) $payload['form_key']);
-        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . 'form_' . $key . '_table.sql';
+        $version = substr(hash('sha256', $sql), 0, 12);
+        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . 'form_' . $key . '_' . $version . '.sql';
     }
 
     private function createTableSql(string $table, array $fields): string
@@ -416,6 +416,29 @@ final class FormDesignerService
             $ddl .= " COMMENT '" . str_replace("'", "''", $comment) . "'";
         }
         return $ddl;
+    }
+
+    private function assertIdentifier(string $identifier, string $label): void
+    {
+        if (!preg_match('/^[a-z_][a-z0-9_]*$/', trim($identifier))) {
+            throw new InvalidArgumentException($label . '不合法');
+        }
+    }
+
+    private function validateOptionsSource(mixed $source, string $label): void
+    {
+        if ($source === null || $source === []) {
+            return;
+        }
+        if (!is_array($source)) {
+            throw new InvalidArgumentException($label . '选项来源必须为对象');
+        }
+        if (($source['mode'] ?? '') !== 'relation') {
+            return;
+        }
+        $this->assertIdentifier((string) ($source['table'] ?? ''), $label . '选项关联表');
+        $this->assertIdentifier((string) ($source['label_field'] ?? ''), $label . '选项显示字段');
+        $this->assertIdentifier((string) ($source['value_field'] ?? ''), $label . '选项值字段');
     }
 
     private function controlFromDbType(string $dbType): string

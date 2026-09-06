@@ -14,24 +14,24 @@ final class PluginOperationAuditService
     private ?PluginOperationRecorder $recorder = null;
     private array $startedTokens = [];
 
-    public function stage(string $name, string $operation, string $token, string $stage, array $context = [], ?string $recoveryPath = null): void
+    public function stage(string $code, string $operation, string $token, string $stage, array $context = [], ?string $recoveryPath = null): void
     {
-        $this->start($name, $operation, $token, $context);
+        $this->start($code, $operation, $token, $context);
         $this->recorder()->stage($token, $stage, $recoveryPath);
     }
 
-    public function failure(string $name, string $token, string $stage, \Throwable $exception, array $context = [], ?string $recoveryPath = null): void
+    public function failure(string $code, string $token, string $stage, \Throwable $exception, array $context = [], ?string $recoveryPath = null): void
     {
-        $this->start($name, (string) ($context['operation'] ?? 'lifecycle'), $token, $context);
+        $this->start($code, (string) ($context['operation'] ?? 'lifecycle'), $token, $context);
         $this->recorder()->fail($token, $exception, $stage, $recoveryPath);
     }
 
-    private function start(string $name, string $operation, string $token, array $context): void
+    private function start(string $code, string $operation, string $token, array $context): void
     {
         if (isset($this->startedTokens[$token])) {
             return;
         }
-        $this->recorder()->start($name, $operation, $token, $context);
+        $this->recorder()->start($code, $operation, $token, $context);
         $this->startedTokens[$token] = true;
     }
 
@@ -39,8 +39,8 @@ final class PluginOperationAuditService
     {
         return $this->recorder ??= new PluginOperationRecorder(
             fn (array $data): mixed => PluginOperation::create($data),
-            static function (string $name, array $changes): void {
-                Plugin::withTrashed()->where('name', $name)->update($changes);
+            static function (string $code, array $changes): void {
+                Plugin::withTrashed()->where('code', $code)->update($changes);
             }
         );
     }
@@ -48,7 +48,7 @@ final class PluginOperationAuditService
     public function purge(array $audit): void
     {
         $this->create([
-            'plugin_name' => (string) $audit['name'],
+            'plugin_code' => (string) $audit['code'],
             'operation' => 'purge',
             'operation_token' => bin2hex(random_bytes(16)),
             'stage' => 'complete',

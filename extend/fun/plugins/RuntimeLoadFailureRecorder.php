@@ -11,11 +11,11 @@ final class RuntimeLoadFailureRecorder
     {
     }
 
-    public function record(string $plugin, string $boundary, \Throwable $exception): void
+    public function record(string $pluginCode, string $boundary, \Throwable $exception): void
     {
         try {
             ($this->persist)([
-                'plugin_name' => $plugin,
+                'plugin_code' => $pluginCode,
                 'operation' => 'runtime_load',
                 'stage' => $boundary,
                 'error_stage' => $boundary,
@@ -27,7 +27,7 @@ final class RuntimeLoadFailureRecorder
                 'status' => 1,
             ]);
         } catch (\Throwable $recordException) {
-            error_log(sprintf('记录插件 %s 的 %s 加载失败异常：%s', $plugin, $boundary, $recordException->getMessage()));
+            error_log(sprintf('记录插件 %s 的 %s 加载失败异常：%s', $pluginCode, $boundary, $recordException->getMessage()));
         }
     }
 }

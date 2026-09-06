@@ -25,7 +25,7 @@ abstract class Plugins  {
     // 请求对象
     protected Request $request;
     // 当前插件标识
-    protected string $name;
+    protected string $code;
     // 模板布局
     protected bool $layout = false;
     // 插件路径
@@ -48,10 +48,10 @@ abstract class Plugins  {
     {
         $this->app = $app;
         $this->request = $app->request;
-        $this->name = $this->getName();
-        $this->plugin_path = $app->plugins->getPluginsPath() . $this->name . DS;
-        $this->plugin_config = "plugin_{$this->name}_config";
-        $this->plugin_info = "plugin_{$this->name}_info";
+        $this->code = $this->getCode();
+        $this->plugin_path = $app->plugins->getPluginsPath() . $this->code . DS;
+        $this->plugin_config = "plugin_{$this->code}_config";
+        $this->plugin_info = "plugin_{$this->code}_info";
         $this->info = $this->getInfo();
         $this->view = clone View::engine('Think');
         app()->view->engine()->layout($this->layout);
@@ -70,13 +70,13 @@ abstract class Plugins  {
      * 获取插件标识
      * @return mixed|null
      */
-    final protected function getName(): string
+    final protected function getCode(): string
     {
         $class = get_class($this);
-        list(, $name, ) = explode('\\', $class);
-        $this->request->plugin = $name;
+        list(, $code, ) = explode('\\', $class);
+        $this->request->plugin = $code;
 
-        return $name;
+        return $code;
     }
 
     /**

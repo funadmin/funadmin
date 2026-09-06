@@ -7,11 +7,11 @@ import {
   type EnabledPluginModule
 } from '@/router/pluginModules';
 
-const descriptor = (name: string): EnabledPluginModule => ({
-  name,
+const descriptor = (code: string): EnabledPluginModule => ({
+  code,
   version: '1.0.0',
   components: { Index: 'Index.vue' },
-  routes: [{ path: `/plugin/${name}/index`, name: `Plugin_${name}`, component: 'Index', meta: { title: name } }]
+  routes: [{ path: `/plugin/${code}/index`, name: `Plugin_${code}`, component: 'Index', meta: { title: code } }]
 });
 
 const modules = (names: string[]): Record<string, Component> => Object.fromEntries(
@@ -48,7 +48,7 @@ describe('pluginModules', () => {
     });
 
     expect(result.loaded).toEqual(['healthy']);
-    expect(result.errors[0]).toMatchObject({ name: 'missing', stage: 'component' });
+    expect(result.errors[0]).toMatchObject({ code: 'missing', stage: 'component' });
     expect(router.addRoute).toHaveBeenCalledTimes(2);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Plugin_missing_Error',
@@ -65,7 +65,7 @@ describe('pluginModules', () => {
     });
 
     expect(result.loaded).toEqual(['healthy']);
-    expect(result.errors[0]).toMatchObject({ name: 'broken', stage: 'route' });
+    expect(result.errors[0]).toMatchObject({ code: 'broken', stage: 'route' });
   });
 
   it('重复同步不重复挂载并移除已禁用插件路由', async () => {

@@ -50,12 +50,12 @@ describe('插件中心页面契约', () => {
     expect(page).toContain('if (!completed) return;');
   });
 
-  it('uninstall 与 purge 是独立动作且 purge 必须精确输入插件名', () => {
-    expect(actions).toContain("confirmation !== pluginName");
+  it('uninstall 与 purge 是独立动作且 purge 必须精确输入插件 code', () => {
+    expect(actions).toContain("confirmation !== pluginCode");
     expect(actions).toContain('purgeConfirm');
-    expect(page).toContain('pluginApi.uninstall(row.name)');
-    expect(page).toContain('pluginApi.purge(row.name, payload.purgeConfirm)');
-    expect(page).not.toContain('pluginApi.uninstall(row.name,');
+    expect(page).toContain('pluginApi.uninstall(row.code)');
+    expect(page).toContain('pluginApi.purge(row.code, payload.purgeConfirm)');
+    expect(page).not.toContain('pluginApi.uninstall(row.code,');
   });
 
   it('页面挂载当前 Account、Market、ConfigDialog、LifecycleDrawer 与 InstallDialog', () => {
@@ -78,11 +78,11 @@ describe('插件中心页面契约', () => {
     }
   });
 
-  it('已安装列表将 UpdateCheck 数组按 name 建 map 并仅合并可用更新', () => {
+  it('已安装列表将 UpdateCheck 数组按 code 建 map 并仅合并可用更新', () => {
     expect(page).toContain('pluginApi.checkUpdates');
-    expect(page).toContain('new Map(updates.map((item) => [item.name, item]))');
+    expect(page).toContain('new Map(updates.map((item) => [item.code, item]))');
     expect(page).toContain('update?.updateAvailable ? update.latestVersion :');
-    expect(page).not.toContain('updates[item.name]');
+    expect(page).not.toContain('updates[item.code]');
   });
 
   it('生命周期动作后立即同步动态插件路由', () => {

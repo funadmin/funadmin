@@ -8,10 +8,10 @@ use InvalidArgumentException;
 
 final class MarketplaceDtoValidator
 {
-    public static function pluginName(string $name): void
+    public static function pluginCode(string $code): void
     {
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
-            throw new InvalidArgumentException('插件名格式错误');
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
+            throw new InvalidArgumentException('插件标识格式错误');
         }
     }
 

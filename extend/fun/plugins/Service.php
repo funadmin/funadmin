@@ -77,7 +77,7 @@ class Service extends \think\Service
                 'to_version' => '',
                 'recovery_path' => null,
             ]);
-            Plugin::where('name', $failure['plugin_name'])->update([
+            Plugin::where('code', $failure['plugin_code'])->update([
                 'status' => 0,
                 'lifecycle_state' => 'failed',
                 'last_error' => $failure['error_message'],
@@ -91,7 +91,7 @@ class Service extends \think\Service
 
     private static function sameRuntimeFailure(array $failure, string $stage): bool
     {
-        $plugin = Plugin::where('name', (string) ($failure['plugin_name'] ?? ''))->find();
+        $plugin = Plugin::where('code', (string) ($failure['plugin_code'] ?? ''))->find();
         return $plugin
             && (string) $plugin->lifecycle_state === 'failed'
             && (string) $plugin->error_stage === $stage
@@ -139,7 +139,7 @@ class Service extends \think\Service
             try {
                 $query = \app\common\model\Plugin::whereNull('deleted_at');
                 foreach ($query->select() as $record) {
-                    $records[(string) $record->name] = [
+                    $records[(string) $record->code] = [
                         'version' => (string) $record->version,
                         'lifecycle_state' => (string) $record->lifecycle_state,
                         'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
@@ -168,9 +168,9 @@ class Service extends \think\Service
     }
 
     //获取插件目录
-    public static function getPluginsNamePath(string $name): string
+    public static function getPluginCodePath(string $code): string
     {
-        return app()->getRootPath() . PLUGIN_DIR . DS . $name . DS;
+        return app()->getRootPath() . PLUGIN_DIR . DS . $code . DS;
     }
 
 }
