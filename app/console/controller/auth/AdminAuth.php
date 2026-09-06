@@ -1,17 +1,17 @@
 <?php
 
-namespace app\backend\controller\auth;
+namespace app\console\controller\auth;
 
 use app\BaseController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\model\AdminMenu;
-use app\backend\model\Permission;
-use app\backend\service\AdminAuthorizationService;
-use app\backend\service\AdminSessionService;
-use app\backend\service\RoleScopeService;
-use app\backend\traits\AdminTree;
-use app\backend\traits\AdminJsonResponse;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\model\AdminMenu;
+use app\console\model\Permission;
+use app\console\service\AdminAuthorizationService;
+use app\console\service\AdminSessionService;
+use app\console\service\RoleScopeService;
+use app\console\traits\AdminTree;
+use app\console\traits\AdminJsonResponse;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Post;

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\auth;
+namespace app\console\controller\auth;
 
-use app\backend\controller\base\AdminApiController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\middleware\SystemLog;
-use app\backend\model\Admin;
-use app\backend\service\AdminSessionService;
+use app\console\controller\base\AdminApiController;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\middleware\SystemLog;
+use app\console\model\Admin;
+use app\console\service\AdminSessionService;
 use fun\helper\SignHelper;
 use think\annotation\route\Get;
 use think\annotation\route\Group;

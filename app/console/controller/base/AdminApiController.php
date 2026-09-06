@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\base;
+namespace app\console\controller\base;
 
 use app\BaseController;
-use app\backend\traits\AdminCrudRequest;
-use app\backend\traits\AdminDataFormat;
-use app\backend\traits\AdminDataScope;
-use app\backend\traits\AdminJsonResponse;
-use app\backend\traits\AdminPagination;
-use app\backend\traits\AdminTree;
+use app\console\traits\AdminCrudRequest;
+use app\console\traits\AdminDataFormat;
+use app\console\traits\AdminDataScope;
+use app\console\traits\AdminJsonResponse;
+use app\console\traits\AdminPagination;
+use app\console\traits\AdminTree;
 
 /**
  * Admin Web CRUD API 基类：只提供协议与查询边界，不承载业务规则。

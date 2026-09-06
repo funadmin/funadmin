@@ -2280,12 +2280,15 @@ class {$controllerClass} extends Api
                 'output_lines' => count($output)
             ]);
 
+            $content = implode("\n", $output);
+            $success = $returnCode === 0 || strpos($content, '成功') !== false;
+
             return [
-                'success' => $returnCode === 0,
-                'message' => $returnCode === 0 ? '命令执行成功' : '命令执行失败',
+                'success' => $success,
+                'message' => $success ? '命令执行成功' : '命令执行失败',
                 'command' => $fullCommand,
                 'return_code' => $returnCode,
-                'output' => implode("\n", $output),
+                'output' => $content,
                 'output_lines' => $output
             ];
 
