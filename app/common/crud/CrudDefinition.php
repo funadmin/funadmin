@@ -28,7 +28,7 @@ final class CrudDefinition implements JsonSerializable
             $fields,
             static fn (mixed $field): bool => is_array($field) && ($field['primary'] ?? false) === true
         ));
-        $data['connection'] ??= (string) (($data['metadata']['connection'] ?? ''));
+        $data['connection'] ??= (string) (($data['metadata']['connection'] ?? 'mysql'));
         $data['module'] ??= 'generated';
         $data['entity'] ??= (string) ($data['name'] ?? '');
         $data['routePath'] ??= (string) ($data['apiPrefix'] ?? '');
@@ -37,6 +37,16 @@ final class CrudDefinition implements JsonSerializable
         $data['softDeletes'] ??= in_array('deleted_at', $fieldNames, true)
             || (($data['features']['softDelete'] ?? false) === true);
         $data['generationTargets'] ??= is_array($data['paths'] ?? null) ? $data['paths'] : [];
+        $entity = (string) $data['entity'];
+        $class = self::studly($entity);
+        if (is_array($data['generationTargets'])) {
+            $data['generationTargets']['phpTest'] ??= "tests/generated/{$class}GeneratedTest.php";
+            $data['generationTargets']['vitestTest'] ??= "admin-web/tests/generated/{$entity}.spec.ts";
+        }
+        if (is_array($data['templates'] ?? null)) {
+            $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
+            $data['templates']['vitestTest'] ??= 'tests/vitest-test.ts.tpl';
+        }
         unset($data['name'], $data['paths'], $data['apiPrefix'], $data['metadata']);
         return $data;
     }
@@ -69,6 +79,11 @@ final class CrudDefinition implements JsonSerializable
     public function hash(): string
     {
         return hash('sha256', self::canonicalJson($this->data));
+    }
+
+    private static function studly(string $value): string
+    {
+        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $value)));
     }
 
     public static function canonicalJson(array $data): string

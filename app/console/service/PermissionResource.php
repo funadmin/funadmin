@@ -28,7 +28,7 @@ class PermissionResource
         );
     }
 
-    public static function fromRoute(string $module, string $href): ?array
+    public static function fromRoute(string $appName, string $href): ?array
     {
         $href = self::normalizePath($href);
         if ($href === '' || self::isExternal($href)) {
@@ -45,34 +45,34 @@ class PermissionResource
         }
 
         $segments = array_values(array_filter(explode('/', $path), static fn ($item) => $item !== ''));
-        $module = self::normalizeSegment($module);
-        if (count($segments) >= 3 && self::normalizeSegment($segments[0]) === $module) {
+        $appName = self::normalizeSegment($appName);
+        if (count($segments) >= 3 && self::normalizeSegment($segments[0]) === $appName) {
             array_shift($segments);
         }
 
         if (count($segments) === 1) {
-            return self::fromParts($module, $segments[0], 'index');
+            return self::fromParts($appName, $segments[0], 'index');
         }
         if (count($segments) !== 2) {
             return null;
         }
 
-        return self::fromParts($module, $segments[0], $segments[1]);
+        return self::fromParts($appName, $segments[0], $segments[1]);
     }
 
-    public static function fromParts(string $module, string $controller, string $action): array
+    public static function fromParts(string $appName, string $controller, string $action): array
     {
-        $module = self::normalizeSegment($module);
+        $appName = self::normalizeSegment($appName);
         $controller = self::normalizeController($controller);
         $action = self::normalizeSegment($action ?: 'index');
-        if ($module === '' || $controller === '' || $action === '') {
+        if ($appName === '' || $controller === '' || $action === '') {
             throw new InvalidArgumentException('权限资源不能为空');
         }
 
         return [
-            'obj' => $module . '/' . $controller,
+            'obj' => $appName . '/' . $controller,
             'act' => $action,
-            'code' => $module . '/' . $controller . ':' . $action,
+            'code' => $appName . '/' . $controller . ':' . $action,
         ];
     }
 

@@ -8,7 +8,7 @@ const permissionList: PermissionModel[] = [
   {
     id: 192,
     parentId: 0,
-    module: 'console',
+    appName: 'console',
     code: '',
     object: '',
     action: '',
@@ -23,7 +23,7 @@ const permissionList: PermissionModel[] = [
   {
     id: 227,
     parentId: 192,
-    module: 'console',
+    appName: 'console',
     code: '',
     object: '',
     action: '',
@@ -44,7 +44,7 @@ const permissionList: PermissionModel[] = [
   ].map(([id, action, name, sort]) => ({
     id: Number(id),
     parentId: 227,
-    module: 'console',
+    appName: 'console',
     code: `console/systempermission:${action}`,
     object: 'systempermission',
     action: String(action),
@@ -59,17 +59,17 @@ const permissionList: PermissionModel[] = [
 ];
 
 function normalize(body: Record<string, any>, current?: PermissionModel): PermissionModel {
-  const module = String(body.module ?? current?.module ?? 'console').trim().toLowerCase();
+  const appName = String(body.appName ?? current?.appName ?? 'console').trim().toLowerCase();
   const resourceType = body.resourceType === 'group' ? 'group' : 'route';
   const object = resourceType === 'route'
-    ? String(body.object ?? current?.object ?? '').trim().toLowerCase().replace(new RegExp(`^${module}[\\/.]`, 'i'), '')
+    ? String(body.object ?? current?.object ?? '').trim().toLowerCase().replace(new RegExp(`^${appName}[\\/.]`, 'i'), '')
     : '';
   const action = resourceType === 'route' ? String(body.action ?? current?.action ?? '').trim().toLowerCase() : '';
   return {
     id: current?.id ?? Math.max(0, ...permissionList.map((item) => item.id)) + 1,
     parentId: Math.max(0, Number(body.parentId ?? current?.parentId ?? 0)),
-    module,
-    code: resourceType === 'route' && object && action ? `${module}/${object.replace(/[\\/]/g, '.')}:${action}` : '',
+    appName,
+    code: resourceType === 'route' && object && action ? `${appName}/${object.replace(/[\\/]/g, '.')}:${action}` : '',
     object: object.replace(/[\\/]/g, '.'),
     action,
     name: String(body.name ?? current?.name ?? '').trim(),
@@ -86,7 +86,7 @@ function normalize(body: Record<string, any>, current?: PermissionModel): Permis
 
 function validate(item: PermissionModel, currentId = 0): string | null {
   if (!item.name) return '权限资源名称不能为空';
-  if (!/^[a-z][a-z0-9_]{0,49}$/.test(item.module)) return '应用标识格式不正确';
+  if (!/^[a-z][a-z0-9_]{0,49}$/.test(item.appName)) return '应用标识格式不正确';
   if (item.parentId > 0 && !permissionList.some((row) => row.id === item.parentId)) return '上级权限资源不存在';
   if (item.parentId === currentId || descendantIds(currentId).includes(item.parentId)) {
     return '不能将权限资源移动到自身或下级节点';

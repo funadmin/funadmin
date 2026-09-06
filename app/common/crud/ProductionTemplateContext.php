@@ -347,14 +347,14 @@ final class ProductionTemplateContext
         $menuPath = self::sqlLiteral('/' . ltrim($data['routePath'], '/'));
         $menuQuery = self::sqlLiteral("component=generated/{$data['entity']}/index&type=C&permission={$data['permissionPrefix']}:list");
         return "-- Generated forward permission/menu migration; review before applying.\n"
-            . "INSERT INTO fun_permission (pid, module, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) "
+            . "INSERT INTO fun_permission (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) "
             . "SELECT 0, 'console', NULL, '', '', {$title}, 'group', 1, 0, 0, 'generated', {$sourceName}, NOW(), NOW() "
             . "WHERE NOT EXISTS (SELECT 1 FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group');\n"
             . "SET @permission_group_id = (SELECT id FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group' ORDER BY id LIMIT 1);\n"
-            . "INSERT INTO fun_admin_menu (pid, permission_id, module, name, href, query, target, icon, status, sort_order, source_type, source_name, created_at, updated_at) "
+            . "INSERT INTO fun_admin_menu (pid, permission_id, app_name, name, href, query, target, icon, status, sort_order, source_type, source_name, created_at, updated_at) "
             . "SELECT 0, @permission_group_id, 'console', {$title}, {$menuPath}, {$menuQuery}, '_self', 'i-ep-document', 1, 0, 'generated', {$sourceName}, NOW(), NOW() "
             . "WHERE NOT EXISTS (SELECT 1 FROM fun_admin_menu WHERE source_type = 'generated' AND source_name = {$sourceName});\n"
-            . ($values === [] ? '' : "INSERT IGNORE INTO fun_permission (pid, module, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) VALUES\n"
+            . ($values === [] ? '' : "INSERT IGNORE INTO fun_permission (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) VALUES\n"
                 . implode(",\n", $values) . ";\n");
     }
 

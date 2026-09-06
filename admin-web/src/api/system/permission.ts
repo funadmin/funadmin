@@ -5,7 +5,7 @@ const PREFIX = '/system/permission';
 export interface PermissionModel {
   id: number;
   parentId: number;
-  module: string;
+  appName: string;
   code: string;
   object: string;
   action: string;

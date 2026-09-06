@@ -130,7 +130,7 @@ class SystemPermission extends AdminApiController
         Db::transaction(function () use ($permission, $data, $id, $oldObj, $oldAct, $resourceChanged): void {
             $permission->save($data);
             AdminMenu::where('permission_id', $id)->update([
-                'module' => $data['module'],
+                'app_name' => $data['app_name'],
                 'name' => $data['name'],
                 'status' => $data['status'],
                 'sort_order' => $data['sort_order'],
@@ -208,18 +208,18 @@ class SystemPermission extends AdminApiController
     private function payload(?Permission $permission = null): array
     {
         $current = $permission ? $this->permissionData($permission) : [];
-        $module = strtolower(trim((string) $this->request->post('module', $current['module'] ?? 'console')));
+        $appName = strtolower(trim((string) $this->request->post('appName', $current['appName'] ?? 'console')));
         $resourceType = strtolower(trim((string) $this->request->post('resourceType', $current['resourceType'] ?? Permission::TYPE_ROUTE)));
         $objInput = trim((string) $this->request->post('object', $current['object'] ?? ''));
-        $modulePrefixPattern = '/^' . preg_quote($module, '/') . '[\/.]/i';
-        $objInput = preg_replace($modulePrefixPattern, '', $objInput) ?? $objInput;
+        $appNamePrefixPattern = '/^' . preg_quote($appName, '/') . '[\/.]/i';
+        $objInput = preg_replace($appNamePrefixPattern, '', $objInput) ?? $objInput;
         $actionInput = trim((string) $this->request->post('action', $current['action'] ?? ''));
 
         $obj = '';
         $act = '';
         $code = null;
         if ($resourceType === Permission::TYPE_ROUTE && $objInput !== '' && $actionInput !== '') {
-            $resource = PermissionResource::fromParts($module, $objInput, $actionInput);
+            $resource = PermissionResource::fromParts($appName, $objInput, $actionInput);
             $obj = $resource['obj'];
             $act = $resource['act'];
             $code = $resource['code'];
@@ -227,7 +227,7 @@ class SystemPermission extends AdminApiController
 
         return [
             'pid' => max(0, (int) $this->request->post('parentId', $current['parentId'] ?? 0)),
-            'module' => $module,
+            'app_name' => $appName,
             'code' => $code,
             'obj' => $obj,
             'act' => $act,
@@ -246,7 +246,7 @@ class SystemPermission extends AdminApiController
         if ($data['name'] === '') {
             return '权限资源名称不能为空';
         }
-        if ($data['module'] === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $data['module'])) {
+        if ($data['app_name'] === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $data['app_name'])) {
             return '应用标识格式不正确';
         }
         if (!in_array($data['resource_type'], [Permission::TYPE_GROUP, Permission::TYPE_ROUTE], true)) {
@@ -294,14 +294,14 @@ class SystemPermission extends AdminApiController
     private function permissionData(Permission $permission): array
     {
         $object = (string) $permission->obj;
-        $modulePrefix = strtolower((string) $permission->module) . '/';
-        if ($object !== '' && str_starts_with(strtolower($object), $modulePrefix)) {
-            $object = substr($object, strlen($modulePrefix));
+        $appNamePrefix = strtolower((string) $permission->app_name) . '/';
+        if ($object !== '' && str_starts_with(strtolower($object), $appNamePrefix)) {
+            $object = substr($object, strlen($appNamePrefix));
         }
         return [
             'id' => (int) $permission->id,
             'parentId' => (int) $permission->pid,
-            'module' => (string) $permission->module,
+            'appName' => (string) $permission->app_name,
             'code' => (string) ($permission->code ?? ''),
             'object' => $object,
             'action' => (string) $permission->act,

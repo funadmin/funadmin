@@ -16,17 +16,17 @@ class ResourceRegistryService extends AbstractService
 {
     private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['system:plugin:list'];
 
-    public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $module = 'console', string $sourceType = 'system', string $sourceName = ''): void
+    public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $appName = 'console', string $sourceType = 'system', string $sourceName = ''): void
     {
-        Db::transaction(function () use ($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName) {
-            $this->registerItems($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName);
+        Db::transaction(function () use ($items, $parentPermissionId, $parentMenuId, $appName, $sourceType, $sourceName) {
+            $this->registerItems($items, $parentPermissionId, $parentMenuId, $appName, $sourceType, $sourceName);
         });
         $this->clearApplicationCache();
     }
 
-    public function removeRoute(string $module, string $href): void
+    public function removeRoute(string $appName, string $href): void
     {
-        $resource = PermissionResource::fromRoute($module, $href);
+        $resource = PermissionResource::fromRoute($appName, $href);
         if (!$resource) {
             return;
         }
@@ -73,25 +73,25 @@ class ResourceRegistryService extends AbstractService
         $this->clearApplicationCache();
     }
 
-    public function removeModule(string $module): void
+    public function removeApplication(string $appName): void
     {
-        $module = strtolower(trim($module));
-        $permissions = Permission::where('module', $module)->field('obj,act')->select()->toArray();
-        Db::transaction(function () use ($module, $permissions) {
+        $appName = strtolower(trim($appName));
+        $permissions = Permission::where('app_name', $appName)->field('obj,act')->select()->toArray();
+        Db::transaction(function () use ($appName, $permissions) {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
                     CasbinRule::where('ptype', 'p')->where('v2', $permission['obj'])->where('v3', $permission['act'])->delete();
                 }
             }
-            AdminMenu::where('module', $module)->delete();
-            Permission::where('module', $module)->delete();
+            AdminMenu::where('app_name', $appName)->delete();
+            Permission::where('app_name', $appName)->delete();
         });
         CasbinService::instance()->reload();
         $this->clearApplicationCache();
     }
 
     /**
-     * 注册扁平权限节点（插件 manifest permissions[]），code 沿用 schema 正则解析 module/obj/act。
+     * 注册扁平权限节点（插件 manifest permissions[]），code 第一段是插件命名空间，app_name 是运行应用。
      */
     public function registerPermissions(array $permissions, string $sourceType, string $sourceName): void
     {
@@ -105,24 +105,24 @@ class ResourceRegistryService extends AbstractService
                     continue;
                 }
                 $segments = explode(':', $code);
-                $module = (string) array_shift($segments);
+                $namespace = (string) array_shift($segments);
                 $act = count($segments) > 1 ? (string) array_pop($segments) : '';
                 $obj = implode(':', $segments);
                 $permission = Permission::where('code', $code)->find();
                 if ($permission && (
                     (string) $permission->source_type !== $sourceType
                     || (string) $permission->source_name !== $sourceName
-                    || (string) $permission->module !== $module
+                    || (string) $permission->app_name !== 'console'
                 )) {
                     throw new RuntimeException('权限 code 归属冲突：' . $code);
                 }
-                if ($sourceType === 'plugin' && $module !== strtolower($sourceName)) {
+                if ($sourceType === 'plugin' && $namespace !== strtolower($sourceName)) {
                     throw new RuntimeException('插件权限 code 必须属于插件命名空间：' . $code);
                 }
                 $permission ??= new Permission();
                 $permission->save([
                     'pid' => 0,
-                    'module' => $module,
+                    'app_name' => 'console',
                     'code' => $code,
                     'obj' => $obj,
                     'act' => $act,
@@ -169,15 +169,15 @@ class ResourceRegistryService extends AbstractService
         $this->clearApplicationCache();
     }
 
-    private function registerItems(array $items, int $parentPermissionId, int $parentMenuId, string $module, string $sourceType, string $sourceName): void
+    private function registerItems(array $items, int $parentPermissionId, int $parentMenuId, string $appName, string $sourceType, string $sourceName): void
     {
         foreach ($items as $item) {
             $children = !empty($item['menulist']) && is_array($item['menulist']) ? $item['menulist'] : [];
             $href = trim((string) ($item['href'] ?? $item['path'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
-            $itemModule = strtolower(trim((string) ($item['module'] ?? $module))) ?: 'console';
-            $referencedCode = strtolower(trim((string) ($item['permission'] ?? '')));
-            $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemModule, $href);
+            $itemAppName = strtolower(trim((string) ($item['appName'] ?? $appName))) ?: 'console';
+            $referencedCode = strtolower(trim((string) ($item['permission'] ?? ''));
+            $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemAppName, $href);
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;
             if ($referencedCode !== '') {
                 $permission = Permission::where('code', $referencedCode)->find();
@@ -196,7 +196,7 @@ class ResourceRegistryService extends AbstractService
                     ? ['code' => $resource['code']]
                     : [
                         'pid' => $parentPermissionId,
-                        'module' => $itemModule,
+                        'app_name' => $itemAppName,
                         'name' => (string) ($item['name'] ?? ''),
                         'source_type' => $sourceType,
                         'source_name' => $sourceName,
@@ -205,14 +205,14 @@ class ResourceRegistryService extends AbstractService
                 if ($permission && (
                     (string) $permission->source_type !== $sourceType
                     || (string) $permission->source_name !== $sourceName
-                    || (string) $permission->module !== $itemModule
+                    || (string) $permission->app_name !== $itemAppName
                 )) {
                     throw new RuntimeException('菜单权限归属冲突：' . (string) ($resource['code'] ?? $item['name'] ?? ''));
                 }
                 $permission ??= new Permission();
                 $permission->save([
                     'pid' => $parentPermissionId,
-                    'module' => $itemModule,
+                    'app_name' => $itemAppName,
                     'code' => $resource['code'] ?? null,
                     'obj' => $resource['obj'] ?? '',
                     'act' => $resource['act'] ?? '',
@@ -235,7 +235,7 @@ class ResourceRegistryService extends AbstractService
                 if ($menu && (
                     (string) $menu->source_type !== $sourceType
                     || (string) $menu->source_name !== $sourceName
-                    || (string) $menu->module !== $itemModule
+                    || (string) $menu->app_name !== $itemAppName
                 )) {
                     throw new RuntimeException('菜单记录归属冲突：' . (string) ($item['name'] ?? ''));
                 }
@@ -243,7 +243,7 @@ class ResourceRegistryService extends AbstractService
                 $menu->save([
                     'pid' => $parentMenuId,
                     'permission_id' => $permission->id,
-                    'module' => $itemModule,
+                    'app_name' => $itemAppName,
                     'name' => (string) ($item['name'] ?? ''),
                     'href' => $href,
                     'query' => (string) ($item['query'] ?? ''),
@@ -257,7 +257,7 @@ class ResourceRegistryService extends AbstractService
                 $menuId = (int) $menu->id;
             }
             if ($children) {
-                $this->registerItems($children, (int) $permission->id, $menuId, $itemModule, $sourceType, $sourceName);
+                $this->registerItems($children, (int) $permission->id, $menuId, $itemAppName, $sourceType, $sourceName);
             }
         }
     }

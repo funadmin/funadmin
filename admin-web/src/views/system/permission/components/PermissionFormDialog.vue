@@ -33,8 +33,8 @@
         <el-input v-model="form.name" maxlength="100" show-word-limit placeholder="请输入资源名称" />
       </el-form-item>
 
-      <el-form-item label="应用标识" prop="module">
-        <el-input v-model="form.module" maxlength="50" placeholder="如 console" />
+      <el-form-item label="应用标识" prop="appName">
+        <el-input v-model="form.appName" maxlength="50" placeholder="如 console" />
       </el-form-item>
 
       <template v-if="form.resourceType === 'route'">
@@ -108,7 +108,7 @@ const saving = ref(false);
 
 const initialForm = (): Partial<PermissionModel> => ({
   parentId: 0,
-  module: 'console',
+  appName: 'console',
   name: '',
   object: '',
   action: '',
@@ -121,7 +121,7 @@ const form = reactive<Partial<PermissionModel>>(initialForm());
 
 const rules = computed<FormRules>(() => ({
   name: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
-  module: [
+  appName: [
     { required: true, message: '请输入应用标识', trigger: 'blur' },
     { pattern: /^[a-z][a-z0-9_]{0,49}$/, message: '仅支持小写字母、数字和下划线', trigger: 'blur' }
   ],
