@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service\casbin;
+namespace app\console\service\casbin;
 
-use app\backend\model\CasbinRule;
+use app\console\model\CasbinRule;
 use Casbin\Model\Model;
 use Casbin\Persist\Adapter;
 use Casbin\Persist\AdapterHelper;

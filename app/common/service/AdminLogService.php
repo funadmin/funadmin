@@ -12,9 +12,9 @@
  */
 namespace app\common\service;
 
-use app\backend\model\AdminLog;
-use app\backend\model\Permission;
-use app\backend\service\PermissionResource;
+use app\console\model\AdminLog;
+use app\console\model\Permission;
+use app\console\service\PermissionResource;
 use think\facade\Session;
 use think\Request;
 use think\Response;

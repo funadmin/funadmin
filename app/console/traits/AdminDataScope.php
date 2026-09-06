@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\traits;
+namespace app\console\traits;
 
-use app\backend\service\DataScopeService;
+use app\console\service\DataScopeService;
 
 /**
  * 后台 CRUD 数据范围应用。

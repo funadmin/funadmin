@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\traits;
+namespace app\console\traits;
 
 /**
  * 后台树形数据构建。

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\AuthGroup;
-use app\backend\model\AuthGroupInherit;
-use app\backend\model\Department;
+use app\console\model\AuthGroup;
+use app\console\model\AuthGroupInherit;
+use app\console\model\Department;
 use InvalidArgumentException;
 
 /**
@@ -50,7 +50,7 @@ class RoleGuardService
         }
     }
 
-    public function assertManageAdmin(\app\backend\model\Admin $admin, bool $allowSelf = false): void
+    public function assertManageAdmin(\app\console\model\Admin $admin, bool $allowSelf = false): void
     {
         $roleScope = new RoleScopeService();
         $adminId = (int) $admin->id;
@@ -201,7 +201,7 @@ class RoleGuardService
             }
             if ($scope === 'custom' && $parentScope === 'custom') {
                 $parentDepartments = $this->normalizeIds(
-                    \app\backend\model\AuthGroupDepartment::where('role_id', (int) $parent->id)->column('dept_id')
+                    \app\console\model\AuthGroupDepartment::where('role_id', (int) $parent->id)->column('dept_id')
                 );
                 if (!array_diff($childDepartments, $parentDepartments)) {
                     continue;

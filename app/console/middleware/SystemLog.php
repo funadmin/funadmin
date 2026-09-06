@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\middleware;
+namespace app\console\middleware;
 
 use app\common\service\AdminLogService;
 use Closure;

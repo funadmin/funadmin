@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\Permission;
+use app\console\model\Permission;
 use app\common\traits\Jump;
 use think\Request;
 

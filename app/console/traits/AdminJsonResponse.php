@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\traits;
+namespace app\console\traits;
 
 use app\common\traits\JsonResponse;
 use think\facade\Session;

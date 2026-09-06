@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\traits;
+namespace app\console\traits;
 
 /**
  * 后台 API 数据格式化。

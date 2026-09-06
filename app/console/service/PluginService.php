@@ -1,6 +1,6 @@
 <?php
 
-namespace app\backend\service;
+namespace app\console\service;
 use app\common\model\Plugin;
 use app\common\model\PluginVersionHistory;
 use app\common\service\AbstractService;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\CrudGeneration;
+use app\console\model\CrudGeneration;
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
 use app\common\crud\DefinitionValidator;

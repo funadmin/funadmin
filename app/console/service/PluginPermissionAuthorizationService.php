@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\Permission;
+use app\console\model\Permission;
 
 /**
  * 使用插件 manifest 注册的权限资源执行后台授权，禁止根据请求路由推导权限。

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
 use FilesystemIterator;
 use fun\plugins\Manifest;
@@ -34,7 +34,7 @@ final class PluginResourcePublisher
         $touchedTargets = [];
 
         try {
-            foreach ((array) ($manifest->toArray()['resources'] ?? []) as $resource) {
+            foreach ($this->publicationSources($manifest) as $resource) {
                 $sourceRoot = $this->canonicalSourceDirectory(
                     $manifest->directory(),
                     (string) $resource['source']
@@ -44,7 +44,10 @@ final class PluginResourcePublisher
                     $manifest->name(),
                     (string) $resource['target']
                 );
-                foreach ($this->files($sourceRoot) as $source) {
+                $sources = isset($resource['files'])
+                    ? $this->declaredFiles($sourceRoot, (array) $resource['files'])
+                    : $this->files($sourceRoot);
+                foreach ($sources as $source) {
                     $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($source, strlen($sourceRoot) + 1));
                     $target = $targetRoot . DIRECTORY_SEPARATOR . $relative;
                     $targetPath = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($public) + 1));
@@ -173,6 +176,38 @@ final class PluginResourcePublisher
         if (is_file($target)) {
             throw new RuntimeException('拒绝覆盖未登记的核心文件：' . $targetPath);
         }
+    }
+
+    private function publicationSources(Manifest $manifest): array
+    {
+        $data = $manifest->toArray();
+        $publications = array_values((array) ($data['resources'] ?? []));
+        if (is_array($data['adminWeb'] ?? null)) {
+            $publications[] = [
+                'source' => 'resources/admin',
+                'target' => 'plugin-assets/' . $manifest->name(),
+                'files' => (array) ($data['adminWeb']['files'] ?? []),
+            ];
+        }
+        return $publications;
+    }
+
+    private function declaredFiles(string $directory, array $files): array
+    {
+        $sources = [];
+        foreach ($files as $file) {
+            $relative = (string) $file;
+            $source = realpath($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative));
+            if ($source === false || !is_file($source) || !str_starts_with($source, $directory . DIRECTORY_SEPARATOR)) {
+                throw new RuntimeException('Admin Web 资源不存在或越界：' . $relative);
+            }
+            if (is_link($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative))) {
+                throw new RuntimeException('Admin Web 资源禁止符号链接：' . $relative);
+            }
+            $sources[] = $source;
+        }
+        sort($sources, SORT_STRING);
+        return $sources;
     }
 
     private function files(string $directory): array

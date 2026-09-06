@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\traits;
+namespace app\console\traits;
 
 /**
  * 后台 CRUD 分页参数与响应数据。

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\Admin;
-use app\backend\model\AuthGroup;
-use app\backend\model\AuthGroupDepartment;
-use app\backend\model\Department;
+use app\console\model\Admin;
+use app\console\model\AuthGroup;
+use app\console\model\AuthGroupDepartment;
+use app\console\model\Department;
 
 /**
  * 后台行级数据范围。调用方必须显式提供数据表中的管理员字段和部门字段。

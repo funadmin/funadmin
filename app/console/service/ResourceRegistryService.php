@@ -1,11 +1,11 @@
 <?php
 
-namespace app\backend\service;
+namespace app\console\service;
 
 use RuntimeException;
-use app\backend\model\AdminMenu;
-use app\backend\model\CasbinRule;
-use app\backend\model\Permission;
+use app\console\model\AdminMenu;
+use app\console\model\CasbinRule;
+use app\console\model\Permission;
 use app\common\service\AbstractService;
 use think\facade\Db;
 

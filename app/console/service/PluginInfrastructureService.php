@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\AdminMenu;
+use app\console\model\AdminMenu;
 use app\common\service\MigrationService;
 use fun\plugins\Manifest;
 use think\facade\Db;
@@ -111,7 +111,7 @@ final class PluginInfrastructureService
     private function disableUndeclaredPermissions(array $permissions, string $name): void
     {
         $codes = array_values(array_filter(array_map(static fn (array $permission): string => (string) ($permission['code'] ?? ''), $permissions)));
-        $query = \app\backend\model\Permission::where('source_type', 'plugin')->where('source_name', $name);
+        $query = \app\console\model\Permission::where('source_type', 'plugin')->where('source_name', $name);
         if ($codes !== []) {
             $query->whereNotIn('code', $codes);
         }

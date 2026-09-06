@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\Admin as AdminModel;
+use app\console\model\Admin as AdminModel;
 use app\common\model\Blacklist;
 use app\common\service\MemberInput;
 use fun\helper\SignHelper;

@@ -15,7 +15,7 @@
     "permission": { "type": "object", "additionalProperties": false, "required": ["code", "name"], "properties": { "code": { "type": "string", "pattern": "^[a-z][a-z0-9]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$" }, "name": { "type": "string", "minLength": 1 } } },
     "menu": { "type": "object", "additionalProperties": false, "required": ["name", "path"], "properties": { "name": { "type": "string", "minLength": 1 }, "path": { "type": "string", "pattern": "^/plugin/[a-z][a-z0-9]*/[A-Za-z0-9/_-]+$" }, "permission": { "type": "string", "pattern": "^[a-z][a-z0-9]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$" } } },
     "adminRoute": { "type": "object", "additionalProperties": false, "required": ["path", "name", "component"], "properties": { "path": { "type": "string", "pattern": "^/plugin/[a-z][a-z0-9]*/[A-Za-z0-9/_-]+$" }, "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" }, "component": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_/-]*$" }, "meta": { "type": "object", "additionalProperties": false, "properties": { "title": { "type": "string" }, "icon": { "type": "string" }, "permission": { "type": "string", "pattern": "^[a-z][a-z0-9]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$" } } } } },
-    "admin_web": { "type": "object", "additionalProperties": false, "required": ["entry", "routes"], "properties": { "entry": { "$ref": "#/$defs/jsPath" }, "routes": { "type": "array", "items": { "$ref": "#/$defs/adminRoute" } } } }
+    "adminWeb": { "type": "object", "additionalProperties": false, "required": ["component", "files", "minFrontendVersion", "permissions", "menu", "routes"], "properties": { "component": { "$ref": "#/$defs/jsPath" }, "files": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/jsPath" } }, "minFrontendVersion": { "type": "string", "minLength": 1 }, "permissions": { "type": "array", "items": { "$ref": "#/$defs/permission" } }, "menu": { "type": "array", "items": { "$ref": "#/$defs/menu" } }, "routes": { "type": "array", "items": { "$ref": "#/$defs/adminRoute" } } } }
   },
   "properties": {
     "schema_version": { "const": 1 },
@@ -27,10 +27,8 @@
     "requires": { "type": "object", "additionalProperties": false, "required": ["plugins"], "properties": { "php": { "type": "string", "minLength": 1 }, "funadmin": { "type": "string", "minLength": 1 }, "plugins": { "type": "object", "propertyNames": { "pattern": "^[a-z][a-z0-9]*$" }, "additionalProperties": { "type": "string", "minLength": 1 } } } },
     "entry": { "type": "object", "additionalProperties": false, "required": ["class", "file"], "properties": { "class": { "type": "string", "pattern": "^plugins\\\\[a-z][a-z0-9]*\\\\Plugin$" }, "file": { "const": "Plugin.php" } } },
     "load": { "type": "object", "additionalProperties": false, "properties": { "services": { "$ref": "#/$defs/phpPath" }, "events": { "$ref": "#/$defs/phpPath" }, "routes": { "$ref": "#/$defs/routePhpPath" } } },
-    "permissions": { "type": "array", "items": { "$ref": "#/$defs/permission" } },
-    "menus": { "type": "array", "items": { "$ref": "#/$defs/menu" } },
-    "admin_web": { "$ref": "#/$defs/admin_web" },
-    "resources": { "type": "object", "additionalProperties": false, "properties": { "public": { "$ref": "#/$defs/resource" }, "admin": { "$ref": "#/$defs/resource" } } },
+    "adminWeb": { "$ref": "#/$defs/adminWeb" },
+    "resources": { "type": "object", "additionalProperties": false, "properties": { "public": { "$ref": "#/$defs/resource" } } },
     "migrations": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "$ref": "#/$defs/path" } } },
     "storage": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "$ref": "#/$defs/path" } } },
     "purge": { "type": "object", "additionalProperties": false, "required": ["supported"], "properties": { "supported": { "type": "boolean" } } },

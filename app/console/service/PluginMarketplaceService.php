@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
 use app\common\plugin\marketplace\PluginMarketplaceGateway;
 use app\common\plugin\marketplace\dto\CloudAccountDto;

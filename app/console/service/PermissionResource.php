@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-namespace app\backend\service;
+namespace app\console\service;
 
 use InvalidArgumentException;
 

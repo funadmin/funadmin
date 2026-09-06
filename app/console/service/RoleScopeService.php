@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
-use app\backend\model\AuthGroup;
-use app\backend\model\AuthGroupInherit;
-use app\backend\model\Permission;
+use app\console\model\AuthGroup;
+use app\console\model\AuthGroupInherit;
+use app\console\model\Permission;
 
 final class RoleScopeService
 {
