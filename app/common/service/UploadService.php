@@ -30,18 +30,18 @@ class UploadService extends AbstractService
      * 文件后缀
      * @var
      */
-    protected string $fileExt;
+    protected string $fileExt = '';
     /**
      * 文件大小
      * @var
      */
-    protected int $fileMaxsize;
+    protected int $fileMaxsize = 0;
 
     /**
      * 文件对象
      * @var
      */
-    protected $file;
+    protected mixed $file = null;
 
     protected string $saveFilePath = 'uploads';
 

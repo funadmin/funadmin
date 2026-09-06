@@ -132,29 +132,29 @@ class McpService extends AbstractService
             
             // 设置超时配置
             if (isset($mcpConfig['timeout']) && $mcpConfig['timeout'] > 0) {
-                $this->timeout = $mcpConfig['timeout'];
+                $this->timeout = (int) $mcpConfig['timeout'];
             }
             
             if (isset($mcpConfig['connect_timeout']) && $mcpConfig['connect_timeout'] > 0) {
-                $this->connectTimeout = $mcpConfig['connect_timeout'];
+                $this->connectTimeout = (int) $mcpConfig['connect_timeout'];
             }
             
             if (isset($mcpConfig['read_timeout']) && $mcpConfig['read_timeout'] > 0) {
-                $this->readTimeout = $mcpConfig['read_timeout'];
+                $this->readTimeout = (int) $mcpConfig['read_timeout'];
             }
             
             // 设置重试配置
             if (isset($mcpConfig['retry_attempts']) && $mcpConfig['retry_attempts'] > 0) {
-                $this->retryAttempts = $mcpConfig['retry_attempts'];
+                $this->retryAttempts = (int) $mcpConfig['retry_attempts'];
             }
             
             if (isset($mcpConfig['retry_delay']) && $mcpConfig['retry_delay'] > 0) {
-                $this->retryDelay = $mcpConfig['retry_delay'];
+                $this->retryDelay = (int) $mcpConfig['retry_delay'];
             }
             
             // 设置调试模式
             if (isset($mcpConfig['debug'])) {
-                $this->debug = $mcpConfig['debug'];
+                $this->debug = (bool) $mcpConfig['debug'];
             }
             
             // 设置内存限制
@@ -164,16 +164,16 @@ class McpService extends AbstractService
             
             // 设置缓冲区大小
             if (isset($mcpConfig['buffer_size'])) {
-                $this->bufferSize = $mcpConfig['buffer_size'];
+                $this->bufferSize = (int) $mcpConfig['buffer_size'];
             }
             
             // 设置心跳配置
             if (isset($mcpConfig['heartbeat_enabled'])) {
-                $this->heartbeatEnabled = $mcpConfig['heartbeat_enabled'];
+                $this->heartbeatEnabled = (bool) $mcpConfig['heartbeat_enabled'];
             }
             
             if (isset($mcpConfig['heartbeat_interval'])) {
-                $this->heartbeatInterval = $mcpConfig['heartbeat_interval'];
+                $this->heartbeatInterval = (int) $mcpConfig['heartbeat_interval'];
             }
             
             Log::info('MCP配置加载成功', [
@@ -182,8 +182,8 @@ class McpService extends AbstractService
                 'read_timeout' => $this->readTimeout,
                 'retry_attempts' => $this->retryAttempts,
                 'retry_delay' => $this->retryDelay,
-                'heartbeat_enabled' => $this->heartbeatEnabled ?? false,
-                'heartbeat_interval' => $this->heartbeatInterval ?? 30
+                'heartbeat_enabled' => $this->heartbeatEnabled,
+                'heartbeat_interval' => $this->heartbeatInterval
             ]);
             
         } catch (Exception $e) {

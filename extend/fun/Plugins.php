@@ -16,26 +16,28 @@ namespace fun;
 
 use think\App;
 use think\facade\View;
+use think\Request;
+use think\view\driver\Think as ThinkViewDriver;
 
 abstract class Plugins  {
     // app 容器
-    protected $app;
+    protected App $app;
     // 请求对象
-    protected $request;
+    protected Request $request;
     // 当前插件标识
-    protected $name;
+    protected string $name;
     // 模板布局
-    protected $layout =false;
+    protected bool $layout = false;
     // 插件路径
-    protected $plugin_path;
+    protected string $plugin_path;
     // 视图模型
-    protected $view;
+    protected ThinkViewDriver $view;
     // 插件配置
-    protected $plugin_config;
+    protected string $plugin_config;
 
-    protected $info;
+    protected array $info;
     // 插件信息
-    protected $plugin_info;
+    protected string $plugin_info;
 
     /**
      * 插件构造函数
@@ -69,7 +71,7 @@ abstract class Plugins  {
      * 获取插件标识
      * @return mixed|null
      */
-    final protected function getName()
+    final protected function getName(): string
     {
         $class = get_class($this);
         list(, $name, ) = explode('\\', $class);
@@ -85,7 +87,7 @@ abstract class Plugins  {
      * @return false|mixed|string   模板输出变量
      * @throws \think\Exception
      */
-    protected function fetch($template = '', $vars = [])
+    protected function fetch(string $template = '', array $vars = []): string
     {
         return $this->view->fetch($template, $vars);
     }
@@ -97,7 +99,7 @@ abstract class Plugins  {
      * @param  array  $vars    模板输出变量
      * @return mixed
      */
-    protected function display($content = '', $vars = [])
+    protected function display(string $content = '', array $vars = []): string
     {
         return $this->view->display($content, $vars);
     }
@@ -109,7 +111,7 @@ abstract class Plugins  {
      * @param  mixed $value 变量的值
      * @return $this
      */
-    protected function assign($name, $value = '')
+    protected function assign(mixed $name, mixed $value = ''): static
     {
         $this->view->assign([$name => $value]);
 
@@ -122,7 +124,7 @@ abstract class Plugins  {
      * @param  array|string $engine 引擎参数
      * @return $this
      */
-    protected function engine($engine)
+    protected function engine(array|string $engine): static
     {
         $this->view->engine($engine);
 
@@ -133,7 +135,7 @@ abstract class Plugins  {
      * 插件基础信息
      * @return array
      */
-    final public function getInfo()
+    final public function getInfo(): array
     {
         $info = config($this->plugin_info, []);
         if ($info) {
@@ -151,7 +153,7 @@ abstract class Plugins  {
      * @param bool $type 是否获取完整配置
      * @return array|mixed
      */
-    final public function getConfig($type = false)
+    final public function getConfig(bool $type = false): array
     {
         $config = config($this->plugin_config, []);
         if ($config) {
@@ -177,7 +179,7 @@ abstract class Plugins  {
      * @param array $value
      * @return array
      */
-    final public function setInfo($name = '', $value = [])
+    final public function setInfo(string $name = '', array $value = []): never
     {
         throw new \RuntimeException('plugin.json 是只读契约，运行状态必须写入插件注册表');
     }
@@ -215,12 +217,12 @@ abstract class Plugins  {
     }
 
     //必须实现安装
-    abstract public function install();
+    abstract public function install(): bool;
 
     //必须卸载插件方法
-    abstract public function uninstall();
+    abstract public function uninstall(): bool;
     //必须实现安装
-    abstract public function enabled();
+    abstract public function enabled(): bool;
     //必须卸载插件方法
-    abstract public function disabled();
+    abstract public function disabled(): bool;
 }
