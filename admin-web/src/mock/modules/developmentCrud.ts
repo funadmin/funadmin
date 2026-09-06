@@ -24,9 +24,9 @@ function preview(definition: CrudDefinition): CrudPreview {
 export const developmentCrudMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/development/crud/connections', handler: () => ok([{ name: 'mysql' }]) },
   { method: 'GET', url: '/development/crud/tables', handler: () => ok([{ name: 'fun_demo', comment: 'Mock 验收数据表' }]) },
-  { method: 'GET', url: /^\/development\/crud\/table\/([a-z_][a-z0-9_]*)$/, paramNames: ['table'], handler: ({ pathParams }) => ok({ table: pathParams.table, fields }) },
+  { method: 'GET', url: /^\/development\/crud\/tables\/([a-z_][a-z0-9_]*)\/schema$/, paramNames: ['table'], handler: ({ pathParams }) => ok({ table: pathParams.table, fields }) },
   { method: 'POST', url: '/development/crud/infer', handler: ({ body }) => ok({ schema: { connection: body.connection, table: body.table }, fields }) },
-  { method: 'POST', url: '/development/crud/validate', handler: () => ok({ valid: true, definitionHash: 'mock-definition-hash' }) },
+  { method: 'POST', url: '/development/crud/definitions/validate', handler: () => ok({ valid: true, definitionHash: 'mock-definition-hash' }) },
   { method: 'POST', url: '/development/crud/preview', handler: ({ body }) => ok(preview(body.definition as CrudDefinition)) },
   { method: 'POST', url: '/development/crud/generate', handler: () => ok({ generationId: 1, write: { status: 'written' } }) },
   { method: 'GET', url: /^\/development\/crud\/generations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => ok({ id: Number(pathParams.id), status: 'previewed' }) }

@@ -25,7 +25,7 @@ describe('CRUD Workbench', () => {
       { name: 'deleted_at', dbType: 'datetime', nullable: true }
     ] as CrudField[]);
     expect(definition).toMatchObject({
-      connection: 'mysql', module: 'generated', entity: 'admin-log', routePath: '/generated/admin-log',
+      connection: 'mysql', module: 'generated', entity: 'admin-log', apiPrefix: '/generated/admin-log', routePath: '/generated/admin-log',
       primaryKey: 'id', timestamps: true, softDeletes: true
     });
     expect(definition.generationTargets).toHaveProperty('phpTest');
@@ -34,7 +34,6 @@ describe('CRUD Workbench', () => {
     expect(definition.templates).toHaveProperty('vitestTest');
     expect(definition).not.toHaveProperty('name');
     expect(definition).not.toHaveProperty('paths');
-    expect(definition).not.toHaveProperty('apiPrefix');
     expect(definition).not.toHaveProperty('metadata');
   });
 

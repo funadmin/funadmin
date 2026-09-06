@@ -1,7 +1,7 @@
 import type { RouteRecordRaw, RouteComponent } from 'vue-router';
 import Layout from '@/layout/index.vue';
 
-/** 异步加载核心业务页面；插件页面由 pluginModules 动态 ESM 注册器独立挂载。 */
+/** 异步加载核心业务页面；插件页面由 pluginModules 基于 Vite 构建期源码清单独立挂载。 */
 const modules = import.meta.glob('@/views/**/*.vue');
 
 /** 占位空白布局（用于多级嵌套菜单） */

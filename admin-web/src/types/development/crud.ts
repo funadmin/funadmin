@@ -52,7 +52,7 @@ export interface CrudArtifactMap {
 }
 export interface CrudDefinition {
   schemaVersion: '1.0'; connection: string; module: string; entity: string; table: string;
-  title: string; description?: string; routePath: string; primaryKey: string;
+  title: string; description?: string; apiPrefix: string; routePath: string; primaryKey: string;
   timestamps: boolean; softDeletes: boolean; generationTargets: CrudArtifactMap;
   permissionPrefix: string; fields: CrudField[]; relations: CrudRelation[];
   optionsSource: CrudOptionsSource[]; templates: CrudArtifactMap;

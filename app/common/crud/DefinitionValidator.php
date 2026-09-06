@@ -12,7 +12,7 @@ use InvalidArgumentException;
 final class DefinitionValidator
 {
     private const ROOT_KEYS = [
-        'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'routePath',
+        'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'generationTargets', 'permissionPrefix', 'fields',
         'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope',
     ];
@@ -56,8 +56,10 @@ final class DefinitionValidator
         if (isset($data['description'])) {
             $this->text((string) $data['description'], 'description');
         }
-        if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', (string) ($data['routePath'] ?? ''))) {
-            throw new InvalidArgumentException('routePath 不合法');
+        foreach (['apiPrefix', 'routePath'] as $pathField) {
+            if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', (string) ($data[$pathField] ?? ''))) {
+                throw new InvalidArgumentException($pathField . ' 不合法');
+            }
         }
         foreach (['timestamps', 'softDeletes'] as $flag) {
             if (!isset($data[$flag]) || !is_bool($data[$flag])) {

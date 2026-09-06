@@ -15,7 +15,6 @@ SET `icon` = CASE `source_name`
     WHEN 'language' THEN 'i-ep-connection'
     WHEN 'member_group' THEN 'i-ep-user-filled'
     WHEN 'member_level' THEN 'i-ep-histogram'
-    WHEN 'plugin_center' THEN 'i-ep-grid'
     WHEN 'member' THEN 'i-ep-user'
     WHEN 'attachment' THEN 'i-ep-picture-filled'
     WHEN 'config' THEN 'i-ep-setting'

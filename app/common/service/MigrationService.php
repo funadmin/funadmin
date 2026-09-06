@@ -49,6 +49,7 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('无法读取 migration：' . $file);
             }
             $this->assertForwardOnly($sql, $file);
+            $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
             $sql = str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'), $sql);
             $statements = $this->statements($sql);
             if (!$statements) {
@@ -156,6 +157,91 @@ class MigrationService extends AbstractService
         if (!$indexes) {
             Db::execute("ALTER TABLE {$quotedTable} ADD UNIQUE KEY `uk_member_mobile` (`mobile`)");
         }
+    }
+
+    /**
+     * 兼容迁移乱序升级：旧库可能已执行 054，但遗漏 052；空库则在 054 执行安全的 expand/backfill/contract。
+     */
+    private function preparePermissionAppNameCutover(string $scope, string $version, string $sql): string
+    {
+        if ($scope !== 'core' || !in_array($version, [
+            '052_crud_schema_preview_permissions',
+            '053_permission_resource_tree_repair',
+            '054_permission_app_name',
+        ], true)) {
+            return $sql;
+        }
+
+        $permissionColumns = $this->tableColumns('permission');
+        $menuColumns = $this->tableColumns('admin_menu');
+        if ($version !== '054_permission_app_name') {
+            if (!in_array('module', $permissionColumns, true) && in_array('app_name', $permissionColumns, true)) {
+                return str_replace('`module`', '`app_name`', $sql);
+            }
+            return $sql;
+        }
+
+        $this->expandAndBackfillAppName('permission', $permissionColumns);
+        $this->expandAndBackfillAppName('admin_menu', $menuColumns);
+        $prefix = (string) config('database.connections.mysql.prefix');
+        $menuTable = $this->quoteIdentifier($prefix . 'admin_menu');
+        $indexes = Db::query(
+            'SELECT INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX FROM information_schema.STATISTICS '
+            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX',
+            [$prefix . 'admin_menu', 'uk_menu_location']
+        );
+        $columns = array_column($indexes, 'COLUMN_NAME');
+        if ($columns !== ['app_name', 'href', 'query']) {
+            if ($indexes !== []) {
+                Db::execute("ALTER TABLE {$menuTable} DROP INDEX `uk_menu_location`");
+            }
+            Db::execute("ALTER TABLE {$menuTable} ADD UNIQUE KEY `uk_menu_location` (`app_name`,`href`,`query`)");
+        }
+        $this->contractLegacyModule('permission');
+        $this->contractLegacyModule('admin_menu');
+
+        return 'SELECT 1';
+    }
+
+    private function expandAndBackfillAppName(string $tableName, array $columns): void
+    {
+        $prefix = (string) config('database.connections.mysql.prefix');
+        $table = $this->quoteIdentifier($prefix . $tableName);
+        if (!in_array('app_name', $columns, true)) {
+            Db::execute("ALTER TABLE {$table} ADD COLUMN `app_name` varchar(50) NULL AFTER `module`");
+        }
+        if (in_array('module', $columns, true)) {
+            Db::execute("UPDATE {$table} SET `app_name` = COALESCE(NULLIF(`app_name`, ''), NULLIF(`module`, ''), 'console')");
+        } else {
+            Db::execute("UPDATE {$table} SET `app_name` = 'console' WHERE `app_name` IS NULL OR `app_name` = ''");
+        }
+        Db::execute("ALTER TABLE {$table} MODIFY COLUMN `app_name` varchar(50) NOT NULL DEFAULT 'console' COMMENT 'ThinkPHP应用标识'");
+    }
+
+    private function contractLegacyModule(string $tableName): void
+    {
+        if (!in_array('module', $this->tableColumns($tableName), true)) {
+            return;
+        }
+        $prefix = (string) config('database.connections.mysql.prefix');
+        Db::execute('ALTER TABLE ' . $this->quoteIdentifier($prefix . $tableName) . ' DROP COLUMN `module`');
+    }
+
+    private function tableColumns(string $tableName): array
+    {
+        $prefix = (string) config('database.connections.mysql.prefix');
+        return array_column(Db::query(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+            [$prefix . $tableName]
+        ), 'COLUMN_NAME');
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        if (preg_match('/^[A-Za-z0-9_]+$/', $identifier) !== 1) {
+            throw new RuntimeException('数据库标识符不合法');
+        }
+        return '`' . $identifier . '`';
     }
 
     private function assertForwardOnly(string $sql, string $file): void

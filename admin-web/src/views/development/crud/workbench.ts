@@ -28,7 +28,7 @@ export function createCrudDefinition(connection: string, table: string, fields: 
   const hasWritableStatus = fields.some((field) => field.name === 'status' && field.writable !== false);
   return {
     schemaVersion: '1.0', connection, module: 'generated', entity: name, table, title: table,
-    routePath: `/generated/${name}`, primaryKey: fields.find((field) => field.primary)?.name || 'id',
+    apiPrefix: `/generated/${name}`, routePath: `/generated/${name}`, primaryKey: fields.find((field) => field.primary)?.name || 'id',
     timestamps: fields.some((field) => field.name === 'created_at') && fields.some((field) => field.name === 'updated_at'),
     softDeletes: fields.some((field) => field.name === 'deleted_at'),
     generationTargets: { migration: `database/generated/${name}.sql`, model: `app/console/model/${className}.php`, validate: `app/console/validate/${className}Validate.php`, service: `app/console/service/${className}Service.php`, controller: `app/console/controller/generated/${className}Controller.php`, permissionMigration: `database/generated/${name}_permissions.sql`, api: `admin-web/src/api/generated/${name}.ts`, view: `admin-web/src/views/generated/${name}/index.vue`, form: `admin-web/src/views/generated/${name}/components/${className}Form.vue`, detail: `admin-web/src/views/generated/${name}/components/${className}Detail.vue`, phpTest: `tests/generated/${className}GeneratedTest.php`, vitestTest: `admin-web/tests/generated/${name}.spec.ts` },

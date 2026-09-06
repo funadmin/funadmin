@@ -127,13 +127,11 @@ describe('已执行迁移不可变与 020 最终修复契约', () => {
 });
 
 describe('字段类型、会员与唯一冲突源码契约', () => {
-  it('数据库自动时间戳和项目规则统一为 Unix 秒 int', () => {
-    const databaseConfig = readProjectFile('config/database.php');
+  it('项目规则统一使用 Laravel 风格 datetime 公共时间字段', () => {
     const projectRule = readProjectFile('.cursor/rules/funadmin.mdc');
 
-    expect(databaseConfig).toMatch(/['"]auto_timestamp['"]\s*=>\s*['"]int['"]/);
-    expect(projectRule).toMatch(/时间字段[^\n]*(?:Unix|UNIX)[^\n]*秒[^\n]*`?int`?/i);
-    expect(projectRule).not.toMatch(/时间字段[^\n]*`?datetime`?\s*类型/i);
+    expect(projectRule).toContain('- **时间字段**: 使用 `created_at`、`updated_at`、`deleted_at` 的 `datetime` 类型');
+    expect(projectRule).not.toMatch(/时间字段[^\n]*(?:Unix|UNIX)[^\n]*秒[^\n]*`?int`?/i);
   });
 
   it('Member 注册邮箱限制 60、包含软删除判重并明确空值归一策略', () => {

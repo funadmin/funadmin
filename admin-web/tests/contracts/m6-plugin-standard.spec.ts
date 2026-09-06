@@ -13,11 +13,11 @@ describe('M6 插件标准 Admin Web 契约', () => {
     }
   });
 
-  it('plugin.json 只使用动态 ESM adminWeb 契约', () => {
+  it('plugin.json 只使用源码构建 adminWeb 契约', () => {
     const manifest = JSON.parse(readFileSync(resolve(root, 'tests/fixtures/plugins/example/plugin.json'), 'utf8'));
     expect(manifest.adminWeb).toMatchObject({
-      component: expect.stringMatching(/\.m?js$/),
-      files: expect.any(Array),
+      source: 'admin-web',
+      components: { Index: 'Index.vue' },
       minFrontendVersion: expect.any(String),
       menu: expect.any(Array),
       permissions: expect.any(Array),
@@ -29,36 +29,35 @@ describe('M6 插件标准 Admin Web 契约', () => {
     expect(manifest.resources.admin).toBeUndefined();
   });
 
-  it('Admin ESM 与公开资源统一发布到 public/plugin-assets', () => {
+  it('Admin Web 源码与公开资源分别发布并要求重新构建', () => {
     const publisher = readFileSync(resolve(root, 'app/console/service/PluginResourcePublisher.php'), 'utf8');
     const query = readFileSync(resolve(root, 'app/console/service/PluginCenterQueryService.php'), 'utf8');
     const pipeline = readFileSync(resolve(root, 'app/console/service/PluginPackagePipeline.php'), 'utf8');
-    const controller = readFileSync(resolve(root, 'app/console/controller/system/SystemPlugin.php'), 'utf8');
     const pluginService = readFileSync(resolve(root, 'app/console/service/PluginService.php'), 'utf8');
 
     expect(publisher).toContain("['resources']");
     expect(publisher).toContain('plugin-assets');
-    expect(publisher).not.toContain('adminWebRoot');
-    expect(publisher).not.toContain('src/modules');
-    expect(publisher + query + pipeline + controller).not.toContain('rebuildRequired');
+    expect(publisher).toContain('adminWebRoot');
+    expect(publisher).toContain('src/modules/');
+    expect(publisher + pipeline).toContain('rebuildRequired');
     expect(query).toContain("['adminWeb']");
-    expect(query).toContain("['component']");
-    expect(query).toContain("'entryUrl'");
-    expect(query).toContain("'hash'");
+    expect(query).toContain("['components']");
+    expect(query).toContain("'components'");
     expect(query).toContain("'routes'");
+    expect(query).not.toContain("'entryUrl'");
+    expect(query).not.toContain("'hash'");
     expect(pluginService).toContain("$manifestData['adminWeb']['permissions']");
     expect(pluginService).toContain("$manifestData['adminWeb']['menu']");
   });
 
-  it('仅动态导入受控同源 plugin-assets ESM', () => {
+  it('仅从构建期 src/modules 组件清单加载插件页面', () => {
     const loader = readFileSync(resolve(root, 'admin-web/src/router/pluginModules.ts'), 'utf8');
-    expect(loader).toContain('@vite-ignore');
-    expect(loader).toContain('entryUrl');
-    expect(loader).toContain('/plugin-assets/');
-    expect(loader).toContain('url.origin === origin');
-    expect(loader).not.toContain('import.meta.glob');
-    expect(loader).not.toContain('/src/modules/');
-    expect(loader).not.toContain('rebuildRequired');
+    expect(loader).toContain('import.meta.glob');
+    expect(loader).toContain("'../modules/**/*.{vue,tsx}'");
+    expect(loader).toContain('`../modules/${descriptor.name}/${relativePath}`');
+    expect(loader).not.toContain('@vite-ignore');
+    expect(loader).not.toContain('entryUrl');
+    expect(loader).not.toContain('/plugin-assets/');
   });
 
   it('Manifest 与 Schema 只读取 adminWeb 并保留安全静态校验', () => {

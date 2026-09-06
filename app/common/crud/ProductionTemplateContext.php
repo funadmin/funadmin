@@ -23,8 +23,8 @@ final class ProductionTemplateContext
             'phpClass' => $class,
             'title' => (string) $data['title'],
             'table' => (string) $data['table'],
-            'apiPrefix' => (string) $data['routePath'],
-            'routePrefix' => ltrim((string) $data['routePath'], '/'),
+            'apiPrefix' => (string) $data['apiPrefix'],
+            'routePrefix' => ltrim((string) $data['apiPrefix'], '/'),
             'permissionPrefix' => (string) $data['permissionPrefix'],
             'fieldsJson' => self::json($data['fields']),
             'migrationContent' => self::migration($data, $primary),
@@ -279,7 +279,7 @@ final class ProductionTemplateContext
             . "use app\\console\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
-            . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['routePath'], '/') . "')]\n"
+            . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['apiPrefix'], '/') . "')]\n"
             . "final class {$class}Controller extends AdminApiController\n{\n    use Crud {\n        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
             . "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
@@ -370,7 +370,7 @@ final class ProductionTemplateContext
         }
         $idType = self::tsType($primary) === 'number' ? 'number' : 'string';
         $primaryName = self::camel($primary['name']);
-        $base = rtrim($data['routePath'], '/');
+        $base = rtrim($data['apiPrefix'], '/');
         $endpointOptions = [];
         foreach (self::enabledOptionSources($data, $enabled) as $source) {
             if ($source['type'] !== 'endpoint') {

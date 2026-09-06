@@ -31,7 +31,8 @@ final class CrudDefinition implements JsonSerializable
         $data['connection'] ??= (string) (($data['metadata']['connection'] ?? 'mysql'));
         $data['module'] ??= 'generated';
         $data['entity'] ??= (string) ($data['name'] ?? '');
-        $data['routePath'] ??= (string) ($data['apiPrefix'] ?? '');
+        $data['apiPrefix'] ??= (string) ($data['routePath'] ?? '');
+        $data['routePath'] ??= (string) $data['apiPrefix'];
         $data['primaryKey'] ??= (string) (($primary[0]['name'] ?? ''));
         $data['timestamps'] ??= in_array('created_at', $fieldNames, true) && in_array('updated_at', $fieldNames, true);
         $data['softDeletes'] ??= in_array('deleted_at', $fieldNames, true)
@@ -47,7 +48,7 @@ final class CrudDefinition implements JsonSerializable
             $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
             $data['templates']['vitestTest'] ??= 'tests/vitest-test.ts.tpl';
         }
-        unset($data['name'], $data['paths'], $data['apiPrefix'], $data['metadata']);
+        unset($data['name'], $data['paths'], $data['metadata']);
         return $data;
     }
 

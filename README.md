@@ -103,7 +103,11 @@ FunAdmin 是基于 ThinkPHP 8、Vue 3、TypeScript、Vite 与 Element Plus 的�
 + 兼容ie11 + firefox + Chrome +360 等浏览器
 + Vue 3 与 Element Plus 组件化界面，统一使用 TypeScript 开发
 + 内置 `CRUD` 命令行与 CRUD Workbench，帮助您快速开发系统
-+ 模块化：后端服务与 Admin Web 源码插件边界清晰，便于灵活扩展和二次开发
++ CRUD 命令包括 `crud:inspect`、`crud:validate`、`crud:preview` 和 `crud:generate`；生成前默认预览，已有文件默认拒绝覆盖
++ CRUD 可生成 ThinkPHP Model、Validate、Service、Controller、迁移与 PHP 测试，以及 Vue API、列表、表单、详情与 Vitest 测试
++ 模块化：后端服务与 Admin Web 源码插件边界清晰，插件前端源码安装到 `admin-web/src/modules`，安装或升级返回 `rebuildRequired` 并要求重新构建
++ 数据库统一采用 Laravel 风格公共字段：`id`、`created_at`、`updated_at`、可选 `deleted_at`，排序字段使用 `sort_order`
++ 旧字段删除只能通过维护模式命令 `maintenance:contract-migrate` 执行，并要求备份确认与 checksum 校验
 + Vite 提供开发、类型检查和生产构建能力
 + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
 + restful api 接口,接口使用jwt接口验证等

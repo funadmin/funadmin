@@ -69,8 +69,7 @@ describe('mock/plugin safeguards', () => {
       expect.objectContaining({
         name: 'marketdemo',
         version: '1.0.0',
-        hash: expect.stringMatching(/^[a-f0-9]{64}$/),
-        entryUrl: expect.stringMatching(/^\/plugin-assets\/marketdemo\/entry\.js\?v=[a-f0-9]{64}$/),
+        components: { Index: 'Index.vue' },
         routes: [expect.objectContaining({ path: '/plugin/marketdemo/index', name: 'Plugin_marketdemo' })]
       })
     ]);
@@ -89,16 +88,17 @@ describe('mock/plugin safeguards', () => {
     expect((await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}))).data).toEqual([]);
   });
 
-  it('enabled module 仅返回动态 ESM 入口、哈希与路由描述', async () => {
+  it('enabled module 仅返回构建期组件映射与路由描述', async () => {
     await route('POST', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/(update|migrate|enable|disable)$/').handler(
       context('POST', {}, { name: 'demo', action: 'enable' })
     );
     const modules = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
     expect(modules.data[0]).toMatchObject({
-      entryUrl: `/plugin-assets/demo/entry.js?v=${'a'.repeat(64)}`,
-      hash: 'a'.repeat(64),
+      components: { Index: 'Index.vue' },
       routes: [expect.objectContaining({ path: '/plugin/demo/index', component: 'Index' })]
     });
+    expect(modules.data[0]).not.toHaveProperty('entryUrl');
+    expect(modules.data[0]).not.toHaveProperty('hash');
   });
 
   it('在 mock 菜单中提供可访问的插件中心', () => {

@@ -1,5 +1,6 @@
 -- 独立 maintenance contract；普通 MigrationService 不扫描本目录。
--- 本文件由 MaintenanceContractService 解析受控 CONTRACT 声明，并逐表执行实际 DROP COLUMN。
+-- 不可直接执行本文件；必须先完成数据库备份，再由 MaintenanceContractService 在显式维护窗口解析受控 CONTRACT 声明。
+-- 服务逐表执行实际 DROP COLUMN，并将版本与 checksum 写入 migration repository 供审计和幂等校验。
 -- 每项同时保留 information_schema 守卫与可审计 DDL；执行前服务会校验 Laravel 对应列及数据一致性。
 SET @schema_name = DATABASE();
 

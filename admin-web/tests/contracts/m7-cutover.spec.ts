@@ -35,6 +35,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/common/crud/DefinitionValidator.php',
       'app/common/crud/FieldInference.php',
       'app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php',
+      'app/common/service/MaintenanceContractService.php',
     ]);
     for (const file of ['app', 'config', 'extend', 'plugins'].flatMap(phpFiles).filter((path) => !allowed.has(path))) {
       expect(read(file), file).not.toMatch(/\b(create_time|update_time|delete_time)\b/);

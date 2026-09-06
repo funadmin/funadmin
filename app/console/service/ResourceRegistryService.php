@@ -230,7 +230,11 @@ class ResourceRegistryService extends AbstractService
             if ($isMenu) {
                 $menu = AdminMenu::where('href', $href)->where('query', (string) ($item['query'] ?? ''))->find();
                 if (!$menu) {
-                    $menu = AdminMenu::where('permission_id', $permission->id)->find();
+                    $menu = AdminMenu::where('permission_id', $permission->id)
+                        ->where('app_name', $itemAppName)
+                        ->where('source_type', $sourceType)
+                        ->where('source_name', $sourceName)
+                        ->find();
                 }
                 if ($menu && (
                     (string) $menu->source_type !== $sourceType
