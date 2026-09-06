@@ -77,7 +77,7 @@ final class DevCrud extends AdminApiController
     public function preview(): Response
     {
         $authorization = new AdminAuthorizationService();
-        $canGenerate = $authorization->nodeAccess('backend/devcrud/generate');
+        $canGenerate = $authorization->nodeAccess('console/devcrud/generate');
         return $this->execute(fn (): array => $this->crud->preview(
             $this->definition(),
             $canGenerate,

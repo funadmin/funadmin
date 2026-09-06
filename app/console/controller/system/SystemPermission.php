@@ -208,7 +208,7 @@ class SystemPermission extends AdminApiController
     private function payload(?Permission $permission = null): array
     {
         $current = $permission ? $this->permissionData($permission) : [];
-        $module = strtolower(trim((string) $this->request->post('module', $current['module'] ?? 'backend')));
+        $module = strtolower(trim((string) $this->request->post('module', $current['module'] ?? 'console')));
         $resourceType = strtolower(trim((string) $this->request->post('resourceType', $current['resourceType'] ?? Permission::TYPE_ROUTE)));
         $objInput = trim((string) $this->request->post('object', $current['object'] ?? ''));
         $modulePrefixPattern = '/^' . preg_quote($module, '/') . '[\/.]/i';

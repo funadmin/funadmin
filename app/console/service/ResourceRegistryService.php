@@ -16,7 +16,7 @@ class ResourceRegistryService extends AbstractService
 {
     private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['system:plugin:list'];
 
-    public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $module = 'backend', string $sourceType = 'system', string $sourceName = ''): void
+    public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $module = 'console', string $sourceType = 'system', string $sourceName = ''): void
     {
         Db::transaction(function () use ($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName) {
             $this->registerItems($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName);
@@ -175,7 +175,7 @@ class ResourceRegistryService extends AbstractService
             $children = !empty($item['menulist']) && is_array($item['menulist']) ? $item['menulist'] : [];
             $href = trim((string) ($item['href'] ?? $item['path'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
-            $itemModule = strtolower(trim((string) ($item['module'] ?? $module))) ?: 'backend';
+            $itemModule = strtolower(trim((string) ($item['module'] ?? $module))) ?: 'console';
             $referencedCode = strtolower(trim((string) ($item['permission'] ?? '')));
             $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemModule, $href);
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;

@@ -17,14 +17,14 @@ const backendTemplate = readFileSync(
   'utf8'
 );
 const composer = JSON.parse(readFileSync(resolve(projectRoot, 'composer.json'), 'utf8'));
-const backendRoutes = readFileSync(resolve(projectRoot, 'app/backend/route/app.php'), 'utf8');
-const devCrudController = readFileSync(resolve(projectRoot, 'app/backend/controller/development/DevCrud.php'), 'utf8');
+const consoleRoutes = readFileSync(resolve(projectRoot, 'app/console/route/app.php'), 'utf8');
+const devCrudController = readFileSync(resolve(projectRoot, 'app/console/controller/development/DevCrud.php'), 'utf8');
 const funadminConfig = readFileSync(resolve(projectRoot, 'config/funadmin.php'), 'utf8');
 const crudTrait = readFileSync(resolve(projectRoot, 'app/common/traits/Crud.php'), 'utf8');
 const legacyBackendPath = resolve(projectRoot, 'app/common/controller/Backend.php');
-const adminApiBase = readFileSync(resolve(projectRoot, 'app/backend/controller/base/AdminApiController.php'), 'utf8');
-const memberGroupController = readFileSync(resolve(projectRoot, 'app/backend/controller/system/SystemMemberGroup.php'), 'utf8');
-const memberLevelController = readFileSync(resolve(projectRoot, 'app/backend/controller/system/SystemMemberLevel.php'), 'utf8');
+const adminApiBase = readFileSync(resolve(projectRoot, 'app/console/controller/base/AdminApiController.php'), 'utf8');
+const memberGroupController = readFileSync(resolve(projectRoot, 'app/console/controller/system/SystemMemberGroup.php'), 'utf8');
+const memberLevelController = readFileSync(resolve(projectRoot, 'app/console/controller/system/SystemMemberLevel.php'), 'utf8');
 const menuEncodingMigration = readFileSync(resolve(projectRoot, 'database/migrations/038_crud_menu_encoding.sql'), 'utf8');
 
 describe('统一 PHP CRUD Core 契约', () => {
@@ -142,7 +142,7 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(devCrudController).toContain('function validateDefinition(');
     expect(devCrudController).not.toContain('function validate(');
     expect(funadminConfig).toContain("'development/crud/validate' => 'devcrud/validate'");
-    expect(backendRoutes).not.toContain('development/crud/');
+    expect(consoleRoutes).not.toContain('development/crud/');
     for (const middleware of ['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class']) {
       expect(devCrudController).toContain(middleware);
     }

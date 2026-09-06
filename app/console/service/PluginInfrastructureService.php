@@ -77,7 +77,7 @@ final class PluginInfrastructureService
         if ($menus === []) {
             return;
         }
-        ResourceRegistryService::instance()->registerTree($menus, 0, 0, 'backend', 'plugin', $name);
+        ResourceRegistryService::instance()->registerTree($menus, 0, 0, 'console', 'plugin', $name);
     }
 
     public function disableMenus(string $name): void

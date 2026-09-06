@@ -128,7 +128,7 @@ class SystemMenu extends AdminApiController
         return [
             'pid' => max(0, (int) $this->request->post('parentId', $current['parentId'] ?? 0)),
             'permission_id' => $permissionId,
-            'module' => 'backend',
+            'module' => 'console',
             'name' => trim(strip_tags((string) $this->request->post('name', $current['name'] ?? ''))),
             'href' => trim((string) $this->request->post('path', $current['path'] ?? '')),
             'query' => http_build_query($meta),
