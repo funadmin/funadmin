@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace fun\plugins;
 
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckPluginPermission;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckPluginPermission;
 use app\common\middleware\MApi;
 use Closure;
 use InvalidArgumentException;
@@ -32,7 +32,7 @@ final class PluginRoute
         }
 
         $manifest = Manifest::fromDirectory(root_path(PLUGIN_DIR . DIRECTORY_SEPARATOR . $plugin));
-        $declared = array_column((array) ($manifest->toArray()['permissions'] ?? []), 'code');
+        $declared = array_column((array) ($manifest->toArray()['adminWeb']['permissions'] ?? []), 'code');
         if (!in_array($permission, $declared, true)) {
             throw new RuntimeException('插件权限未在 manifest 中声明：' . $permission);
         }

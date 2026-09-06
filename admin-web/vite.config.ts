@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
       open: env.VITE_APP_OPEN === 'true',
       proxy: env.VITE_APP_PROXY_TARGET
         ? {
-            [env.VITE_APP_BASE_API || '/backend']: {
+            [env.VITE_APP_BASE_API || '/console']: {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true,
               ws: true

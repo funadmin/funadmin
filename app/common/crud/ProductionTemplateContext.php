@@ -79,7 +79,7 @@ final class ProductionTemplateContext
         }
         $methods = [];
         foreach ($data['relations'] as $relation) {
-            $target = '\\app\\backend\\model\\' . $relation['target'] . '::class';
+            $target = '\\app\\console\\model\\' . $relation['target'] . '::class';
             $arguments = match ($relation['type']) {
                 'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
                 default => "$target, '{$relation['pivotTable']}', '"
@@ -92,7 +92,7 @@ final class ProductionTemplateContext
         $softImport = ($data['features']['softDelete'] ?? false)
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
         $softTrait = ($data['features']['softDelete'] ?? false) ? "    use LaravelSoftDelete;\n\n" : '';
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\backend\\model;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\model;\n\n"
             . $softImport
             . "\nfinal class {$class} extends BackendModel\n{\n{$softTrait}"
             . "    protected \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
@@ -122,14 +122,14 @@ final class ProductionTemplateContext
                 };
             }
             if (($field['unique'] ?? false) === true) {
-                $parts[] = "unique:\\app\\backend\\model\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
+                $parts[] = "unique:\\app\\console\\model\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
             }
             $compiled = array_values(array_filter(array_merge($parts, $field['rules'] ?? []), static fn (string $rule): bool => $rule !== ''));
             if ($compiled !== []) {
                 $rules[$field['name']] = implode('|', $compiled);
             }
         }
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\backend\\validate;\n\nuse think\\Validate;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\validate;\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
             . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
             . "    public function forUpdate(int|string \$id): self\n    {\n"
@@ -181,9 +181,9 @@ final class ProductionTemplateContext
                     if ($data['dataScope']['enabled'] && $relation['field'] === $data['dataScope']['field']) {
                         $method = self::camel($source['name']);
                         $optionArms[] = "            '{$source['name']}' => \$this->{$method}(\$departmentIds),";
-                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = \\app\\backend\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}');\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->select()->toArray());\n    }\n";
+                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = \\app\\console\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}');\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->select()->toArray());\n    }\n";
                     } else {
-                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \\app\\backend\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}')->select()->toArray()),";
+                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \\app\\console\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}')->select()->toArray()),";
                     }
                 }
             }
@@ -199,8 +199,8 @@ final class ProductionTemplateContext
         $referenceMethod = ($data['features']['referenceProtection'] ?? false) === true
             ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) {\n            \$ids[] = \$model->{$primary['name']};\n        }\n        if (\$ids === []) return null;\n        \$references = Db::query('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) (\$reference['TABLE_NAME'] ?? \$reference['table_name'] ?? '');\n            \$column = (string) (\$reference['COLUMN_NAME'] ?? \$reference['column_name'] ?? '');\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) {\n                throw new \\RuntimeException('数据库引用元数据包含非法标识符');\n            }\n            if (Db::table(\$table)->whereIn(\$column, \$ids)->limit(1)->count() > 0) {\n                return '记录仍被 ' . \$table . '.' . \$column . ' 引用，无法删除';\n            }\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\backend\\service;\n\n"
-            . "use app\\backend\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\service;\n\n"
+            . "use app\\console\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
             . "final class {$class}Service\n{\n"
             . '    public const WRITABLE_FIELDS = ' . self::phpArray($writable) . ";\n"
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
@@ -270,11 +270,11 @@ final class ProductionTemplateContext
         }
         if ($enabled['import']) $methods[] = "    #[Post('import')]\n    public function import(): Response { return \$this->crudImport(); }";
         if ($enabled['export']) $methods[] = "    #[Get('export')]\n    public function export(): Response { return \$this->crudExport(); }";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\backend\\controller\\generated;\n\n"
-            . "use app\\backend\\controller\\base\\AdminApiController;\nuse app\\backend\\middleware\\CheckAdminApiCsrf;\n"
-            . "use app\\backend\\middleware\\CheckAdminApiRole;\nuse app\\backend\\middleware\\SystemLog;\n"
-            . "use app\\backend\\model\\{$class};\nuse app\\backend\\service\\DataScopeService;\nuse app\\backend\\service\\{$class}Service;\n"
-            . "use app\\backend\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\controller\\generated;\n\n"
+            . "use app\\console\\controller\\base\\AdminApiController;\nuse app\\console\\middleware\\CheckAdminApiCsrf;\n"
+            . "use app\\console\\middleware\\CheckAdminApiRole;\nuse app\\console\\middleware\\SystemLog;\n"
+            . "use app\\console\\model\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse app\\console\\service\\{$class}Service;\n"
+            . "use app\\console\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
             . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['apiPrefix'], '/') . "')]\n"
@@ -335,10 +335,10 @@ final class ProductionTemplateContext
         ));
         $sourceName = self::sqlLiteral($data['name']);
         $title = self::sqlLiteral($data['title']);
-        $controller = self::sqlLiteral('backend/generated.' . strtolower(self::studly((string) $data['name'])) . 'controller');
+        $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['name'])) . 'controller');
         $values = [];
         foreach ($actions as $index => $action) {
-            $values[] = "(@permission_group_id, 'backend', " . self::sqlLiteral($data['permissionPrefix'] . ':' . $actionCodes[$action])
+            $values[] = "(@permission_group_id, 'console', " . self::sqlLiteral($data['permissionPrefix'] . ':' . $actionCodes[$action])
                 . ", {$controller}, " . self::sqlLiteral($action) . ', ' . self::sqlLiteral($data['title'] . ' ' . $action)
                 . ", 'route', 1, 0, " . (($index + 1) * 10) . ", 'generated', {$sourceName}, NOW(), NOW())";
         }
@@ -346,11 +346,11 @@ final class ProductionTemplateContext
         $menuQuery = self::sqlLiteral("component=generated/{$data['name']}/index&type=C&permission={$data['permissionPrefix']}:list");
         return "-- Generated forward permission/menu migration; review before applying.\n"
             . "INSERT INTO fun_permission (pid, module, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) "
-            . "SELECT 0, 'backend', NULL, '', '', {$title}, 'group', 1, 0, 0, 'generated', {$sourceName}, NOW(), NOW() "
+            . "SELECT 0, 'console', NULL, '', '', {$title}, 'group', 1, 0, 0, 'generated', {$sourceName}, NOW(), NOW() "
             . "WHERE NOT EXISTS (SELECT 1 FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group');\n"
             . "SET @permission_group_id = (SELECT id FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group' ORDER BY id LIMIT 1);\n"
             . "INSERT INTO fun_admin_menu (pid, permission_id, module, name, href, query, target, icon, status, sort_order, source_type, source_name, created_at, updated_at) "
-            . "SELECT 0, @permission_group_id, 'backend', {$title}, {$menuPath}, {$menuQuery}, '_self', 'i-ep-document', 1, 0, 'generated', {$sourceName}, NOW(), NOW() "
+            . "SELECT 0, @permission_group_id, 'console', {$title}, {$menuPath}, {$menuQuery}, '_self', 'i-ep-document', 1, 0, 'generated', {$sourceName}, NOW(), NOW() "
             . "WHERE NOT EXISTS (SELECT 1 FROM fun_admin_menu WHERE source_type = 'generated' AND source_name = {$sourceName});\n"
             . ($values === [] ? '' : "INSERT IGNORE INTO fun_permission (pid, module, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) VALUES\n"
                 . implode(",\n", $values) . ";\n");

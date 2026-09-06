@@ -57,7 +57,7 @@ class CtrHelper
         $reflect = new ReflectionClass($className);
         // $parentClass = $reflect->getParentClass();
         // 检查是否继承自后台 API 基类
-        if (!$reflect->isSubclassOf(\app\backend\controller\base\AdminApiController::class)) {
+        if (!$reflect->isSubclassOf(\app\console\controller\base\AdminApiController::class)) {
             return null;
         }
         $controllerComment = self::getControllerTitleByAnnotation($reflect);

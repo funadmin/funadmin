@@ -32,8 +32,8 @@ return [
         'system/role/all' => 'systemrole/index',
         'system/role/parent-options' => 'systemrole/index',
         'system/role/permission-tree' => 'systemrole/permissions',
-        'backend/systemoperationlog:detail' => 'systemoperationlog/index',
-        'backend/systempermission:detail' => 'systempermission/tree',
+        'backend/systemoperationlog:detail' => 'console/systemoperationlog/index',
+        'backend/systempermission:detail' => 'console/systempermission/tree',
         'development/crud/validate' => 'devcrud/validate',
         'system/role/:id' => 'systemrole/delete',
         'system/dept/:id' => 'systemdepartment/delete',
@@ -44,7 +44,7 @@ return [
         'system/log/operation/:id' => 'systemoperationlog/delete',
     ],
 
-    'sys_app'=>['backend','api','index','common','install'],
+    'sys_app'=>['console','api','index','common','install'],
 
     'crud_deny_app'=>['common','install'],
     //接口域名

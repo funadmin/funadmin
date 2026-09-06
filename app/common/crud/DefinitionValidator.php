@@ -94,7 +94,7 @@ final class DefinitionValidator
         }
         foreach ($templates as $type => $path) {
             if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)
-                || !preg_match('#^(backend|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#', $path)
+                || !preg_match('#^(console|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#', $path)
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
             }

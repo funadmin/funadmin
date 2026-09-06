@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace fun\command;
 
-use app\backend\service\DevCrudService;
+use app\console\service\DevCrudService;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Argument;

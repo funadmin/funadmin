@@ -259,7 +259,7 @@ if (!function_exists('auth')) {
 if (!function_exists('node')) {
     function node(string $url): bool
     {
-        return (new \app\backend\service\AdminAuthorizationService())->nodeAccess($url);
+        return (new \app\console\service\AdminAuthorizationService())->nodeAccess($url);
     }
 }
 

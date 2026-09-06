@@ -15,4 +15,7 @@
 /.cursor
 /.qoder
 /tests/*
+!/tests/crud_hook_naming_test.php
 /admin-web/tests/*
+!/admin-web/tests/contracts/
+!/admin-web/tests/contracts/crud-model-resolution.spec.ts

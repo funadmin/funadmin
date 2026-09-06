@@ -114,8 +114,7 @@ final class Manifest
         if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
         }
-        self::validatePermissions($data);
-        self::validateAdminWeb($directory, $data['admin_web'] ?? null, $data);
+        self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);
         self::validateResourceSources($directory, $data['resources'] ?? []);
         self::validateChannels($directory, $data['channels'] ?? []);
         if (isset($data['migrations']['path'])) {
@@ -127,50 +126,38 @@ final class Manifest
         self::validatePurgeContract($entryFile, $data);
     }
 
-    private static function validatePermissions(array $data): void
-    {
-        $name = (string) $data['name'];
-        $declared = [];
-        foreach ((array) ($data['permissions'] ?? []) as $permission) {
-            $code = (string) ($permission['code'] ?? '');
-            if (preg_match('/^' . preg_quote($name, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
-                throw new RuntimeException('plugin.json permissions.code 必须属于插件命名空间并使用 name:resource:action 格式：' . $code);
-            }
-            $declared[$code] = true;
-        }
-        foreach ((array) ($data['menus'] ?? []) as $menu) {
-            self::validatePermissionReference((string) ($menu['permission'] ?? ''), $declared, 'menus.permission');
-        }
-    }
-
     private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
     {
         if ($adminWeb === null) {
             return;
         }
-        $adminResource = $data['resources']['admin'] ?? null;
-        if (!is_array($adminResource)) {
-            throw new RuntimeException('plugin.json admin_web 必须声明 resources.admin');
+        $sourceRoot = self::existingRelativeDirectory($directory, 'resources/admin', 'adminWeb');
+        $declaredFiles = [];
+        foreach ((array) ($adminWeb['files'] ?? []) as $file) {
+            $resolved = self::existingRelativeFile($sourceRoot, (string) $file, 'adminWeb.files');
+            if (is_link($resolved)) {
+                throw new RuntimeException('plugin.json adminWeb.files 禁止符号链接');
+            }
+            $declaredFiles[(string) $file] = true;
         }
-        $expectedTarget = 'plugin-assets/' . $data['name'];
-        if (($adminResource['target'] ?? '') !== $expectedTarget) {
-            throw new RuntimeException('plugin.json resources.admin.target 必须是 ' . $expectedTarget);
+        $component = (string) ($adminWeb['component'] ?? '');
+        if (!isset($declaredFiles[$component])) {
+            throw new RuntimeException('plugin.json adminWeb.component 必须包含在 adminWeb.files 中');
         }
-        $sourceRoot = self::existingRelativeDirectory(
-            $directory,
-            (string) ($adminResource['source'] ?? ''),
-            'resources.admin.source'
-        );
-        $entry = self::existingRelativeFile($sourceRoot, (string) ($adminWeb['entry'] ?? ''), 'admin_web.entry');
-        if (is_link($entry)) {
-            throw new RuntimeException('plugin.json admin_web.entry 禁止符号链接');
-        }
+        $name = (string) $data['name'];
         $declared = [];
-        foreach ((array) ($data['permissions'] ?? []) as $permission) {
-            $declared[(string) ($permission['code'] ?? '')] = true;
+        foreach ((array) ($adminWeb['permissions'] ?? []) as $permission) {
+            $code = (string) ($permission['code'] ?? '');
+            if (preg_match('/^' . preg_quote($name, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
+                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须属于插件命名空间并使用 name:resource:action 格式：' . $code);
+            }
+            $declared[$code] = true;
+        }
+        foreach ((array) ($adminWeb['menu'] ?? []) as $menu) {
+            self::validatePermissionReference((string) ($menu['permission'] ?? ''), $declared, 'adminWeb.menu.permission');
         }
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
-            self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'admin_web.routes.meta.permission');
+            self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'adminWeb.routes.meta.permission');
         }
     }
 

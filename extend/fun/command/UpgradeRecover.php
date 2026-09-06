@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace fun\command;
 
-use app\backend\service\UpgradeService;
+use app\console\service\UpgradeService;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;

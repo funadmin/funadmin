@@ -28,7 +28,7 @@ const src = ref('');
 defineExpose({ refresh });
 
 function refresh() {
-  const baseApi = import.meta.env.VITE_APP_BASE_API || '/backend';
+  const baseApi = import.meta.env.VITE_APP_BASE_API || '/console';
   src.value = `${baseApi}/auth/captcha?t=${Date.now()}`;
 }
 
