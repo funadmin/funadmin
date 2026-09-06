@@ -41,3 +41,12 @@ SET @sql = IF(
   'ALTER TABLE `fun_plugin_resource` ADD COLUMN `deleted_at` datetime NULL AFTER `updated_at`'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 026 与后续迁移曾使用两个名称创建同一 target_path 唯一索引；最终只保留正式索引。
+SET @sql = IF(
+  EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND INDEX_NAME='uk_plugin_resource_target')
+  AND EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND INDEX_NAME='uk_plugin_resource_target_path'),
+  'ALTER TABLE `fun_plugin_resource` DROP INDEX `uk_plugin_resource_target`',
+  'DO 0'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

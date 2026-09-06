@@ -228,7 +228,7 @@ class ResourceRegistryService extends AbstractService
 
             $menuId = $parentMenuId;
             if ($isMenu) {
-                $menu = AdminMenu::where('module', $itemModule)->where('href', $href)->where('query', (string) ($item['query'] ?? ''))->find();
+                $menu = AdminMenu::where('href', $href)->where('query', (string) ($item['query'] ?? ''))->find();
                 if (!$menu) {
                     $menu = AdminMenu::where('permission_id', $permission->id)->find();
                 }

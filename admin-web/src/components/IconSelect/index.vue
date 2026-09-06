@@ -32,11 +32,11 @@
             v-for="name in filtered"
             :key="name"
             class="icon-select__item"
-            :class="{ 'is-active': modelValue === `i-ep-${name}` }"
-            :title="name"
+            :class="{ 'is-active': modelValue === name }"
+            :title="name.replace('i-ep-', '')"
             @click="select(name)"
           >
-            <i :class="`i-ep-${name}`" class="icon-select__item-icon" />
+            <i :class="name" class="icon-select__item-icon" />
           </div>
         </div>
         <div v-if="!filtered.length" class="icon-select__empty">无匹配图标</div>
@@ -67,78 +67,79 @@ const emit = defineEmits<{
 const visible = ref(false);
 const keyword = ref('');
 
+// 存完整类名字面量：generate-ep-icons.mjs 靠扫描源码字面量生成 CSS，裸名拼模板会导致图标空白
 const allIcons: string[] = [
-  'aim',
-  'arrow-down',
-  'avatar',
-  'back',
-  'bell',
-  'bottom',
-  'calendar',
-  'chat-dot-round',
-  'chat-line-square',
-  'check',
-  'clock',
-  'close',
-  'collection',
-  'connection',
-  'd-arrow-left',
-  'd-arrow-right',
-  'data-line',
-  'delete',
-  'document',
-  'document-copy',
-  'download',
-  'edit',
-  'edit-pen',
-  'expand',
-  'files',
-  'fold',
-  'folder',
-  'folder-opened',
-  'full-screen',
-  'grid',
-  'headset',
-  'histogram',
-  'house',
-  'iphone',
-  'key',
-  'link',
-  'loading',
-  'lock',
-  'map-location',
-  'menu',
-  'message',
-  'monitor',
-  'office-building',
-  'partly-cloudy',
-  'phone',
-  'picture',
-  'picture-filled',
-  'plus',
-  'rank',
-  'refresh',
-  'refresh-right',
-  'right',
-  'search',
-  'semi-select',
-  'setting',
-  'shopping-cart',
-  'sort',
-  'success-filled',
-  'sunny',
-  'switch-button',
-  'tickets',
-  'top',
-  'upload',
-  'upload-filled',
-  'user',
-  'user-filled',
-  'video-camera',
-  'view',
-  'wallet',
-  'warning',
-  'zoom-in',
+  'i-ep-aim',
+  'i-ep-arrow-down',
+  'i-ep-avatar',
+  'i-ep-back',
+  'i-ep-bell',
+  'i-ep-bottom',
+  'i-ep-calendar',
+  'i-ep-chat-dot-round',
+  'i-ep-chat-line-square',
+  'i-ep-check',
+  'i-ep-clock',
+  'i-ep-close',
+  'i-ep-collection',
+  'i-ep-connection',
+  'i-ep-d-arrow-left',
+  'i-ep-d-arrow-right',
+  'i-ep-data-line',
+  'i-ep-delete',
+  'i-ep-document',
+  'i-ep-document-copy',
+  'i-ep-download',
+  'i-ep-edit',
+  'i-ep-edit-pen',
+  'i-ep-expand',
+  'i-ep-files',
+  'i-ep-fold',
+  'i-ep-folder',
+  'i-ep-folder-opened',
+  'i-ep-full-screen',
+  'i-ep-grid',
+  'i-ep-headset',
+  'i-ep-histogram',
+  'i-ep-house',
+  'i-ep-iphone',
+  'i-ep-key',
+  'i-ep-link',
+  'i-ep-loading',
+  'i-ep-lock',
+  'i-ep-map-location',
+  'i-ep-menu',
+  'i-ep-message',
+  'i-ep-monitor',
+  'i-ep-office-building',
+  'i-ep-partly-cloudy',
+  'i-ep-phone',
+  'i-ep-picture',
+  'i-ep-picture-filled',
+  'i-ep-plus',
+  'i-ep-rank',
+  'i-ep-refresh',
+  'i-ep-refresh-right',
+  'i-ep-right',
+  'i-ep-search',
+  'i-ep-semi-select',
+  'i-ep-setting',
+  'i-ep-shopping-cart',
+  'i-ep-sort',
+  'i-ep-success-filled',
+  'i-ep-sunny',
+  'i-ep-switch-button',
+  'i-ep-tickets',
+  'i-ep-top',
+  'i-ep-upload',
+  'i-ep-upload-filled',
+  'i-ep-user',
+  'i-ep-user-filled',
+  'i-ep-video-camera',
+  'i-ep-view',
+  'i-ep-wallet',
+  'i-ep-warning',
+  'i-ep-zoom-in',
 ];
 
 const filtered = computed(() => {
@@ -148,9 +149,8 @@ const filtered = computed(() => {
 });
 
 function select(name: string) {
-  const v = `i-ep-${name}`;
-  emit('update:modelValue', v);
-  emit('change', v);
+  emit('update:modelValue', name);
+  emit('change', name);
   visible.value = false;
 }
 

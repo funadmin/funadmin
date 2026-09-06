@@ -181,7 +181,7 @@ final class Manifest
 
     private static function validateChannels(string $directory, array $channels): void
     {
-        foreach (['api', 'frontend'] as $channel) {
+        foreach (['api', 'index'] as $channel) {
             $path = $channels[$channel]['routes'] ?? null;
             if (is_string($path)) {
                 $file = self::existingRelativeFile($directory, $path, 'channels.' . $channel . '.routes');

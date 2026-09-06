@@ -39,7 +39,7 @@
   "$defs": {
     "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
-    "templatePath": { "type": "string", "pattern": "^(console|index|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
+    "templatePath": { "type": "string", "pattern": "^(console|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
     "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form"] },
     "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "minProperties": 9 },
     "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {

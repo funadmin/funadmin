@@ -37,7 +37,7 @@ class Service extends \think\Service
             ];
             // 普通路由与当前应用通道路由必须在同一插件边界链中执行，保留依赖失败传播与插件内短路。
             $appName = (string) $this->app->http->getName();
-            if (in_array($appName, ['api', 'frontend'], true)) {
+            if (in_array($appName, ['api', 'index'], true)) {
                 $boundaries['channels.' . $appName] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $appName);
             }
             $this->booter()->boot($this->applicationManifests($appName), $boundaries);
@@ -115,7 +115,7 @@ class Service extends \think\Service
 
     private function applicationManifests(string $application): array
     {
-        $application = in_array($application, ['api', 'frontend'], true) ? $application : 'console';
+        $application = in_array($application, ['api', 'index'], true) ? $application : 'console';
         if (isset($this->applicationManifests[$application])) {
             return $this->applicationManifests[$application];
         }

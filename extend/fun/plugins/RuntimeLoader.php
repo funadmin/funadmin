@@ -108,11 +108,11 @@ final class RuntimeLoader
     }
 
     /**
-     * 通道（channels.api / channels.frontend）路由文件路径，未声明返回 null。
+     * 通道（channels.api / channels.index）路由文件路径，未声明返回 null。
      */
     public function channelRoutesPath(Manifest $manifest, string $channel): ?string
     {
-        if (!in_array($channel, ['api', 'frontend'], true)) {
+        if (!in_array($channel, ['api', 'index'], true)) {
             throw new RuntimeException('不支持的插件 channel：' . $channel);
         }
         $channels = (array) ($manifest->toArray()['channels'] ?? []);
