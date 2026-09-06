@@ -10,7 +10,7 @@ export const APP_CONFIG = {
   /** 版本号 */
   version: env.VITE_APP_VERSION || '0.1.0',
   /** API 基础路径（与 vite proxy 前缀一致） */
-  baseApi: env.VITE_APP_BASE_API || '/backend',
+  baseApi: env.VITE_APP_BASE_API || '/console',
   /** 是否生产环境 */
   isProd: env.PROD,
 
