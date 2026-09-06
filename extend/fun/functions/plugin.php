@@ -79,8 +79,8 @@ if (!function_exists('run_plugin_migrations')) {
 }
 
 /** 为 manifest 明确注册的插件路由生成 URL，不提供控制器通配分发。 */
-if (!function_exists('plugins_url')) {
-    function plugins_url(string $url = '', array $parameters = [], bool|string $suffix = true, bool|string $domain = false): bool|string
+if (!function_exists('plugin_url')) {
+    function plugin_url(string $url = '', array $parameters = [], bool|string $suffix = true, bool|string $domain = false): bool|string
     {
         $request = app('request');
         $target = $url === '' ? (string) $request->pathinfo() : $url;
