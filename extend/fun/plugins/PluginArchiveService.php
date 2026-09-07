@@ -36,11 +36,21 @@ final class PluginArchiveService
         try {
             $this->writeArchive($source, $name, $files, $temporary);
             ($this->stageVerifier)($temporary);
-            if (is_file($output) && !unlink($output)) {
-                throw new RuntimeException('无法替换已有插件包：' . $output);
+            $backup = null;
+            if (is_file($output)) {
+                $backup = $output . '.backup-' . bin2hex(random_bytes(5));
+                if (!rename($output, $backup)) {
+                    throw new RuntimeException('无法备份已有插件包：' . $output);
+                }
             }
             if (!rename($temporary, $output)) {
+                if ($backup !== null) {
+                    rename($backup, $output);
+                }
                 throw new RuntimeException('无法提交插件包：' . $output);
+            }
+            if ($backup !== null && is_file($backup)) {
+                unlink($backup);
             }
         } catch (Throwable $exception) {
             if (is_file($temporary)) {

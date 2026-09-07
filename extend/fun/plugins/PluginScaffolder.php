@@ -39,9 +39,7 @@ final class PluginScaffolder
             if (!rename($stage, $target)) {
                 throw new RuntimeException('无法原子提交插件目录：' . $target);
             }
-            if (!rmdir($stageRoot)) {
-                throw new RuntimeException('插件已生成，但无法清理暂存目录：' . $stageRoot);
-            }
+            @rmdir($stageRoot);
         } catch (Throwable $exception) {
             $this->removeDirectory($stageRoot);
             throw $exception;

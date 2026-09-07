@@ -7,6 +7,7 @@ use app\console\service\PluginInfrastructureService;
 use app\console\service\PluginOperationAuditService;
 use fun\plugins\DependencyValidator;
 use fun\plugins\Manifest;
+use fun\plugins\PluginActivationCompiler;
 use fun\plugins\PluginRuntimeCache;
 use fun\plugins\PluginStorage;
 use fun\plugins\Registry;
@@ -138,6 +139,29 @@ trait PluginServiceSupport
     public function refreshRuntimeCache(): void
     {
         $this->rebuildRuntimeCache();
+    }
+
+    public function refreshActivationCache(): void
+    {
+        $this->rebuildActivationCache();
+    }
+
+    private function rebuildActivationCache(): void
+    {
+        $records = [];
+        $manifests = [];
+        foreach (Plugin::withTrashed()->select() as $record) {
+            $code = (string) $record->code;
+            $records[$code] = $record->getData();
+            $manifest = json_decode((string) ($record->manifest ?? ''), true);
+            if (is_array($manifest) && ($manifest['schema_version'] ?? null) === 2 && ($manifest['code'] ?? null) === $code) {
+                $manifests[$code] = $manifest;
+            }
+        }
+        (new PluginActivationCompiler(
+            root_path('runtime/plugins/activation'),
+            root_path() . PLUGIN_DIR
+        ))->compile($records, $manifests);
     }
 
     private function runtimeCache(): PluginRuntimeCache

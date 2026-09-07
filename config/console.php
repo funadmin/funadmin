@@ -7,6 +7,7 @@ return [
         'crud:preview' => 'fun\command\CrudPreview',
         'crud:generate' => 'fun\command\CrudGenerate',
         'plugin:runtime-cache' => 'fun\command\PluginRuntimeCacheRebuild',
+        'plugin:activation-cache' => 'fun\command\PluginActivationCacheRebuild',
         'plugin:make' => 'fun\command\PluginMake',
         'plugin:validate' => 'fun\command\PluginValidate',
         'plugin:package' => 'fun\command\PluginPackage',

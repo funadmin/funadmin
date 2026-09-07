@@ -109,6 +109,13 @@ try {
     $commentController = $commentBypass['directory'] . '/app/console/controller/Index.php';
     file_put_contents($commentController, "<?php\n// namespace plugin\\commentbypass\\console\\controller;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($commentBypass['directory']), 'namespace');
+    $entryBypass = $scaffolder->scaffold('entrybypass', '入口绕过');
+    file_put_contents($entryBypass['directory'] . '/Plugin.php', "<?php\n// namespace plugins\\entrybypass;\n// class Plugin {}\nnamespace attacker;\nfinal class Other {}\n");
+    developmentReject(static fn () => Manifest::fromDirectory($entryBypass['directory']), 'Plugin.php');
+    $attributeBypass = $scaffolder->scaffold('attributebypass', '属性绕过');
+    $attributeController = $attributeBypass['directory'] . '/app/console/controller/Index.php';
+    file_put_contents($attributeController, "<?php\nnamespace plugin\\attributebypass\\console\\controller;\n#[Other(\"\\\\Group('plugin/attributebypass')\")]\nfinal class Index {}\n");
+    developmentReject(static fn () => Manifest::fromDirectory($attributeBypass['directory']), 'Group');
 
     $migrationPlugin = $scaffolder->scaffold('badmigration', '非法迁移');
     file_put_contents($migrationPlugin['directory'] . '/database/migrations/create.sql', 'SELECT 1;');

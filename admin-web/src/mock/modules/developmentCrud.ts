@@ -28,6 +28,13 @@ function preview(definition: CrudDefinition): CrudPreview {
 
 export const developmentCrudMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/development/crud/connections', handler: () => ok([{ name: 'mysql' }]) },
+  { method: 'GET', url: '/development/crud/options', handler: () => ok({
+    parentMenus: [
+      { id: 1, sourceName: 'system_management', name: '系统管理', path: '/system' },
+      { id: 2, sourceName: 'development_tools', name: '开发工具', path: '/development' }
+    ],
+    icons: ['i-ep-document', 'i-ep-menu', 'i-ep-setting', 'i-ep-tools']
+  }) },
   { method: 'GET', url: '/development/crud/tables', handler: () => ok([{ name: 'fun_demo', comment: 'Mock 验收数据表' }]) },
   { method: 'GET', url: /^\/development\/crud\/tables\/([a-z_][a-z0-9_]*)\/schema$/, paramNames: ['table'], handler: ({ pathParams }) => ok({ table: pathParams.table, fields }) },
   { method: 'POST', url: '/development/crud/infer', handler: ({ body }) => ok({ schema: { connection: body.connection, table: body.table }, fields }) },
@@ -48,5 +55,11 @@ export const developmentCrudMockHandlers: MockRoute[] = [
       }
     });
   } },
+  { method: 'POST', url: /^\/development\/crud\/generations\/(\d+)\/apply-resources$/, paramNames: ['id'], handler: ({ pathParams }) => ok({
+    generationId: Number(pathParams.id),
+    write: { status: 'written', written: 0 },
+    plan: { definitionHash: 'mock-definition-hash', files: [] },
+    manifest: { status: 'written', resourceApplyStatus: 'applied', validationResult: { valid: true } }
+  }) },
   { method: 'GET', url: /^\/development\/crud\/generations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => ok({ id: Number(pathParams.id), status: 'previewed' }) }
 ];

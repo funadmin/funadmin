@@ -109,10 +109,11 @@ final class Manifest
         }
         $entryFile = self::existingRelativeFile($directory, (string) $data['entry']['file'], 'entry.file');
         $source = (string) file_get_contents($entryFile);
-        if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['code']) {
+        $namespaces = self::declaredNamespaces($source);
+        if ($namespaces !== ['plugins\\' . $data['code']]) {
             throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['code']);
         }
-        if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
+        if (!in_array('Plugin', self::declaredClasses($source), true)) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
         }
         self::validateApplications($directory, (string) $data['code']);
@@ -198,9 +199,8 @@ final class Manifest
     private static function validatePhpNamespaces(string $directory, string $expectedPrefix): void
     {
         foreach (self::phpFiles($directory) as $file) {
-            $source = (string) file_get_contents($file);
-            if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1
-                || !str_starts_with($matches[1], $expectedPrefix)) {
+            $namespaces = self::declaredNamespaces((string) file_get_contents($file));
+            if (count($namespaces) !== 1 || !str_starts_with($namespaces[0], $expectedPrefix)) {
                 throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
             }
         }
@@ -213,11 +213,102 @@ final class Manifest
             return;
         }
         foreach (self::phpFiles($controllers) as $file) {
-            $source = (string) file_get_contents($file);
-            if (preg_match('/#\[Group\(\s*[\'\"]plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]/', $source) !== 1) {
+            $groups = array_values(array_filter(
+                self::attributeBlocks((string) file_get_contents($file)),
+                static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(/', $attribute) === 1
+            ));
+            if (count($groups) !== 1 || preg_match(
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(\s*[\'\"]plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                $groups[0]
+            ) !== 1) {
                 throw new RuntimeException('Console Attribute Group 必须使用 plugin/' . $code . ' 前缀：' . $file);
             }
         }
+    }
+
+    /** @return list<string> */
+    private static function declaredNamespaces(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $namespaces = [];
+        foreach ($tokens as $index => $token) {
+            if (!is_array($token) || $token[0] !== T_NAMESPACE) {
+                continue;
+            }
+            $name = '';
+            for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
+                $candidate = $tokens[$cursor];
+                if ($candidate === ';' || $candidate === '{') {
+                    break;
+                }
+                if (is_array($candidate) && in_array($candidate[0], [T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR], true)) {
+                    $name .= $candidate[1];
+                }
+            }
+            if ($name !== '') {
+                $namespaces[] = $name;
+            }
+        }
+        return $namespaces;
+    }
+
+    /** @return list<string> */
+    private static function declaredClasses(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $classes = [];
+        $previousSignificant = null;
+        foreach ($tokens as $index => $token) {
+            if (is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+            if (is_array($token) && $token[0] === T_CLASS && $previousSignificant !== T_NEW) {
+                for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
+                    $candidate = $tokens[$cursor];
+                    if (is_array($candidate) && $candidate[0] === T_STRING) {
+                        $classes[] = $candidate[1];
+                        break;
+                    }
+                    if (!is_array($candidate) || !in_array($candidate[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                        break;
+                    }
+                }
+            }
+            $previousSignificant = is_array($token) ? $token[0] : $token;
+        }
+        return $classes;
+    }
+
+    /** @return list<string> */
+    private static function attributeBlocks(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $attributes = [];
+        $count = count($tokens);
+        for ($index = 0; $index < $count; $index++) {
+            if (!is_array($tokens[$index]) || $tokens[$index][0] !== T_ATTRIBUTE) {
+                continue;
+            }
+            $block = '';
+            $depth = 1;
+            for ($cursor = $index + 1; $cursor < $count; $cursor++) {
+                $token = $tokens[$cursor];
+                if ($token === '[') {
+                    $depth++;
+                } elseif ($token === ']') {
+                    $depth--;
+                    if ($depth === 0) {
+                        $index = $cursor;
+                        break;
+                    }
+                }
+                if (!is_array($token) || !in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                    $block .= is_array($token) ? $token[1] : $token;
+                }
+            }
+            $attributes[] = trim($block);
+        }
+        return $attributes;
     }
 
     private static function validateMigrationNames(string $directory): void

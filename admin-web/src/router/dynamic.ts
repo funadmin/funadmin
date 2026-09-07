@@ -22,7 +22,10 @@ function resolveComponent(component?: string): RouteComponent {
     .replace(/^\/+/, '')
     .replace(/^views\//, '');
   const suffix = normalized.endsWith('.vue') ? '' : '.vue';
-  const candidates = [`/src/views/${normalized}${suffix}`];
+  const candidates = [
+    `/src/views/${normalized}${suffix}`,
+    `/src/views/${normalized}/index${suffix}`
+  ];
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;
   if (!loader) {

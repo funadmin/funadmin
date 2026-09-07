@@ -37,6 +37,7 @@ class PluginService extends AbstractService
             throw new RuntimeException('插件状态保存失败');
         }
         $record->lifecycle_state = $to;
+        $this->rebuildActivationCache();
     }
 
     private function operate(string $code, callable $operation): mixed
@@ -79,6 +80,7 @@ class PluginService extends AbstractService
             try {
                 if ($lock) {
                     try {
+                        $this->rebuildActivationCache();
                         $this->rebuildRuntimeCache();
                     } catch (\Throwable $cacheException) {
                         if ($operationFailure !== null) {
@@ -452,7 +454,13 @@ class PluginService extends AbstractService
             }
             $plugin = $this->plugin($code);
             $operation = $enabled ? 'enable' : 'disable';
-            $this->beginOperation($record, $token, $enabled ? 'enabling' : 'disabling');
+            if (!$enabled) {
+                $this->transition($record, 'disabling');
+                $record->save($this->filterPluginColumns(['operation_token' => $token]));
+                $this->rebuildActivationCache();
+            } else {
+                $this->beginOperation($record, $token, 'enabling');
+            }
             $this->recordStage($code, $operation, 'hooks');
             if ($enabled) {
                 $this->infrastructure()->publisher()->publish($manifest);

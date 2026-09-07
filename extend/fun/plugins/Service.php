@@ -83,7 +83,8 @@ class Service extends \think\Service
                 'last_error' => $failure['error_message'],
                 'error_stage' => $errorStage,
             ]);
-            // 失败插件立即从后续请求的编译清单移除，避免高并发下反复启动和写库。
+            // 失败状态先发布到可信激活清单，再从旧运行时清单移除。
+            app(\app\console\service\PluginService::class)->refreshActivationCache();
             $this->runtimeCache()->rebuildOrInvalidate($this->registry()->enabled());
         });
         return new PluginRuntimeBooter([$recorder, 'record']);
