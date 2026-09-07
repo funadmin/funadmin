@@ -197,6 +197,7 @@ final class FormDesignerService
                 'status' => (int) ($payload['status'] ?? 1),
                 'list_config' => $payload['list_config'] ?? null,
                 'form_config' => $payload['form_config'] ?? null,
+                'publish_config' => $payload['publish_config'] ?? null,
                 'remark' => trim((string) ($payload['remark'] ?? '')),
                 'sort_order' => (int) ($payload['sort_order'] ?? 0),
             ]);

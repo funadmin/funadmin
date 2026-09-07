@@ -3,7 +3,7 @@
     <el-card v-loading="loading">
       <el-steps :active="workbench.step" finish-status="success" align-center class="workbench-steps"><el-step v-for="item in workbench.steps" :key="item.index" :title="item.title" /></el-steps>
       <el-alert v-if="workbench.error" :title="workbench.error" type="error" show-icon closable class="mb-4" @close="workbench.error = ''" />
-      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :parent-menus="parentMenus" :model="definition" :schema="schema" :inferring="inferring" />
+      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :parent-menus="parentMenus" :plugins="plugins" :model="definition" :schema="schema" :inferring="inferring" @change-target="changeTarget" @change-plugin="changePlugin" @change-scope="changeScope" />
       <FieldsStep v-else-if="workbench.step === 1 && definition" :definition="definition" />
       <CapabilitiesPreviewStep v-else-if="workbench.step === 2 && definition" :model="definition" :preview="workbench.preview" :loading="loading" :invalidated="workbench.previewInvalidated" @refresh="refreshPreview" />
       <ConfirmResultStep v-else-if="workbench.step === 3 && workbench.preview" v-model:allow-overwrite="workbench.allowOverwrite" v-model:apply-resources="workbench.applyResources" :preview="workbench.preview" :result="workbench.result" :conflicts="workbench.conflicts()" :can-overwrite="canOverwrite" :can-apply-resources="canApplyResources" :retrying="retrying" @retry-resources="applyResourcesAgain" />
@@ -21,9 +21,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { crudDevelopmentApi } from '@/api/development/crud';
+import { pluginDevelopmentApi, type DevelopmentPluginOption } from '@/api/development/plugin';
 import { useUserStore } from '@/store/modules/user';
 import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
-import { createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, syncPermissionActions, validateWorkbenchStep } from './workbench';
+import { applyCrudTarget, createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, syncPermissionActions, validateWorkbenchStep } from './workbench';
 import BasicsStep from './components/BasicsStep.vue';
 import CapabilitiesPreviewStep from './components/CapabilitiesPreviewStep.vue';
 import ConfirmResultStep from './components/ConfirmResultStep.vue';
@@ -38,6 +39,7 @@ const retrying = ref(false);
 const connections = ref<CrudConnection[]>([]);
 const tables = ref<CrudTable[]>([]);
 const parentMenus = ref<CrudParentMenu[]>([]);
+const plugins = ref<DevelopmentPluginOption[]>([]);
 const connection = ref('');
 const table = ref('');
 const definition = ref<CrudDefinition | null>(null);
@@ -107,6 +109,25 @@ watch(definition, (value) => {
   }
 }, { deep: true, flush: 'sync' });
 
+const changeTarget = (type: 'core' | 'plugin') => {
+  if (!definition.value) return;
+  const plugin = plugins.value[0];
+  if (type === 'plugin' && !plugin) { workbench.fail('没有可开发的 Manifest v2 插件'); return; }
+  definition.value = applyCrudTarget(definition.value, type === 'core' ? { type: 'core' } : { type: 'plugin', plugin: plugin.code, scope: plugin.scopes[0] || 'console' });
+  workbench.definition = definition.value;
+};
+const changePlugin = (pluginCode: string) => {
+  if (!definition.value || definition.value.target.type !== 'plugin') return;
+  const plugin = plugins.value.find((item) => item.code === pluginCode);
+  if (!plugin) return;
+  definition.value = applyCrudTarget(definition.value, { type: 'plugin', plugin: plugin.code, scope: plugin.scopes[0] || 'console' });
+  workbench.definition = definition.value;
+};
+const changeScope = (scope: 'application' | 'console' | 'both') => {
+  if (!definition.value || definition.value.target.type !== 'plugin') return;
+  definition.value = applyCrudTarget(definition.value, { ...definition.value.target, scope });
+  workbench.definition = definition.value;
+};
 const validationContext = () => ({ fields: definition.value?.fields, capabilities: definition.value?.capabilities, dataScope: definition.value?.dataScope });
 const requireValidStep = () => {
   if (workbench.step === 0 && (!connection.value || !table.value || !definition.value)) throw new Error('请选择数据源和数据表，并等待结构推断完成');
@@ -198,9 +219,10 @@ const reset = () => {
 };
 onMounted(async () => {
   try {
-    const [connectionOptions, resourceOptions] = await Promise.all([crudDevelopmentApi.connections(), crudDevelopmentApi.options()]);
+    const [connectionOptions, resourceOptions, pluginOptions] = await Promise.all([crudDevelopmentApi.connections(), crudDevelopmentApi.options(), pluginDevelopmentApi.options()]);
     connections.value = connectionOptions;
     parentMenus.value = resourceOptions.parentMenus;
+    plugins.value = pluginOptions;
     connection.value = connections.value[0]?.name || '';
   } catch (error) {
     workbench.fail(error instanceof Error ? error.message : 'CRUD 配置选项加载失败');

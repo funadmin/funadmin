@@ -30,7 +30,22 @@ final class CrudGenerator
     public function plan(CrudDefinition $definition): array
     {
         $this->validator->validate($definition, $this->projectRoot);
-        return (new GenerationPlanner($this->projectRoot, $this->tokens))->plan($definition, $this->renderFiles($definition));
+        $target = (array) $definition->get('target', ['type' => 'core']);
+        $pluginTarget = ($target['type'] ?? 'core') === 'plugin';
+        $preconditions = $pluginTarget
+            ? [(new PluginCrudTarget($this->projectRoot))->migrationPrecondition($definition)]
+            : [];
+        $operations = [];
+        if ($pluginTarget) {
+            $manifest = 'plugins/' . $target['plugin'] . '/plugin.json';
+            $operations[$manifest] = ['type' => 'manifest-merge-cas', 'plugin' => (string) $target['plugin']];
+        }
+        return (new GenerationPlanner($this->projectRoot, $this->tokens))->plan(
+            $definition,
+            $this->renderFiles($definition),
+            $preconditions,
+            $operations
+        );
     }
 
     public function generate(
@@ -72,6 +87,10 @@ final class CrudGenerator
 
     private function renderFiles(CrudDefinition $definition): array
     {
+        $target = (array) $definition->get('target', ['type' => 'core']);
+        if (($target['type'] ?? 'core') === 'plugin') {
+            return (new PluginCrudTarget($this->projectRoot))->files($definition, $this->renderer);
+        }
         $paths = $definition->get('generationTargets', []);
         $templates = $definition->get('templates', []);
         $context = $this->context($definition);

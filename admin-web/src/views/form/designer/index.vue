@@ -6,7 +6,8 @@
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">重做</el-button>
         <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">重新推断</el-button>
         <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">迁移预览</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+        <el-button :loading="saving" @click="onSave">保存草稿</el-button>
+        <el-button type="primary" @click="openPublish">发布</el-button>
       </div>
     </template>
 
@@ -107,6 +108,60 @@
       </el-card>
     </div>
 
+    <el-dialog v-model="publishVisible" title="发布表单" width="900px" :close-on-click-modal="false">
+      <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
+        <el-step title="发布设置" />
+        <el-step title="变更预览" />
+        <el-step title="冲突确认" />
+        <el-step title="发布结果" />
+      </el-steps>
+
+      <el-form v-if="publishStep === 0" :model="publishConfig" label-width="110px" class="publish-config-grid">
+        <el-form-item label="模块名"><el-input v-model="publishConfig.module" /></el-form-item>
+        <el-form-item label="API 前缀"><el-input v-model="publishConfig.apiPrefix" /></el-form-item>
+        <el-form-item label="页面路由"><el-input v-model="publishConfig.routePath" /></el-form-item>
+        <el-form-item label="菜单名称"><el-input v-model="publishConfig.menuName" /></el-form-item>
+        <el-form-item label="父级菜单">
+          <el-tree-select v-model="publishConfig.parentSourceName" :data="parentMenus" node-key="sourceName" :props="menuTreeProps" check-strictly clearable class="w-full" />
+        </el-form-item>
+        <el-form-item label="菜单图标"><el-select v-model="publishConfig.icon" filterable class="w-full"><el-option v-for="icon in icons" :key="icon" :label="icon" :value="icon" /></el-select></el-form-item>
+        <el-form-item label="表单容器"><el-radio-group v-model="publishConfig.formMode"><el-radio-button value="dialog">弹窗</el-radio-button><el-radio-button value="drawer">抽屉</el-radio-button></el-radio-group></el-form-item>
+        <el-form-item label="完整功能"><el-checkbox v-model="publishConfig.batchDelete">批量删除</el-checkbox><el-checkbox v-model="publishConfig.import">导入</el-checkbox><el-checkbox v-model="publishConfig.export">导出</el-checkbox><el-checkbox v-model="publishConfig.softDeletes">软删除</el-checkbox></el-form-item>
+      </el-form>
+
+      <template v-else-if="publishStep === 1">
+        <el-alert :title="publishPreview?.ddl.message || '正在等待预览'" type="info" :closable="false" class="mb-3" />
+        <el-collapse>
+          <el-collapse-item title="数据库迁移" name="ddl"><el-input :model-value="publishPreview?.ddl.sql || '无结构变更'" type="textarea" :rows="8" readonly /></el-collapse-item>
+          <el-collapse-item title="生成文件" name="files">
+            <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" label="路径" /><el-table-column prop="status" label="状态" width="110" /></el-table>
+          </el-collapse-item>
+        </el-collapse>
+      </template>
+
+      <template v-else-if="publishStep === 2">
+        <el-alert v-if="!conflictFiles.length" title="没有人工修改冲突，可直接发布" type="success" :closable="false" class="mb-3" />
+        <el-checkbox-group v-else v-model="allowOverwrite" class="flex flex-col gap-3">
+          <el-card v-for="file in conflictFiles" :key="file.path" shadow="never">
+            <el-checkbox :value="file.path">允许覆盖 {{ file.path }}</el-checkbox>
+            <el-input :model-value="file.diff || ''" type="textarea" :rows="7" readonly class="mt-2" />
+          </el-card>
+        </el-checkbox-group>
+      </template>
+
+      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '发布成功' : '发布未完全完成'" :sub-title="publishResult?.routePath || ''">
+        <template #extra><el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button></template>
+      </el-result>
+
+      <template #footer>
+        <el-button @click="publishVisible = false">关闭</el-button>
+        <el-button v-if="publishStep > 0 && publishStep < 3" @click="publishStep--">上一步</el-button>
+        <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
+        <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
+        <el-button v-else-if="publishStep === 2" type="primary" :loading="publishing" @click="onPublish">确认发布</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 迁移预览 -->
     <el-dialog v-model="previewVisible" title="迁移预览" width="720px">
       <el-alert :title="preview?.message ?? ''" type="info" :closable="false" class="mb-2" />
@@ -137,17 +192,27 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
-import { formDesignerApi, type MigrationPreview } from '@/api/form';
+import {
+  formDesignerApi,
+  type FormPublishConfig,
+  type FormPublishPreview,
+  type FormPublishResult,
+  type MigrationPreview
+} from '@/api/form';
+import { crudDevelopmentApi } from '@/api/development/crud';
+import { usePermissionStore } from '@/store/modules/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import FormControlRenderer from '../components/FormControlRenderer.vue';
 import PropsPanel from './components/PropsPanel.vue';
 
 const route = useRoute();
+const router = useRouter();
+const permissionStore = usePermissionStore();
 const store = useDesigner();
 const saving = ref(false);
 const applying = ref(false);
@@ -156,12 +221,28 @@ const previewVisible = ref(false);
 const inferVisible = ref(false);
 const inferTable = ref('');
 const preview = ref<MigrationPreview | null>(null);
+const publishVisible = ref(false);
+const publishStep = ref(0);
+const previewingPublish = ref(false);
+const publishing = ref(false);
+const publishPreview = ref<FormPublishPreview | null>(null);
+const publishResult = ref<FormPublishResult | null>(null);
+const allowOverwrite = ref<string[]>([]);
+const parentMenus = ref<Array<Record<string, unknown>>>([]);
+const icons = ref<string[]>([]);
+const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
+const publishConfig = ref<FormPublishConfig>({
+  module: 'generated', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
+  parentSourceName: '', menuName: '', icon: 'i-ep-document', sortOrder: 999,
+  softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog'
+});
 const paletteRef = ref<HTMLElement>();
 const canvasRef = ref<HTMLElement>();
 let paletteSortable: Sortable | null = null;
 let canvasSortable: Sortable | null = null;
 
-const definition = () => ({ ...store.form.value, fields: store.fields.value });
+const definition = () => ({ ...store.form.value, publish_config: publishConfig.value, fields: store.fields.value });
+const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
 const controlGroups = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
 const controlsOf = (group: string) => CONTROL_REGISTRY.filter((control) => control.group === group);
 const previewOptions = (field: { options_source?: Record<string, unknown> | null }) => {
@@ -234,6 +315,61 @@ async function onApply() {
   }
 }
 
+const openPublish = async () => {
+  if (!validateDefinitionBasics() || !store.fields.value.some((field) => controlMeta(field.type).kind !== 'layout')) return;
+  const key = String(store.form.value.form_key ?? '').replace(/_/g, '-');
+  publishConfig.value = {
+    ...publishConfig.value,
+    ...store.form.value.publish_config,
+    apiPrefix: store.form.value.publish_config?.apiPrefix || `/generated/${key}`,
+    routePath: store.form.value.publish_config?.routePath || `/generated/${key}`,
+    menuName: store.form.value.publish_config?.menuName || String(store.form.value.name ?? key)
+  };
+  if (!parentMenus.value.length) {
+    const options = await crudDevelopmentApi.options();
+    parentMenus.value = options.parentMenus as unknown as Array<Record<string, unknown>>;
+    icons.value = options.icons;
+  }
+  publishStep.value = 0;
+  publishPreview.value = null;
+  publishResult.value = null;
+  allowOverwrite.value = [];
+  publishVisible.value = true;
+};
+const onPreviewPublish = async () => {
+  previewingPublish.value = true;
+  try {
+    publishPreview.value = await formDesignerApi.previewPublish(definition());
+    publishStep.value = 1;
+  } finally {
+    previewingPublish.value = false;
+  }
+};
+const onPublish = async () => {
+  const token = publishPreview.value?.sensitive?.confirmToken || '';
+  if (!token) {
+    ElMessage.warning('发布预览已失效，请重新预览');
+    publishStep.value = 0;
+    return;
+  }
+  publishing.value = true;
+  try {
+    publishResult.value = await formDesignerApi.publish(definition(), token, allowOverwrite.value);
+    store.markSaved({ ...publishResult.value.form, fields: store.fields.value });
+    const dynamicRoutes = await permissionStore.fetchMenus();
+    dynamicRoutes.forEach((dynamicRoute) => {
+      if (!dynamicRoute.name || !router.hasRoute(dynamicRoute.name)) router.addRoute(dynamicRoute);
+    });
+    publishStep.value = 3;
+    ElMessage.success(publishResult.value.publishStatus === 'published' ? '全栈发布成功' : '代码已生成，菜单权限需要重试');
+  } finally {
+    publishing.value = false;
+  }
+};
+const openGeneratedRoute = () => {
+  if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
+};
+
 async function onInfer() {
   inferring.value = true;
   try {
@@ -274,6 +410,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.publish-config-grid,
 .designer-meta-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(280px, 1fr));

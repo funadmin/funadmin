@@ -9,9 +9,17 @@ namespace app\common\crud;
  */
 final class ProductionTemplateContext
 {
-    public static function build(CrudDefinition $definition): array
+    public static function build(CrudDefinition $definition, array $target = []): array
     {
         $data = $definition->toArray();
+        $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\console');
+        $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim((string) $data['apiPrefix'], '/'));
+        $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? $data['apiPrefix']);
+        $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/generated/{$data['entity']}");
+        $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
+        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
+        $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
+        $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
         $class = self::studly((string) $data['entity']);
         $primary = array_values(array_filter(
             $data['fields'],
@@ -81,7 +89,7 @@ final class ProductionTemplateContext
         }
         $methods = [];
         foreach ($data['relations'] as $relation) {
-            $target = '\\app\\console\\model\\' . $relation['target'] . '::class';
+            $target = '\\' . $data['_namespace'] . '\\model\\' . $relation['target'] . '::class';
             $arguments = match ($relation['type']) {
                 'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
                 default => "$target, '{$relation['pivotTable']}', '"
@@ -94,9 +102,10 @@ final class ProductionTemplateContext
         $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
         $softTrait = $data['softDeletes'] ? "    use LaravelSoftDelete;\n\n" : '';
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\model;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\model;\n\n"
+            . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
-            . "\nfinal class {$class} extends BackendModel\n{\n{$softTrait}"
+            . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
             . "    protected \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
             . "    protected \$pk = '{$primary['name']}';\n"
             . '    protected $type = ' . self::phpArray($casts) . ";\n\n"
@@ -124,14 +133,14 @@ final class ProductionTemplateContext
                 };
             }
             if (($field['unique'] ?? false) === true) {
-                $parts[] = "unique:\\app\\console\\model\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
+                $parts[] = "unique:\\{$data['_namespace']}\\model\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
             }
             $compiled = array_values(array_filter(array_merge($parts, $field['rules'] ?? []), static fn (string $rule): bool => $rule !== ''));
             if ($compiled !== []) {
                 $rules[$field['name']] = implode('|', $compiled);
             }
         }
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\validate;\n\nuse think\\Validate;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\validate;\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
             . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
             . "    public function forUpdate(int|string \$id): self\n    {\n"
@@ -177,15 +186,16 @@ final class ProductionTemplateContext
                         $data['fields'],
                         static fn (array $field): bool => $field['name'] === $relation['field']
                     ))[0] ?? [];
+                    $relationModel = '\\' . $data['_namespace'] . '\\model\\' . $relation['target'];
                     $value = preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', strtolower((string) ($localField['dbType'] ?? '')))
                         ? "(int) \$row['{$source['valueField']}']"
                         : "\$row['{$source['valueField']}']";
                     if ($data['dataScope']['enabled'] && $relation['field'] === $data['dataScope']['field']) {
                         $method = self::camel($source['name']);
                         $optionArms[] = "            '{$source['name']}' => \$this->{$method}(\$departmentIds),";
-                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = \\app\\console\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}');\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->select()->toArray());\n    }\n";
+                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = {$relationModel}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}');\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->select()->toArray());\n    }\n";
                     } else {
-                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \\app\\console\\model\\{$relation['target']}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}')->select()->toArray()),";
+                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], {$relationModel}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}')->select()->toArray()),";
                     }
                 }
             }
@@ -204,8 +214,8 @@ final class ProductionTemplateContext
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
             : "        \$query = {$class}::with(self::WITH_RELATIONS);\n";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\service;\n\n"
-            . "use app\\console\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\service;\n\n"
+            . "use {$data['_namespace']}\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
             . "final class {$class}Service\n{\n"
             . '    public const WRITABLE_FIELDS = ' . self::phpArray($writable) . ";\n"
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
@@ -224,14 +234,15 @@ final class ProductionTemplateContext
 
     private static function controller(array $data, string $class, array $primary): string
     {
-        $search = $exact = $range = $sort = [];
+        $search = $exact = $range = $operators = $sort = [];
         foreach ($data['fields'] as $field) {
             if (($field['search'] ?? false) === true) {
                 $operator = $field['searchOperator'] ?? 'eq';
                 $parameter = self::camel($field['name']) . ($operator === 'range' ? 'Range' : '');
                 if ($operator === 'like') $search[$parameter] = $field['name'];
-                elseif ($operator === 'range') $range[$parameter] = $field['name'];
-                else $exact[$parameter] = $field['name'];
+                elseif (in_array($operator, ['range', 'date'], true)) $range[$parameter] = $field['name'];
+                elseif ($operator === 'eq') $exact[$parameter] = $field['name'];
+                else $operators[$parameter] = ['field' => $field['name'], 'operator' => $operator];
             }
             if (($field['sortable'] ?? false) === true) $sort[self::camel($field['name'])] = $field['name'];
         }
@@ -278,20 +289,32 @@ final class ProductionTemplateContext
         }
         if ($enabled['import']) $methods[] = "    #[Post('import')]\n    public function import(): Response { return \$this->crudImport(); }";
         if ($enabled['export']) $methods[] = "    #[Get('export')]\n    public function export(): Response { return \$this->crudExport(); }";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\console\\controller\\generated;\n\n"
-            . "use app\\console\\controller\\base\\AdminApiController;\nuse app\\console\\middleware\\CheckAdminApiCsrf;\n"
-            . "use app\\console\\middleware\\CheckAdminApiRole;\nuse app\\console\\middleware\\SystemLog;\n"
-            . "use app\\console\\model\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse app\\console\\service\\{$class}Service;\n"
-            . "use app\\console\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
+        $controllerImports = $data['_consoleController']
+            ? "use app\\console\\controller\\base\\AdminApiController;\nuse app\\console\\middleware\\CheckAdminApiCsrf;\n"
+                . "use app\\console\\middleware\\CheckAdminApiRole;\nuse app\\console\\middleware\\SystemLog;\n"
+            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\console\\traits\\AdminCrudRequest;\nuse app\\console\\traits\\AdminPagination;\n"
+                . "use app\\common\\traits\\JsonResponse;\n";
+        $controllerDeclaration = $data['_consoleController']
+            ? "final class {$class}Controller extends AdminApiController"
+            : "final class {$class}Controller extends BaseController";
+        $controllerTraits = $data['_consoleController'] ? '' : "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n";
+        $controllerMiddleware = $data['_consoleController']
+            ? "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
+            : "    protected array \$middleware = [MApi::class];\n";
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\controller;\n\n"
+            . $controllerImports
+            . "use {$data['_namespace']}\\model\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse {$data['_namespace']}\\service\\{$class}Service;\n"
+            . "use {$data['_namespace']}\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
-            . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['apiPrefix'], '/') . "')]\n"
-            . "final class {$class}Controller extends AdminApiController\n{\n    use Crud {\n        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
-            . "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
+            . "use think\\Model;\nuse think\\Response;\n\n#[Group('{$data['_controllerGroup']}')]\n"
+            . "{$controllerDeclaration}\n{\n{$controllerTraits}    use Crud {\n        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
+            . $controllerMiddleware
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
             . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"
             . '    protected function exactFilters(): array { return ' . self::phpArray($exact) . "; }\n"
             . '    protected function rangeFilters(): array { return ' . self::phpArray($range) . "; }\n"
+            . '    protected function operatorFilters(): array { return ' . self::phpArray($operators) . "; }\n"
             . '    protected function sortFields(): array { return ' . self::phpArray($sort) . "; }\n"
             . "    protected function primaryKey(): string { return '{$primary['name']}'; }\n"
             . "    protected function primaryKeyType(): string { return '" . self::primaryKeyType($primary) . "'; }\n"
@@ -398,7 +421,7 @@ final class ProductionTemplateContext
         }
         $idType = self::tsType($primary) === 'number' ? 'number' : 'string';
         $primaryName = self::camel($primary['name']);
-        $base = rtrim($data['apiPrefix'], '/');
+        $base = rtrim($data['_apiPrefix'], '/');
         $endpointOptions = [];
         foreach (self::enabledOptionSources($data, $enabled) as $source) {
             if ($source['type'] !== 'endpoint') {
@@ -454,7 +477,11 @@ final class ProductionTemplateContext
             $key = self::camel($field['name']);
             $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
             if (($field['list'] ?? false) === true) {
-                $columns[] = "          <el-table-column prop=\"{$key}\" label=\"" . htmlspecialchars($labelText, ENT_QUOTES) . "\" />";
+                $width = (int) ($field['listWidth'] ?? 0);
+                $widthAttribute = $width > 0 ? " width=\"{$width}\"" : '';
+                $formatter = (string) ($field['listFormatter'] ?? '');
+                $columns[] = "          <el-table-column prop=\"{$key}\" label=\"" . htmlspecialchars($labelText, ENT_QUOTES) . "\"{$widthAttribute}>"
+                    . self::listCell($key, $formatter) . '</el-table-column>';
             }
             if (($field['writable'] ?? true) && !($field['primary'] ?? false)) {
                 $csvColumns[] = ['key' => $key, 'label' => $labelText];
@@ -521,7 +548,7 @@ final class ProductionTemplateContext
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport
-            . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '@/api/generated/{$data['entity']}';\n"
+            . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '{$data['_frontendApiImport']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
             . ($enabled['detail'] ? "import {$class}Detail from './components/{$class}Detail.vue';\n" : '')
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
@@ -587,7 +614,7 @@ final class ProductionTemplateContext
             . implode('', $fields)
             . "</el-form><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, reactive, watch } from 'vue';\n{$uploadImport}"
-            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
+            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const props = defineProps<{ modelValue: boolean; row: {$type} | null }>();\nconst emit = defineEmits<{ 'update:modelValue': [boolean]; success: [] }>();\n"
             . "const visible = computed({ get: () => props.modelValue, set: value => emit('update:modelValue', value) });\nconst form = reactive<{$type}Payload>({});\n"
             . "const optionLists = reactive<Record<string, Array<{ label: string; value: string | number }>>>({ " . implode(', ', $optionState) . " });\n"
@@ -638,18 +665,45 @@ final class ProductionTemplateContext
             }
         }
 
+        $placeholder = htmlspecialchars((string) ($field['placeholder'] ?? ''), ENT_QUOTES);
+        $placeholderAttribute = $placeholder === '' ? '' : " placeholder=\"{$placeholder}\"";
         return match ($component) {
-            'password' => "<el-input v-model=\"form.{$key}\" type=\"password\" show-password />",
-            'textarea', 'json' => "<el-input v-model=\"form.{$key}\" type=\"textarea\" :rows=\"4\" />",
-            'inputNumber' => "<el-input-number v-model=\"form.{$key}\" class=\"w-full\" />",
-            'select', 'dictionary' => "<el-select v-model=\"form.{$key}\" filterable clearable class=\"w-full\">{$children}</el-select>",
+            'password' => "<el-input v-model=\"form.{$key}\" type=\"password\" show-password{$placeholderAttribute} />",
+            'textarea', 'richtext', 'json', 'mention' => "<el-input v-model=\"form.{$key}\" type=\"textarea\" :rows=\"4\"{$placeholderAttribute} />",
+            'inputNumber', 'slider', 'rate' => "<el-input-number v-model=\"form.{$key}\" class=\"w-full\" />",
+            'select', 'selectV2', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user' => "<el-select v-model=\"form.{$key}\" filterable clearable class=\"w-full\">{$children}</el-select>",
             'radio' => "<el-radio-group v-model=\"form.{$key}\">{$children}</el-radio-group>",
-            'checkbox' => "<el-checkbox-group v-model=\"form.{$key}\">{$children}</el-checkbox-group>",
+            'checkbox', 'transfer' => "<el-checkbox-group v-model=\"form.{$key}\">{$children}</el-checkbox-group>",
             'switch' => "<el-switch v-model=\"form.{$key}\" />",
             'date' => "<el-date-picker v-model=\"form.{$key}\" type=\"date\" class=\"w-full\" />",
-            'time' => "<el-time-picker v-model=\"form.{$key}\" class=\"w-full\" />",
+            'daterange' => "<el-date-picker v-model=\"form.{$key}\" type=\"daterange\" class=\"w-full\" />",
+            'datetimerange' => "<el-date-picker v-model=\"form.{$key}\" type=\"datetimerange\" class=\"w-full\" />",
+            'time', 'timeSelect' => "<el-time-picker v-model=\"form.{$key}\" class=\"w-full\" />",
             'datetime' => "<el-date-picker v-model=\"form.{$key}\" type=\"datetime\" class=\"w-full\" />",
-            default => "<el-input v-model=\"form.{$key}\" />",
+            'color' => "<el-color-picker v-model=\"form.{$key}\" />",
+            'hidden' => "<input v-model=\"form.{$key}\" type=\"hidden\" />",
+            'readonly' => "<el-input v-model=\"form.{$key}\" disabled />",
+            default => "<el-input v-model=\"form.{$key}\"{$placeholderAttribute} />",
+        };
+    }
+
+    private static function listCell(string $key, string $formatter): string
+    {
+        $value = "scope.row.{$key}";
+        return match ($formatter) {
+            'tag' => "<template #default=\"scope\"><el-tag>{{ {$value} }}</el-tag></template>",
+            'switch', 'boolean' => "<template #default=\"scope\"><el-tag :type=\"Number({$value}) === 1 ? 'success' : 'info'\">{{ Number({$value}) === 1 ? '是' : '否' }}</el-tag></template>",
+            'image' => "<template #default=\"scope\"><el-image :src=\"String({$value} ?? '')\" fit=\"cover\" class=\"h-10 w-10 rounded\" /></template>",
+            'images' => "<template #default=\"scope\"><span>{{ Array.isArray({$value}) ? {$value}.length + ' 张' : '' }}</span></template>",
+            'money' => "<template #default=\"scope\"><span>￥{{ Number({$value} ?? 0).toFixed(2) }}</span></template>",
+            'percent' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toFixed(2) }}%</span></template>",
+            'number' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toLocaleString('zh-CN') }}</span></template>",
+            'link' => "<template #default=\"scope\"><el-link :href=\"String({$value} ?? '')\" target=\"_blank\">{{ {$value} }}</el-link></template>",
+            'email' => "<template #default=\"scope\"><el-link :href=\"'mailto:' + String({$value} ?? '')\">{{ {$value} }}</el-link></template>",
+            'phone' => "<template #default=\"scope\"><el-link :href=\"'tel:' + String({$value} ?? '')\">{{ {$value} }}</el-link></template>",
+            'json' => "<template #default=\"scope\"><code>{{ JSON.stringify({$value}) }}</code></template>",
+            'date', 'datetime', 'time' => "<template #default=\"scope\"><span>{{ {$value} ?? '-' }}</span></template>",
+            default => "<template #default=\"scope\"><span>{{ {$value} }}</span></template>",
         };
     }
 
@@ -657,7 +711,7 @@ final class ProductionTemplateContext
     {
         $type = self::tsTypeName($class);
         return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\"><el-descriptions-item v-for=\"(value, key) in row\" :key=\"key\" :label=\"String(key)\"><span v-text=\"String(value ?? '')\" /></el-descriptions-item></el-descriptions></el-drawer></template>\n"
-            . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '@/api/generated/{$data['entity']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
+            . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
     }
 
     private static function phpTest(array $data, string $class): string

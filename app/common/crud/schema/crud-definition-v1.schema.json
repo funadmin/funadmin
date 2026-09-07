@@ -4,7 +4,14 @@
   "title": "FunAdmin CRUD Definition v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "connection", "module", "entity", "table", "title", "apiPrefix", "routePath", "primaryKey", "timestamps", "softDeletes", "generationTargets", "permissionPrefix", "fields", "relations", "optionsSource", "templates", "capabilities", "features", "dataScope", "menu", "permission"],
+  "required": ["schemaVersion", "connection", "module", "entity", "table", "title", "apiPrefix", "routePath", "primaryKey", "timestamps", "softDeletes", "target", "permissionPrefix", "fields", "relations", "optionsSource", "templates", "capabilities", "features", "dataScope", "menu", "permission"],
+  "allOf": [
+    {
+      "if": { "properties": { "target": { "properties": { "type": { "const": "core" } }, "required": ["type"] } }, "required": ["target"] },
+      "then": { "required": ["generationTargets"], "properties": { "templates": { "$ref": "#/$defs/templates" } } },
+      "else": { "not": { "required": ["generationTargets"] }, "properties": { "templates": { "$ref": "#/$defs/pluginTemplates" } } }
+    }
+  ],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "connection": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
@@ -18,9 +25,10 @@
     "primaryKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" },
     "timestamps": { "type": "boolean" },
     "softDeletes": { "type": "boolean" },
+    "target": { "oneOf": [{ "$ref": "#/$defs/coreTarget" }, { "$ref": "#/$defs/pluginTarget" }] },
     "permissionPrefix": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$" },
     "generationTargets": { "$ref": "#/$defs/artifacts" },
-    "templates": { "$ref": "#/$defs/templates" },
+    "templates": { "type": "object" },
     "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
     "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" } },
     "optionsSource": { "type": "array", "items": { "$ref": "#/$defs/optionsSource" } },
@@ -41,21 +49,26 @@
       "enabled": { "type": "boolean" }, "field": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$|^$" }, "resolver": { "const": "adminDepartmentIds" }
     }},
     "menu": { "$ref": "#/$defs/menu" },
-    "permission": { "$ref": "#/$defs/permission" }
+    "permission": { "$ref": "#/$defs/permission" },
+    "layoutSchema": { "type": "array", "items": { "type": "object" } }
   },
   "$defs": {
+    "coreTarget": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "core" } } },
+    "pluginTarget": { "type": "object", "additionalProperties": false, "required": ["type", "plugin", "scope"], "properties": { "type": { "const": "plugin" }, "plugin": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" }, "scope": { "enum": ["application", "console", "both"] } } },
     "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
     "templatePath": { "type": "string", "pattern": "^(console|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
     "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
     "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
+    "pluginTemplates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "api", "view", "form", "detail"] },
     "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "label": { "type": "string" }, "dbType": { "type": "string", "minLength": 1 },
       "nullable": { "type": "boolean" }, "primary": { "type": "boolean" }, "comment": { "type": "string" }, "default": {}, "extra": { "type": "string" },
       "component": { "type": "string" }, "valueType": { "type": "string" }, "cast": { "type": "string" }, "managed": { "type": "boolean" }, "writable": { "type": "boolean" },
       "options": { "type": "array" }, "optionsSource": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "relation": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "references": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*\\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "inferredBy": { "type": "string" },
-      "legacy": { "type": "boolean" }, "list": { "type": "boolean" }, "search": { "type": "boolean" }, "searchOperator": { "enum": ["like", "eq", "in", "range", "gte", "lte"] },
+      "legacy": { "type": "boolean" }, "list": { "type": "boolean" }, "search": { "type": "boolean" }, "searchOperator": { "enum": ["like", "eq", "ne", "not_like", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "in", "not_in", "range", "date", "is_null", "not_null"] },
       "sortable": { "type": "boolean" }, "form": { "type": "boolean" }, "detail": { "type": "boolean" }, "rules": { "type": "array", "items": { "type": "string" } },
+      "listFormatter": { "enum": ["", "tag", "image", "images", "date", "datetime", "time", "money", "number", "percent", "switch", "boolean", "link", "email", "phone", "json"] }, "listWidth": { "type": "integer", "minimum": 0, "maximum": 800 }, "placeholder": { "type": "string" }, "controlProps": { "type": "object" },
       "required": { "type": "boolean" }, "minLength": { "type": "integer", "minimum": 0 }, "maxLength": { "type": "integer", "minimum": 0 }, "min": { "type": "number" }, "max": { "type": "number" },
       "enum": { "type": "array", "minItems": 1 }, "format": { "enum": ["email", "url", "date", "datetime", "uuid", "ip"] }, "unique": { "type": "boolean" },
       "dictionary": { "type": "boolean" }, "upload": { "type": "boolean" }, "indexMissing": { "type": "boolean" }, "precision": { "type": "integer", "minimum": 0 }, "scale": { "type": "integer", "minimum": 0 }

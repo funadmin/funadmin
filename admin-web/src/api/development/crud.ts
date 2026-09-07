@@ -11,6 +11,8 @@ export const crudDevelopmentApi = {
   tableSchema: (connection: string, table: string) => http.get<Record<string, unknown>>(`${PREFIX}/tables/${table}/schema`, { connection }),
   options: () => http.get<CrudResourceOptions>(`${PREFIX}/options`),
   infer: (connection: string, table: string) => http.post<{ schema: Record<string, unknown>; fields: CrudDefinition['fields'] }>(`${PREFIX}/infer`, { connection, table }),
+  inferPlugin: (connection: string, table: string, plugin: string, entity: string, scope: 'application' | 'console' | 'both') =>
+    http.post<{ schema: Record<string, unknown>; fields: CrudDefinition['fields']; definition: CrudDefinition }>(`${PREFIX}/infer`, { connection, table, targetType: 'plugin', plugin, entity, scope }),
   validate: (definition: CrudDefinition, signal?: AbortSignal) => signal
     ? http.post<{ valid: boolean; definitionHash: string }>(`${PREFIX}/definitions/validate`, { definition }, { signal })
     : http.post<{ valid: boolean; definitionHash: string }>(`${PREFIX}/definitions/validate`, { definition }),

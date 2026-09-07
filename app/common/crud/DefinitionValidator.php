@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
+use fun\plugins\Manifest;
+use fun\plugins\PluginScaffolder;
 use InvalidArgumentException;
 
 /**
@@ -13,23 +15,25 @@ final class DefinitionValidator
 {
     private const ROOT_KEYS = [
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
-        'primaryKey', 'timestamps', 'softDeletes', 'generationTargets', 'permissionPrefix', 'fields',
-        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission',
+        'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
+        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
         'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest',
     ];
     private const COMPONENTS = [
-        'input', 'password', 'textarea', 'inputNumber', 'select', 'radio', 'checkbox', 'switch',
-        'datetime', 'date', 'time', 'image', 'images', 'file', 'files', 'dictionary', 'json',
+        'input', 'password', 'textarea', 'mention', 'inputNumber', 'select', 'selectV2', 'treeSelect', 'cascader',
+        'radio', 'checkbox', 'switch', 'transfer', 'datetime', 'date', 'daterange', 'datetimerange', 'time',
+        'timeSelect', 'slider', 'rate', 'color', 'image', 'images', 'file', 'files', 'dictionary', 'relation',
+        'department', 'user', 'richtext', 'json', 'hidden', 'readonly',
     ];
     private const FIELD_KEYS = [
         'name', 'label', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
         'valueType', 'cast', 'managed', 'writable', 'options', 'optionsSource', 'relation', 'references',
         'inferredBy', 'legacy', 'list', 'search', 'searchOperator', 'sortable', 'form', 'detail', 'rules',
         'required', 'minLength', 'maxLength', 'min', 'max', 'enum', 'format', 'unique', 'dictionary',
-        'upload', 'precision', 'scale', 'indexMissing',
+        'upload', 'precision', 'scale', 'indexMissing', 'listFormatter', 'listWidth', 'placeholder', 'controlProps',
     ];
     private const RELATION_KEYS = [
         'name', 'type', 'field', 'target', 'targetField', 'pivotTable', 'pivotLocalKey',
@@ -73,8 +77,18 @@ final class DefinitionValidator
         if (!preg_match('/^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/', (string) ($data['permissionPrefix'] ?? ''))) {
             throw new InvalidArgumentException('权限前缀不合法');
         }
-        $this->paths($data['generationTargets'] ?? null, $projectRoot);
-        $this->templates($data['templates'] ?? null);
+        $target = $this->target($data['target'] ?? null, $projectRoot);
+        if ($target['type'] === 'plugin') {
+            if (array_key_exists('generationTargets', $data)) {
+                throw new InvalidArgumentException('插件 target 禁止提供 generationTargets，所有目标由服务安全派生');
+            }
+            if (!str_starts_with((string) $data['permissionPrefix'], $target['plugin'] . ':')) {
+                throw new InvalidArgumentException('插件权限前缀必须属于插件命名空间');
+            }
+        } else {
+            $this->paths($data['generationTargets'] ?? null, $projectRoot);
+        }
+        $this->templates($data['templates'] ?? null, $target['type']);
         $fieldNames = $this->fields($data['fields'] ?? null);
         if (!isset($fieldNames[$data['primaryKey']]) || ($fieldNames[$data['primaryKey']]['primary'] ?? false) !== true) {
             throw new InvalidArgumentException('primaryKey 必须引用唯一主键字段');
@@ -86,6 +100,35 @@ final class DefinitionValidator
         $this->dataScope($data['dataScope'] ?? null, $fieldNames);
         $this->menu($data['menu'] ?? null);
         $this->permission($data['permission'] ?? null);
+    }
+
+    private function target(mixed $target, string $projectRoot): array
+    {
+        if (!is_array($target) || array_diff(array_keys($target), ['type', 'plugin', 'scope']) !== []) {
+            throw new InvalidArgumentException('CRUD target 配置不合法');
+        }
+        $type = (string) ($target['type'] ?? '');
+        if ($type === 'core' && count($target) === 1) {
+            return ['type' => 'core'];
+        }
+        if ($type !== 'plugin'
+            || count($target) !== 3
+            || array_diff(['type', 'plugin', 'scope'], array_keys($target)) !== []) {
+            throw new InvalidArgumentException('插件 target 配置不完整');
+        }
+        $plugin = (string) $target['plugin'];
+        try {
+            PluginScaffolder::assertValidName($plugin);
+            $directory = PathGuard::resolve($projectRoot, 'plugins/' . $plugin, '项目目录');
+            Manifest::fromDirectory($directory);
+        } catch (\Throwable $exception) {
+            throw new InvalidArgumentException('插件无效：' . $exception->getMessage(), 0, $exception);
+        }
+        $scope = (string) $target['scope'];
+        if (!in_array($scope, ['application', 'console', 'both'], true)) {
+            throw new InvalidArgumentException('插件 target scope 不合法');
+        }
+        return ['type' => 'plugin', 'plugin' => $plugin, 'scope' => $scope];
     }
 
     private function paths(mixed $paths, string $projectRoot): void
@@ -106,7 +149,7 @@ final class DefinitionValidator
         }
     }
 
-    private function templates(mixed $templates): void
+    private function templates(mixed $templates, string $targetType): void
     {
         if (!is_array($templates) || $templates === []) {
             throw new InvalidArgumentException('templates 必须为非空对象');
@@ -117,6 +160,13 @@ final class DefinitionValidator
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
             }
+        }
+        $required = $targetType === 'plugin'
+            ? ['migration', 'model', 'validate', 'service', 'controller', 'api', 'view', 'form', 'detail']
+            : self::ARTIFACT_KEYS;
+        $missing = array_diff($required, array_keys($templates));
+        if ($missing !== []) {
+            throw new InvalidArgumentException('templates 缺少制品：' . implode(', ', $missing));
         }
     }
 
@@ -168,11 +218,26 @@ final class DefinitionValidator
             if (isset($field['format']) && !in_array($field['format'], ['email', 'url', 'date', 'datetime', 'uuid', 'ip'], true)) {
                 throw new InvalidArgumentException('字段 format 不合法');
             }
-            if (isset($field['searchOperator']) && !in_array($field['searchOperator'], ['like', 'eq', 'in', 'range', 'gte', 'lte'], true)) {
+            if (isset($field['searchOperator']) && !in_array($field['searchOperator'], [
+                'like', 'eq', 'ne', 'not_like', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte',
+                'in', 'not_in', 'range', 'date', 'is_null', 'not_null',
+            ], true)) {
                 throw new InvalidArgumentException('字段 searchOperator 不合法');
             }
             if (isset($field['component']) && !in_array($field['component'], self::COMPONENTS, true)) {
                 throw new InvalidArgumentException('字段 component 不合法');
+            }
+            if (isset($field['listFormatter']) && !in_array($field['listFormatter'], [
+                '', 'tag', 'image', 'images', 'date', 'datetime', 'time', 'money', 'number', 'percent',
+                'switch', 'boolean', 'link', 'email', 'phone', 'json',
+            ], true)) {
+                throw new InvalidArgumentException('字段 listFormatter 不合法');
+            }
+            if (isset($field['listWidth']) && (!is_int($field['listWidth']) || $field['listWidth'] < 0 || $field['listWidth'] > 800)) {
+                throw new InvalidArgumentException('字段 listWidth 必须在 0..800');
+            }
+            if (isset($field['controlProps']) && !is_array($field['controlProps'])) {
+                throw new InvalidArgumentException('字段 controlProps 必须为对象');
             }
             if (isset($field['rules']) && (!is_array($field['rules']) || array_filter($field['rules'], static fn ($rule): bool => !is_string($rule) || trim($rule) === '') !== [])) {
                 throw new InvalidArgumentException('字段 rules 必须是非空字符串数组');

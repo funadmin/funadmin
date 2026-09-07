@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace fun\command;
 
-use app\console\service\DatabasePluginAppPublicationRepository;
-use app\console\service\PluginAppPublicationService;
+use app\console\service\PluginInfrastructureService;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Argument;
@@ -28,11 +27,8 @@ final class PluginPublicationRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $publisher = new PluginAppPublicationService(
-                root_path('app'),
-                runtime_path('plugins'),
-                new DatabasePluginAppPublicationRepository()
-            );
+            $infrastructure = new PluginInfrastructureService();
+            $publisher = $infrastructure->appPublisher();
             $token = trim((string) $input->getArgument('token'));
             $all = (bool) $input->getOption('all-stale');
             $inspect = (bool) $input->getOption('inspect');
@@ -42,8 +38,8 @@ final class PluginPublicationRecover extends Command
             }
             if ($token !== '') {
                 $journal = $publisher->inspect($token);
-                if (!$inspect && ($journal['manual_recovery'] ?? false) !== true) {
-                    $publisher->recover($token);
+                if (!$inspect) {
+                    $infrastructure->recoverPublication($token, ($journal['manual_recovery'] ?? false) === true);
                     $journal = $publisher->inspect($token);
                 }
                 $output->writeln(json_encode($journal, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
@@ -53,7 +49,7 @@ final class PluginPublicationRecover extends Command
             foreach ($publisher->stale() as $journal) {
                 $journalToken = (string) $journal['token'];
                 if (!$inspect && ($journal['manual_recovery'] ?? false) !== true) {
-                    $publisher->recover($journalToken);
+                    $infrastructure->recoverPublication($journalToken);
                 }
                 $results[] = $publisher->inspect($journalToken);
             }

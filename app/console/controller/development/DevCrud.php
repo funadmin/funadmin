@@ -67,9 +67,21 @@ final class DevCrud extends AdminApiController
     #[Post('infer')]
     public function infer(): Response
     {
-        return $this->execute(fn (): array => $this->crud->infer(
-            $this->connection(),
-            trim((string) $this->request->post('table', ''))
+        $connection = $this->connection();
+        $table = trim((string) $this->request->post('table', ''));
+        $targetType = trim((string) $this->request->post('targetType', 'core'));
+        if ($targetType === 'core') {
+            return $this->execute(fn (): array => $this->crud->infer($connection, $table));
+        }
+        if ($targetType !== 'plugin') {
+            return $this->fail(msg: 'targetType 必须为 core 或 plugin', code: 422);
+        }
+        return $this->execute(fn (): array => $this->crud->inferPlugin(
+            $connection,
+            $table,
+            trim((string) $this->request->post('plugin', '')),
+            trim((string) $this->request->post('entity', '')),
+            trim((string) $this->request->post('scope', ''))
         ));
     }
 

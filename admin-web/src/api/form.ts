@@ -38,6 +38,25 @@ export interface FormFieldDef {
 }
 
 /** 表单定义 */
+export type FormPublishStatus = 'draft' | 'publishing' | 'published' | 'partial' | 'conflict' | 'failed';
+
+export interface FormPublishConfig {
+  module: string;
+  apiPrefix: string;
+  routePath: string;
+  menuEnabled: boolean;
+  parentId: number | null;
+  parentSourceName: string;
+  menuName: string;
+  icon: string;
+  sortOrder: number;
+  softDeletes: boolean;
+  batchDelete: boolean;
+  import: boolean;
+  export: boolean;
+  formMode: 'dialog' | 'drawer';
+}
+
 export interface FormDefinition {
   id?: number;
   form_key: string;
@@ -48,6 +67,11 @@ export interface FormDefinition {
   status: number;
   list_config?: Record<string, unknown> | null;
   form_config?: Record<string, unknown> | null;
+  publish_config?: Partial<FormPublishConfig> | null;
+  publish_status?: FormPublishStatus;
+  published_at?: string | null;
+  crud_generation_id?: number | null;
+  published_definition_hash?: string | null;
   remark: string;
   sort_order: number;
   updated_at?: string;
@@ -63,6 +87,25 @@ export interface MigrationPreview {
   applied?: boolean;
 }
 
+export interface FormPublishPreview {
+  definition: Record<string, unknown>;
+  definitionHash: string;
+  ddl: MigrationPreview;
+  generationId?: number | null;
+  plan: { files: Array<{ path: string; status: 'create' | 'unchanged' | 'conflict' | 'blocked'; diff?: string; content?: string }> };
+  sensitive?: { confirmToken: string } | null;
+  conflicts: Array<{ path: string; status: 'conflict'; diff?: string }>;
+  publishStatus: 'ready' | 'conflict';
+}
+
+export interface FormPublishResult {
+  form: FormDefinition;
+  ddl: MigrationPreview;
+  generation: { generationId: number; resourceApplyStatus?: string; resourceApplyError?: string | null };
+  publishStatus: FormPublishStatus;
+  routePath: string;
+}
+
 const PREFIX = '/form/designer';
 
 export const formDesignerApi = {
@@ -75,5 +118,10 @@ export const formDesignerApi = {
   validate: (definition: Record<string, unknown>) => http.post<{ valid: boolean }>(`${PREFIX}/validate`, { definition }),
   infer: (connection: string, table: string) => http.post<{ fields: Partial<FormFieldDef>[] }>(`${PREFIX}/infer`, { connection, table }),
   preview: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/preview`, { definition }),
-  apply: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/apply`, { definition })
+  apply: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/apply`, { definition }),
+  previewPublish: (definition: Record<string, unknown>) => http.post<FormPublishPreview>(`${PREFIX}/preview-publish`, { definition }),
+  publish: (definition: Record<string, unknown>, confirmToken: string, allowOverwrite: string[]) =>
+    http.post<FormPublishResult>(`${PREFIX}/publish`, { definition, confirmToken, allowOverwrite }),
+  publishStatus: (id: number) => http.get<{ publishStatus: FormPublishStatus; publishedAt?: string | null; generationId?: number | null }>(`${PREFIX}/publish-status/${id}`),
+  retryResources: (id: number) => http.post<{ publishStatus: FormPublishStatus; resourceApplyStatus: string }>(`${PREFIX}/retry-resources/${id}`)
 };

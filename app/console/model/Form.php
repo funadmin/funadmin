@@ -17,7 +17,7 @@ class Form extends BackendModel
     protected $name = 'form';
 
     /** @var array */
-    protected $json = ['list_config', 'form_config'];
+    protected $json = ['list_config', 'form_config', 'publish_config'];
 
     /** @var bool */
     protected $jsonAssoc = true;

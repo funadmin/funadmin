@@ -8,14 +8,21 @@
     <template v-else-if="model">
       <el-divider content-position="left">模块定义</el-divider>
       <el-form :model="model" label-width="125px" class="definition-form">
+        <el-form-item label="目标类型"><el-radio-group :model-value="model.target.type" @update:model-value="changeTarget"><el-radio-button value="core">核心</el-radio-button><el-radio-button value="plugin">插件</el-radio-button></el-radio-group></el-form-item>
+        <template v-if="model.target.type === 'plugin'">
+          <el-form-item label="插件"><el-select :model-value="model.target.plugin" class="w-full" @update:model-value="$emit('change-plugin', $event)"><el-option v-for="item in plugins" :key="item.code" :label="`${item.name} (${item.code})`" :value="item.code" /></el-select></el-form-item>
+          <el-form-item label="scope"><el-select :model-value="model.target.scope" class="w-full" @update:model-value="$emit('change-scope', $event)"><el-option v-for="scope in activeScopes" :key="scope" :label="scope" :value="scope" /></el-select></el-form-item>
+          <el-form-item label="namespace"><el-input :model-value="pluginNamespace" disabled /></el-form-item>
+          <el-form-item label="URL"><el-input :model-value="model.apiPrefix" disabled /></el-form-item>
+        </template>
         <el-form-item label="连接"><el-input v-model="model.connection" disabled /></el-form-item>
         <el-form-item label="表名"><el-input v-model="model.table" disabled /></el-form-item>
-        <el-form-item label="模块"><el-input v-model="model.module" /></el-form-item>
+        <el-form-item label="模块"><el-input v-model="model.module" :disabled="model.target.type === 'plugin'" /></el-form-item>
         <el-form-item label="实体"><el-input v-model="model.entity" /></el-form-item>
         <el-form-item label="标题"><el-input v-model="model.title" /></el-form-item>
-        <el-form-item label="API 前缀"><el-input v-model="model.apiPrefix" /></el-form-item>
-        <el-form-item label="路由路径"><el-input v-model="model.routePath" /></el-form-item>
-        <el-form-item label="权限前缀"><el-input v-model="model.permissionPrefix" /></el-form-item>
+        <el-form-item label="API 前缀"><el-input v-model="model.apiPrefix" :disabled="model.target.type === 'plugin'" /></el-form-item>
+        <el-form-item label="路由路径"><el-input v-model="model.routePath" :disabled="model.target.type === 'plugin'" /></el-form-item>
+        <el-form-item label="权限前缀"><el-input v-model="model.permissionPrefix" :disabled="model.target.type === 'plugin'" /></el-form-item>
         <el-form-item label="主键"><el-select v-model="model.primaryKey" class="w-full"><el-option v-for="field in model.fields" :key="field.name" :label="field.name" :value="field.name" /></el-select></el-form-item>
         <el-form-item label="时间戳"><el-switch v-model="model.timestamps" /></el-form-item>
         <el-form-item label="软删除"><el-switch v-model="model.softDeletes" /></el-form-item>
@@ -46,7 +53,8 @@
       </div>
       <el-alert :title="laravelHint" :type="laravelReady ? 'success' : 'warning'" show-icon :closable="false" class="mt-3" />
       <el-divider content-position="left">生成目标摘要</el-divider>
-      <el-descriptions :column="1" border><el-descriptions-item v-for="(path, key) in model.generationTargets" :key="key" :label="String(key)"><el-input v-model="model.generationTargets[key]" /></el-descriptions-item></el-descriptions>
+      <el-descriptions v-if="model.target.type === 'core' && model.generationTargets" title="目标文件" :column="1" border><el-descriptions-item v-for="(path, key) in model.generationTargets" :key="key" :label="String(key)">{{ path }}</el-descriptions-item></el-descriptions>
+      <template v-else><el-alert title="插件目标路径由服务安全派生" type="info" :closable="false" /><el-descriptions title="目标文件" :column="1" border class="mt-3"><el-descriptions-item v-for="path in pluginTargets" :key="path" label="path">{{ path }}</el-descriptions-item></el-descriptions></template>
     </template>
     <el-empty v-else description="选择数据表后将自动推断模块与字段" />
   </div>
@@ -55,10 +63,29 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import IconSelect from '@/components/IconSelect/index.vue';
+import type { DevelopmentPluginOption } from '@/api/development/plugin';
 import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
 
-const props = defineProps<{ connection: string; table: string; connections: CrudConnection[]; tables: CrudTable[]; parentMenus: CrudParentMenu[]; model: CrudDefinition | null; schema: Record<string, unknown> | null; inferring: boolean }>();
-defineEmits<{ 'update:connection': [value: string]; 'update:table': [value: string] }>();
+const props = defineProps<{ connection: string; table: string; connections: CrudConnection[]; tables: CrudTable[]; parentMenus: CrudParentMenu[]; plugins: DevelopmentPluginOption[]; model: CrudDefinition | null; schema: Record<string, unknown> | null; inferring: boolean }>();
+const emit = defineEmits<{ 'update:connection': [value: string]; 'update:table': [value: string]; 'change-target': [value: 'core' | 'plugin']; 'change-plugin': [value: string]; 'change-scope': [value: 'application' | 'console' | 'both'] }>();
+const changeTarget = (value: string | number | boolean | undefined) => {
+  if (value === 'core' || value === 'plugin') emit('change-target', value);
+};
+const activePlugin = computed(() => {
+  const target = props.model?.target;
+  return target?.type === 'plugin' ? props.plugins.find((item) => item.code === target.plugin) : undefined;
+});
+const activeScopes = computed(() => activePlugin.value?.scopes || []);
+const pluginNamespace = computed(() => props.model?.target.type === 'plugin' ? `plugin\\${props.model.target.plugin}\\${props.model.target.scope === 'application' ? '' : 'console\\'}` : '');
+const pluginTargets = computed(() => {
+  if (!props.model || props.model.target.type !== 'plugin') return [];
+  const root = `plugins/${props.model.target.plugin}`;
+  const entity = props.model.entity;
+  const targets = [`${root}/database/migrations/NNN_create_${entity.replace(/-/g, '_')}.sql`, `${root}/plugin.json`];
+  if (props.model.target.scope !== 'console') targets.push(`${root}/app/${props.model.target.plugin}/controller`);
+  if (props.model.target.scope !== 'application') targets.push(`${root}/app/console/controller`, `${root}/admin-web/${entity}`);
+  return targets;
+});
 const indexes = computed<unknown[]>(() => {
   const value = props.schema?.indexes ?? props.schema?.indices;
   return Array.isArray(value) ? value : [];

@@ -64,6 +64,7 @@ final class AtomicWriter
             throw new RuntimeException('allowOverwrite 包含计划外路径：' . implode(', ', $unknownAllowed));
         }
         $this->preflight($files, $allowed);
+        $this->assertPreconditions((array) ($plan['preconditions'] ?? []));
         $this->tokens->consume((string) $claims['nonce'], (int) $claims['expiresAt']);
 
         $temporary = rtrim($this->projectRoot, DIRECTORY_SEPARATOR)
@@ -174,14 +175,54 @@ final class AtomicWriter
             if (($file['status'] ?? '') === 'blocked') {
                 throw new RuntimeException('目标路径被非文件对象阻塞：' . $file['path']);
             }
-            if (($file['status'] ?? '') === 'conflict' && !isset($allowed[$file['path']])) {
+            $operation = $file['operation'] ?? null;
+            $manifestCas = is_array($operation) && ($operation['type'] ?? '') === 'manifest-merge-cas';
+            if (($file['status'] ?? '') === 'conflict' && !isset($allowed[$file['path']]) && !$manifestCas) {
                 throw new RuntimeException('冲突文件不在精确 allowOverwrite：' . $file['path']);
+            }
+            if ($operation !== null && !$manifestCas) {
+                throw new RuntimeException('生成计划包含未授权的结构化写入操作：' . $file['path']);
             }
             if (isset($allowed[$file['path']]) && ($file['status'] ?? '') !== 'conflict') {
                 throw new RuntimeException('allowOverwrite 只能授权冲突文件：' . $file['path']);
             }
             if (!hash_equals((string) ($file['hash'] ?? ''), hash('sha256', (string) ($file['content'] ?? '')))) {
                 throw new RuntimeException('计划内容 hash 不匹配：' . $file['path']);
+            }
+            if ($manifestCas) {
+                $decoded = json_decode((string) ($file['content'] ?? ''), true);
+                $plugin = (string) ($operation['plugin'] ?? '');
+                $expectedPath = 'plugins/' . $plugin . '/plugin.json';
+                if ($plugin === '' || ($file['path'] ?? '') !== $expectedPath
+                    || !is_array($decoded) || !isset($decoded['schema_version'], $decoded['code'])
+                    || (string) $decoded['code'] !== $plugin
+                    || ($operation['merged'] ?? null) !== $decoded
+                    || ($operation['previousHash'] ?? null) !== ($file['previousHash'] ?? null)) {
+                    throw new RuntimeException('Manifest 结构化合并内容或 CAS 前置条件无效：' . $file['path']);
+                }
+            }
+        }
+    }
+
+    private function assertPreconditions(array $preconditions): void
+    {
+        foreach ($preconditions as $precondition) {
+            if (!is_array($precondition) || ($precondition['type'] ?? '') !== 'plugin-migration-sequence') {
+                throw new RuntimeException('生成计划包含未知前置条件');
+            }
+            $directory = PathGuard::resolve($this->projectRoot, (string) ($precondition['path'] ?? ''), '项目目录');
+            $state = [];
+            foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
+                $name = basename($file);
+                if (is_link($file) || !is_file($file)) {
+                    throw new RuntimeException('插件 migration 序列包含符号链接或非文件对象：' . $name);
+                }
+                $state[$name] = hash_file('sha256', $file);
+            }
+            ksort($state, SORT_STRING);
+            $actual = hash('sha256', CrudDefinition::canonicalJson($state));
+            if (!is_string($precondition['hash'] ?? null) || !hash_equals($precondition['hash'], $actual)) {
+                throw new RuntimeException('插件 migration 序列已变化');
             }
         }
     }

@@ -16,7 +16,7 @@ final class GenerationPlanner
         $this->tokens = $tokens ?? new ConfirmationToken($projectRoot);
     }
 
-    public function plan(CrudDefinition $definition, array $generatedFiles): array
+    public function plan(CrudDefinition $definition, array $generatedFiles, array $preconditions = [], array $operations = []): array
     {
         ksort($generatedFiles, SORT_STRING);
         $files = [];
@@ -32,6 +32,11 @@ final class GenerationPlanner
             $status = $blocked
                 ? 'blocked'
                 : ($existing === false ? 'create' : (hash_equals($oldHash, $newHash) ? 'unchanged' : 'conflict'));
+            $operation = $operations[$relativePath] ?? null;
+            if (is_array($operation) && ($operation['type'] ?? '') === 'manifest-merge-cas') {
+                $operation['previousHash'] = $oldHash;
+                $operation['merged'] = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+            }
             $files[] = [
                 'path' => str_replace('\\', '/', $relativePath),
                 'status' => $status,
@@ -39,21 +44,25 @@ final class GenerationPlanner
                 'previousHash' => $oldHash,
                 'content' => $content,
                 'diff' => $this->diff($existing === false ? '' : $existing, $content),
+                'operation' => $operation,
             ];
         }
         $tokenSource = [
             'definitionHash' => $definition->hash(),
+            'preconditions' => $preconditions,
             'files' => array_map(static fn (array $file): array => [
                 'path' => $file['path'],
                 'status' => $file['status'],
                 'hash' => $file['hash'],
                 'previousHash' => $file['previousHash'],
+                'operation' => $file['operation'],
             ], $files),
         ];
         $planDigest = hash('sha256', CrudDefinition::canonicalJson($tokenSource));
         return [
             'dryRun' => true,
             'definitionHash' => $definition->hash(),
+            'preconditions' => $preconditions,
             'files' => $files,
             'planDigest' => $planDigest,
             'confirmToken' => $this->tokens->issue($planDigest),

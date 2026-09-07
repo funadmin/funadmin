@@ -8,7 +8,9 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
+use app\console\service\AdminAuthorizationService;
 use app\console\service\FormDesignerService;
+use app\console\service\FormPublishService;
 use InvalidArgumentException;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -28,10 +30,18 @@ final class Designer extends AdminApiController
 
     private readonly FormDesignerService $forms;
 
+    private readonly FormPublishService $publisher;
+
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->forms = new FormDesignerService($app->getRootPath());
+        $connections = config('crud.connections', []);
+        $this->publisher = new FormPublishService(
+            $this->forms,
+            $app->getRootPath(),
+            is_array($connections) ? array_values(array_filter($connections, 'is_string')) : []
+        );
     }
 
     #[Get('index')]
@@ -101,6 +111,52 @@ final class Designer extends AdminApiController
     public function apply(): Response
     {
         return $this->execute(fn (): array => $this->forms->applyMigration($this->payload()), '迁移应用成功');
+    }
+
+    #[Post('preview-publish')]
+    public function previewPublish(): Response
+    {
+        $authorization = new AdminAuthorizationService();
+        $canGenerate = $authorization->nodeAccess('console/form.designer/publish');
+        return $this->execute(fn (): array => $this->publisher->preview($this->payload(), $canGenerate));
+    }
+
+    #[Post('publish')]
+    public function publish(): Response
+    {
+        $allowOverwrite = $this->request->post('allowOverwrite', []);
+        if (!is_array($allowOverwrite)) {
+            return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
+        }
+        $authorization = new AdminAuthorizationService();
+        return $this->execute(fn (): array => $this->publisher->publish(
+            $this->payload(),
+            trim((string) $this->request->post('confirmToken', '')),
+            array_values(array_filter($allowOverwrite, 'is_string')),
+            $authorization->nodeAccess('development/crud/overwrite'),
+            $authorization->nodeAccess('development/crud/apply-resources'),
+            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
+        ), '表单全栈发布完成');
+    }
+
+    #[Get('publish-status/:id')]
+    #[Pattern('id', '\d+')]
+    public function publishStatus(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->publisher->status($id));
+    }
+
+    #[Post('retry-resources/:id')]
+    #[Pattern('id', '\d+')]
+    public function retryResources(int $id): Response
+    {
+        $authorization = new AdminAuthorizationService();
+        if (!$authorization->nodeAccess('development/crud/generate')
+            || !$authorization->nodeAccess('development/crud/overwrite')
+            || !$authorization->nodeAccess('development/crud/apply-resources')) {
+            return $this->fail(msg: '缺少资源重试权限', code: 403);
+        }
+        return $this->execute(fn (): array => $this->publisher->retryResources($id), '菜单与权限应用完成');
     }
 
     private function payload(): array

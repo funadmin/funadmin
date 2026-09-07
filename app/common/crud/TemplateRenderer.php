@@ -26,13 +26,21 @@ final class TemplateRenderer
         if ($source === false) {
             throw new RuntimeException('无法读取模板：' . $template);
         }
+        if (preg_match_all('/\{\{(.*?)\}\}/s', $source, $placeholders) === false) {
+            throw new InvalidArgumentException('模板包含不受支持的占位符');
+        }
+        foreach ($placeholders[1] as $placeholder) {
+            if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/D', $placeholder) !== 1) {
+                throw new InvalidArgumentException('模板包含不受支持的占位符');
+            }
+        }
         $rendered = preg_replace_callback('/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/', function (array $match) use ($context): string {
             if (!array_key_exists($match[1], $context) || !is_scalar($context[$match[1]])) {
                 throw new InvalidArgumentException('模板上下文缺少标量值：' . $match[1]);
             }
             return $this->escape((string) $context[$match[1]], $match[1]);
         }, $source);
-        if ($rendered === null || preg_match('/\{\{[^}]+\}\}/', $rendered)) {
+        if ($rendered === null) {
             throw new InvalidArgumentException('模板包含不受支持的占位符');
         }
         return $rendered;

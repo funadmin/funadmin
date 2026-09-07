@@ -56,8 +56,9 @@ class Service extends \think\Service
     {
         $loader = new RuntimeLoader();
         $this->booter()->boot($this->commonManifests(), [
-            // vendor 必须先于 entry：入口类的父类/接口可能来自插件自带依赖
+            // vendor 与发布后的原生 namespace 必须先于 entry，供入口依赖安全加载。
             'composer' => static fn (Manifest $manifest) => $loader->loadComposerAutoload($manifest),
+            'native-autoload' => static fn (Manifest $manifest) => $loader->loadNativeAutoload($manifest),
             'entry' => static fn (Manifest $manifest) => $loader->loadEntry($manifest),
             'services' => fn (Manifest $manifest) => $loader->loadServices($this->app, $manifest),
             'events' => fn (Manifest $manifest) => $loader->loadEvents($this->app, $manifest),

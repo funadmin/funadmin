@@ -258,8 +258,8 @@ class PluginService extends AbstractService
             if ($plugin->install() === false) {
                 throw new RuntimeException('install_hook: 插件安装失败');
             }
-            $this->deploymentRollbackAllowed = false;
             $this->recordStage($code, 'install', 'migration');
+            $this->deploymentRollbackAllowed = false;
             $migration = $this->migrate($code);
             $record->save(['db_version' => $migration['version'], 'migration_pending' => 0]);
             $this->recordStage($code, 'install', 'resources');
@@ -311,10 +311,10 @@ class PluginService extends AbstractService
             if ($plugin->beforeUpdate($fromVersion, $toVersion, $migrate) === false) {
                 throw new RuntimeException('update_hook: 插件更新前置钩子执行失败');
             }
-            $this->deploymentRollbackAllowed = false;
-            $this->recordStage($code, $operation, 'migration');
             $migrationVersion = (string) ($record->db_version ?? '');
             if ($migrate) {
+                $this->recordStage($code, $operation, 'migration');
+                $this->deploymentRollbackAllowed = false;
                 $migrationVersion = $this->migrate($code)['version'];
             }
             if ($plugin->afterUpdate($fromVersion, $toVersion, $migrate) === false) {
@@ -347,8 +347,8 @@ class PluginService extends AbstractService
             $this->assertDisabled($record, $code);
             $this->validatedManifest($code);
             $this->beginOperation($record, $token, 'updating');
-            $this->deploymentRollbackAllowed = false;
             $this->recordStage($code, 'migrate', 'migration');
+            $this->deploymentRollbackAllowed = false;
             $migration = $this->migrate($code);
             $record->save([
                 'db_version' => $migration['version'],

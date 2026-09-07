@@ -15,7 +15,7 @@ function preview(definition: CrudDefinition): CrudPreview {
     generationId: 1,
     plan: {
       definitionHash: 'mock-definition-hash',
-      files: Object.entries(definition.generationTargets).map(([type, path], index) => ({
+      files: Object.entries(definition.generationTargets ?? {}).map(([type, path], index) => ({
         path,
         status: index === 1 ? 'conflict' as const : index === 2 ? 'unchanged' as const : 'create' as const,
         previousHash: index === 1 ? 'mock-previous-hash' : null,
@@ -42,7 +42,7 @@ export const developmentCrudMockHandlers: MockRoute[] = [
   { method: 'POST', url: '/development/crud/preview', handler: ({ body }) => ok(preview(body.definition as CrudDefinition)) },
   { method: 'POST', url: '/development/crud/generate', handler: ({ body }) => {
     const definition = body.definition as CrudDefinition;
-    const paths = Object.values(definition.generationTargets);
+    const paths = Object.values(definition.generationTargets ?? {});
     return ok({
       generationId: 2,
       write: { status: 'written', written: paths.length - 1 },

@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import type { CrudCapabilities, CrudDefinition, CrudField, CrudGeneration, CrudOption, CrudOptionsSource, CrudPreview, CrudRelation } from '@/types/development/crud';
+import type { CrudCapabilities, CrudDefinition, CrudField, CrudGeneration, CrudOption, CrudOptionsSource, CrudPreview, CrudRelation, CrudTarget } from '@/types/development/crud';
 
 export const CRUD_STEPS = ['数据与模块', '字段设计', '功能与预览', '确认与结果'].map((title, index) => ({ index, title }));
 
@@ -147,15 +147,18 @@ export function syncPermissionActions(definition: CrudDefinition): void {
   definition.permission.actions = RESOURCE_ACTIONS.filter(([capability]) => enabled(capability)).map(([, action, codeSuffix, label]) => ({ action, codeSuffix, label: labels.get(action) || label }));
 }
 
-export function createCrudDefinition(connection: string, table: string, fields: CrudField[]): CrudDefinition {
+type CoreCrudDefinition = CrudDefinition & { target: { type: 'core' }; generationTargets: CrudDefinition['templates'] };
+
+export function createCrudDefinition(connection: string, table: string, fields: CrudField[]): CoreCrudDefinition {
   const name = table.replace(/^fun_/, '').replace(/_/g, '-');
   const className = name.split('-').map((part) => part[0]?.toUpperCase() + part.slice(1)).join('');
   const hasWritableStatus = fields.some((field) => field.name === 'status' && field.writable !== false);
-  const definition: CrudDefinition = {
+  const definition: CoreCrudDefinition = {
     schemaVersion: '1.0', connection, module: 'generated', entity: name, table, title: table,
     apiPrefix: `/generated/${name}`, routePath: `/generated/${name}`, primaryKey: fields.find((field) => field.primary)?.name || 'id',
     timestamps: fields.some((field) => field.name === 'created_at') && fields.some((field) => field.name === 'updated_at'),
     softDeletes: true,
+    target: { type: 'core' },
     generationTargets: { migration: `database/generated/${name}.sql`, model: `app/console/model/${className}.php`, validate: `app/console/validate/${className}Validate.php`, service: `app/console/service/${className}Service.php`, controller: `app/console/controller/generated/${className}Controller.php`, permissionMigration: `database/generated/${name}_permissions.sql`, api: `admin-web/src/api/generated/${name}.ts`, view: `admin-web/src/views/generated/${name}/index.vue`, form: `admin-web/src/views/generated/${name}/components/${className}Form.vue`, detail: `admin-web/src/views/generated/${name}/components/${className}Detail.vue`, phpTest: `tests/generated/${className}GeneratedTest.php`, vitestTest: `admin-web/tests/generated/${name}.spec.ts` },
     permissionPrefix: `generated:${name}`, fields, relations: [], optionsSource: [],
     templates: { migration: 'database/migration.sql.tpl', model: 'console/model.php.tpl', validate: 'console/validate.php.tpl', service: 'console/service.php.tpl', controller: 'console/controller.php.tpl', permissionMigration: 'database/permissions.sql.tpl', api: 'frontend/api.ts.tpl', view: 'frontend/index.vue.tpl', form: 'frontend/form.vue.tpl', detail: 'frontend/detail.vue.tpl', phpTest: 'tests/php-test.php.tpl', vitestTest: 'tests/vitest-test.ts.tpl' },
@@ -167,6 +170,32 @@ export function createCrudDefinition(connection: string, table: string, fields: 
   };
   syncPermissionActions(definition);
   return definition;
+}
+
+export function applyCrudTarget(definition: CrudDefinition, target: CrudTarget): CrudDefinition {
+  if (target.type === 'core') {
+    const coreDefaults = createCrudDefinition(definition.connection, definition.table, definition.fields);
+    const { generationTargets: _generationTargets, target: _target, ...baseDefinition } = definition;
+    return {
+      ...baseDefinition,
+      module: coreDefaults.module,
+      apiPrefix: coreDefaults.apiPrefix,
+      routePath: coreDefaults.routePath,
+      permissionPrefix: coreDefaults.permissionPrefix,
+      target: { type: 'core' },
+      generationTargets: coreDefaults.generationTargets
+    };
+  }
+  const entity = definition.entity;
+  const { generationTargets: _generationTargets, ...baseDefinition } = definition;
+  return {
+    ...baseDefinition,
+    module: target.plugin,
+    apiPrefix: `/console/plugin/${target.plugin}/${entity}`,
+    routePath: `/plugin/${target.plugin}/${entity}`,
+    permissionPrefix: `${target.plugin}:${entity}`,
+    target
+  };
 }
 
 export function createCrudWorkbench() {

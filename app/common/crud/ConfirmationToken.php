@@ -37,11 +37,13 @@ final class ConfirmationToken
     {
         $source = [
             'definitionHash' => (string) ($plan['definitionHash'] ?? ''),
+            'preconditions' => $plan['preconditions'] ?? [],
             'files' => array_map(static fn (array $file): array => [
                 'path' => (string) ($file['path'] ?? ''),
                 'status' => (string) ($file['status'] ?? ''),
                 'hash' => (string) ($file['hash'] ?? ''),
                 'previousHash' => $file['previousHash'] ?? null,
+                'operation' => $file['operation'] ?? null,
             ], $plan['files'] ?? []),
         ];
         return hash('sha256', CrudDefinition::canonicalJson($source));

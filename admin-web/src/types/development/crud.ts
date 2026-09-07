@@ -1,7 +1,10 @@
 export interface CrudConnection { name: string }
 export interface CrudTable { name: string; comment: string }
 export interface CrudOption { label: string; value: string | number }
-export type CrudSearchOperator = 'like' | 'eq' | 'in' | 'range' | 'gte' | 'lte';
+export type CrudSearchOperator =
+  | 'like' | 'eq' | 'ne' | 'not_like' | 'starts_with' | 'ends_with'
+  | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'not_in' | 'range' | 'date' | 'is_null' | 'not_null';
+export type CrudListFormatter = '' | 'tag' | 'image' | 'images' | 'date' | 'datetime' | 'time' | 'money' | 'number' | 'percent' | 'switch' | 'boolean' | 'link' | 'email' | 'phone' | 'json';
 export interface CrudField {
   name: string;
   label?: string;
@@ -37,6 +40,10 @@ export interface CrudField {
   dictionary?: boolean;
   upload?: boolean;
   indexMissing?: boolean;
+  listFormatter?: CrudListFormatter;
+  listWidth?: number;
+  placeholder?: string;
+  controlProps?: Record<string, unknown>;
 }
 export interface CrudCapabilities {
   list: boolean; search: boolean; form: boolean; detail: boolean;
@@ -55,16 +62,24 @@ export interface CrudArtifactMap {
   permissionMigration: string; api: string; view: string; form: string; detail: string;
   phpTest: string; vitestTest: string;
 }
-export interface CrudDefinition {
+export type CrudTarget =
+  | { type: 'core' }
+  | { type: 'plugin'; plugin: string; scope: 'application' | 'console' | 'both' };
+interface CrudDefinitionBase {
   schemaVersion: '1.0'; connection: string; module: string; entity: string; table: string;
   title: string; description?: string; apiPrefix: string; routePath: string; primaryKey: string;
-  timestamps: boolean; softDeletes: boolean; generationTargets: CrudArtifactMap;
+  timestamps: boolean; softDeletes: boolean;
   permissionPrefix: string; fields: CrudField[]; relations: CrudRelation[];
   optionsSource: CrudOptionsSource[]; templates: CrudArtifactMap;
   capabilities: CrudCapabilities; features: CrudFeatures;
   dataScope: { enabled: boolean; field: string; resolver?: 'adminDepartmentIds' };
   menu: CrudMenuConfig; permission: CrudPermissionConfig;
+  layoutSchema?: Array<Record<string, unknown>>;
 }
+export type CrudDefinition = CrudDefinitionBase & (
+  | { target: { type: 'core' }; generationTargets: CrudArtifactMap }
+  | { target: { type: 'plugin'; plugin: string; scope: 'application' | 'console' | 'both' }; generationTargets?: never }
+);
 export type CrudPlanStatus = 'create' | 'unchanged' | 'conflict' | 'blocked';
 export interface CrudPlanFile {
   path: string;

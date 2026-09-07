@@ -10,6 +10,7 @@ use app\common\crud\CrudGenerator;
 use app\common\crud\CrudResourceInstaller;
 use app\common\crud\DefinitionValidator;
 use app\common\crud\FieldInference;
+use app\common\crud\PluginCrudDefinitionFactory;
 use app\common\crud\SchemaInspector;
 use Closure;
 use InvalidArgumentException;
@@ -118,6 +119,20 @@ final class DevCrudService
     {
         $schema = $this->inspect($connection, $table);
         return ['schema' => $schema, 'fields' => (new FieldInference())->infer($schema)];
+    }
+
+    public function inferPlugin(string $connection, string $table, string $plugin, string $entity, string $scope): array
+    {
+        $inspection = $this->infer($connection, $table);
+        $definition = (new PluginCrudDefinitionFactory($this->projectRoot))->fromInspection(
+            $plugin,
+            $entity,
+            $table,
+            $scope,
+            $inspection,
+            $connection
+        );
+        return $inspection + ['definition' => $definition->toArray()];
     }
 
     public function validate(array $definition): array

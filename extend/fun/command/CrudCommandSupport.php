@@ -41,9 +41,43 @@ trait CrudCommandSupport
         }
         $token = is_string($token) ? trim($token) : '';
         if ($token === '') {
-            throw new RuntimeException('crud:generate 只能从 stdin 或 0600 文件读取确认 token');
+            throw new RuntimeException('确认 token 只能从 stdin 或权限 0600 的普通文件读取');
         }
         return $token;
+    }
+
+    private function writeToken(string $tokenFile, string $token): void
+    {
+        $tokenFile = trim($tokenFile);
+        if ($tokenFile === '') {
+            throw new RuntimeException('必须通过 --token-output 指定确认 token 输出文件');
+        }
+        if (file_exists($tokenFile) || is_link($tokenFile)) {
+            throw new RuntimeException('确认 token 输出文件已存在');
+        }
+        $directory = dirname($tokenFile);
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            throw new RuntimeException('无法创建确认 token 输出目录');
+        }
+        $oldMask = umask(0077);
+        try {
+            $handle = @fopen($tokenFile, 'x');
+        } finally {
+            umask($oldMask);
+        }
+        if ($handle === false) {
+            throw new RuntimeException('无法创建确认 token 输出文件');
+        }
+        try {
+            if (!chmod($tokenFile, 0600) || fwrite($handle, $token . "\n") === false || !fflush($handle)) {
+                throw new RuntimeException('无法安全写入确认 token 输出文件');
+            }
+        } catch (\Throwable $exception) {
+            @unlink($tokenFile);
+            throw $exception;
+        } finally {
+            fclose($handle);
+        }
     }
 
     private function json(array $data): string

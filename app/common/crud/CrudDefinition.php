@@ -35,15 +35,25 @@ final class CrudDefinition implements JsonSerializable
         $data['routePath'] ??= (string) $data['apiPrefix'];
         $data['primaryKey'] ??= (string) (($primary[0]['name'] ?? ''));
         $data['timestamps'] ??= in_array('created_at', $fieldNames, true) && in_array('updated_at', $fieldNames, true);
-        $data['softDeletes'] ??= true;
-        $data['generationTargets'] ??= is_array($data['paths'] ?? null) ? $data['paths'] : [];
+        $legacyFeatures = is_array($data['features'] ?? null) ? $data['features'] : [];
+        $data['softDeletes'] ??= array_key_exists('softDelete', $legacyFeatures) ? (bool) $legacyFeatures['softDelete'] : true;
+        unset($legacyFeatures['softDelete']);
+        if (isset($data['features'])) {
+            $data['features'] = $legacyFeatures;
+        }
+        $data['target'] = is_array($data['target'] ?? null) ? $data['target'] : ['type' => 'core'];
+        $isPlugin = ($data['target']['type'] ?? 'core') === 'plugin';
+        if (!$isPlugin) {
+            $data['generationTargets'] ??= is_array($data['paths'] ?? null) ? $data['paths'] : [];
+        }
+        $data['layoutSchema'] = is_array($data['layoutSchema'] ?? null) ? $data['layoutSchema'] : [];
         $entity = (string) $data['entity'];
         $class = self::studly($entity);
-        if (is_array($data['generationTargets'])) {
+        if (!$isPlugin && is_array($data['generationTargets'])) {
             $data['generationTargets']['phpTest'] ??= "tests/generated/{$class}GeneratedTest.php";
             $data['generationTargets']['vitestTest'] ??= "admin-web/tests/generated/{$entity}.spec.ts";
         }
-        if (is_array($data['templates'] ?? null)) {
+        if (!$isPlugin && is_array($data['templates'] ?? null)) {
             $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
             $data['templates']['vitestTest'] ??= 'tests/vitest-test.ts.tpl';
         }

@@ -16,6 +16,47 @@ final class RuntimeLoader
     /** 已挂载的插件 vendor autoload，防同一请求内重复注册 */
     private static array $loadedAutoloads = [];
 
+    /** 已挂载的原生应用 namespace，防同一请求内重复注册。 */
+    private static array $loadedNativeNamespaces = [];
+
+    /**
+     * 为发布后的 application 与 Console layer 注册精确插件 namespace。
+     */
+    public function loadNativeAutoload(Manifest $manifest): void
+    {
+        $code = $manifest->code();
+        $prefix = 'plugin\\' . $code . '\\';
+        $projectRoot = dirname($manifest->directory(), 2);
+        $key = $prefix . "\0" . $projectRoot;
+        if (isset(self::$loadedNativeNamespaces[$key])) {
+            return;
+        }
+        spl_autoload_register(static function (string $class) use ($code, $prefix, $projectRoot): void {
+            if (!str_starts_with($class, $prefix)) {
+                return;
+            }
+            $suffix = substr($class, strlen($prefix));
+            if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*$/D', $suffix) !== 1) {
+                return;
+            }
+            $segments = explode('\\', $suffix);
+            if ($segments[0] === 'console' && count($segments) >= 3) {
+                $layer = $segments[1];
+                if (!in_array($layer, ['controller', 'model', 'service', 'validate', 'middleware'], true)) {
+                    return;
+                }
+                $relative = implode(DIRECTORY_SEPARATOR, array_slice($segments, 2)) . '.php';
+                $file = $projectRoot . '/app/console/' . $layer . '/plugin/' . $code . '/' . $relative;
+            } else {
+                $file = $projectRoot . '/app/' . $code . '/' . str_replace('\\', DIRECTORY_SEPARATOR, $suffix) . '.php';
+            }
+            if (is_file($file) && !is_link($file)) {
+                require_once $file;
+            }
+        }, true, true);
+        self::$loadedNativeNamespaces[$key] = true;
+    }
+
     /**
      * 挂载插件自带 composer vendor（约定检测 vendor/autoload.php），
      * 必须在 entry 之前调用：入口类的父类/接口可能来自插件 vendor。

@@ -36,7 +36,12 @@ return [
         'console/systempermission:detail' => 'console/systempermission/tree',
         'development/crud/options' => 'development/crud/list',
         'development/crud/validate' => 'devcrud/validate',
+
         'console/devcrud:applyresources' => 'development/crud/apply-resources',
+        'console/form.designer:previewpublish' => 'console/form.designer/previewpublish',
+        'console/form.designer:publish' => 'console/form.designer/publish',
+        'console/form.designer:publishstatus' => 'console/form.designer/publishstatus',
+        'console/form.designer:retryresources' => 'console/form.designer/retryresources',
         'system/role/:id' => 'systemrole/delete',
         'system/dept/:id' => 'systemdepartment/delete',
         'system/user/:id' => 'systemadmin/delete',

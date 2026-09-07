@@ -242,6 +242,11 @@ trait Crud
         return [];
     }
 
+    protected function operatorFilters(): array
+    {
+        return [];
+    }
+
     protected function sortFields(): array
     {
         return [];
@@ -353,6 +358,28 @@ trait Crud
             if ($range[1] !== null) {
                 $query->where($field, '<=', $range[1]);
             }
+        }
+        foreach ($this->operatorFilters() as $parameter => $config) {
+            $operator = (string) ($config['operator'] ?? 'eq');
+            $field = (string) ($config['field'] ?? '');
+            $value = $this->request->get($parameter, null);
+            if (in_array($operator, ['is_null', 'not_null'], true)) {
+                if ((string) $value === '1') $operator === 'is_null' ? $query->whereNull($field) : $query->whereNotNull($field);
+                continue;
+            }
+            if ($value === null || $value === '') continue;
+            if (in_array($operator, ['in', 'not_in'], true)) {
+                $values = array_values(array_filter(array_map('trim', explode(',', (string) $value)), static fn (string $item): bool => $item !== ''));
+                if ($values !== []) $operator === 'in' ? $query->whereIn($field, $values) : $query->whereNotIn($field, $values);
+                continue;
+            }
+            $patterns = ['not_like' => ['not like', '%' . $value . '%'], 'starts_with' => ['like', $value . '%'], 'ends_with' => ['like', '%' . $value]];
+            if (isset($patterns[$operator])) {
+                $query->where($field, $patterns[$operator][0], $patterns[$operator][1]);
+                continue;
+            }
+            $operators = ['ne' => '<>', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
+            $query->where($field, $operators[$operator] ?? '=', $value);
         }
         return $query;
     }

@@ -27,16 +27,22 @@
           </template>
         </el-table-column>
         <el-table-column prop="fields_count" label="字段数" width="80" align="center" />
+        <el-table-column prop="publish_status" label="发布状态" width="110" align="center">
+          <template #default="{ row }"><el-tag :type="publishTagType(row.publish_status)" size="small">{{ publishStatusLabel(row.publish_status) }}</el-tag></template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="published_at" label="最后发布时间" width="170" />
         <el-table-column prop="updated_at" label="更新时间" width="170" />
-        <el-table-column label="操作" width="220" align="center" fixed="right">
+        <el-table-column label="操作" min-width="410" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="goDesigner(row as FormDefinition)">设计</el-button>
-            <el-button link type="success" @click="goData(row as FormDefinition)">数据</el-button>
+            <el-button link type="primary" @click="goDesigner(row as FormDefinition)">{{ row.publish_status === 'published' ? '重新发布' : '设计并发布' }}</el-button>
+            <el-button link @click="goData(row as FormDefinition)">预览运行时</el-button>
+            <el-button v-if="row.publish_status === 'published'" link type="success" @click="goGenerated(row as FormDefinition)">打开独立页面</el-button>
+            <el-button v-if="row.crud_generation_id" link @click="showGeneration(row as FormDefinition)">生成记录</el-button>
             <el-button link type="warning" @click="toggleStatus(row as FormDefinition)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
             <el-button link type="danger" @click="onDelete(row as FormDefinition)">删除</el-button>
           </template>
@@ -46,6 +52,15 @@
         <Pagination v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />
       </template>
     </DataTableShell>
+
+    <el-dialog v-model="generationVisible" title="生成记录" width="760px">
+      <el-descriptions v-if="currentGeneration" :column="1" border>
+        <el-descriptions-item label="表单">{{ currentGeneration.name }}</el-descriptions-item>
+        <el-descriptions-item label="生成记录 ID">{{ currentGeneration.crud_generation_id }}</el-descriptions-item>
+        <el-descriptions-item label="Definition Hash">{{ currentGeneration.published_definition_hash }}</el-descriptions-item>
+        <el-descriptions-item label="发布时间">{{ currentGeneration.published_at }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
 
     <el-dialog v-model="createVisible" title="新建表单" width="520px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
@@ -105,6 +120,8 @@ const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20, keyword: '', status: '' as number | string });
 const tables = ref<Array<{ name: string; comment?: string }>>([]);
 const createVisible = ref(false);
+const generationVisible = ref(false);
+const currentGeneration = ref<FormDefinition | null>(null);
 const createFormRef = ref<FormInstance>();
 const createForm = reactive({ name: '', form_key: '', source_type: 'created' as 'created' | 'adopted', table_name: '', remark: '' });
 const createRules: FormRules = {
@@ -166,6 +183,13 @@ async function onCreate() {
 }
 const goDesigner = (row: FormDefinition) => router.push({ path: '/development/form/designer', query: { id: String(row.id) } });
 const goData = (row: FormDefinition) => router.push({ path: `/form/data/${row.form_key}` });
+const goGenerated = (row: FormDefinition) => router.push(row.publish_config?.routePath || `/generated/${row.form_key.replace(/_/g, '-')}`);
+const showGeneration = (row: FormDefinition) => {
+  currentGeneration.value = row;
+  generationVisible.value = true;
+};
+const publishStatusLabel = (status?: string) => ({ draft: '草稿', publishing: '发布中', published: '已发布', partial: '部分完成', conflict: '有冲突', failed: '失败' }[status || 'draft'] || status);
+const publishTagType = (status?: string) => status === 'published' ? 'success' : status === 'failed' ? 'danger' : status === 'partial' || status === 'conflict' ? 'warning' : 'info';
 async function toggleStatus(row: FormDefinition) {
   await formDesignerApi.status(row.id as number, row.status === 1 ? 0 : 1);
   ElMessage.success('状态已更新');
