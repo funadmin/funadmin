@@ -47,7 +47,7 @@
     "guzzlehttp/guzzle": "^7.15.5",
     "firebase/php-jwt": "^7.1",
     "overtrue/pinyin": "^5.3",
-    "php-mcp/server": "^3.3",
+    "mcp/sdk": "^0.8.1",
     "casbin/casbin": "^4.4",
     "topthink/think-annotation": "^3.0"
   },
@@ -76,8 +76,9 @@
   "config": {
     "preferred-install": "dist",
     "allow-plugins": {
-            "easywechat-composer/easywechat-composer": true
-        }
+      "easywechat-composer/easywechat-composer": true,
+      "php-http/discovery": true
+    }
   },
   "minimum-stability": "dev",
   "prefer-stable": true,

@@ -6,17 +6,16 @@ namespace fun\plugins;
 
 final class ActivationGate
 {
-    public function __construct(private readonly PluginActivationReader $reader)
+    public function __construct(private readonly PluginActivationSnapshot $snapshot)
     {
     }
 
     public function assertEnabled(string $code, string $application): void
     {
-        $snapshot = $this->reader->read();
-        if (!$snapshot->isTrusted()) {
+        if (!$this->snapshot->isTrusted()) {
             throw new ActivationUnavailableException('插件激活状态不可用');
         }
-        $plugins = $snapshot->plugins();
+        $plugins = $this->snapshot->plugins();
         $plugin = $plugins[$code] ?? null;
         if (!is_array($plugin) || !$this->enabled($plugin, $application, $plugins)) {
             throw new PluginNotActiveException('插件不可用');

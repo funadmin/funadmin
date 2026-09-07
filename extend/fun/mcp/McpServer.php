@@ -34,9 +34,7 @@ class McpServer extends Command
         $this->setName('mcp')
             ->setDescription('启动MCP(Model Context Protocol)服务器')
             ->addArgument('action', Argument::OPTIONAL, '执行的操作 (start|info)', 'start')
-            ->addOption('host', 'H', Option::VALUE_OPTIONAL, 'HTTP/SSE服务器监听地址', '127.0.0.1')
-            ->addOption('port', 'p', Option::VALUE_OPTIONAL, 'HTTP/SSE服务器监听端口', '8080')
-            ->addOption('transport', 't', Option::VALUE_OPTIONAL, '传输协议 (stdio|http|sse)', 'sse')
+            ->addOption('transport', 't', Option::VALUE_OPTIONAL, '传输协议 (stdio)', 'stdio')
             ->setHelp('此命令用于启动和管理MCP服务器');
     }
 
@@ -76,54 +74,17 @@ class McpServer extends Command
             $mcpService = app(McpService::class);
 
 
-            $output->info('正在启动FunAdmin MCP服务器...');
-            $output->info('服务器信息:');
-            
-            $serviceInfo = $mcpService->getServiceInfo();
-            $output->info("  名称: {$serviceInfo['name']}");
-            $output->info("  版本: {$serviceInfo['version']}");
-            $output->info("  工具数量: {$serviceInfo['tools']}");
-            $output->info("  资源数量: {$serviceInfo['resources']}");
-            $output->info("  传输协议: {$transport}");
-            if ($transport === 'sse') {
-                $host = $input->getOption('host');
-                $port = $input->getOption('port');
-                
-                $output->info('使用SSE传输协议启动服务器...');
-                $output->info("监听地址: http://{$host}:{$port}/mcp");
-                $output->info('服务器已准备就绪，等待客户端连接...');
-                
-                // 启动SSE服务器（使用StreamableHttpServerTransport）
-                $mcpService->startWithSse($host, $port, 'mcp');
-                
-            } elseif ($transport === 'stdio') {
-                if (PHP_OS_FAMILY === 'Windows') {
-                    $output->error('在Windows系统上，STDIO传输不支持非阻塞管道');
-                    $output->info('建议使用SSE传输: php think mcp start --transport=sse');
-                    return 1;
-                }
-                $output->info('使用STDIO传输协议启动服务器...');
-                $output->info('服务器已准备就绪，等待客户端连接...');
-                // 启动STDIO服务器
-                $mcpService->startWithStdio();
-                
-            } elseif ($transport === 'http') {
-                $host = $input->getOption('host');
-                $port = $input->getOption('port');
-                
-                $output->info("使用HTTP传输协议启动服务器...");
-                $output->info("监听地址: http://{$host}:{$port}/mcp");
-                $output->info('服务器已准备就绪，等待客户端连接...');
-                
-                // 启动HTTP服务器（使用HttpServerTransport）
-                $mcpService->startWithHttp($host, $port, 'mcp');
-                
-            } else {
+            if ($transport !== 'stdio') {
                 $output->error("不支持的传输协议: {$transport}");
+                $output->info('官方 SDK 的 HTTP transport 需要由 PSR-7 Web 入口逐请求接入，不能在 CLI 内直接监听端口');
+                return 1;
+            }
+            if (PHP_OS_FAMILY === 'Windows') {
+                $output->error('在Windows系统上，STDIO传输不支持非阻塞管道');
                 return 1;
             }
 
-            return 0;
+            return $mcpService->startWithStdio();
 
         } catch (\Exception $e) {
             $output->error('启动MCP服务器失败: ' . $e->getMessage());
@@ -154,12 +115,14 @@ class McpServer extends Command
             $output->info('');
             $output->info('=== 可用工具 ===');
             $tools = [
-                'db_query' => '执行数据库查询操作（仅支持SELECT语句）',
-                'get_config' => '获取系统配置信息',
-                'write_log' => '写入系统日志',
-                'file_operation' => '文件读写操作',
-                'user_management' => '用户管理相关操作',
-                'system_info' => '获取系统运行信息'
+                'db-query' => '执行数据库查询操作（仅支持SELECT语句）',
+                'sys-config' => '获取系统配置信息',
+                'write-log' => '写入系统日志',
+                'file-operation' => '文件读写操作',
+                'user-management' => '用户管理相关操作',
+                'system-info' => '获取系统运行信息',
+                'crud' => '生成后台 API 与 Vue CRUD 页面只读预览',
+                'think-command' => '执行安全白名单内的 ThinkPHP 命令',
             ];
             
             foreach ($tools as $name => $description) {
@@ -171,7 +134,6 @@ class McpServer extends Command
             $resources = [
                 'config://system' => '系统配置信息',
                 'schema://database' => '数据库表结构信息',
-                'docs://api' => 'API接口文档'
             ];
             
             foreach ($resources as $uri => $description) {
@@ -181,7 +143,6 @@ class McpServer extends Command
             $output->info('');
             $output->info('=== 使用说明 ===');
             $output->info('启动STDIO服务器: php think mcp start --transport=stdio');
-            $output->info('启动HTTP服务器: php think mcp start --transport=http');
             $output->info('查看服务器信息: php think mcp info');
 
             return 0;

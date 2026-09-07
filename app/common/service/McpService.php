@@ -15,9 +15,9 @@ namespace app\common\service;
 
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
-use PhpMcp\Server\Server;
-use PhpMcp\Server\Transports\StdioServerTransport;
-use PhpMcp\Server\Defaults\BasicContainer;
+use Mcp\Server;
+use Mcp\Server\Transport\StdioTransport;
+use Mcp\Server\Transport\TransportInterface;
 use InvalidArgumentException;
 use think\facade\Db;
 use think\facade\Log;
@@ -47,59 +47,6 @@ class McpService extends AbstractService
      */
     protected LoggerInterface $logger;
 
-    /**
-     * 超时配置（毫秒）
-     * @var int
-     */
-    protected int $timeout = 600000;
-
-    /**
-     * 连接超时配置（毫秒）
-     * @var int
-     */
-    protected int $connectTimeout = 30000;
-
-    /**
-     * 读取超时配置（毫秒）
-     * @var int
-     */
-    protected int $readTimeout = 30000;
-
-    /**
-     * 重试次数
-     * @var int
-     */
-    protected int $retryAttempts = 3;
-
-    /**
-     * 重试延迟（毫秒）
-     * @var int
-     */
-    protected int $retryDelay = 1000;
-
-    /**
-     * 调试模式
-     * @var bool
-     */
-    protected bool $debug = false;
-
-    /**
-     * 缓冲区大小
-     * @var int
-     */
-    protected int $bufferSize = 8192;
-
-    /**
-     * 心跳机制启用
-     * @var bool
-     */
-    protected bool $heartbeatEnabled = false;
-
-    /**
-     * 心跳间隔（秒）
-     * @var int
-     */
-    protected int $heartbeatInterval = 30;
 
     /**
      * 初始化MCP服务
@@ -107,228 +54,34 @@ class McpService extends AbstractService
     protected function initialize()
     {
         parent::initialize();
-        $this->logger = new NullLogger(); // 默认使用空日志记录器
-        
-        // 读取MCP配置文件
-        $this->loadMcpConfig();
-        
+        $this->logger = new NullLogger();
         return $this;
-    }
-
-    /**
-     * 加载MCP配置
-     */
-    protected function loadMcpConfig()
-    {
-        try {
-            // 对于长时间运行的服务器，设置为无限制
-            ini_set('max_execution_time', 0);
-            set_time_limit(0);
-            
-            // 忽略用户中断，保持服务器运行
-            ignore_user_abort(true);
-        
-            $mcpConfig = config('mcp', []);
-            
-            // 设置超时配置
-            if (isset($mcpConfig['timeout']) && $mcpConfig['timeout'] > 0) {
-                $this->timeout = (int) $mcpConfig['timeout'];
-            }
-            
-            if (isset($mcpConfig['connect_timeout']) && $mcpConfig['connect_timeout'] > 0) {
-                $this->connectTimeout = (int) $mcpConfig['connect_timeout'];
-            }
-            
-            if (isset($mcpConfig['read_timeout']) && $mcpConfig['read_timeout'] > 0) {
-                $this->readTimeout = (int) $mcpConfig['read_timeout'];
-            }
-            
-            // 设置重试配置
-            if (isset($mcpConfig['retry_attempts']) && $mcpConfig['retry_attempts'] > 0) {
-                $this->retryAttempts = (int) $mcpConfig['retry_attempts'];
-            }
-            
-            if (isset($mcpConfig['retry_delay']) && $mcpConfig['retry_delay'] > 0) {
-                $this->retryDelay = (int) $mcpConfig['retry_delay'];
-            }
-            
-            // 设置调试模式
-            if (isset($mcpConfig['debug'])) {
-                $this->debug = (bool) $mcpConfig['debug'];
-            }
-            
-            // 设置内存限制
-            if (isset($mcpConfig['memory_limit'])) {
-                ini_set('memory_limit', $mcpConfig['memory_limit']);
-            }
-            
-            // 设置缓冲区大小
-            if (isset($mcpConfig['buffer_size'])) {
-                $this->bufferSize = (int) $mcpConfig['buffer_size'];
-            }
-            
-            // 设置心跳配置
-            if (isset($mcpConfig['heartbeat_enabled'])) {
-                $this->heartbeatEnabled = (bool) $mcpConfig['heartbeat_enabled'];
-            }
-            
-            if (isset($mcpConfig['heartbeat_interval'])) {
-                $this->heartbeatInterval = (int) $mcpConfig['heartbeat_interval'];
-            }
-            
-            Log::info('MCP配置加载成功', [
-                'timeout' => $this->timeout,
-                'connect_timeout' => $this->connectTimeout,
-                'read_timeout' => $this->readTimeout,
-                'retry_attempts' => $this->retryAttempts,
-                'retry_delay' => $this->retryDelay,
-                'heartbeat_enabled' => $this->heartbeatEnabled,
-                'heartbeat_interval' => $this->heartbeatInterval
-            ]);
-            
-        } catch (Exception $e) {
-            Log::warning('MCP配置加载失败，使用默认配置: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * 启动心跳机制
-     */
-    protected function startHeartbeat()
-    {
-        if (!$this->heartbeatEnabled) {
-            return;
-        }
-        
-        // 在后台启动心跳线程
-        if (function_exists('pcntl_fork')) {
-            $pid = pcntl_fork();
-            if ($pid == 0) {
-                // 子进程执行心跳
-                $this->heartbeatLoop();
-                exit(0);
-            }
-        } else {
-            // Windows系统使用定时器
-            $this->scheduleHeartbeat();
-        }
-    }
-
-    /**
-     * 心跳循环
-     */
-    protected function heartbeatLoop()
-    {
-        while (true) {
-            try {
-                // 发送心跳信号
-                $this->sendHeartbeat();
-                
-                // 等待下次心跳
-                sleep($this->heartbeatInterval);
-                
-            } catch (Exception $e) {
-                Log::error('心跳发送失败: ' . $e->getMessage());
-                sleep(5); // 失败后等待5秒再重试
-            }
-        }
-    }
-
-    /**
-     * 发送心跳信号
-     */
-    protected function sendHeartbeat()
-    {
-        // 记录心跳日志
-        if ($this->debug) {
-            Log::debug('发送心跳信号', [
-                'timestamp' => time(),
-                'memory_usage' => memory_get_usage(true)
-            ]);
-        }
-        
-        // 这里可以添加实际的心跳逻辑
-        // 比如向客户端发送ping消息
-    }
-
-    /**
-     * 调度心跳（Windows系统）
-     */
-    protected function scheduleHeartbeat()
-    {
-        // Windows系统下的心跳调度
-        if (function_exists('register_tick_function')) {
-            register_tick_function([$this, 'sendHeartbeat']);
-            declare(ticks=1);
-        }
-    }
-
-    /**
-     * 带重试机制的操作执行
-     */
-    protected function executeWithRetry(callable $operation, string $operationName = 'operation')
-    {
-        $attempts = 0;
-        $lastException = null;
-        
-        while ($attempts < $this->retryAttempts) {
-            try {
-                $attempts++;
-                Log::info("执行{$operationName}，第{$attempts}次尝试");
-                
-                $result = $operation();
-                
-                if ($attempts > 1) {
-                    Log::info("{$operationName}在第{$attempts}次尝试后成功");
-                }
-                
-                return $result;
-                
-            } catch (Exception $e) {
-                $lastException = $e;
-                Log::warning("{$operationName}第{$attempts}次尝试失败: " . $e->getMessage());
-                
-                if ($attempts < $this->retryAttempts) {
-                    $delay = $this->retryDelay * pow(1.5, $attempts - 1); // 指数退避
-                    Log::info("等待{$delay}ms后重试");
-                    usleep($delay * 1000);
-                }
-            }
-        }
-        
-        Log::error("{$operationName}在{$this->retryAttempts}次尝试后仍然失败");
-        throw $lastException;
     }
 
     /**
      * 构建MCP服务器
      */
-    protected function buildServer()
+    protected function buildServer(): Server
     {
         if ($this->server !== null) {
             return $this->server;
         }
 
-        // 创建容器并注册服务实例
-        $container = new BasicContainer();
-        $container->set(LoggerInterface::class, $this->logger);
-        $container->set(self::class, $this);
-
-        $this->server = Server::make()
-            ->withServerInfo(self::NAME, self::VERSION)
-            ->withLogger($this->logger)
-            ->withContainer($container)
-            ->withTool([self::class, 'handleDbQuery'], 'db-query', '执行数据库查询操作（仅支持SELECT语句）')
-            ->withTool([self::class, 'handleSysConfig'], 'sys-config', '获取系统配置信息')
-            ->withTool([self::class, 'handleWriteLog'], 'write-log', '写入系统日志')
-            ->withTool([self::class, 'handleFileOperation'], 'file-operation', '文件读写操作')
-            ->withTool([self::class, 'handleUserManagement'], 'user-management', '用户管理相关操作')
-            ->withTool([self::class, 'handleSystemInfo'], 'system-info', '获取系统运行信息')
-            ->withTool([self::class, 'handleCrud'], 'crud', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面只读预览')
-            ->withTool([self::class, 'handleThinkCommand'], 'think-command', '执行ThinkPHP内置命令')
-            ->withResource([self::class, 'handleConfigResource'], 'config://system', 'config-system', '系统配置信息资源', 'application/json')
-            ->withResource([self::class, 'handleSchemaResource'], 'schema://database', 'schema-database', '数据库表结构信息资源', 'application/json')
+        $this->server = Server::builder()
+            ->setServerInfo(self::NAME, self::VERSION)
+            ->setLogger($this->logger)
+            ->addTool([$this, 'handleDbQuery'], 'db-query', description: '执行数据库查询操作（仅支持SELECT语句）')
+            ->addTool([$this, 'handleSysConfig'], 'sys-config', description: '获取系统配置信息')
+            ->addTool([$this, 'handleWriteLog'], 'write-log', description: '写入系统日志')
+            ->addTool([$this, 'handleFileOperation'], 'file-operation', description: '文件读写操作')
+            ->addTool([$this, 'handleUserManagement'], 'user-management', description: '用户管理相关操作')
+            ->addTool([$this, 'handleSystemInfo'], 'system-info', description: '获取系统运行信息')
+            ->addTool([$this, 'handleCrud'], 'crud', description: '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面只读预览')
+            ->addTool([$this, 'handleThinkCommand'], 'think-command', description: '执行ThinkPHP内置命令')
+            ->addResource([$this, 'handleConfigResource'], 'config://system', 'config-system', description: '系统配置信息资源', mimeType: 'application/json')
+            ->addResource([$this, 'handleSchemaResource'], 'schema://database', 'schema-database', description: '数据库表结构信息资源', mimeType: 'application/json')
             ->build();
+
         return $this->server;
     }
 
@@ -709,101 +462,24 @@ class McpService extends AbstractService
     }
 
     /**
-     * 获取当前配置信息
-     * @return array
-     */
-    public function getConfig()
-    {
-        return [
-            'timeout' => $this->timeout,
-            'connect_timeout' => $this->connectTimeout,
-            'read_timeout' => $this->readTimeout,
-            'retry_attempts' => $this->retryAttempts,
-            'retry_delay' => $this->retryDelay,
-            'debug' => $this->debug
-        ];
-    }
-
-    /**
      * 启动MCP服务器（STDIO传输）
      */
-    public function startWithStdio()
+    public function startWithStdio(): int
     {
-        try {
-            // 启动心跳机制
-            $this->startHeartbeat();
-            
-            $server = $this->buildServer();
-            $transport = new StdioServerTransport();
-            
-            Log::info('MCP STDIO服务器启动成功');
-            $server->listen($transport);
-
-        } catch (Exception $e) {
-            Log::error('MCP STDIO服务器启动失败: ' . $e->getMessage());
-            throw $e;
-        }
+        return $this->startWithTransport(new StdioTransport(logger: $this->logger));
     }
 
     /**
      * 使用指定传输启动MCP服务器
      */
-    public function startWithTransport($transport)
+    public function startWithTransport(TransportInterface $transport): mixed
     {
         try {
-            // 启动心跳机制
-            $this->startHeartbeat();
-            
-            $server = $this->buildServer();
-            $server->listen($transport);
-            
             Log::info('MCP服务器启动成功');
-
-        } catch (Exception $e) {
-            Log::error('MCP服务器启动失败: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * 使用SSE传输启动MCP服务器
-     */
-    public function startWithSse(string $host = '127.0.0.1', int $port = 8080, string $mcpPath = 'mcp')
-    {
-        try {
-            // 启动心跳机制
-            $this->startHeartbeat();
-            
-            $server = $this->buildServer();
-            $transport = new \PhpMcp\Server\Transports\StreamableHttpServerTransport($host, $port, $mcpPath);
-            
-            Log::info("MCP SSE服务器启动成功，监听地址: http://{$host}:{$port}/{$mcpPath}");
-            $server->listen($transport);
-
-        } catch (Exception $e) {
-            Log::error('MCP SSE服务器启动失败: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * 使用HTTP传输启动MCP服务器
-     */
-    public function startWithHttp(string $host = '127.0.0.1', int $port = 8080, string $mcpPath = 'mcp')
-    {
-        try {
-            // 启动心跳机制
-            $this->startHeartbeat();
-            
-            $server = $this->buildServer();
-            $transport = new \PhpMcp\Server\Transports\HttpServerTransport($host, $port, $mcpPath);
-            
-            Log::info("MCP HTTP服务器启动成功，监听地址: http://{$host}:{$port}/{$mcpPath}");
-            $server->listen($transport);
-
-        } catch (Exception $e) {
-            Log::error('MCP HTTP服务器启动失败: ' . $e->getMessage());
-            throw $e;
+            return $this->buildServer()->run($transport);
+        } catch (\Throwable $exception) {
+            Log::error('MCP服务器启动失败: ' . $exception->getMessage());
+            throw $exception;
         }
     }
 
@@ -811,7 +487,7 @@ class McpService extends AbstractService
      * 获取服务器实例
      * @return Server|null
      */
-    public function getServer()
+    public function getServer(): Server
     {
         return $this->buildServer();
     }
@@ -828,8 +504,8 @@ class McpService extends AbstractService
             'tools' => 8,
             'resources' => 2,
             'prompt' => 0,
+            'transport' => 'stdio',
             'status' => 'ready',
-            'config' => $this->getConfig()
         ];
     }
 

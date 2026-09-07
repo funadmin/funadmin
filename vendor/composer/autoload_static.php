@@ -10,7 +10,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         '9b552a3cc426e3287cc811caefa3cf53' => __DIR__ . '/..' . '/topthink/think-helper/src/helper.php',
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '15ec93fa4ce4b2d53816a1a5f2c514e2' => __DIR__ . '/..' . '/topthink/think-validate/src/helper.php',
-        'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '7448f3465e10b5f033e4babb31eb0b06' => __DIR__ . '/..' . '/topthink/think-orm/src/helper.php',
         '35fab96057f1bf5e7aba31a8a6d5fdde' => __DIR__ . '/..' . '/topthink/think-orm/stubs/load_stubs.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
@@ -18,6 +17,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '2203a247e6fda86070a5e4e07aed533a' => __DIR__ . '/..' . '/symfony/clock/Resources/now.php',
+        '09f6b20656683369174dd6fa83b7e5fb' => __DIR__ . '/..' . '/symfony/polyfill-uuid/bootstrap.php',
         'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
@@ -57,6 +57,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         ),
         'S' => 
         array (
+            'Symfony\\Polyfill\\Uuid\\' => 22,
             'Symfony\\Polyfill\\Php83\\' => 23,
             'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Polyfill\\Mbstring\\' => 26,
@@ -65,22 +66,15 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
             'Symfony\\Contracts\\Cache\\' => 24,
             'Symfony\\Component\\VarExporter\\' => 30,
             'Symfony\\Component\\VarDumper\\' => 28,
+            'Symfony\\Component\\Uid\\' => 22,
             'Symfony\\Component\\Translation\\' => 30,
             'Symfony\\Component\\Process\\' => 26,
-            'Symfony\\Component\\Finder\\' => 25,
             'Symfony\\Component\\ExpressionLanguage\\' => 37,
             'Symfony\\Component\\Clock\\' => 24,
             'Symfony\\Component\\Cache\\' => 24,
         ),
         'R' => 
         array (
-            'React\\Stream\\' => 13,
-            'React\\Socket\\' => 13,
-            'React\\Promise\\' => 14,
-            'React\\Http\\' => 11,
-            'React\\EventLoop\\' => 16,
-            'React\\Dns\\' => 10,
-            'React\\Cache\\' => 12,
             'Ramsey\\Uuid\\' => 12,
             'Ramsey\\Collection\\' => 18,
         ),
@@ -88,14 +82,14 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             'Psr\\SimpleCache\\' => 16,
             'Psr\\Log\\' => 8,
+            'Psr\\Http\\Server\\' => 16,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
+            'Psr\\EventDispatcher\\' => 20,
             'Psr\\Container\\' => 14,
             'Psr\\Clock\\' => 10,
             'Psr\\Cache\\' => 10,
             'PhpOffice\\PhpSpreadsheet\\' => 25,
-            'PhpMcp\\Server\\' => 14,
-            'PhpMcp\\Schema\\' => 14,
             'PHPStan\\PhpDocParser\\' => 21,
         ),
         'O' => 
@@ -107,6 +101,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         ),
         'M' => 
         array (
+            'Mcp\\' => 4,
             'Matrix\\' => 7,
         ),
         'L' => 
@@ -114,6 +109,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
             'League\\MimeTypeDetection\\' => 25,
             'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
+        ),
+        'H' => 
+        array (
+            'Http\\Discovery\\' => 15,
         ),
         'G' => 
         array (
@@ -124,11 +123,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'F' => 
         array (
             'Firebase\\JWT\\' => 13,
-            'Fig\\Http\\Message\\' => 17,
-        ),
-        'E' => 
-        array (
-            'Evenement\\' => 10,
         ),
         'D' => 
         array (
@@ -209,6 +203,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/webmozart/assert/src',
         ),
+        'Symfony\\Polyfill\\Uuid\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-uuid',
+        ),
         'Symfony\\Polyfill\\Php83\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php83',
@@ -241,6 +239,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/symfony/var-dumper',
         ),
+        'Symfony\\Component\\Uid\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/uid',
+        ),
         'Symfony\\Component\\Translation\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/translation',
@@ -248,10 +250,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Symfony\\Component\\Process\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/process',
-        ),
-        'Symfony\\Component\\Finder\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/finder',
         ),
         'Symfony\\Component\\ExpressionLanguage\\' => 
         array (
@@ -264,34 +262,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Symfony\\Component\\Cache\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/cache',
-        ),
-        'React\\Stream\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/stream/src',
-        ),
-        'React\\Socket\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/socket/src',
-        ),
-        'React\\Promise\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/promise/src',
-        ),
-        'React\\Http\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/http/src',
-        ),
-        'React\\EventLoop\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/event-loop/src',
-        ),
-        'React\\Dns\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/dns/src',
-        ),
-        'React\\Cache\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/cache/src',
         ),
         'Ramsey\\Uuid\\' => 
         array (
@@ -309,6 +279,11 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
         ),
+        'Psr\\Http\\Server\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-server-middleware/src',
+            1 => __DIR__ . '/..' . '/psr/http-server-handler/src',
+        ),
         'Psr\\Http\\Message\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
@@ -317,6 +292,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Psr\\Http\\Client\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-client/src',
+        ),
+        'Psr\\EventDispatcher\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/event-dispatcher/src',
         ),
         'Psr\\Container\\' => 
         array (
@@ -333,14 +312,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'PhpOffice\\PhpSpreadsheet\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
-        ),
-        'PhpMcp\\Server\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/php-mcp/server/src',
-        ),
-        'PhpMcp\\Schema\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/php-mcp/schema/src',
         ),
         'PHPStan\\PhpDocParser\\' => 
         array (
@@ -362,6 +333,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/opis/json-schema/src',
         ),
+        'Mcp\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/mcp/sdk/src',
+        ),
         'Matrix\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
@@ -378,6 +353,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/league/flysystem/src',
         ),
+        'Http\\Discovery\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-http/discovery/src',
+        ),
         'GuzzleHttp\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
@@ -393,14 +372,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Firebase\\JWT\\' => 
         array (
             0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
-        ),
-        'Fig\\Http\\Message\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/fig/http-message-util/src',
-        ),
-        'Evenement\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/evenement/evenement/src',
         ),
         'Doctrine\\Deprecations\\' => 
         array (

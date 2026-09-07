@@ -1,0 +1,21 @@
+.phpunit.cache
+.php-cs-fixer.cache
+composer.lock
+coverage
+vendor
+examples/**/dev.log
+examples/**/cache
+examples/**/sessions
+tests/Conformance/client-conformance.json
+tests/Conformance/server-conformance.json
+tests/Conformance/results*
+tests/Conformance/sessions
+tests/Conformance/logs/*.log
+
+# phpDocumentor
+.phpdoc/build/
+.phpdoc/cache/
+
+# Documentation site (make docs)
+/site/
+/.cache/

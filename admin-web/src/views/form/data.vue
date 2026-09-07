@@ -4,13 +4,32 @@
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label" :prop="field.field_name">
-            <template v-if="field.list_filter === 'range' || field.list_filter === 'date'">
+            <template v-if="field.list_filter === 'range'">
               <div class="flex gap-1">
-                <el-input v-model="filters[field.field_name + '_from']" placeholder="起" class="w-[110px]" />
-                <el-input v-model="filters[field.field_name + '_to']" placeholder="止" class="w-[110px]" />
+                <el-input v-model="filters[field.field_name + '_from']" placeholder="最小值" class="w-[110px]" />
+                <el-input v-model="filters[field.field_name + '_to']" placeholder="最大值" class="w-[110px]" />
               </div>
             </template>
-            <el-input v-else v-model="filters[field.field_name]" :placeholder="field.label" clearable class="w-[160px]" />
+            <el-date-picker
+              v-else-if="field.list_filter === 'date'"
+              v-model="dateFilters[field.field_name]"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              @change="syncDateFilter(field.field_name)"
+            />
+            <el-select
+              v-else-if="field.list_filter === 'is_null' || field.list_filter === 'not_null'"
+              v-model="filters[field.field_name]"
+              placeholder="请选择"
+              clearable
+              class="w-[160px]"
+            >
+              <el-option label="启用" value="1" />
+            </el-select>
+            <el-input v-else v-model="filters[field.field_name]" :placeholder="filterPlaceholder(field.list_filter)" clearable class="w-[180px]" />
           </el-form-item>
         </SearchForm>
       </template>
@@ -31,11 +50,39 @@
         >
           <template #default="{ row }">
             <template v-if="field.relation_type === 'belongs_to'">{{ row['__label_' + field.field_name] ?? row[field.field_name] }}</template>
-            <el-tag v-else-if="field.list_formatter === 'switch'" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'" size="small">
-              {{ Number(row[field.field_name]) === 1 ? '是' : '否' }}
+            <el-tag v-else-if="field.list_formatter === 'switch' || field.list_formatter === 'boolean'" :type="isTruthy(row[field.field_name]) ? 'success' : 'info'" size="small">
+              {{ isTruthy(row[field.field_name]) ? '是' : '否' }}
             </el-tag>
             <el-tag v-else-if="field.list_formatter === 'tag'" size="small">{{ row[field.field_name] }}</el-tag>
-            <span v-else-if="field.list_formatter === 'money'">￥{{ row[field.field_name] }}</span>
+            <el-image
+              v-else-if="field.list_formatter === 'image' && imageUrls(row[field.field_name]).length"
+              :src="imageUrls(row[field.field_name])[0]"
+              :preview-src-list="imageUrls(row[field.field_name])"
+              preview-teleported
+              fit="cover"
+              class="h-10 w-10 rounded"
+            />
+            <div v-else-if="field.list_formatter === 'images'" class="flex gap-1">
+              <el-image
+                v-for="url in imageUrls(row[field.field_name]).slice(0, 3)"
+                :key="url"
+                :src="url"
+                :preview-src-list="imageUrls(row[field.field_name])"
+                preview-teleported
+                fit="cover"
+                class="h-10 w-10 rounded"
+              />
+            </div>
+            <span v-else-if="field.list_formatter === 'date'">{{ formatDate(row[field.field_name], 'YYYY-MM-DD') }}</span>
+            <span v-else-if="field.list_formatter === 'datetime'">{{ formatDate(row[field.field_name], 'YYYY-MM-DD HH:mm:ss') }}</span>
+            <span v-else-if="field.list_formatter === 'time'">{{ formatDate(row[field.field_name], 'HH:mm:ss') }}</span>
+            <span v-else-if="field.list_formatter === 'money'">{{ formatNumber(row[field.field_name], 2, '￥') }}</span>
+            <span v-else-if="field.list_formatter === 'number'">{{ formatNumber(row[field.field_name]) }}</span>
+            <span v-else-if="field.list_formatter === 'percent'">{{ formatNumber(row[field.field_name], 2, '', '%') }}</span>
+            <el-link v-else-if="field.list_formatter === 'link'" :href="safeUrl(row[field.field_name])" target="_blank" type="primary">{{ row[field.field_name] }}</el-link>
+            <el-link v-else-if="field.list_formatter === 'email'" :href="`mailto:${String(row[field.field_name] ?? '')}`" type="primary">{{ row[field.field_name] }}</el-link>
+            <el-link v-else-if="field.list_formatter === 'phone'" :href="`tel:${String(row[field.field_name] ?? '')}`" type="primary">{{ row[field.field_name] }}</el-link>
+            <code v-else-if="field.list_formatter === 'json'">{{ formatJson(row[field.field_name]) }}</code>
             <span v-else>{{ row[field.field_name] }}</span>
           </template>
         </el-table-column>
@@ -84,6 +131,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import dayjs from 'dayjs';
 import { formDataApi, type FormDataMeta } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaForm from './components/SchemaForm.vue';
@@ -97,6 +145,7 @@ const rows = ref<Record<string, unknown>[]>([]);
 const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20 });
 const filters = reactive<Record<string, string>>({});
+const dateFilters = reactive<Record<string, [string, string] | undefined>>({});
 const sort = reactive({ sort: '', order: '' });
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
@@ -108,6 +157,49 @@ const schemaFormRef = ref<InstanceType<typeof SchemaForm>>();
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1));
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== ''));
+
+const filterPlaceholder = (type: string) => ['in', 'not_in'].includes(type) ? '多个值用英文逗号分隔' : '请输入筛选值';
+const syncDateFilter = (name: string) => {
+  const range = dateFilters[name];
+  filters[name + '_from'] = range?.[0] ?? '';
+  filters[name + '_to'] = range?.[1] ?? '';
+};
+const isTruthy = (value: unknown) => ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+const formatDate = (value: unknown, format: string) => {
+  if (!value) return '-';
+  if (format === 'HH:mm:ss' && /^\d{2}:\d{2}(?::\d{2})?$/.test(String(value))) return String(value);
+  return dayjs(value as string).isValid() ? dayjs(value as string).format(format) : '-';
+};
+const formatNumber = (value: unknown, digits?: number, prefix = '', suffix = '') => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '-';
+  return `${prefix}${number.toLocaleString('zh-CN', digits === undefined ? undefined : { minimumFractionDigits: digits, maximumFractionDigits: digits })}${suffix}`;
+};
+const parseArray = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || value === '') return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+};
+const imageUrls = (value: unknown) => parseArray(value)
+  .map((item) => typeof item === 'string' ? item : String((item as Record<string, unknown>)?.url ?? ''))
+  .filter(Boolean);
+const safeUrl = (value: unknown) => {
+  const url = String(value ?? '').trim();
+  return /^(https?:\/\/|\/)/i.test(url) ? url : '#';
+};
+const formatJson = (value: unknown) => {
+  if (typeof value !== 'string') return JSON.stringify(value);
+  try {
+    return JSON.stringify(JSON.parse(value));
+  } catch {
+    return value;
+  }
+};
 
 async function loadMeta() {
   meta.value = await formDataApi.meta(formKey);
@@ -128,6 +220,7 @@ const onSearch = () => {
 };
 const onReset = () => {
   for (const key of Object.keys(filters)) delete filters[key];
+  for (const key of Object.keys(dateFilters)) delete dateFilters[key];
   onSearch();
 };
 const onSortChange = ({ prop, order }: { prop: string | null; order: 'ascending' | 'descending' | null }) => {
@@ -143,9 +236,19 @@ const emptyValues = () => {
   }
   return values;
 };
+const decodeValue = (field: FormFieldDef, value: unknown) => {
+  if (field.column_type !== 'json' || typeof value !== 'string' || value === '') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
 const openDialog = (row?: Record<string, unknown>) => {
   editingId.value = Number(row?.id ?? 0);
-  Object.assign(dialogValues, emptyValues(), row ?? {});
+  const values = { ...emptyValues(), ...(row ?? {}) };
+  for (const field of formFields.value) values[field.field_name] = decodeValue(field, values[field.field_name]);
+  Object.assign(dialogValues, values);
   dialogVisible.value = true;
 };
 async function onSave() {

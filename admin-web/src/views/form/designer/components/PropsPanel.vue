@@ -1,12 +1,23 @@
 <template>
   <el-tabs v-model="tab" type="border-card">
-    <el-tab-pane label="列" name="column">
+    <el-tab-pane v-if="selectedMeta.kind !== 'layout'" label="列" name="column">
       <el-form label-width="90px" size="small" @change="emitUpdate">
         <el-form-item label="字段名">
           <el-input :model-value="field.field_name" @update:model-value="patch({ field_name: $event })" />
         </el-form-item>
         <el-form-item label="列类型">
-          <el-input :model-value="field.column_type" :disabled="sourceType === 'adopted'" @update:model-value="patch({ column_type: $event })" />
+          <el-select
+            :model-value="field.column_type"
+            :disabled="sourceType === 'adopted'"
+            class="w-full"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入列类型"
+            @update:model-value="patch({ column_type: $event })"
+          >
+            <el-option v-for="item in COLUMN_TYPE_OPTIONS" :key="item" :label="item" :value="item" />
+          </el-select>
         </el-form-item>
         <el-form-item label="可空">
           <el-switch :model-value="field.nullable === 1" :disabled="sourceType === 'adopted'" @update:model-value="patch({ nullable: $event ? 1 : 0 })" />
@@ -53,6 +64,13 @@
     </el-tab-pane>
     <el-tab-pane label="表单" name="form">
       <el-form label-width="90px" size="small">
+        <el-form-item label="控件类型">
+          <el-select :model-value="field.type" class="w-full" filterable @update:model-value="onTypeChange">
+            <el-option-group v-for="group in controlGroups" :key="group.label" :label="group.label">
+              <el-option v-for="control in group.options" :key="control.type" :label="control.label" :value="control.type" />
+            </el-option-group>
+          </el-select>
+        </el-form-item>
         <el-form-item label="显示名称">
           <el-input :model-value="field.label" @update:model-value="patch({ label: $event })" />
         </el-form-item>
@@ -65,18 +83,18 @@
         <el-form-item label="栅格 span">
           <el-input-number :model-value="field.form_span" :min="1" :max="24" class="w-full" @update:model-value="patch({ form_span: $event ?? 24 })" />
         </el-form-item>
-        <el-form-item label="必填">
+        <el-form-item v-if="selectedMeta.kind !== 'layout'" label="必填">
           <el-switch :model-value="field.form_required === 1" @update:model-value="patch({ form_required: $event ? 1 : 0 })" />
         </el-form-item>
         <el-form-item label="显示">
           <el-switch :model-value="field.form_show === 1" @update:model-value="patch({ form_show: $event ? 1 : 0 })" />
         </el-form-item>
-        <el-form-item label="编辑禁改">
+        <el-form-item v-if="selectedMeta.kind !== 'layout'" label="编辑禁改">
           <el-switch :model-value="field.form_readonly === 1" @update:model-value="patch({ form_readonly: $event ? 1 : 0 })" />
         </el-form-item>
       </el-form>
     </el-tab-pane>
-    <el-tab-pane label="列表" name="list">
+    <el-tab-pane v-if="selectedMeta.kind !== 'layout'" label="列表" name="list">
       <el-form label-width="90px" size="small">
         <el-form-item label="显示">
           <el-switch :model-value="field.list_show === 1" @update:model-value="patch({ list_show: $event ? 1 : 0 })" />
@@ -85,13 +103,13 @@
           <el-switch :model-value="field.list_sort === 1" @update:model-value="patch({ list_sort: $event ? 1 : 0 })" />
         </el-form-item>
         <el-form-item label="筛选">
-          <el-select :model-value="field.list_filter" class="w-full" @update:model-value="patch({ list_filter: $event })">
-            <el-option v-for="item in LIST_FILTERS" :key="item" :label="item || '无'" :value="item" />
+          <el-select :model-value="field.list_filter" class="w-full" filterable @update:model-value="patch({ list_filter: $event })">
+            <el-option v-for="item in LIST_FILTERS" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="格式化器">
-          <el-select :model-value="field.list_formatter" class="w-full" @update:model-value="patch({ list_formatter: $event })">
-            <el-option v-for="item in LIST_FORMATTERS" :key="item" :label="item || '无'" :value="item" />
+          <el-select :model-value="field.list_formatter" class="w-full" filterable @update:model-value="patch({ list_formatter: $event })">
+            <el-option v-for="item in LIST_FORMATTERS" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="列宽">
@@ -128,7 +146,7 @@
 import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
-import { LIST_FILTERS, LIST_FORMATTERS } from '../../registry';
+import { COLUMN_TYPE_OPTIONS, CONTROL_REGISTRY, LIST_FILTERS, LIST_FORMATTERS, controlMeta } from '../../registry';
 
 const props = defineProps<{ field: FormFieldDef; sourceType: 'created' | 'adopted' }>();
 const emit = defineEmits<{ (event: 'update', patch: Partial<FormFieldDef>): void }>();
@@ -137,8 +155,28 @@ const tab = ref('column');
 const patch = (value: Partial<FormFieldDef>) => emit('update', value);
 const emitUpdate = () => undefined;
 
+const selectedMeta = computed(() => controlMeta(props.field.type));
+const controlGroups = computed(() => {
+  const labels = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
+  return labels.map((label) => ({ label, options: CONTROL_REGISTRY.filter((control) => control.group === label) }));
+});
 const propsJson = computed(() => JSON.stringify(props.field.control_props ?? {}, null, 2));
 const optionsJson = computed(() => JSON.stringify(props.field.options_source ?? {}, null, 2));
+
+const cloneConfig = (value: Record<string, unknown> | null) =>
+  value === null ? null : JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+const onTypeChange = (type: string) => {
+  const meta = controlMeta(type);
+  if (meta.kind === 'layout') tab.value = 'form';
+  patch({
+    type,
+    column_type: meta.defaultColumnType,
+    options_source: cloneConfig(meta.defaultOptions),
+    control_props: cloneConfig(meta.defaultProps),
+    list_show: meta.kind === 'layout' ? 0 : props.field.list_show,
+    form_required: meta.kind === 'layout' ? 0 : props.field.form_required
+  });
+};
 
 const onPropsJson = (value: string) => {
   try {

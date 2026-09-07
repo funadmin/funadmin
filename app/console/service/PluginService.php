@@ -454,11 +454,7 @@ class PluginService extends AbstractService
             }
             $plugin = $this->plugin($code);
             $operation = $enabled ? 'enable' : 'disable';
-            if (!$enabled) {
-                $this->transition($record, 'disabling');
-                $record->save($this->filterPluginColumns(['operation_token' => $token]));
-                $this->rebuildActivationCache();
-            } else {
+            if ($enabled) {
                 $this->beginOperation($record, $token, 'enabling');
             }
             $this->recordStage($code, $operation, 'hooks');
@@ -470,9 +466,14 @@ class PluginService extends AbstractService
                 $this->registerMenu($code);
                 unset($manifest);
             } else {
-                if ($plugin->disabled() === false) {
-                    throw new RuntimeException('插件禁用钩子执行失败');
-                }
+                $this->runDisableSequence(
+                    function () use ($record, $token): void {
+                        $this->transition($record, 'disabling');
+                        $record->save($this->filterPluginColumns(['operation_token' => $token]));
+                        $this->rebuildActivationCache();
+                    },
+                    static fn (): bool => $plugin->disabled()
+                );
                 $this->infrastructure()->disableMenus($code);
                 $this->infrastructure()->disablePermissions($code);
             }
@@ -482,6 +483,14 @@ class PluginService extends AbstractService
             $this->recordStage($code, $operation, 'complete');
             return true;
         });
+    }
+
+    private function runDisableSequence(callable $publishUnavailable, callable $disabledHook): void
+    {
+        $publishUnavailable();
+        if ($disabledHook() === false) {
+            throw new RuntimeException('插件禁用钩子执行失败');
+        }
     }
 
     private function installedRecord(string $code): Plugin

@@ -26,7 +26,7 @@ use app\console\service\PluginPackageService;
 use app\console\service\PluginService;
 use fun\helper\CtrHelper;
 use fun\Plugins;
-use PhpMcp\Server\Server;
+use Mcp\Server;
 use Psr\Log\LoggerInterface;
 use think\App;
 use think\Request;
@@ -483,9 +483,7 @@ foreach ([
 }
 
 foreach ([
-    ['server', '?' . Server::class], ['logger', LoggerInterface::class], ['timeout', 'int'],
-    ['connectTimeout', 'int'], ['readTimeout', 'int'], ['retryAttempts', 'int'], ['retryDelay', 'int'],
-    ['debug', 'bool'], ['bufferSize', 'int'], ['heartbeatEnabled', 'bool'], ['heartbeatInterval', 'int'],
+    ['server', '?' . Server::class], ['logger', LoggerInterface::class],
 ] as [$property, $type]) {
     modernizationTypedProperty(McpService::class, $property, $type, 'protected', false, false);
 }

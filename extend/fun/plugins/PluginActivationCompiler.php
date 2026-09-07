@@ -35,12 +35,26 @@ final class PluginActivationCompiler
                 'schema_version' => self::SCHEMA_VERSION,
                 'generation' => $generation,
                 'plugins' => $plugins,
+                'ownership' => array_map(
+                    static fn (array $plugin): array => ['applications' => $plugin['applications']],
+                    $plugins
+                ),
             ];
-            $payload['integrity_hash'] = self::integrityHash($payload);
+            $payload['activation_hash'] = self::integrityHash([
+                'schema_version' => self::SCHEMA_VERSION,
+                'generation' => $generation,
+                'plugins' => $payload['plugins'],
+            ]);
+            $payload['ownership_hash'] = self::integrityHash([
+                'schema_version' => self::SCHEMA_VERSION,
+                'generation' => $generation,
+                'ownership' => $payload['ownership'],
+            ]);
             $directory = $this->runtimePath . DIRECTORY_SEPARATOR . 'generations' . DIRECTORY_SEPARATOR . $generation;
             $this->ensureDirectory($directory);
-            $file = $directory . DIRECTORY_SEPARATOR . 'activation.php';
-            $this->writeAtomic($file, "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($payload, true) . ";\n");
+            $file = $directory . DIRECTORY_SEPARATOR . 'snapshot.json';
+            $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $this->writeAtomic($file, $json . "\n");
             $this->writeAtomic($this->runtimePath . DIRECTORY_SEPARATOR . 'active', $generation . "\n");
             return $payload;
         } finally {
@@ -51,7 +65,21 @@ final class PluginActivationCompiler
 
     public static function integrityHash(array $payload): string
     {
-        return hash('sha256', serialize($payload));
+        self::sortForHash($payload);
+        return hash('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
+    }
+
+    private static function sortForHash(array &$value): void
+    {
+        if (!array_is_list($value)) {
+            ksort($value, SORT_STRING);
+        }
+        foreach ($value as &$item) {
+            if (is_array($item)) {
+                self::sortForHash($item);
+            }
+        }
+        unset($item);
     }
 
     private function plugins(array $records, array $manifests): array
@@ -67,10 +95,11 @@ final class PluginActivationCompiler
             $dependencies = array_keys((array) ($manifest['requires']['plugins'] ?? []));
             sort($dependencies, SORT_STRING);
             $base = rtrim($this->pluginsPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'app';
+            $deleted = $this->deleted($record);
             $plugins[$code] = [
                 'code' => $code,
-                'state' => (string) ($record['lifecycle_state'] ?? 'discovered'),
-                'enabled' => (int) ($record['status'] ?? 0) === 1,
+                'state' => $deleted ? 'deleted' : (string) ($record['lifecycle_state'] ?? 'discovered'),
+                'enabled' => !$deleted && (int) ($record['status'] ?? 0) === 1,
                 'needs_reinstall' => (int) ($record['needs_reinstall'] ?? 0) === 1,
                 'operation_token' => $this->token($record['operation_token'] ?? null),
                 'version' => (string) ($record['version'] ?? ''),
@@ -91,6 +120,17 @@ final class PluginActivationCompiler
         return $token === '' ? null : $token;
     }
 
+    private function deleted(array $record): bool
+    {
+        foreach (['delete_time', 'deleted_at'] as $field) {
+            $value = $record[$field] ?? null;
+            if ($value !== null && $value !== '' && $value !== 0 && $value !== '0') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function ensureDirectory(string $directory): void
     {
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
@@ -107,9 +147,6 @@ final class PluginActivationCompiler
         try {
             if (file_put_contents($temporary, $content, LOCK_EX) === false || !rename($temporary, $file)) {
                 throw new RuntimeException('插件激活清单原子写入失败');
-            }
-            if (function_exists('opcache_invalidate')) {
-                @opcache_invalidate($file, true);
             }
         } finally {
             if (is_file($temporary)) {

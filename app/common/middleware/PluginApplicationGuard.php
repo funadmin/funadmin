@@ -28,18 +28,23 @@ final class PluginApplicationGuard
         }
         [$code, $application, $explicit] = $target;
         $reader = $this->reader ?? new PluginActivationReader(runtime_path('plugins/activation'));
-        $snapshot = $reader->read();
+        $bundle = $reader->readBundle();
+        $snapshot = $bundle['activation'];
         if (!$snapshot->isTrusted()) {
             if ($explicit) {
                 throw new HttpException(503, '服务暂不可用');
             }
-            return $next($request);
+            $ownership = $bundle['ownership'];
+            if (!$ownership->isTrusted() || !$ownership->owns($code, $application)) {
+                return $next($request);
+            }
+            throw new HttpException(503, '服务暂不可用');
         }
         if (!$explicit && !isset($snapshot->plugins()[$code])) {
             return $next($request);
         }
         try {
-            (new ActivationGate($reader))->assertEnabled($code, $application);
+            (new ActivationGate($snapshot))->assertEnabled($code, $application);
         } catch (ActivationUnavailableException) {
             throw new HttpException(503, '服务暂不可用');
         } catch (PluginNotActiveException) {

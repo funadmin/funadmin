@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\model\DictItem;
+use app\common\model\DictType;
+use app\console\model\Admin;
+use app\console\model\Department;
 use app\console\model\Form;
 use app\console\model\FormField;
 use InvalidArgumentException;
@@ -18,6 +22,7 @@ final class FormDataService
 {
     private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
     private const EXPORT_LIMIT = 5000;
+    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
 
     /** 表单元数据（启用态）。 */
     public function meta(string $key): array
@@ -34,11 +39,23 @@ final class FormDataService
         foreach ($fields as $field) {
             $filterType = (string) $field->list_filter;
             $name = (string) $field->field_name;
-            if ($filterType === 'eq' && isset($filters[$name]) && $filters[$name] !== '') {
-                $query->where($name, $filters[$name]);
-            } elseif ($filterType === 'like' && isset($filters[$name]) && $filters[$name] !== '') {
-                $query->whereLike($name, '%' . $filters[$name] . '%');
-            } elseif ($filterType === 'range' || $filterType === 'date') {
+            $value = $filters[$name] ?? '';
+            if ($filterType === 'eq' && $value !== '') {
+                $query->where($name, $value);
+            } elseif ($filterType === 'ne' && $value !== '') {
+                $query->where($name, '<>', $value);
+            } elseif ($filterType === 'like' && $value !== '') {
+                $query->whereLike($name, '%' . $value . '%');
+            } elseif ($filterType === 'not_like' && $value !== '') {
+                $query->where($name, 'not like', '%' . $value . '%');
+            } elseif ($filterType === 'starts_with' && $value !== '') {
+                $query->whereLike($name, $value . '%');
+            } elseif ($filterType === 'ends_with' && $value !== '') {
+                $query->whereLike($name, '%' . $value);
+            } elseif (in_array($filterType, ['gt', 'gte', 'lt', 'lte'], true) && $value !== '') {
+                $operators = ['gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
+                $query->where($name, $operators[$filterType], $value);
+            } elseif (in_array($filterType, ['range', 'date'], true)) {
                 $from = (string) ($filters[$name . '_from'] ?? '');
                 $to = (string) ($filters[$name . '_to'] ?? '');
                 if ($from !== '' && $to !== '') {
@@ -48,6 +65,15 @@ final class FormDataService
                 } elseif ($to !== '') {
                     $query->where($name, '<=', $to);
                 }
+            } elseif (in_array($filterType, ['in', 'not_in'], true) && $value !== '') {
+                $values = array_values(array_filter(array_map('trim', explode(',', (string) $value)), static fn (string $item): bool => $item !== ''));
+                if ($values !== []) {
+                    $filterType === 'in' ? $query->whereIn($name, $values) : $query->whereNotIn($name, $values);
+                }
+            } elseif ($filterType === 'is_null' && (string) $value === '1') {
+                $query->whereNull($name);
+            } elseif ($filterType === 'not_null' && (string) $value === '1') {
+                $query->whereNotNull($name);
             }
         }
         $sortable = $this->sortableColumns($fields);
@@ -144,6 +170,29 @@ final class FormDataService
             $options = $source['options'] ?? [];
             return is_array($options) ? array_values($options) : [];
         }
+        if ($mode === 'dictionary') {
+            $code = (string) ($source['dictionary'] ?? '');
+            if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', $code)) {
+                return [];
+            }
+            $type = DictType::where('code', $code)->where('status', 1)->find();
+            if (!$type) {
+                return [];
+            }
+            return DictItem::where('type_id', (int) $type->id)
+                ->where('status', 1)
+                ->order('sort_order', 'asc')
+                ->order('id', 'asc')
+                ->field('value,label')
+                ->select()
+                ->toArray();
+        }
+        if ($mode === 'department') {
+            return Department::where('status', 1)->order('sort_order', 'asc')->field('id as value,name as label,pid')->select()->toArray();
+        }
+        if ($mode === 'user') {
+            return Admin::where('status', 1)->order('id', 'asc')->field('id as value,nickname as label')->limit(500)->select()->toArray();
+        }
         if ($mode === 'relation') {
             $table = (string) ($source['table'] ?? $field->relation_table);
             $label = (string) ($source['label_field'] ?? $field->relation_label_field);
@@ -179,6 +228,9 @@ final class FormDataService
         $rules = [];
         $messages = [];
         foreach ($fieldRows as $field) {
+            if ($this->isLayoutField($field)) {
+                continue;
+            }
             $name = (string) ($field['field_name'] ?? '');
             $label = (string) ($field['label'] ?? $name);
             $parts = [];
@@ -224,6 +276,9 @@ final class FormDataService
     {
         $payload = [];
         foreach ($fieldRows as $field) {
+            if ($this->isLayoutField($field)) {
+                continue;
+            }
             $name = (string) ($field['field_name'] ?? '');
             if ($name === '' || !array_key_exists($name, $data)) {
                 continue;
@@ -234,6 +289,8 @@ final class FormDataService
             $value = $data[$name];
             if ((int) ($field['relation_multiple'] ?? 0) === 1 && is_array($value)) {
                 $value = implode(',', array_map('strval', $value));
+            } elseif (strtolower((string) ($field['column_type'] ?? '')) === 'json' && (is_array($value) || is_object($value))) {
+                $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             }
             $payload[$name] = $value;
         }
@@ -262,6 +319,9 @@ final class FormDataService
         $columns = array_keys(Db::connect((string) $form->connection)->getFields($table));
         $readable = array_values(array_intersect(['id', 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
+            if (in_array((string) $field->type, self::LAYOUT_TYPES, true)) {
+                continue;
+            }
             $name = (string) $field->field_name;
             $this->assertIdentifier($name, '表单字段');
             if (in_array($name, $columns, true)) {
@@ -325,6 +385,11 @@ final class FormDataService
         $query = Db::table($childTable)->field($readable)->where($foreignKey, $id);
         $total = (clone $query)->count();
         return ['list' => $query->page($page, $pageSize)->select()->toArray(), 'total' => (int) $total];
+    }
+
+    private function isLayoutField(array $field): bool
+    {
+        return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
     }
 
     private function assertIdentifier(string $identifier, string $label): void

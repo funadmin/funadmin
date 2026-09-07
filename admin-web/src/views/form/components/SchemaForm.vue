@@ -2,34 +2,16 @@
   <el-form ref="formRef" :model="values" :rules="rules" label-width="110px">
     <el-row :gutter="16">
       <el-col v-for="field in visibleFields" :key="field.field_name" :span="field.form_span || 24">
-        <el-form-item :label="field.label" :prop="field.field_name">
-          <el-switch v-if="field.type === 'switch'" v-model="values[field.field_name]" :disabled="disabled(field)" :active-value="1" :inactive-value="0" />
-          <el-input-number v-else-if="field.type === 'number'" v-model="values[field.field_name]" class="w-full" :disabled="disabled(field)" />
-          <el-select
-            v-else-if="field.type === 'select'"
+        <FormControlRenderer
+          v-if="controlMeta(field.type).kind === 'layout'"
+          :field="field"
+          preview
+        />
+        <el-form-item v-else :label="field.type === 'hidden' ? undefined : field.label" :prop="validationProp(field)">
+          <FormControlRenderer
             v-model="values[field.field_name]"
-            :multiple="field.relation_multiple === 1"
-            :placeholder="field.placeholder || field.label"
-            :disabled="disabled(field)"
-            class="w-full"
-          >
-            <el-option v-for="option in optionsOf(field)" :key="String(option.value)" :label="String(option.label)" :value="option.value" />
-          </el-select>
-          <el-date-picker
-            v-else-if="field.type === 'date'"
-            v-model="values[field.field_name]"
-            type="date"
-            value-format="YYYY-MM-DD"
-            :placeholder="field.placeholder || field.label"
-            :disabled="disabled(field)"
-            class="w-full"
-          />
-          <el-input
-            v-else
-            v-model="values[field.field_name]"
-            :type="field.type === 'textarea' ? 'textarea' : 'text'"
-            :rows="3"
-            :placeholder="field.placeholder || field.label"
+            :field="field"
+            :options="optionsOf(field)"
             :disabled="disabled(field)"
           />
         </el-form-item>
@@ -44,6 +26,8 @@ import type { FormInstance, FormRules } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
 import { formDataApi } from '@/api/formData';
 import { evaluateLinkRules } from '../linkRules';
+import { controlMeta } from '../registry';
+import FormControlRenderer from './FormControlRenderer.vue';
 
 const props = defineProps<{ formKey: string; fields: FormFieldDef[]; values: Record<string, any> }>();
 
@@ -52,11 +36,12 @@ const remoteOptions = ref<Record<string, Array<{ label: string; value: string | 
 
 const linkState = computed(() => evaluateLinkRules(props.fields, props.values));
 const visibleFields = computed(() => props.fields.filter((field) => !linkState.value.effects[field.field_name]?.hidden));
-const disabled = (field: FormFieldDef) => Boolean(linkState.value.effects[field.field_name]?.disabled);
+const disabled = (field: FormFieldDef) => Boolean(linkState.value.effects[field.field_name]?.disabled) || field.form_readonly === 1;
+const validationProp = (field: FormFieldDef) => controlMeta(field.type).kind === 'layout' ? undefined : field.field_name;
 
 const needsRemote = (field: FormFieldDef) =>
-  field.type === 'select' &&
-  ((field.options_source?.mode === 'relation') || (field.options_source == null && field.relation_type === 'belongs_to'));
+  ['select', 'selectV2', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user'].includes(field.type) &&
+  ((field.options_source?.mode !== 'static') || (field.options_source == null && field.relation_type === 'belongs_to'));
 
 const optionsOf = (field: FormFieldDef) => {
   if (needsRemote(field)) return remoteOptions.value[field.field_name] ?? [];
@@ -67,6 +52,7 @@ const optionsOf = (field: FormFieldDef) => {
 const rules = computed<FormRules>(() => {
   const result: FormRules = {};
   for (const field of props.fields) {
+    if (controlMeta(field.type).kind === 'layout') continue;
     const items: Array<Record<string, unknown>> = [];
     if (field.form_required === 1) {
       items.push({ required: true, message: `${field.label}不能为空`, trigger: ['blur', 'change'] });

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdocumentor
+    configVersion="3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://www.phpdoc.org"
+    xsi:noNamespaceSchemaLocation="https://docs.phpdoc.org/latest/phpdoc.xsd"
+>
+    <title>MCP PHP SDK</title>
+    <!--
+        phpDocumentor only renders the class-level API reference now; the guides
+        under docs/ are built by Zensical (see mkdocs.yml). `make docs` copies
+        this build into the site as /api/.
+    -->
+    <paths>
+        <output>.phpdoc/build/api</output>
+    </paths>
+    <version number="latest">
+        <api ignore-packages="true">
+            <source dsn=".">
+                <path>src</path>
+            </source>
+            <ignore>
+                <path>vendor/**/*</path>
+                <path>tests/**/*</path>
+            </ignore>
+            <ignore-tags>
+                <ignore-tag>phpstan-type</ignore-tag>
+                <ignore-tag>phpstan-type-import</ignore-tag>
+                <ignore-tag>template</ignore-tag>
+                <ignore-tag>template-covariant</ignore-tag>
+                <ignore-tag>template-extends</ignore-tag>
+                <ignore-tag>template-implements</ignore-tag>
+                <ignore-tag>extends</ignore-tag>
+                <ignore-tag>implements</ignore-tag>
+            </ignore-tags>
+        </api>
+    </version>
+    <setting name="guides.enabled" value="false"/>
+    <setting name="graphs.enabled" value="false"/>
+    <setting name="template.color" value="black"/>
+</phpdocumentor>

@@ -18,15 +18,24 @@ use Throwable;
  */
 final class FormDesignerService
 {
-    /** 控件注册表 v1：type => 默认列类型 */
+    /** 表单字段/业务/布局控件注册表：type => 默认列类型，布局类型为空。 */
     public const CONTROL_TYPES = [
-        'input' => 'varchar(100)',
-        'textarea' => 'varchar(500)',
-        'number' => 'int',
-        'switch' => 'tinyint(1)',
-        'select' => 'varchar(50)',
-        'date' => 'date',
+        'input' => 'varchar(255)', 'password' => 'varchar(255)', 'textarea' => 'text',
+        'mention' => 'varchar(500)', 'number' => 'int', 'select' => 'varchar(100)',
+        'selectV2' => 'varchar(100)', 'treeSelect' => 'bigint', 'cascader' => 'varchar(255)',
+        'radio' => 'varchar(100)', 'checkbox' => 'json', 'switch' => 'tinyint(1)',
+        'transfer' => 'json', 'date' => 'date', 'datetime' => 'datetime',
+        'daterange' => 'json', 'datetimerange' => 'json', 'time' => 'time',
+        'timeSelect' => 'time', 'slider' => 'int', 'rate' => 'tinyint',
+        'color' => 'varchar(20)', 'image' => 'varchar(500)', 'images' => 'json',
+        'file' => 'json', 'files' => 'json', 'dictionary' => 'varchar(100)',
+        'relation' => 'bigint', 'department' => 'bigint', 'user' => 'bigint',
+        'richtext' => 'longtext', 'json' => 'json', 'hidden' => 'varchar(255)',
+        'readonly' => 'varchar(255)', 'group' => '', 'grid' => '', 'divider' => '',
+        'text' => '', 'collapse' => '', 'tabs' => '',
     ];
+
+    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
 
     private const INDEX_TYPES = ['none', 'unique', 'index'];
     private const RELATION_TYPES = ['none', 'belongs_to', 'has_many'];
@@ -70,8 +79,8 @@ final class FormDesignerService
         $name = trim((string) ($payload['name'] ?? ''));
         $table = trim((string) ($payload['table_name'] ?? ''));
         $sourceType = (string) ($payload['source_type'] ?? 'created');
-        if (!preg_match('/^[a-z][a-z0-9_]{1,60}$/', $formKey)) {
-            throw new InvalidArgumentException('表单标识必须为小写字母开头的字母数字下划线');
+        if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $formKey)) {
+            throw new InvalidArgumentException('表单标识须以小写字母开头，仅包含小写字母、数字和下划线，最长 61 个字符');
         }
         if ($name === '' || mb_strlen($name) > 100) {
             throw new InvalidArgumentException('表单名称不能为空且不能超过 100 个字符');
@@ -131,7 +140,7 @@ final class FormDesignerService
             if ($span < 1 || $span > 24) {
                 throw new InvalidArgumentException($label . '栅格 span 必须在 1-24');
             }
-            if ($sourceType === 'created') {
+            if ($sourceType === 'created' && !in_array($type, self::LAYOUT_TYPES, true)) {
                 $columnType = trim((string) ($field['column_type'] ?? ''));
                 if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/', $columnType)) {
                     throw new InvalidArgumentException($label . '列类型不合法：' . $columnType);
@@ -145,9 +154,26 @@ final class FormDesignerService
         return ['valid' => true];
     }
 
+    public function normalizeIdentifier(string $value, bool $fromTable = false): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[\s-]+/', '_', $normalized) ?? '';
+        $normalized = preg_replace('/[^a-z0-9_]/', '', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+        if ($fromTable && str_starts_with($normalized, 'fun_')) {
+            $normalized = substr($normalized, 4);
+        }
+        return substr($normalized, 0, 61);
+    }
+
     /** 保存表单与字段（事务＋乐观锁）。 */
     public function save(array $payload): array
     {
+        $formKey = $this->normalizeIdentifier((string) ($payload['form_key'] ?? ''));
+        if ($formKey === '') {
+            $formKey = $this->normalizeIdentifier((string) ($payload['table_name'] ?? ''), true);
+        }
+        $payload['form_key'] = $formKey;
         $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
@@ -302,7 +328,9 @@ final class FormDesignerService
             'field_name' => trim((string) $field['field_name']),
             'label' => trim((string) $field['label']),
             'type' => $type,
-            'column_type' => trim((string) ($field['column_type'] ?? '')) ?: self::CONTROL_TYPES[$type],
+            'column_type' => in_array($type, self::LAYOUT_TYPES, true)
+                ? ''
+                : (trim((string) ($field['column_type'] ?? '')) ?: self::CONTROL_TYPES[$type]),
             'nullable' => (int) ($field['nullable'] ?? 1),
             'default_value' => (string) ($field['default_value'] ?? ''),
             'comment' => trim((string) ($field['comment'] ?? '')),
@@ -345,6 +373,9 @@ final class FormDesignerService
         $lines = ['  `id` bigint unsigned NOT NULL AUTO_INCREMENT'];
         $indexes = [];
         foreach ($fields as $field) {
+            if ($this->isLayoutField($field)) {
+                continue;
+            }
             $lines[] = '  ' . $this->columnDdl($field);
             $indexType = (string) ($field['index_type'] ?? 'none');
             $name = trim((string) $field['field_name']);
@@ -381,6 +412,9 @@ final class FormDesignerService
         );
         $parts = [];
         foreach ($fields as $field) {
+            if ($this->isLayoutField($field)) {
+                continue;
+            }
             $name = trim((string) $field['field_name']);
             if (!in_array($name, $existing, true)) {
                 $parts[] = 'ADD COLUMN ' . $this->columnDdl($field);
@@ -393,6 +427,11 @@ final class FormDesignerService
             }
         }
         return $parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n";
+    }
+
+    private function isLayoutField(array $field): bool
+    {
+        return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
     }
 
     private function columnDdl(array $field): string

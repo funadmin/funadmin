@@ -53,7 +53,11 @@
           <el-input v-model="createForm.name" placeholder="如：活动报名" />
         </el-form-item>
         <el-form-item label="表单标识" prop="form_key">
-          <el-input v-model="createForm.form_key" placeholder="小写字母开头，如 activity" />
+          <el-input
+            v-model="createForm.form_key"
+            placeholder="如 activity_form（自动转小写和下划线）"
+            @blur="normalizeFormKey"
+          />
         </el-form-item>
         <el-form-item label="来源" prop="source_type">
           <el-radio-group v-model="createForm.source_type">
@@ -105,7 +109,7 @@ const createFormRef = ref<FormInstance>();
 const createForm = reactive({ name: '', form_key: '', source_type: 'created' as 'created' | 'adopted', table_name: '', remark: '' });
 const createRules: FormRules = {
   name: [{ required: true, message: '请输入表单名称', trigger: 'blur' }],
-  form_key: [{ required: true, pattern: /^[a-z][a-z0-9_]{1,60}$/, message: '小写字母开头的字母数字下划线', trigger: 'blur' }],
+  form_key: [{ required: true, pattern: /^[a-z][a-z0-9_]{0,60}$/, message: '须以小写字母开头，仅包含小写字母、数字和下划线', trigger: 'blur' }],
   table_name: [{ required: true, pattern: /^[a-z][a-z0-9_]*$/, message: '表名不合法', trigger: 'blur' }]
 };
 
@@ -127,6 +131,18 @@ const onReset = () => {
   Object.assign(query, { page: 1, pageSize: 20, keyword: '', status: '' });
   loadData();
 };
+const normalizeIdentifier = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 61);
+const normalizeFormKey = () => {
+  createForm.form_key = normalizeIdentifier(createForm.form_key);
+  if (!createForm.form_key) createForm.form_key = normalizeIdentifier(createForm.table_name).replace(/^fun_/, '');
+};
 const openCreate = () => {
   Object.assign(createForm, { name: '', form_key: '', source_type: 'created', table_name: '', remark: '' });
   createVisible.value = true;
@@ -136,6 +152,7 @@ async function loadTables(visible: boolean) {
   tables.value = await crudDevelopmentApi.tables('mysql');
 }
 async function onCreate() {
+  normalizeFormKey();
   await createFormRef.value?.validate();
   saving.value = true;
   try {

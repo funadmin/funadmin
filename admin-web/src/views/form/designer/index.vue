@@ -12,17 +12,22 @@
 
     <div class="designer-layout flex gap-3">
       <!-- 左：控件 palette -->
-      <el-card shadow="never" class="w-[200px] shrink-0">
-        <template #header>控件</template>
-        <div ref="paletteRef" class="flex flex-col gap-2">
-          <div
-            v-for="control in CONTROL_REGISTRY"
-            :key="control.type"
-            class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-1.5 text-sm"
-            :data-type="control.type"
-          >
-            {{ control.label }}
-          </div>
+      <el-card shadow="never" class="w-[230px] shrink-0">
+        <template #header>控件（{{ CONTROL_REGISTRY.length }}）</template>
+        <div ref="paletteRef" class="palette-list flex max-h-[calc(100vh-250px)] flex-col gap-2 overflow-y-auto pr-1">
+          <template v-for="group in controlGroups" :key="group">
+            <div class="sticky top-0 z-10 bg-[var(--el-bg-color-overlay)] py-1 text-xs font-semibold text-[var(--el-text-color-secondary)]">
+              {{ group }}
+            </div>
+            <div
+              v-for="control in controlsOf(group)"
+              :key="control.type"
+              class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-1.5 text-sm"
+              :data-type="control.type"
+            >
+              {{ control.label }}
+            </div>
+          </template>
         </div>
       </el-card>
 
@@ -34,7 +39,7 @@
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
-        <div ref="canvasRef" class="flex min-h-[320px] flex-col gap-2">
+        <div ref="canvasRef" class="designer-canvas flex flex-col gap-2">
           <div
             v-for="(field, index) in store.fields.value"
             :key="field.field_name"
@@ -50,13 +55,15 @@
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="w-[110px] shrink-0 text-right text-sm">{{ field.label }}</span>
+              <span v-if="controlMeta(field.type).kind !== 'layout' && field.type !== 'hidden'" class="w-[110px] shrink-0 text-right text-sm">{{ field.label }}</span>
               <div class="min-w-0 flex-1" @click.stop>
-                <el-switch v-if="field.type === 'switch'" disabled :model-value="false" />
-                <el-input-number v-else-if="field.type === 'number'" disabled class="w-full" />
-                <el-select v-else-if="field.type === 'select'" disabled placeholder="请选择" class="w-full" />
-                <el-date-picker v-else-if="field.type === 'date'" disabled placeholder="选择日期" class="w-full" />
-                <el-input v-else disabled :type="field.type === 'textarea' ? 'textarea' : 'text'" :rows="2" :placeholder="field.placeholder || field.label" />
+                <FormControlRenderer
+                  :field="field"
+                  :model-value="field.default_value"
+                  :options="previewOptions(field)"
+                  disabled
+                  preview
+                />
               </div>
             </div>
             <div class="mt-1 text-right text-xs text-[var(--el-text-color-placeholder)]">#{{ index + 1 }}</div>
@@ -110,6 +117,7 @@ import Sortable from 'sortablejs';
 import { formDesignerApi, type MigrationPreview } from '@/api/form';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
+import FormControlRenderer from '../components/FormControlRenderer.vue';
 import PropsPanel from './components/PropsPanel.vue';
 
 const route = useRoute();
@@ -127,6 +135,12 @@ let paletteSortable: Sortable | null = null;
 let canvasSortable: Sortable | null = null;
 
 const definition = () => ({ ...store.form.value, fields: store.fields.value });
+const controlGroups = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
+const controlsOf = (group: string) => CONTROL_REGISTRY.filter((control) => control.group === group);
+const previewOptions = (field: { options_source?: Record<string, unknown> | null }) => {
+  const options = field.options_source?.options;
+  return Array.isArray(options) ? options as Array<{ label: string; value: string | number }> : [];
+};
 
 async function load() {
   const id = Number(route.query.id ?? 0);
@@ -179,6 +193,7 @@ onMounted(async () => {
   if (paletteRef.value && canvasRef.value) {
     paletteSortable = Sortable.create(paletteRef.value, {
       group: { name: 'form-designer', pull: 'clone', put: false },
+      draggable: '.palette-item',
       sort: false,
       animation: 150
     });
@@ -204,8 +219,14 @@ onBeforeUnmount(() => {
 .designer-layout {
   align-items: flex-start;
 }
+.designer-canvas {
+  min-height: max(520px, calc(100vh - 260px));
+}
 .palette-item:hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
+}
+.palette-list {
+  scrollbar-width: thin;
 }
 </style>
