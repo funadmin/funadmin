@@ -62,6 +62,12 @@ final class JsonSchemaValidator
         if (!is_array($value) || ($value !== [] && array_is_list($value))) {
             $this->invalid($path, '必须是对象');
         }
+        if (isset($schema['minProperties']) && count($value) < (int) $schema['minProperties']) {
+            $this->invalid($path, '属性数量不足');
+        }
+        if (isset($schema['maxProperties']) && count($value) > (int) $schema['maxProperties']) {
+            $this->invalid($path, '属性数量超限');
+        }
         foreach ($schema['required'] ?? [] as $required) {
             if (!array_key_exists($required, $value)) {
                 $this->invalid($path, '缺少字段 ' . $required);
