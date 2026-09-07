@@ -115,13 +115,24 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 
     public function checkUpdates(array $installed): array
     {
-        $data = $this->call('/api/v2.plugins/checkUpdate', ['plugins' => $installed], $this->token());
-        return array_map(static fn (array $item): UpdateCheckDto => new UpdateCheckDto(
-            (string) $item['name'],
-            (string) ($item['current_version'] ?? $installed[$item['name']] ?? ''),
-            (string) ($item['latest_version'] ?? $item['version'] ?? ''),
-            (bool) ($item['update_available'] ?? true)
-        ), $data['list'] ?? $data);
+        $legacyInstalled = [];
+        $versionsByCode = [];
+        foreach ($installed as $plugin) {
+            $code = (string) ($plugin['code'] ?? '');
+            $version = (string) ($plugin['version'] ?? '');
+            $legacyInstalled[] = ['name' => $code, 'version' => $version];
+            $versionsByCode[$code] = $version;
+        }
+        $data = $this->call('/api/v2.plugins/checkUpdate', ['plugins' => $legacyInstalled], $this->token());
+        return array_map(static function (array $item) use ($versionsByCode): UpdateCheckDto {
+            $code = (string) ($item['name'] ?? $item['plugin_name'] ?? '');
+            return new UpdateCheckDto(
+                $code,
+                (string) ($item['current_version'] ?? $versionsByCode[$code] ?? ''),
+                (string) ($item['latest_version'] ?? $item['version'] ?? ''),
+                (bool) ($item['update_available'] ?? true)
+            );
+        }, $data['list'] ?? $data);
     }
 
     public function authorize(string $code, string $version): AuthorizationDto

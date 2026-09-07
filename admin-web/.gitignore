@@ -41,3 +41,6 @@ pnpm-debug.log*
 /messagebox-*.png
 /msgbox-*.png
 /tests/*
+!/tests/contracts/
+/tests/contracts/*
+!/tests/contracts/plugin-code-name-cutover.spec.ts

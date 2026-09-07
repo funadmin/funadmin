@@ -7,6 +7,7 @@ namespace app\console\service;
 use app\console\model\CrudGeneration;
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
+use app\common\crud\CrudResourceInstaller;
 use app\common\crud\DefinitionValidator;
 use app\common\crud\FieldInference;
 use app\common\crud\SchemaInspector;
@@ -32,13 +33,24 @@ final class DevCrudService
     /** @var Closure(int): ?array */
     private readonly Closure $auditReader;
 
+    /** @var Closure(int, array): void */
+    private readonly Closure $auditUpdater;
+
+    /** @var Closure(): array */
+    private readonly Closure $menuReader;
+
+    private readonly CrudResourceInstaller $resourceInstaller;
+
     public function __construct(
         private readonly string $projectRoot,
         private readonly array $allowedConnections,
         ?callable $inspectorFactory = null,
         ?callable $auditWriter = null,
         ?callable $auditReader = null,
-        ?callable $tableReader = null
+        ?callable $tableReader = null,
+        ?callable $auditUpdater = null,
+        ?callable $menuReader = null,
+        ?CrudResourceInstaller $resourceInstaller = null
     ) {
         $this->inspectorFactory = Closure::fromCallable(
             $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
@@ -58,6 +70,12 @@ final class DevCrudService
             $record = CrudGeneration::find($id);
             return $record ? $record->toArray() : null;
         });
+        $this->auditUpdater = Closure::fromCallable($auditUpdater ?? static function (int $id, array $changes): void {
+            CrudGeneration::where('id', $id)->update($changes);
+        });
+        $this->menuReader = Closure::fromCallable($menuReader ?? static fn (): array => \app\console\model\AdminMenu::whereIn('source_type', ['admin_web', 'generated'])
+            ->where('status', 1)->field('id,pid,name,href,source_name,source_type')->order('sort_order', 'asc')->select()->toArray());
+        $this->resourceInstaller = $resourceInstaller ?? new CrudResourceInstaller($projectRoot);
     }
 
     public function connections(): array
@@ -73,6 +91,21 @@ final class DevCrudService
             'name' => (string) $row['TABLE_NAME'],
             'comment' => (string) ($row['TABLE_COMMENT'] ?? ''),
         ], $rows);
+    }
+
+    public function options(): array
+    {
+        $rows = ($this->menuReader)();
+        $items = [];
+        foreach ($rows as $row) {
+            $sourceName = (string) ($row['source_name'] ?? '');
+            if ($sourceName === '') continue;
+            $items[] = [
+                'id' => (int) $row['id'], 'pid' => (int) ($row['pid'] ?? 0), 'sourceName' => $sourceName,
+                'name' => (string) ($row['name'] ?? ''), 'path' => (string) ($row['href'] ?? ''),
+            ];
+        }
+        return ['parentMenus' => $this->menuTree($items), 'icons' => self::ICONS];
     }
 
     public function inspect(string $connection, string $table): array
@@ -91,6 +124,7 @@ final class DevCrudService
     {
         $normalized = CrudDefinition::fromArray($definition);
         (new DefinitionValidator())->validate($normalized, $this->projectRoot);
+        $this->assertMenuParent($normalized);
         return ['valid' => true, 'definitionHash' => $normalized->hash(), 'definition' => $normalized->toArray()];
     }
 
@@ -98,6 +132,7 @@ final class DevCrudService
     {
         try {
             $crudDefinition = CrudDefinition::fromArray($definition);
+            $this->assertMenuParent($crudDefinition);
             $plan = (new CrudGenerator($this->projectRoot))->plan($crudDefinition);
             $token = (string) ($plan['confirmToken'] ?? '');
             unset($plan['confirmToken']);
@@ -118,7 +153,9 @@ final class DevCrudService
         string $confirmToken,
         array $allowOverwrite,
         bool $canOverwrite,
-        string $operator
+        string $operator,
+        bool $applyResources = false,
+        bool $canApplyResources = false
     ): array {
         if ($confirmToken === '') {
             throw new InvalidArgumentException('缺少 preview 确认 token');
@@ -126,8 +163,12 @@ final class DevCrudService
         if ($allowOverwrite !== [] && !$canOverwrite) {
             throw new InvalidArgumentException('缺少单独的 overwrite 权限');
         }
+        if ($applyResources && !$canApplyResources) {
+            throw new InvalidArgumentException('缺少 resource apply 专用权限');
+        }
         try {
             $crudDefinition = CrudDefinition::fromArray($definition);
+            $this->assertMenuParent($crudDefinition);
             $result = (new CrudGenerator($this->projectRoot))->generate(
                 $crudDefinition,
                 $confirmToken,
@@ -135,12 +176,34 @@ final class DevCrudService
                 $operator
             );
             unset($result['plan']['confirmToken']);
-            $id = $this->audit('generate', (string) ($result['write']['status'] ?? 'unknown'), $crudDefinition, $result['manifest'] ?? []);
-            return ['generationId' => $id] + $result;
+            $manifest = $result['manifest'] ?? [];
+            $manifest['resourceApplyStatus'] = $applyResources ? 'pending' : 'not_requested';
+            $manifest['resourceApplyError'] = null;
+            $manifest['resourceChecksum'] = null;
+            $id = $this->audit('generate', (string) ($result['write']['status'] ?? 'unknown'), $crudDefinition, $manifest);
+            $result['manifest'] = $manifest;
+            if (!$applyResources) return ['generationId' => $id, 'resourceApplyStatus' => 'not_requested'] + $result;
+            return $this->applyGeneratedResources($id, $crudDefinition->toArray(), $manifest, $result);
         } catch (Throwable $exception) {
             $this->auditFailure('generate', $definition, $exception);
             throw $exception;
         }
+    }
+
+    public function applyResources(int $id): array
+    {
+        $row = ($this->auditReader)($id);
+        if ($row === null || ($row['operation'] ?? '') !== 'generate') throw new InvalidArgumentException('生成记录不存在或不可应用资源');
+        $definition = (array) ($row['definition'] ?? []);
+        $manifest = (array) ($row['manifest'] ?? []);
+        $applyStatus = (string) ($manifest['resourceApplyStatus'] ?? '');
+        if ($applyStatus === 'applied') {
+            return ['generationId' => $id, 'resourceApplyStatus' => 'applied', 'resourceChecksum' => $manifest['resourceChecksum'] ?? null];
+        }
+        if (!in_array($applyStatus, ['pending', 'failed'], true)) {
+            throw new InvalidArgumentException('该生成记录的资源状态不可重试');
+        }
+        return $this->applyGeneratedResources($id, $definition, $manifest);
     }
 
     public function generation(int $id): ?array
@@ -148,6 +211,51 @@ final class DevCrudService
         $row = ($this->auditReader)($id);
         return $row === null ? null : $this->sanitize($row);
     }
+
+    private function applyGeneratedResources(int $id, array $definition, array $manifest, array $result = []): array
+    {
+        try {
+            $applied = $this->resourceInstaller->apply($definition, $manifest);
+            $manifest = array_replace($manifest, $applied);
+            ($this->auditUpdater)($id, ['status' => 'completed', 'manifest' => $manifest, 'error' => null]);
+            return ['generationId' => $id] + $applied + $result + ['manifest' => $manifest];
+        } catch (Throwable $exception) {
+            $manifest['resourceApplyStatus'] = 'failed';
+            $manifest['resourceApplyError'] = $exception->getMessage();
+            ($this->auditUpdater)($id, ['status' => 'partial', 'manifest' => $manifest, 'error' => ['message' => $exception->getMessage()]]);
+            return ['generationId' => $id, 'resourceApplyStatus' => 'failed', 'resourceApplyError' => $exception->getMessage()] + $result + ['manifest' => $manifest];
+        }
+    }
+
+    private function assertMenuParent(CrudDefinition $definition): void
+    {
+        $menu = (array) $definition->get('menu', []);
+        if (($menu['enabled'] ?? false) !== true) return;
+        $parentSourceName = trim((string) ($menu['parentSourceName'] ?? ''));
+        $parentId = $menu['parentId'] ?? null;
+        if ($parentSourceName === '' && $parentId === null) return;
+        foreach (($this->menuReader)() as $row) {
+            if (!in_array((string) ($row['source_type'] ?? ''), ['admin_web', 'generated'], true)) continue;
+            if ($parentSourceName !== '' && (string) ($row['source_name'] ?? '') === $parentSourceName) return;
+            if ($parentSourceName === '' && (int) ($row['id'] ?? 0) === (int) $parentId) return;
+        }
+        throw new InvalidArgumentException('父级菜单不存在或来源不允许');
+    }
+
+    private function menuTree(array $rows, int $pid = 0): array
+    {
+        $tree = [];
+        foreach ($rows as $row) {
+            if ($row['pid'] !== $pid) continue;
+            $children = $this->menuTree($rows, $row['id']);
+            unset($row['pid']);
+            if ($children !== []) $row['children'] = $children;
+            $tree[] = $row;
+        }
+        return $tree;
+    }
+
+    private const ICONS = ['i-ep-document', 'i-ep-menu', 'i-ep-folder', 'i-ep-grid', 'i-ep-setting', 'i-ep-user', 'i-ep-lock', 'i-ep-tickets', 'i-ep-data-line'];
 
     private function assertConnection(string $connection): void
     {

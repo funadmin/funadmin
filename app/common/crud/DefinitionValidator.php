@@ -14,7 +14,7 @@ final class DefinitionValidator
     private const ROOT_KEYS = [
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'generationTargets', 'permissionPrefix', 'fields',
-        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope',
+        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
@@ -84,6 +84,8 @@ final class DefinitionValidator
         $this->capabilities($data['capabilities'] ?? null);
         $this->features($data['features'] ?? null, $fieldNames);
         $this->dataScope($data['dataScope'] ?? null, $fieldNames);
+        $this->menu($data['menu'] ?? null);
+        $this->permission($data['permission'] ?? null);
     }
 
     private function paths(mixed $paths, string $projectRoot): void
@@ -364,6 +366,56 @@ final class DefinitionValidator
             if (($scope['resolver'] ?? '') !== 'adminDepartmentIds') {
                 throw new InvalidArgumentException('dataScope.resolver 必须明确配置 adminDepartmentIds');
             }
+        }
+    }
+
+    private function menu(mixed $menu): void
+    {
+        $keys = ['enabled', 'parentId', 'parentSourceName', 'name', 'icon', 'sortOrder', 'hidden', 'keepAlive', 'affix', 'target'];
+        if (!is_array($menu) || array_diff(array_keys($menu), $keys) !== []) {
+            throw new InvalidArgumentException('menu 配置不完整或包含未知字段');
+        }
+        foreach (['enabled', 'hidden', 'keepAlive', 'affix'] as $flag) {
+            if (!array_key_exists($flag, $menu) || !is_bool($menu[$flag])) throw new InvalidArgumentException("menu.{$flag} 必须是布尔值");
+        }
+        if ($menu['parentId'] !== null && (!is_int($menu['parentId']) || $menu['parentId'] < 1)) {
+            throw new InvalidArgumentException('menu.parentId 必须是正整数或 null');
+        }
+        if ($menu['parentSourceName'] !== '' && preg_match('/^[a-z][a-z0-9_]*$/', $menu['parentSourceName']) !== 1) {
+            throw new InvalidArgumentException('menu.parentSourceName 不合法');
+        }
+        $this->text((string) $menu['name'], 'menu.name');
+        if (preg_match('/^i-ep-[a-z0-9]+(?:-[a-z0-9]+)*$/', (string) $menu['icon']) !== 1) {
+            throw new InvalidArgumentException('menu.icon 必须是 Element Plus i-ep-* 图标');
+        }
+        if (!is_int($menu['sortOrder']) || $menu['sortOrder'] < 0 || $menu['sortOrder'] > 9999) {
+            throw new InvalidArgumentException('menu.sortOrder 必须在 0..9999');
+        }
+        if (!in_array($menu['target'], ['_self', '_blank'], true)) {
+            throw new InvalidArgumentException('menu.target 不合法');
+        }
+    }
+
+    private function permission(mixed $permission): void
+    {
+        if (!is_array($permission) || array_diff(array_keys($permission), ['enabled', 'groupName', 'actions']) !== []
+            || !is_bool($permission['enabled'] ?? null) || !is_array($permission['actions'] ?? null)) {
+            throw new InvalidArgumentException('permission 配置不完整');
+        }
+        $this->text((string) ($permission['groupName'] ?? ''), 'permission.groupName');
+        $seen = [];
+        foreach ($permission['actions'] as $action) {
+            if (!is_array($action) || array_keys($action) !== ['action', 'codeSuffix', 'label']) {
+                throw new InvalidArgumentException('permission.actions 结构不合法');
+            }
+            foreach (['action', 'codeSuffix'] as $field) {
+                if (preg_match('/^[a-z][A-Za-z0-9-]*$/', (string) $action[$field]) !== 1) {
+                    throw new InvalidArgumentException("permission.actions.{$field} 不合法");
+                }
+            }
+            $this->text((string) $action['label'], 'permission.actions.label');
+            if (isset($seen[$action['action']])) throw new InvalidArgumentException('permission action 重复');
+            $seen[$action['action']] = true;
         }
     }
 

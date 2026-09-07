@@ -4,7 +4,9 @@
 *.log
 .env
 ./composer.lock
-/plugins
+/plugins/*
+!/plugins/example/
+!/plugins/example/**
 /runtime
 /public/static/plugins
 /public/static/cms
@@ -17,5 +19,14 @@
 /tests/*
 !/tests/crud_hook_naming_test.php
 !/tests/php_property_modernization_test.php
+!/tests/plugin_code_name_cutover_test.php
+!/tests/plugin_development_tools_test.php
+!/tests/plugin_manifest_schema_test.php
+!/tests/plugin_phase1_test.php
+!/tests/fixtures/
+!/tests/fixtures/plugins/
+!/tests/fixtures/plugins/example/
+!/tests/fixtures/plugins/example/plugin.json
 /admin-web/tests/*
 !/admin-web/tests/contracts/php-property-modernization.spec.ts
+!/admin-web/tests/contracts/plugin-code-name-cutover.spec.ts

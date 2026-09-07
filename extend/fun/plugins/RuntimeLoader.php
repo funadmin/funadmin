@@ -107,20 +107,13 @@ final class RuntimeLoader
         $registrar($route);
     }
 
-    /**
-     * 通道（channels.api / channels.frontend）路由文件路径，未声明返回 null。
-     */
+    /** Manifest v2 使用原生应用目录，不再读取 channels。 */
     public function channelRoutesPath(Manifest $manifest, string $channel): ?string
     {
         if (!in_array($channel, ['api', 'frontend'], true)) {
             throw new RuntimeException('不支持的插件 channel：' . $channel);
         }
-        $channels = (array) ($manifest->toArray()['channels'] ?? []);
-        $relative = (string) ($channels[$channel]['routes'] ?? '');
-        if ($relative === '') {
-            return null;
-        }
-        return $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        return null;
     }
 
     /**

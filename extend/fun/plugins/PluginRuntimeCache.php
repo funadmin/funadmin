@@ -10,6 +10,7 @@ use RuntimeException;
 final class PluginRuntimeCache
 {
     private const APPLICATIONS = ['api', 'frontend', 'console'];
+    private const CONTRACT_VERSION = 2;
 
     public function __construct(
         private readonly string $pluginsPath,
@@ -34,8 +35,7 @@ final class PluginRuntimeCache
                 $data = $manifest->toArray();
                 $payloads['console'][$code] = $data;
                 foreach (['api', 'frontend'] as $application) {
-                    if (isset($data['load']['routes']) || isset($data['channels'][$application]['routes'])
-                        || isset($data['load']['services']) || isset($data['load']['events'])) {
+                    if (is_dir($manifest->directory() . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . $application)) {
                         $payloads[$application][$code] = $data;
                     }
                 }
@@ -52,8 +52,11 @@ final class PluginRuntimeCache
         }
     }
 
-    /** @return array<string, Manifest> */
-    public function load(string $application): array
+    /**
+     * @param null|callable(): array<string, Manifest> $recover
+     * @return array<string, Manifest>
+     */
+    public function load(string $application, ?callable $recover = null): array
     {
         $this->assertApplication($application);
         $file = $this->file($application);
@@ -61,18 +64,18 @@ final class PluginRuntimeCache
             return [];
         }
         $payload = require $file;
-        if (!is_array($payload)) {
-            throw new RuntimeException('插件运行时清单格式无效：' . $application);
-        }
-        $manifests = [];
-        foreach ($payload as $code => $data) {
-            if (!is_string($code) || !is_array($data)) {
-                throw new RuntimeException('插件运行时清单内容无效：' . $application);
+        if (!$this->isCurrentPayload($payload)) {
+            if ($recover === null) {
+                throw new RuntimeException('插件运行时清单契约已过期：' . $application);
             }
-            $directory = rtrim($this->pluginsPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $code;
-            $manifests[$code] = Manifest::fromCompiled($directory, $data);
+            $this->invalidate();
+            $this->rebuild($recover());
+            $payload = require $file;
+            if (!$this->isCurrentPayload($payload)) {
+                throw new RuntimeException('插件运行时清单重建后仍无效：' . $application);
+            }
         }
-        return $manifests;
+        return $this->hydrate($payload['manifests']);
     }
 
     public function exists(string $application): bool
@@ -136,6 +139,32 @@ final class PluginRuntimeCache
         return $payload;
     }
 
+    /** @param array<string, array> $payload @return array<string, Manifest> */
+    private function hydrate(array $payload): array
+    {
+        $manifests = [];
+        foreach ($payload as $code => $data) {
+            $directory = rtrim($this->pluginsPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $code;
+            $manifests[$code] = Manifest::fromCompiled($directory, $data);
+        }
+        return $manifests;
+    }
+
+    private function isCurrentPayload(mixed $payload): bool
+    {
+        if (!is_array($payload)
+            || ($payload['contract_version'] ?? null) !== self::CONTRACT_VERSION
+            || !is_array($payload['manifests'] ?? null)) {
+            return false;
+        }
+        foreach ($payload['manifests'] as $code => $manifest) {
+            if (!is_string($code) || !is_array($manifest) || ($manifest['code'] ?? null) !== $code) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private function write(string $application, array $payload): void
     {
         $file = $this->file($application);
@@ -144,7 +173,10 @@ final class PluginRuntimeCache
             throw new RuntimeException('无法创建插件运行时临时清单');
         }
         try {
-            $content = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($payload, true) . ";\n";
+            $content = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export([
+                'contract_version' => self::CONTRACT_VERSION,
+                'manifests' => $payload,
+            ], true) . ";\n";
             if (file_put_contents($temporary, $content, LOCK_EX) === false || !rename($temporary, $file)) {
                 throw new RuntimeException('插件运行时清单原子写入失败：' . $application);
             }

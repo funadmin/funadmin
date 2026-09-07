@@ -7,6 +7,7 @@ import {
   applyFieldDataConfiguration,
   createLatestRequestGate,
   snapshotCrudDefinition,
+  syncPermissionActions,
   validateWorkbenchStep
 } from '@/views/development/crud/workbench';
 import type { CrudDefinition, CrudField, CrudPreview } from '@/types/development/crud';
@@ -49,6 +50,27 @@ describe('CRUD Workbench', () => {
     expect(definition).not.toHaveProperty('name');
     expect(definition).not.toHaveProperty('paths');
     expect(definition).not.toHaveProperty('metadata');
+    expect(definition.menu).toMatchObject({ enabled: true, icon: 'i-ep-document', parentSourceName: '' });
+    expect(definition.permission.enabled).toBe(true);
+    expect(definition.permission.actions.find((action) => action.action === 'index')).toMatchObject({ codeSuffix: 'list', label: '查看列表' });
+  });
+
+  it('能力变化同步固定权限动作且仅保留用户中文名称', () => {
+    const definition = createCrudDefinition('mysql', 'fun_demo', [
+      { name: 'id', dbType: 'bigint unsigned', nullable: false, primary: true }
+    ]);
+    const index = definition.permission.actions.find((action) => action.action === 'index');
+    if (index) index.label = '查看演示';
+    definition.capabilities.delete = false;
+    syncPermissionActions(definition);
+    expect(definition.permission.actions.find((action) => action.action === 'index')?.label).toBe('查看演示');
+    expect(definition.permission.actions.some((action) => action.action === 'remove')).toBe(false);
+  });
+
+  it('立即应用默认关闭且不进入定义快照', () => {
+    const workbench = createCrudWorkbench();
+    expect(workbench.applyResources).toBe(false);
+    expect(JSON.stringify(workbench.persistable())).not.toContain('applyResources');
   });
 
   it('仅在 schema 存在可写 status 时默认启用状态能力', () => {
@@ -114,6 +136,34 @@ describe('CRUD Workbench', () => {
     expect(page).toContain('workbench.step = 3');
     expect(page).toContain('返回修改');
     expect(page).toContain('重新开始');
+    expect(page).toContain('v-model:apply-resources="workbench.applyResources"');
+    expect(page).toContain('applyResources');
+    expect(page).toContain('applyResourcesAgain');
+  });
+
+  it('菜单权限配置加载安全父级并保持动作和权限码只读', () => {
+    const page = read('src/views/development/crud/index.vue');
+    const basics = read('src/views/development/crud/components/BasicsStep.vue');
+    expect(page).toContain('crudDevelopmentApi.options()');
+    expect(page).toContain(':parent-menus="parentMenus"');
+    expect(page).toContain('syncPermissionActions(value)');
+    expect(basics).toContain('<el-tree-select');
+    expect(basics).toContain('node-key="sourceName"');
+    expect(basics).toContain('<IconSelect v-model="model.menu.icon"');
+    expect(basics).toContain('prop="action"');
+    expect(basics).not.toContain('v-model="row.action"');
+    expect(basics).not.toContain('v-model="row.codeSuffix"');
+  });
+
+  it('权限菜单预览明确展示 SQL 摘要且应用失败可按原审计记录重试', () => {
+    const preview = read('src/views/development/crud/components/PreviewStep.vue');
+    const confirm = read('src/views/development/crud/components/ConfirmResultStep.vue');
+    expect(preview).toContain('权限菜单 SQL');
+    expect(preview).toContain('resourceSummary');
+    expect(confirm).toContain('立即应用菜单与权限');
+    expect(confirm).toContain('resourceApplyStatus');
+    expect(confirm).toContain("emit('retryResources'");
+    expect(confirm).not.toContain('confirmToken');
   });
 
   it('旧 tables 与 preview 响应后返回时不能覆盖最新请求', () => {

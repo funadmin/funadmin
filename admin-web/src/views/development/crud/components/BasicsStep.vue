@@ -20,6 +20,25 @@
         <el-form-item label="时间戳"><el-switch v-model="model.timestamps" /></el-form-item>
         <el-form-item label="软删除"><el-switch v-model="model.softDeletes" /></el-form-item>
       </el-form>
+      <el-collapse class="resource-config"><el-collapse-item title="菜单与权限" name="resources">
+        <el-form :model="model" label-width="125px" class="definition-form">
+          <el-form-item label="生成菜单"><el-switch v-model="model.menu.enabled" /></el-form-item>
+          <el-form-item label="生成权限"><el-switch v-model="model.permission.enabled" /></el-form-item>
+          <template v-if="model.menu.enabled">
+            <el-form-item label="父级菜单"><el-tree-select v-model="model.menu.parentSourceName" :data="parentMenus" node-key="sourceName" value-key="sourceName" :props="{ label: 'name', children: 'children' }" clearable check-strictly class="w-full" /></el-form-item>
+            <el-form-item label="菜单名称"><el-input v-model="model.menu.name" /></el-form-item>
+            <el-form-item label="菜单图标"><IconSelect v-model="model.menu.icon" /></el-form-item>
+            <el-form-item label="排序"><el-input-number v-model="model.menu.sortOrder" :min="0" :max="9999" /></el-form-item>
+            <el-form-item label="隐藏"><el-switch v-model="model.menu.hidden" /></el-form-item>
+            <el-form-item label="缓存"><el-switch v-model="model.menu.keepAlive" /></el-form-item>
+            <el-form-item label="固定 Tab"><el-switch v-model="model.menu.affix" /></el-form-item>
+            <el-form-item label="打开方式"><el-select v-model="model.menu.target" class="w-full"><el-option label="当前窗口" value="_self" /><el-option label="新窗口" value="_blank" /></el-select></el-form-item>
+          </template>
+          <el-form-item v-if="model.permission.enabled" label="权限组名"><el-input v-model="model.permission.groupName" /></el-form-item>
+        </el-form>
+        <el-alert :title="menuPathHint" type="info" :closable="false" class="mb-3" />
+        <el-table v-if="model.permission.enabled" :data="model.permission.actions" border><el-table-column prop="action" label="动作" /><el-table-column label="权限码"><template #default="{ row }">{{ model.permissionPrefix }}:{{ row.codeSuffix }}</template></el-table-column><el-table-column label="中文名称"><template #default="{ row }"><el-input v-model="row.label" /></template></el-table-column></el-table>
+      </el-collapse-item></el-collapse>
       <el-divider content-position="left">表结构摘要</el-divider>
       <div class="summary-cards">
         <el-card shadow="never"><template #header>字段（{{ model.fields.length }}）</template><div class="tag-list"><el-tag v-for="field in model.fields" :key="field.name" size="small" :type="field.primary ? 'success' : 'info'">{{ field.name }} · {{ field.dbType }}</el-tag></div></el-card>
@@ -35,9 +54,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CrudConnection, CrudDefinition, CrudTable } from '@/types/development/crud';
+import IconSelect from '@/components/IconSelect/index.vue';
+import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
 
-const props = defineProps<{ connection: string; table: string; connections: CrudConnection[]; tables: CrudTable[]; model: CrudDefinition | null; schema: Record<string, unknown> | null; inferring: boolean }>();
+const props = defineProps<{ connection: string; table: string; connections: CrudConnection[]; tables: CrudTable[]; parentMenus: CrudParentMenu[]; model: CrudDefinition | null; schema: Record<string, unknown> | null; inferring: boolean }>();
 defineEmits<{ 'update:connection': [value: string]; 'update:table': [value: string] }>();
 const indexes = computed<unknown[]>(() => {
   const value = props.schema?.indexes ?? props.schema?.indices;
@@ -53,6 +73,9 @@ const indexName = (value: unknown) => {
 };
 const fieldNames = computed(() => new Set(props.model?.fields.map((field) => field.name) || []));
 const laravelReady = computed(() => fieldNames.value.has('id') && fieldNames.value.has('created_at') && fieldNames.value.has('updated_at'));
+const menuPathHint = computed(() => props.model?.menu.parentSourceName || props.model?.menu.parentId
+  ? `子菜单 href 预览：${props.model?.routePath.split('/').filter(Boolean).at(-1) || ''}`
+  : `未选择父级，将生成一级绝对路径：${props.model?.routePath || ''}`);
 const laravelHint = computed(() => laravelReady.value
   ? '符合 Laravel 常用约定：id 主键及 created_at、updated_at 时间戳已就绪'
   : 'Laravel 规范提示：建议使用 id 主键，并提供 created_at、updated_at；软删除表应提供 deleted_at');

@@ -3,10 +3,10 @@
     <el-card v-loading="loading">
       <el-steps :active="workbench.step" finish-status="success" align-center class="workbench-steps"><el-step v-for="item in workbench.steps" :key="item.index" :title="item.title" /></el-steps>
       <el-alert v-if="workbench.error" :title="workbench.error" type="error" show-icon closable class="mb-4" @close="workbench.error = ''" />
-      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :model="definition" :schema="schema" :inferring="inferring" />
+      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :parent-menus="parentMenus" :model="definition" :schema="schema" :inferring="inferring" />
       <FieldsStep v-else-if="workbench.step === 1 && definition" :definition="definition" />
       <CapabilitiesPreviewStep v-else-if="workbench.step === 2 && definition" :model="definition" :preview="workbench.preview" :loading="loading" :invalidated="workbench.previewInvalidated" @refresh="refreshPreview" />
-      <ConfirmResultStep v-else-if="workbench.step === 3 && workbench.preview" v-model:allow-overwrite="workbench.allowOverwrite" :preview="workbench.preview" :result="workbench.result" :conflicts="workbench.conflicts()" :can-overwrite="canOverwrite" />
+      <ConfirmResultStep v-else-if="workbench.step === 3 && workbench.preview" v-model:allow-overwrite="workbench.allowOverwrite" v-model:apply-resources="workbench.applyResources" :preview="workbench.preview" :result="workbench.result" :conflicts="workbench.conflicts()" :can-overwrite="canOverwrite" :can-apply-resources="canApplyResources" :retrying="retrying" @retry-resources="applyResourcesAgain" />
       <div class="workbench-actions">
         <el-button :disabled="workbench.step === 0 || loading" @click="previous">{{ workbench.step === 3 && workbench.result ? '返回修改' : '上一步' }}</el-button>
         <el-button v-if="workbench.step < 2" type="primary" :disabled="loading" @click="next">保存并继续</el-button>
@@ -22,8 +22,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { crudDevelopmentApi } from '@/api/development/crud';
 import { useUserStore } from '@/store/modules/user';
-import type { CrudConnection, CrudDefinition, CrudTable } from '@/types/development/crud';
-import { createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, validateWorkbenchStep } from './workbench';
+import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
+import { createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, syncPermissionActions, validateWorkbenchStep } from './workbench';
 import BasicsStep from './components/BasicsStep.vue';
 import CapabilitiesPreviewStep from './components/CapabilitiesPreviewStep.vue';
 import ConfirmResultStep from './components/ConfirmResultStep.vue';
@@ -34,8 +34,10 @@ const userStore = useUserStore();
 const workbench = createCrudWorkbench();
 const loading = ref(false);
 const inferring = ref(false);
+const retrying = ref(false);
 const connections = ref<CrudConnection[]>([]);
 const tables = ref<CrudTable[]>([]);
+const parentMenus = ref<CrudParentMenu[]>([]);
 const connection = ref('');
 const table = ref('');
 const definition = ref<CrudDefinition | null>(null);
@@ -46,6 +48,7 @@ let inferSequence = 0;
 const tablesRequest = createLatestRequestGate();
 const previewRequest = createLatestRequestGate();
 const canOverwrite = computed(() => userStore.permissions.includes('development:crud:overwrite'));
+const canApplyResources = computed(() => userStore.permissions.includes('development:crud:apply-resources'));
 const hasBlocked = computed(() => workbench.preview?.plan.files.some((file) => file.status === 'blocked') || false);
 
 watch(connection, async (value) => {
@@ -87,6 +90,10 @@ watch(table, async (value) => {
     if (sequence === inferSequence) inferring.value = false;
   }
 });
+watch(() => definition.value ? JSON.stringify({ capabilities: definition.value.capabilities, features: definition.value.features, softDeletes: definition.value.softDeletes, optionsSource: definition.value.optionsSource }) : '', () => {
+  const value = definition.value;
+  if (value) syncPermissionActions(value);
+}, { flush: 'sync' });
 watch(definition, (value) => {
   const current = value ? snapshotCrudDefinition(value).serialized : '';
   if (previewRequestSnapshot && current !== previewRequestSnapshot) {
@@ -154,7 +161,7 @@ const generate = async () => {
   if (!definition.value) return;
   try {
     loading.value = true;
-    workbench.result = await crudDevelopmentApi.generate(definition.value, workbench.confirmToken, workbench.allowOverwrite);
+    workbench.result = await crudDevelopmentApi.generate(definition.value, workbench.confirmToken, workbench.allowOverwrite, workbench.applyResources);
     workbench.clearSensitive();
     workbench.step = 3;
   } catch (error) {
@@ -163,11 +170,24 @@ const generate = async () => {
     loading.value = false;
   }
 };
+const applyResourcesAgain = async () => {
+  if (!workbench.result?.generationId) return;
+  try {
+    retrying.value = true;
+    workbench.error = '';
+    workbench.result = { ...workbench.result, ...await crudDevelopmentApi.applyResources(workbench.result.generationId) };
+  } catch (error) {
+    workbench.fail(error instanceof Error ? error.message : '菜单与权限应用重试失败');
+  } finally {
+    retrying.value = false;
+  }
+};
 const reset = () => {
   workbench.clearSensitive();
   workbench.step = 0;
   workbench.preview = null;
   workbench.result = null;
+  workbench.applyResources = false;
   workbench.previewInvalidated = false;
   definition.value = null;
   schema.value = null;
@@ -177,8 +197,14 @@ const reset = () => {
   previewRequest.invalidate();
 };
 onMounted(async () => {
-  connections.value = await crudDevelopmentApi.connections();
-  connection.value = connections.value[0]?.name || '';
+  try {
+    const [connectionOptions, resourceOptions] = await Promise.all([crudDevelopmentApi.connections(), crudDevelopmentApi.options()]);
+    connections.value = connectionOptions;
+    parentMenus.value = resourceOptions.parentMenus;
+    connection.value = connections.value[0]?.name || '';
+  } catch (error) {
+    workbench.fail(error instanceof Error ? error.message : 'CRUD 配置选项加载失败');
+  }
 });
 onBeforeUnmount(() => {
   inferSequence += 1;

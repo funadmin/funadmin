@@ -325,46 +325,65 @@ final class ProductionTemplateContext
 
     private static function permissionMigration(array $data): string
     {
-        $enabled = self::enabledCapabilities($data);
-        $actionCodes = [
-            'index' => 'list', 'detail' => 'detail', 'create' => 'create', 'update' => 'update',
-            'status' => 'status', 'options' => 'options', 'remove' => 'delete', 'restore' => 'restore', 'destroy' => 'destroy',
-            'recycle' => 'batch-delete', 'restoreMany' => 'batch-restore', 'destroyMany' => 'batch-destroy',
-            'import' => 'import', 'export' => 'export',
-        ];
-        $actions = array_values(array_filter(
-            array_keys($actionCodes),
-            static fn (string $action): bool => match ($action) {
-                'index' => $enabled['list'],
-                'options' => $enabled['options'],
-                'remove' => $enabled['delete'],
-                'restore', 'destroy' => $enabled['softDelete'],
-                'recycle' => $enabled['batchDelete'],
-                'restoreMany', 'destroyMany' => $enabled['batchSoftDelete'],
-                default => $enabled[$action] ?? false,
-            }
-        ));
+        $menu = $data['menu'];
+        $permission = $data['permission'];
         $sourceName = self::sqlLiteral($data['entity']);
-        $title = self::sqlLiteral($data['title']);
-        $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
-        $values = [];
-        foreach ($actions as $index => $action) {
-            $values[] = "(@permission_group_id, 'console', " . self::sqlLiteral($data['permissionPrefix'] . ':' . $actionCodes[$action])
-                . ", {$controller}, " . self::sqlLiteral($action) . ', ' . self::sqlLiteral($data['title'] . ' ' . $action)
-                . ", 'route', 1, 0, " . (($index + 1) * 10) . ", 'generated', {$sourceName}, NOW(), NOW())";
+        $sql = "-- Generated forward permission/menu migration; review before applying.\n";
+        $groupId = '0';
+        if ($permission['enabled']) {
+            $groupName = self::sqlLiteral($permission['groupName']);
+            $sql .= "INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)\n"
+                . "SELECT 0,'console',NULL,'','',{$groupName},'group',1,0,0,'generated',{$sourceName},NOW(),NOW(),0,NULL\n"
+                . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group');\n"
+                . "SET @permission_group_id = (SELECT `id` FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group' ORDER BY `id` LIMIT 1);\n"
+                . "UPDATE `fun_permission` SET `name` = {$groupName},`status` = 1,`updated_at` = NOW() WHERE `id` = @permission_group_id;\n";
+            $groupId = '@permission_group_id';
+            $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
+            $codes = [];
+            foreach ($permission['actions'] as $index => $action) {
+                $code = self::sqlLiteral($data['permissionPrefix'] . ':' . $action['codeSuffix']);
+                $codes[] = $code;
+                $label = self::sqlLiteral($action['label']);
+                $act = self::sqlLiteral($action['action']);
+                $sort = ($index + 1) * 10;
+                $sql .= "INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)\n"
+                    . "SELECT @permission_group_id,'console',{$code},{$controller},{$act},{$label},'route',1,0,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+                    . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'route' AND `code` = {$code});\n"
+                    . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='console',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
+            }
+            $sql .= $codes === []
+                ? "UPDATE `fun_permission` SET `status`=0,`updated_at`=NOW() WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route';\n"
+                : "UPDATE `fun_permission` SET `status`=0,`updated_at`=NOW() WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code` NOT IN (" . implode(',', $codes) . ");\n";
         }
-        $menuPath = self::sqlLiteral('/' . ltrim($data['routePath'], '/'));
-        $menuQuery = self::sqlLiteral("component=generated/{$data['entity']}/index&type=C&permission={$data['permissionPrefix']}:list");
-        return "-- Generated forward permission/menu migration; review before applying.\n"
-            . "INSERT INTO fun_permission (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) "
-            . "SELECT 0, 'console', NULL, '', '', {$title}, 'group', 1, 0, 0, 'generated', {$sourceName}, NOW(), NOW() "
-            . "WHERE NOT EXISTS (SELECT 1 FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group');\n"
-            . "SET @permission_group_id = (SELECT id FROM fun_permission WHERE source_type = 'generated' AND source_name = {$sourceName} AND resource_type = 'group' ORDER BY id LIMIT 1);\n"
-            . "INSERT INTO fun_admin_menu (pid, permission_id, app_name, name, href, query, target, icon, status, sort_order, source_type, source_name, created_at, updated_at) "
-            . "SELECT 0, @permission_group_id, 'console', {$title}, {$menuPath}, {$menuQuery}, '_self', 'i-ep-document', 1, 0, 'generated', {$sourceName}, NOW(), NOW() "
-            . "WHERE NOT EXISTS (SELECT 1 FROM fun_admin_menu WHERE source_type = 'generated' AND source_name = {$sourceName});\n"
-            . ($values === [] ? '' : "INSERT IGNORE INTO fun_permission (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) VALUES\n"
-                . implode(",\n", $values) . ";\n");
+        if (!$menu['enabled']) return $sql;
+
+        $parent = $menu['parentSourceName'] !== ''
+            ? "COALESCE((SELECT `id` FROM `fun_admin_menu` WHERE `source_type` IN ('admin_web','generated') AND `source_name` = " . self::sqlLiteral($menu['parentSourceName']) . " ORDER BY `id` LIMIT 1),0)"
+            : (string) ($menu['parentId'] ?? 0);
+        $href = $menu['parentSourceName'] !== '' || $menu['parentId'] !== null
+            ? basename(trim((string) $data['routePath'], '/'))
+            : '/' . ltrim((string) $data['routePath'], '/');
+        $listPermission = $permission['enabled'] ? self::listPermissionCode($data) : '';
+        $query = 'component=generated/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
+            . '&type=C' . ($listPermission === '' ? '' : '&permission=' . $listPermission)
+            . '&hidden=' . ($menu['hidden'] ? '1' : '0') . '&keepAlive=' . ($menu['keepAlive'] ? '1' : '0')
+            . '&affix=' . ($menu['affix'] ? '1' : '0');
+        $fields = [self::sqlLiteral($menu['name']), self::sqlLiteral($href), self::sqlLiteral($query), self::sqlLiteral($menu['target']), self::sqlLiteral($menu['icon'])];
+        [$name, $path, $menuQuery, $target, $icon] = $fields;
+        $sort = (int) $menu['sortOrder'];
+        return $sql
+            . "INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`app_name`,`name`,`href`,`query`,`target`,`icon`,`status`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)\n"
+            . "SELECT {$parent},{$groupId},'console',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+            . "WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
+            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`={$groupId},`app_name`='console',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName};\n";
+    }
+
+    private static function listPermissionCode(array $data): string
+    {
+        foreach ($data['permission']['actions'] as $action) {
+            if ($action['action'] === 'index') return $data['permissionPrefix'] . ':' . $action['codeSuffix'];
+        }
+        return '';
     }
 
     private static function api(array $data, string $class, array $primary): string

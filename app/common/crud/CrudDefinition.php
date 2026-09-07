@@ -47,8 +47,76 @@ final class CrudDefinition implements JsonSerializable
             $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
             $data['templates']['vitestTest'] ??= 'tests/vitest-test.ts.tpl';
         }
+        $data['menu'] = self::normalizeMenu($data);
+        $data['permission'] = self::normalizePermission($data);
         unset($data['name'], $data['paths'], $data['metadata']);
         return $data;
+    }
+
+    private static function normalizeMenu(array $data): array
+    {
+        $menu = is_array($data['menu'] ?? null) ? $data['menu'] : [];
+        return [
+            'enabled' => (bool) ($menu['enabled'] ?? true),
+            'parentId' => isset($menu['parentId']) ? (int) $menu['parentId'] : null,
+            'parentSourceName' => (string) ($menu['parentSourceName'] ?? ''),
+            'name' => (string) ($menu['name'] ?? $data['title'] ?? ''),
+            'icon' => (string) ($menu['icon'] ?? 'i-ep-document'),
+            'sortOrder' => (int) ($menu['sortOrder'] ?? 999),
+            'hidden' => (bool) ($menu['hidden'] ?? false),
+            'keepAlive' => (bool) ($menu['keepAlive'] ?? true),
+            'affix' => (bool) ($menu['affix'] ?? false),
+            'target' => (string) ($menu['target'] ?? '_self'),
+        ];
+    }
+
+    private static function normalizePermission(array $data): array
+    {
+        $permission = is_array($data['permission'] ?? null) ? $data['permission'] : [];
+        $labels = [];
+        foreach ((array) ($permission['actions'] ?? []) as $action) {
+            if (is_array($action) && isset($action['action'], $action['label'])) {
+                $labels[(string) $action['action']] = (string) $action['label'];
+            }
+        }
+        $actions = [];
+        foreach (self::resourceActions($data) as [$action, $suffix, $defaultLabel]) {
+            $actions[] = ['action' => $action, 'codeSuffix' => $suffix, 'label' => $labels[$action] ?? $defaultLabel];
+        }
+        return [
+            'enabled' => (bool) ($permission['enabled'] ?? true),
+            'groupName' => (string) ($permission['groupName'] ?? $data['title'] ?? ''),
+            'actions' => $actions,
+        ];
+    }
+
+    private static function resourceActions(array $data): array
+    {
+        $capabilities = (array) ($data['capabilities'] ?? []);
+        $features = (array) ($data['features'] ?? []);
+        $enabled = static fn (string $name): bool => ($capabilities[$name] ?? true) === true;
+        $delete = $enabled('delete');
+        $softDelete = $delete && ($data['softDeletes'] ?? true) === true;
+        $actions = [];
+        $append = static function (bool $condition, string $action, string $suffix, string $label) use (&$actions): void {
+            if ($condition) $actions[] = [$action, $suffix, $label];
+        };
+        $append($enabled('list'), 'index', 'list', '查看列表');
+        $append($enabled('detail') && ($features['detail'] ?? true), 'detail', 'detail', '查看详情');
+        $append($enabled('create'), 'create', 'create', '新增');
+        $append($enabled('update'), 'update', 'update', '编辑');
+        $append($enabled('update') && ($features['status'] ?? false), 'status', 'status', '切换状态');
+        $hasOptions = $enabled('form') && (array) ($data['optionsSource'] ?? []) !== [];
+        $append($hasOptions, 'options', 'options', '读取选项');
+        $append($delete, 'remove', 'delete', '删除');
+        $append($softDelete, 'restore', 'restore', '恢复');
+        $append($softDelete, 'destroy', 'destroy', '永久删除');
+        $append($delete && ($features['batchDelete'] ?? false), 'recycle', 'batch-delete', '批量删除');
+        $append($softDelete && ($features['batchDelete'] ?? false), 'restoreMany', 'batch-restore', '批量恢复');
+        $append($softDelete && ($features['batchDelete'] ?? false), 'destroyMany', 'batch-destroy', '批量永久删除');
+        $append($enabled('import') && ($features['import'] ?? false), 'import', 'import', '导入');
+        $append($enabled('export') && ($features['export'] ?? false), 'export', 'export', '导出');
+        return $actions;
     }
 
     public function schemaVersion(): string

@@ -111,7 +111,10 @@ class Service extends \think\Service
             // 首次部署尚无编译清单时仅发现一次，后续生命周期或命令会生成清单。
             return $this->commonManifests = $this->registry()->enabled();
         }
-        return $this->commonManifests = $cache->load('console');
+        return $this->commonManifests = $cache->load(
+            'console',
+            fn (): array => $this->registry()->enabled()
+        );
     }
 
     private function applicationManifests(string $application): array
@@ -123,7 +126,7 @@ class Service extends \think\Service
         }
         $cache = $this->runtimeCache();
         return $this->applicationManifests[$application] = $cache->exists($application)
-            ? $cache->load($application)
+            ? $cache->load($application, fn (): array => $this->registry()->enabled())
             : $this->commonManifests();
     }
 

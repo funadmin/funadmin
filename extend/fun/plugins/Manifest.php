@@ -80,10 +80,10 @@ final class Manifest
         return is_string($value) && $value !== '' ? $value : null;
     }
 
+    /** Manifest v2 使用原生应用目录，旧运行加载器调用时返回空边界。 */
     public function loadPath(string $type): ?string
     {
-        $path = $this->data['load'][$type] ?? null;
-        return is_string($path) ? $this->directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path) : null;
+        return null;
     }
 
     public function directory(): string
@@ -108,15 +108,6 @@ final class Manifest
             throw new RuntimeException('plugin.json entry namespace 必须是 ' . $expectedClass);
         }
         $entryFile = self::existingRelativeFile($directory, (string) $data['entry']['file'], 'entry.file');
-        foreach (['services', 'events', 'routes'] as $type) {
-            $path = $data['load'][$type] ?? null;
-            if (is_string($path)) {
-                $loadFile = self::existingRelativeFile($directory, $path, 'load.' . $type);
-                if ($type === 'routes') {
-                    self::validateClosureRouteFile($loadFile, 'load.routes');
-                }
-            }
-        }
         $source = (string) file_get_contents($entryFile);
         if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['code']) {
             throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['code']);
@@ -124,11 +115,12 @@ final class Manifest
         if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
         }
+        self::validateApplications($directory, (string) $data['code']);
         self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);
         self::validateResourceSources($directory, $data['resources'] ?? []);
-        self::validateChannels($directory, $data['channels'] ?? []);
         if (isset($data['migrations']['path'])) {
-            self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
+            $migrationDirectory = self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
+            self::validateMigrationNames($migrationDirectory);
         }
         if (isset($data['storage']['path'])) {
             self::existingRelativeDirectory($directory, (string) $data['storage']['path'], 'storage.path');
@@ -182,37 +174,72 @@ final class Manifest
         throw new RuntimeException('plugin.json ' . $field . ' 只能引用本插件权限或明确的核心只读权限：' . $code);
     }
 
-    private static function validateChannels(string $directory, array $channels): void
+    /** 校验插件原生多应用目录、命名空间和 Console 路由前缀。 */
+    private static function validateApplications(string $directory, string $code): void
     {
-        foreach (['api', 'frontend'] as $channel) {
-            $path = $channels[$channel]['routes'] ?? null;
-            if (is_string($path)) {
-                $file = self::existingRelativeFile($directory, $path, 'channels.' . $channel . '.routes');
-                self::validateClosureRouteFile($file, 'channels.' . $channel . '.routes');
+        $appRoot = $directory . DIRECTORY_SEPARATOR . 'app';
+        if (!is_dir($appRoot)) {
+            return;
+        }
+        $application = $appRoot . DIRECTORY_SEPARATOR . $code;
+        $console = $appRoot . DIRECTORY_SEPARATOR . 'console';
+        if (!is_dir($application) && !is_dir($console)) {
+            throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/console');
+        }
+        if (is_dir($application)) {
+            self::validatePhpNamespaces($application, 'plugin\\' . $code . '\\');
+        }
+        if (is_dir($console)) {
+            self::validatePhpNamespaces($console, 'plugin\\' . $code . '\\console\\');
+            self::validateConsoleGroups($console, $code);
+        }
+    }
+
+    private static function validatePhpNamespaces(string $directory, string $expectedPrefix): void
+    {
+        foreach (self::phpFiles($directory) as $file) {
+            $source = (string) file_get_contents($file);
+            if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1
+                || !str_starts_with($matches[1], $expectedPrefix)) {
+                throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
             }
         }
     }
 
-    private static function validateClosureRouteFile(string $file, string $field): void
+    private static function validateConsoleGroups(string $console, string $code): void
     {
-        $tokens = token_get_all((string) file_get_contents($file));
-        $returnFound = false;
-        foreach ($tokens as $index => $token) {
-            if (!is_array($token) || $token[0] !== T_RETURN) {
-                continue;
-            }
-            for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
-                $candidate = $tokens[$cursor];
-                if (is_array($candidate) && in_array($candidate[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_STATIC], true)) {
-                    continue;
-                }
-                $returnFound = is_array($candidate) && in_array($candidate[0], [T_FUNCTION, T_FN], true);
-                break 2;
+        $controllers = $console . DIRECTORY_SEPARATOR . 'controller';
+        if (!is_dir($controllers)) {
+            return;
+        }
+        foreach (self::phpFiles($controllers) as $file) {
+            $source = (string) file_get_contents($file);
+            if (preg_match('/#\[Group\(\s*[\'\"]plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]/', $source) !== 1) {
+                throw new RuntimeException('Console Attribute Group 必须使用 plugin/' . $code . ' 前缀：' . $file);
             }
         }
-        if (!$returnFound) {
-            throw new RuntimeException('plugin.json ' . $field . ' 必须直接返回 Closure（return function、static function 或 fn）');
+    }
+
+    private static function validateMigrationNames(string $directory): void
+    {
+        foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
+            if (preg_match('/^\d{3}_[a-z][a-z0-9_]*\.sql$/', basename($file)) !== 1) {
+                throw new RuntimeException('migration 文件名必须使用 001_name.sql 格式：' . basename($file));
+            }
         }
+    }
+
+    /** @return list<string> */
+    private static function phpFiles(string $directory): array
+    {
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $item) {
+            if ($item->isFile() && strtolower($item->getExtension()) === 'php') {
+                $files[] = $item->getPathname();
+            }
+        }
+        return $files;
     }
 
     private static function validatePurgeContract(string $entryFile, array $data): void

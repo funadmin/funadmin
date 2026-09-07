@@ -124,11 +124,34 @@ export function validateWorkbenchStep(step: number, context: WorkbenchValidation
   return '';
 }
 
+const RESOURCE_ACTIONS = [
+  ['list', 'index', 'list', '查看列表'], ['detail', 'detail', 'detail', '查看详情'], ['create', 'create', 'create', '新增'],
+  ['update', 'update', 'update', '编辑'], ['status', 'status', 'status', '切换状态'], ['options', 'options', 'options', '读取选项'],
+  ['delete', 'remove', 'delete', '删除'], ['restore', 'restore', 'restore', '恢复'], ['destroy', 'destroy', 'destroy', '永久删除'],
+  ['batchDelete', 'recycle', 'batch-delete', '批量删除'], ['batchRestore', 'restoreMany', 'batch-restore', '批量恢复'],
+  ['batchDestroy', 'destroyMany', 'batch-destroy', '批量永久删除'], ['import', 'import', 'import', '导入'], ['export', 'export', 'export', '导出']
+] as const;
+
+export function syncPermissionActions(definition: CrudDefinition): void {
+  const labels = new Map(definition.permission.actions.map((item) => [item.action, item.label]));
+  const enabled = (capability: typeof RESOURCE_ACTIONS[number][0]) => {
+    if (capability === 'status') return definition.capabilities.update !== false && definition.features.status;
+    if (capability === 'options') return definition.capabilities.form && definition.optionsSource.length > 0;
+    if (capability === 'restore' || capability === 'destroy') return definition.capabilities.delete !== false && definition.softDeletes;
+    if (capability === 'batchDelete') return definition.capabilities.delete !== false && definition.features.batchDelete;
+    if (capability === 'batchRestore' || capability === 'batchDestroy') return definition.capabilities.delete !== false && definition.softDeletes && definition.features.batchDelete;
+    if (capability === 'detail') return definition.capabilities.detail && definition.features.detail;
+    if (capability === 'import' || capability === 'export') return definition.capabilities[capability] !== false && definition.features[capability];
+    return definition.capabilities[capability] !== false;
+  };
+  definition.permission.actions = RESOURCE_ACTIONS.filter(([capability]) => enabled(capability)).map(([, action, codeSuffix, label]) => ({ action, codeSuffix, label: labels.get(action) || label }));
+}
+
 export function createCrudDefinition(connection: string, table: string, fields: CrudField[]): CrudDefinition {
   const name = table.replace(/^fun_/, '').replace(/_/g, '-');
   const className = name.split('-').map((part) => part[0]?.toUpperCase() + part.slice(1)).join('');
   const hasWritableStatus = fields.some((field) => field.name === 'status' && field.writable !== false);
-  return {
+  const definition: CrudDefinition = {
     schemaVersion: '1.0', connection, module: 'generated', entity: name, table, title: table,
     apiPrefix: `/generated/${name}`, routePath: `/generated/${name}`, primaryKey: fields.find((field) => field.primary)?.name || 'id',
     timestamps: fields.some((field) => field.name === 'created_at') && fields.some((field) => field.name === 'updated_at'),
@@ -138,8 +161,12 @@ export function createCrudDefinition(connection: string, table: string, fields: 
     templates: { migration: 'database/migration.sql.tpl', model: 'console/model.php.tpl', validate: 'console/validate.php.tpl', service: 'console/service.php.tpl', controller: 'console/controller.php.tpl', permissionMigration: 'database/permissions.sql.tpl', api: 'frontend/api.ts.tpl', view: 'frontend/index.vue.tpl', form: 'frontend/form.vue.tpl', detail: 'frontend/detail.vue.tpl', phpTest: 'tests/php-test.php.tpl', vitestTest: 'tests/vitest-test.ts.tpl' },
     capabilities: { list: true, search: true, form: true, detail: true, create: true, update: true, delete: true, import: true, export: true },
     features: { batchDelete: true, status: hasWritableStatus, detail: true, import: true, export: true, upload: true, dictionary: true, referenceProtection: true, formMode: 'dialog', importLimit: 10000, exportLimit: 10000 },
-    dataScope: { enabled: false, field: '' }
+    dataScope: { enabled: false, field: '' },
+    menu: { enabled: true, parentId: null, parentSourceName: '', name: table, icon: 'i-ep-document', sortOrder: 999, hidden: false, keepAlive: true, affix: false, target: '_self' },
+    permission: { enabled: true, groupName: table, actions: [] }
   };
+  syncPermissionActions(definition);
+  return definition;
 }
 
 export function createCrudWorkbench() {
@@ -151,6 +178,7 @@ export function createCrudWorkbench() {
     result: null as CrudGeneration | null,
     confirmToken: '',
     allowOverwrite: [] as string[],
+    applyResources: false,
     error: '',
     previewInvalidated: false,
     previewSnapshot: '',
@@ -159,6 +187,7 @@ export function createCrudWorkbench() {
       this.previewSnapshot = snapshot;
       this.confirmToken = value.sensitive?.confirmToken || '';
       this.allowOverwrite.splice(0);
+      this.applyResources = false;
       this.previewInvalidated = false;
     },
     conflicts(): string[] {

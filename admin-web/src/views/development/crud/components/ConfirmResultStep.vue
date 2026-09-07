@@ -12,6 +12,10 @@
     </el-checkbox-group>
     <el-alert v-if="conflicts.length && !canOverwrite" title="存在冲突，但当前账号没有 overwrite 权限" type="error" show-icon :closable="false" />
     <el-alert v-else-if="counts.blocked" title="存在被目录或其他对象阻塞的目标，无法生成" type="error" show-icon :closable="false" />
+    <el-divider content-position="left">资源应用</el-divider>
+    <el-switch :model-value="applyResources" :disabled="!canApplyResources" active-text="立即应用菜单与权限" @update:model-value="emit('update:applyResources', Boolean($event))" />
+    <el-alert title="默认仅生成可审阅 SQL。开启后将在文件原子生成成功后应用本次哈希绑定的权限菜单 migration；不会给普通角色自动授权。" type="warning" show-icon :closable="false" class="mt-3" />
+    <el-alert v-if="!canApplyResources" title="当前账号没有菜单与权限应用专用权限" type="info" show-icon :closable="false" class="mt-3" />
   </template>
   <template v-else>
     <el-result :icon="result.manifest?.error ? 'error' : 'success'" :title="result.manifest?.error ? 'CRUD 生成失败' : 'CRUD 生成完成'" :sub-title="`审计记录 #${result.generationId}`" />
@@ -22,7 +26,10 @@
       <el-descriptions-item label="skipped"><div v-if="skipped.length" class="path-list"><code v-for="path in skipped" :key="path">{{ path }}</code></div><span v-else>0</span></el-descriptions-item>
       <el-descriptions-item label="rollback">{{ result.write?.rollback?.join('；') || '无需回滚' }}</el-descriptions-item>
       <el-descriptions-item label="validation">{{ result.manifest?.validationResult?.valid === false ? '失败' : '通过' }}</el-descriptions-item>
+      <el-descriptions-item label="resourceApplyStatus"><el-tag :type="resourceStatusType">{{ resourceStatusLabel }}</el-tag></el-descriptions-item>
+      <el-descriptions-item v-if="resourceError" label="资源应用错误">{{ resourceError }}</el-descriptions-item>
     </el-descriptions>
+    <el-button v-if="resourceStatus === 'failed' && canApplyResources" type="warning" :loading="retrying" class="mt-3" @click="emit('retryResources')">重试应用菜单与权限</el-button>
   </template>
 </template>
 
@@ -31,8 +38,8 @@ import { computed } from 'vue';
 import type { CheckboxGroupValueType } from 'element-plus';
 import type { CrudGeneration, CrudPreview } from '@/types/development/crud';
 
-const props = defineProps<{ preview: CrudPreview; result: CrudGeneration | null; conflicts: string[]; allowOverwrite: string[]; canOverwrite: boolean }>();
-const emit = defineEmits<{ 'update:allowOverwrite': [value: string[]] }>();
+const props = defineProps<{ preview: CrudPreview; result: CrudGeneration | null; conflicts: string[]; allowOverwrite: string[]; applyResources: boolean; canOverwrite: boolean; canApplyResources: boolean; retrying: boolean }>();
+const emit = defineEmits<{ 'update:allowOverwrite': [value: string[]]; 'update:applyResources': [value: boolean]; retryResources: [] }>();
 const update = (value: CheckboxGroupValueType) => emit('update:allowOverwrite', value.map(String));
 const counts = computed(() => ({
   create: props.preview.plan.files.filter((file) => file.status === 'create').length,
@@ -43,6 +50,10 @@ const counts = computed(() => ({
 const created = computed(() => props.result?.manifest?.createdFiles || props.result?.plan?.files.filter((file) => file.status === 'create').map((file) => file.path) || []);
 const overwritten = computed(() => props.result?.manifest?.overwrittenFiles || props.result?.plan?.files.filter((file) => file.status === 'conflict').map((file) => file.path) || []);
 const skipped = computed(() => props.result?.plan?.files.filter((file) => file.status === 'unchanged').map((file) => file.path) || []);
+const resourceStatus = computed(() => props.result?.resourceApplyStatus || props.result?.manifest?.resourceApplyStatus || 'not_requested');
+const resourceError = computed(() => props.result?.resourceApplyError || props.result?.manifest?.resourceApplyError || '');
+const resourceStatusLabel = computed(() => ({ not_requested: '仅生成，未应用', pending: '等待应用', applied: '已应用', failed: '应用失败，文件已保留' })[resourceStatus.value]);
+const resourceStatusType = computed(() => resourceStatus.value === 'applied' ? 'success' : resourceStatus.value === 'failed' ? 'danger' : 'info');
 </script>
 
 <style scoped>

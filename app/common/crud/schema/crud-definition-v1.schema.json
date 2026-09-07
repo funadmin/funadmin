@@ -39,7 +39,9 @@
     },
     "dataScope": { "type": "object", "required": ["enabled", "field"], "additionalProperties": false, "properties": {
       "enabled": { "type": "boolean" }, "field": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$|^$" }, "resolver": { "const": "adminDepartmentIds" }
-    }}
+    }},
+    "menu": { "$ref": "#/$defs/menu" },
+    "permission": { "$ref": "#/$defs/permission" }
   },
   "$defs": {
     "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
@@ -64,6 +66,15 @@
     }, "allOf": [{ "if": { "properties": { "type": { "const": "belongsToMany" } }, "required": ["type"] }, "then": { "required": ["pivotTable", "pivotLocalKey", "pivotTargetKey"] } }]},
     "optionsSource": { "type": "object", "additionalProperties": false, "required": ["name", "type", "labelField", "valueField"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "type": { "enum": ["relation", "dictionary", "endpoint"] }, "endpoint": { "type": "string" }, "dictionary": { "type": "string" }, "labelField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "valueField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }
+    }},
+    "menu": { "type": "object", "additionalProperties": false, "required": ["enabled", "parentId", "parentSourceName", "name", "icon", "sortOrder", "hidden", "keepAlive", "affix", "target"], "properties": {
+      "enabled": { "type": "boolean" }, "parentId": { "type": ["integer", "null"], "minimum": 1 }, "parentSourceName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$|^$" }, "name": { "type": "string", "minLength": 1 }, "icon": { "type": "string", "pattern": "^i-ep-[a-z0-9]+(?:-[a-z0-9]+)*$" }, "sortOrder": { "type": "integer", "minimum": 0, "maximum": 9999 }, "hidden": { "type": "boolean" }, "keepAlive": { "type": "boolean" }, "affix": { "type": "boolean" }, "target": { "enum": ["_self", "_blank"] }
+    }},
+    "permissionAction": { "type": "object", "additionalProperties": false, "required": ["action", "codeSuffix", "label"], "properties": {
+      "action": { "type": "string", "pattern": "^[a-z][A-Za-z0-9-]*$" }, "codeSuffix": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }, "label": { "type": "string", "minLength": 1 }
+    }},
+    "permission": { "type": "object", "additionalProperties": false, "required": ["enabled", "groupName", "actions"], "properties": {
+      "enabled": { "type": "boolean" }, "groupName": { "type": "string", "minLength": 1 }, "actions": { "type": "array", "items": { "$ref": "#/$defs/permissionAction" } }
     }}
   }
 }

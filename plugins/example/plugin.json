@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "code": "example",
+  "name": "示例插件",
+  "description": "Admin Web 源码构建插件示例",
+  "author": "FunAdmin",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.1",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\example\\Plugin",
+    "file": "Plugin.php"
+  },
+  "adminWeb": {
+    "source": "admin-web",
+    "components": { "Index": "Index.vue" },
+    "minFrontendVersion": "1.0.0",
+    "permissions": [
+      { "code": "example:dashboard:view", "name": "查看示例插件" }
+    ],
+    "menu": [
+      { "name": "示例插件", "path": "/plugin/example/index", "permission": "example:dashboard:view" }
+    ],
+    "routes": [
+      {
+        "path": "/plugin/example/index",
+        "name": "Plugin_example_Index",
+        "component": "Index",
+        "meta": {
+          "title": "示例插件",
+          "permission": "example:dashboard:view"
+        }
+      }
+    ]
+  },
+  "resources": {
+    "public": { "source": "resources/public", "target": "plugin-assets/example/public" }
+  },
+  "migrations": { "path": "database/migrations" },
+  "storage": { "path": "storage" },
+  "purge": { "supported": false }
+}

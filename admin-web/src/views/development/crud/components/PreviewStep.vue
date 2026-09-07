@@ -1,15 +1,19 @@
 <template>
   <el-empty v-if="!preview" description="尚未生成预览，请校验并刷新预览" />
-  <el-tabs v-else v-model="activeGroup" class="preview-tabs">
-    <el-tab-pane v-for="group in groups" :key="group.key" :name="group.key">
-      <template #label>{{ group.label }}（{{ groupedFiles[group.key].length }}）</template>
-      <el-table :data="groupedFiles[group.key]" border>
-        <el-table-column prop="path" label="文件" min-width="320" />
-        <el-table-column prop="status" label="状态" width="110"><template #default="{ row }"><el-tag :type="tagType(row.status)">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
-        <el-table-column label="Diff" min-width="360"><template #default="{ row }"><el-collapse v-if="row.diff"><el-collapse-item title="查看变更"><pre class="diff">{{ row.diff }}</pre></el-collapse-item></el-collapse><span v-else>无变更</span></template></el-table-column>
-      </el-table>
-    </el-tab-pane>
-  </el-tabs>
+  <template v-else>
+    <el-alert :title="resourceSummary" type="info" :closable="false" show-icon class="mb-3" />
+    <el-tabs v-model="activeGroup" class="preview-tabs">
+      <el-tab-pane v-for="group in groups" :key="group.key" :name="group.key">
+        <template #label>{{ group.label }}（{{ groupedFiles[group.key].length }}）</template>
+        <el-table :data="groupedFiles[group.key]" border>
+          <el-table-column prop="path" label="文件" min-width="320" />
+          <el-table-column prop="status" label="状态" width="110"><template #default="{ row }"><el-tag :type="tagType(row.status)">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+          <el-table-column label="Diff" min-width="360"><template #default="{ row }"><el-collapse v-if="row.diff"><el-collapse-item title="查看变更"><pre class="diff">{{ row.diff }}</pre></el-collapse-item></el-collapse><span v-else>无变更</span></template></el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
+    <el-card v-if="resourceFile" header="权限菜单 SQL" shadow="never" class="resource-sql"><pre class="diff">{{ resourceFile.content || resourceFile.diff || 'SQL 内容未随预览返回，请查看生成计划中的 permission migration。' }}</pre></el-card>
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -32,6 +36,11 @@ const fileGroup = (file: CrudPlanFile): GroupKey => {
   if (path.endsWith('.php')) return 'php';
   return 'vue';
 };
+const resourceFile = computed(() => props.preview?.plan.files.find((file) => file.path.toLowerCase().includes('permission')) || null);
+const resourceSummary = computed(() => {
+  if (!resourceFile.value) return '本次计划未包含权限菜单 migration';
+  return `权限菜单 migration：${statusLabel(resourceFile.value.status)}；生成后可选择仅审阅或受控应用`;
+});
 const groupedFiles = computed<Record<GroupKey, CrudPlanFile[]>>(() => {
   const grouped = { database: [], php: [], vue: [], test: [], permission: [] } as Record<GroupKey, CrudPlanFile[]>;
   for (const file of props.preview?.plan.files || []) grouped[fileGroup(file)].push(file);
@@ -43,4 +52,5 @@ const tagType = (status: CrudPlanStatus) => status === 'conflict' || status === 
 
 <style scoped>
 .diff { max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+.resource-sql { margin-top: 16px; }
 </style>

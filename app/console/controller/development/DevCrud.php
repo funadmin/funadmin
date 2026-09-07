@@ -58,6 +58,12 @@ final class DevCrud extends AdminApiController
         return $this->execute(fn (): array => $this->crud->inspect($this->connection(), $table));
     }
 
+    #[Get('options')]
+    public function options(): Response
+    {
+        return $this->execute(fn (): array => $this->crud->options());
+    }
+
     #[Post('infer')]
     public function infer(): Response
     {
@@ -93,13 +99,33 @@ final class DevCrud extends AdminApiController
             return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
         }
         $authorization = new AdminAuthorizationService();
+        $applyResources = filter_var($this->request->post('applyResources', false), FILTER_VALIDATE_BOOL);
+        $canApplyResources = $authorization->nodeAccess('development/crud/apply-resources');
+        if ($applyResources && !$canApplyResources) {
+            return $this->fail(msg: '缺少 resource apply 专用权限', code: 403);
+        }
         return $this->execute(fn (): array => $this->crud->generate(
             $this->definition(),
             trim((string) $this->request->post('confirmToken', '')),
             array_values(array_filter($allowOverwrite, 'is_string')),
             $authorization->nodeAccess('development/crud/overwrite'),
-            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
+            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web'),
+            $applyResources,
+            $canApplyResources
         ), 'CRUD 生成完成');
+    }
+
+    #[Post('generations/:id/apply-resources')]
+    #[Pattern('id', '\\d+')]
+    public function applyResources(int $id): Response
+    {
+        $authorization = new AdminAuthorizationService();
+        if (!$authorization->nodeAccess('development/crud/generate')
+            || !$authorization->nodeAccess('development/crud/overwrite')
+            || !$authorization->nodeAccess('development/crud/apply-resources')) {
+            return $this->fail(msg: '缺少资源应用权限', code: 403);
+        }
+        return $this->execute(fn (): array => $this->crud->applyResources($id), '菜单与权限应用完成');
     }
 
     #[Get('generations/:id')]

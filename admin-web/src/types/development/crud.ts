@@ -45,6 +45,11 @@ export interface CrudCapabilities {
 export interface CrudRelation { name: string; type: 'belongsTo' | 'hasOne' | 'hasMany' | 'belongsToMany'; field: string; target: string; targetField: string; pivotTable?: string; pivotLocalKey?: string; pivotTargetKey?: string; optionsSource?: string; with?: boolean }
 export interface CrudOptionsSource { name: string; type: 'relation' | 'dictionary' | 'endpoint'; endpoint?: string; dictionary?: string; labelField: string; valueField: string }
 export interface CrudFeatures { batchDelete: boolean; status: boolean; detail: boolean; import: boolean; export: boolean; upload: boolean; dictionary: boolean; referenceProtection: boolean; formMode: 'dialog' | 'drawer'; importLimit: number; exportLimit: number }
+export interface CrudMenuConfig { enabled: boolean; parentId: number | null; parentSourceName: string; name: string; icon: string; sortOrder: number; hidden: boolean; keepAlive: boolean; affix: boolean; target: '_self' | '_blank' }
+export interface CrudPermissionAction { action: string; codeSuffix: string; label: string }
+export interface CrudPermissionConfig { enabled: boolean; groupName: string; actions: CrudPermissionAction[] }
+export interface CrudParentMenu { id: number; sourceName: string; name: string; path: string; children?: CrudParentMenu[] }
+export interface CrudResourceOptions { parentMenus: CrudParentMenu[]; icons: string[] }
 export interface CrudArtifactMap {
   migration: string; model: string; validate: string; service: string; controller: string;
   permissionMigration: string; api: string; view: string; form: string; detail: string;
@@ -58,6 +63,7 @@ export interface CrudDefinition {
   optionsSource: CrudOptionsSource[]; templates: CrudArtifactMap;
   capabilities: CrudCapabilities; features: CrudFeatures;
   dataScope: { enabled: boolean; field: string; resolver?: 'adminDepartmentIds' };
+  menu: CrudMenuConfig; permission: CrudPermissionConfig;
 }
 export type CrudPlanStatus = 'create' | 'unchanged' | 'conflict' | 'blocked';
 export interface CrudPlanFile {
@@ -80,6 +86,9 @@ export interface CrudGenerationManifest {
   validationResult?: { valid?: boolean; [key: string]: unknown };
   status?: string;
   error?: { message?: string; [key: string]: unknown } | null;
+  resourceApplyStatus?: 'not_requested' | 'pending' | 'applied' | 'failed';
+  resourceApplyError?: string | null;
+  resourceChecksum?: string | null;
   [key: string]: unknown;
 }
 export interface CrudGeneration {
@@ -87,4 +96,7 @@ export interface CrudGeneration {
   write?: { status: string; written?: number; rollback?: string[] };
   manifest?: CrudGenerationManifest;
   plan?: CrudPreview['plan'];
+  resourceApplyStatus?: 'not_requested' | 'pending' | 'applied' | 'failed';
+  resourceApplyError?: string | null;
+  resourceChecksum?: string | null;
 }
