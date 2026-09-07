@@ -7,6 +7,7 @@ namespace app\console\service;
 use app\console\model\AdminMenu;
 use app\common\service\MigrationService;
 use fun\plugins\Manifest;
+use RuntimeException;
 use think\facade\Db;
 
 /** 封装插件资源、migration 与菜单持久化基础设施。 */
@@ -48,6 +49,79 @@ final class PluginInfrastructureService
             runtime_path('plugins'),
             new DatabasePluginAppPublicationRepository()
         );
+    }
+
+    public function withPublicationLock(callable $operation): mixed
+    {
+        $file = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'publication.lock');
+        $directory = dirname($file);
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new RuntimeException('无法创建插件发布锁目录');
+        }
+        $lock = fopen($file, 'c+');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if (is_resource($lock)) {
+                fclose($lock);
+            }
+            throw new RuntimeException('无法获取插件全局发布锁');
+        }
+        try {
+            return $operation();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    public function publishResources(Manifest $manifest, string $token): array
+    {
+        return $this->withPublicationLock(function () use ($manifest, $token): array {
+            $app = $this->appPublisher()->publish($manifest, $token, false);
+            try {
+                $files = $this->publisher()->publish($manifest);
+            } catch (\Throwable $exception) {
+                $this->appPublisher()->rollback($token, false);
+                throw $exception;
+            }
+            return ['app' => $app, 'files' => $files];
+        });
+    }
+
+    public function removePublishedResources(string $code, string $token): array
+    {
+        return $this->withPublicationLock(function () use ($code, $token): array {
+            $app = $this->appPublisher()->remove($code, $token, false);
+            try {
+                $files = $this->publisher()->remove($code);
+            } catch (\Throwable $exception) {
+                $this->appPublisher()->rollback($token, false);
+                throw $exception;
+            }
+            return ['app' => $app, 'files' => $files];
+        });
+    }
+
+    public function snapshotResourceState(string $code): array
+    {
+        return [
+            'permissions' => \app\console\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->select()->toArray(),
+            'menus' => AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->select()->toArray(),
+        ];
+    }
+
+    public function restoreResourceState(string $code, array $snapshot): void
+    {
+        Db::transaction(static function () use ($code, $snapshot): void {
+            AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->delete();
+            \app\console\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->delete();
+            foreach ((array) ($snapshot['permissions'] ?? []) as $row) {
+                \app\console\model\Permission::create($row);
+            }
+            foreach ((array) ($snapshot['menus'] ?? []) as $row) {
+                AdminMenu::create($row);
+            }
+        });
+        \app\console\service\CasbinService::instance()->reload();
     }
 
     public function migrate(Manifest $manifest): array

@@ -24,7 +24,9 @@ class PluginService extends AbstractService
         $operationStages = [],
         $operationProgress = [],
         $activeOperationTokens = [],
-        $appPublicationTokens = [];
+        $appPublicationTokens = [],
+        $resourcePublicationSnapshots = [],
+        $resourceStateSnapshots = [];
 
     private function transition(Plugin $record, string $to): void
     {
@@ -47,23 +49,38 @@ class PluginService extends AbstractService
             return $operation($this->packageOperationTokens[$code]);
         }
         $lock = null;
-        $operationFailure = null;
         $token = bin2hex(random_bytes(16));
+        $success = false;
+        $this->deploymentRollbackAllowed = true;
         $this->activeOperationTokens[$code] = $token;
         try {
             $this->assertCode($code);
             $this->assertLifecycleSchema();
             $lock = (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($code);
+            $this->assertNoStalePublication($code);
+            $this->captureResourceState($code);
             $result = $operation($token);
+            $this->refreshLifecycleCaches();
             $this->completeAppPublication($code);
+            $success = true;
             return $result;
         } catch (\Throwable $exception) {
-            $operationFailure = $exception;
             try {
-                $this->rollbackAppPublication($code);
-            } catch (\Throwable $rollbackException) {
+                if ($this->deploymentRollbackAllowed) {
+                    $this->rollbackAppPublication($code);
+                } else {
+                    $recoveryPath = $this->preservePublicationRecovery($code);
+                    if ($recoveryPath !== null) {
+                        $exception = new RuntimeException(
+                            $exception->getMessage() . '；publication 需人工恢复：' . $recoveryPath,
+                            0,
+                            $exception
+                        );
+                    }
+                }
+            } catch (\Throwable $recoveryException) {
                 $exception = new RuntimeException(
-                    $exception->getMessage() . '；原生 App 生命周期回滚失败：' . $rollbackException->getMessage(),
+                    $exception->getMessage() . '；publication 恢复处理失败：' . $recoveryException->getMessage(),
                     0,
                     $exception
                 );
@@ -79,7 +96,9 @@ class PluginService extends AbstractService
                 $this->operationStages[$code],
                 $this->operationProgress[$code],
                 $this->activeOperationTokens[$code],
-                $this->appPublicationTokens[$code]
+                $this->appPublicationTokens[$code],
+                $this->resourcePublicationSnapshots[$code],
+                $this->resourceStateSnapshots[$code]
             );
             $this->suppressFailureRecording = false;
             try {
@@ -90,24 +109,17 @@ class PluginService extends AbstractService
             } catch (\Throwable $cleanupException) {
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
             }
-            try {
-                if ($lock) {
-                    try {
-                        $this->rebuildActivationCache();
-                        $this->rebuildRuntimeCache();
-                    } catch (\Throwable $cacheException) {
-                        if ($operationFailure !== null) {
-                            error_log('插件运行时清单重建失败：' . $cacheException->getMessage());
-                        } else {
-                            throw $cacheException;
-                        }
-                    }
+            if (!$success && $lock) {
+                try {
+                    $this->rebuildActivationCache();
+                    $this->rebuildRuntimeCache();
+                    $this->clearApplicationCache();
+                } catch (\Throwable $cacheException) {
+                    error_log('插件失败态缓存重建失败：' . $cacheException->getMessage());
                 }
-                $this->clearApplicationCache();
-            } finally {
-                if ($lock) {
-                    $lock->release();
-                }
+            }
+            if ($lock) {
+                $lock->release();
             }
         }
     }
@@ -335,6 +347,7 @@ class PluginService extends AbstractService
             $this->assertDisabled($record, $code);
             $this->validatedManifest($code);
             $this->beginOperation($record, $token, 'updating');
+            $this->deploymentRollbackAllowed = false;
             $this->recordStage($code, 'migrate', 'migration');
             $migration = $this->migrate($code);
             $record->save([
@@ -395,9 +408,9 @@ class PluginService extends AbstractService
                 throw new RuntimeException('插件卸载失败');
             }
             $this->recordStage($code, 'uninstall', 'resources');
+            $this->removePluginResources($code, $token);
             $this->infrastructure()->removeMenus($code);
             $this->infrastructure()->removePermissions($code);
-            $this->removePluginResources($code, $token);
             $this->recordStage($code, 'uninstall', 'permissions');
             $this->transition($record, 'discovered');
             if (!$record->delete()) {

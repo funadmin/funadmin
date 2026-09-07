@@ -271,6 +271,9 @@ final class PluginPackagePipeline
             if ($rollbackAllowed && $deploymentState !== [] && is_callable($this->restoreState)) {
                 ($this->restoreState)($code, $deploymentState);
             }
+            if (!$rollbackAllowed && method_exists($this->packages, 'preserveRecovery')) {
+                $recoveryPath = $this->packages->preserveRecovery($code, $backup) ?? $recoveryPath;
+            }
             if ($staged !== []) {
                 $this->packages->discard($staged);
             }

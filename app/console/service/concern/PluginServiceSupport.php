@@ -120,23 +120,37 @@ trait PluginServiceSupport
     {
         $manifest = $this->validatedManifest($code);
         $token = 'restore-' . bin2hex(random_bytes(12));
-        $this->infrastructure()->publisher()->publish($manifest);
-        $this->infrastructure()->appPublisher()->publish($manifest, $token);
+        $this->infrastructure()->publishResources($manifest, $token);
         $this->infrastructure()->appPublisher()->complete($token);
+    }
+
+    private function assertNoStalePublication(string $code): void
+    {
+        $stale = $this->infrastructure()->appPublisher()->stale($code);
+        if ($stale === []) {
+            return;
+        }
+        $tokens = implode(', ', array_map(static fn (array $journal): string => (string) ($journal['token'] ?? ''), $stale));
+        throw new RuntimeException('插件存在未完成 publication journal，请先恢复：' . $tokens);
+    }
+
+    private function captureResourceState(string $code): void
+    {
+        $this->resourceStateSnapshots[$code] = $this->infrastructure()->snapshotResourceState($code);
     }
 
     private function publishPluginResources(Manifest $manifest, string $token): void
     {
-        $this->infrastructure()->appPublisher()->publish($manifest, $token);
+        $snapshot = $this->infrastructure()->publishResources($manifest, $token);
         $this->appPublicationTokens[$manifest->code()] = $token;
-        $this->infrastructure()->publisher()->publish($manifest);
+        $this->resourcePublicationSnapshots[$manifest->code()] = (array) ($snapshot['files'] ?? []);
     }
 
     private function removePluginResources(string $code, string $token): void
     {
-        $this->infrastructure()->appPublisher()->remove($code, $token);
+        $snapshot = $this->infrastructure()->removePublishedResources($code, $token);
         $this->appPublicationTokens[$code] = $token;
-        $this->infrastructure()->publisher()->remove($code);
+        $this->resourcePublicationSnapshots[$code] = (array) ($snapshot['files'] ?? []);
     }
 
     private function completeAppPublication(string $code): void
@@ -148,9 +162,41 @@ trait PluginServiceSupport
 
     private function rollbackAppPublication(string $code): void
     {
+        if (isset($this->resourcePublicationSnapshots[$code])) {
+            $this->infrastructure()->publisher()->rollback($this->resourcePublicationSnapshots[$code]);
+        }
         if (isset($this->appPublicationTokens[$code])) {
             $this->infrastructure()->appPublisher()->rollback($this->appPublicationTokens[$code]);
         }
+        if (isset($this->resourceStateSnapshots[$code])) {
+            $this->infrastructure()->restoreResourceState($code, $this->resourceStateSnapshots[$code]);
+        }
+    }
+
+    private function rollbackResourcePublication(string $code): void
+    {
+        $this->rollbackAppPublication($code);
+    }
+
+    private function preservePublicationRecovery(string $code): ?string
+    {
+        if (!isset($this->appPublicationTokens[$code])) {
+            return null;
+        }
+        return $this->infrastructure()->appPublisher()->requireManualRecovery(
+            $this->appPublicationTokens[$code],
+            [
+                'file_snapshot' => $this->resourcePublicationSnapshots[$code] ?? [],
+                'resource_state' => $this->resourceStateSnapshots[$code] ?? [],
+            ]
+        );
+    }
+
+    private function refreshLifecycleCaches(): void
+    {
+        $this->rebuildActivationCache();
+        $this->rebuildRuntimeCache();
+        $this->clearApplicationCache();
     }
 
     private function registerMenu(string $code): void

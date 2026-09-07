@@ -11,6 +11,7 @@ return [
         'plugin:make' => 'fun\command\PluginMake',
         'plugin:validate' => 'fun\command\PluginValidate',
         'plugin:package' => 'fun\command\PluginPackage',
+        'plugin:publication-recover' => 'fun\command\PluginPublicationRecover',
         'maintenance:contract-migrate' => 'fun\command\MaintenanceContractMigrate',
         'upgrade:recover-stale' => 'fun\command\UpgradeRecover',
         'mcp' => 'fun\mcp\McpServer',

@@ -24,20 +24,23 @@ final class PluginAppPublicationService
     ) {
     }
 
-    public function publish(Manifest $manifest, string $token): array
+    public function publish(Manifest $manifest, string $token, bool $lock = true): array
     {
         $this->assertToken($token);
-        return $this->locked(function () use ($manifest, $token): array {
+        $this->assertNewToken($token);
+        $operation = function () use ($manifest, $token): array {
             $units = $this->sourceUnits($manifest);
             return $this->execute($manifest->code(), $manifest->version(), $token, $units);
-        });
+        };
+        return $lock ? $this->locked($operation) : $operation();
     }
 
-    public function remove(string $pluginCode, string $token): array
+    public function remove(string $pluginCode, string $token, bool $lock = true): array
     {
         $this->assertPluginCode($pluginCode);
         $this->assertToken($token);
-        return $this->locked(function () use ($pluginCode, $token): array {
+        $this->assertNewToken($token);
+        $operation = function () use ($pluginCode, $token): array {
             $owned = $this->ownedRecords($pluginCode);
             $this->assertCurrentUnmodified($pluginCode, $owned);
             $units = [];
@@ -46,7 +49,8 @@ final class PluginAppPublicationService
                 $units[$unit] = ['source' => null, 'target' => $target, 'records' => $records];
             }
             return $this->execute($pluginCode, '', $token, $units, true);
-        });
+        };
+        return $lock ? $this->locked($operation) : $operation();
     }
 
     public function inspect(string $token): array
@@ -67,6 +71,35 @@ final class PluginAppPublicationService
         return $journal;
     }
 
+    public function stale(?string $pluginCode = null): array
+    {
+        if ($pluginCode !== null) {
+            $this->assertPluginCode($pluginCode);
+        }
+        $root = $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-journals';
+        if (!is_dir($root)) {
+            return [];
+        }
+        $journals = [];
+        foreach ($this->directoryEntries($root) as $directory) {
+            if (!is_dir($directory) || !is_file($directory . DIRECTORY_SEPARATOR . 'journal.json')) {
+                continue;
+            }
+            $token = basename($directory);
+            try {
+                $journal = $this->inspect($token);
+            } catch (Throwable) {
+                continue;
+            }
+            if (($journal['state'] ?? '') !== 'completed'
+                && ($pluginCode === null || ($journal['plugin'] ?? '') === $pluginCode)) {
+                $journals[] = $journal;
+            }
+        }
+        usort($journals, static fn (array $left, array $right): int => strcmp((string) ($left['updated_at'] ?? ''), (string) ($right['updated_at'] ?? '')));
+        return $journals;
+    }
+
     public function recover(string $token): void
     {
         $journal = $this->inspect($token);
@@ -76,17 +109,45 @@ final class PluginAppPublicationService
         $this->rollback($token);
     }
 
-    public function rollback(string $token): void
+    public function requireManualRecovery(string $token, array $context = []): string
+    {
+        $journal = $this->inspect($token);
+        $recoveryRoot = $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-recovery' . DIRECTORY_SEPARATOR . $token;
+        foreach ((array) ($journal['units'] ?? []) as $index => $unit) {
+            $backup = (string) ($unit['backup'] ?? '');
+            if ($backup === '' || !is_dir($backup)) {
+                continue;
+            }
+            $durable = $recoveryRoot . DIRECTORY_SEPARATOR . $this->unitSlug((string) $unit['unit']);
+            $this->copyTree($backup, $durable);
+            $journal['units'][$index]['backup'] = $durable;
+            $journal['units'][$index]['recovery_backup'] = $durable;
+            $this->removeTree($backup);
+        }
+        $journal['state'] = 'rollback_required';
+        $journal['manual_recovery'] = true;
+        $journal['recovery_path'] = $recoveryRoot;
+        $journal['recovery_context'] = $context;
+        $this->writeJournal($token, $journal);
+        return $recoveryRoot;
+    }
+
+    public function rollback(string $token, bool $lock = true): void
     {
         $this->assertToken($token);
-        $this->locked(function () use ($token): void {
+        $operation = function () use ($token): void {
             $journal = $this->inspect($token);
             $this->writeJournal($token, array_replace($journal, ['state' => 'rollback_required']));
             $this->restore($journal);
             $journal = $this->inspect($token);
             $this->cleanupArtifacts($journal);
             $this->writeJournal($token, array_replace($journal, ['state' => 'completed', 'rolled_back' => true]));
-        });
+        };
+        if ($lock) {
+            $this->locked($operation);
+            return;
+        }
+        $operation();
     }
 
     public function complete(string $token): void
@@ -145,6 +206,9 @@ final class PluginAppPublicationService
         $next = [];
         try {
             foreach ($sourceUnits as $unit => $definition) {
+                if ($definition['source'] !== null && $this->files($definition['source']) === []) {
+                    continue;
+                }
                 $target = $definition['target'];
                 $temp = dirname($target) . DIRECTORY_SEPARATOR . '.publication-' . $token . '-' . $this->unitSlug($unit);
                 $backup = $this->backupPath($token, $target);
@@ -589,8 +653,7 @@ final class PluginAppPublicationService
 
     private function backupPath(string $token, string $target): string
     {
-        return $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-backups' . DIRECTORY_SEPARATOR . $token
-            . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $this->targetRegistryPath($target));
+        return dirname($target) . DIRECTORY_SEPARATOR . '.publication-backup-' . $token . '-' . basename($target);
     }
 
     private function journalFile(string $token): string
@@ -626,9 +689,6 @@ final class PluginAppPublicationService
             $this->removeTree((string) ($unit['temp'] ?? ''));
             $this->removeTree((string) ($unit['backup'] ?? ''));
         }
-        $backupRoot = $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-backups'
-            . DIRECTORY_SEPARATOR . (string) $journal['token'];
-        $this->removeEmptyParents($backupRoot, $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-backups');
     }
 
     private function locked(callable $operation): mixed
@@ -757,6 +817,13 @@ final class PluginAppPublicationService
     {
         if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/', $token) !== 1) {
             throw new RuntimeException('publication operation token 不合法');
+        }
+    }
+
+    private function assertNewToken(string $token): void
+    {
+        if (is_file($this->journalFile($token))) {
+            throw new RuntimeException('publication operation token 已存在：' . $token);
         }
     }
 }

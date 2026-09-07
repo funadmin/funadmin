@@ -152,9 +152,7 @@ class PluginPackageService extends AbstractService
         $target = $this->pluginDirectory($code);
         $backup = null;
         if (is_dir($target)) {
-            $backupRoot = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'backup');
-            $this->createDirectory($backupRoot);
-            $backup = $backupRoot . DIRECTORY_SEPARATOR . $code . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+            $backup = dirname($target) . DIRECTORY_SEPARATOR . '.' . $code . '-backup-' . bin2hex(random_bytes(8));
             if (!rename($target, $backup)) {
                 throw new RuntimeException('无法备份当前插件目录');
             }
@@ -178,6 +176,18 @@ class PluginPackageService extends AbstractService
         if ($backup !== null && is_dir($backup) && !rename($backup, $target)) {
             throw new RuntimeException('插件更新失败，且旧版本目录恢复失败：' . $backup);
         }
+    }
+
+    public function preserveRecovery(string $code, ?string $backup): ?string
+    {
+        if ($backup === null || !is_dir($backup)) {
+            return null;
+        }
+        $directory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'recovery' . DIRECTORY_SEPARATOR . $code);
+        $this->createDirectory($directory);
+        $target = $directory . DIRECTORY_SEPARATOR . basename($backup);
+        $this->copyDirectory($backup, $target);
+        return $target;
     }
 
     public function archiveDiscovered(string $code): string
@@ -458,6 +468,23 @@ class PluginPackageService extends AbstractService
     {
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new RuntimeException('无法创建目录：' . $directory);
+        }
+    }
+
+    private function copyDirectory(string $source, string $target): void
+    {
+        $this->createDirectory($target);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            $destination = $target . DIRECTORY_SEPARATOR . substr($item->getPathname(), strlen($source) + 1);
+            if ($item->isDir()) {
+                $this->createDirectory($destination);
+            } elseif (!copy($item->getPathname(), $destination)) {
+                throw new RuntimeException('插件 recovery 复制失败：' . $destination);
+            }
         }
     }
 
