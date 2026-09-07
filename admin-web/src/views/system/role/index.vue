@@ -36,16 +36,23 @@
         >
           <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
         </el-button>
+        <el-button type="primary" plain @click="toggleExpand">
+          <i :class="expandAll ? 'i-ep-fold' : 'i-ep-expand'" /> {{ expandAll ? '折叠' : '展开' }}
+        </el-button>
       </template>
 
       <template #default="{ size, stripe, border, headerCellStyle, columnKeys }">
         <el-table
-          :data="displayList"
+          :key="tableRenderKey"
+          :data="displayTree"
           v-loading="loading"
           :size="size"
           :stripe="stripe"
           :border="border"
           :header-cell-style="headerCellStyle"
+          row-key="id"
+          :tree-props="{ children: 'children' }"
+          :default-expand-all="expandAll"
           @selection-change="onSelectionChange"
         >
           <el-table-column type="selection" width="48" align="center" />
@@ -132,17 +139,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { roleApi, type RoleModel } from '@/api/system/role';
 import { DataTableShell, type DataTableColumnOption } from '@/components/DataTable';
 import SearchForm from '@/components/SearchForm/index.vue';
 import { useCrud } from '@/composables/useCrud';
 import RoleFormDialog from './components/RoleFormDialog.vue';
 import RolePermDrawer from './components/RolePermDrawer.vue';
+import { roleTree } from './roleHierarchy';
 
 defineOptions({ name: 'SystemRole' });
 
 /** 列定义：操作列 alwaysVisible，避免被取消勾选导致行内动作不可达 */
+const expandAll = ref(true);
+const tableRenderKey = ref(0);
+
 const roleColumnOptions: DataTableColumnOption[] = [
   { key: 'id', label: 'ID' },
   { key: 'name', label: '名称' },
@@ -192,14 +203,17 @@ const {
 });
 
 /** 全量接口 + 前端关键字过滤（数据量小，避免新增后端字段） */
-const displayList = computed(() => {
-  return list.value.filter((row) => {
-    if (query.name && !row.name.includes(query.name)) return false;
-    if (query.code && !(row.code || '').includes(query.code)) return false;
-    if (query.status !== undefined && row.status !== query.status) return false;
-    return true;
-  });
-});
+const displayTree = computed(() => roleTree(list.value.filter((row) => {
+  if (query.name && !row.name.includes(query.name)) return false;
+  if (query.code && !(row.code || '').includes(query.code)) return false;
+  if (query.status !== undefined && row.status !== query.status) return false;
+  return true;
+})));
+
+function toggleExpand() {
+  expandAll.value = !expandAll.value;
+  tableRenderKey.value++;
+}
 
 
 function dataScopeText(scope: RoleModel['dataScope']) {

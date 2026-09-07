@@ -28,7 +28,11 @@ final class FormPublishService
     public function preview(array $payload, bool $canGenerate): array
     {
         $this->forms->validateDefinition($payload);
-        $definition = $this->definitions->create($payload, (array) ($payload['publish_config'] ?? []));
+        $definition = $this->definitions->create(
+            $payload,
+            (array) ($payload['publish_config'] ?? []),
+            $this->schema($payload)
+        );
         $ddl = $this->forms->previewMigration($payload);
         $crud = $this->crud->preview($definition->toArray(), $canGenerate, $canGenerate);
         $files = (array) ($crud['plan']['files'] ?? []);
@@ -60,7 +64,11 @@ final class FormPublishService
         $ddl = null;
         try {
             $ddl = $this->forms->applyMigration($definitionPayload);
-            $crudDefinition = $this->definitions->create($definitionPayload, (array) ($definitionPayload['publish_config'] ?? []));
+            $crudDefinition = $this->definitions->create(
+                $definitionPayload,
+                (array) ($definitionPayload['publish_config'] ?? []),
+                $this->schema($definitionPayload)
+            );
             $generated = $this->crud->generate(
                 $crudDefinition->toArray(),
                 $confirmToken,
@@ -114,6 +122,15 @@ final class FormPublishService
             $this->updateStatus($formId, 'published', ['published_at' => date('Y-m-d H:i:s')]);
         }
         return $result + ['publishStatus' => ($result['resourceApplyStatus'] ?? '') === 'applied' ? 'published' : 'partial'];
+    }
+
+    private function schema(array $payload): array
+    {
+        if ((string) ($payload['source_type'] ?? 'created') !== 'adopted') return [];
+        return $this->crud->inspect(
+            (string) ($payload['connection'] ?? 'mysql'),
+            (string) ($payload['table_name'] ?? '')
+        );
     }
 
     private function definitionPayload(array $saved): array

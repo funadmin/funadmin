@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace plugin\example\console\controller;
+namespace app\console\controller\plugin\example;
 
 use think\annotation\route\Get;
 use think\annotation\route\Group;

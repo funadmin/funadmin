@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace plugin\example\controller;
+namespace app\example\controller;
 
 use think\annotation\route\Get;
 use think\Response;

@@ -111,6 +111,9 @@ final class ManifestMerger
 
     private function encode(array $data): string
     {
+        if (($data['requires']['plugins'] ?? null) === []) {
+            $data['requires']['plugins'] = (object) [];
+        }
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
     }
 

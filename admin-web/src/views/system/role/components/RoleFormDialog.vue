@@ -33,23 +33,40 @@
         </el-col>
       </el-row>
 
-      <el-form-item label="继承角色" prop="parentRoleIds">
-        <el-select
-          v-model="form.parentRoleIds"
-          multiple
-          collapse-tags
-          collapse-tags-tooltip
-          placeholder="可选，仅可继承等级更高的角色"
+      <el-form-item label="上级角色" prop="parentId">
+        <el-tree-select
+          v-model="form.parentId"
+          :data="parentOptions"
+          :props="{ label: 'name', children: 'children' }"
+          node-key="id"
+          check-strictly
+          clearable
+          placeholder="顶级角色"
           class="w-full"
           :loading="optionsLoading"
-        >
-          <el-option
-            v-for="role in parentOptions"
-            :key="role.id"
-            :label="`${role.name}（等级 ${role.level}）`"
-            :value="role.id"
-          />
-        </el-select>
+          no-data-text="暂无可选上级角色"
+        />
+        <div class="mt-1 text-xs text-gray-400">主父级决定角色列表中的树形位置</div>
+      </el-form-item>
+
+      <el-form-item label="额外继承" prop="parentRoleIds">
+        <el-tree-select
+          v-model="form.parentRoleIds"
+          :data="additionalParentOptions"
+          :props="{ label: 'name', children: 'children' }"
+          node-key="id"
+          multiple
+          show-checkbox
+          check-strictly
+          collapse-tags
+          collapse-tags-tooltip
+          clearable
+          placeholder="可选，可额外继承其他角色"
+          class="w-full"
+          :loading="optionsLoading"
+          no-data-text="暂无可继承角色"
+        />
+        <div class="mt-1 text-xs text-gray-400">选择后自动将当前角色等级设为所有父角色最高等级 + 1；数值越小权限越高</div>
       </el-form-item>
 
       <el-form-item label="数据范围" prop="dataScope">
@@ -96,6 +113,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { roleApi, type DataScope, type RoleModel } from '@/api/system/role';
 import { deptApi, type DeptModel } from '@/api/system/dept';
+import { childRoleLevel, parentRoleOptions as availableParentRoles } from '../roleHierarchy';
 
 interface Props {
   modelValue: boolean;
@@ -123,14 +141,17 @@ const initialForm = () => ({
   dataScope: 'self' as DataScope,
   status: 1 as 0 | 1,
   remark: '',
+  parentId: 0,
   parentRoleIds: [] as number[],
   departmentIds: [] as number[]
 });
 const form = reactive<ReturnType<typeof initialForm>>(initialForm());
 
-const parentOptions = computed(() =>
-  roleOptions.value.filter((role) => role.id !== props.row?.id && role.level < form.level)
-);
+const parentOptions = computed(() => availableParentRoles(roleOptions.value, props.row?.id));
+const additionalParentOptions = computed(() => availableParentRoles(
+  roleOptions.value.filter((role) => role.id !== form.parentId),
+  props.row?.id
+));
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
@@ -160,9 +181,11 @@ watch(
   }
 );
 watch(visible, (value) => emit('update:modelValue', value));
-watch(() => form.level, () => {
-  const allowed = new Set(parentOptions.value.map((role) => role.id));
-  form.parentRoleIds = form.parentRoleIds.filter((id) => allowed.has(id));
+watch(() => [form.parentId, ...form.parentRoleIds], () => {
+  form.parentRoleIds = form.parentRoleIds.filter((id) => id !== form.parentId);
+  const inheritedRoleIds = [form.parentId, ...form.parentRoleIds].filter((id) => id > 0);
+  if (!inheritedRoleIds.length) return;
+  form.level = childRoleLevel(inheritedRoleIds, roleOptions.value, form.level);
 });
 watch(() => form.dataScope, (scope) => {
   if (scope !== 'custom') form.departmentIds = [];
@@ -178,6 +201,7 @@ function initForm() {
     form.dataScope = props.row.dataScope;
     form.status = props.row.status;
     form.remark = props.row.remark || '';
+    form.parentId = props.row.parentId || 0;
     form.parentRoleIds = [...(props.row.parentRoleIds || [])];
     form.departmentIds = [...(props.row.departmentIds || [])];
   }

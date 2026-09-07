@@ -11,7 +11,7 @@ export interface PluginCreateInput {
 }
 
 export interface PluginDevelopmentPlan {
-  operation: 'create' | 'package';
+  operation: 'create' | 'validate' | 'package';
   status?: string;
   target?: string;
   output?: string;

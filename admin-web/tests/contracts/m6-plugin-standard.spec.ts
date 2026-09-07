@@ -68,8 +68,9 @@ describe('M6 插件标准 Admin Web 契约', () => {
     expect(schema).not.toContain('"admin_web"');
     expect(manifest).toContain("$data['adminWeb']");
     expect(manifest).toContain('adminWeb.routes.meta.permission');
-    expect(manifest).toContain('validateClosureRouteFile');
-    expect(manifest).toContain('validateChannels');
+    expect(manifest).toContain('validateApplications');
+    expect(manifest).toContain('validatePhpNamespaces');
+    expect(manifest).toContain('validateConsoleGroups');
     expect(manifest).toContain('validatePurgeContract');
   });
 

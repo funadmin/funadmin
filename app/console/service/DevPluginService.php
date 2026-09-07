@@ -91,8 +91,15 @@ final class DevPluginService
         try {
             $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
             $data = $manifest->toArray();
+            $plan = [
+                'operation' => 'validate',
+                'status' => 'valid',
+                'target' => 'plugins/' . $code,
+                'files' => ['plugins/' . $code . '/plugin.json', 'plugins/' . $code . '/Plugin.php'],
+            ];
             return [
-                'auditId' => $this->audit('validate', $code, 'completed', ['version' => $manifest->version()]),
+                'auditId' => $this->audit('validate', $code, 'completed', $plan + ['version' => $manifest->version()]),
+                'plan' => $plan,
                 'valid' => true,
                 'manifest' => $data,
                 'conflicts' => [],
@@ -149,7 +156,7 @@ final class DevPluginService
             }
             $data = $manifest->toArray();
             $application = is_dir($directory . '/app/' . $manifest->code());
-            $console = is_dir($directory . '/app/console') && isset($data['adminWeb']);
+            $console = is_dir($directory . '/app/console');
             $scopes = [];
             if ($application) {
                 $scopes[] = 'application';

@@ -8,7 +8,7 @@ use app\console\service\PluginOperationAuditService;
 use fun\plugins\DependencyValidator;
 use fun\plugins\Manifest;
 use fun\plugins\PluginActivationCompiler;
-use fun\plugins\PluginRuntimeCache;
+use fun\plugins\PluginEntryFactory;
 use fun\plugins\PluginStorage;
 use fun\plugins\Registry;
 use fun\plugins\Service;
@@ -27,7 +27,7 @@ trait PluginServiceSupport
     {
         $manifest = $this->validatedManifest($code);
         try {
-            return (new \fun\plugins\RuntimeLoader())->instantiateEntry(
+            return (new PluginEntryFactory())->create(
                 $manifest,
                 static fn (string $class): object => app()->make($class)
             );
@@ -216,7 +216,6 @@ trait PluginServiceSupport
     private function refreshLifecycleCaches(): void
     {
         $this->rebuildActivationCache();
-        $this->rebuildRuntimeCache();
         $this->clearApplicationCache();
     }
 
@@ -233,11 +232,6 @@ trait PluginServiceSupport
     private function migrate(string $code): array
     {
         return $this->infrastructure()->migrate($this->validatedManifest($code));
-    }
-
-    public function refreshRuntimeCache(): void
-    {
-        $this->rebuildRuntimeCache();
     }
 
     public function refreshActivationCache(): void
@@ -261,25 +255,6 @@ trait PluginServiceSupport
             root_path('runtime/plugins/activation'),
             root_path() . PLUGIN_DIR
         ))->compile($records, $manifests);
-    }
-
-    private function runtimeCache(): PluginRuntimeCache
-    {
-        return new PluginRuntimeCache(root_path() . PLUGIN_DIR, root_path('runtime/plugins/compiled'));
-    }
-
-    private function rebuildRuntimeCache(): void
-    {
-        $records = $this->installedRecords();
-        $enabled = [];
-        foreach ($this->allManifests() as $code => $manifest) {
-            $record = $records[$code] ?? null;
-            if (is_array($record) && ($record['lifecycle_state'] ?? '') === 'enabled'
-                && (int) ($record['needs_reinstall'] ?? 0) === 0) {
-                $enabled[$code] = $manifest;
-            }
-        }
-        $this->runtimeCache()->rebuildOrInvalidate($enabled);
     }
 
     private function infrastructure(): PluginInfrastructureService

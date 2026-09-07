@@ -19,6 +19,12 @@ export interface MockRoleRow {
   code: string;
   remark: string;
   status: 0 | 1;
+  level: number;
+  dataScope: 'all' | 'dept_and_children' | 'dept' | 'self' | 'custom';
+  parentId: number;
+  parentRoleIds: number[];
+  departmentIds: number[];
+  permissionIds: number[];
   menuIds: number[];
   createdAt: string;
 }

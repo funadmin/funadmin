@@ -93,7 +93,7 @@ try {
         pluginCrudExpect(isset($files[$consoleModel]) === in_array($scope, ['console', 'both'], true), $scope . ' console 制品不准确');
         pluginCrudExpect(isset($files['plugins/shop/admin-web/product-item/index.vue']) === in_array($scope, ['console', 'both'], true), $scope . ' AdminWeb 制品不准确');
         if (isset($files[$applicationModel])) {
-            pluginCrudExpect(str_contains($files[$applicationModel], 'namespace plugin\\shop\\model;'), 'application namespace 错误');
+            pluginCrudExpect(str_contains($files[$applicationModel], 'namespace app\\shop\\model;'), 'application namespace 错误');
             pluginCrudExpect(str_contains($files[$applicationModel], 'extends Model'), 'application model 必须使用原生 ThinkPHP Model');
             $applicationController = $files['plugins/shop/app/shop/controller/ProductItemController.php'];
             pluginCrudExpect(str_contains($applicationController, 'extends BaseController'), 'application controller 必须使用原生应用基类');
@@ -104,7 +104,7 @@ try {
             pluginCrudExpect(str_contains($applicationController, "#[Group('product-item')]"), 'application 必须使用原生 Attribute 路由');
         }
         if (isset($files[$consoleModel])) {
-            pluginCrudExpect(str_contains($files[$consoleModel], 'namespace plugin\\shop\\console\\model;'), 'console namespace 错误');
+            pluginCrudExpect(str_contains($files[$consoleModel], 'namespace app\\console\\model\\plugin\\shop;'), 'console namespace 错误');
             $controller = $files['plugins/shop/app/console/controller/ProductItemController.php'];
             pluginCrudExpect(str_contains($controller, "#[Group('plugin/shop/product-item')]"), 'Console Group 前缀错误');
             pluginCrudExpect(str_contains($controller, 'extends AdminApiController'), 'Console controller 基类错误');
@@ -116,6 +116,7 @@ try {
         }
         $mergedManifest = $files['plugins/shop/plugin.json'];
         $merged = json_decode($mergedManifest, true, 512, JSON_THROW_ON_ERROR);
+        pluginCrudExpect(str_contains($mergedManifest, '"plugins": {}'), '空插件依赖必须编码为 JSON object');
         $secondPlan = (new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', new ConfirmationToken($root, 'plugin-crud-idempotent')))->plan($definition);
         $secondFiles = array_column($secondPlan['files'], 'content', 'path');
         pluginCrudExpect($secondFiles['plugins/shop/plugin.json'] === $mergedManifest, 'Manifest 重复规划必须幂等');
@@ -353,7 +354,7 @@ try {
     $writer->write($firstConcurrentPlan, $firstConcurrentPlan['confirmToken']);
     pluginCrudReject(
         static fn () => $writer->write($secondConcurrentPlan, $secondConcurrentPlan['confirmToken']),
-        'migration 序列'
+        '已变化'
     );
 
     echo "Plugin CRUD target tests: PASS\n";

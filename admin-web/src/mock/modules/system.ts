@@ -156,6 +156,11 @@ export const systemMockHandlers: MockRoute[] = [
   },
   {
     method: 'GET',
+    url: '/system/role/parent-options',
+    handler: () => ok(roleList.filter((role) => role.status === 1))
+  },
+  {
+    method: 'GET',
     url: /^\/system\/role\/(\d+)$/,
     paramNames: ['id'],
     handler: ({ pathParams }) => {
@@ -174,6 +179,12 @@ export const systemMockHandlers: MockRoute[] = [
         code: body.code,
         remark: body.remark || '',
         status: body.status ?? 1,
+        level: body.level ?? 100,
+        dataScope: body.dataScope ?? 'self',
+        parentId: body.parentId ?? 0,
+        parentRoleIds: body.parentRoleIds || [],
+        departmentIds: body.departmentIds || [],
+        permissionIds: body.permissionIds || [],
         menuIds: body.menuIds || [],
         createdAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
       };

@@ -10,9 +10,14 @@ final class PluginTemplateContext
     public static function build(CrudDefinition $definition, string $plugin, bool $console): array
     {
         $entity = (string) $definition->get('entity', '');
-        $namespace = 'plugin\\' . $plugin . ($console ? '\\console' : '');
+        $namespace = $console ? 'app\\console' : 'app\\' . $plugin;
+        $pluginNamespace = 'plugin\\' . $plugin;
         return ProductionTemplateContext::build($definition, [
             'namespace' => $namespace,
+            'modelNamespace' => $console ? $namespace . '\\model\\' . $pluginNamespace : $namespace . '\\model',
+            'validateNamespace' => $console ? $namespace . '\\validate\\' . $pluginNamespace : $namespace . '\\validate',
+            'serviceNamespace' => $console ? $namespace . '\\service\\' . $pluginNamespace : $namespace . '\\service',
+            'controllerNamespace' => $console ? $namespace . '\\controller\\' . $pluginNamespace : $namespace . '\\controller',
             'controllerGroup' => $console ? 'plugin/' . $plugin . '/' . $entity : $entity,
             'apiPrefix' => $console ? '/console/plugin/' . $plugin . '/' . $entity : '/' . $entity,
             'frontendApiImport' => './api',

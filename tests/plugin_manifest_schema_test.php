@@ -6,7 +6,6 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use fun\plugins\Manifest;
-use fun\plugins\RuntimeLoader;
 use think\App;
 
 function schemaExpect(bool $condition, string $message): void
@@ -39,8 +38,8 @@ foreach (['app/demo/controller', 'app/console/controller', 'resources/public', '
     mkdir($plugin . '/' . $directory, 0755, true);
 }
 file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\demo; final class Plugin extends \\fun\\Plugins { protected function initialize(): void {} public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; } public function purgeData(): bool { return true; } }');
-file_put_contents($plugin . '/app/demo/controller/Index.php', '<?php namespace plugin\\demo\\controller; final class Index {}');
-file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace plugin\\demo\\console\\controller; use think\\annotation\\route\\Group; #[Group("plugin/demo")] final class Index {}');
+file_put_contents($plugin . '/app/demo/controller/Index.php', '<?php namespace app\\demo\\controller; final class Index {}');
+file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace app\\console\\controller\\plugin\\demo; use think\\annotation\\route\\Group; #[Group("plugin/demo")] final class Index {}');
 file_put_contents($plugin . '/resources/public/app.css', 'body{}');
 file_put_contents($plugin . '/admin-web/Index.vue', '<template>demo</template>');
 file_put_contents($plugin . '/database/migrations/001_initial.sql', 'SELECT 1;');
@@ -97,11 +96,10 @@ $case = $valid; $case['adminWeb']['routes'][0]['component'] = 'Other'; $cases[] 
 foreach ($cases as [$manifest, $message]) schemaReject($plugin, $manifest, $message);
 file_put_contents($plugin . '/plugin.json', json_encode($valid, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-$runtimeManifest = Manifest::fromDirectory($plugin);
-schemaExpect((new RuntimeLoader())->boundaries($runtimeManifest) === [], 'Manifest v2 下旧 RuntimeLoader 必须兼容空边界');
-file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace plugin\\demo\\console\\controller; use think\\annotation\\route\\Group; #[Group("other")] final class Index {}');
+Manifest::fromDirectory($plugin);
+file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace app\\console\\controller\\plugin\\demo; use think\\annotation\\route\\Group; #[Group("other")] final class Index {}');
 schemaReject($plugin, $valid, 'Console Group 必须限制在 plugin/code 前缀');
-file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace plugin\\demo\\console\\controller; use think\\annotation\\route\\Group; #[Group("plugin/demo")] final class Index {}');
+file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace app\\console\\controller\\plugin\\demo; use think\\annotation\\route\\Group; #[Group("plugin/demo")] final class Index {}');
 file_put_contents($plugin . '/database/migrations/bad.sql', 'SELECT 1;');
 schemaReject($plugin, $valid, 'migration 文件名必须被校验');
 unlink($plugin . '/database/migrations/bad.sql');

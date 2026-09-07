@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use fun\plugins\ActivationGate;
 use fun\plugins\Manifest;
-use fun\plugins\Registry;
-use fun\plugins\RuntimeLoader;
+use fun\plugins\PluginActivationReader;
+use fun\plugins\PluginEntryFactory;
 use think\facade\Route;
 use think\helper\Str;
 
@@ -33,34 +34,24 @@ if (!function_exists('get_plugin_info')) {
     }
 }
 
-/** 仅允许 Registry 中已启用且无需重装的插件实例化。 */
+/** 仅允许可信激活快照中已启用的插件实例化生命周期入口。 */
 if (!function_exists('get_plugin_instance')) {
     function get_plugin_instance(string $code): ?object
     {
         if (!preg_match('/^[a-z][a-z0-9]*$/', $code)) {
             return null;
         }
-        $registry = new Registry(root_path() . PLUGIN_DIR, static function (): array {
-            $records = [];
-            try {
-                foreach (\app\common\model\Plugin::whereNull('deleted_at')->select() as $record) {
-                    $records[(string) $record->code] = [
-                        'lifecycle_state' => (string) $record->lifecycle_state,
-                        'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
-                    ];
-                }
-            } catch (\Throwable) {
-                return [];
-            }
-            return $records;
-        });
-        $manifest = $registry->enabled()[$code] ?? null;
-        if (!$manifest instanceof Manifest) {
-            return null;
-        }
         try {
-            (new RuntimeLoader())->loadEntry($manifest);
-            return app()->make((string) $manifest->toArray()['entry']['class']);
+            $snapshot = (new PluginActivationReader(root_path('runtime/plugins/activation')))->read();
+            $gate = new ActivationGate($snapshot);
+            $plugins = $snapshot->plugins();
+            $application = (($plugins[$code]['applications']['console'] ?? false) === true) ? 'console' : 'app';
+            $gate->assertEnabled($code, $application);
+            $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code);
+            return (new PluginEntryFactory())->create(
+                $manifest,
+                static fn (string $class): object => app()->make($class)
+            );
         } catch (\Throwable) {
             return null;
         }

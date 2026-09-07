@@ -421,7 +421,7 @@ $publisher->complete($preparedRemove);
 resourceExpect(!is_dir($resourceRecovery . '/remove-demo'), '成功 standalone remove + complete 必须清理恢复材料');
 
 mkdir($plugins . '/demo/app/demo/service', 0755, true);
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // native-v1');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // native-v1');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-v1');
 file_put_contents($plugins . '/demo/admin-web/Index.vue', '<template>demo-v1</template>');
 $coordinatedResourceRepository = new MemoryPluginResourceRepository();
@@ -433,7 +433,7 @@ $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), '
 $infrastructure->completePublishedResources('coordinated-initial');
 $oldFileRegistry = $coordinatedResourceRepository->records;
 $oldAppRegistry = $coordinatedAppRepository->records;
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // native-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // native-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-v2');
 $coordinatedAppRepository->failNextReplace = true;
 $snapshotObserved = false;
@@ -451,7 +451,7 @@ resourceExpect(str_contains((string) file_get_contents($root . '/app/demo/servic
 resourceExpect($coordinatedAppRepository->records === $oldAppRegistry, '统一补偿必须恢复 native registry');
 resourceExpect(!is_dir($resourceRecovery . '/coordinated-native-fail'), '统一补偿成功后必须最终清理共享 token 目录');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // files-restore-checkpoint-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // files-restore-checkpoint-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-files-restore-checkpoint-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'coordinated-files-restore', true);
 $filesRestoreFailingInfrastructure = new PluginInfrastructureService(
@@ -477,7 +477,7 @@ resourceExpect(
 ))->recoverPublication('coordinated-files-restore');
 resourceExpect(($coordinatedAppPublisher->inspect('coordinated-files-restore')['state'] ?? '') === 'completed', '文件恢复失败后新实例重试必须 completed');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // native-checkpoint-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // native-checkpoint-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-checkpoint-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'coordinated-checkpoint', true);
 $nativeFailingInfrastructure = new PluginInfrastructureService(
@@ -514,7 +514,7 @@ $checkpointJournal = $coordinatedAppPublisher->inspect('coordinated-checkpoint')
 resourceExpect(($checkpointJournal['state'] ?? '') === 'completed', '新实例必须从 checkpoint 重试到 completed');
 resourceExpect(($checkpointJournal['recovery_steps']['artifacts_cleaned'] ?? false) === true, '全部恢复材料清理后必须 checkpoint');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // cleanup-checkpoint-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // cleanup-checkpoint-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-cleanup-checkpoint-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'coordinated-file-cleanup', true);
 $fileCleanupFailingInfrastructure = new PluginInfrastructureService(
@@ -546,7 +546,7 @@ file_put_contents($stylesheet, 'retry-must-not-rollback-files');
 resourceExpect(file_get_contents($stylesheet) === 'retry-must-not-rollback-files', 'files_restored 后重试只能 cleanup，不得再次 rollback');
 resourceExpect(($coordinatedAppPublisher->inspect('coordinated-file-cleanup')['state'] ?? '') === 'completed', '文件 cleanup 重试后必须 completed');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // registry-checkpoint-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // registry-checkpoint-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-registry-checkpoint-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'coordinated-registry-restore', true);
 $registryFailingInfrastructure = new PluginInfrastructureService(
@@ -579,7 +579,7 @@ resourceExpect(($registryJournal['recovery_steps']['registry_restored'] ?? true)
 ))->recoverPublication('coordinated-registry-restore');
 resourceExpect(($coordinatedAppPublisher->inspect('coordinated-registry-restore')['state'] ?? '') === 'completed', 'registry 失败后新实例重试必须 completed');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // artifacts-checkpoint-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // artifacts-checkpoint-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-artifacts-checkpoint-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'coordinated-artifacts-cleanup', true);
 $artifactFailingInfrastructure = new PluginInfrastructureService(
@@ -612,7 +612,7 @@ resourceExpect(($artifactJournal['recovery_steps']['artifacts_cleaned'] ?? true)
 ))->recoverPublication('coordinated-artifacts-cleanup');
 resourceExpect(($coordinatedAppPublisher->inspect('coordinated-artifacts-cleanup')['state'] ?? '') === 'completed', 'native cleanup 新实例重试必须 completed');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // commit-cleanup-v2');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // commit-cleanup-v2');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-commit-cleanup-v2');
 $infrastructure->publishResources(Manifest::fromDirectory($plugins . '/demo'), 'commit-cleanup-crash', true);
 $commitCleanupFailingInfrastructure = new PluginInfrastructureService(
@@ -647,7 +647,7 @@ resourceExpect(
 resourceExpect(file_get_contents($stylesheet) === 'demo-css-commit-cleanup-v2', '提交决定后新实例恢复不得 rollback public');
 resourceExpect(($coordinatedAppPublisher->inspect('commit-cleanup-crash')['state'] ?? '') === 'completed', '提交 cleanup 重试全部完成后才可 completed');
 
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // native-v3');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // native-v3');
 file_put_contents($plugins . '/demo/resources/public/app.css', 'demo-css-v3');
 $coordinatedAppRepository->failNextReplace = true;
 $coordinatedAppRepository->beforeFailure = static function () use ($resourceRecovery): void {
@@ -705,7 +705,7 @@ $standaloneAppRepository = new ResourceTestAppRepository();
 $standaloneAppPublisher = new PluginAppPublicationService($root . '/standalone/app', $root . '/standalone/runtime/plugins', $standaloneAppRepository);
 $standaloneAppPublisher->publish(Manifest::fromDirectory($plugins . '/demo'), 'native-standalone-initial');
 $standaloneAppPublisher->complete('native-standalone-initial');
-file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace plugin\\demo\\service; // native-v4');
+file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; // native-v4');
 $standaloneRecovery = $root . '/standalone/runtime/plugins/publication-recovery/native-standalone-fail/resource-files';
 mkdir($standaloneRecovery, 0755, true);
 file_put_contents($standaloneRecovery . '/shared.snapshot', 'standalone');

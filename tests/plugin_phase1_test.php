@@ -9,7 +9,6 @@ use fun\plugins\LifecycleLock;
 use fun\plugins\LifecycleState;
 use fun\plugins\Manifest;
 use fun\plugins\Registry;
-use fun\plugins\RuntimeLoader;
 
 function expect(bool $condition, string $message): void
 {
@@ -142,10 +141,6 @@ $first->release();
 $second = $lock->acquire('demo');
 $second->release();
 
-$loader = new RuntimeLoader();
-$boundaries = $loader->boundaries($manifest);
-expect($boundaries === [], 'Manifest v2 旧 service/event/route 边界必须为空');
-expect(!in_array($root . '/demo/config.php', $boundaries, true), '不得隐式加载插件文件');
 expectException(static function () use ($root): void {
     $data = json_decode((string) file_get_contents($root . '/demo/plugin.json'), true);
     $data['routes'] = '../outside.php';
@@ -158,8 +153,8 @@ expect(!str_contains((string) $serviceSource, 'error_reporting('), '运行时服
 expect(!str_contains((string) $serviceSource, "'plugin.ini'"), '运行时服务不得读取 plugin.ini');
 expect(!str_contains((string) $serviceSource, "'service.ini'"), '运行时服务不得读取 service.ini');
 expect(!str_contains((string) $serviceSource, "config('plugins.route'"), '运行时服务不得加载旧的全局路由配置');
-expect(str_contains((string) $serviceSource, "whereNull('deleted_at')"), 'Registry 查询必须只读取未软删除记录');
-expect(str_contains((string) $serviceSource, 'RuntimeLoader'), '运行时服务必须通过显式加载器加载边界');
+expect(!str_contains((string) $serviceSource, 'Registry'), '基础 Service 不得读取插件 Registry');
+expect(!str_contains((string) $serviceSource, 'Manifest'), '基础 Service 不得读取插件 Manifest');
 expect(!str_contains((string) $serviceSource, '$this->autoload()'), '运行时服务不得保留旧 autoload 状态旁路');
 expect(!str_contains((string) $serviceSource, 'plugins_vendor_autoload'), '运行时服务不得隐式加载插件 vendor');
 expect(!str_contains((string) $serviceSource, 'middleware.php'), '运行时服务不得导入插件全局中间件');

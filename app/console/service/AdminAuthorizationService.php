@@ -97,7 +97,7 @@ class AdminAuthorizationService
 
         [$scope, $object, $action] = array_map('strtolower', $segments);
         if (!preg_match('/^[a-z][a-z0-9_-]*$/', $scope)
-            || !preg_match('/^[a-z][a-z0-9_-]*$/', $object)
+            || !preg_match('/^[a-z][a-z0-9_.-]*$/', $object)
             || !preg_match('/^[a-z][a-z0-9_-]*$/', $action)) {
             return null;
         }

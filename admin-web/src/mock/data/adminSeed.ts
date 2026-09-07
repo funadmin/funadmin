@@ -37,6 +37,12 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     code: 'admin',
     remark: '拥有全部菜单与权限',
     status: 1,
+    level: 1,
+    dataScope: 'all',
+    parentId: 0,
+    parentRoleIds: [],
+    departmentIds: [],
+    permissionIds: [],
     menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118],
     createdAt: unixToDatetime(1554298659)
   },
@@ -46,6 +52,12 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     code: 'operation',
     remark: '业务运营，可查看用户与角色',
     status: 1,
+    level: 100,
+    dataScope: 'dept_and_children',
+    parentId: 1,
+    parentRoleIds: [],
+    departmentIds: [],
+    permissionIds: [],
     menuIds: [101],
     createdAt: '2024-01-01 00:00:00'
   },
@@ -55,6 +67,12 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     code: 'guest',
     remark: '只读',
     status: 0,
+    level: 200,
+    dataScope: 'self',
+    parentId: 2,
+    parentRoleIds: [],
+    departmentIds: [],
+    permissionIds: [],
     menuIds: [],
     createdAt: '2024-01-01 00:00:00'
   }

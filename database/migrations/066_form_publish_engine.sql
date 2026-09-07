@@ -12,7 +12,7 @@ SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_S
 -- 发布操作使用独立权限，覆盖与资源应用仍由后端进行二次权限校验。
 SET @form_group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='form_management' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
 INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`) VALUES
-(@form_group_id,'console','form:publish:preview','console/form.designer','previewpublish','预览表单发布','route',1,0,60,'admin_web','form_management',NOW(),NOW(),60,NULL),
-(@form_group_id,'console','form:publish:generate','console/form.designer','publish','发布表单全栈代码','route',1,0,61,'admin_web','form_management',NOW(),NOW(),61,NULL),
-(@form_group_id,'console','form:publish:status','console/form.designer','publishstatus','查看表单发布状态','route',1,0,62,'admin_web','form_management',NOW(),NOW(),62,NULL),
-(@form_group_id,'console','form:publish:resources','console/form.designer','retryresources','重试表单菜单权限','route',1,0,63,'admin_web','form_management',NOW(),NOW(),63,NULL);
+(@form_group_id,'console','console/form.designer:previewpublish','console/form.designer','previewpublish','预览表单发布','route',1,0,60,'admin_web','form_management',NOW(),NOW(),60,NULL),
+(@form_group_id,'console','console/form.designer:publish','console/form.designer','publish','发布表单全栈代码','route',1,0,61,'admin_web','form_management',NOW(),NOW(),61,NULL),
+(@form_group_id,'console','console/form.designer:publishstatus','console/form.designer','publishstatus','查看表单发布状态','route',1,0,62,'admin_web','form_management',NOW(),NOW(),62,NULL),
+(@form_group_id,'console','console/form.designer:retryresources','console/form.designer','retryresources','重试表单菜单权限','route',1,0,63,'admin_web','form_management',NOW(),NOW(),63,NULL);

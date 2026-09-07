@@ -150,7 +150,7 @@ PHP;
 
 declare(strict_types=1);
 
-namespace plugin\\{$name}\\controller;
+namespace app\\{$name}\\controller;
 
 use think\\annotation\\route\\Get;
 use think\\Response;
@@ -173,7 +173,7 @@ PHP;
 
 declare(strict_types=1);
 
-namespace plugin\\{$name}\\console\\controller;
+namespace app\\console\\controller\\plugin\\{$name};
 
 use think\\annotation\\route\\Get;
 use think\\annotation\\route\\Group;

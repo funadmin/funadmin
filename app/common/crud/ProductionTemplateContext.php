@@ -20,6 +20,10 @@ final class ProductionTemplateContext
         $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
         $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
         $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
+        $data['_modelNamespace'] = (string) ($target['modelNamespace'] ?? $data['_namespace'] . '\\model');
+        $data['_validateNamespace'] = (string) ($target['validateNamespace'] ?? $data['_namespace'] . '\\validate');
+        $data['_serviceNamespace'] = (string) ($target['serviceNamespace'] ?? $data['_namespace'] . '\\service');
+        $data['_controllerNamespace'] = (string) ($target['controllerNamespace'] ?? $data['_namespace'] . '\\controller');
         $class = self::studly((string) $data['entity']);
         $primary = array_values(array_filter(
             $data['fields'],
@@ -89,7 +93,7 @@ final class ProductionTemplateContext
         }
         $methods = [];
         foreach ($data['relations'] as $relation) {
-            $target = '\\' . $data['_namespace'] . '\\model\\' . $relation['target'] . '::class';
+            $target = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'] . '::class';
             $arguments = match ($relation['type']) {
                 'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
                 default => "$target, '{$relation['pivotTable']}', '"
@@ -102,7 +106,7 @@ final class ProductionTemplateContext
         $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
         $softTrait = $data['softDeletes'] ? "    use LaravelSoftDelete;\n\n" : '';
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\model;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_modelNamespace']};\n\n"
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
             . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
@@ -133,14 +137,14 @@ final class ProductionTemplateContext
                 };
             }
             if (($field['unique'] ?? false) === true) {
-                $parts[] = "unique:\\{$data['_namespace']}\\model\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
+                $parts[] = "unique:\\{$data['_modelNamespace']}\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
             }
             $compiled = array_values(array_filter(array_merge($parts, $field['rules'] ?? []), static fn (string $rule): bool => $rule !== ''));
             if ($compiled !== []) {
                 $rules[$field['name']] = implode('|', $compiled);
             }
         }
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\validate;\n\nuse think\\Validate;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
             . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
             . "    public function forUpdate(int|string \$id): self\n    {\n"
@@ -186,7 +190,7 @@ final class ProductionTemplateContext
                         $data['fields'],
                         static fn (array $field): bool => $field['name'] === $relation['field']
                     ))[0] ?? [];
-                    $relationModel = '\\' . $data['_namespace'] . '\\model\\' . $relation['target'];
+                    $relationModel = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'];
                     $value = preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', strtolower((string) ($localField['dbType'] ?? '')))
                         ? "(int) \$row['{$source['valueField']}']"
                         : "\$row['{$source['valueField']}']";
@@ -214,8 +218,8 @@ final class ProductionTemplateContext
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
             : "        \$query = {$class}::with(self::WITH_RELATIONS);\n";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\service;\n\n"
-            . "use {$data['_namespace']}\\model\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_serviceNamespace']};\n\n"
+            . "use {$data['_modelNamespace']}\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
             . "final class {$class}Service\n{\n"
             . '    public const WRITABLE_FIELDS = ' . self::phpArray($writable) . ";\n"
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
@@ -301,10 +305,10 @@ final class ProductionTemplateContext
         $controllerMiddleware = $data['_consoleController']
             ? "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
             : "    protected array \$middleware = [MApi::class];\n";
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_namespace']}\\controller;\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
-            . "use {$data['_namespace']}\\model\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse {$data['_namespace']}\\service\\{$class}Service;\n"
-            . "use {$data['_namespace']}\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
+            . "use {$data['_modelNamespace']}\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
+            . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
             . "use think\\Model;\nuse think\\Response;\n\n#[Group('{$data['_controllerGroup']}')]\n"

@@ -141,7 +141,7 @@ class SystemRole extends AdminApiController
             $this->assertRolePayload(0, $data);
             $role = Db::transaction(function () use ($data): AuthGroup {
                 $role = AuthGroup::create([
-                    'pid' => (int) ($data['parentRoleIds'][0] ?? 0),
+                    'pid' => $data['parentId'],
                     'name' => $data['name'],
                     'code' => $data['code'],
                     'level' => $data['level'],
@@ -189,7 +189,7 @@ class SystemRole extends AdminApiController
             $this->assertRolePayload($id, $data);
             Db::transaction(function () use ($role, $data): void {
                 $role->save([
-                    'pid' => (int) ($data['parentRoleIds'][0] ?? 0),
+                    'pid' => $data['parentId'],
                     'name' => $data['name'],
                     'code' => $data['code'],
                     'level' => $data['level'],
@@ -304,6 +304,7 @@ class SystemRole extends AdminApiController
             'dataScope' => $role ? (string) $role->data_scope : 'self',
             'remark' => $role ? (string) $role->remark : '',
             'status' => $role ? (int) $role->status : 1,
+            'parentId' => $role ? (int) $role->pid : 0,
             'parentRoleIds' => $role ? array_map('intval', AuthGroupInherit::where('role_id', (int) $role->id)->column('parent_role_id')) : [],
             'departmentIds' => $role ? array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->column('dept_id')) : [],
         ];
@@ -314,6 +315,7 @@ class SystemRole extends AdminApiController
             'dataScope' => trim((string) $this->request->post('dataScope', $defaults['dataScope'])),
             'remark' => trim(strip_tags((string) $this->request->post('remark', $defaults['remark']))),
             'status' => $this->binaryStatus($this->request->post('status', $defaults['status'])),
+            'parentId' => max(0, (int) $this->request->post('parentId', $defaults['parentId'])),
             'parentRoleIds' => $this->normalizeIds($this->request->post('parentRoleIds', $defaults['parentRoleIds'])),
             'departmentIds' => $this->normalizeIds($this->request->post('departmentIds', $defaults['departmentIds'])),
         ];
@@ -337,19 +339,27 @@ class SystemRole extends AdminApiController
     {
         $guard = new RoleGuardService();
         $guard->assertRoleLevel($data['level']);
-        $guard->assertInheritance($roleId, $data['level'], $data['parentRoleIds']);
+        $inheritRoleIds = array_values(array_unique(array_filter(array_merge(
+            $data['parentRoleIds'],
+            $data['parentId'] > 0 ? [$data['parentId']] : []
+        ))));
+        $guard->assertInheritance($roleId, $data['level'], $inheritRoleIds);
         $guard->assertDataScope($data['dataScope'], $data['departmentIds']);
-        $guard->assertDataScopeWithinParents($data['dataScope'], $data['departmentIds'], $data['parentRoleIds']);
+        $guard->assertDataScopeWithinParents($data['dataScope'], $data['departmentIds'], $inheritRoleIds);
     }
 
     private function syncRelations(int $roleId, array $data): void
     {
         AuthGroupInherit::where('role_id', $roleId)->delete();
+        $parentRoleIds = array_values(array_unique(array_filter(array_merge(
+            $data['parentRoleIds'],
+            $data['parentId'] > 0 ? [$data['parentId']] : []
+        ))));
         $inheritRows = array_map(static fn (int $parentId): array => [
             'role_id' => $roleId,
             'parent_role_id' => $parentId,
             'created_at' => time()
-        ], $data['parentRoleIds']);
+        ], $parentRoleIds);
         if ($inheritRows) {
             (new AuthGroupInherit())->saveAll($inheritRows);
         }
@@ -363,7 +373,7 @@ class SystemRole extends AdminApiController
             ], $data['departmentIds']);
             (new AuthGroupDepartment())->saveAll($departmentRows);
         }
-        CasbinService::instance()->syncRoleInheritance($roleId, $data['parentRoleIds']);
+        CasbinService::instance()->syncRoleInheritance($roleId, $parentRoleIds);
     }
 
     private function roleData(AuthGroup $role): array
@@ -378,7 +388,11 @@ class SystemRole extends AdminApiController
             'dataScope' => (string) $role->data_scope,
             'remark' => (string) $role->remark,
             'status' => (int) $role->status,
-            'parentRoleIds' => array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
+            'parentId' => (int) $role->pid,
+            'parentRoleIds' => array_values(array_filter(
+                array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
+                static fn (int $parentRoleId): bool => $parentRoleId !== (int) $role->pid
+            )),
             'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->column('dept_id')),
             'permissionIds' => $roleScope->rolePermissionIds($roleId),
             'createdAt' => $this->formatTime($role->created_at),

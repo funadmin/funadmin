@@ -112,7 +112,6 @@ class PluginService extends AbstractService
             if (!$success && $lock) {
                 try {
                     $this->rebuildActivationCache();
-                    $this->rebuildRuntimeCache();
                     $this->clearApplicationCache();
                 } catch (\Throwable $cacheException) {
                     error_log('插件失败态缓存重建失败：' . $cacheException->getMessage());

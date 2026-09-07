@@ -24,14 +24,19 @@ final class FormCrudDefinitionFactory
         'hidden' => 'hidden', 'readonly' => 'readonly',
     ];
 
-    public function create(array $form, array $publishConfig = []): CrudDefinition
+    public function create(array $form, array $publishConfig = [], array $schema = []): CrudDefinition
     {
         $key = $this->identifier((string) ($form['form_key'] ?? ''), '表单标识');
         $table = $this->identifier((string) ($form['table_name'] ?? ''), '绑定表');
         $entity = str_replace('_', '-', $key);
         $class = $this->studly($entity);
         $config = $this->config($form, $publishConfig, $entity);
-        $fields = [$this->managedField('id', 'bigint unsigned', true)];
+        $adopted = (string) ($form['source_type'] ?? 'created') === 'adopted';
+        $schemaColumns = array_column((array) ($schema['columns'] ?? []), null, 'name');
+        $primaryKey = $adopted ? $this->adoptedPrimaryKey($schema) : 'id';
+        $fields = $adopted
+            ? [$this->schemaManagedField($schemaColumns[$primaryKey], true)]
+            : [$this->managedField('id', 'bigint unsigned', true)];
         $relations = [];
         $optionSources = [];
         $layoutSchema = [];
@@ -46,11 +51,16 @@ final class FormCrudDefinitionFactory
             $fields[] = $this->field($field, $type, $relations, $optionSources);
         }
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
-            if (!in_array($managed, array_column($fields, 'name'), true)) {
-                $fields[] = $this->managedField($managed, 'datetime', false);
+            if (in_array($managed, array_column($fields, 'name'), true)) continue;
+            if ($adopted) {
+                if (isset($schemaColumns[$managed])) $fields[] = $this->schemaManagedField($schemaColumns[$managed], false);
+                continue;
             }
+            $fields[] = $this->managedField($managed, 'datetime', false);
         }
-        if (count($fields) === 4) throw new InvalidArgumentException('发布前至少添加一个数据字段');
+        if (count(array_filter($fields, static fn (array $field): bool => !($field['managed'] ?? false))) === 0) {
+            throw new InvalidArgumentException('发布前至少添加一个数据字段');
+        }
 
         return CrudDefinition::fromArray([
             'schemaVersion' => '1.0',
@@ -62,9 +72,9 @@ final class FormCrudDefinitionFactory
             'description' => trim((string) ($form['remark'] ?? '')),
             'apiPrefix' => (string) $config['apiPrefix'],
             'routePath' => (string) $config['routePath'],
-            'primaryKey' => 'id',
-            'timestamps' => true,
-            'softDeletes' => (bool) $config['softDeletes'],
+            'primaryKey' => $primaryKey,
+            'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
+            'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
             'generationTargets' => $this->targets($entity, $class),
             'permissionPrefix' => 'generated:' . $entity,
             'fields' => $fields,
@@ -216,6 +226,24 @@ final class FormCrudDefinitionFactory
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
             'phpTest' => 'tests/php-test.php.tpl', 'vitestTest' => 'tests/vitest-test.ts.tpl',
         ];
+    }
+
+    private function adoptedPrimaryKey(array $schema): string
+    {
+        $primary = array_values((array) ($schema['primaryKey'] ?? []));
+        if (count($primary) !== 1) throw new InvalidArgumentException('采纳表必须且只能包含一个主键');
+        $columns = array_column((array) ($schema['columns'] ?? []), null, 'name');
+        $name = (string) $primary[0];
+        if (!isset($columns[$name])) throw new InvalidArgumentException('采纳表主键字段不存在');
+        foreach (['create_time', 'update_time', 'delete_time'] as $legacy) {
+            if (isset($columns[$legacy])) throw new InvalidArgumentException('采纳表包含 legacy 时间字段，必须先迁移为 Laravel 时间字段');
+        }
+        return $this->identifier($name, '主键字段');
+    }
+
+    private function schemaManagedField(array $column, bool $primary): array
+    {
+        return $this->managedField((string) $column['name'], (string) $column['type'], $primary);
     }
 
     private function managedField(string $name, string $type, bool $primary): array

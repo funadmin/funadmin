@@ -12,6 +12,7 @@ export interface RoleModel {
   dataScope: DataScope;
   remark?: string;
   status: 0 | 1;
+  parentId: number;
   parentRoleIds: number[];
   departmentIds: number[];
   permissionIds: number[];
@@ -24,9 +25,9 @@ export const roleApi = {
   parentOptions: () => http.get<RoleModel[]>(`${PREFIX}/parent-options`),
   permissionTree: () => http.get<API.MenuItem[]>(`${PREFIX}/permission-tree`),
   detail: (id: number) => http.get<RoleModel>(`${PREFIX}/${id}`),
-  create: (data: Partial<RoleModel>) =>
+  create: (data: Partial<RoleModel> & { parentId?: number }) =>
     http.post<RoleModel>(`${PREFIX}`, data, { requestOptions: { showSuccessMsg: true } }),
-  update: (id: number, data: Partial<RoleModel>) =>
+  update: (id: number, data: Partial<RoleModel> & { parentId?: number }) =>
     http.put<RoleModel>(`${PREFIX}/${id}`, data, { requestOptions: { showSuccessMsg: true } }),
   remove: (ids: number | number[]) =>
     http.delete<void>(`${PREFIX}`, { ids: Array.isArray(ids) ? ids : [ids] }, {

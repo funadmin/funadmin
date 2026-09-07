@@ -77,10 +77,10 @@ try {
     }
 
     $applicationController = (string) file_get_contents($plugin . '/app/demo/controller/Index.php');
-    developmentExpect(str_contains($applicationController, 'namespace plugin\\demo\\controller;'), '独立应用 namespace 必须使用 plugin\\demo');
+    developmentExpect(str_contains($applicationController, 'namespace app\\demo\\controller;'), '独立应用 namespace 必须使用 app\\demo');
     developmentExpect(str_contains($applicationController, '#[Get('), '独立应用必须生成最小 Attribute controller');
     $consoleController = (string) file_get_contents($plugin . '/app/console/controller/Index.php');
-    developmentExpect(str_contains($consoleController, 'namespace plugin\\demo\\console\\controller;'), 'Console controller 必须使用 plugin\\name namespace');
+    developmentExpect(str_contains($consoleController, 'namespace app\\console\\controller\\plugin\\demo;'), 'Console controller 必须使用原生 layer namespace');
     developmentExpect(str_contains($consoleController, "#[Group('plugin/demo')]"), 'Console Group 必须使用 plugin/name 前缀');
 
     developmentReject(static fn () => $scaffolder->scaffold('Demo', '非法'), '格式');
@@ -107,14 +107,14 @@ try {
     developmentReject(static fn () => Manifest::fromDirectory($invalid['directory']), 'Group');
     $commentBypass = $scaffolder->scaffold('commentbypass', '注释绕过');
     $commentController = $commentBypass['directory'] . '/app/console/controller/Index.php';
-    file_put_contents($commentController, "<?php\n// namespace plugin\\commentbypass\\console\\controller;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
+    file_put_contents($commentController, "<?php\n// namespace app\\console\\controller\\plugin\\commentbypass;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($commentBypass['directory']), 'namespace');
     $entryBypass = $scaffolder->scaffold('entrybypass', '入口绕过');
     file_put_contents($entryBypass['directory'] . '/Plugin.php', "<?php\n// namespace plugins\\entrybypass;\n// class Plugin {}\nnamespace attacker;\nfinal class Other {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($entryBypass['directory']), 'Plugin.php');
     $attributeBypass = $scaffolder->scaffold('attributebypass', '属性绕过');
     $attributeController = $attributeBypass['directory'] . '/app/console/controller/Index.php';
-    file_put_contents($attributeController, "<?php\nnamespace plugin\\attributebypass\\console\\controller;\n#[Other(\"\\\\Group('plugin/attributebypass')\")]\nfinal class Index {}\n");
+    file_put_contents($attributeController, "<?php\nnamespace app\\console\\controller\\plugin\\attributebypass;\n#[Other(\"\\\\Group('plugin/attributebypass')\")]\nfinal class Index {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($attributeBypass['directory']), 'Group');
 
     $migrationPlugin = $scaffolder->scaffold('badmigration', '非法迁移');

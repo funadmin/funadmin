@@ -188,10 +188,10 @@ final class Manifest
             throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/console');
         }
         if (is_dir($application)) {
-            self::validatePhpNamespaces($application, 'plugin\\' . $code . '\\');
+            self::validatePhpNamespaces($application, 'app\\' . $code . '\\');
         }
         if (is_dir($console)) {
-            self::validatePhpNamespaces($console, 'plugin\\' . $code . '\\console\\');
+            self::validateConsoleNamespaces($console, $code);
             self::validateConsoleGroups($console, $code);
         }
     }
@@ -202,6 +202,16 @@ final class Manifest
             $namespaces = self::declaredNamespaces((string) file_get_contents($file));
             if (count($namespaces) !== 1 || !str_starts_with($namespaces[0], $expectedPrefix)) {
                 throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
+            }
+        }
+    }
+
+    private static function validateConsoleNamespaces(string $console, string $code): void
+    {
+        foreach (['controller', 'model', 'service', 'validate', 'middleware'] as $layer) {
+            $directory = $console . DIRECTORY_SEPARATOR . $layer;
+            if (is_dir($directory)) {
+                self::validatePhpNamespaces($directory, 'app\\console\\' . $layer . '\\plugin\\' . $code);
             }
         }
     }
