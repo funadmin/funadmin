@@ -24,23 +24,107 @@ final class PluginAppPublicationService
     ) {
     }
 
-    public function publish(Manifest $manifest, string $token, bool $lock = true): array
-    {
+    public function publish(
+        Manifest $manifest,
+        string $token,
+        bool $lock = true,
+        bool $rollbackOnFailure = true
+    ): array {
+        $this->prepareOperation($token, $manifest->code(), 'publish', $rollbackOnFailure);
+        try {
+            return $this->applyPrepared($manifest, $token, $lock, $rollbackOnFailure);
+        } catch (Throwable $exception) {
+            if ($rollbackOnFailure && ($this->inspect($token)['state'] ?? '') === 'operation_prepared') {
+                $this->rollback($token, $lock);
+            }
+            throw $exception;
+        }
+    }
+
+    public function prepareOperation(
+        string $token,
+        string $pluginCode,
+        string $operation,
+        bool $rollbackOnFailure = true
+    ): array {
         $this->assertToken($token);
+        $this->assertPluginCode($pluginCode);
         $this->assertNewToken($token);
-        $operation = function () use ($manifest, $token): array {
-            $units = $this->sourceUnits($manifest);
-            return $this->execute($manifest->code(), $manifest->version(), $token, $units);
+        if (!in_array($operation, ['publish', 'remove'], true)) {
+            throw new RuntimeException('publication operation 无效');
+        }
+        $journal = [
+            'schema_version' => 1,
+            'token' => $token,
+            'plugin' => $pluginCode,
+            'operation' => $operation,
+            'state' => 'operation_prepared',
+            'deployment_rollback_allowed' => $rollbackOnFailure,
+            'registry_before' => [],
+            'units' => [],
+        ];
+        $this->writeJournal($token, $journal);
+        return $journal;
+    }
+
+    public function applyPrepared(
+        Manifest $manifest,
+        string $token,
+        bool $lock = true,
+        bool $rollbackOnFailure = true
+    ): array {
+        $this->assertToken($token);
+        $journal = $this->inspect($token);
+        if (($journal['plugin'] ?? '') !== $manifest->code() || ($journal['operation'] ?? '') !== 'publish'
+            || ($journal['state'] ?? '') !== 'operation_prepared') {
+            throw new RuntimeException('publication operation journal 与发布请求不匹配');
+        }
+        $operation = function () use ($manifest, $token, $rollbackOnFailure, $journal): array {
+            return $this->execute(
+                $manifest->code(),
+                $manifest->version(),
+                $token,
+                $this->sourceUnits($manifest),
+                false,
+                $rollbackOnFailure,
+                $journal
+            );
         };
         return $lock ? $this->locked($operation) : $operation();
     }
 
-    public function remove(string $pluginCode, string $token, bool $lock = true): array
+    public function remove(
+        string $pluginCode,
+        string $token,
+        bool $lock = true,
+        bool $rollbackOnFailure = true
+    ): array
     {
+        $this->prepareOperation($token, $pluginCode, 'remove', $rollbackOnFailure);
+        try {
+            return $this->applyPreparedRemove($pluginCode, $token, $lock, $rollbackOnFailure);
+        } catch (Throwable $exception) {
+            if ($rollbackOnFailure && ($this->inspect($token)['state'] ?? '') === 'operation_prepared') {
+                $this->rollback($token, $lock);
+            }
+            throw $exception;
+        }
+    }
+
+    public function applyPreparedRemove(
+        string $pluginCode,
+        string $token,
+        bool $lock = true,
+        bool $rollbackOnFailure = true
+    ): array {
         $this->assertPluginCode($pluginCode);
         $this->assertToken($token);
-        $this->assertNewToken($token);
-        $operation = function () use ($pluginCode, $token): array {
+        $journal = $this->inspect($token);
+        if (($journal['plugin'] ?? '') !== $pluginCode || ($journal['operation'] ?? '') !== 'remove'
+            || ($journal['state'] ?? '') !== 'operation_prepared') {
+            throw new RuntimeException('publication operation journal 与删除请求不匹配');
+        }
+        $operation = function () use ($pluginCode, $token, $rollbackOnFailure, $journal): array {
             $owned = $this->ownedRecords($pluginCode);
             $this->assertCurrentUnmodified($pluginCode, $owned);
             $units = [];
@@ -48,7 +132,7 @@ final class PluginAppPublicationService
                 $target = $this->unitTarget($unit, $pluginCode);
                 $units[$unit] = ['source' => null, 'target' => $target, 'records' => $records];
             }
-            return $this->execute($pluginCode, '', $token, $units, true);
+            return $this->execute($pluginCode, '', $token, $units, true, $rollbackOnFailure, $journal);
         };
         return $lock ? $this->locked($operation) : $operation();
     }
@@ -100,13 +184,42 @@ final class PluginAppPublicationService
         return $journals;
     }
 
-    public function recover(string $token): void
+    public function recover(string $token, bool $manual = false, ?callable $restoreContext = null): void
+    {
+        $this->assertToken($token);
+        $this->locked(function () use ($token, $manual, $restoreContext): void {
+            $journal = $this->inspect($token);
+            if (($journal['state'] ?? '') === 'completed') {
+                return;
+            }
+            if ((($journal['manual_recovery'] ?? false) === true
+                || ($journal['deployment_rollback_allowed'] ?? true) === false) && !$manual) {
+                throw new RuntimeException('publication 需要显式人工恢复：' . $token);
+            }
+            $this->writeJournal($token, array_replace($journal, ['state' => 'rollback_required']));
+            if (($journal['state'] ?? '') !== 'operation_prepared') {
+                $this->restore($journal);
+            }
+            if ($restoreContext !== null) {
+                $restoreContext((array) ($journal['recovery_context'] ?? []));
+            }
+            $journal = $this->inspect($token);
+            $this->cleanupArtifacts($journal);
+            $this->writeJournal($token, array_replace($journal, ['state' => 'completed', 'rolled_back' => true]));
+        });
+    }
+
+    public function attachRecoveryContext(string $token, array $context): void
     {
         $journal = $this->inspect($token);
         if (($journal['state'] ?? '') === 'completed') {
-            return;
+            throw new RuntimeException('completed publication 不允许追加恢复上下文：' . $token);
         }
-        $this->rollback($token);
+        $journal['recovery_context'] = array_replace_recursive(
+            (array) ($journal['recovery_context'] ?? []),
+            $context
+        );
+        $this->writeJournal($token, $journal);
     }
 
     public function requireManualRecovery(string $token, array $context = []): string
@@ -127,20 +240,71 @@ final class PluginAppPublicationService
         $journal['state'] = 'rollback_required';
         $journal['manual_recovery'] = true;
         $journal['recovery_path'] = $recoveryRoot;
-        $journal['recovery_context'] = $context;
+        $journal['recovery_context'] = array_replace_recursive(
+            (array) ($journal['recovery_context'] ?? []),
+            $context
+        );
+        $this->ensureDirectory($recoveryRoot);
+        $contextFile = $recoveryRoot . DIRECTORY_SEPARATOR . 'recovery-context.json';
+        $encodedContext = json_encode(
+            $journal['recovery_context'],
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+        );
+        if (file_put_contents($contextFile, $encodedContext . "\n", LOCK_EX) === false) {
+            throw new RuntimeException('无法持久化 publication 恢复上下文');
+        }
+        $journal['recovery_context_path'] = $contextFile;
         $this->writeJournal($token, $journal);
         return $recoveryRoot;
     }
 
-    public function rollback(string $token, bool $lock = true): void
+    public function markRollbackRequired(string $token): void
     {
+        $journal = $this->inspect($token);
+        if (($journal['state'] ?? '') === 'completed') {
+            throw new RuntimeException('completed publication 不允许进入回滚：' . $token);
+        }
+        $this->writeJournal($token, array_replace($journal, ['state' => 'rollback_required']));
+    }
+
+    public function rollback(
+        string $token,
+        bool $lock = true,
+        bool $cleanupArtifactsOnRollback = true
+    ): void {
         $this->assertToken($token);
-        $operation = function () use ($token): void {
+        $operation = function () use ($token, $cleanupArtifactsOnRollback): void {
             $journal = $this->inspect($token);
+            if (($journal['manual_recovery'] ?? false) === true) {
+                throw new RuntimeException('publication 需要显式人工恢复：' . $token);
+            }
             $this->writeJournal($token, array_replace($journal, ['state' => 'rollback_required']));
-            $this->restore($journal);
+            if (($journal['state'] ?? '') !== 'operation_prepared') {
+                $this->restore($journal);
+            }
+            if ($cleanupArtifactsOnRollback) {
+                $this->cleanupArtifactsOnRollback($token, false);
+            }
+        };
+        if ($lock) {
+            $this->locked($operation);
+            return;
+        }
+        $operation();
+    }
+
+    public function cleanupArtifactsOnRollback(
+        string $token,
+        bool $lock = true,
+        bool $cleanupSharedTokenRoot = true
+    ): void {
+        $this->assertToken($token);
+        $operation = function () use ($token, $cleanupSharedTokenRoot): void {
             $journal = $this->inspect($token);
-            $this->cleanupArtifacts($journal);
+            if (($journal['state'] ?? '') !== 'rollback_required') {
+                throw new RuntimeException('publication 尚未完成回滚，不能清理恢复材料：' . $token);
+            }
+            $this->cleanupArtifacts($journal, $cleanupSharedTokenRoot);
             $this->writeJournal($token, array_replace($journal, ['state' => 'completed', 'rolled_back' => true]));
         };
         if ($lock) {
@@ -175,7 +339,9 @@ final class PluginAppPublicationService
         string $version,
         string $token,
         array $sourceUnits,
-        bool $removing = false
+        bool $removing = false,
+        bool $localRollbackOnFailure = true,
+        ?array $preparedJournal = null
     ): array {
         $existing = $this->repository->all();
         $owned = $this->ownedRecords($pluginCode, $existing);
@@ -199,6 +365,7 @@ final class PluginAppPublicationService
             'plugin' => $pluginCode,
             'operation' => $removing ? 'remove' : 'publish',
             'state' => 'prepared',
+            'deployment_rollback_allowed' => $preparedJournal['deployment_rollback_allowed'] ?? $localRollbackOnFailure,
             'registry_before' => $owned,
             'units' => [],
             'updated_at' => date(DATE_ATOM),
@@ -207,7 +374,10 @@ final class PluginAppPublicationService
         try {
             foreach ($sourceUnits as $unit => $definition) {
                 if ($definition['source'] !== null && $this->files($definition['source']) === []) {
-                    continue;
+                    if (!isset($oldByUnit[$unit])) {
+                        continue;
+                    }
+                    $definition['source'] = null;
                 }
                 $target = $definition['target'];
                 $temp = dirname($target) . DIRECTORY_SEPARATOR . '.publication-' . $token . '-' . $this->unitSlug($unit);
@@ -246,6 +416,9 @@ final class PluginAppPublicationService
                     'state' => 'prepared',
                 ];
             }
+            if ($preparedJournal !== null) {
+                $journal['recovery_context'] = (array) ($preparedJournal['recovery_context'] ?? []);
+            }
             $this->writeJournal($token, $journal);
             foreach ($journal['units'] as $index => $unit) {
                 $this->swap($unit);
@@ -265,17 +438,19 @@ final class PluginAppPublicationService
             if (is_file($this->journalFile($token))) {
                 $current = $this->inspect($token);
                 $this->writeJournal($token, array_replace($current, ['state' => 'rollback_required']));
-                try {
-                    $this->restore($current);
-                    $current = $this->inspect($token);
-                    $this->cleanupArtifacts($current);
-                    $this->writeJournal($token, array_replace($current, ['state' => 'completed', 'rolled_back' => true]));
-                } catch (Throwable $rollbackException) {
-                    throw new RuntimeException(
-                        $exception->getMessage() . '；原生 App 自动回滚失败：' . $rollbackException->getMessage(),
-                        0,
-                        $exception
-                    );
+                if ($localRollbackOnFailure) {
+                    try {
+                        $this->restore($current);
+                        $current = $this->inspect($token);
+                        $this->cleanupArtifacts($current);
+                        $this->writeJournal($token, array_replace($current, ['state' => 'completed', 'rolled_back' => true]));
+                    } catch (Throwable $rollbackException) {
+                        throw new RuntimeException(
+                            $exception->getMessage() . '；原生 App 自动回滚失败：' . $rollbackException->getMessage(),
+                            0,
+                            $exception
+                        );
+                    }
                 }
             } else {
                 foreach ($sourceUnits as $unit => $definition) {
@@ -434,8 +609,17 @@ final class PluginAppPublicationService
             if ($backup !== '' && is_dir($backup)) {
                 $this->removeTree($target);
                 $this->ensureDirectory(dirname($target));
-                if (!rename($backup, $target)) {
-                    throw new RuntimeException('无法恢复原生 App publication unit：' . $target);
+                if (dirname($backup) === dirname($target)) {
+                    if (!rename($backup, $target)) {
+                        throw new RuntimeException('无法恢复原生 App publication unit：' . $target);
+                    }
+                } else {
+                    $restoreTemp = dirname($target) . DIRECTORY_SEPARATOR . '.publication-restore-'
+                        . (string) ($journal['token'] ?? '') . '-' . basename($target);
+                    $this->copyTree($backup, $restoreTemp);
+                    if (!rename($restoreTemp, $target)) {
+                        throw new RuntimeException('无法原子恢复原生 App publication unit：' . $target);
+                    }
                 }
             } elseif (($swapped || $this->isInterruptedNewSwap($unit))
                 && ($unit['old_tree_hash'] ?? null) === null) {
@@ -656,6 +840,12 @@ final class PluginAppPublicationService
         return dirname($target) . DIRECTORY_SEPARATOR . '.publication-backup-' . $token . '-' . basename($target);
     }
 
+    public function hasJournal(string $token): bool
+    {
+        $this->assertToken($token);
+        return is_file($this->journalFile($token));
+    }
+
     private function journalFile(string $token): string
     {
         return $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-journals' . DIRECTORY_SEPARATOR
@@ -683,11 +873,20 @@ final class PluginAppPublicationService
         }
     }
 
-    private function cleanupArtifacts(array $journal): void
+    private function cleanupArtifacts(array $journal, bool $cleanupSharedTokenRoot = true): void
     {
         foreach ((array) ($journal['units'] ?? []) as $unit) {
             $this->removeTree((string) ($unit['temp'] ?? ''));
             $this->removeTree((string) ($unit['backup'] ?? ''));
+        }
+        $token = (string) ($journal['token'] ?? '');
+        $this->assertToken($token);
+        if ($cleanupSharedTokenRoot) {
+            $recoveryRoot = $this->runtimeDirectory() . DIRECTORY_SEPARATOR . 'publication-recovery';
+            if (is_link($recoveryRoot)) {
+                throw new RuntimeException('publication recovery 根目录禁止符号链接');
+            }
+            $this->removeTree($recoveryRoot . DIRECTORY_SEPARATOR . $token);
         }
     }
 

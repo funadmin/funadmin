@@ -15,6 +15,12 @@ final class PluginInfrastructureService
 {
     private ?array $pluginColumns = null;
 
+    public function __construct(
+        private readonly ?PluginResourcePublisher $resourcePublisher = null,
+        private readonly ?PluginAppPublicationService $nativePublisher = null
+    ) {
+    }
+
     public function filterPluginColumns(array $data): array
     {
         return array_intersect_key($data, array_flip($this->pluginColumns()));
@@ -35,16 +41,17 @@ final class PluginInfrastructureService
 
     public function publisher(): PluginResourcePublisher
     {
-        return new PluginResourcePublisher(
+        return $this->resourcePublisher ?? new PluginResourcePublisher(
             public_path(),
             root_path() . 'admin-web',
-            new DatabasePluginResourceRepository()
+            new DatabasePluginResourceRepository(),
+            runtime_path('plugins' . DIRECTORY_SEPARATOR . 'publication-recovery')
         );
     }
 
     public function appPublisher(): PluginAppPublicationService
     {
-        return new PluginAppPublicationService(
+        return $this->nativePublisher ?? new PluginAppPublicationService(
             root_path('app'),
             runtime_path('plugins'),
             new DatabasePluginAppPublicationRepository()
@@ -73,32 +80,179 @@ final class PluginInfrastructureService
         }
     }
 
-    public function publishResources(Manifest $manifest, string $token): array
-    {
-        return $this->withPublicationLock(function () use ($manifest, $token): array {
-            $app = $this->appPublisher()->publish($manifest, $token, false);
+    public function publishResources(
+        Manifest $manifest,
+        string $token,
+        bool $rollbackOnFailure = true,
+        array $resourceState = []
+    ): array {
+        return $this->withPublicationLock(function () use ($manifest, $token, $rollbackOnFailure, $resourceState): array {
+            $appPublisher = $this->appPublisher();
+            $filePublisher = $this->publisher();
+            $filePlan = $filePublisher->preparePublish($manifest, $token);
+            $appPublisher->prepareOperation($token, $manifest->code(), 'publish', $rollbackOnFailure);
+            $appPublisher->attachRecoveryContext($token, [
+                'plugin_code' => $manifest->code(),
+                'file_plan' => $filePlan,
+                'resource_state' => $resourceState,
+            ]);
             try {
-                $files = $this->publisher()->publish($manifest);
+                $app = $appPublisher->applyPrepared($manifest, $token, false, false);
+                $files = $filePublisher->apply($filePlan, false);
             } catch (\Throwable $exception) {
-                $this->appPublisher()->rollback($token, false);
+                if ($rollbackOnFailure && $appPublisher->hasJournal($token)) {
+                    $this->recoverPreparedResources($appPublisher, $filePublisher, $token);
+                }
                 throw $exception;
             }
             return ['app' => $app, 'files' => $files];
         });
     }
 
-    public function removePublishedResources(string $code, string $token): array
-    {
-        return $this->withPublicationLock(function () use ($code, $token): array {
-            $app = $this->appPublisher()->remove($code, $token, false);
+    public function removePublishedResources(
+        string $code,
+        string $token,
+        bool $rollbackOnFailure = true,
+        array $resourceState = []
+    ): array {
+        return $this->withPublicationLock(function () use ($code, $token, $rollbackOnFailure, $resourceState): array {
+            $appPublisher = $this->appPublisher();
+            $filePublisher = $this->publisher();
+            $filePlan = $filePublisher->prepareRemove($code, $token);
+            $appPublisher->prepareOperation($token, $code, 'remove', $rollbackOnFailure);
+            $appPublisher->attachRecoveryContext($token, [
+                'plugin_code' => $code,
+                'file_plan' => $filePlan,
+                'resource_state' => $resourceState,
+            ]);
             try {
-                $files = $this->publisher()->remove($code);
+                $app = $appPublisher->applyPreparedRemove($code, $token, false, false);
+                $files = $filePublisher->apply($filePlan, false);
             } catch (\Throwable $exception) {
-                $this->appPublisher()->rollback($token, false);
+                if ($rollbackOnFailure && $appPublisher->hasJournal($token)) {
+                    $this->recoverPreparedResources($appPublisher, $filePublisher, $token);
+                }
                 throw $exception;
             }
             return ['app' => $app, 'files' => $files];
         });
+    }
+
+    public function rollbackPublishedResources(string $code, ?string $token): void
+    {
+        $this->withPublicationLock(function () use ($code, $token): void {
+            if ($token === null) {
+                return;
+            }
+            $publisher = $this->appPublisher();
+            if (!$publisher->hasJournal($token)) {
+                return;
+            }
+            $journal = $publisher->inspect($token);
+            $context = (array) ($journal['recovery_context'] ?? []);
+            $filePublisher = $this->publisher();
+            $filePlan = $context['file_plan'] ?? null;
+            if (is_array($filePlan) && $filePlan !== []) {
+                $filePublisher->rollbackPrepared($filePlan);
+            }
+            $publisher->rollback($token, false, false);
+            $resourceState = $context['resource_state'] ?? null;
+            if (is_array($resourceState)) {
+                $this->restoreResourceState($code, $resourceState);
+            }
+            $publisher->cleanupArtifactsOnRollback($token, false);
+        });
+    }
+
+    public function recoverPublication(string $token, bool $manual = false): void
+    {
+        $this->withPublicationLock(function () use ($token, $manual): void {
+            $appPublisher = $this->appPublisher();
+            $journal = $appPublisher->inspect($token);
+            if ((($journal['manual_recovery'] ?? false) === true
+                || ($journal['deployment_rollback_allowed'] ?? true) === false) && !$manual) {
+                throw new RuntimeException('publication 需要显式人工恢复：' . $token);
+            }
+            $appPublisher->markRollbackRequired($token);
+            $context = (array) ($journal['recovery_context'] ?? []);
+            $filePublisher = $this->publisher();
+            $filePlan = $context['file_plan'] ?? null;
+            if (is_array($filePlan) && $filePlan !== []) {
+                $filePublisher->rollbackPrepared($filePlan);
+            } else {
+                $fileSnapshot = $context['file_snapshot'] ?? null;
+                if ($this->isCompleteFileSnapshot($fileSnapshot, (string) ($context['plugin_code'] ?? ''))) {
+                    $filePublisher->rollback($fileSnapshot);
+                }
+            }
+            $appPublisher->rollback($token, false, false);
+            if (isset($context['resource_state']) && is_array($context['resource_state'])) {
+                $code = (string) ($context['plugin_code'] ?? $context['file_plan']['plugin_code']
+                    ?? $context['file_snapshot']['plugin_code'] ?? '');
+                if ($code === '') {
+                    throw new RuntimeException('publication 恢复上下文缺少插件标识');
+                }
+                $this->restoreResourceState($code, $context['resource_state']);
+            }
+            $appPublisher->cleanupArtifactsOnRollback($token, false);
+        });
+    }
+
+    public function recoverPublicationContext(array $context): void
+    {
+        $filePlan = $context['file_plan'] ?? null;
+        if (is_array($filePlan) && $filePlan !== []) {
+            $this->publisher()->rollbackPrepared($filePlan);
+        } else {
+            $fileSnapshot = $context['file_snapshot'] ?? null;
+            if ($this->isCompleteFileSnapshot($fileSnapshot, (string) ($context['plugin_code'] ?? ''))) {
+                $this->publisher()->rollback($fileSnapshot);
+            }
+        }
+        if (isset($context['resource_state']) && is_array($context['resource_state'])) {
+            $code = (string) ($context['plugin_code'] ?? $context['file_plan']['plugin_code']
+                ?? $context['file_snapshot']['plugin_code'] ?? '');
+            if ($code === '') {
+                throw new RuntimeException('publication 恢复上下文缺少插件标识');
+            }
+            $this->restoreResourceState($code, $context['resource_state']);
+        }
+    }
+
+    private function recoverPreparedResources(
+        PluginAppPublicationService $appPublisher,
+        PluginResourcePublisher $filePublisher,
+        string $token
+    ): void {
+        $journal = $appPublisher->inspect($token);
+        $appPublisher->markRollbackRequired($token);
+        $filePlan = $journal['recovery_context']['file_plan'] ?? null;
+        if (is_array($filePlan) && $filePlan !== []) {
+            $filePublisher->rollbackPrepared($filePlan);
+        }
+        $appPublisher->rollback($token, false, false);
+        $resourceState = $journal['recovery_context']['resource_state'] ?? null;
+        if (is_array($resourceState) && $resourceState !== []) {
+            $this->restoreResourceState((string) $journal['plugin'], $resourceState);
+        }
+        $appPublisher->cleanupArtifactsOnRollback($token, false);
+    }
+
+    private function isCompleteFileSnapshot(mixed $snapshot, string $expectedCode): bool
+    {
+        if (!is_array($snapshot) || $snapshot === []) {
+            return false;
+        }
+        foreach (['plugin_code', 'recovery_token', 'records', 'files', 'rebuildRequired'] as $key) {
+            if (!array_key_exists($key, $snapshot)) {
+                return false;
+            }
+        }
+        $code = (string) $snapshot['plugin_code'];
+        return preg_match('/^[a-z][a-z0-9]*$/', $code) === 1
+            && ($expectedCode === '' || $expectedCode === $code)
+            && is_array($snapshot['records'])
+            && is_array($snapshot['files']);
     }
 
     public function snapshotResourceState(string $code): array

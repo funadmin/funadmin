@@ -124,6 +124,11 @@ trait PluginServiceSupport
         $this->infrastructure()->appPublisher()->complete($token);
     }
 
+    private function recoverPublicationContext(array $context): void
+    {
+        $this->infrastructure()->recoverPublicationContext($context);
+    }
+
     private function assertNoStalePublication(string $code): void
     {
         $stale = $this->infrastructure()->appPublisher()->stale($code);
@@ -141,36 +146,45 @@ trait PluginServiceSupport
 
     private function publishPluginResources(Manifest $manifest, string $token): void
     {
-        $snapshot = $this->infrastructure()->publishResources($manifest, $token);
-        $this->appPublicationTokens[$manifest->code()] = $token;
-        $this->resourcePublicationSnapshots[$manifest->code()] = (array) ($snapshot['files'] ?? []);
+        $code = $manifest->code();
+        $this->appPublicationTokens[$code] = $token;
+        $snapshot = $this->infrastructure()->publishResources(
+            $manifest,
+            $token,
+            $this->deploymentRollbackAllowed,
+            $this->resourceStateSnapshots[$code] ?? []
+        );
+        $this->resourcePublicationSnapshots[$code] = (array) ($snapshot['files'] ?? []);
     }
 
     private function removePluginResources(string $code, string $token): void
     {
-        $snapshot = $this->infrastructure()->removePublishedResources($code, $token);
         $this->appPublicationTokens[$code] = $token;
+        $snapshot = $this->infrastructure()->removePublishedResources(
+            $code,
+            $token,
+            $this->deploymentRollbackAllowed,
+            $this->resourceStateSnapshots[$code] ?? []
+        );
         $this->resourcePublicationSnapshots[$code] = (array) ($snapshot['files'] ?? []);
     }
 
     private function completeAppPublication(string $code): void
     {
         if (isset($this->appPublicationTokens[$code])) {
-            $this->infrastructure()->appPublisher()->complete($this->appPublicationTokens[$code]);
+            $publisher = $this->infrastructure()->appPublisher();
+            if ($publisher->hasJournal($this->appPublicationTokens[$code])) {
+                $publisher->complete($this->appPublicationTokens[$code]);
+            }
         }
     }
 
     private function rollbackAppPublication(string $code): void
     {
-        if (isset($this->resourcePublicationSnapshots[$code])) {
-            $this->infrastructure()->publisher()->rollback($this->resourcePublicationSnapshots[$code]);
-        }
-        if (isset($this->appPublicationTokens[$code])) {
-            $this->infrastructure()->appPublisher()->rollback($this->appPublicationTokens[$code]);
-        }
-        if (isset($this->resourceStateSnapshots[$code])) {
-            $this->infrastructure()->restoreResourceState($code, $this->resourceStateSnapshots[$code]);
-        }
+        $this->infrastructure()->rollbackPublishedResources(
+            $code,
+            $this->appPublicationTokens[$code] ?? null
+        );
     }
 
     private function rollbackResourcePublication(string $code): void
@@ -183,11 +197,17 @@ trait PluginServiceSupport
         if (!isset($this->appPublicationTokens[$code])) {
             return null;
         }
-        return $this->infrastructure()->appPublisher()->requireManualRecovery(
+        $publisher = $this->infrastructure()->appPublisher();
+        if (!$publisher->hasJournal($this->appPublicationTokens[$code])) {
+            return null;
+        }
+        return $publisher->requireManualRecovery(
             $this->appPublicationTokens[$code],
             [
+                'plugin_code' => $code,
                 'file_snapshot' => $this->resourcePublicationSnapshots[$code] ?? [],
                 'resource_state' => $this->resourceStateSnapshots[$code] ?? [],
+                'migration_started' => !$this->deploymentRollbackAllowed,
             ]
         );
     }

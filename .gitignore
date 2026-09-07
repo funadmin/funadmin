@@ -22,6 +22,8 @@
 !/tests/plugin_code_name_cutover_test.php
 !/tests/plugin_development_tools_test.php
 !/tests/plugin_manifest_schema_test.php
+!/tests/plugin_resource_publisher_test.php
+!/tests/plugin_app_publication_lifecycle_test.php
 !/tests/plugin_phase1_test.php
 !/tests/fixtures/
 !/tests/fixtures/plugins/
