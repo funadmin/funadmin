@@ -21,10 +21,14 @@ final class DevPluginService
     /** @var Closure(array): int|string */
     private readonly Closure $auditWriter;
 
+    /** @var Closure(string, string, callable): array */
+    private readonly Closure $archivePackager;
+
     public function __construct(
         private readonly string $projectRoot,
         ?callable $archiveVerifier = null,
-        ?callable $auditWriter = null
+        ?callable $auditWriter = null,
+        ?callable $archivePackager = null
     ) {
         $this->archiveVerifier = Closure::fromCallable($archiveVerifier ?? function (string $archive): void {
             $packages = PluginPackageService::instance();
@@ -35,6 +39,10 @@ final class DevPluginService
             $auditId = bin2hex(random_bytes(12));
             trace('插件开发操作：' . json_encode(['auditId' => $auditId] + $audit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'info');
             return $auditId;
+        });
+        $pluginsDirectory = $this->pluginsDirectory();
+        $this->archivePackager = Closure::fromCallable($archivePackager ?? static function (string $code, string $output, callable $verify) use ($pluginsDirectory): array {
+            return (new PluginArchiveService($pluginsDirectory, $verify))->package($code, $output);
         });
     }
 
@@ -105,7 +113,7 @@ final class DevPluginService
         $relative = 'runtime/download/plugins/' . $code . '-' . $manifest->version() . '.zip';
         $output = $this->projectRoot() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         try {
-            $result = (new PluginArchiveService($this->pluginsDirectory(), $this->archiveVerifier))->package($code, $output);
+            $result = ($this->archivePackager)($code, $output, $this->archiveVerifier);
             $plan = [
                 'operation' => 'package',
                 'status' => 'created',
