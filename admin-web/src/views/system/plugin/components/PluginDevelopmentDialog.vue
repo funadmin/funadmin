@@ -10,7 +10,7 @@
           <el-form-item label="adminWeb"><el-switch v-model="createForm.adminWeb" /></el-form-item>
         </el-form>
         <el-alert v-if="preview?.conflicts.length" type="error" :title="`冲突：${preview.conflicts.join(', ')}`" :closable="false" />
-        <el-table v-if="preview?.plan" :data="preview.plan.files" size="small" max-height="220"><el-table-column prop="path" label="目标文件" /><el-table-column prop="status" label="状态" width="90" /></el-table>
+        <el-table v-if="preview?.plan" :data="planFiles(preview.plan.files)" size="small" max-height="220"><el-table-column prop="path" label="目标文件" /><el-table-column prop="status" label="状态" width="90" /></el-table>
         <div class="actions"><el-button :loading="loading" @click="previewPlugin">预览</el-button><el-button type="primary" :loading="loading" :disabled="!preview || preview.conflicts.length > 0" @click="createPlugin">确认创建</el-button></div>
       </el-tab-pane>
       <el-tab-pane label="校验/打包" name="maintain">
@@ -39,7 +39,7 @@
 import { computed, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { crudDevelopmentApi } from '@/api/development/crud';
-import { pluginDevelopmentApi, type DevelopmentPluginOption, type PluginCreateInput, type PluginDevelopmentResult } from '@/api/development/plugin';
+import { pluginDevelopmentApi, type DevelopmentPluginOption, type PluginCreateInput, type PluginDevelopmentPlan, type PluginDevelopmentResult } from '@/api/development/plugin';
 import type { CrudConnection, CrudDefinition, CrudPreview, CrudTable } from '@/types/development/crud';
 
 const visible = defineModel<boolean>({ default: false });
@@ -61,6 +61,7 @@ const createForm = reactive<PluginCreateInput>({ name: '', title: '', applicatio
 const crudForm = reactive({ plugin: '', connection: '', table: '', entity: '', scope: 'console' as 'application' | 'console' | 'both' });
 const selectedPlugin = computed(() => plugins.value.find((item) => item.code === crudForm.plugin));
 const message = (value: unknown) => value instanceof Error ? value.message : String(value);
+const planFiles = (files: PluginDevelopmentPlan['files']) => files.map((file) => typeof file === 'string' ? { path: file } : file);
 
 async function run(operation: () => Promise<void>) { error.value = ''; loading.value = true; try { await operation(); } catch (reason) { error.value = message(reason); } finally { loading.value = false; } }
 async function loadOptions() { mode.value = props.initialMode; await run(async () => { [plugins.value, connections.value] = await Promise.all([pluginDevelopmentApi.options(), crudDevelopmentApi.connections()]); selectedCode.value ||= plugins.value[0]?.code || ''; crudForm.plugin ||= selectedCode.value; crudForm.connection ||= connections.value[0]?.name || ''; syncScope(); await loadTables(); }); }

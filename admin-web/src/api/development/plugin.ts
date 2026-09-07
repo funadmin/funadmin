@@ -15,7 +15,7 @@ export interface PluginDevelopmentPlan {
   status?: string;
   target?: string;
   output?: string;
-  files: Array<{ path: string; status?: string }>;
+  files: Array<{ path: string; status?: string } | string>;
 }
 
 export interface PluginDevelopmentResult {
