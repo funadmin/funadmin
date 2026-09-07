@@ -41,6 +41,15 @@ final class PluginInfrastructureService
         );
     }
 
+    public function appPublisher(): PluginAppPublicationService
+    {
+        return new PluginAppPublicationService(
+            root_path('app'),
+            runtime_path('plugins'),
+            new DatabasePluginAppPublicationRepository()
+        );
+    }
+
     public function migrate(Manifest $manifest): array
     {
         try {

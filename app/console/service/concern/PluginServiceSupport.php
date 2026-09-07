@@ -118,7 +118,39 @@ trait PluginServiceSupport
 
     private function restorePublishedResources(string $code): void
     {
-        $this->infrastructure()->publisher()->publish($this->validatedManifest($code));
+        $manifest = $this->validatedManifest($code);
+        $token = 'restore-' . bin2hex(random_bytes(12));
+        $this->infrastructure()->publisher()->publish($manifest);
+        $this->infrastructure()->appPublisher()->publish($manifest, $token);
+        $this->infrastructure()->appPublisher()->complete($token);
+    }
+
+    private function publishPluginResources(Manifest $manifest, string $token): void
+    {
+        $this->infrastructure()->appPublisher()->publish($manifest, $token);
+        $this->appPublicationTokens[$manifest->code()] = $token;
+        $this->infrastructure()->publisher()->publish($manifest);
+    }
+
+    private function removePluginResources(string $code, string $token): void
+    {
+        $this->infrastructure()->appPublisher()->remove($code, $token);
+        $this->appPublicationTokens[$code] = $token;
+        $this->infrastructure()->publisher()->remove($code);
+    }
+
+    private function completeAppPublication(string $code): void
+    {
+        if (isset($this->appPublicationTokens[$code])) {
+            $this->infrastructure()->appPublisher()->complete($this->appPublicationTokens[$code]);
+        }
+    }
+
+    private function rollbackAppPublication(string $code): void
+    {
+        if (isset($this->appPublicationTokens[$code])) {
+            $this->infrastructure()->appPublisher()->rollback($this->appPublicationTokens[$code]);
+        }
     }
 
     private function registerMenu(string $code): void

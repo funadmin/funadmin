@@ -10,6 +10,33 @@
       </div>
     </template>
 
+    <el-card shadow="never" class="mb-3">
+      <template #header>表单基本信息</template>
+      <el-form label-width="90px" class="designer-meta-form">
+        <el-form-item label="表单名称" required>
+          <el-input v-model="store.form.value.name" maxlength="100" placeholder="如：活动报名" />
+        </el-form-item>
+        <el-form-item label="表单标识" required>
+          <el-input
+            v-model="store.form.value.form_key"
+            maxlength="61"
+            placeholder="如 activity_form"
+            @blur="normalizeFormKey"
+          />
+          <div class="form-tip">用于接口和数据页地址，以小写字母开头，只能包含小写字母、数字和下划线。</div>
+        </el-form-item>
+        <el-form-item label="来源" required>
+          <el-radio-group v-model="store.form.value.source_type">
+            <el-radio-button value="created">创建新表</el-radio-button>
+            <el-radio-button value="adopted">采纳已有表</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="绑定表" required>
+          <el-input v-model="store.form.value.table_name" placeholder="如 fun_activity" @blur="normalizeFormKey" />
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <div class="designer-layout flex gap-3">
       <!-- 左：控件 palette -->
       <el-card shadow="never" class="w-[230px] shrink-0">
@@ -141,6 +168,34 @@ const previewOptions = (field: { options_source?: Record<string, unknown> | null
   const options = field.options_source?.options;
   return Array.isArray(options) ? options as Array<{ label: string; value: string | number }> : [];
 };
+const normalizeIdentifier = (value: string) => value
+  .trim()
+  .toLowerCase()
+  .replace(/[\s-]+/g, '_')
+  .replace(/[^a-z0-9_]/g, '')
+  .replace(/^_+|_+$/g, '')
+  .slice(0, 61);
+const normalizeFormKey = () => {
+  const current = normalizeIdentifier(String(store.form.value.form_key ?? ''));
+  const fromTable = normalizeIdentifier(String(store.form.value.table_name ?? '')).replace(/^fun_/, '');
+  store.form.value.form_key = current || fromTable;
+};
+const validateDefinitionBasics = () => {
+  normalizeFormKey();
+  if (!String(store.form.value.name ?? '').trim()) {
+    ElMessage.warning('请填写表单名称');
+    return false;
+  }
+  if (!/^[a-z][a-z0-9_]{0,60}$/.test(String(store.form.value.form_key ?? ''))) {
+    ElMessage.warning('请填写正确的表单标识');
+    return false;
+  }
+  if (!/^[a-z][a-z0-9_]*$/.test(String(store.form.value.table_name ?? ''))) {
+    ElMessage.warning('请填写正确的绑定表名');
+    return false;
+  }
+  return true;
+};
 
 async function load() {
   const id = Number(route.query.id ?? 0);
@@ -151,6 +206,7 @@ async function load() {
 }
 
 async function onSave() {
+  if (!validateDefinitionBasics()) return;
   saving.value = true;
   try {
     const saved = await formDesignerApi.save(definition());
@@ -162,11 +218,13 @@ async function onSave() {
 }
 
 async function onPreview() {
+  if (!validateDefinitionBasics()) return;
   preview.value = await formDesignerApi.preview(definition());
   previewVisible.value = true;
 }
 
 async function onApply() {
+  if (!validateDefinitionBasics()) return;
   applying.value = true;
   try {
     preview.value = await formDesignerApi.apply(definition());
@@ -216,6 +274,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.designer-meta-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  column-gap: 24px;
+}
+.form-tip {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
 .designer-layout {
   align-items: flex-start;
 }

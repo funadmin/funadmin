@@ -30,6 +30,7 @@ final class PluginResourcePublisher
         $owned = array_values(array_filter(
             $existing,
             static fn (array $row): bool => ($row['plugin_code'] ?? '') === $manifest->code()
+                && ($row['resource_type'] ?? 'file') === 'file'
         ));
         $snapshot = $this->snapshot($manifest->code(), $owned, $roots);
         $next = [];
@@ -59,6 +60,9 @@ final class PluginResourcePublisher
                     $next[] = [
                         'plugin_code' => $manifest->code(),
                         'version' => $manifest->version(),
+                        'resource_type' => 'file',
+                        'publication_unit' => null,
+                        'operation_token' => null,
                         'source_path' => str_replace(
                             DIRECTORY_SEPARATOR,
                             '/',
@@ -104,6 +108,7 @@ final class PluginResourcePublisher
         $owned = array_values(array_filter(
             $this->repository->all(),
             static fn (array $row): bool => ($row['plugin_code'] ?? '') === $pluginCode
+                && ($row['resource_type'] ?? 'file') === 'file'
         ));
         $roots = $this->roots();
         $snapshot = $this->snapshot($pluginCode, $owned, $roots);
@@ -126,6 +131,7 @@ final class PluginResourcePublisher
             array_values(array_filter(
                 $this->repository->all(),
                 static fn (array $row): bool => ($row['plugin_code'] ?? '') === ($snapshot['plugin_code'] ?? '')
+                    && ($row['resource_type'] ?? 'file') === 'file'
             )),
             'target_path'
         );

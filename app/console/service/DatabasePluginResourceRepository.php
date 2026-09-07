@@ -17,7 +17,7 @@ final class DatabasePluginResourceRepository implements PluginResourceRepository
     public function replaceForPlugin(string $pluginCode, array $records): void
     {
         Db::transaction(static function () use ($pluginCode, $records): void {
-            PluginResource::where('plugin_code', $pluginCode)->delete();
+            PluginResource::where('plugin_code', $pluginCode)->where('resource_type', 'file')->delete();
             foreach ($records as $record) {
                 PluginResource::create($record);
             }

@@ -100,8 +100,12 @@ final class PluginAppPublicationService
             if (($journal['state'] ?? '') !== 'registry_committed') {
                 throw new RuntimeException('publication 尚未提交 registry，不能完成：' . $token);
             }
-            $this->cleanupArtifacts($journal);
             $this->writeJournal($token, array_replace($journal, ['state' => 'completed']));
+            try {
+                $this->cleanupArtifacts($journal);
+            } catch (Throwable $exception) {
+                error_log('原生 App publication 备份清理失败：' . $exception->getMessage());
+            }
         });
     }
 
@@ -166,6 +170,8 @@ final class PluginAppPublicationService
                     $next = array_merge($next, $records);
                 }
                 $journal['units'][] = [
+                    'token' => $token,
+                    'plugin' => $pluginCode,
                     'unit' => $unit,
                     'source' => $definition['source'],
                     'target' => $target,
@@ -279,6 +285,11 @@ final class PluginAppPublicationService
         $byUnit = $this->recordsByUnit($owned);
         foreach ($byUnit as $unit => $records) {
             $targetRoot = $this->unitTarget($unit, $pluginCode);
+            $expectedTreeHash = (string) ($records[0]['tree_hash'] ?? '');
+            if (is_dir($targetRoot) && $expectedTreeHash !== ''
+                && !hash_equals($expectedTreeHash, $this->treeHash($targetRoot))) {
+                $conflicts[] = 'modified-unit:' . $unit;
+            }
             $registered = [];
             foreach ($records as $record) {
                 $target = $this->registryTarget((string) $record['target_path']);
@@ -355,14 +366,16 @@ final class PluginAppPublicationService
             $target = (string) ($unit['target'] ?? '');
             $backup = (string) ($unit['backup'] ?? '');
             $temp = (string) ($unit['temp'] ?? '');
-            if ($target !== '') {
-                $this->removeTree($target);
-            }
+            $swapped = in_array(($unit['state'] ?? ''), ['swapped', 'registry_committed'], true);
             if ($backup !== '' && is_dir($backup)) {
+                $this->removeTree($target);
                 $this->ensureDirectory(dirname($target));
                 if (!rename($backup, $target)) {
                     throw new RuntimeException('无法恢复原生 App publication unit：' . $target);
                 }
+            } elseif (($swapped || $this->isInterruptedNewSwap($unit))
+                && ($unit['old_tree_hash'] ?? null) === null) {
+                $this->removeTree($target);
             }
             $this->removeTree($temp);
         }
@@ -395,7 +408,7 @@ final class PluginAppPublicationService
                 'resource_type' => self::RESOURCE_TYPE,
                 'publication_unit' => $unit,
                 'operation_token' => $token,
-                'source_path' => str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen(dirname(dirname($source))) + 1)),
+                'source_path' => $this->unitSourcePath($unit, $relative),
                 'target_path' => $this->targetRegistryPath($target . DIRECTORY_SEPARATOR . $relative),
                 'sha256' => $sha256,
                 'tree_hash' => $treeHash,
@@ -410,11 +423,19 @@ final class PluginAppPublicationService
     {
         $this->removeTree($target);
         $this->ensureDirectory($target);
-        foreach ($this->files($source) as $file) {
-            $relative = $this->relativePath($source, $file);
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('原生 App 目录禁止符号链接：' . $item->getPathname());
+            }
+            $relative = $this->relativePath($source, $item->getPathname());
             $destination = $target . DIRECTORY_SEPARATOR . $relative;
-            $this->ensureDirectory(dirname($destination));
-            if (!copy($file, $destination)) {
+            if ($item->isDir()) {
+                $this->ensureDirectory($destination);
+            } elseif (!copy($item->getPathname(), $destination)) {
                 throw new RuntimeException('原生 App 文件复制失败：' . $relative);
             }
         }
@@ -423,13 +444,26 @@ final class PluginAppPublicationService
     private function treeHash(string $directory): string
     {
         $hashes = [];
-        foreach ($this->files($directory) as $file) {
-            $hash = hash_file('sha256', $file);
-            if ($hash === false) {
-                throw new RuntimeException('无法计算 publication tree hash：' . $file);
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('原生 App 目录禁止符号链接：' . $item->getPathname());
             }
-            $hashes[] = $this->relativePath($directory, $file) . "\0" . $hash;
+            $relative = $this->relativePath($directory, $item->getPathname());
+            if ($item->isDir()) {
+                $hashes[] = 'd' . "\0" . $relative;
+                continue;
+            }
+            $hash = hash_file('sha256', $item->getPathname());
+            if ($hash === false) {
+                throw new RuntimeException('无法计算 publication tree hash：' . $item->getPathname());
+            }
+            $hashes[] = 'f' . "\0" . $relative . "\0" . $hash;
         }
+        sort($hashes, SORT_STRING);
         return hash('sha256', implode("\n", $hashes));
     }
 
@@ -471,6 +505,18 @@ final class PluginAppPublicationService
             && in_array($match[1], self::CONSOLE_LAYERS, true)) {
             return $this->appDirectory() . DIRECTORY_SEPARATOR . 'console' . DIRECTORY_SEPARATOR . $match[1]
                 . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . $pluginCode;
+        }
+        throw new RuntimeException('registry publication unit 非法：' . $unit);
+    }
+
+    private function unitSourcePath(string $unit, string $relative): string
+    {
+        $parts = explode(':', $unit);
+        if ($parts[0] === 'app' && count($parts) === 2) {
+            return 'app/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
+        }
+        if ($parts[0] === 'console' && count($parts) === 3 && in_array($parts[1], self::CONSOLE_LAYERS, true)) {
+            return 'app/console/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
         }
         throw new RuntimeException('registry publication unit 非法：' . $unit);
     }
@@ -605,9 +651,21 @@ final class PluginAppPublicationService
 
     private function directoryEntries(string $directory): array
     {
-        $entries = glob($directory . DIRECTORY_SEPARATOR . '*') ?: [];
-        sort($entries, SORT_STRING);
-        return $entries;
+        $names = array_values(array_diff(scandir($directory) ?: [], ['.', '..']));
+        sort($names, SORT_STRING);
+        return array_map(
+            static fn (string $name): string => $directory . DIRECTORY_SEPARATOR . $name,
+            $names
+        );
+    }
+
+    private function isInterruptedNewSwap(array $unit): bool
+    {
+        $target = (string) ($unit['target'] ?? '');
+        $temp = (string) ($unit['temp'] ?? '');
+        $newHash = (string) ($unit['new_tree_hash'] ?? '');
+        return $newHash !== '' && !is_dir($temp) && is_dir($target)
+            && hash_equals($newHash, $this->treeHash($target));
     }
 
     private function removeTree(string $directory): void

@@ -23,7 +23,8 @@ class PluginService extends AbstractService
         $packageContexts = [],
         $operationStages = [],
         $operationProgress = [],
-        $activeOperationTokens = [];
+        $activeOperationTokens = [],
+        $appPublicationTokens = [];
 
     private function transition(Plugin $record, string $to): void
     {
@@ -53,9 +54,20 @@ class PluginService extends AbstractService
             $this->assertCode($code);
             $this->assertLifecycleSchema();
             $lock = (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($code);
-            return $operation($token);
+            $result = $operation($token);
+            $this->completeAppPublication($code);
+            return $result;
         } catch (\Throwable $exception) {
             $operationFailure = $exception;
+            try {
+                $this->rollbackAppPublication($code);
+            } catch (\Throwable $rollbackException) {
+                $exception = new RuntimeException(
+                    $exception->getMessage() . '；原生 App 生命周期回滚失败：' . $rollbackException->getMessage(),
+                    0,
+                    $exception
+                );
+            }
             if ($lock && !$this->suppressFailureRecording) {
                 $this->recordFailure($code, $exception);
             }
@@ -66,7 +78,8 @@ class PluginService extends AbstractService
                 $this->packageContexts[$code],
                 $this->operationStages[$code],
                 $this->operationProgress[$code],
-                $this->activeOperationTokens[$code]
+                $this->activeOperationTokens[$code],
+                $this->appPublicationTokens[$code]
             );
             $this->suppressFailureRecording = false;
             try {
@@ -238,7 +251,7 @@ class PluginService extends AbstractService
             $migration = $this->migrate($code);
             $record->save(['db_version' => $migration['version'], 'migration_pending' => 0]);
             $this->recordStage($code, 'install', 'resources');
-            $this->infrastructure()->publisher()->publish($manifest);
+            $this->publishPluginResources($manifest, $token);
             $this->recordStage($code, 'install', 'permissions');
             $manifestData = $manifest->toArray();
             $this->infrastructure()->registerResources(
@@ -296,7 +309,7 @@ class PluginService extends AbstractService
                 throw new RuntimeException('update_hook: 插件更新后置钩子执行失败');
             }
             $this->recordStage($code, $operation, 'resources');
-            $this->infrastructure()->publisher()->publish($manifest);
+            $this->publishPluginResources($manifest, $token);
             $this->recordStage($code, $operation, 'permissions');
             $manifestData = $manifest->toArray();
             $this->infrastructure()->registerResources(
@@ -384,7 +397,7 @@ class PluginService extends AbstractService
             $this->recordStage($code, 'uninstall', 'resources');
             $this->infrastructure()->removeMenus($code);
             $this->infrastructure()->removePermissions($code);
-            $this->infrastructure()->publisher()->remove($code);
+            $this->removePluginResources($code, $token);
             $this->recordStage($code, 'uninstall', 'permissions');
             $this->transition($record, 'discovered');
             if (!$record->delete()) {
@@ -459,7 +472,7 @@ class PluginService extends AbstractService
             }
             $this->recordStage($code, $operation, 'hooks');
             if ($enabled) {
-                $this->infrastructure()->publisher()->publish($manifest);
+                $this->publishPluginResources($manifest, $token);
                 if ($plugin->enabled() === false) {
                     throw new RuntimeException('插件启用钩子执行失败');
                 }
