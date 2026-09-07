@@ -14,7 +14,7 @@
           </el-form-item>
         </SearchForm>
       </template>
-      <template #toolbar>
+      <template #toolbar-left>
         <el-button type="primary" @click="openDialog()">新增</el-button>
         <el-button @click="onExport">导出</el-button>
       </template>

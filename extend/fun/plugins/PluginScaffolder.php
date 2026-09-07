@@ -10,7 +10,7 @@ use Throwable;
 /** 原子生成 Manifest v2 插件开发骨架。 */
 final class PluginScaffolder
 {
-    private const RESERVED_NAMES = ['console', 'api', 'index', 'install', 'common'];
+    private const RESERVED_NAMES = ['console', 'api', 'index', 'frontend', 'install', 'common'];
 
     public function __construct(private readonly string $pluginsDirectory)
     {

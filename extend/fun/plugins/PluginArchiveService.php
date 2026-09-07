@@ -90,6 +90,8 @@ final class PluginArchiveService
         $name = basename($relative);
         return $name === '.DS_Store'
             || $name === '.gitkeep'
+            || $name === '.env'
+            || str_starts_with($name, '.env.')
             || preg_match('/(?:^|\.)local(?:\.[^.]+)?$/i', $name) === 1;
     }
 

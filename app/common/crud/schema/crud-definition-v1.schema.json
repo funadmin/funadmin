@@ -4,7 +4,7 @@
   "title": "FunAdmin CRUD Definition v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "connection", "module", "entity", "table", "title", "apiPrefix", "routePath", "primaryKey", "timestamps", "softDeletes", "generationTargets", "permissionPrefix", "fields", "relations", "optionsSource", "templates", "capabilities", "features", "dataScope"],
+  "required": ["schemaVersion", "connection", "module", "entity", "table", "title", "apiPrefix", "routePath", "primaryKey", "timestamps", "softDeletes", "generationTargets", "permissionPrefix", "fields", "relations", "optionsSource", "templates", "capabilities", "features", "dataScope", "menu", "permission"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "connection": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },

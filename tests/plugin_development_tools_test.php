@@ -105,6 +105,10 @@ try {
     $controller = $invalid['directory'] . '/app/console/controller/Index.php';
     file_put_contents($controller, str_replace("#[Group('plugin/invalidgroup')]", "#[Group('other')]", (string) file_get_contents($controller)));
     developmentReject(static fn () => Manifest::fromDirectory($invalid['directory']), 'Group');
+    $commentBypass = $scaffolder->scaffold('commentbypass', '注释绕过');
+    $commentController = $commentBypass['directory'] . '/app/console/controller/Index.php';
+    file_put_contents($commentController, "<?php\n// namespace plugin\\commentbypass\\console\\controller;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
+    developmentReject(static fn () => Manifest::fromDirectory($commentBypass['directory']), 'namespace');
 
     $migrationPlugin = $scaffolder->scaffold('badmigration', '非法迁移');
     file_put_contents($migrationPlugin['directory'] . '/database/migrations/create.sql', 'SELECT 1;');

@@ -14,7 +14,7 @@
           </el-form-item>
         </SearchForm>
       </template>
-      <template #toolbar>
+      <template #toolbar-left>
         <el-button type="primary" @click="openCreate">新建表单</el-button>
       </template>
       <el-table v-loading="loading" :data="rows" border row-key="id">

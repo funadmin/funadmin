@@ -347,7 +347,7 @@ final class ProductionTemplateContext
                 $act = self::sqlLiteral($action['action']);
                 $sort = ($index + 1) * 10;
                 $sql .= "INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)\n"
-                    . "SELECT @permission_group_id,'console',{$code},{$controller},{$act},{$label},'route',1,0,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+                    . "SELECT @permission_group_id, 'console', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, {$sort}, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
                     . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'route' AND `code` = {$code});\n"
                     . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='console',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
             }
