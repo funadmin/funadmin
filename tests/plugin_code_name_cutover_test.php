@@ -59,9 +59,6 @@ $forbidden = [
 foreach ($productionRoots as $productionRoot) {
     $files = is_dir($productionRoot) ? cutoverPhpFiles($productionRoot) : [$productionRoot];
     foreach ($files as $file) {
-        if (str_ends_with($file, '/LegacyCloudMarketplaceAdapter.php')) {
-            continue;
-        }
         $source = (string) file_get_contents($file);
         foreach ($forbidden as $pattern => $label) {
             cutoverExpect(preg_match($pattern, $source) !== 1, str_replace($root . '/', '', $file) . " 仍引用 {$label}");
