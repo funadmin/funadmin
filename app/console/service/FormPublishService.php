@@ -63,7 +63,7 @@ final class FormPublishService
             $this->schema($payload)
         );
         try {
-            $this->crud->preflightGeneration(
+            $validatedPlan = $this->crud->preflightGeneration(
                 $crudDefinition->toArray(),
                 $confirmToken,
                 $allowOverwrite,
@@ -90,7 +90,8 @@ final class FormPublishService
                 $canOverwrite,
                 $operator,
                 true,
-                $canApplyResources
+                $canApplyResources,
+                $validatedPlan
             );
             $resourceStatus = (string) ($generated['resourceApplyStatus'] ?? 'failed');
             $status = $resourceStatus === 'applied' ? 'published' : 'partial';
@@ -107,7 +108,9 @@ final class FormPublishService
                 'routePath' => (string) $crudDefinition->get('routePath'),
             ];
         } catch (Throwable $exception) {
-            $this->updateStatus($formId, $this->isConflict($exception) ? 'conflict' : 'failed');
+            $ddlApplied = $ddl !== null || ($exception instanceof FormMigrationException && $exception->ddlApplied);
+            $status = $this->isConflict($exception) ? 'conflict' : ($ddlApplied ? 'partial' : 'failed');
+            $this->updateStatus($formId, $status);
             throw $exception;
         }
     }

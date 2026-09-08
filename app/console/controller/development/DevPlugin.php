@@ -14,12 +14,14 @@ use RuntimeException;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Post;
+use think\annotation\route\Pattern;
 use think\App;
 use think\Response;
 use Throwable;
 
 /** 受 RBAC、CSRF 与审计中间件保护的插件开发 API。 */
 #[Group('development/plugin')]
+#[Pattern('code', '[a-z][a-z0-9]*')]
 final class DevPlugin extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -57,6 +59,17 @@ final class DevPlugin extends AdminApiController
             $this->code(),
             trim((string) $this->request->post('output', ''))
         ), '插件打包完成');
+    }
+
+    #[Get('package/{code}/download')]
+    public function packageDownload(string $code): Response
+    {
+        try {
+            $download = $this->plugins->packageDownload($code);
+            return download($download['path'], $download['filename']);
+        } catch (RuntimeException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 404);
+        }
     }
 
     #[Get('options')]

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace fun\command;
 
+use app\common\model\Plugin;
+use fun\plugins\DependencyValidator;
 use fun\plugins\Manifest;
 use fun\plugins\PluginScaffolder;
 use think\console\Command;
@@ -27,6 +29,15 @@ final class PluginValidate extends Command
             $name = (string) $input->getArgument('name');
             PluginScaffolder::assertValidName($name);
             $manifest = Manifest::fromDirectory(root_path('plugins/' . $name));
+            $records = [];
+            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
+                $records[(string) $record->code] = [
+                    'version' => (string) $record->version,
+                    'lifecycle_state' => (string) $record->lifecycle_state,
+                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
+                ];
+            }
+            (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
             $output->writeln(json_encode([
                 'valid' => true,
                 'code' => $manifest->code(),

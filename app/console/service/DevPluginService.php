@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\model\Plugin;
 use Closure;
+use fun\plugins\DependencyValidator;
 use fun\plugins\Manifest;
 use fun\plugins\PluginArchiveService;
 use fun\plugins\PluginScaffolder;
@@ -90,6 +92,15 @@ final class DevPluginService
         PluginScaffolder::assertValidName($code);
         try {
             $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
+            $records = [];
+            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
+                $records[(string) $record->code] = [
+                    'version' => (string) $record->version,
+                    'lifecycle_state' => (string) $record->lifecycle_state,
+                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
+                ];
+            }
+            (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
             $data = $manifest->toArray();
             $plan = [
                 'operation' => 'validate',
@@ -118,7 +129,7 @@ final class DevPluginService
         PluginScaffolder::assertValidName($code);
         $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
         $relative = 'runtime/download/plugins/' . $code . '-' . $manifest->version() . '.zip';
-        $output = $this->projectRoot() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        $output = $this->downloadRoot() . DIRECTORY_SEPARATOR . $code . '-' . $manifest->version() . '.zip';
         try {
             $result = ($this->archivePackager)($code, $output, $this->archiveVerifier);
             $plan = [
@@ -134,12 +145,38 @@ final class DevPluginService
                 'plan' => $plan,
                 'conflicts' => [],
                 'downloadPath' => $relative,
+                'downloadUrl' => '/development/plugin/package/' . $code . '/download',
                 'sha256' => $result['sha256'],
             ];
         } catch (Throwable $exception) {
             $this->audit('package', $code, 'failed', ['error' => $exception->getMessage()]);
             throw $exception;
         }
+    }
+
+    public function packageDownload(string $code): array
+    {
+        PluginScaffolder::assertValidName($code);
+        $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
+        $filename = $code . '-' . $manifest->version() . '.zip';
+        $root = $this->projectRoot() . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'download' . DIRECTORY_SEPARATOR . 'plugins';
+        $rootReal = realpath($root);
+        $path = $root . DIRECTORY_SEPARATOR . $filename;
+        $current = $this->projectRoot();
+        foreach (['runtime', 'download', 'plugins'] as $segment) {
+            $current .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($current)) {
+                throw new RuntimeException('插件包下载目录或文件禁止符号链接');
+            }
+        }
+        if ($rootReal === false || is_link($path)) {
+            throw new RuntimeException('插件包下载目录或文件禁止符号链接');
+        }
+        $real = realpath($path);
+        if ($real === false || !is_file($real) || !str_starts_with($real, $rootReal . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('插件包不存在或路径越界');
+        }
+        return ['path' => $real, 'filename' => $filename];
     }
 
     public function options(): array
@@ -267,6 +304,18 @@ final class DevPluginService
     private function pluginsDirectory(): string
     {
         return $this->projectRoot() . DIRECTORY_SEPARATOR . 'plugins';
+    }
+
+    private function downloadRoot(): string
+    {
+        $current = $this->projectRoot();
+        foreach (['runtime', 'download', 'plugins'] as $segment) {
+            $current .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($current)) {
+                throw new RuntimeException('插件包下载目录禁止符号链接');
+            }
+        }
+        return $current;
     }
 
     private function projectRoot(): string

@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper title="已发布表单" subtitle="当前构建使用运行时发布宿主；生成源码将在下次前端构建后接管独立页面">
+  <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用运行时发布宿主；生成源码将在下次前端构建后接管独立页面">
     <DataTableShell :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">

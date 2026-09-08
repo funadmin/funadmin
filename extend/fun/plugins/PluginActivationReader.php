@@ -16,6 +16,12 @@ class PluginActivationReader
         return $this->readBundle()['activation'];
     }
 
+    public function activeGeneration(): ?string
+    {
+        $generation = trim((string) @file_get_contents($this->runtimePath . DIRECTORY_SEPARATOR . 'active'));
+        return preg_match('/^[a-f0-9]{32}$/', $generation) === 1 ? $generation : null;
+    }
+
     public function readOwnership(): PluginOwnershipSnapshot
     {
         return $this->readBundle()['ownership'];

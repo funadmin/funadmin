@@ -63,12 +63,24 @@ try {
     foreach ([
         'Plugin.php',
         'app/demo/controller/Index.php',
+        'app/demo/model/.gitkeep',
+        'app/demo/service/.gitkeep',
+        'app/demo/config/app.php',
+        'app/demo/middleware/.gitkeep',
+        'app/demo/route/app.php',
+        'app/demo/view/.gitkeep',
+        'app/demo/lang/zh-cn.php',
+        'app/demo/event.php',
+        'app/demo/provider.php',
         'app/console/controller/Index.php',
         'app/console/model/.gitkeep',
         'app/console/service/.gitkeep',
         'app/console/validate/.gitkeep',
         'app/console/middleware/.gitkeep',
-        'admin-web/Index.vue',
+        'admin-web/api.ts',
+        'admin-web/types.ts',
+        'admin-web/pages/Index.vue',
+        'admin-web/pages/components/EditDialog.vue',
         'database/migrations/.gitkeep',
         'resources/public/.gitkeep',
         'storage/.gitkeep',
@@ -79,9 +91,23 @@ try {
     $applicationController = (string) file_get_contents($plugin . '/app/demo/controller/Index.php');
     developmentExpect(str_contains($applicationController, 'namespace app\\demo\\controller;'), '独立应用 namespace 必须使用 app\\demo');
     developmentExpect(str_contains($applicationController, '#[Get('), '独立应用必须生成最小 Attribute controller');
+    developmentExpect((require $plugin . '/app/demo/config/app.php') === [], '应用配置文件允许使用无 namespace 的原生返回文件');
+    developmentExpect((require $plugin . '/app/demo/event.php')['listen'] === [], 'event.php 必须是可加载的原生配置');
+    developmentExpect((require $plugin . '/app/demo/provider.php') === [], 'provider.php 必须是可加载的原生配置');
+    $entrySource = (string) file_get_contents($plugin . '/Plugin.php');
+    foreach (['beforeUpdate', 'afterUpdate', 'purgeData'] as $hook) {
+        developmentExpect(str_contains($entrySource, 'function ' . $hook . '('), 'Plugin.php 必须显式生成生命周期模板：' . $hook);
+    }
+    developmentExpect(preg_match('/function purgeData\([^)]*\): bool\s*\{\s*return false;\s*\}/s', $entrySource) === 1, 'purge.supported=false 时 purgeData 必须安全返回 false');
     $consoleController = (string) file_get_contents($plugin . '/app/console/controller/Index.php');
     developmentExpect(str_contains($consoleController, 'namespace app\\console\\controller\\plugin\\demo;'), 'Console controller 必须使用原生 layer namespace');
+    developmentExpect(str_contains($consoleController, 'extends AdminApiController'), 'Console controller 必须继承 AdminApiController');
+    foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class'] as $middleware) {
+        developmentExpect(str_contains($consoleController, $middleware), 'Console controller 缺少中间件：' . $middleware);
+    }
     developmentExpect(str_contains($consoleController, "#[Group('plugin/demo')]"), 'Console Group 必须使用 plugin/name 前缀');
+    developmentExpect(($manifest['adminWeb']['components']['Index'] ?? '') === 'pages/Index.vue', 'manifest 组件必须对应页面目录');
+    developmentExpect(str_contains((string) file_get_contents($plugin . '/admin-web/pages/Index.vue'), "v-perm=\"'demo:item:list'\""), 'Admin Web 页面必须包含权限使用示例');
 
     developmentReject(static fn () => $scaffolder->scaffold('Demo', '非法'), '格式');
     developmentReject(static fn () => $scaffolder->scaffold('console', '保留名'), '保留');

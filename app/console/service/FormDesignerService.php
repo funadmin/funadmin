@@ -306,18 +306,24 @@ final class FormDesignerService
             throw new InvalidArgumentException('迁移文件写入失败：' . basename($file));
         }
         $version = pathinfo($file, PATHINFO_FILENAME);
-        Db::transaction(function () use ($preview, $file, $version): void {
-            Db::execute(rtrim(trim((string) $preview['sql']), ';'));
-            $registered = SystemMigration::where('scope', 'generated')->where('version', $version)->find();
-            if (!$registered) {
-                SystemMigration::create([
-                    'scope' => 'generated',
-                    'version' => $version,
-                    'checksum' => hash_file('sha256', $file) ?: '',
-                    'executed_at' => time(),
-                ]);
-            }
-        });
+        $ddlApplied = false;
+        try {
+            Db::transaction(function () use ($preview, $file, $version, &$ddlApplied): void {
+                Db::execute(rtrim(trim((string) $preview['sql']), ';'));
+                $ddlApplied = true;
+                $registered = SystemMigration::where('scope', 'generated')->where('version', $version)->find();
+                if (!$registered) {
+                    SystemMigration::create([
+                        'scope' => 'generated',
+                        'version' => $version,
+                        'checksum' => hash_file('sha256', $file) ?: '',
+                        'executed_at' => time(),
+                    ]);
+                }
+            });
+        } catch (Throwable $exception) {
+            throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
+        }
         return $preview + ['applied' => true];
     }
 

@@ -143,6 +143,9 @@ resourceExpect(file_get_contents($component) === '<template>demo-v1</template>',
 resourceExpect(file_get_contents($stylesheet) === 'demo-css-v1', '公开资源必须发布到 public/plugin-assets');
 resourceExpect(!is_dir($public . '/plugin-assets/demo') || !is_file($public . '/plugin-assets/demo/Index.vue'), 'Admin Web 源码不得发布到 public/plugin-assets');
 resourceExpect(count($repository->records) === 2, '源码与公开资源必须统一进入 registry');
+$registryTargets = array_column($repository->records, 'target_path');
+resourceExpect(in_array('public:plugin-assets/demo/public/app.css', $registryTargets, true), 'public registry 必须使用 public: 根前缀');
+resourceExpect(in_array('admin-web:src/modules/demo/Index.vue', $registryTargets, true), 'Admin Web registry 必须使用 admin-web: 根前缀');
 resourceExpect(($snapshot['rebuildRequired'] ?? false) === true, '源码发布必须要求重新构建前端');
 
 file_put_contents($plugins . '/demo/admin-web/Index.vue', '<template>demo-v2</template>');
@@ -166,7 +169,7 @@ $publisher->complete($binaryInitialSnapshot);
 file_put_contents($plugins . '/demo/resources/public/logo.png', $binaryV2);
 $binarySnapshot = $publisher->publish(Manifest::fromDirectory($plugins . '/demo'), false, 'binary-update');
 resourceExpect(json_encode($binarySnapshot, JSON_THROW_ON_ERROR) !== false, '二进制 snapshot 必须可安全写入 JSON journal');
-$binaryEntry = $binarySnapshot['files']['plugin-assets/demo/public/logo.png'] ?? [];
+$binaryEntry = $binarySnapshot['files']['public:plugin-assets/demo/public/logo.png'] ?? [];
 resourceExpect(is_array($binaryEntry) && ($binaryEntry['encoding'] ?? '') === 'file', '二进制 snapshot journal 只能保存文件引用元数据');
 resourceExpect(isset($binaryEntry['relative_path'], $binaryEntry['sha256']), '文件化 snapshot 必须保存相对路径与 SHA-256');
 resourceExpect(!isset($binaryEntry['contents']), '文件化 snapshot 不得嵌入原始内容');

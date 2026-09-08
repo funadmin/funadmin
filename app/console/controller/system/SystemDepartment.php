@@ -9,6 +9,7 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\model\Admin;
+use app\console\model\AdminDepartment;
 use app\console\model\AuthGroupDepartment;
 use app\console\model\Department;
 use app\console\service\RoleScopeService;
@@ -146,8 +147,9 @@ class SystemDepartment extends AdminApiController
         if (array_diff($subtreeIds, $ids)) {
             return $this->fail(msg: '请同时选择全部下级部门后再删除', code: 422);
         }
-        if (Admin::whereIn('dept_id', $subtreeIds)->count() > 0) {
-            return $this->fail(msg: '部门或下级部门仍有管理员，不能删除', code: 422);
+        if (Admin::whereIn('dept_id', $subtreeIds)->count() > 0
+            || AdminDepartment::whereIn('dept_id', $subtreeIds)->count() > 0) {
+            return $this->fail(msg: '部门或下级部门仍有管理员任职，不能删除', code: 422);
         }
         if (AuthGroupDepartment::whereIn('dept_id', $subtreeIds)->count() > 0) {
             return $this->fail(msg: '部门或下级部门仍被角色数据范围引用，不能删除', code: 422);

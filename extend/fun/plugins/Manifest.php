@@ -94,6 +94,7 @@ final class Manifest
     {
         $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
         JsonSchemaValidator::fromFile($schema)->validate($data);
+        self::assertNoSymlinks($directory);
         if (basename($directory) !== $data['code']) {
             throw new RuntimeException('插件目录名与 plugin.json code 不一致');
         }
@@ -121,6 +122,19 @@ final class Manifest
             self::existingRelativeDirectory($directory, (string) $data['storage']['path'], 'storage.path');
         }
         self::validatePurgeContract($entryFile, $data);
+    }
+
+    private static function assertNoSymlinks(string $directory): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('插件目录禁止符号链接：' . $item->getPathname());
+            }
+        }
     }
 
     private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
@@ -193,11 +207,23 @@ final class Manifest
     private static function validatePhpNamespaces(string $directory, string $expectedPrefix): void
     {
         foreach (self::phpFiles($directory) as $file) {
-            $namespaces = self::declaredNamespaces((string) file_get_contents($file));
+            $source = (string) file_get_contents($file);
+            $namespaces = self::declaredNamespaces($source);
+            if ($namespaces === [] && self::isApplicationConfigurationFile($directory, $file, $source)) {
+                continue;
+            }
             if (count($namespaces) !== 1 || !str_starts_with($namespaces[0], $expectedPrefix)) {
                 throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
             }
         }
+    }
+
+    private static function isApplicationConfigurationFile(string $root, string $file, string $source): bool
+    {
+        $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen($root) + 1));
+        $allowed = in_array($relative, ['event.php', 'provider.php'], true)
+            || preg_match('~^(?:config|route|lang)/[A-Za-z0-9._-]+\.php$~', $relative) === 1;
+        return $allowed && self::declaredClasses($source) === [];
     }
 
     private static function validateConsoleNamespaces(string $console, string $code): void

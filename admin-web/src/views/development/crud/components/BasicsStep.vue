@@ -13,6 +13,8 @@
           <el-form-item label="插件"><el-select :model-value="model.target.plugin" class="w-full" @update:model-value="$emit('change-plugin', $event)"><el-option v-for="item in plugins" :key="item.code" :label="`${item.name} (${item.code})`" :value="item.code" /></el-select></el-form-item>
           <el-form-item label="scope"><el-select :model-value="model.target.scope" class="w-full" @update:model-value="$emit('change-scope', $event)"><el-option v-for="scope in activeScopes" :key="scope" :label="scope" :value="scope" /></el-select></el-form-item>
           <el-form-item label="namespace"><el-input :model-value="pluginNamespace" disabled /></el-form-item>
+          <el-form-item v-if="model.target.scope !== 'application'" label="controller namespace"><el-input :model-value="consoleControllerNamespace" disabled /></el-form-item>
+          <el-form-item v-if="model.target.scope !== 'application'" label="model namespace"><el-input :model-value="consoleModelNamespace" disabled /></el-form-item>
           <el-form-item label="URL"><el-input :model-value="model.apiPrefix" disabled /></el-form-item>
         </template>
         <el-form-item label="连接"><el-input v-model="model.connection" disabled /></el-form-item>
@@ -76,14 +78,20 @@ const activePlugin = computed(() => {
   return target?.type === 'plugin' ? props.plugins.find((item) => item.code === target.plugin) : undefined;
 });
 const activeScopes = computed(() => activePlugin.value?.scopes || []);
-const pluginNamespace = computed(() => props.model?.target.type === 'plugin' ? `plugin\\${props.model.target.plugin}\\${props.model.target.scope === 'application' ? '' : 'console\\'}` : '');
+const pluginNamespace = computed(() => props.model?.target.type === 'plugin' ? `app\\${props.model.target.plugin}\\controller` : '');
+const consoleControllerNamespace = computed(() => props.model?.target.type === 'plugin' ? `app\\console\\controller\\plugin\\${props.model.target.plugin}` : '');
+const consoleModelNamespace = computed(() => props.model?.target.type === 'plugin' ? `app\\console\\model\\plugin\\${props.model.target.plugin}` : '');
 const pluginTargets = computed(() => {
   if (!props.model || props.model.target.type !== 'plugin') return [];
   const root = `plugins/${props.model.target.plugin}`;
   const entity = props.model.entity;
   const targets = [`${root}/database/migrations/NNN_create_${entity.replace(/-/g, '_')}.sql`, `${root}/plugin.json`];
-  if (props.model.target.scope !== 'console') targets.push(`${root}/app/${props.model.target.plugin}/controller`);
-  if (props.model.target.scope !== 'application') targets.push(`${root}/app/console/controller`, `${root}/admin-web/${entity}`);
+  if (props.model.target.scope !== 'console') {
+    targets.push(`${root}/app/${props.model.target.plugin}/controller`, `${root}/app/${props.model.target.plugin}/model`, `${root}/app/${props.model.target.plugin}/service`, `${root}/app/${props.model.target.plugin}/validate`);
+  }
+  if (props.model.target.scope !== 'application') {
+    targets.push(`${root}/app/console/controller`, `${root}/app/console/model`, `${root}/app/console/service`, `${root}/app/console/validate`, `${root}/admin-web/api.ts`, `${root}/admin-web/types.ts`, `${root}/admin-web/pages/${entity}/Index.vue`, `${root}/admin-web/pages/components/${entity}Dialog.vue`);
+  }
   return targets;
 });
 const indexes = computed<unknown[]>(() => {

@@ -11,6 +11,7 @@ $infrastructure = (string) file_get_contents($root . '/app/console/service/Plugi
 $resourcePublisher = (string) file_get_contents($root . '/app/console/service/PluginResourcePublisher.php');
 $databaseRepository = (string) file_get_contents($root . '/app/console/service/DatabasePluginResourceRepository.php');
 $migration = $root . '/database/migrations/065_plugin_app_publication.sql';
+$registryNamingMigration = $root . '/database/migrations/068_plugin_publication_registry_naming.sql';
 
 $expect = static function (bool $condition, string $message): void {
     if (!$condition) {
@@ -113,6 +114,11 @@ $expect(str_contains($sql, 'information_schema.STATISTICS'), '065 migration 索�
 $expect(str_contains($databaseRepository, "where('resource_type', 'file')"), 'file Repository 只能替换 file 记录');
 $databaseAppRepository = (string) file_get_contents($root . '/app/console/service/DatabasePluginAppPublicationRepository.php');
 $expect(str_contains($databaseAppRepository, "where('resource_type', 'native_app')"), 'native Repository 只能替换 native_app 记录');
+$expect(is_file($registryNamingMigration), '必须新增 068 forward migration 收敛 registry 命名');
+$registryNamingSql = is_file($registryNamingMigration) ? (string) file_get_contents($registryNamingMigration) : '';
+foreach (['public:', 'application:', 'console-plugin:'] as $prefix) {
+    $expect(str_contains($registryNamingSql, $prefix), '068 migration 缺少命名契约：' . $prefix);
+}
 $console = require $root . '/config/console.php';
 $expect(isset($console['commands']['plugin:publication-recover']), '必须注册 plugin:publication-recover 恢复命令');
 

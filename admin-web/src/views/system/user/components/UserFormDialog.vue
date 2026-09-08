@@ -57,22 +57,22 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="角色" prop="roleIds">
-            <el-select
+            <el-tree-select
               v-model="form.roleIds"
+              :data="roleTreeOptions"
+              :props="{ label: 'name', children: 'children' }"
+              node-key="id"
               multiple
+              show-checkbox
+              check-strictly
               collapse-tags
               collapse-tags-tooltip
+              clearable
               placeholder="选择角色"
+              no-data-text="暂无可分配角色"
               class="w-full"
               :loading="optionsLoading"
-            >
-              <el-option
-                v-for="role in roleOptions"
-                :key="role.id"
-                :label="`${role.name}（等级 ${role.level}）`"
-                :value="role.id"
-              />
-            </el-select>
+            />
           </el-form-item>
         </el-col>
       </el-row>
@@ -86,11 +86,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { userApi, type UserModel } from '@/api/system/user';
 import { roleApi, type RoleModel } from '@/api/system/role';
 import { deptApi, type DeptModel } from '@/api/system/dept';
+import { roleTree } from '../../role/roleHierarchy';
 
 interface Props {
   modelValue: boolean;
@@ -109,6 +110,7 @@ const saving = ref(false);
 const optionsLoading = ref(false);
 const formRef = ref<FormInstance>();
 const roleOptions = ref<RoleModel[]>([]);
+const roleTreeOptions = computed(() => roleTree(roleOptions.value));
 const departmentOptions = ref<DeptModel[]>([]);
 
 const initialForm = () => ({

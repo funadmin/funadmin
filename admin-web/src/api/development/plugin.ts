@@ -25,6 +25,7 @@ export interface PluginDevelopmentResult {
   valid?: boolean;
   manifest?: Record<string, unknown>;
   downloadPath?: string;
+  downloadUrl?: string;
   sha256?: string;
 }
 
@@ -41,5 +42,6 @@ export const pluginDevelopmentApi = {
   create: (input: PluginCreateInput) => http.post<PluginDevelopmentResult>(`${PREFIX}/create`, input),
   validate: (code: string) => http.post<PluginDevelopmentResult>(`${PREFIX}/validate`, { code }),
   package: (code: string) => http.post<PluginDevelopmentResult>(`${PREFIX}/package`, { code }),
+  downloadUrl: (code: string) => `${PREFIX}/package/${encodeURIComponent(code)}/download`,
   options: () => http.get<DevelopmentPluginOption[]>(`${PREFIX}/options`)
 };

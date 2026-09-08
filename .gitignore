@@ -30,6 +30,7 @@
 !/tests/plugin_activation_registry_test.php
 !/tests/plugin_application_guard_test.php
 !/tests/plugin_activation_lifecycle_test.php
+!/tests/plugin_execution_gate_test.php
 !/tests/plugin_runtime_hard_cut_test.php
 !/tests/dev_plugin_api_test.php
 !/tests/plugin_phase1_test.php

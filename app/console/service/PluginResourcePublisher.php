@@ -15,6 +15,7 @@ use Throwable;
 final class PluginResourcePublisher
 {
     private const ADMIN_WEB_PREFIX = 'admin-web:';
+    private const PUBLIC_PREFIX = 'public:';
 
     /** 可选故障回调仅用于测试进程中断窗口，不属于业务 API。 */
     public function __construct(
@@ -590,7 +591,7 @@ final class PluginResourcePublisher
 
     private function registryPath(string $type, string $relative): string
     {
-        return $type === 'admin-web' ? self::ADMIN_WEB_PREFIX . $relative : $relative;
+        return ($type === 'admin-web' ? self::ADMIN_WEB_PREFIX : self::PUBLIC_PREFIX) . $relative;
     }
 
     private function resolveRegistryPath(array $roots, string $targetPath): array
@@ -598,7 +599,10 @@ final class PluginResourcePublisher
         if (str_starts_with($targetPath, self::ADMIN_WEB_PREFIX)) {
             return [$roots['admin-web'], substr($targetPath, strlen(self::ADMIN_WEB_PREFIX))];
         }
-        return [$roots['public'], $targetPath];
+        if (str_starts_with($targetPath, self::PUBLIC_PREFIX)) {
+            return [$roots['public'], substr($targetPath, strlen(self::PUBLIC_PREFIX))];
+        }
+        throw new RuntimeException('资源 registry 目标缺少根前缀：' . $targetPath);
     }
 
     private function safeTarget(string $root, string $relative): string

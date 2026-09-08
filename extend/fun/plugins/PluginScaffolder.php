@@ -16,6 +16,27 @@ final class PluginScaffolder
     {
     }
 
+    public function plan(
+        string $name,
+        bool $application = true,
+        bool $console = true,
+        bool $adminWeb = true
+    ): array {
+        self::assertValidName($name);
+        $files = ['plugin.json', 'Plugin.php', 'database/migrations/.gitkeep', 'resources/public/.gitkeep', 'storage/.gitkeep'];
+        if ($application) {
+            array_push($files, "app/{$name}/controller/Index.php", "app/{$name}/config/app.php", "app/{$name}/route/app.php", "app/{$name}/lang/zh-cn.php", "app/{$name}/event.php", "app/{$name}/provider.php");
+            foreach (['model', 'service', 'middleware', 'view'] as $layer) $files[] = "app/{$name}/{$layer}/.gitkeep";
+        }
+        if ($console) {
+            $files[] = 'app/console/controller/Index.php';
+            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/console/{$layer}/.gitkeep";
+        }
+        if ($adminWeb) array_push($files, 'admin-web/api.ts', 'admin-web/types.ts', 'admin-web/pages/Index.vue', 'admin-web/pages/components/EditDialog.vue');
+        sort($files, SORT_STRING);
+        return ['code' => $name, 'target' => 'plugins/' . $name, 'files' => $files];
+    }
+
     public function scaffold(
         string $name,
         string $title = '',
@@ -91,11 +112,23 @@ final class PluginScaffolder
         if ($adminWeb) {
             $manifest['adminWeb'] = [
                 'source' => 'admin-web',
-                'components' => ['Index' => 'Index.vue'],
+                'components' => ['Index' => 'pages/Index.vue'],
                 'minFrontendVersion' => '1.0.0',
-                'permissions' => [],
-                'menu' => [],
-                'routes' => [],
+                'permissions' => [[
+                    'code' => $name . ':item:list',
+                    'name' => '查看' . $title,
+                ]],
+                'menu' => [[
+                    'name' => $title,
+                    'path' => '/plugin/' . $name . '/items',
+                    'permission' => $name . ':item:list',
+                ]],
+                'routes' => [[
+                    'path' => '/plugin/' . $name . '/items',
+                    'name' => ucfirst($name) . 'Index',
+                    'component' => 'Index',
+                    'meta' => ['permission' => $name . ':item:list'],
+                ]],
             ];
         }
 
@@ -109,7 +142,16 @@ final class PluginScaffolder
         $this->keep($directory . '/storage');
 
         if ($application) {
-            $this->write($directory . '/app/' . $name . '/controller/Index.php', $this->applicationControllerSource($name));
+            $applicationRoot = $directory . '/app/' . $name;
+            $this->write($applicationRoot . '/controller/Index.php', $this->applicationControllerSource($name));
+            foreach (['model', 'service', 'middleware', 'view'] as $layer) {
+                $this->keep($applicationRoot . '/' . $layer);
+            }
+            $this->write($applicationRoot . '/config/app.php', $this->returnArraySource());
+            $this->write($applicationRoot . '/route/app.php', $this->returnArraySource());
+            $this->write($applicationRoot . '/lang/zh-cn.php', $this->returnArraySource());
+            $this->write($applicationRoot . '/event.php', $this->eventSource());
+            $this->write($applicationRoot . '/provider.php', $this->returnArraySource());
         }
         if ($console) {
             $this->write($directory . '/app/console/controller/Index.php', $this->consoleControllerSource($name));
@@ -118,7 +160,11 @@ final class PluginScaffolder
             }
         }
         if ($adminWeb) {
-            $this->write($directory . '/admin-web/Index.vue', $this->adminWebSource($title));
+            $adminWebRoot = $directory . '/admin-web';
+            $this->write($adminWebRoot . '/api.ts', $this->adminWebApiSource($name));
+            $this->write($adminWebRoot . '/types.ts', $this->adminWebTypesSource());
+            $this->write($adminWebRoot . '/pages/Index.vue', $this->adminWebSource($name, $title));
+            $this->write($adminWebRoot . '/pages/components/EditDialog.vue', $this->adminWebDialogSource());
         }
     }
 
@@ -139,6 +185,9 @@ final class Plugin extends Plugins
     public function uninstall(): bool { return true; }
     public function enabled(): bool { return true; }
     public function disabled(): bool { return true; }
+    public function beforeUpdate(string \$fromVersion, string \$toVersion, bool \$migrate): bool { return true; }
+    public function afterUpdate(string \$fromVersion, string \$toVersion, bool \$migrate): bool { return true; }
+    public function purgeData(): bool { return false; }
 }
 PHP;
     }
@@ -175,13 +224,19 @@ declare(strict_types=1);
 
 namespace app\\console\\controller\\plugin\\{$name};
 
+use app\\console\\controller\\base\\AdminApiController;
+use app\\console\\middleware\\CheckAdminApiCsrf;
+use app\\console\\middleware\\CheckAdminApiRole;
+use app\\console\\middleware\\SystemLog;
 use think\\annotation\\route\\Get;
 use think\\annotation\\route\\Group;
 use think\\Response;
 
 #[Group('plugin/{$name}')]
-final class Index
+final class Index extends AdminApiController
 {
+    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+
     #[Get('index')]
     public function index(): Response
     {
@@ -191,10 +246,48 @@ final class Index
 PHP;
     }
 
-    private function adminWebSource(string $title): string
+    private function returnArraySource(): string
+    {
+        return "<?php\n\ndeclare(strict_types=1);\n\nreturn [];\n";
+    }
+
+    private function eventSource(): string
+    {
+        return "<?php\n\ndeclare(strict_types=1);\n\nreturn ['bind' => [], 'listen' => [], 'subscribe' => []];\n";
+    }
+
+    private function adminWebApiSource(string $name): string
+    {
+        return "import http from '@/utils/http';\nimport type { Item } from './types';\n\nexport const listItems = () => http.get<Item[]>('/plugin/{$name}/index');\n";
+    }
+
+    private function adminWebTypesSource(): string
+    {
+        return "export interface Item {\n  id: number;\n  name: string;\n}\n";
+    }
+
+    private function adminWebSource(string $name, string $title): string
     {
         $escaped = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        return "<template>\n  <section>{$escaped}</section>\n</template>\n";
+        return <<<VUE
+<template>
+  <section>
+    <h1>{$escaped}</h1>
+    <el-button v-perm="'{$name}:item:list'" @click="load">刷新</el-button>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { listItems } from '../api';
+
+const load = async () => { await listItems(); };
+</script>
+VUE;
+    }
+
+    private function adminWebDialogSource(): string
+    {
+        return "<template>\n  <el-dialog title=\"编辑\" />\n</template>\n";
     }
 
     private function keep(string $directory): void

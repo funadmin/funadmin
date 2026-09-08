@@ -98,19 +98,25 @@ try {
     $packaged = $service->package('shop');
     devPluginExpect(($packaged['auditId'] ?? 0) > 0, 'package 必须返回 auditId');
     devPluginExpect(str_starts_with((string) ($packaged['downloadPath'] ?? ''), 'runtime/download/plugins/'), 'package 只返回受控下载相对路径');
+    devPluginExpect(($packaged['downloadUrl'] ?? '') === '/development/plugin/package/shop/download', 'package 必须返回后台安全下载 URL');
     devPluginExpect(is_file($root . '/' . $packaged['downloadPath']), 'package 必须写入受控 runtime/download');
+    devPluginExpect($service->packageDownload('shop')['path'] === realpath($root . '/' . $packaged['downloadPath']), '安全下载必须解析 code+version 派生文件');
     devPluginReject(static fn () => $service->package('shop', '../../escape.zip'), '不允许指定');
+    unlink($root . '/' . $packaged['downloadPath']);
+    symlink(__FILE__, $root . '/' . $packaged['downloadPath']);
+    devPluginReject(static fn () => $service->packageDownload('shop'), '符号链接');
+    unlink($root . '/' . $packaged['downloadPath']);
 
     $serializedAudits = json_encode($audits, JSON_THROW_ON_ERROR);
     devPluginExpect(!str_contains($serializedAudits, 'confirmToken'), '普通审计不得包含确认 token');
 
     $controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/development/DevPlugin.php');
-    foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class', "#[Group('development/plugin')]", "#[Post('create/preview')]", "#[Post('create')]", "#[Post('validate')]", "#[Post('package')]", "#[Get('options')]"] as $marker) {
+    foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class', "#[Group('development/plugin')]", "#[Post('create/preview')]", "#[Post('create')]", "#[Post('validate')]", "#[Post('package')]", "#[Get('package/{code}/download')]", "#[Get('options')]"] as $marker) {
         devPluginExpect(str_contains($controller, $marker), 'DevPlugin 控制器契约缺少：' . $marker);
     }
 
     $migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/067_plugin_development_permissions.sql');
-    foreach (['previewcreate', 'create', 'validate', 'package', 'options'] as $action) {
+    foreach (['previewcreate', 'create', 'validate', 'package', 'packagedownload', 'options'] as $action) {
         devPluginExpect(str_contains($migration, "'console/development.devplugin','{$action}'"), '插件开发权限资源必须匹配控制器：' . $action);
     }
 

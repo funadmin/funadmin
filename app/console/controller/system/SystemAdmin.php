@@ -9,6 +9,7 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\model\Admin;
+use app\console\model\AdminDepartment;
 use app\console\model\AuthGroup;
 use app\console\model\Department;
 use app\console\service\RoleScopeService;
@@ -92,6 +93,7 @@ class SystemAdmin extends AdminApiController
                     'avatar' => '',
                     'token' => '',
                 ]);
+                $this->syncDepartments((int) $admin->id, array_merge([$data['deptId']], $data['departmentIds']));
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
                 return $admin;
             });
@@ -129,6 +131,7 @@ class SystemAdmin extends AdminApiController
                     'dept_id' => $data['deptId'],
                     'status' => $data['status'],
                 ]);
+                $this->syncDepartments((int) $admin->id, array_merge([$data['deptId']], $data['departmentIds']));
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
             Cache::clear();
@@ -169,6 +172,7 @@ class SystemAdmin extends AdminApiController
             }
             Db::transaction(function () use ($admins): void {
                 foreach ($admins as $admin) {
+                    AdminDepartment::where('admin_id', (int) $admin->id)->delete();
                     CasbinService::instance()->deleteAdmin((int) $admin->id);
                     $admin->delete();
                 }
@@ -263,6 +267,10 @@ class SystemAdmin extends AdminApiController
             'password' => $create ? (string) $this->request->post('password', '') : '',
             'status' => $this->binaryStatus($this->request->post('status', $admin ? $admin->status : 1)),
             'deptId' => max(0, (int) $this->request->post('deptId', $admin ? $admin->dept_id : 0)),
+            'departmentIds' => $this->normalizeIds($this->request->post(
+                'departmentIds',
+                $admin ? $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id) : []
+            )),
             'roleIds' => $this->normalizeIds($this->request->post('roleIds', $admin ? $roleScope->adminRoleIds((int) $admin->id) : [])),
         ];
     }
@@ -288,11 +296,12 @@ class SystemAdmin extends AdminApiController
     {
         $guard = new RoleGuardService();
         $guard->assertAssignableRoles($data['roleIds']);
-        if (!Department::where('id', $data['deptId'])->where('status', 1)->find()) {
-            throw new InvalidArgumentException('部门不存在或已停用');
+        $departmentIds = array_values(array_unique(array_merge([$data['deptId']], $data['departmentIds'])));
+        if (Department::whereIn('id', $departmentIds)->where('status', 1)->count() !== count($departmentIds)) {
+            throw new InvalidArgumentException('任职部门包含不存在或已停用的部门');
         }
         $scope = (new DataScopeService())->resolve();
-        if (!$scope['all'] && !in_array($data['deptId'], $scope['departmentIds'], true)) {
+        if (!$scope['all'] && array_diff($departmentIds, $scope['departmentIds'])) {
             throw new InvalidArgumentException('不能将管理员分配到数据范围外的部门');
         }
     }
@@ -302,7 +311,28 @@ class SystemAdmin extends AdminApiController
         $scope = (new DataScopeService())->resolve();
         return $scope['all']
             || (int) $admin->id === (int) $scope['adminId']
-            || in_array((int) $admin->dept_id, $scope['departmentIds'], true);
+            || array_intersect($this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id), $scope['departmentIds']) !== [];
+    }
+
+    private function syncDepartments(int $adminId, array $departmentIds): void
+    {
+        AdminDepartment::where('admin_id', $adminId)->delete();
+        $rows = array_map(static fn (int $departmentId): array => [
+            'admin_id' => $adminId,
+            'dept_id' => $departmentId,
+            'created_at' => date('Y-m-d H:i:s'),
+        ], array_values(array_unique($departmentIds)));
+        if ($rows !== []) {
+            (new AdminDepartment())->saveAll($rows);
+        }
+    }
+
+    private function adminDepartmentIds(int $adminId, int $primaryDepartmentId): array
+    {
+        return array_values(array_unique(array_filter(array_merge(
+            [$primaryDepartmentId],
+            array_map('intval', AdminDepartment::where('admin_id', $adminId)->column('dept_id'))
+        ))));
     }
 
     private function adminData(Admin $admin): array
@@ -316,6 +346,10 @@ class SystemAdmin extends AdminApiController
             'mobile' => (string) $admin->mobile,
             'status' => (int) $admin->status,
             'deptId' => (int) $admin->dept_id,
+            'departmentIds' => array_values(array_filter(
+                $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id),
+                static fn (int $departmentId): bool => $departmentId !== (int) $admin->dept_id
+            )),
             'roleIds' => $roleScope->adminRoleIds((int) $admin->id),
             'createdAt' => $this->formatTime($admin->created_at),
             'updatedAt' => $this->formatTime($admin->updated_at),

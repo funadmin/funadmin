@@ -163,8 +163,8 @@ try {
     $repository->records[] = [
         'plugin_code' => 'attacker',
         'resource_type' => 'native_app',
-        'publication_unit' => 'app:foreign',
-        'target_path' => 'app/foreign/service/Domain.php',
+        'publication_unit' => 'application:foreign',
+        'target_path' => 'application:foreign/service/Domain.php',
         'sha256' => str_repeat('a', 64),
     ];
     appPublicationReject(static fn () => $publisher->publish($foreign, 'foreign-conflict'), '其他插件');
@@ -179,8 +179,14 @@ try {
     file_put_contents($plugins . '/demo/app/demo/service/Domain.php', '<?php namespace app\\demo\\service; final class Domain { public const VERSION = 2; }');
     $updated = Manifest::fromDirectory($plugins . '/demo');
     $publisher->publish($updated, 'update-demo');
+    $demoUnits = array_values(array_unique(array_column(array_filter(
+        $repository->records,
+        static fn (array $row): bool => ($row['plugin_code'] ?? '') === 'demo'
+    ), 'publication_unit')));
+    appPublicationExpect(in_array('application:demo', $demoUnits, true), 'application registry 必须使用 application:<code> unit');
+    appPublicationExpect(in_array('console-plugin:controller:demo', $demoUnits, true), 'Console registry 必须使用 console-plugin:<layer>:<code> unit');
     appPublicationExpect(str_contains((string) file_get_contents($app . '/demo/service/Domain.php'), 'VERSION = 2'), '更新必须原子替换完整目录');
-    appPublicationExpect(!is_dir($app . '/.publication-update-demo-app-demo'), 'swap 后不得残留目标临时目录');
+    appPublicationExpect(!is_dir($app . '/.publication-update-demo-application-demo'), 'swap 后不得残留目标临时目录');
     $updateJournal = $publisher->inspect('update-demo');
     foreach ((array) ($updateJournal['units'] ?? []) as $unit) {
         appPublicationExpect(
@@ -198,7 +204,7 @@ try {
         array_values(array_filter(
             $repository->records,
             static fn (array $row): bool => ($row['plugin_code'] ?? '') === 'demo'
-                && ($row['publication_unit'] ?? '') === 'app:demo'
+                && ($row['publication_unit'] ?? '') === 'application:demo'
         )) === [],
         '已登记空 unit 必须删除对应 registry 所有权'
     );
@@ -266,7 +272,7 @@ try {
     appPublicationExpect(($manualJournal['state'] ?? '') === 'rollback_required', 'migration 后失败必须标记 rollback_required');
     appPublicationExpect(($manualJournal['manual_recovery'] ?? false) === true, 'migration 后失败必须标记 manual recovery');
     appPublicationExpect(($manualJournal['recovery_path'] ?? '') === $recoveryPath && is_dir($recoveryPath), 'migration 后失败必须保留 durable recovery_path');
-    appPublicationExpect(is_file($recoveryPath . '/app-demo/service/Domain.php'), 'durable recovery 必须保存旧 native App backup');
+    appPublicationExpect(is_file($recoveryPath . '/application-demo/service/Domain.php'), 'durable recovery 必须保存旧 native App backup');
     appPublicationReject(static fn () => $publisher->recover('manual-demo'), '人工恢复');
     $publisher->recover('manual-demo', true);
     appPublicationExpect(str_contains((string) file_get_contents($app . '/demo/service/Domain.php'), 'VERSION = 1'), '显式人工恢复必须可执行');

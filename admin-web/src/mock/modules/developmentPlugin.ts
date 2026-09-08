@@ -24,6 +24,6 @@ export const developmentPluginMockHandlers: MockRoute[] = [
   }) },
   { method: 'POST', url: '/development/plugin/validate', handler: () => ok({ auditId: 'mock-validate', conflicts: [], valid: true }) },
   { method: 'POST', url: '/development/plugin/package', handler: ({ body }) => ok({
-    auditId: 'mock-package', conflicts: [], downloadPath: `runtime/download/plugins/${body.code}-1.0.0.zip`, sha256: 'a'.repeat(64)
+    auditId: 'mock-package', conflicts: [], downloadPath: `runtime/download/plugins/${body.code}-1.0.0.zip`, downloadUrl: `/development/plugin/package/${body.code}/download`, sha256: 'a'.repeat(64)
   }) }
 ];

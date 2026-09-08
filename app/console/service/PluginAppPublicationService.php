@@ -631,7 +631,7 @@ final class PluginAppPublicationService
         $application = $appSource . DIRECTORY_SEPARATOR . $manifest->code();
         if (is_dir($application)) {
             $this->assertSafeSourceTree($application, $appSource);
-            $units['app:' . $manifest->code()] = [
+            $units['application:' . $manifest->code()] = [
                 'source' => $application,
                 'target' => $this->appDirectory() . DIRECTORY_SEPARATOR . $manifest->code(),
             ];
@@ -650,7 +650,7 @@ final class PluginAppPublicationService
                     throw new RuntimeException('未知 Console layer：' . $layer);
                 }
                 $this->assertSafeSourceTree($entry, $appSource);
-                $units['console:' . $layer . ':' . $manifest->code()] = [
+                $units['console-plugin:' . $layer . ':' . $manifest->code()] = [
                     'source' => $entry,
                     'target' => $this->appDirectory() . DIRECTORY_SEPARATOR . 'console' . DIRECTORY_SEPARATOR
                         . $layer . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . $manifest->code(),
@@ -912,10 +912,10 @@ final class PluginAppPublicationService
 
     private function unitTarget(string $unit, string $pluginCode): string
     {
-        if ($unit === 'app:' . $pluginCode) {
+        if ($unit === 'application:' . $pluginCode) {
             return $this->appDirectory() . DIRECTORY_SEPARATOR . $pluginCode;
         }
-        if (preg_match('/^console:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
+        if (preg_match('/^console-plugin:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
             && in_array($match[1], self::CONSOLE_LAYERS, true)) {
             return $this->appDirectory() . DIRECTORY_SEPARATOR . 'console' . DIRECTORY_SEPARATOR . $match[1]
                 . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . $pluginCode;
@@ -926,10 +926,10 @@ final class PluginAppPublicationService
     private function unitSourcePath(string $unit, string $relative): string
     {
         $parts = explode(':', $unit);
-        if ($parts[0] === 'app' && count($parts) === 2) {
+        if ($parts[0] === 'application' && count($parts) === 2) {
             return 'app/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
         }
-        if ($parts[0] === 'console' && count($parts) === 3 && in_array($parts[1], self::CONSOLE_LAYERS, true)) {
+        if ($parts[0] === 'console-plugin' && count($parts) === 3 && in_array($parts[1], self::CONSOLE_LAYERS, true)) {
             return 'app/console/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
         }
         throw new RuntimeException('registry publication unit 非法：' . $unit);
@@ -960,21 +960,38 @@ final class PluginAppPublicationService
 
     private function registryTarget(string $targetPath): string
     {
-        if (!str_starts_with($targetPath, 'app/')) {
+        if (preg_match('~^(application):([a-z][a-z0-9]*)/(.+)$~', $targetPath, $match) === 1) {
+            $unit = $match[1] . ':' . $match[2];
+            $pluginCode = $match[2];
+            $relative = $match[3];
+        } elseif (preg_match('~^(console-plugin):([a-z]+):([a-z][a-z0-9]*)/(.+)$~', $targetPath, $match) === 1
+            && in_array($match[2], self::CONSOLE_LAYERS, true)) {
+            $unit = $match[1] . ':' . $match[2] . ':' . $match[3];
+            $pluginCode = $match[3];
+            $relative = $match[4];
+        } else {
+            throw new RuntimeException('原生 App registry 目标缺少或使用非法根前缀：' . $targetPath);
+        }
+        if (str_contains($relative, '\\') || preg_match('~(^|/)\.\.?(/|$)~', $relative) === 1) {
             throw new RuntimeException('原生 App registry 目标越界：' . $targetPath);
         }
-        $target = $this->rootDirectory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $targetPath);
+        $target = $this->unitTarget($unit, $pluginCode) . DIRECTORY_SEPARATOR
+            . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         $this->assertNoTargetSymlink($target);
         return $target;
     }
 
     private function targetRegistryPath(string $target): string
     {
-        $root = $this->rootDirectory();
-        if ($target !== $root && !str_starts_with($target, $root . DIRECTORY_SEPARATOR)) {
+        $relative = str_replace(DIRECTORY_SEPARATOR, '/', $this->relativePath($this->rootDirectory(), $target));
+        $parts = explode('/', $relative);
+        if (($parts[0] ?? '') !== 'app') {
             throw new RuntimeException('原生 App 目标路径越界：' . $target);
         }
-        return str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($root) + 1));
+        if (($parts[1] ?? '') === 'console' && ($parts[3] ?? '') === 'plugin') {
+            return 'console-plugin:' . $parts[2] . ':' . $parts[4] . '/' . implode('/', array_slice($parts, 5));
+        }
+        return 'application:' . $parts[1] . '/' . implode('/', array_slice($parts, 2));
     }
 
     private function relativePath(string $root, string $path): string
