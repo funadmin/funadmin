@@ -1,5 +1,50 @@
 import http from '@/utils/http';
 
+export type FormSchemaOrigin = 'designer' | 'import' | 'migration' | 'api' | string;
+export type FormSchemaNodeKind = 'field' | 'layout';
+
+export interface FormSchemaValidationRule {
+  type: string;
+  value?: unknown;
+  message?: string;
+  trigger?: string[];
+}
+
+export interface FormSchemaNode {
+  id: string;
+  kind: FormSchemaNodeKind;
+  type: string;
+  field?: string | null;
+  title: string;
+  defaultValue?: unknown;
+  valueType?: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  props?: Record<string, unknown>;
+  attrs?: Record<string, unknown>;
+  className?: string;
+  style?: Record<string, string | number>;
+  hidden?: boolean;
+  disabled?: boolean;
+  info?: string;
+  slot?: string | null;
+  children: FormSchemaNode[];
+  validation?: FormSchemaValidationRule[];
+  dataSource?: Record<string, unknown> | null;
+  conditions?: unknown[];
+  events?: Record<string, unknown[]>;
+  layout?: { span?: number; group?: string };
+  database?: Record<string, unknown>;
+}
+
+export interface FormSchemaDocument {
+  schemaVersion: 2;
+  key: string;
+  title: string;
+  nodes: FormSchemaNode[];
+  form?: Record<string, unknown>;
+  actions?: unknown[];
+  submit?: Record<string, unknown>;
+}
+
 /** 表单字段定义（列/表单/列表/关联全量参数） */
 export interface FormFieldDef {
   id?: number;
@@ -67,6 +112,10 @@ export interface FormDefinition {
   status: number;
   list_config?: Record<string, unknown> | null;
   form_config?: Record<string, unknown> | null;
+  schema_version?: number;
+  schema_document?: FormSchemaDocument | null;
+  schema_hash?: string | null;
+  schema_origin?: FormSchemaOrigin;
   publish_config?: Partial<FormPublishConfig> | null;
   publish_status?: FormPublishStatus;
   published_at?: string | null;

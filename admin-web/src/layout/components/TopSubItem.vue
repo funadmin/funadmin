@@ -25,6 +25,7 @@ import { computed } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
 import { isExternal } from '@/utils/is';
 import { useMenuTitle } from '@/composables/useMenuTitle';
+import { getVisibleMenuChildren } from '@/utils/route';
 
 interface Props {
   route: RouteRecordRaw;
@@ -34,9 +35,7 @@ const props = withDefaults(defineProps<Props>(), { basePath: '' });
 
 const { menuTitle } = useMenuTitle();
 
-const visibleChildren = computed(() =>
-  (props.route.children || []).filter((c) => !c.meta?.hidden)
-);
+const visibleChildren = computed(() => getVisibleMenuChildren(props.route));
 
 const resolvedPath = computed(() => {
   if (isExternal(props.route.path)) return props.route.path;

@@ -35,7 +35,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter, type RouteRecordRaw } from 'vue-router';
 import { usePermissionStore } from '@/store/modules/permission';
-import { getFirstLeafRouteFullPath, getMenuActiveRootPath } from '@/utils/route';
+import { getFirstLeafRouteFullPath, getMenuActiveRootPath, getVisibleMenuChildren } from '@/utils/route';
 import TopSubItem from './TopSubItem.vue';
 import { useMenuTitle } from '@/composables/useMenuTitle';
 
@@ -67,11 +67,11 @@ const menus = computed<RouteRecordRaw[]>(() => {
 });
 
 function hasChildren(item: RouteRecordRaw): boolean {
-  return !!(item.children && item.children.some((c) => !c.meta?.hidden));
+  return getVisibleMenuChildren(item).length > 0;
 }
 
 function visibleChildren(item: RouteRecordRaw): RouteRecordRaw[] {
-  return (item.children || []).filter((c) => !c.meta?.hidden);
+  return getVisibleMenuChildren(item);
 }
 
 function resolvePath(item: RouteRecordRaw): string {

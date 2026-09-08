@@ -17,6 +17,7 @@ final class DefinitionValidator
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
         'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
+        'formSchemaVersion', 'formSchemaHash', 'formSchema',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',

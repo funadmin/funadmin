@@ -31,8 +31,8 @@ final class MarketplaceDtoValidator
 
     public static function databaseCapability(string $capability): void
     {
-        if ($capability !== '' && !preg_match('/^\d+[A-Za-z0-9._-]*\.sql$/', $capability)) {
-            throw new InvalidArgumentException('数据库能力格式无效');
+        if ($capability !== '' && !preg_match('/^\d{3}_[a-z][a-z0-9_]*$/', $capability)) {
+            throw new InvalidArgumentException('数据库能力必须使用不带 .sql 的 migration version，例如 001_initial');
         }
     }
 

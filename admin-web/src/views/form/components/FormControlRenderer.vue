@@ -16,6 +16,13 @@
     </el-tabs>
   </div>
 
+  <RepeatableField
+    v-else-if="field.relation_type === 'has_many' || ['repeatable', 'subform'].includes(field.type)"
+    :field="field"
+    :model-value="arrayObjectValue"
+    :disabled="disabled"
+    @update:model-value="updateValue"
+  />
   <input v-else-if="field.type === 'hidden'" type="hidden" :value="modelValue" />
   <el-text v-else-if="field.type === 'readonly'">{{ displayValue }}</el-text>
   <Upload
@@ -128,6 +135,7 @@ import { computed } from 'vue';
 import type { FormFieldDef } from '@/api/form';
 import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
+import RepeatableField from './RepeatableField.vue';
 
 interface ControlOption {
   [key: string]: any;
@@ -168,6 +176,7 @@ const uploadType = computed<'image' | 'images' | 'file' | null>(() => {
 const stringValue = computed(() => typeof props.modelValue === 'string' ? props.modelValue : '');
 const numberValue = computed(() => typeof props.modelValue === 'number' ? props.modelValue : 0);
 const arrayValue = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
+const arrayObjectValue = computed(() => arrayValue.value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item)));
 const displayValue = computed(() => String(props.modelValue ?? props.field.default_value ?? ''));
 const transferOptions = computed(() => props.options.map((option) => ({ key: option.value, label: option.label })));
 const tabs = computed(() => {

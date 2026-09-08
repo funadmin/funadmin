@@ -256,7 +256,10 @@ final class PluginPackagePipeline
         $relative = (string) ($manifest['migrations']['path'] ?? 'migrations');
         $directory = rtrim((string) ($staged['plugin_directory'] ?? ''), DIRECTORY_SEPARATOR)
             . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-        $versions = array_map('basename', glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: []);
+        $versions = array_map(
+            static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME),
+            glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: []
+        );
         sort($versions, SORT_NATURAL);
         return (string) ($versions === [] ? '' : end($versions));
     }

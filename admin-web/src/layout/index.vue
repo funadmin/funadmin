@@ -151,7 +151,7 @@ import Setting from '@/components/Setting/index.vue';
 import MenuSearch from '@/components/MenuSearch/index.vue';
 import LayoutRouterView from './components/LayoutRouterView.vue';
 import { APP_CONFIG } from '@/config';
-import { getMenuActiveRootPath } from '@/utils/route';
+import { getMenuActiveRootPath, getVisibleMenuChildren } from '@/utils/route';
 
 const appStore = useAppStore();
 const tabsStore = useTabsStore();
@@ -188,8 +188,8 @@ const currentRootChildren = computed<RouteRecordRaw[]>(() => {
     const path = m.path.startsWith('/') ? m.path : `/${m.path}`;
     return path === activeRootPath.value;
   });
-  if (!root || !root.children) return [];
-  return root.children.filter((c) => !c.meta?.hidden);
+  if (!root) return [];
+  return getVisibleMenuChildren(root);
 });
 
 /** 简化页脚渲染 */

@@ -4,6 +4,12 @@
       <div class="flex flex-wrap items-center gap-2">
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">撤销</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">重做</el-button>
+        <el-radio-group v-model="workspaceMode" size="small">
+          <el-radio-button value="edit">编辑模式</el-radio-button>
+          <el-radio-button value="desktop">桌面预览</el-radio-button>
+          <el-radio-button value="mobile">移动预览</el-radio-button>
+        </el-radio-group>
+        <el-button @click="jsonEditorVisible = true">高级 JSON</el-button>
         <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">重新推断</el-button>
         <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">迁移预览</el-button>
         <el-button :loading="saving" @click="onSave">保存草稿</el-button>
@@ -38,7 +44,25 @@
       </el-form>
     </el-card>
 
-    <div class="designer-layout flex gap-3">
+    <el-alert
+      class="mb-3"
+      :title="`Schema 来源：${schemaOriginLabel}。高级 JSON 应用后来源将切换为设计器。`"
+      type="info"
+      :closable="false"
+      show-icon
+    />
+
+    <el-card shadow="never" class="mb-3">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <span>FormSchema v2 AST 节点树</span>
+          <el-button link type="primary" @click="store.addNode('group')">添加根容器</el-button>
+        </div>
+      </template>
+      <SchemaNodeTree :nodes="store.nodes.value" :store="store" />
+    </el-card>
+
+    <div class="designer-layout flex gap-3" :class="`workspace-${workspaceMode}`">
       <!-- 左：控件 palette -->
       <el-card shadow="never" class="w-[230px] shrink-0">
         <template #header>控件（{{ CONTROL_REGISTRY.length }}）</template>
@@ -73,7 +97,7 @@
             :key="field.field_name"
             class="canvas-item cursor-pointer rounded border px-3 py-2"
             :class="store.selectedKey.value === field.field_name ? 'border-[var(--el-color-primary)] bg-[var(--el-color-primary-light-9)]' : 'border-[var(--el-border-color)]'"
-            @click="store.selectedKey.value = field.field_name"
+            @click="selectFieldNode(field.field_name)"
           >
             <div class="mb-1 flex items-center justify-between text-xs text-[var(--el-text-color-secondary)]">
               <span>{{ field.field_name }} · {{ controlMeta(field.type).label }} · span {{ field.form_span }}</span>
@@ -105,6 +129,10 @@
         <template #header>字段属性</template>
         <PropsPanel v-if="store.selected.value" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" @update="store.updateField" />
         <el-empty v-else description="点选画布字段编辑参数" />
+        <template v-if="store.selectedNode.value">
+          <el-divider content-position="left">结构化配置</el-divider>
+          <SchemaStructurePanel :node="store.selectedNode.value" @update="store.updateNode" />
+        </template>
       </el-card>
     </div>
 
@@ -165,6 +193,24 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="jsonEditorVisible" title="FormSchema v2 高级 JSON 编辑" width="860px" :close-on-click-modal="false">
+      <SchemaJsonEditor :schema="store.schemaDocument.value" @apply="onApplySchemaJson" />
+    </el-dialog>
+
+    <el-card shadow="never" class="mt-3">
+      <template #header>调试摘要</template>
+      <el-descriptions :column="4" border size="small">
+        <el-descriptions-item label="节点">{{ debugSummary.nodes }}</el-descriptions-item>
+        <el-descriptions-item label="字段">{{ debugSummary.fields }}</el-descriptions-item>
+        <el-descriptions-item label="容器">{{ debugSummary.containers }}</el-descriptions-item>
+        <el-descriptions-item label="最大深度">{{ debugSummary.maxDepth }}</el-descriptions-item>
+        <el-descriptions-item label="验证">{{ debugSummary.validationRules }}</el-descriptions-item>
+        <el-descriptions-item label="联动">{{ debugSummary.conditions }}</el-descriptions-item>
+        <el-descriptions-item label="事件">{{ debugSummary.events }}</el-descriptions-item>
+        <el-descriptions-item label="数据源">{{ debugSummary.dataSources }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+
     <!-- 迁移预览 -->
     <el-dialog v-model="previewVisible" title="迁移预览" width="720px">
       <el-alert :title="preview?.message ?? ''" type="info" :closable="false" class="mb-2" />
@@ -210,13 +256,19 @@ import { crudDevelopmentApi } from '@/api/development/crud';
 import { usePermissionStore } from '@/store/modules/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
+import { buildSchemaDebugSummary } from './schemaEditor';
 import FormControlRenderer from '../components/FormControlRenderer.vue';
 import PropsPanel from './components/PropsPanel.vue';
+import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
+import SchemaNodeTree from './components/SchemaNodeTree.vue';
+import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
 
 const route = useRoute();
 const router = useRouter();
 const permissionStore = usePermissionStore();
 const store = useDesigner();
+const workspaceMode = ref<'edit' | 'desktop' | 'mobile'>('edit');
+const jsonEditorVisible = ref(false);
 const saving = ref(false);
 const applying = ref(false);
 const inferring = ref(false);
@@ -245,8 +297,33 @@ const canvasRef = ref<HTMLElement>();
 let paletteSortable: Sortable | null = null;
 let canvasSortable: Sortable | null = null;
 
-const definition = () => ({ ...store.form.value, publish_config: publishConfig.value, fields: store.fields.value });
+const definition = () => ({
+  ...store.form.value,
+  schema_version: 2,
+  schema_document: store.schemaDocument.value,
+  schema_origin: 'designer',
+  publish_config: publishConfig.value,
+  fields: store.fields.value
+});
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
+const debugSummary = computed(() => buildSchemaDebugSummary(store.schemaDocument.value));
+const schemaOriginLabel = computed(() => ({
+  designer: '可视化设计器', import: '外部导入', migration: '旧版迁移', api: 'API 写入'
+}[String(store.form.value.schema_origin ?? 'designer')] ?? String(store.form.value.schema_origin)));
+const selectFieldNode = (fieldName: string) => {
+  const node = store.flattenedNodes.value.find((entry) => entry.node.field === fieldName)?.node;
+  if (node) store.selectNode(node.id);
+  else store.selectedKey.value = fieldName;
+};
+const onApplySchemaJson = (schema: import('@/api/form').FormSchemaDocument) => {
+  const result = store.replaceSchema(schema);
+  if (!result.ok) {
+    ElMessage.warning(result.error);
+    return;
+  }
+  jsonEditorVisible.value = false;
+  ElMessage.success('FormSchema v2 已应用');
+};
 const controlGroups = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
 const controlsOf = (group: string) => CONTROL_REGISTRY.filter((control) => control.group === group);
 const previewOptions = (field: { options_source?: Record<string, unknown> | null }) => {
@@ -463,6 +540,14 @@ onBeforeUnmount(() => {
 }
 .designer-canvas {
   min-height: max(520px, calc(100vh - 260px));
+}
+.workspace-desktop .designer-canvas {
+  margin: 0 auto;
+  max-width: 1100px;
+}
+.workspace-mobile .designer-canvas {
+  margin: 0 auto;
+  max-width: 390px;
 }
 .palette-item:hover {
   border-color: var(--el-color-primary);

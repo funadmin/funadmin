@@ -11,6 +11,11 @@ export function getMenuActiveRootPath(route: RouteLocationNormalizedLoaded): str
   return `/${parts[0]}`;
 }
 
+/** 返回真实可见子菜单，排除顶层单页面为挂载 Layout 生成的空路径包装路由。 */
+export function getVisibleMenuChildren(route: RouteRecordRaw): RouteRecordRaw[] {
+  return (route.children || []).filter((child) => !child.meta?.hidden && child.path !== '');
+}
+
 /** 拼接父路径与路由段，得到完整 path */
 export function joinRoutePath(parentAbsolutePath: string, segment: string): string {
   const base = parentAbsolutePath.replace(/\/$/, '');

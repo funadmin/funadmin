@@ -122,19 +122,28 @@ final class FormDataService
         $form = $this->form($key);
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, false);
-        $payload = $this->filterPayload($fields, $data, false);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $split = $this->splitPayload($fields, $data, false);
+        $connection = Db::connect((string) $form->connection);
+        $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
-        $now = date('Y-m-d H:i:s');
-        if (in_array('created_at', $columns, true)) {
-            $payload['created_at'] = $now;
-        }
-        if (in_array('updated_at', $columns, true)) {
-            $payload['updated_at'] = $now;
-        }
         $primary = $this->primaryKey($schema);
-        $id = Db::connect((string) $form->connection)->table((string) $form->table_name)->insertGetId($payload, $primary['name']);
-        return ['id' => $primary['type'] === 'integer' ? (int) $id : (string) $id, 'primaryKey' => $primary['name']];
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary): array {
+            $payload = $split['parent'];
+            $now = date('Y-m-d H:i:s');
+            if (in_array('created_at', $columns, true)) $payload['created_at'] = $now;
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = $now;
+            if ($primary['type'] === 'string') {
+                $provided = $data[$primary['name']] ?? null;
+                if (!is_scalar($provided) || trim((string) $provided) === '') throw new InvalidArgumentException('字符串主键创建时必须提供：' . $primary['name']);
+                $payload[$primary['name']] = (string) $provided;
+                $connection->table((string) $form->table_name)->insert($payload);
+                $id = (string) $provided;
+            } else {
+                $id = (int) $connection->table((string) $form->table_name)->insertGetId($payload, $primary['name']);
+            }
+            $this->syncRelations($connection, $form, $fields, $id, $split['relations'], false);
+            return ['id' => $id, 'primaryKey' => $primary['name']];
+        });
     }
 
     /** 更新：禁改字段剔除 + 动态校验。 */
@@ -143,15 +152,20 @@ final class FormDataService
         $form = $this->form($key);
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, true);
-        $payload = $this->filterPayload($fields, $data, true);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $split = $this->splitPayload($fields, $data, true);
+        $connection = Db::connect((string) $form->connection);
+        $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
-        if (in_array('updated_at', $columns, true)) {
-            $payload['updated_at'] = date('Y-m-d H:i:s');
-        }
         $primary = $this->primaryKey($schema);
-        Db::connect((string) $form->connection)->table((string) $form->table_name)->where($primary['name'], $id)->update($payload);
-        return ['id' => $id, 'primaryKey' => $primary['name']];
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id): array {
+            $query = $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true);
+            if (!$query->find()) throw new InvalidArgumentException('数据不存在');
+            $payload = $split['parent'];
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = date('Y-m-d H:i:s');
+            if ($payload !== []) $connection->table((string) $form->table_name)->where($primary['name'], $id)->update($payload);
+            $this->syncRelations($connection, $form, $fields, $id, $split['relations'], true);
+            return ['id' => $id, 'primaryKey' => $primary['name']];
+        });
     }
 
     /** 删除：含 deleted_at 列则软删。 */
@@ -226,7 +240,7 @@ final class FormDataService
     }
 
     /** 子表分页（has_many）。 */
-    public function sub(string $key, string $relation, int $id, int $page, int $pageSize): array
+    public function sub(string $key, string $relation, int|string $id, int $page, int $pageSize): array
     {
         $field = $this->fields($key)->firstWhere('field_name', $relation);
         if (!$field || (string) $field->relation_type !== 'has_many') {
@@ -285,11 +299,25 @@ final class FormDataService
     }
 
     /** 白名单过滤写入载荷（纯函数，供契约测试）。 */
+    public function splitPayload($fieldRows, array $data, bool $isUpdate): array
+    {
+        $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fieldRows) ? $fieldRows : $fieldRows->all());
+        $relations = [];
+        foreach ($rows as $field) {
+            if ((string) ($field['relation_type'] ?? 'none') !== 'has_many') continue;
+            $name = (string) ($field['field_name'] ?? '');
+            if (!array_key_exists($name, $data)) continue;
+            if (!is_array($data[$name]) || !array_is_list($data[$name])) throw new InvalidArgumentException($name . ' 必须为子表行数组');
+            $relations[$name] = $data[$name];
+        }
+        return ['parent' => $this->filterPayload($rows, $data, $isUpdate), 'relations' => $relations];
+    }
+
     public function filterPayload(array $fieldRows, array $data, bool $isUpdate): array
     {
         $payload = [];
         foreach ($fieldRows as $field) {
-            if ($this->isLayoutField($field)) {
+            if ($this->isLayoutField($field) || (string) ($field['relation_type'] ?? 'none') === 'has_many') {
                 continue;
             }
             $name = (string) ($field['field_name'] ?? '');
@@ -389,25 +417,83 @@ final class FormDataService
         return $columns;
     }
 
-    private function subRows(FormField $field, int $id, int $page, int $pageSize): array
+    private function subRows(FormField $field, int|string $id, int $page, int $pageSize): array
     {
-        $childTable = (string) $field->relation_table;
-        $foreignKey = (string) $field->relation_value_field;
-        if ($childTable === '' || $foreignKey === '') {
-            return ['list' => [], 'total' => 0];
-        }
-        $this->assertIdentifier($childTable, '子表');
-        $this->assertIdentifier($foreignKey, '子表外键字段');
-        $columns = array_keys(Db::getFields($childTable));
-        $readable = array_values(array_intersect(['id', $foreignKey, 'created_at', 'updated_at'], $columns));
-        $childForm = Form::where('table_name', $childTable)->where('status', 1)->find();
-        if ($childForm) {
-            $configured = FormField::where('form_id', (int) $childForm->id)->column('field_name');
-            $readable = array_values(array_unique(array_merge($readable, array_intersect($configured, $columns))));
-        }
-        $query = Db::table($childTable)->field($readable)->where($foreignKey, $id);
+        $context = $this->childContext($field);
+        $columns = array_keys($context['schema']);
+        $readable = array_values(array_intersect([$context['primary']['name'], $context['foreignKey'], 'created_at', 'updated_at'], $columns));
+        $configured = FormField::where('form_id', (int) $context['form']->id)->column('field_name');
+        $readable = array_values(array_unique(array_merge($readable, array_intersect($configured, $columns))));
+        $query = Db::connect((string) $context['form']->connection)->table($context['table'])->field($readable)->where($context['foreignKey'], $id);
+        if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
         $total = (clone $query)->count();
-        return ['list' => $query->page($page, $pageSize)->select()->toArray(), 'total' => (int) $total];
+        return ['list' => $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray(), 'total' => (int) $total];
+    }
+
+    private function syncRelations($connection, Form $parentForm, $fields, int|string $parentId, array $relations, bool $isUpdate): void
+    {
+        foreach ($fields as $field) {
+            $name = (string) $field->field_name;
+            if ((string) $field->relation_type !== 'has_many' || !array_key_exists($name, $relations)) continue;
+            $context = $this->childContext($field);
+            if ((string) $context['form']->connection !== (string) $parentForm->connection) throw new InvalidArgumentException('父子表必须使用同一数据库连接');
+            $primaryName = $context['primary']['name'];
+            $existing = $connection->table($context['table'])->where($context['foreignKey'], $parentId);
+            if (in_array('deleted_at', array_keys($context['schema']), true)) $existing->whereNull('deleted_at');
+            $existingIds = array_map('strval', $existing->column($primaryName));
+            $submitted = [];
+            foreach ($relations[$name] as $row) {
+                if (!is_array($row)) throw new InvalidArgumentException($name . ' 子表行必须为对象');
+                $rowId = $row[$primaryName] ?? null;
+                if ($rowId !== null && $rowId !== '') {
+                    $key = (string) $rowId;
+                    if (isset($submitted[$key])) throw new InvalidArgumentException($name . ' 子表主键重复：' . $key);
+                    if (!in_array($key, $existingIds, true)) throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    $submitted[$key] = true;
+                }
+                $payload = $this->filterChildPayload($context['fields'], $row, $rowId !== null && $rowId !== '');
+                $payload[$context['foreignKey']] = $parentId;
+                if ($rowId === null || $rowId === '') {
+                    $connection->table($context['table'])->insert($payload);
+                } else {
+                    unset($payload[$primaryName]);
+                    $connection->table($context['table'])->where($primaryName, $rowId)->where($context['foreignKey'], $parentId)->update($payload);
+                }
+            }
+            if ($isUpdate) {
+                $removed = array_values(array_diff($existingIds, array_keys($submitted)));
+                if ($removed !== []) {
+                    $query = $connection->table($context['table'])->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
+                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                    else $query->delete();
+                }
+            }
+        }
+    }
+
+    private function childContext(FormField $field): array
+    {
+        $table = (string) $field->relation_table;
+        $foreignKey = (string) $field->relation_value_field;
+        $this->assertIdentifier($table, '子表');
+        $this->assertIdentifier($foreignKey, '子表外键字段');
+        $form = Form::where('table_name', $table)->where('status', 1)->find();
+        if (!$form) throw new InvalidArgumentException('子表必须配置启用的表单元数据：' . $table);
+        $schema = Db::connect((string) $form->connection)->getFields($table);
+        return [
+            'table' => $table,
+            'foreignKey' => $foreignKey,
+            'form' => $form,
+            'schema' => $schema,
+            'primary' => $this->primaryKey($schema),
+            'fields' => FormField::where('form_id', (int) $form->id)->order('sort_order', 'asc')->select(),
+        ];
+    }
+
+    private function filterChildPayload($fields, array $row, bool $isUpdate): array
+    {
+        $payload = $this->filterPayload(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $row, $isUpdate);
+        return $payload;
     }
 
     private function isLayoutField(array $field): bool

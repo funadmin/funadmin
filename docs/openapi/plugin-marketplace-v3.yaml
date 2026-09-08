@@ -473,7 +473,8 @@ components:
           $ref: '#/components/schemas/Sha256'
         database_capability:
           type: string
-          pattern: '^(?:|\d+[A-Za-z0-9._-]*\.sql)$'
+          description: 已支持的最高 migration version，不包含 .sql 扩展名。
+          pattern: '^(?:|\d{3}_[a-z][a-z0-9_]*)$'
         applications:
           $ref: '#/components/schemas/Applications'
         compatible_reason:
@@ -510,6 +511,8 @@ components:
           $ref: '#/components/schemas/SemanticVersion'
         db_version:
           type: string
+          description: 当前数据库已执行的最高 migration version，不包含 .sql 扩展名。
+          pattern: '^(?:|\d{3}_[a-z][a-z0-9_]*)$'
         modified:
           type: boolean
     UpdateCheckRequest:
@@ -559,6 +562,8 @@ components:
           $ref: '#/components/schemas/SemanticVersion'
         db_version:
           type: string
+          description: 当前数据库 migration version；首次安装时为空。
+          pattern: '^(?:|\d{3}_[a-z][a-z0-9_]*)$'
     Authorization:
       type: object
       additionalProperties: false

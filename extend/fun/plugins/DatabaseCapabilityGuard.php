@@ -30,12 +30,21 @@ final class DatabaseCapabilityGuard
         if ($targetCapability === null || $targetCapability === '') {
             throw new RuntimeException('目标版本缺少版本历史，无法证明数据库能力兼容');
         }
-        if (strnatcmp((string) $targetCapability, $currentDbVersion) < 0) {
+        $targetCapability = $this->normalizeCapability((string) $targetCapability);
+        $currentDbVersion = $this->normalizeCapability($currentDbVersion);
+        if (strnatcmp($targetCapability, $currentDbVersion) < 0) {
             throw new RuntimeException(sprintf(
                 '目标版本数据库能力 %s 低于当前 %s，禁止降级部署',
                 $targetCapability,
                 $currentDbVersion
             ));
         }
+    }
+
+    private function normalizeCapability(string $capability): string
+    {
+        return str_ends_with($capability, '.sql')
+            ? substr($capability, 0, -4)
+            : $capability;
     }
 }

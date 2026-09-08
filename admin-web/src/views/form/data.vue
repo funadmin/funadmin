@@ -37,8 +37,8 @@
         <el-button type="primary" @click="openDialog()">新增</el-button>
         <el-button @click="onExport">导出</el-button>
       </template>
-      <el-table v-loading="loading" :data="rows" border row-key="id" @sort-change="onSortChange">
-        <el-table-column prop="id" label="ID" width="70" />
+      <el-table v-loading="loading" :data="rows" border :row-key="primaryKeyName" @sort-change="onSortChange">
+        <el-table-column :prop="primaryKeyName" label="ID" width="120" />
         <el-table-column
           v-for="field in listFields"
           :key="field.field_name"
@@ -101,7 +101,7 @@
     </DataTableShell>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" destroy-on-close>
       <SchemaForm ref="schemaFormRef" :form-key="formKey" :fields="formFields" :values="dialogValues" />
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -132,7 +132,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
-import { formDataApi, type FormDataMeta } from '@/api/formData';
+import { formDataApi, type FormDataMeta, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaForm from './components/SchemaForm.vue';
 
@@ -149,12 +149,13 @@ const dateFilters = reactive<Record<string, [string, string] | undefined>>({});
 const sort = reactive({ sort: '', order: '' });
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
-const editingId = ref(0);
+const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, any>>({});
 const detail = ref<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> } | null>(null);
 const schemaFormRef = ref<InstanceType<typeof SchemaForm>>();
 
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
+const primaryKeyName = computed(() => meta.value?.primaryKey.name ?? 'id');
 const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1));
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== ''));
 
@@ -232,7 +233,9 @@ const onSortChange = ({ prop, order }: { prop: string | null; order: 'ascending'
 const emptyValues = () => {
   const values: Record<string, unknown> = {};
   for (const field of formFields.value) {
-    values[field.field_name] = field.type === 'switch' ? 0 : field.type === 'number' ? undefined : '';
+    values[field.field_name] = field.relation_type === 'has_many' || ['repeatable', 'subform'].includes(field.type)
+      ? []
+      : field.type === 'switch' ? 0 : field.type === 'number' ? undefined : '';
   }
   return values;
 };
@@ -244,10 +247,13 @@ const decodeValue = (field: FormFieldDef, value: unknown) => {
     return value;
   }
 };
-const openDialog = (row?: Record<string, unknown>) => {
-  editingId.value = Number(row?.id ?? 0);
-  const values = { ...emptyValues(), ...(row ?? {}) };
+const openDialog = async (row?: Record<string, unknown>) => {
+  editingId.value = row ? row[primaryKeyName.value] as FormRecordId : null;
+  const source = editingId.value !== null ? await formDataApi.detail(formKey, editingId.value) : null;
+  const values = { ...emptyValues(), ...(source?.row ?? row ?? {}) };
+  for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
   for (const field of formFields.value) values[field.field_name] = decodeValue(field, values[field.field_name]);
+  for (const key of Object.keys(dialogValues)) delete dialogValues[key];
   Object.assign(dialogValues, values);
   dialogVisible.value = true;
 };
@@ -255,7 +261,7 @@ async function onSave() {
   await schemaFormRef.value?.validate();
   saving.value = true;
   try {
-    if (editingId.value) {
+    if (editingId.value !== null) {
       await formDataApi.update(formKey, editingId.value, { ...dialogValues });
     } else {
       await formDataApi.create(formKey, { ...dialogValues });
@@ -268,18 +274,18 @@ async function onSave() {
   }
 }
 async function openDetail(row: Record<string, unknown>) {
-  detail.value = await formDataApi.detail(formKey, Number(row.id));
+  detail.value = await formDataApi.detail(formKey, row[primaryKeyName.value] as FormRecordId);
   detailVisible.value = true;
 }
 async function onDelete(row: Record<string, unknown>) {
   await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
-  await formDataApi.remove(formKey, Number(row.id));
+  await formDataApi.remove(formKey, row[primaryKeyName.value] as FormRecordId);
   ElMessage.success('删除成功');
   loadData();
 }
 async function onExport() {
   const data = await formDataApi.export(formKey, { filters: { ...filters } });
-  const columns = ['id', ...listFields.value.map((f) => f.field_name), 'created_at'];
+  const columns = [primaryKeyName.value, ...listFields.value.map((f) => f.field_name), 'created_at'];
   const lines = [columns.join(',')];
   for (const row of data.list) {
     lines.push(columns.map((column) => `"${String(row[column] ?? '').replace(/"/g, '""')}"`).join(','));

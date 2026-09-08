@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace app\console\service;
 
 use app\common\crud\CrudDefinition;
+use app\common\form\schema\FormSchema;
+use app\common\form\schema\FormSchemaCompiler;
+use app\common\form\schema\FormSchemaMigrator;
+use app\common\form\schema\FormSchemaValidator;
 use InvalidArgumentException;
 
 /** 将表单设计元数据确定性转换为统一 CRUD Definition。 */
@@ -26,6 +30,20 @@ final class FormCrudDefinitionFactory
 
     public function create(array $form, array $publishConfig = [], array $schema = []): CrudDefinition
     {
+        $compiled = (new FormSchemaCompiler(new FormSchemaValidator()))
+            ->compile((new FormSchemaMigrator())->fromV1($form));
+        return $this->createFromSchema($compiled, $form, $publishConfig, $schema);
+    }
+
+    public function createFromSchema(FormSchema $formSchema, array $form, array $publishConfig = [], array $schema = []): CrudDefinition
+    {
+        $form['form_key'] = $formSchema->key();
+        $form['name'] = (string) ($formSchema->document()['title'] ?? $form['name'] ?? '');
+        $form['fields'] = $formSchema->fieldProjection();
+        $database = (array) ($formSchema->document()['database'] ?? []);
+        $form['table_name'] = (string) ($database['table'] ?? $form['table_name'] ?? '');
+        $form['connection'] = (string) ($database['connection'] ?? $form['connection'] ?? 'mysql');
+        $form['source_type'] = (string) ($database['source'] ?? $form['source_type'] ?? 'created');
         $key = $this->identifier((string) ($form['form_key'] ?? ''), '表单标识');
         $table = $this->identifier((string) ($form['table_name'] ?? ''), '绑定表');
         $entity = str_replace('_', '-', $key);
@@ -47,6 +65,14 @@ final class FormCrudDefinitionFactory
             $type = (string) ($field['type'] ?? 'input');
             $layoutSchema[] = $this->formSchemaNode($field, $type);
             if (in_array($type, self::LAYOUT_TYPES, true)) continue;
+            if ((string) ($field['relation_type'] ?? 'none') === 'has_many') {
+                $relations[] = [
+                    'name' => (string) ($field['field_name'] ?? ''), 'type' => 'hasMany',
+                    'field' => $primaryKey, 'target' => $this->studly((string) preg_replace('/^fun_/', '', (string) ($field['relation_table'] ?? ''))),
+                    'targetField' => (string) ($field['relation_value_field'] ?? ''), 'with' => true,
+                ];
+                continue;
+            }
             $fields[] = $this->field($field, $type, $relations, $optionSources);
         }
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
@@ -100,6 +126,9 @@ final class FormCrudDefinitionFactory
             ],
             'permission' => ['enabled' => true, 'groupName' => (string) $config['menuName'], 'actions' => []],
             'layoutSchema' => $layoutSchema,
+            'formSchemaVersion' => $formSchema->version(),
+            'formSchemaHash' => $formSchema->hash(),
+            'formSchema' => $formSchema->document(),
         ]);
     }
 

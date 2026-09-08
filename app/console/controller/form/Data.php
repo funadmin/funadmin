@@ -87,8 +87,8 @@ final class Data extends AdminApiController
     #[Get('sub/:key/:relation/:id')]
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     #[Pattern('relation', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '\d+')]
-    public function sub(string $key, string $relation, int $id): Response
+    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    public function sub(string $key, string $relation, int|string $id): Response
     {
         return $this->execute(fn (): array => $this->data->sub($key, $relation, $id, $this->page(), $this->pageSize()));
     }

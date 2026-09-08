@@ -23,7 +23,7 @@ final class PluginScaffolder
         bool $adminWeb = true
     ): array {
         self::assertValidName($name);
-        $files = ['plugin.json', 'Plugin.php', 'database/migrations/.gitkeep', 'resources/public/.gitkeep', 'storage/.gitkeep'];
+        $files = ['plugin.json', 'Plugin.php', 'config.php', 'database/migrations/.gitkeep', 'resources/public/.gitkeep', 'storage/.gitkeep'];
         if ($application) {
             array_push($files, "app/{$name}/controller/Index.php", "app/{$name}/config/app.php", "app/{$name}/route/app.php", "app/{$name}/lang/zh-cn.php", "app/{$name}/event.php", "app/{$name}/provider.php");
             foreach (['model', 'service', 'middleware', 'view'] as $layer) $files[] = "app/{$name}/{$layer}/.gitkeep";
@@ -137,6 +137,7 @@ final class PluginScaffolder
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         ) . "\n");
         $this->write($directory . '/Plugin.php', $this->entrySource($name));
+        $this->write($directory . '/config.php', $this->pluginConfigSource());
         $this->keep($directory . '/database/migrations');
         $this->keep($directory . '/resources/public');
         $this->keep($directory . '/storage');
@@ -243,6 +244,39 @@ final class Index extends AdminApiController
         return json(['code' => 200, 'msg' => 'success', 'data' => []]);
     }
 }
+PHP;
+    }
+
+    private function pluginConfigSource(): string
+    {
+        return <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+return [
+    'enabled' => [
+        'title' => '功能开关',
+        'type' => 'switch',
+        'value' => true,
+        'tip' => '控制插件业务功能是否可用，不影响插件生命周期状态。',
+    ],
+    'page_size' => [
+        'title' => '默认每页数量',
+        'type' => 'number',
+        'value' => 20,
+        'tip' => '插件列表接口的默认分页数量。',
+    ],
+    'mode' => [
+        'title' => '运行模式',
+        'type' => 'select',
+        'value' => 'standard',
+        'options' => [
+            'standard' => '标准模式',
+            'strict' => '严格模式',
+        ],
+    ],
+];
 PHP;
     }
 

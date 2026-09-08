@@ -1,6 +1,6 @@
 import type { FormFieldDef } from '@/api/form';
 
-export type ControlKind = 'field' | 'business' | 'layout';
+export type ControlKind = 'field' | 'business' | 'layout' | 'relation-container';
 export type ControlGroup = '基础控件' | '选择控件' | '日期时间' | '上传控件' | '业务控件' | '布局控件';
 
 /** 控件元信息与新建字段默认配置。 */
@@ -74,6 +74,8 @@ export const CONTROL_REGISTRY: ControlMeta[] = [
   control('json', 'JSON 编辑器', 'business', '业务控件', 'json', null, { rows: 8 }),
   control('hidden', '隐藏字段', 'field', '基础控件', 'varchar(255)'),
   control('readonly', '只读文本', 'field', '基础控件', 'varchar(255)'),
+  control('repeatable', '重复行', 'relation-container', '业务控件', '', null, { minRows: 0, maxRows: 0, primaryKey: 'id', columns: [] }),
+  control('subform', '子表单', 'relation-container', '业务控件', '', null, { minRows: 0, maxRows: 0, primaryKey: 'id', columns: [] }),
   control('group', '分组', 'layout', '布局控件', '', null, { title: '字段分组' }),
   control('grid', '栅格', 'layout', '布局控件', '', null, { columns: 2, gutter: 16 }),
   control('divider', '分割线', 'layout', '布局控件', '', null, { contentPosition: 'left' }),
@@ -92,6 +94,7 @@ const cloneConfig = (value: Record<string, unknown> | null) =>
 export const createField = (type: string, index: number): FormFieldDef => {
   const meta = controlMeta(type);
   const isLayout = meta.kind === 'layout';
+  const isRelationContainer = meta.kind === 'relation-container';
   return {
     field_name: `field_${index}`,
     label: meta.label,
@@ -107,13 +110,13 @@ export const createField = (type: string, index: number): FormFieldDef => {
     control_props: cloneConfig(meta.defaultProps),
     validate_rules: null,
     link_rules: null,
-    relation_type: 'none',
+    relation_type: isRelationContainer ? 'has_many' : 'none',
     relation_table: '',
     relation_label_field: '',
     relation_value_field: 'id',
     relation_multiple: 0,
     relation_on_delete: 'restrict',
-    list_show: isLayout ? 0 : 1,
+    list_show: isLayout || isRelationContainer ? 0 : 1,
     list_sort: 0,
     list_filter: '',
     list_formatter: '',

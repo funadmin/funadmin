@@ -47,7 +47,7 @@ const ElTabs = defineComponent({
   props: { modelValue: String }, emits: ['update:modelValue', 'tab-change'],
   setup(_, { slots, emit }) { return () => h('nav', [
     slots.default?.(),
-    h('button', { 'data-tab': 'local', onClick: () => { emit('update:modelValue', 'local'); emit('tab-change', 'local'); } }, '本地包'),
+    h('button', { 'data-tab': 'local', onClick: () => { emit('update:modelValue', 'local'); emit('tab-change', 'local'); } }, '本地插件'),
     h('button', { 'data-tab': 'market', onClick: () => { emit('update:modelValue', 'market'); emit('tab-change', 'market'); } }, '云市场')
   ]); }
 });
@@ -89,6 +89,41 @@ beforeEach(() => {
 });
 
 describe('插件中心页面 mount 行为', () => {
+  it('没有已安装插件时自动展示本地插件', async () => {
+    api.installed.mockResolvedValue([]);
+    api.discovered.mockResolvedValue([
+      plugin({ code: 'example', name: '示例插件', source: 'local', state: 'discovered' }),
+      plugin({ code: 'shop', name: '商城插件', source: 'local', state: 'discovered' })
+    ]);
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(api.installed).toHaveBeenCalledTimes(1);
+    expect(api.discovered).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain('已发现 2 个本地插件');
+    expect(wrapper.text()).toContain('示例插件');
+    expect(wrapper.text()).toContain('商城插件');
+  });
+
+  it('本地插件标签展示发现数量并加载 discovered 列表', async () => {
+    api.discovered.mockResolvedValue([
+      plugin({ code: 'example', name: '示例插件', source: 'local', state: 'discovered' }),
+      plugin({ code: 'shop', name: '商城插件', source: 'local', state: 'discovered' })
+    ]);
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const localTab = wrapper.get('[data-tab="local"]');
+    expect(localTab.text()).toContain('本地插件');
+    await localTab.trigger('click');
+    await flushPromises();
+
+    expect(api.discovered).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain('示例插件');
+    expect(wrapper.text()).toContain('商城插件');
+    expect(wrapper.text()).toContain('已发现 2 个本地插件');
+  });
+
   it('发现插件确认后调用真实安装 API，取消时不调用', async () => {
     const wrapper = mountPage(['system:plugin:discovered-install']);
     await flushPromises();

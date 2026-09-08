@@ -20,8 +20,8 @@ const productionSource = (directory: string): string => readdirSync(resolve(proj
   .join('\n');
 
 describe('插件中心页面契约', () => {
-  it('提供已安装、本地包、云市场三个标签和关键状态字段', () => {
-    for (const text of ['已安装', '本地包', '云市场', 'latestVersion', 'dbVersion', 'migrationPending', 'lastError', 'dependencies', 'source']) {
+  it('提供已安装、本地插件、云市场三个标签和关键状态字段', () => {
+    for (const text of ['已安装', '本地插件', '云市场', 'latestVersion', 'dbVersion', 'migrationPending', 'lastError', 'dependencies', 'source']) {
       expect(page).toContain(text);
     }
   });

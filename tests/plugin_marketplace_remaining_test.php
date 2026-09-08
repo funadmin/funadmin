@@ -62,9 +62,13 @@ remainingExpect(MarketplaceProtocol::SIGNATURE_ALGORITHM === 'ed25519', '市场�
 $gatewayCheckUpdates = (new ReflectionMethod(PluginMarketplaceGateway::class, 'checkUpdates'))->getParameters()[0];
 remainingExpect((string) $gatewayCheckUpdates->getType() === UpdateCheckRequestDto::class, 'Gateway checkUpdates 必须接收结构化请求 DTO');
 $requestDto = new UpdateCheckRequestDto([
-    ['code' => 'demo', 'code_version' => '1.0.0', 'db_version' => '003_seed.sql', 'modified' => false],
+    ['code' => 'demo', 'code_version' => '1.0.0', 'db_version' => '003_seed', 'modified' => false],
 ]);
-remainingExpect($requestDto->installed[0]['db_version'] === '003_seed.sql', '更新检查请求必须保留数据库版本');
+remainingExpect($requestDto->installed[0]['db_version'] === '003_seed', '更新检查请求必须保留数据库版本');
+$storedVersionRequest = new UpdateCheckRequestDto([
+    ['code' => 'shop', 'code_version' => '1.0.0', 'db_version' => '001_create_product', 'modified' => false],
+]);
+remainingExpect($storedVersionRequest->installed[0]['db_version'] === '001_create_product', '更新检查必须接受系统实际存储的不带扩展名 migration version');
 remainingException(static fn () => new UpdateCheckRequestDto([
     ['code' => 'demo', 'code_version' => '1.0.0', 'db_version' => '003_seed.sql'],
 ]), 'modified');
@@ -91,12 +95,12 @@ $version = new PluginVersionDto(
     2,
     'funadmin-native-app-v1',
     str_repeat('b', 64),
-    '003_seed.sql',
+    '003_seed',
     ['app' => true, 'console' => true],
     ''
 );
 remainingExpect($version->manifestSchema === 2 && $version->treeHash === str_repeat('b', 64), '版本 DTO 必须携带 v3 制品契约');
-remainingExpect($version->databaseCapability === '003_seed.sql' && $version->applications['console'], '版本 DTO 必须携带数据库及应用能力');
+remainingExpect($version->databaseCapability === '003_seed' && $version->applications['console'], '版本 DTO 必须携带数据库及应用能力');
 remainingException(static fn () => new PluginVersionDto(1, 'demo', '2.0.0', compatible: true), '不兼容');
 remainingException(static fn () => new PluginVersionDto(
     1,
@@ -121,7 +125,7 @@ $descriptorArguments = [
     2,
     'funadmin-native-app-v1',
     str_repeat('b', 64),
-    '003_seed.sql',
+    '003_seed',
 ];
 $descriptor = new DownloadDescriptorDto(...$descriptorArguments);
 remainingExpect($descriptor->manifestSchema === 2 && $descriptor->packageFormat === MarketplaceProtocol::PACKAGE_FORMAT, '下载描述必须携带 v3 契约');
@@ -131,6 +135,8 @@ remainingException(static fn () => new DownloadDescriptorDto(...array_replace($d
 remainingException(static fn () => new DownloadDescriptorDto(...array_replace($descriptorArguments, [5 => 'rsa-sha256'])), 'ed25519');
 remainingException(static fn () => new DownloadDescriptorDto(...array_replace($descriptorArguments, [4 => ''])), '签名');
 remainingException(static fn () => new DownloadDescriptorDto(...array_replace($descriptorArguments, [10 => '../bad.sql'])), '数据库能力');
+$storedCapabilityDescriptor = new DownloadDescriptorDto(...array_replace($descriptorArguments, [10 => '001_create_product']));
+remainingExpect($storedCapabilityDescriptor->databaseCapability === '001_create_product', '下载描述必须接受规范 migration version');
 
 $store = new RemainingMemorySessionStore();
 $session = new CloudAccountSession($store, static fn (): int => 1_800_000_000);
@@ -154,7 +160,7 @@ $adapter = new NativeMarketplaceAdapter(
             'manifest_schema' => 2,
             'package_format' => 'funadmin-native-app-v1',
             'tree_hash' => str_repeat('b', 64),
-            'database_capability' => '003_seed.sql',
+            'database_capability' => '003_seed',
             'applications' => ['app' => true, 'console' => true],
             'compatible_reason' => '',
         ];
@@ -225,7 +231,7 @@ $signingDescriptor = new DownloadDescriptorDto(
     2,
     'funadmin-native-app-v1',
     str_repeat('b', 64),
-    '003_seed.sql'
+    '003_seed'
 );
 $signature = base64_encode(sodium_crypto_sign_detached(
     PluginPackageDownloader::signaturePayload($signingDescriptor),
@@ -258,7 +264,7 @@ remainingExpect(
     ($metadata['manifest_schema'] ?? null) === 2
     && ($metadata['package_format'] ?? '') === MarketplaceProtocol::PACKAGE_FORMAT
     && ($metadata['tree_hash'] ?? '') === str_repeat('b', 64)
-    && ($metadata['database_capability'] ?? '') === '003_seed.sql',
+    && ($metadata['database_capability'] ?? '') === '003_seed',
     'verification metadata 必须包含完整 v3 契约'
 );
 $downloader->delete($file);
@@ -352,6 +358,6 @@ remainingExpect(str_contains($openApi, 'const: ed25519'), 'OpenAPI 必须固定 
 remainingExpect(substr_count($openApi, 'unevaluatedProperties: false') >= 4, 'OpenAPI 复合对象必须在最终 schema 禁止未评估字段');
 remainingExpect(!preg_match('/UpdateCheckRequest:\s+[\s\S]*?additionalProperties: false[\s\S]*?required: \[installed\]/', $openApi), 'UpdateCheckRequest 不得在 allOf 子 schema 提前封闭字段');
 remainingExpect(!preg_match('/VersionOperationRequest:\s+[\s\S]*?additionalProperties: false[\s\S]*?required: \[code, code_version, db_version\]/', $openApi), 'VersionOperationRequest 不得在 allOf 子 schema 提前封闭字段');
-remainingExpect(str_contains($openApi, "pattern: '^(?:|\\d+[A-Za-z0-9._-]*\\.sql)$'"), 'OpenAPI 数据库能力必须与客户端数字前缀规则一致');
+remainingExpect(str_contains($openApi, "pattern: '^(?:|\\d{3}_[a-z][a-z0-9_]*)$'"), 'OpenAPI 数据库能力必须使用不带 .sql 的 migration version');
 
 echo "plugin marketplace remaining tests: PASS\n";

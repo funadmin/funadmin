@@ -13,11 +13,24 @@
     <el-alert v-if="pageError" class="mb-3" type="error" :title="pageError" :closable="false" role="alert" />
     <el-tabs v-model="activeTab" @tab-change="load">
       <el-tab-pane label="已安装" name="installed" />
-      <el-tab-pane label="本地包" name="local" />
+      <el-tab-pane label="本地插件" name="local" />
       <el-tab-pane label="云市场" name="market" />
     </el-tabs>
 
-    <el-table v-if="activeTab !== 'market'" v-loading="loading" :data="items" border>
+    <el-alert
+      v-if="activeTab === 'local'"
+      class="mb-3"
+      type="info"
+      :title="`已发现 ${items.length} 个本地插件，来源目录：plugins/`"
+      :closable="false"
+    />
+    <el-table
+      v-if="activeTab !== 'market'"
+      v-loading="loading"
+      :data="items"
+      :empty-text="activeTab === 'local' ? 'plugins/ 目录下暂无符合 Manifest v2 的本地插件' : '暂无已安装插件'"
+      border
+    >
       <el-table-column prop="code" label="code" min-width="120" />
       <el-table-column prop="name" label="名称" min-width="130" />
       <el-table-column prop="version" label="当前版本" width="110" />
@@ -135,7 +148,12 @@ async function load() {
   try {
     const loaded = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered();
     items.value = loaded;
-    if (activeTab.value !== 'installed' || loaded.length === 0) return;
+    if (activeTab.value === 'installed' && loaded.length === 0) {
+      activeTab.value = 'local';
+      items.value = await pluginApi.discovered();
+      return;
+    }
+    if (activeTab.value !== 'installed') return;
     try {
       const updates = await pluginApi.checkUpdates(loaded.map((item) => ({
         code: item.code,

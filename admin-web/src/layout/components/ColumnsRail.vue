@@ -35,7 +35,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter, type RouteRecordRaw } from 'vue-router';
 import { useAppStore } from '@/store/modules/app';
 import { usePermissionStore } from '@/store/modules/permission';
-import { getFirstLeafRouteFullPath, getMenuActiveRootPath } from '@/utils/route';
+import { getFirstLeafRouteFullPath, getMenuActiveRootPath, getVisibleMenuChildren } from '@/utils/route';
 import { useMenuTitle } from '@/composables/useMenuTitle';
 import LogoMark from '@/components/LogoMark.vue';
 import { APP_CONFIG } from '@/config';
@@ -85,7 +85,7 @@ function resolvePath(item: RouteRecordRaw): string {
 }
 
 function visibleChildren(item: RouteRecordRaw): RouteRecordRaw[] {
-  return (item.children || []).filter((c) => !c.meta?.hidden);
+  return getVisibleMenuChildren(item);
 }
 
 const activeRoot = computed(() => getMenuActiveRootPath(route));

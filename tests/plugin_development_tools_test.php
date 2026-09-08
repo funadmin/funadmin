@@ -59,9 +59,13 @@ try {
     $manifest = json_decode((string) file_get_contents($plugin . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
     developmentExpect(($manifest['schema_version'] ?? null) === 2, '生成 manifest 必须使用 schema_version=2');
     developmentExpect(!isset($manifest['load'], $manifest['channels']), 'Manifest v2 不得生成 load/channels');
+    $pluginConfig = require $plugin . '/config.php';
+    developmentExpect(is_array($pluginConfig) && isset($pluginConfig['enabled']['value']), '插件骨架必须生成非空配置 schema');
+    developmentExpect(($pluginConfig['enabled']['type'] ?? '') === 'switch', '默认启用配置必须使用 switch 控件');
 
     foreach ([
         'Plugin.php',
+        'config.php',
         'app/demo/controller/Index.php',
         'app/demo/model/.gitkeep',
         'app/demo/service/.gitkeep',
@@ -108,6 +112,13 @@ try {
     developmentExpect(str_contains($consoleController, "#[Group('plugin/demo')]"), 'Console Group 必须使用 plugin/name 前缀');
     developmentExpect(($manifest['adminWeb']['components']['Index'] ?? '') === 'pages/Index.vue', 'manifest 组件必须对应页面目录');
     developmentExpect(str_contains((string) file_get_contents($plugin . '/admin-web/pages/Index.vue'), "v-perm=\"'demo:item:list'\""), 'Admin Web 页面必须包含权限使用示例');
+    foreach (['example', 'shop'] as $fixtureCode) {
+        $fixtureRoot = $repository . '/plugins/' . $fixtureCode;
+        $fixtureConfig = require $fixtureRoot . '/config.php';
+        developmentExpect(is_array($fixtureConfig) && $fixtureConfig !== [], $fixtureCode . ' 示例插件必须提供可编辑配置');
+        developmentExpect(is_dir($fixtureRoot . '/database/migrations'), $fixtureCode . ' 必须使用规范 database/migrations 目录');
+        developmentExpect(!is_dir($fixtureRoot . '/migrations'), $fixtureCode . ' 不得保留旧 migrations 双目录');
+    }
 
     developmentReject(static fn () => $scaffolder->scaffold('Demo', '非法'), '格式');
     developmentReject(static fn () => $scaffolder->scaffold('console', '保留名'), '保留');

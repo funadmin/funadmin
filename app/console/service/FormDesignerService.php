@@ -31,11 +31,12 @@ final class FormDesignerService
         'file' => 'json', 'files' => 'json', 'dictionary' => 'varchar(100)',
         'relation' => 'bigint', 'department' => 'bigint', 'user' => 'bigint',
         'richtext' => 'longtext', 'json' => 'json', 'hidden' => 'varchar(255)',
-        'readonly' => 'varchar(255)', 'group' => '', 'grid' => '', 'divider' => '',
+        'readonly' => 'varchar(255)', 'repeatable' => '', 'subform' => '', 'group' => '', 'grid' => '', 'divider' => '',
         'text' => '', 'collapse' => '', 'tabs' => '',
     ];
 
     private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
+    private const RELATION_CONTAINER_TYPES = ['repeatable', 'subform'];
 
     private const INDEX_TYPES = ['none', 'unique', 'index'];
     private const RELATION_TYPES = ['none', 'belongs_to', 'has_many'];
@@ -120,6 +121,9 @@ final class FormDesignerService
                 throw new InvalidArgumentException($label . '索引类型不合法');
             }
             $relationType = (string) ($field['relation_type'] ?? 'none');
+            if (in_array($type, self::RELATION_CONTAINER_TYPES, true) && $relationType !== 'has_many') {
+                throw new InvalidArgumentException($label . '重复行或子表单必须配置 has_many');
+            }
             if (!in_array($relationType, self::RELATION_TYPES, true)) {
                 throw new InvalidArgumentException($label . '关联类型不合法');
             }
@@ -140,7 +144,7 @@ final class FormDesignerService
             if ($span < 1 || $span > 24) {
                 throw new InvalidArgumentException($label . '栅格 span 必须在 1-24');
             }
-            if ($sourceType === 'created' && !in_array($type, self::LAYOUT_TYPES, true)) {
+            if ($sourceType === 'created' && !in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true) && $relationType !== 'has_many') {
                 $columnType = trim((string) ($field['column_type'] ?? ''));
                 if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/', $columnType)) {
                     throw new InvalidArgumentException($label . '列类型不合法：' . $columnType);
@@ -197,7 +201,12 @@ final class FormDesignerService
                 'status' => (int) ($payload['status'] ?? 1),
                 'list_config' => $payload['list_config'] ?? null,
                 'form_config' => $payload['form_config'] ?? null,
+                'schema_version' => (int) ($payload['schema_version'] ?? 1),
+                'schema_document' => $payload['schema_document'] ?? null,
+                'schema_hash' => $payload['schema_hash'] ?? null,
+                'schema_origin' => (string) ($payload['schema_origin'] ?? 'designer'),
                 'publish_config' => $payload['publish_config'] ?? null,
+                'publish_status' => isset($payload['schema_hash']) && $payload['schema_hash'] !== ($form->schema_hash ?? null) ? 'draft' : ($form->publish_status ?? 'draft'),
                 'remark' => trim((string) ($payload['remark'] ?? '')),
                 'sort_order' => (int) ($payload['sort_order'] ?? 0),
             ]);
@@ -335,7 +344,7 @@ final class FormDesignerService
             'field_name' => trim((string) $field['field_name']),
             'label' => trim((string) $field['label']),
             'type' => $type,
-            'column_type' => in_array($type, self::LAYOUT_TYPES, true)
+            'column_type' => in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true)
                 ? ''
                 : (trim((string) ($field['column_type'] ?? '')) ?: self::CONTROL_TYPES[$type]),
             'nullable' => (int) ($field['nullable'] ?? 1),
@@ -380,7 +389,7 @@ final class FormDesignerService
         $lines = ['  `id` bigint unsigned NOT NULL AUTO_INCREMENT'];
         $indexes = [];
         foreach ($fields as $field) {
-            if ($this->isLayoutField($field)) {
+            if ($this->isVirtualField($field)) {
                 continue;
             }
             $lines[] = '  ' . $this->columnDdl($field);
@@ -419,7 +428,7 @@ final class FormDesignerService
         );
         $parts = [];
         foreach ($fields as $field) {
-            if ($this->isLayoutField($field)) {
+            if ($this->isVirtualField($field)) {
                 continue;
             }
             $name = trim((string) $field['field_name']);
@@ -436,9 +445,10 @@ final class FormDesignerService
         return $parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n";
     }
 
-    private function isLayoutField(array $field): bool
+    private function isVirtualField(array $field): bool
     {
-        return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
+        return in_array((string) ($field['type'] ?? ''), array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true)
+            || (string) ($field['relation_type'] ?? 'none') === 'has_many';
     }
 
     private function columnDdl(array $field): string

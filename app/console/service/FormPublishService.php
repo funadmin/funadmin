@@ -13,33 +13,40 @@ final class FormPublishService
 {
     private readonly FormCrudDefinitionFactory $definitions;
     private readonly DevCrudService $crud;
+    private readonly FormSchemaRepository $schemas;
 
     public function __construct(
         private readonly FormDesignerService $forms,
         string $projectRoot,
         array $allowedConnections,
         ?FormCrudDefinitionFactory $definitions = null,
-        ?DevCrudService $crud = null
+        ?DevCrudService $crud = null,
+        ?FormSchemaRepository $schemas = null
     ) {
         $this->definitions = $definitions ?? new FormCrudDefinitionFactory();
         $this->crud = $crud ?? new DevCrudService($projectRoot, $allowedConnections);
+        $this->schemas = $schemas ?? new FormSchemaRepository();
     }
 
     public function preview(array $payload, bool $canGenerate): array
     {
-        $this->forms->validateDefinition($payload);
-        $definition = $this->definitions->create(
-            $payload,
-            (array) ($payload['publish_config'] ?? []),
-            $this->schema($payload)
+        $compiled = $this->schemas->compile($this->schemaPayload($payload));
+        $compatible = $this->compatiblePayload($payload, $compiled);
+        $this->forms->validateDefinition($compatible);
+        $definition = $this->definitions->createFromSchema(
+            $compiled,
+            $compatible,
+            (array) ($compatible['publish_config'] ?? []),
+            $this->schema($compatible)
         );
-        $ddl = $this->forms->previewMigration($payload);
+        $ddl = $this->forms->previewMigration($compatible);
         $crud = $this->crud->preview($definition->toArray(), $canGenerate, $canGenerate);
         $files = (array) ($crud['plan']['files'] ?? []);
         $conflicts = array_values(array_filter($files, static fn (array $file): bool => ($file['status'] ?? '') === 'conflict'));
         return [
             'definition' => $definition->toArray(),
             'definitionHash' => $definition->hash(),
+            'formSchemaHash' => $compiled->hash(),
             'ddl' => $ddl,
             'generationId' => $crud['generationId'] ?? null,
             'plan' => $crud['plan'] ?? [],
@@ -57,10 +64,13 @@ final class FormPublishService
         bool $canApplyResources,
         string $operator
     ): array {
-        $crudDefinition = $this->definitions->create(
-            $payload,
-            (array) ($payload['publish_config'] ?? []),
-            $this->schema($payload)
+        $compiled = $this->schemas->compile($this->schemaPayload($payload));
+        $compatible = $this->compatiblePayload($payload, $compiled);
+        $crudDefinition = $this->definitions->createFromSchema(
+            $compiled,
+            $compatible,
+            (array) ($compatible['publish_config'] ?? []),
+            $this->schema($compatible)
         );
         try {
             $validatedPlan = $this->crud->preflightGeneration(
@@ -76,7 +86,7 @@ final class FormPublishService
             throw $exception;
         }
 
-        $saved = $this->forms->save($payload);
+        $saved = $this->forms->save($compatible);
         $definitionPayload = $this->definitionPayload($saved);
         $formId = (int) ($definitionPayload['id'] ?? 0);
         $this->updateStatus($formId, 'publishing');
@@ -99,6 +109,7 @@ final class FormPublishService
             $this->updateStatus($formId, $status, [
                 'crud_generation_id' => (int) ($generated['generationId'] ?? 0) ?: null,
                 'published_definition_hash' => $crudDefinition->hash(),
+                'published_schema_hash' => $compiled->hash(),
                 'published_at' => $status === 'published' ? date('Y-m-d H:i:s') : null,
             ]);
             return [
@@ -115,6 +126,7 @@ final class FormPublishService
                 $this->updateStatus($formId, 'partial', [
                     'crud_generation_id' => $generationId,
                     'published_definition_hash' => $crudDefinition->hash(),
+                    'published_schema_hash' => $compiled->hash(),
                 ]);
             } else {
                 $status = $this->isConflict($exception) ? 'conflict' : ($ddlApplied ? 'partial' : 'failed');
@@ -153,6 +165,30 @@ final class FormPublishService
             $this->updateStatus($formId, 'published', ['published_at' => date('Y-m-d H:i:s')]);
         }
         return $result + ['publishStatus' => ($result['resourceApplyStatus'] ?? '') === 'applied' ? 'published' : 'partial'];
+    }
+
+    private function schemaPayload(array $payload): array
+    {
+        $schema = $payload['schema_document'] ?? null;
+        return is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2 ? $schema : $payload;
+    }
+
+    private function compatiblePayload(array $payload, \app\common\form\schema\FormSchema $compiled): array
+    {
+        $document = $compiled->document();
+        $database = (array) ($document['database'] ?? []);
+        return array_replace($payload, [
+            'form_key' => $compiled->key(),
+            'name' => (string) ($document['title'] ?? ''),
+            'table_name' => (string) ($database['table'] ?? $payload['table_name'] ?? ''),
+            'connection' => (string) ($database['connection'] ?? $payload['connection'] ?? 'mysql'),
+            'source_type' => (string) ($database['source'] ?? $payload['source_type'] ?? 'created'),
+            'fields' => $compiled->fieldProjection(),
+            'schema_version' => $compiled->version(),
+            'schema_document' => $document,
+            'schema_hash' => $compiled->hash(),
+            'schema_origin' => (string) ($payload['schema_origin'] ?? 'designer'),
+        ]);
     }
 
     private function schema(array $payload): array
