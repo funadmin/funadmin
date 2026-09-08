@@ -336,7 +336,27 @@ const openPublish = async () => {
   allowOverwrite.value = [];
   publishVisible.value = true;
 };
+const validatePublishConfig = () => {
+  if (!/^[a-z][a-z0-9-]*$/.test(publishConfig.value.module)) {
+    ElMessage.warning('模块名须以小写字母开头，仅包含小写字母、数字和短横线');
+    return false;
+  }
+  if (!/^\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(publishConfig.value.apiPrefix)) {
+    ElMessage.warning('请填写正确的 API 前缀');
+    return false;
+  }
+  if (!/^\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(publishConfig.value.routePath)) {
+    ElMessage.warning('请填写正确的页面路由');
+    return false;
+  }
+  if (!publishConfig.value.menuName.trim()) {
+    ElMessage.warning('请填写菜单名称');
+    return false;
+  }
+  return true;
+};
 const onPreviewPublish = async () => {
+  if (!validatePublishConfig()) return;
   previewingPublish.value = true;
   try {
     publishPreview.value = await formDesignerApi.previewPublish(definition());

@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => readFileSync(resolve(process.cwd(), '..', p), 'utf8');
 
 const helper = read('extend/fun/plugins/PluginRoute.php');
-const fixtureRoutes = read('tests/fixtures/plugins/example/routes/plugin.php');
 const fixtureManifest = read('tests/fixtures/plugins/example/plugin.json');
 
 describe('插件路由鉴权约定 helper 契约', () => {
@@ -17,8 +16,9 @@ describe('插件路由鉴权约定 helper 契约', () => {
     expect(helper).toContain('MApi');
   });
 
-  it('fixture 路由与 Manifest 显式绑定插件权限', () => {
-    expect(fixtureRoutes).toContain("PluginRoute::adminGroup($route, 'example', 'example:dashboard:view'");
+  it('helper 从 Manifest 显式验证插件权限', () => {
+    expect(helper).toContain("$manifest->toArray()['adminWeb']['permissions']");
+    expect(helper).toContain('插件权限未在 manifest 中声明');
     expect(fixtureManifest).toContain('"code": "example:dashboard:view"');
   });
 });

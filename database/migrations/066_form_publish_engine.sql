@@ -1,7 +1,7 @@
 -- 066 统一表单发布引擎：发布配置、状态与 CRUD 生成审计关联。
 SET @schema_name = DATABASE();
 
-SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='publish_config'),'ALTER TABLE `fun_form` ADD COLUMN `publish_config` json DEFAULT NULL COMMENT ''全栈发布配置'' AFTER `form_config`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='publish_config'),'ALTER TABLE `fun_form` ADD COLUMN `publish_config` json DEFAULT NULL COMMENT ''Full-stack publish config'' AFTER `form_config`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='publish_status'),'ALTER TABLE `fun_form` ADD COLUMN `publish_status` varchar(20) NOT NULL DEFAULT ''draft'' COMMENT ''draft/publishing/published/partial/conflict/failed'' AFTER `publish_config`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='published_at'),'ALTER TABLE `fun_form` ADD COLUMN `published_at` datetime NULL AFTER `publish_status`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='crud_generation_id'),'ALTER TABLE `fun_form` ADD COLUMN `crud_generation_id` bigint unsigned NULL AFTER `published_at`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
@@ -12,7 +12,9 @@ SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_S
 -- 发布操作使用独立权限，覆盖与资源应用仍由后端进行二次权限校验。
 SET @form_group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='form_management' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
 INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`) VALUES
-(@form_group_id,'console','console/form.designer:previewpublish','console/form.designer','previewpublish','预览表单发布','route',1,0,60,'admin_web','form_management',NOW(),NOW(),60,NULL),
-(@form_group_id,'console','console/form.designer:publish','console/form.designer','publish','发布表单全栈代码','route',1,0,61,'admin_web','form_management',NOW(),NOW(),61,NULL),
-(@form_group_id,'console','console/form.designer:publishstatus','console/form.designer','publishstatus','查看表单发布状态','route',1,0,62,'admin_web','form_management',NOW(),NOW(),62,NULL),
-(@form_group_id,'console','console/form.designer:retryresources','console/form.designer','retryresources','重试表单菜单权限','route',1,0,63,'admin_web','form_management',NOW(),NOW(),63,NULL);
+(@form_group_id,'console','console/form.designer:previewpublish','console/form.designer','previewpublish',CONVERT(X'E9A284E8A788E8A1A8E58D95E58F91E5B883' USING utf8mb4),'route',1,0,60,'admin_web','form_management',NOW(),NOW(),60,NULL),
+(@form_group_id,'console','console/form.designer:publish','console/form.designer','publish',CONVERT(X'E58F91E5B883E8A1A8E58D95E585A8E6A088E4BBA3E7A081' USING utf8mb4),'route',1,0,61,'admin_web','form_management',NOW(),NOW(),61,NULL),
+(@form_group_id,'console','console/form.designer:publishstatus','console/form.designer','publishstatus',CONVERT(X'E69FA5E79C8BE8A1A8E58D95E58F91E5B883E78AB6E68081' USING utf8mb4),'route',1,0,62,'admin_web','form_management',NOW(),NOW(),62,NULL),
+(@form_group_id,'console','console/form.designer:retryresources','console/form.designer','retryresources',CONVERT(X'E9878DE8AF95E8A1A8E58D95E88F9CE58D95E69D83E99990' USING utf8mb4),'route',1,0,63,'admin_web','form_management',NOW(),NOW(),63,NULL),
+(@form_group_id,'console','form:publish:overwrite','form/publish','overwrite',CONVERT(X'E8A686E79B96E8A1A8E58D95E7949FE68890E69687E4BBB6' USING utf8mb4),'route',1,0,64,'admin_web','form_management',NOW(),NOW(),64,NULL),
+(@form_group_id,'console','form:publish:apply-resources','form/publish','apply-resources',CONVERT(X'E5BA94E794A8E8A1A8E58D95E88F9CE58D95E69D83E99990' USING utf8mb4),'route',1,0,65,'admin_web','form_management',NOW(),NOW(),65,NULL);

@@ -146,7 +146,7 @@ import SearchForm from '@/components/SearchForm/index.vue';
 import { useCrud } from '@/composables/useCrud';
 import RoleFormDialog from './components/RoleFormDialog.vue';
 import RolePermDrawer from './components/RolePermDrawer.vue';
-import { roleTree } from './roleHierarchy';
+import { filterRoleTree, roleTree } from './roleHierarchy';
 
 defineOptions({ name: 'SystemRole' });
 
@@ -203,12 +203,12 @@ const {
 });
 
 /** 全量接口 + 前端关键字过滤（数据量小，避免新增后端字段） */
-const displayTree = computed(() => roleTree(list.value.filter((row) => {
+const displayTree = computed(() => filterRoleTree(roleTree(list.value), (row) => {
   if (query.name && !row.name.includes(query.name)) return false;
   if (query.code && !(row.code || '').includes(query.code)) return false;
   if (query.status !== undefined && row.status !== query.status) return false;
   return true;
-})));
+}));
 
 function toggleExpand() {
   expandAll.value = !expandAll.value;

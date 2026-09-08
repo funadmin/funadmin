@@ -133,8 +133,8 @@ final class Designer extends AdminApiController
             $this->payload(),
             trim((string) $this->request->post('confirmToken', '')),
             array_values(array_filter($allowOverwrite, 'is_string')),
-            $authorization->nodeAccess('development/crud/overwrite'),
-            $authorization->nodeAccess('development/crud/apply-resources'),
+            $authorization->nodeAccess('form/publish/overwrite'),
+            $authorization->nodeAccess('form/publish/apply-resources'),
             (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
         ), '表单全栈发布完成');
     }
@@ -151,9 +151,9 @@ final class Designer extends AdminApiController
     public function retryResources(int $id): Response
     {
         $authorization = new AdminAuthorizationService();
-        if (!$authorization->nodeAccess('development/crud/generate')
-            || !$authorization->nodeAccess('development/crud/overwrite')
-            || !$authorization->nodeAccess('development/crud/apply-resources')) {
+        if (!$authorization->nodeAccess('console/form.designer/publish')
+            || !$authorization->nodeAccess('form/publish/overwrite')
+            || !$authorization->nodeAccess('form/publish/apply-resources')) {
             return $this->fail(msg: '缺少资源重试权限', code: 403);
         }
         return $this->execute(fn (): array => $this->publisher->retryResources($id), '菜单与权限应用完成');
