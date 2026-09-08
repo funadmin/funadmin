@@ -33,6 +33,7 @@ export interface FormSchemaNode {
   events?: Record<string, unknown[]>;
   layout?: { span?: number; group?: string };
   database?: Record<string, unknown>;
+  list?: Record<string, unknown>;
 }
 
 export interface FormSchemaDocument {
@@ -155,6 +156,60 @@ export interface FormPublishResult {
   routePath: string;
 }
 
+export interface FormSchemaCompileResult {
+  document: FormSchemaDocument;
+  hash: string;
+  projection: FormFieldDef[];
+}
+
+export interface FormSchemaVersion {
+  id: number;
+  form_id: number;
+  version: number;
+  schema_version: number;
+  schema_hash: string;
+  schema_document: FormSchemaDocument;
+  origin: FormSchemaOrigin;
+  parent_version_id?: number | null;
+  change_summary?: string;
+  created_by?: string;
+  created_at?: string;
+}
+
+export interface FormSchemaDiffChange {
+  op: 'add' | 'remove' | 'replace';
+  path: string;
+  from?: unknown;
+  value?: unknown;
+}
+
+export interface FormSchemaDiff {
+  fromVersion: number;
+  toVersion: number;
+  fromHash: string;
+  toHash: string;
+  changes: FormSchemaDiffChange[];
+}
+
+export interface FormComponentCatalogItem {
+  type: string;
+  namespace: string;
+  component: string;
+  kind?: FormSchemaNodeKind;
+  valueType: string;
+  defaultValue?: unknown;
+  defaultProps: Record<string, unknown>;
+  propertySchema: { type?: string; properties?: Record<string, unknown> };
+  codec: string;
+  allowedAttrs?: string[];
+  allowedEvents: string[];
+}
+
+export interface FormComponentCatalog {
+  schemaVersion: 2;
+  components: FormComponentCatalogItem[];
+}
+
 const PREFIX = '/form/designer';
 
 export const formDesignerApi = {
@@ -165,6 +220,14 @@ export const formDesignerApi = {
   remove: (id: number) => http.post<{ removed: number }>(`${PREFIX}/remove`, { id }),
   status: (id: number, status: number) => http.post<{ status: number }>(`${PREFIX}/status`, { id, status }),
   validate: (definition: Record<string, unknown>) => http.post<{ valid: boolean }>(`${PREFIX}/validate`, { definition }),
+  compile: (definition: FormSchemaDocument) => http.post<FormSchemaCompileResult>(`${PREFIX}/compile`, { definition }),
+  importSchema: (document: string) => http.post<FormSchemaCompileResult>(`${PREFIX}/import`, { document }),
+  exportSchema: (definition: FormSchemaDocument) => http.post<{ document: string }>(`${PREFIX}/export`, { definition }),
+  versions: (id: number) => http.get<{ list: FormSchemaVersion[] }>(`${PREFIX}/versions/${id}`),
+  version: (id: number, version: number) => http.get<FormSchemaVersion>(`${PREFIX}/version/${id}/${version}`),
+  diff: (id: number, fromVersion: number, toVersion: number) => http.get<FormSchemaDiff>(`${PREFIX}/diff/${id}`, { fromVersion, toVersion }),
+  rollback: (id: number, version: number, summary = '') => http.post<FormSchemaVersion>(`${PREFIX}/rollback/${id}/${version}`, { summary }),
+  catalog: () => http.get<FormComponentCatalog>(`${PREFIX}/component-catalog`),
   infer: (connection: string, table: string) => http.post<{ fields: Partial<FormFieldDef>[] }>(`${PREFIX}/infer`, { connection, table }),
   preview: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/preview`, { definition }),
   apply: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/apply`, { definition }),

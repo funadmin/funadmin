@@ -16,9 +16,12 @@ describe('配置 JSON 字段类型契约', () => {
     expect(source('src/mock/modules/config.ts')).toContain("['json', 'JSON', false]");
   });
 
-  it('JSON 配置值使用多行编辑器', () => {
+  it('JSON 配置值使用共享多行编辑器', () => {
     const dialog = source('src/views/system/config/components/ConfigValueDialog.vue');
-    expect(dialog).toContain("['textarea', 'array', 'json', 'editor']");
+    const editor = source('src/views/system/config/components/ConfigValueEditor.vue');
+    expect(dialog).toContain('<ConfigValueEditor');
+    expect(editor).toContain("type === 'json'");
+    expect(editor).toContain('type="textarea"');
   });
 
   it('后端提供内置 JSON 类型并校验格式', () => {

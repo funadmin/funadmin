@@ -2,14 +2,16 @@
   <el-form ref="formRef" :model="values" :rules="rules" label-width="110px">
     <el-row :gutter="16">
       <el-col v-for="field in visibleFields" :key="field.field_name" :span="field.form_span || 24">
-        <FormControlRenderer
+        <RegisteredControlRenderer
           v-if="controlMeta(field.type).kind === 'layout'"
+          :node="fieldNode(field)"
           :field="field"
-          preview
+          design-mode
         />
         <el-form-item v-else :label="field.type === 'hidden' ? undefined : field.label" :prop="validationProp(field)">
-          <FormControlRenderer
+          <RegisteredControlRenderer
             v-model="values[field.field_name]"
+            :node="fieldNode(field)"
             :field="field"
             :options="optionsOf(field)"
             :disabled="disabled(field)"
@@ -24,10 +26,13 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '../schema/types';
 import { formDataApi } from '@/api/formData';
 import { evaluateLinkRules } from '../linkRules';
 import { controlMeta } from '../registry';
-import FormControlRenderer from './FormControlRenderer.vue';
+import { assertFieldComponents } from '../schema/runtimeGuard';
+import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
+import RegisteredControlRenderer from './RegisteredControlRenderer.vue';
 
 const props = defineProps<{ formKey: string; fields: FormFieldDef[]; values: Record<string, any> }>();
 
@@ -38,6 +43,16 @@ const linkState = computed(() => evaluateLinkRules(props.fields, props.values));
 const visibleFields = computed(() => props.fields.filter((field) => !linkState.value.effects[field.field_name]?.hidden));
 const disabled = (field: FormFieldDef) => Boolean(linkState.value.effects[field.field_name]?.disabled) || field.form_readonly === 1;
 const validationProp = (field: FormFieldDef) => controlMeta(field.type).kind === 'layout' ? undefined : field.field_name;
+const fieldNode = (field: FormFieldDef): FormSchemaNode => ({
+  id: field.field_name,
+  kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
+  type: field.type,
+  field: field.field_name,
+  title: field.label,
+  defaultValue: field.default_value,
+  props: field.control_props ?? {},
+  children: []
+});
 
 const needsRemote = (field: FormFieldDef) =>
   ['select', 'selectV2', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user'].includes(field.type) &&
@@ -87,6 +102,23 @@ onMounted(async () => {
   );
 });
 
-const validate = async () => formRef.value?.validate();
-defineExpose({ validate });
+const validate = async () => {
+  await loadPluginFormComponents();
+  assertFieldComponents(props.fields);
+  return formRef.value?.validate();
+};
+const setFieldErrors = (errors: Record<string, string>) => {
+  formRef.value?.clearValidate();
+  for (const [field, message] of Object.entries(errors)) {
+    const context = formRef.value?.fields.find((item) => item.prop === field);
+    if (context) {
+      context.validateState = 'error';
+      context.validateMessage = message;
+    }
+  }
+  const first = Object.keys(errors)[0];
+  if (first) formRef.value?.scrollToField(first);
+  formRef.value?.fields.find((item) => item.prop === first)?.$el?.querySelector<HTMLElement>('input, textarea, select, [tabindex]')?.focus();
+};
+defineExpose({ validate, setFieldErrors });
 </script>

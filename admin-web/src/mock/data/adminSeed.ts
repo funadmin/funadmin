@@ -43,7 +43,7 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     parentRoleIds: [],
     departmentIds: [],
     permissionIds: [],
-    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118],
+    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 200, 201, 202, 203],
     createdAt: unixToDatetime(1554298659)
   },
   {
@@ -438,6 +438,36 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           keepAlive: true,
           affix: false,
           permission: 'development:crud:list'
+        },
+        {
+          id: 203,
+          parentId: 200,
+          routeName: 'FormDesigner',
+          path: 'form/designer',
+          component: 'form/designer/index',
+          type: 'C',
+          icon: 'i-ep-edit',
+          name: '表单设计器',
+          sort: 1,
+          hidden: true,
+          keepAlive: false,
+          affix: false,
+          permission: 'console/formdesigner:index'
+        },
+        {
+          id: 202,
+          parentId: 200,
+          routeName: 'FormList',
+          path: 'form/list',
+          component: 'form/list',
+          type: 'C',
+          icon: 'i-ep-document-copy',
+          name: '表单管理',
+          sort: 40,
+          hidden: false,
+          keepAlive: false,
+          affix: false,
+          permission: 'console/formdesigner:index'
         }
       ]
     }

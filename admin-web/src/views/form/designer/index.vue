@@ -10,6 +10,8 @@
           <el-radio-button value="mobile">移动预览</el-radio-button>
         </el-radio-group>
         <el-button @click="jsonEditorVisible = true">高级 JSON</el-button>
+        <el-button @click="onExportSchema">导出 Schema</el-button>
+        <el-button :disabled="!store.form.value.id" @click="versionVisible = true">版本历史</el-button>
         <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">重新推断</el-button>
         <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">迁移预览</el-button>
         <el-button :loading="saving" @click="onSave">保存草稿</el-button>
@@ -21,32 +23,33 @@
       <template #header>表单基本信息</template>
       <el-form label-width="90px" class="designer-meta-form">
         <el-form-item label="表单名称" required>
-          <el-input v-model="store.form.value.name" maxlength="100" placeholder="如：活动报名" />
+          <el-input :model-value="store.form.value.name" maxlength="100" placeholder="如：活动报名" @update:model-value="(name) => store.updateForm({ name })" />
         </el-form-item>
         <el-form-item label="表单标识" required>
           <el-input
-            v-model="store.form.value.form_key"
+            :model-value="store.form.value.form_key"
             maxlength="61"
+            @update:model-value="(form_key) => store.updateForm({ form_key })"
             placeholder="如 activity_form"
             @blur="normalizeFormKey"
           />
           <div class="form-tip">用于接口和数据页地址，以小写字母开头，只能包含小写字母、数字和下划线。</div>
         </el-form-item>
         <el-form-item label="来源" required>
-          <el-radio-group v-model="store.form.value.source_type">
+          <el-radio-group :model-value="store.form.value.source_type" @update:model-value="updateSourceType">
             <el-radio-button value="created">创建新表</el-radio-button>
             <el-radio-button value="adopted">采纳已有表</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="绑定表" required>
-          <el-input v-model="store.form.value.table_name" placeholder="如 fun_activity" @blur="normalizeFormKey" />
+          <el-input :model-value="store.form.value.table_name" placeholder="如 fun_activity" @update:model-value="(table_name) => store.updateForm({ table_name })" @blur="normalizeFormKey" />
         </el-form-item>
       </el-form>
     </el-card>
 
     <el-alert
       class="mb-3"
-      :title="`Schema 来源：${schemaOriginLabel}。高级 JSON 应用后来源将切换为设计器。`"
+      :title="`Schema 来源：${schemaOriginLabel}。高级 JSON 应用后来源将切换为外部导入。`"
       type="info"
       :closable="false"
       show-icon
@@ -91,7 +94,7 @@
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
-        <div ref="canvasRef" class="designer-canvas flex flex-col gap-2">
+        <div v-if="workspaceMode === 'edit'" ref="canvasRef" class="designer-canvas flex flex-col gap-2">
           <div
             v-for="(field, index) in store.fields.value"
             :key="field.field_name"
@@ -121,6 +124,9 @@
             <div class="mt-1 text-right text-xs text-[var(--el-text-color-placeholder)]">#{{ index + 1 }}</div>
           </div>
           <el-empty v-if="!store.fields.value.length" description="从左侧拖入控件开始设计" />
+        </div>
+        <div v-else class="designer-canvas schema-preview" :class="workspaceMode === 'mobile' ? 'schema-preview-mobile' : 'schema-preview-desktop'">
+          <SchemaRenderer :schema="store.schemaDocument.value" :values="previewValues" :form-key="String(store.form.value.form_key ?? '')" disabled />
         </div>
       </el-card>
 
@@ -197,6 +203,8 @@
       <SchemaJsonEditor :schema="store.schemaDocument.value" @apply="onApplySchemaJson" />
     </el-dialog>
 
+    <VersionHistoryDrawer v-model="versionVisible" :form-id="store.form.value.id" @rollback="onRollback" />
+
     <el-card shadow="never" class="mt-3">
       <template #header>调试摘要</template>
       <el-descriptions :column="4" border size="small">
@@ -242,7 +250,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import {
@@ -250,6 +258,7 @@ import {
   type FormPublishConfig,
   type FormPublishPreview,
   type FormPublishResult,
+  type FormSchemaVersion,
   type MigrationPreview
 } from '@/api/form';
 import { crudDevelopmentApi } from '@/api/development/crud';
@@ -258,10 +267,12 @@ import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import { buildSchemaDebugSummary } from './schemaEditor';
 import FormControlRenderer from '../components/FormControlRenderer.vue';
+import SchemaRenderer from '../components/SchemaRenderer.vue';
 import PropsPanel from './components/PropsPanel.vue';
 import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
+import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -269,6 +280,7 @@ const permissionStore = usePermissionStore();
 const store = useDesigner();
 const workspaceMode = ref<'edit' | 'desktop' | 'mobile'>('edit');
 const jsonEditorVisible = ref(false);
+const versionVisible = ref(false);
 const saving = ref(false);
 const applying = ref(false);
 const inferring = ref(false);
@@ -294,6 +306,7 @@ const publishConfig = ref<FormPublishConfig>({
 });
 const paletteRef = ref<HTMLElement>();
 const canvasRef = ref<HTMLElement>();
+const previewValues = computed<Record<string, unknown>>(() => Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
 let paletteSortable: Sortable | null = null;
 let canvasSortable: Sortable | null = null;
 
@@ -315,14 +328,30 @@ const selectFieldNode = (fieldName: string) => {
   if (node) store.selectNode(node.id);
   else store.selectedKey.value = fieldName;
 };
-const onApplySchemaJson = (schema: import('@/api/form').FormSchemaDocument) => {
-  const result = store.replaceSchema(schema);
+const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument) => {
+  const compiled = await formDesignerApi.compile(schema);
+  const result = store.replaceSchema(compiled.document);
   if (!result.ok) {
     ElMessage.warning(result.error);
     return;
   }
+  store.updateForm({ schema_origin: 'import' });
   jsonEditorVisible.value = false;
-  ElMessage.success('FormSchema v2 已应用');
+  ElMessage.success('FormSchema v2 已通过服务端校验并应用');
+};
+const onExportSchema = async () => {
+  const { document: exportedDocument } = await formDesignerApi.exportSchema(store.schemaDocument.value);
+  const blob = new Blob([exportedDocument], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = window.document.createElement('a');
+  link.href = url;
+  link.download = `${store.form.value.form_key || 'form-schema'}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+const onRollback = (version: FormSchemaVersion) => {
+  const result = store.replaceSchema(version.schema_document);
+  if (result.ok) store.markSaved({ ...store.form.value, schema_document: version.schema_document, schema_origin: 'rollback', fields: store.fields.value } as import('@/api/form').FormDefinition);
 };
 const controlGroups = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
 const controlsOf = (group: string) => CONTROL_REGISTRY.filter((control) => control.group === group);
@@ -337,10 +366,14 @@ const normalizeIdentifier = (value: string) => value
   .replace(/[^a-z0-9_]/g, '')
   .replace(/^_+|_+$/g, '')
   .slice(0, 61);
+const updateSourceType = (sourceType: string | number | boolean | undefined) => {
+  if (sourceType === 'created' || sourceType === 'adopted') store.updateForm({ source_type: sourceType });
+};
 const normalizeFormKey = () => {
   const current = normalizeIdentifier(String(store.form.value.form_key ?? ''));
   const fromTable = normalizeIdentifier(String(store.form.value.table_name ?? '')).replace(/^fun_/, '');
-  store.form.value.form_key = current || fromTable;
+  const normalized = current || fromTable;
+  if (normalized !== store.form.value.form_key) store.updateForm({ form_key: normalized });
 };
 const validateDefinitionBasics = () => {
   normalizeFormKey();
@@ -496,7 +529,16 @@ async function onInfer() {
   }
 }
 
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (!store.dirty.value) return;
+  event.preventDefault();
+  event.returnValue = '';
+};
+onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
+
 onMounted(async () => {
+  window.addEventListener('beforeunload', beforeUnload);
+  await formDesignerApi.catalog();
   await load();
   if (paletteRef.value && canvasRef.value) {
     paletteSortable = Sortable.create(paletteRef.value, {
@@ -518,6 +560,7 @@ onMounted(async () => {
   }
 });
 onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnload);
   paletteSortable?.destroy();
   canvasSortable?.destroy();
 });
@@ -545,9 +588,14 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   max-width: 1100px;
 }
-.workspace-mobile .designer-canvas {
+.workspace-mobile .designer-canvas,
+.schema-preview-mobile {
   margin: 0 auto;
   max-width: 390px;
+}
+.schema-preview-desktop {
+  margin: 0 auto;
+  max-width: 1100px;
 }
 .palette-item:hover {
   border-color: var(--el-color-primary);

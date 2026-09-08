@@ -648,17 +648,22 @@ final class ProductionTemplateContext
     {
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
-        $schema = self::json($data['layoutSchema']);
+        $schema = self::json($data['formSchema'] ?? [
+            'schemaVersion' => 2,
+            'key' => str_replace('-', '_', (string) $data['entity']),
+            'title' => (string) ($data['title'] ?? ''),
+            'nodes' => $data['layoutSchema'],
+        ]);
         $fieldMap = self::json(array_values(array_map(
             static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
             array_filter($data['fields'], static fn (array $field): bool => !($field['managed'] ?? false))
         )));
         $formKey = str_replace('-', '_', (string) $data['entity']);
-        return "<template><el-dialog v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaForm ref=\"schemaFormRef\" form-key=\"{$formKey}\" :fields=\"layoutSchema\" :values=\"form\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></el-dialog></template>\n"
-            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaForm from '@/views/form/components/SchemaForm.vue';\n"
-            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
+        return "<template><el-dialog v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" form-key=\"{$formKey}\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></el-dialog></template>\n"
+            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\n"
+            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaForm>>(); const layoutSchema={$schema} as any[]; const fieldMap={$fieldMap};\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as FormSchemaDocument; const fieldMap={$fieldMap};\n"
             . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key]);for(const item of fieldMap)form[item.target]=row?.[item.source as keyof {$type}]??'';},{immediate:true});\n"
             . "async function submit(){await schemaFormRef.value?.validate();const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",payload);else await {$camel}Api.create(payload);visible.value=false;emit('success');}\n</script>\n";
     }

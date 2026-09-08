@@ -31,7 +31,7 @@ describe('插件 code/name 字段硬切契约', () => {
   it('插件中心表格与操作统一使用 row.code', () => {
     const page = read('admin-web/src/views/system/plugin/index.vue');
 
-    expect(page).toContain('prop="code" label="code"');
+    expect(page).toContain('prop="code" label="插件标识"');
     expect(page).toContain('prop="name" label="名称"');
     expect(page).not.toContain('prop="title"');
     expect(page).not.toContain('row.name');

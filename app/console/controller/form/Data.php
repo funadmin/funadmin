@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\controller\form;
 
+use app\common\form\validation\FormAsyncValidationException;
 use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
@@ -81,7 +82,32 @@ final class Data extends AdminApiController
     #[Pattern('field', '[a-z][a-z0-9_]*')]
     public function options(string $key, string $field): Response
     {
-        return $this->execute(fn (): array => ['options' => $this->data->options($key, $field)]);
+        return $this->execute(fn (): array => $this->data->paginateOptions(
+            $this->data->options($key, $field),
+            trim((string) $this->request->get('keyword', '')),
+            $this->page(),
+            $this->pageSize()
+        ));
+    }
+
+    #[Post('validate/:key/:field')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Pattern('field', '[a-z][a-z0-9_]*')]
+    public function validateAsync(string $key, string $field): Response
+    {
+        $values = $this->request->post('values', []);
+        $params = $this->request->post('params', []);
+        if (!is_array($values) || !is_array($params)) {
+            throw new InvalidArgumentException('values 和 params 必须为对象');
+        }
+        return $this->execute(fn (): array => $this->data->validateAsync(
+            $key,
+            $field,
+            trim((string) $this->request->post('validator', '')),
+            $this->request->post('value'),
+            $values,
+            $params
+        ));
     }
 
     #[Get('sub/:key/:relation/:id')]
@@ -97,7 +123,9 @@ final class Data extends AdminApiController
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     public function create(string $key): Response
     {
-        return $this->execute(fn (): array => $this->data->create($key, $this->payload()), '新增成功');
+        $payload = $this->payload();
+        $this->redactRequestPayload($key, $payload);
+        return $this->execute(fn (): array => $this->data->create($key, $payload, $this->include()), '新增成功');
     }
 
     #[Post('update/:key/:id')]
@@ -105,7 +133,9 @@ final class Data extends AdminApiController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function update(string $key, int|string $id): Response
     {
-        return $this->execute(fn (): array => $this->data->update($key, $id, $this->payload()), '更新成功');
+        $payload = $this->payload();
+        $this->redactRequestPayload($key, $payload);
+        return $this->execute(fn (): array => $this->data->update($key, $id, $payload, $this->include()), '更新成功');
     }
 
     #[Post('remove/:key')]
@@ -125,6 +155,19 @@ final class Data extends AdminApiController
         return $payload;
     }
 
+    private function redactRequestPayload(string $key, array $payload): void
+    {
+        $post = $this->request->post();
+        $post['data'] = $this->data->redactRequestPayload($key, $payload);
+        $this->request->withPost($post);
+    }
+
+    private function include(): array
+    {
+        $include = $this->request->post('include', []);
+        return is_array($include) ? array_values(array_filter(array_map('strval', $include))) : [];
+    }
+
     private function filters(): array
     {
         $filters = $this->request->get('filters', []);
@@ -134,11 +177,18 @@ final class Data extends AdminApiController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         $action = (string) ($this->request->action(true) ?: '');
-        if ($action !== '' && !$this->authorization->nodeAccess('console/form.data:' . $action)) {
+        $permissionAction = $action === 'validateasync' ? 'options' : $action;
+        if ($permissionAction !== '' && !$this->authorization->nodeAccess('console/form.data:' . $permissionAction)) {
             return $this->fail(msg: '没有访问权限', code: 403);
         }
         try {
             return $this->ok($message, $operation());
+        } catch (FormAsyncValidationException $exception) {
+            return $this->fail(
+                msg: $exception->errorCode(),
+                data: ['fieldErrors' => $exception->fieldErrors()],
+                code: 422
+            );
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {

@@ -19,6 +19,7 @@
 /.cursor
 /.qoder
 /tests/*
+!/tests/form_schema_api_test.php
 !/tests/crud_hook_naming_test.php
 !/tests/php_property_modernization_test.php
 !/tests/plugin_code_name_cutover_test.php

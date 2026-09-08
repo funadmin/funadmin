@@ -8,8 +8,7 @@ const CONTAINER_TYPES = new Set(['group', 'grid', 'collapse', 'tabs', 'repeatabl
 interface DesignerSnapshot {
   fields: FormFieldDef[];
   nodes: FormSchemaNode[];
-  formKey: string;
-  formTitle: string;
+  form: Partial<FormDefinition>;
 }
 
 interface NodeLocation {
@@ -44,6 +43,12 @@ const findLocation = (
   return null;
 };
 
+const validationFromField = (field: FormFieldDef): FormSchemaNode['validation'] => {
+  const rules = Object.entries(field.validate_rules ?? {}).map(([type, value]) => ({ type, value }));
+  if (field.form_required) rules.unshift({ type: 'required', value: true });
+  return rules;
+};
+
 const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
   id: nodeId,
   kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
@@ -53,12 +58,85 @@ const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
   defaultValue: field.default_value,
   props: clone(field.control_props ?? {}),
   children: [],
-  validation: [],
+  validation: validationFromField(field),
   dataSource: clone(field.options_source ?? null),
-  conditions: [],
+  conditions: clone((field.link_rules?.rules as unknown[]) ?? []),
   events: {},
+  hidden: field.form_show === 0,
+  disabled: field.form_readonly === 1,
+  database: {
+    columnType: field.column_type,
+    nullable: field.nullable === 1,
+    comment: field.comment,
+    unsigned: field.unsigned === 1,
+    index: field.index_type,
+    relation: {
+      type: field.relation_type,
+      table: field.relation_table,
+      labelField: field.relation_label_field,
+      valueField: field.relation_value_field,
+      multiple: field.relation_multiple === 1,
+      onDelete: field.relation_on_delete
+    }
+  },
+  list: {
+    show: field.list_show === 1,
+    sort: field.list_sort === 1,
+    filter: field.list_filter,
+    formatter: field.list_formatter,
+    width: field.list_width
+  },
   layout: { span: field.form_span, group: field.form_group }
 });
+
+const nodeToField = (node: FormSchemaNode, index: number, current?: FormFieldDef): FormFieldDef => {
+  const database = node.database ?? {};
+  const relation = (database.relation as Record<string, unknown> | undefined) ?? {};
+  const list = node.list ?? {};
+  const validation = node.validation ?? [];
+  const validationRules = Object.fromEntries(validation
+    .filter((rule) => rule.type !== 'required')
+    .map((rule) => [rule.type, rule.value ?? true]));
+  const base = current ?? createField(node.type, index + 1);
+  return {
+    ...base,
+    field_name: String(node.field ?? base.field_name),
+    label: node.title,
+    type: node.type,
+    default_value: node.defaultValue == null ? '' : String(node.defaultValue),
+    control_props: clone(node.props ?? {}),
+    options_source: clone(node.dataSource ?? null),
+    column_type: String(database.columnType ?? base.column_type),
+    nullable: (database.nullable ?? base.nullable === 1) ? 1 : 0,
+    comment: String(database.comment ?? base.comment),
+    unsigned: (database.unsigned ?? base.unsigned === 1) ? 1 : 0,
+    index_type: (database.index ?? base.index_type) as FormFieldDef['index_type'],
+    relation_type: (relation.type ?? base.relation_type) as FormFieldDef['relation_type'],
+    relation_table: String(relation.table ?? base.relation_table),
+    relation_label_field: String(relation.labelField ?? base.relation_label_field),
+    relation_value_field: String(relation.valueField ?? base.relation_value_field),
+    relation_multiple: (relation.multiple ?? base.relation_multiple === 1) ? 1 : 0,
+    relation_on_delete: (relation.onDelete ?? base.relation_on_delete) as FormFieldDef['relation_on_delete'],
+    list_show: (list.show ?? base.list_show === 1) ? 1 : 0,
+    list_sort: (list.sort ?? base.list_sort === 1) ? 1 : 0,
+    list_filter: String(list.filter ?? base.list_filter),
+    list_formatter: String(list.formatter ?? base.list_formatter),
+    list_width: Number(list.width ?? base.list_width),
+    form_show: node.hidden ? 0 : 1,
+    form_required: validation.some((rule) => rule.type === 'required') ? 1 : 0,
+    form_group: String(node.layout?.group ?? base.form_group),
+    form_span: Number(node.layout?.span ?? base.form_span),
+    form_readonly: node.disabled ? 1 : 0,
+    validate_rules: Object.keys(validationRules).length ? validationRules : null,
+    link_rules: { rules: clone(node.conditions ?? []) },
+    sort_order: index
+  };
+};
+
+const projectFields = (nodes: FormSchemaNode[], current: FormFieldDef[]): FormFieldDef[] => flattenNodes(nodes)
+  .map(({ node }) => node.field ? node : null)
+  .filter((node): node is FormSchemaNode => node !== null)
+  .map((node, index) => nodeToField(node, index, current.find((field) => field.field_name === node.field)));
 
 /** 表单设计器状态：兼容字段投影，并以 FormSchema v2 AST 作为布局编辑模型。 */
 export function useDesigner() {
@@ -85,8 +163,7 @@ export function useDesigner() {
   const snapshot = () => JSON.stringify({
     fields: fields.value,
     nodes: nodes.value,
-    formKey: String(form.value.form_key ?? ''),
-    formTitle: String(form.value.name ?? '')
+    form: form.value
   } satisfies DesignerSnapshot);
   const pushHistory = () => {
     undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
@@ -97,8 +174,7 @@ export function useDesigner() {
     const state = JSON.parse(raw) as DesignerSnapshot;
     fields.value = state.fields;
     nodes.value = state.nodes;
-    form.value.form_key = state.formKey;
-    form.value.name = state.formTitle;
+    form.value = state.form;
     if (selectedKey.value && !fields.value.some((field) => field.field_name === selectedKey.value)) selectedKey.value = null;
     if (selectedNodeId.value && !findLocation(nodes.value, selectedNodeId.value)) selectedNodeId.value = null;
   };
@@ -192,7 +268,7 @@ export function useDesigner() {
     const [moving] = source.siblings.splice(source.index, 1);
     const adjusted = source.siblings === destination && source.index < index ? index - 1 : index;
     destination.splice(Math.max(0, Math.min(adjusted, destination.length)), 0, moving);
-    fields.value = fields.value.map((field, sortOrder) => ({ ...field, sort_order: sortOrder }));
+    fields.value = projectFields(nodes.value, fields.value);
     return true;
   };
   const moveField = (from: number, to: number) => {
@@ -202,6 +278,10 @@ export function useDesigner() {
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
     fields.value = next.map((field, index) => ({ ...field, sort_order: index }));
+    const orderedNodes = fields.value
+      .map((field) => nodes.value.find((node) => node.field === field.field_name))
+      .filter((node): node is FormSchemaNode => node !== undefined);
+    if (orderedNodes.length === nodes.value.length) nodes.value = orderedNodes;
   };
   const cloneNodeTree = (source: FormSchemaNode): FormSchemaNode => {
     const copy = clone(source);
@@ -250,8 +330,16 @@ export function useDesigner() {
   };
   const updateField = (patch: Partial<FormFieldDef>) => {
     if (!selectedKey.value) return;
+    const currentName = selectedKey.value;
     pushHistory();
-    fields.value = fields.value.map((field) => field.field_name === selectedKey.value ? { ...field, ...patch } : field);
+    fields.value = fields.value.map((field) => field.field_name === currentName ? { ...field, ...patch } : field);
+    const field = fields.value.find((item) => item.field_name === (patch.field_name ?? currentName));
+    const node = flattenedNodes.value.find((entry) => entry.node.field === currentName)?.node;
+    if (field && node) Object.assign(node, fieldToNode(field, node.id), { children: node.children });
+    if (patch.field_name) {
+      selectedKey.value = patch.field_name;
+      if (node) node.field = patch.field_name;
+    }
   };
   const updateNode = (patch: Partial<FormSchemaNode>) => {
     if (!selectedNodeId.value) return;
@@ -259,6 +347,12 @@ export function useDesigner() {
     if (!node) return;
     pushHistory();
     Object.assign(node, clone(patch));
+    fields.value = projectFields(nodes.value, fields.value);
+    selectedKey.value = node.field ?? null;
+  };
+  const updateForm = (patch: Partial<FormDefinition>) => {
+    pushHistory();
+    form.value = { ...form.value, ...clone(patch) };
   };
   const replaceFields = (next: Partial<FormFieldDef>[]) => {
     pushHistory();
@@ -272,11 +366,15 @@ export function useDesigner() {
     if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return { ok: false, error: 'nodeId 不能为空且必须唯一' };
     pushHistory();
     nodes.value = clone(schema.nodes);
-    form.value.form_key = schema.key;
-    form.value.name = schema.title;
-    form.value.schema_version = 2;
-    form.value.schema_document = clone(schema);
-    form.value.schema_origin = 'designer';
+    fields.value = projectFields(nodes.value, fields.value);
+    form.value = {
+      ...form.value,
+      form_key: schema.key,
+      name: schema.title,
+      schema_version: 2,
+      schema_document: clone(schema),
+      schema_origin: 'designer'
+    };
     selectNode(null);
     return { ok: true, error: '' };
   };
@@ -293,6 +391,7 @@ export function useDesigner() {
     nodes.value = definition.schema_document?.schemaVersion === 2
       ? clone(definition.schema_document.nodes)
       : fields.value.map((field, index) => fieldToNode(field, `node_${field.type}_${index + 1}`));
+    if (definition.schema_document?.schemaVersion === 2) fields.value = projectFields(nodes.value, fields.value);
     nodeSequence = flattenNodes(nodes.value).length;
     undoStack.value = [];
     redoStack.value = [];
@@ -305,7 +404,7 @@ export function useDesigner() {
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
     dirty, canUndo, canRedo, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
-    duplicateNode, duplicateField, moveNode, moveField, updateField, updateNode, replaceFields, replaceSchema, load, markSaved
+    duplicateNode, duplicateField, moveNode, moveField, updateField, updateNode, updateForm, replaceFields, replaceSchema, load, markSaved
   };
 }
 

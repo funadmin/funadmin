@@ -144,7 +144,7 @@ class AdminAuth extends BaseController
             'id' => (int) $menu->id,
             'parentId' => (int) $menu->pid,
             'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
-            'path' => '/' . ltrim((string) $menu->href, '/'),
+            'path' => $this->menuPath($menu),
             'component' => (string) ($meta['component'] ?? ''),
             'redirect' => (string) ($meta['redirect'] ?? ''),
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
@@ -157,6 +157,12 @@ class AdminAuth extends BaseController
             'permission' => (string) ($permission->code ?? ''),
             'formKey' => (string) ($meta['formKey'] ?? ''),
         ];
+    }
+
+    private function menuPath(AdminMenu $menu): string
+    {
+        $href = (string) $menu->href;
+        return (int) $menu->pid === 0 ? '/' . ltrim($href, '/') : $href;
     }
 
     private function webPermissions(array $permissionCodes, bool $isSuperAdmin): array

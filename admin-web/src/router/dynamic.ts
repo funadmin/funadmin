@@ -1,5 +1,6 @@
 import type { RouteRecordRaw, RouteComponent } from 'vue-router';
 import Layout from '@/layout/index.vue';
+import { resolveMenuPath } from '@/utils/route';
 
 /** 异步加载核心业务页面；插件页面由 pluginModules 基于 Vite 构建期源码清单独立挂载。 */
 const modules = import.meta.glob('@/views/**/*.vue');
@@ -116,7 +117,7 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
 function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRecordRaw {
   const absolute = menu.path.startsWith('/');
   const seg = absolute ? ensureLeadingSlash(menu.path) : menu.path.replace(/^\//, '');
-  const fullPath = absolute ? seg : `${parentAbsolutePath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
+  const fullPath = resolveMenuPath(parentAbsolutePath, menu.path);
   const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
   const route: RouteRecordRaw = {
     path: seg,
@@ -154,9 +155,7 @@ function findFirstLeafRedirectPath(menu: API.MenuItem, menuFullPath: string): st
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   if (!vis.length) return undefined;
   const first = vis[0];
-  const absolute = first.path.startsWith('/');
-  const seg = first.path.replace(/^\//, '');
-  const nextBase = absolute ? ensureLeadingSlash(first.path) : `${menuFullPath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
+  const nextBase = resolveMenuPath(menuFullPath, first.path);
   const sub = (first.children || []).filter((c) => c.type !== 'B');
   if (!sub.length) return nextBase;
   return findFirstLeafRedirectPath(first, nextBase);

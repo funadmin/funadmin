@@ -198,11 +198,11 @@ describe('插件中心页面 mount 行为', () => {
     await wrapper.get('[data-tab="market"]').trigger('click');
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Manifest v2');
-    expect(wrapper.text()).toContain('原生包');
-    expect(wrapper.text()).toContain('app、console');
-    expect(wrapper.text()).toContain('Ed25519');
-    expect(wrapper.text()).toContain('DB 003_seed.sql');
+    expect(wrapper.text()).toContain('清单协议 v2');
+    expect(wrapper.text()).toContain('原生应用包');
+    expect(wrapper.text()).toContain('独立应用、管理后台');
+    expect(wrapper.text()).toContain('Ed25519 签名');
+    expect(wrapper.text()).toContain('数据库 003_seed.sql');
     expect(wrapper.text()).toContain('PHP 版本不兼容');
     expect(visibleButton(wrapper, '安装')?.attributes('disabled')).toBeDefined();
   });

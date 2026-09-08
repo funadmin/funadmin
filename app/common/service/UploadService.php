@@ -83,7 +83,7 @@ class UploadService extends AbstractService
         $this->storageDrivers = $this->app->make(StorageDriverRegistry::class);
         $this->driver = $this->storageDrivers->resolve((string) syscfg('upload', 'upload_driver'))->name();
         $configuredTypes = strtolower((string) syscfg('upload', 'upload_file_type'));
-        $listed = array_filter(array_map('trim', explode(',', $configuredTypes)));
+        $listed = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $configuredTypes) ?: []));
         if ($configuredTypes === '*' || !$listed) {
             $listed = array_filter(array_map('trim', explode(',', 'mp4,mp3,png,gif,jpg,jpeg,webp,rar,zip,7z,tar,gz,csv,xls,xlsx,pdf,doc,docx,ppt,pptx,txt')));
         }

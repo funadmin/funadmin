@@ -16,18 +16,28 @@ export function getVisibleMenuChildren(route: RouteRecordRaw): RouteRecordRaw[] 
   return (route.children || []).filter((child) => !child.meta?.hidden && child.path !== '');
 }
 
-/** 拼接父路径与路由段，得到完整 path */
-export function joinRoutePath(parentAbsolutePath: string, segment: string): string {
+/** 按 vue-router 子路由语义解析菜单 path：绝对路径重置父级，相对路径继承父级。 */
+export function resolveMenuPath(parentAbsolutePath: string, path: string): string {
+  const suffixIndex = path.search(/[?#]/);
+  const pathname = suffixIndex === -1 ? path : path.slice(0, suffixIndex);
+  const suffix = suffixIndex === -1 ? '' : path.slice(suffixIndex);
+
+  if (pathname.startsWith('/')) return pathname.replace(/\/+/g, '/') + suffix;
   const base = parentAbsolutePath.replace(/\/$/, '');
-  const seg = segment.replace(/^\//, '');
-  return seg ? `${base}/${seg}`.replace(/\/+/g, '/') : base;
+  if (!pathname) return base + suffix;
+  return `${base}/${pathname}`.replace(/\/+/g, '/') + suffix;
+}
+
+/** 拼接父路径与路由段，得到完整 path。 */
+export function joinRoutePath(parentAbsolutePath: string, segment: string): string {
+  return resolveMenuPath(parentAbsolutePath, segment.replace(/^\//, ''));
 }
 
 /**
  * 从某级路由起向下找到第一个可见叶子路由的完整 path（用于双列/混合顶栏点到一级时跳转）。
  */
 export function getFirstLeafRouteFullPath(route: RouteRecordRaw, parentAbsolutePath: string): string {
-  const full = joinRoutePath(parentAbsolutePath, route.path);
+  const full = resolveMenuPath(parentAbsolutePath, route.path);
   const visible = (route.children || []).filter((c) => !c.meta?.hidden);
   if (!visible.length) return full;
   return getFirstLeafRouteFullPath(visible[0], full);

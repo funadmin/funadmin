@@ -113,6 +113,7 @@ final class Manifest
         }
         self::validateApplications($directory, (string) $data['code']);
         self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);
+        self::validateFormComponents($data);
         self::validateResourceSources($directory, $data['resources'] ?? []);
         if (isset($data['migrations']['path'])) {
             $migrationDirectory = self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
@@ -175,6 +176,33 @@ final class Manifest
         }
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
             self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'adminWeb.routes.meta.permission');
+        }
+    }
+
+    private static function validateFormComponents(array $data): void
+    {
+        $pluginCode = (string) $data['code'];
+        $declaredComponents = array_fill_keys(array_keys((array) ($data['adminWeb']['components'] ?? [])), true);
+        $types = [];
+        foreach ((array) ($data['formComponents'] ?? []) as $index => $definition) {
+            $type = (string) ($definition['type'] ?? '');
+            if (!str_starts_with($type, $pluginCode . ':')) {
+                throw new RuntimeException('plugin.json formComponents.type 必须属于插件命名空间：' . $type);
+            }
+            if (isset($types[$type])) {
+                throw new RuntimeException('plugin.json formComponents.type 不得重复：' . $type);
+            }
+            $types[$type] = true;
+            $component = (string) ($definition['component'] ?? '');
+            if (!isset($declaredComponents[$component])) {
+                throw new RuntimeException('plugin.json formComponents.' . $index . '.component 必须在 adminWeb.components 中声明：' . $component);
+            }
+            foreach (['validator', 'codec'] as $capability) {
+                $reference = (string) ($definition[$capability] ?? '');
+                if (!str_starts_with($reference, $pluginCode . ':')) {
+                    throw new RuntimeException('plugin.json formComponents.' . $index . '.' . $capability . ' 必须属于插件命名空间');
+                }
+            }
         }
     }
 

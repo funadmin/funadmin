@@ -1,11 +1,34 @@
 export type FormNodeKind = 'field' | 'layout';
 export type FormValueType = 'string' | 'number' | 'boolean' | 'array' | 'object';
+export type FormResponsiveSpan = number | { xs?: number; sm?: number; md?: number; lg?: number; xl?: number };
+
+export interface FormSchemaAsyncValidation {
+  key: string;
+  params?: Record<string, unknown>;
+  debounce?: number;
+  timeout?: number;
+  cacheTtl?: number;
+}
 
 export interface FormSchemaValidationRule {
   type: string;
   value?: unknown;
   message?: string;
   trigger?: string[];
+  validator?: FormSchemaAsyncValidation;
+}
+
+export interface FormSchemaDataSource {
+  [key: string]: unknown;
+  kind?: string;
+  mode?: string;
+  options?: unknown[];
+  dependsOn?: string[];
+  params?: Record<string, unknown>;
+  staleValue?: 'clear' | 'retain' | 'revalidate';
+  debounce?: number;
+  cacheTtl?: number;
+  pagination?: { pageSize?: number };
 }
 
 export interface FormSchemaNode {
@@ -26,10 +49,12 @@ export interface FormSchemaNode {
   slot?: string | null;
   children: FormSchemaNode[];
   validation?: FormSchemaValidationRule[];
-  dataSource?: Record<string, unknown> | null;
+  dataSource?: FormSchemaDataSource | null;
   conditions?: unknown[];
   events?: Record<string, unknown[]>;
-  layout?: { span?: number; group?: string };
+  layout?: { span?: FormResponsiveSpan; group?: string };
+  database?: Record<string, unknown>;
+  list?: Record<string, unknown>;
 }
 
 export interface FormSchemaDocument {
@@ -37,7 +62,15 @@ export interface FormSchemaDocument {
   key: string;
   title: string;
   nodes: FormSchemaNode[];
-  form?: Record<string, unknown>;
+  form?: {
+    labelWidth?: string | number;
+    labelPosition?: 'left' | 'right' | 'top';
+    size?: 'large' | 'default' | 'small';
+    inline?: boolean;
+    readOnly?: boolean;
+    gutter?: number;
+    [key: string]: unknown;
+  };
   actions?: unknown[];
   submit?: Record<string, unknown>;
 }

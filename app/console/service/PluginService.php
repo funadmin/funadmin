@@ -1,6 +1,7 @@
 <?php
 
 namespace app\console\service;
+use app\common\form\security\PluginFormReferenceGuard;
 use app\common\model\Plugin;
 use app\common\model\PluginVersionHistory;
 use app\common\service\AbstractService;
@@ -402,6 +403,7 @@ class PluginService extends AbstractService
             $this->assertRunnableRecord($record);
             $this->assertDisabled($record, $code);
             $this->assertNoEnabledDependents($code);
+            (new PluginFormReferenceGuard())->assertNotReferenced($code);
             $plugin = $this->plugin($code);
             $this->beginOperation($record, $token, 'uninstalling');
             $this->recordStage($code, 'uninstall', 'hooks');

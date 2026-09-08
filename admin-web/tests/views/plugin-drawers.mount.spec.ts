@@ -253,11 +253,11 @@ describe('插件抽屉 mount 行为', () => {
     const wrapper = mount(PluginMarketDrawer, { props: { modelValue: true, code: 'demo' }, global: globals });
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Manifest v2');
-    expect(wrapper.text()).toContain('原生包');
-    expect(wrapper.text()).toContain('应用能力');
-    expect(wrapper.text()).toContain('Ed25519');
-    expect(wrapper.text()).toContain('003_seed.sql');
+    expect(wrapper.text()).toContain('清单协议：v2');
+    expect(wrapper.text()).toContain('包格式：原生应用包');
+    expect(wrapper.text()).toContain('应用能力：独立应用、管理后台');
+    expect(wrapper.text()).toContain('签名算法：Ed25519');
+    expect(wrapper.text()).toContain('数据库能力：003_seed.sql');
     expect(wrapper.text()).toContain('PHP 版本不兼容');
     const install = wrapper.findAll('button').find((button) => button.text() === '安装');
     expect(install?.attributes('disabled')).toBeDefined();

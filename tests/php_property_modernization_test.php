@@ -651,6 +651,7 @@ $ormPropertyExemptions = [
     \app\console\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
     \app\console\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],
     \app\console\model\CrudGeneration::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\model\FormSchemaVersion::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
     \app\console\model\Department::class => ['name'],
     \app\console\model\MemberGroupRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
     \app\console\model\MemberTag::class => ['name'],

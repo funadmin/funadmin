@@ -1,6 +1,6 @@
 <template>
   <div v-if="meta.kind === 'layout'" class="form-layout-control">
-    <el-divider v-if="field.type === 'divider'" v-bind="controlProps">{{ layoutText }}</el-divider>
+    <el-divider v-if="field.type === 'divider'" v-bind="controlAttrs">{{ layoutText }}</el-divider>
     <el-alert v-else-if="field.type === 'group'" :title="layoutText" type="info" :closable="false" show-icon />
     <el-row v-else-if="field.type === 'grid'" :gutter="numberProp('gutter', 16)" class="layout-grid">
       <el-col v-for="column in numberProp('columns', 2)" :key="column" :span="Math.floor(24 / numberProp('columns', 2))">
@@ -31,7 +31,7 @@
     :type="uploadType"
     :multiple="field.type === 'files'"
     :disabled="disabled"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-input
@@ -40,7 +40,8 @@
     :type="inputType"
     :placeholder="placeholder"
     :disabled="disabled"
-    v-bind="controlProps"
+    :readonly="readonly"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-mention
@@ -49,7 +50,7 @@
     :options="options"
     :placeholder="placeholder"
     :disabled="disabled"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-input-number
@@ -57,7 +58,7 @@
     :model-value="numberValue"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-select
@@ -67,7 +68,7 @@
     :placeholder="placeholder"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   >
     <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
@@ -80,7 +81,7 @@
     :placeholder="placeholder"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-tree-select
@@ -91,7 +92,7 @@
     :placeholder="placeholder"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-cascader
@@ -101,17 +102,17 @@
     :placeholder="placeholder"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
-  <el-radio-group v-else-if="field.type === 'radio'" :model-value="modelValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue">
+  <el-radio-group v-else-if="field.type === 'radio'" :model-value="modelValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue">
     <el-radio v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</el-radio>
   </el-radio-group>
-  <el-checkbox-group v-else-if="field.type === 'checkbox'" :model-value="arrayValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue">
+  <el-checkbox-group v-else-if="field.type === 'checkbox'" :model-value="arrayValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue">
     <el-checkbox v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</el-checkbox>
   </el-checkbox-group>
-  <el-switch v-else-if="field.type === 'switch'" :model-value="modelValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue" />
-  <el-transfer v-else-if="field.type === 'transfer'" :model-value="arrayValue" :data="transferOptions" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue" />
+  <el-switch v-else-if="field.type === 'switch'" :model-value="modelValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-transfer v-else-if="field.type === 'transfer'" :model-value="arrayValue" :data="transferOptions" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
   <el-date-picker
     v-else-if="dateTypes.includes(field.type)"
     :model-value="modelValue"
@@ -119,14 +120,14 @@
     :placeholder="placeholder"
     :disabled="disabled"
     class="w-full"
-    v-bind="controlProps"
+    v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
-  <el-time-picker v-else-if="field.type === 'time'" :model-value="modelValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlProps" @update:model-value="updateValue" />
-  <el-time-select v-else-if="field.type === 'timeSelect'" :model-value="stringValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlProps" @update:model-value="updateValue" />
-  <el-slider v-else-if="field.type === 'slider'" :model-value="numberValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue" />
-  <el-rate v-else-if="field.type === 'rate'" :model-value="numberValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue" />
-  <el-color-picker v-else-if="field.type === 'color'" :model-value="stringValue" :disabled="disabled" v-bind="controlProps" @update:model-value="updateValue" />
+  <el-time-picker v-else-if="field.type === 'time'" :model-value="modelValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-time-select v-else-if="field.type === 'timeSelect'" :model-value="stringValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-slider v-else-if="field.type === 'slider'" :model-value="numberValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-rate v-else-if="field.type === 'rate'" :model-value="numberValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-color-picker v-else-if="field.type === 'color'" :model-value="stringValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
   <el-input v-else :model-value="modelValue" :placeholder="placeholder" :disabled="disabled" @update:model-value="updateValue" />
 </template>
 
@@ -149,17 +150,23 @@ const props = withDefaults(defineProps<{
   modelValue?: any;
   options?: ControlOption[];
   disabled?: boolean;
+  readonly?: boolean;
+  inputAttrs?: Record<string, unknown>;
   preview?: boolean;
+  controlProps?: Record<string, unknown>;
 }>(), {
   modelValue: '',
   options: () => [],
   disabled: false,
+  readonly: false,
+  inputAttrs: () => ({}),
   preview: false
 });
 
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
 const meta = computed(() => controlMeta(props.field.type));
-const controlProps = computed(() => props.field.control_props ?? {});
+const controlProps = computed(() => props.controlProps ?? props.field.control_props ?? {});
+const controlAttrs = computed(() => ({ ...controlProps.value, ...props.inputAttrs }));
 const placeholder = computed(() => props.field.placeholder || props.field.label);
 const multiple = computed(() => props.field.relation_multiple === 1 || Boolean(controlProps.value.multiple));
 const selectTypes = ['select', 'dictionary', 'relation', 'user'];

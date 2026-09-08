@@ -14,6 +14,7 @@ final class FormSchemaCompiler
 
     public function compile(array $schema): FormSchema
     {
+        $schema = $this->validator->normalize($schema);
         $this->validator->validate($schema);
         $canonical = $this->canonicalize($schema);
         try {

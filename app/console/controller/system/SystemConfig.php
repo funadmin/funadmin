@@ -77,6 +77,7 @@ class SystemConfig extends AdminApiController
         $types = FieldType::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->select();
         $verifies = FieldVerify::order('verify', 'asc')->select();
         $builtInTypes = [
+            'date' => ['title' => '日期', 'requiresOptions' => false],
             'json' => ['title' => 'JSON', 'requiresOptions' => false],
         ];
         $typeOptions = [];
@@ -297,7 +298,7 @@ class SystemConfig extends AdminApiController
         if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->find()) {
             return '请选择有效的配置分组';
         }
-        $builtInTypes = ['json'];
+        $builtInTypes = ['date', 'json'];
         $typeExists = in_array($data['type'], $builtInTypes, true)
             || FieldType::where('name', $data['type'])->where('status', 1)->find();
         if ($data['type'] === '' || strlen($data['type']) > 30 || !$typeExists) {
@@ -318,7 +319,7 @@ class SystemConfig extends AdminApiController
 
     private function normalizeValue(string $type, mixed $raw, string $extra): array
     {
-        if (in_array($type, ['checkbox', 'images', 'files'], true)) {
+        if (in_array($type, ['checkbox', 'array', 'tags', 'images', 'files'], true)) {
             $items = is_array($raw) ? $raw : preg_split('/[\r\n,]+/', (string) $raw);
             $value = implode("\n", array_values(array_unique(array_filter(array_map(static fn ($item): string => trim((string) $item), $items), static fn (string $item): bool => $item !== ''))));
         } elseif ($type === 'switch') {
@@ -336,6 +337,25 @@ class SystemConfig extends AdminApiController
             json_decode($value, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return ['', '配置值必须是合法的 JSON'];
+            }
+        }
+        if (in_array($type, ['date', 'datetime'], true) && $value !== '') {
+            $format = $type === 'date' ? 'Y-m-d' : 'Y-m-d H:i:s';
+            $date = \DateTimeImmutable::createFromFormat('!' . $format, $value);
+            if (!$date || $date->format($format) !== $value) {
+                return ['', $type === 'date' ? '配置值必须是有效日期' : '配置值必须是有效日期时间'];
+            }
+        }
+        if ($type === 'range' && $value !== '') {
+            $range = preg_split('/\s+-\s+/', $value, 2);
+            if (count($range) !== 2) {
+                return ['', '配置值必须是有效日期时间范围'];
+            }
+            foreach ($range as $item) {
+                $date = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $item);
+                if (!$date || $date->format('Y-m-d H:i:s') !== $item) {
+                    return ['', '配置值必须是有效日期时间范围'];
+                }
             }
         }
         if (in_array($type, ['radio', 'select', 'checkbox'], true) && $extra !== '') {

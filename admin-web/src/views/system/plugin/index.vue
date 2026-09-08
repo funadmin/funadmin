@@ -31,16 +31,16 @@
       :empty-text="activeTab === 'local' ? 'plugins/ 目录下暂无符合 Manifest v2 的本地插件' : '暂无已安装插件'"
       border
     >
-      <el-table-column prop="code" label="code" min-width="120" />
+      <el-table-column prop="code" label="插件标识" min-width="120" />
       <el-table-column prop="name" label="名称" min-width="130" />
       <el-table-column prop="version" label="当前版本" width="110" />
-      <el-table-column prop="latestVersion" label="latest version" width="120" />
-      <el-table-column prop="dbVersion" label="db version" width="110" />
-      <el-table-column prop="state" label="state" width="100" />
-      <el-table-column label="dependency" min-width="160"><template #default="{ row }">{{ dependencies(row.dependencies) }}</template></el-table-column>
-      <el-table-column label="pending" width="90"><template #default="{ row }"><el-tag :type="row.migrationPending ? 'warning' : 'success'">{{ row.migrationPending ? '是' : '否' }}</el-tag></template></el-table-column>
-      <el-table-column prop="source" label="source" width="90" />
-      <el-table-column prop="lastError" label="error" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="latestVersion" label="最新版本" width="110" />
+      <el-table-column prop="dbVersion" label="数据库版本" width="120" />
+      <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag>{{ pluginStateLabel(row.state) }}</el-tag></template></el-table-column>
+      <el-table-column label="依赖插件" min-width="160"><template #default="{ row }">{{ dependencies(row.dependencies) }}</template></el-table-column>
+      <el-table-column label="待迁移" width="90"><template #default="{ row }"><el-tag :type="row.migrationPending ? 'warning' : 'success'">{{ row.migrationPending ? '是' : '否' }}</el-tag></template></el-table-column>
+      <el-table-column label="来源" width="100"><template #default="{ row }">{{ pluginSourceLabel(row.source) }}</template></el-table-column>
+      <el-table-column prop="lastError" label="最近错误" min-width="180" show-overflow-tooltip />
       <el-table-column label="操作" min-width="430" fixed="right">
         <template #default="{ row }">
           <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:discovered-install'" :disabled="Boolean(actionReason(row as PluginItem, 'install'))" :title="actionReason(row as PluginItem, 'install')" @click="installDiscovered(row as PluginItem)">安装</el-button>
@@ -61,9 +61,9 @@
     <template v-else>
       <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" @click="loadMarket">搜索</el-button></div>
       <el-table v-loading="loading" :data="marketItems" border>
-        <el-table-column prop="code" label="code" width="130" /><el-table-column prop="name" label="名称" width="150" />
+        <el-table-column prop="code" label="插件标识" width="130" /><el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
-        <el-table-column label="latest version" width="120"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
+        <el-table-column label="最新版本" width="110"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
         <el-table-column label="能力" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
         <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
       </el-table>
@@ -85,6 +85,7 @@ import { pluginApi, type MarketplacePlugin, type PluginItem } from '@/api/plugin
 import router from '@/router';
 import { loadPluginModulesSafely } from '@/router/pluginStartup';
 import { buildPurgeConfirmation, confirmAction } from './pluginActions';
+import { applicationLabel, operationLabel, pluginSourceLabel, pluginStateLabel } from './pluginDisplay';
 import Account from './components/Account.vue';
 import ConfigDialog from './components/ConfigDialog.vue';
 import InstallDialog from './components/InstallDialog.vue';
@@ -118,11 +119,11 @@ function dependencies(value: Record<string, string>) { return Object.entries(val
 function marketCapabilities(item: MarketplacePlugin) {
   const version = item.versions[0];
   if (!version) return '-';
-  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => name).join('、');
-  const signature = version.signatureAlgorithm === 'ed25519' ? 'Ed25519' : (version.signatureAlgorithm || '未签名');
-  const database = version.databaseCapability ? `DB ${version.databaseCapability}` : 'DB 无迁移要求';
+  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => applicationLabel(name)).join('、');
+  const signature = version.signatureAlgorithm === 'ed25519' ? 'Ed25519 签名' : (version.signatureAlgorithm ? `${version.signatureAlgorithm} 签名` : '未签名');
+  const database = version.databaseCapability ? `数据库 ${version.databaseCapability}` : '数据库无迁移要求';
   const compatibility = version.compatibleReason ? ` · ${version.compatibleReason}` : '';
-  return `Manifest v${version.manifestSchema} · ${version.packageFormat === 'funadmin-native-app-v1' ? '原生包' : version.packageFormat} · ${apps || '无应用能力'} · ${signature} · ${database}${compatibility}`;
+  return `清单协议 v${version.manifestSchema} · ${version.packageFormat === 'funadmin-native-app-v1' ? '原生应用包' : '其他格式包'} · ${apps || '无应用能力'} · ${signature} · ${database}${compatibility}`;
 }
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -130,15 +131,15 @@ function errorMessage(error: unknown) {
   return String(error);
 }
 function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' | 'enable' | 'disable' | 'uninstall' | 'purge') {
-  if (row.operation) return row.disabledReason || `插件正在执行 ${row.operation}（${row.progress}%）`;
+  if (row.operation) return row.disabledReason || `插件正在执行${operationLabel(row.operation)}（${row.progress}%）`;
   if (action === 'update' && row.modified) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '检测到本地修改，需要人工合并';
   if (action === 'update' && (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '';
   if (row.needsReinstall && action !== 'purge') return '插件需要重新安装后才能执行此操作';
   if (action === 'enable' && row.migrationPending) return '存在待执行数据库迁移，完成迁移后才能启用';
   if (action === 'enable' && Object.keys(row.dependencies || {}).length > 0 && row.disabledReason) return row.disabledReason;
-  if (['update', 'migrate', 'enable', 'uninstall'].includes(action) && row.state !== 'disabled') return `当前状态 ${row.state} 不允许执行此操作`;
-  if (action === 'disable' && row.state !== 'enabled') return `当前状态 ${row.state} 不允许禁用`;
-  if (action === 'install' && row.state !== 'discovered') return `当前状态 ${row.state} 不允许安装`;
+  if (['update', 'migrate', 'enable', 'uninstall'].includes(action) && row.state !== 'disabled') return `当前状态“${pluginStateLabel(row.state)}”不允许执行此操作`;
+  if (action === 'disable' && row.state !== 'enabled') return `当前状态“${pluginStateLabel(row.state)}”不允许禁用`;
+  if (action === 'install' && row.state !== 'discovered') return `当前状态“${pluginStateLabel(row.state)}”不允许安装`;
   return '';
 }
 async function load() {

@@ -42,8 +42,11 @@ final class FormDesignerService
     private const RELATION_TYPES = ['none', 'belongs_to', 'has_many'];
     private const ON_DELETE = ['restrict' => 'RESTRICT', 'cascade' => 'CASCADE', 'set_null' => 'SET NULL'];
 
-    public function __construct(private readonly string $projectRoot)
+    private readonly FormSchemaRepository $schemas;
+
+    public function __construct(private readonly string $projectRoot, ?FormSchemaRepository $schemas = null)
     {
+        $this->schemas = $schemas ?? new FormSchemaRepository();
     }
 
     /** 表单分页列表（含字段数）。 */
@@ -181,7 +184,21 @@ final class FormDesignerService
         $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
-        return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt): array {
+        $compiled = $this->schemas->compile($this->schemaPayload($payload));
+        $document = $compiled->document();
+        $database = (array) ($document['database'] ?? []);
+        $payload = array_replace($payload, [
+            'form_key' => $compiled->key(),
+            'name' => (string) ($document['title'] ?? ''),
+            'table_name' => (string) ($database['table'] ?? $payload['table_name'] ?? ''),
+            'connection' => (string) ($database['connection'] ?? $payload['connection'] ?? 'mysql'),
+            'source_type' => (string) ($database['source'] ?? $payload['source_type'] ?? 'created'),
+            'fields' => $compiled->fieldProjection(),
+            'schema_version' => $compiled->version(),
+            'schema_document' => $document,
+            'schema_hash' => $compiled->hash(),
+        ]);
+        $result = Db::transaction(function () use ($payload, $id, $expectedUpdatedAt): array {
             $form = $id > 0 ? Form::find($id) : new Form();
             if ($id > 0 && !$form) {
                 throw new InvalidArgumentException('表单不存在');
@@ -216,6 +233,15 @@ final class FormDesignerService
             }
             return $this->detail((int) $form->id);
         });
+        $formId = (int) $result['form']->id;
+        $this->schemas->saveVersion(
+            $formId,
+            (array) $payload['schema_document'],
+            (string) ($payload['schema_origin'] ?? 'designer'),
+            (string) ($payload['schema_actor'] ?? 'system'),
+            (string) ($payload['schema_change_summary'] ?? '')
+        );
+        return $this->detail($formId);
     }
 
     /** 删除表单（仅 created 且绑定表无数据时允许删表记录；元数据始终可删）。 */
@@ -334,6 +360,12 @@ final class FormDesignerService
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
         }
         return $preview + ['applied' => true];
+    }
+
+    private function schemaPayload(array $payload): array
+    {
+        $schema = $payload['schema_document'] ?? null;
+        return is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2 ? $schema : $payload;
     }
 
     private function fieldRow(int $formId, array $field, int $sort): array

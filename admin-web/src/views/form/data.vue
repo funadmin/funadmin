@@ -101,10 +101,10 @@
     </DataTableShell>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" :before-close="beforeDialogClose" destroy-on-close>
       <SchemaForm ref="schemaFormRef" :form-key="formKey" :fields="formFields" :values="dialogValues" />
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="requestDialogClose">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
       </template>
     </el-dialog>
@@ -132,9 +132,17 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
-import { formDataApi, type FormDataMeta, type FormRecordId } from '@/api/formData';
+import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaForm from './components/SchemaForm.vue';
+import { mapFieldErrors } from './validation/asyncValidatorRegistry';
+import {
+  buildSubmissionPayload,
+  emptyRuntimeValues,
+  resolveSubmissionInclude,
+  sanitizeRuntimeRecord,
+  stableRuntimeValues
+} from './runtime/submissionPolicy';
 
 const route = useRoute();
 const formKey = String(route.params.key ?? '');
@@ -153,11 +161,13 @@ const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, any>>({});
 const detail = ref<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> } | null>(null);
 const schemaFormRef = ref<InstanceType<typeof SchemaForm>>();
+const dialogSnapshot = ref('');
+let closeDialogAfterSave = false;
 
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const primaryKeyName = computed(() => meta.value?.primaryKey.name ?? 'id');
-const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1));
-const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== ''));
+const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1 && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
+const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== '' && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 
 const filterPlaceholder = (type: string) => ['in', 'not_in'].includes(type) ? '多个值用英文逗号分隔' : '请输入筛选值';
 const syncDateFilter = (name: string) => {
@@ -230,15 +240,17 @@ const onSortChange = ({ prop, order }: { prop: string | null; order: 'ascending'
   loadData();
 };
 
-const emptyValues = () => {
-  const values: Record<string, unknown> = {};
-  for (const field of formFields.value) {
-    values[field.field_name] = field.relation_type === 'has_many' || ['repeatable', 'subform'].includes(field.type)
-      ? []
-      : field.type === 'switch' ? 0 : field.type === 'number' ? undefined : '';
+const isDialogDirty = () => dialogSnapshot.value !== stableRuntimeValues(dialogValues);
+const beforeDialogClose = async (done: () => void) => {
+  if (closeDialogAfterSave || !isDialogDirty()) {
+    closeDialogAfterSave = false;
+    done();
+    return;
   }
-  return values;
+  await ElMessageBox.confirm('确认放弃未保存的修改？', '离开确认', { type: 'warning' });
+  done();
 };
+const requestDialogClose = () => beforeDialogClose(() => { dialogVisible.value = false; });
 const decodeValue = (field: FormFieldDef, value: unknown) => {
   if (field.column_type !== 'json' || typeof value !== 'string' || value === '') return value;
   try {
@@ -250,31 +262,45 @@ const decodeValue = (field: FormFieldDef, value: unknown) => {
 const openDialog = async (row?: Record<string, unknown>) => {
   editingId.value = row ? row[primaryKeyName.value] as FormRecordId : null;
   const source = editingId.value !== null ? await formDataApi.detail(formKey, editingId.value) : null;
-  const values = { ...emptyValues(), ...(source?.row ?? row ?? {}) };
+  const record = sanitizeRuntimeRecord(formFields.value, source?.row ?? row ?? {});
+  const values = { ...emptyRuntimeValues(formFields.value), ...record };
   for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
   for (const field of formFields.value) values[field.field_name] = decodeValue(field, values[field.field_name]);
   for (const key of Object.keys(dialogValues)) delete dialogValues[key];
   Object.assign(dialogValues, values);
+  dialogSnapshot.value = stableRuntimeValues(dialogValues);
+  closeDialogAfterSave = false;
   dialogVisible.value = true;
 };
+const responseFieldErrors = (reason: unknown): FormFieldError[] => {
+  if (!reason || typeof reason !== 'object') return [];
+  const response = reason as { data?: { fieldErrors?: FormFieldError[] }; fieldErrors?: FormFieldError[] };
+  return response.data?.fieldErrors ?? response.fieldErrors ?? [];
+};
 async function onSave() {
+  if (saving.value) return;
   await schemaFormRef.value?.validate();
   saving.value = true;
   try {
-    if (editingId.value !== null) {
-      await formDataApi.update(formKey, editingId.value, { ...dialogValues });
-    } else {
-      await formDataApi.create(formKey, { ...dialogValues });
-    }
+    const include = resolveSubmissionInclude(meta.value?.form);
+    const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
+    if (editingId.value !== null) await formDataApi.update(formKey, editingId.value, payload, include);
+    else await formDataApi.create(formKey, payload, include);
+    closeDialogAfterSave = true;
     dialogVisible.value = false;
     ElMessage.success('保存成功');
     loadData();
+  } catch (reason) {
+    const errors = responseFieldErrors(reason);
+    if (errors.length) schemaFormRef.value?.setFieldErrors(mapFieldErrors(errors));
+    else throw reason;
   } finally {
     saving.value = false;
   }
 }
 async function openDetail(row: Record<string, unknown>) {
-  detail.value = await formDataApi.detail(formKey, row[primaryKeyName.value] as FormRecordId);
+  const result = await formDataApi.detail(formKey, row[primaryKeyName.value] as FormRecordId);
+  detail.value = { ...result, row: sanitizeRuntimeRecord(formFields.value, result.row) };
   detailVisible.value = true;
 }
 async function onDelete(row: Record<string, unknown>) {

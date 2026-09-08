@@ -47,7 +47,8 @@
         </el-col>
       </el-row>
       <el-form-item label="默认值" prop="value">
-        <el-input v-model="form.value" type="textarea" :rows="3" :placeholder="valuePlaceholder" />
+        <ConfigValueEditor v-model="form.value" :type="form.type" :extra="form.extra" />
+        <div class="config-form-tip">{{ valuePlaceholder }}</div>
       </el-form-item>
       <el-form-item v-if="selectedType?.requiresOptions" label="选项定义" prop="extra">
         <el-input v-model="form.extra" type="textarea" :rows="4" maxlength="255" show-word-limit placeholder="每行一个选项，例如 1:开启\n0:关闭" />
@@ -74,6 +75,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { configApi, type ConfigModel, type ConfigOptions, type ConfigPayload, type ConfigTypeOption } from '@/api/system/config';
+import ConfigValueEditor from './ConfigValueEditor.vue';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: ConfigModel | null; options: ConfigOptions }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
@@ -93,6 +95,7 @@ const fallbackTypes: ConfigTypeOption[] = [
   { name: 'array', title: '数组', requiresOptions: true },
   { name: 'json', title: 'JSON', requiresOptions: false },
   { name: 'tags', title: '标签', requiresOptions: false },
+  { name: 'date', title: '日期', requiresOptions: false },
   { name: 'datetime', title: '日期时间', requiresOptions: false },
   { name: 'range', title: '日期范围', requiresOptions: false },
   { name: 'color', title: '颜色', requiresOptions: false },
@@ -116,7 +119,7 @@ const availableTypes = computed(() => {
 const selectedType = computed(() => availableTypes.value.find((item) => item.name === form.type));
 const valuePlaceholder = computed(() => {
   if (form.type === 'switch') return '请输入 1（开启）或 0（关闭）';
-  if (['checkbox', 'array', 'images', 'files'].includes(form.type)) return '每行填写一个值';
+  if (['checkbox', 'array', 'tags', 'images', 'files'].includes(form.type)) return '每行填写一个值';
   if (form.type === 'json') return '请输入合法的 JSON，例如 {"key":"value"}';
   if (selectedType.value?.requiresOptions) return '请输入选项定义中左侧的值';
   return '配置值以字符串形式存储';

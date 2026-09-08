@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\form\validation\FormAsyncValidationException;
+use app\common\form\validation\FormAsyncValidatorRegistry;
 use app\common\model\DictItem;
 use app\common\model\DictType;
 use app\console\model\Admin;
@@ -20,6 +22,13 @@ use think\facade\Validate;
  */
 final class FormDataService
 {
+    private readonly FormAsyncValidatorRegistry $asyncValidators;
+
+    public function __construct(?FormAsyncValidatorRegistry $asyncValidators = null)
+    {
+        $this->asyncValidators = $asyncValidators ?? new FormAsyncValidatorRegistry();
+    }
+
     private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
     private const EXPORT_LIMIT = 5000;
     private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
@@ -30,7 +39,12 @@ final class FormDataService
         $form = $this->form($key);
         $fields = $this->fields($key);
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
-        return ['form' => $form, 'fields' => $fields, 'primaryKey' => $this->primaryKey($schema)];
+        $safeFields = array_map(function ($field): array {
+            $row = $field->toArray();
+            if ($this->isSensitiveField($row)) $row['default_value'] = '';
+            return $row;
+        }, $fields->all());
+        return ['form' => $form, 'fields' => $safeFields, 'primaryKey' => $this->primaryKey($schema)];
     }
 
     /** 列表：筛选/排序/分页/关联标签 LEFT JOIN。 */
@@ -113,16 +127,17 @@ final class FormDataService
                 $children[(string) $field->field_name] = $this->subRows($field, $id, 1, 20);
             }
         }
-        return ['row' => $row, 'children' => $children];
+        return ['row' => $this->sanitizeRecord($fields, $row), 'children' => $children];
     }
 
     /** 新增：白名单过滤 + 动态校验。 */
-    public function create(string $key, array $data): array
+    public function create(string $key, array $data, array $include = []): array
     {
         $form = $this->form($key);
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, false);
-        $split = $this->splitPayload($fields, $data, false);
+        $this->assertAsyncValid($fields, $data);
+        $split = $this->splitPayload($fields, $data, false, $include);
         $connection = Db::connect((string) $form->connection);
         $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
@@ -147,12 +162,13 @@ final class FormDataService
     }
 
     /** 更新：禁改字段剔除 + 动态校验。 */
-    public function update(string $key, int|string $id, array $data): array
+    public function update(string $key, int|string $id, array $data, array $include = []): array
     {
         $form = $this->form($key);
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, true);
-        $split = $this->splitPayload($fields, $data, true);
+        $this->assertAsyncValid($fields, $data);
+        $split = $this->splitPayload($fields, $data, true, $include);
         $connection = Db::connect((string) $form->connection);
         $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
@@ -239,6 +255,23 @@ final class FormDataService
         return [];
     }
 
+    /**
+     * 对已受控加载的选项执行搜索与分页。
+     *
+     * @param array<int, array<string, mixed>> $options
+     * @return array{options: array<int, array<string, mixed>>, total: int}
+     */
+    public function paginateOptions(array $options, string $keyword, int $page, int $pageSize): array
+    {
+        $filtered = $keyword === '' ? array_values($options) : array_values(array_filter(
+            $options,
+            static fn (array $option): bool => str_contains((string) ($option['label'] ?? ''), $keyword)
+        ));
+        $size = max(1, min(200, $pageSize));
+        $offset = (max(1, $page) - 1) * $size;
+        return ['options' => array_slice($filtered, $offset, $size), 'total' => count($filtered)];
+    }
+
     /** 子表分页（has_many）。 */
     public function sub(string $key, string $relation, int|string $id, int $page, int $pageSize): array
     {
@@ -298,8 +331,77 @@ final class FormDataService
         return ['rules' => $rules, 'messages' => $messages];
     }
 
+    /**
+     * 服务端复验字段声明的异步验证器。
+     *
+     * @param iterable<int, mixed> $fieldRows
+     * @param array<string, mixed> $data
+     * @return array<int, array{path: string, message: string}>
+     */
+    public function revalidateAsync(iterable $fieldRows, array $data): array
+    {
+        $errors = [];
+        foreach ($fieldRows as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
+            $rules = is_array($row['validate_rules'] ?? null) ? $row['validate_rules'] : [];
+            $declarations = $rules['async'] ?? [];
+            if (isset($declarations['key'])) {
+                $declarations = [$declarations];
+            }
+            if ($name === '' || !is_array($declarations) || !array_key_exists($name, $data)) {
+                continue;
+            }
+            foreach ($declarations as $declaration) {
+                if (!is_array($declaration)) {
+                    continue;
+                }
+                $message = $this->asyncValidators->validate(
+                    (string) ($declaration['key'] ?? ''),
+                    $data[$name],
+                    $data,
+                    is_array($declaration['params'] ?? null) ? $declaration['params'] : []
+                );
+                if ($message !== null) {
+                    $errors[] = ['path' => $name, 'message' => $message];
+                    break;
+                }
+            }
+        }
+        return $errors;
+    }
+
+    /**
+     * 执行单字段受控异步验证，供前端即时反馈；提交仍会再次整表复验。
+     *
+     * @param array<string, mixed> $values
+     * @param array<string, mixed> $params
+     * @return array{valid: bool, fieldErrors: array<int, array{path: string, message: string}>}
+     */
+    public function validateAsync(string $key, string $field, string $validator, mixed $value, array $values, array $params = []): array
+    {
+        $metadata = $this->fields($key)->firstWhere('field_name', $field);
+        if (!$metadata) {
+            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATION_FIELD_NOT_FOUND');
+        }
+        $row = $metadata->toArray();
+        $rules = is_array($row['validate_rules'] ?? null) ? $row['validate_rules'] : [];
+        $declarations = $rules['async'] ?? [];
+        if (isset($declarations['key'])) {
+            $declarations = [$declarations];
+        }
+        $allowed = array_filter($declarations, static fn (mixed $item): bool => is_array($item) && ($item['key'] ?? null) === $validator);
+        if ($allowed === []) {
+            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATOR_NOT_DECLARED');
+        }
+        $values[$field] = $value;
+        $message = $this->asyncValidators->validate($validator, $value, $values, $params);
+        $errors = $message === null ? [] : [['path' => $field, 'message' => $message]];
+        return ['valid' => $errors === [], 'fieldErrors' => $errors];
+    }
+
     /** 白名单过滤写入载荷（纯函数，供契约测试）。 */
-    public function splitPayload($fieldRows, array $data, bool $isUpdate): array
+    public function splitPayload($fieldRows, array $data, bool $isUpdate, array $include = []): array
     {
         $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fieldRows) ? $fieldRows : $fieldRows->all());
         $relations = [];
@@ -310,12 +412,13 @@ final class FormDataService
             if (!is_array($data[$name]) || !array_is_list($data[$name])) throw new InvalidArgumentException($name . ' 必须为子表行数组');
             $relations[$name] = $data[$name];
         }
-        return ['parent' => $this->filterPayload($rows, $data, $isUpdate), 'relations' => $relations];
+        return ['parent' => $this->filterPayload($rows, $data, $isUpdate, $include), 'relations' => $relations];
     }
 
-    public function filterPayload(array $fieldRows, array $data, bool $isUpdate): array
+    public function filterPayload(array $fieldRows, array $data, bool $isUpdate, array $include = []): array
     {
         $payload = [];
+        $included = array_fill_keys(array_map('strval', $include), true);
         foreach ($fieldRows as $field) {
             if ($this->isLayoutField($field) || (string) ($field['relation_type'] ?? 'none') === 'has_many') {
                 continue;
@@ -324,7 +427,7 @@ final class FormDataService
             if ($name === '' || !array_key_exists($name, $data)) {
                 continue;
             }
-            if ($isUpdate && (int) ($field['form_readonly'] ?? 0) === 1) {
+            if ($this->isExcludedFromSubmission($field) && !isset($included[$name])) {
                 continue;
             }
             $value = $data[$name];
@@ -336,6 +439,37 @@ final class FormDataService
             $payload[$name] = $value;
         }
         return $payload;
+    }
+
+    /**
+     * 移除任何不能回显到列表、详情、默认值或客户端缓存的敏感字段。
+     *
+     * @param iterable<int, mixed> $fieldRows
+     * @param array<string, mixed> $record
+     * @return array<string, mixed>
+     */
+    public function sanitizeRecord(iterable $fieldRows, array $record): array
+    {
+        foreach ($fieldRows as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            if ($this->isSensitiveField($row)) {
+                unset($record[(string) ($row['field_name'] ?? '')]);
+            }
+        }
+        return $record;
+    }
+
+    /** 将写入请求中的敏感字段替换为审计占位符。 */
+    public function redactRequestPayload(string $key, array $data): array
+    {
+        foreach ($this->fields($key) as $field) {
+            $row = $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
+            if ($name !== '' && array_key_exists($name, $data) && $this->isSensitiveField($row)) {
+                $data[$name] = '[REDACTED]';
+            }
+        }
+        return $data;
     }
 
     private function form(string $key): Form
@@ -361,7 +495,7 @@ final class FormDataService
         $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields($table));
         $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
-            if (in_array((string) $field->type, self::LAYOUT_TYPES, true)) {
+            if (in_array((string) $field->type, self::LAYOUT_TYPES, true) || $this->isSensitiveField($field->toArray())) {
                 continue;
             }
             $name = (string) $field->field_name;
@@ -377,7 +511,7 @@ final class FormDataService
         }
         $aliasIndex = 0;
         foreach ($fields as $field) {
-            if ((string) $field->relation_type !== 'belongs_to' || (int) $field->list_show !== 1) {
+            if ((string) $field->relation_type !== 'belongs_to' || (int) $field->list_show !== 1 || $this->isSensitiveField($field->toArray())) {
                 continue;
             }
             $relationTable = (string) $field->relation_table;
@@ -422,8 +556,12 @@ final class FormDataService
         $context = $this->childContext($field);
         $columns = array_keys($context['schema']);
         $readable = array_values(array_intersect([$context['primary']['name'], $context['foreignKey'], 'created_at', 'updated_at'], $columns));
-        $configured = FormField::where('form_id', (int) $context['form']->id)->column('field_name');
-        $readable = array_values(array_unique(array_merge($readable, array_intersect($configured, $columns))));
+        $configured = array_values(array_filter(
+            array_map(static fn ($field): array => $field->toArray(), $context['fields']->all()),
+            fn (array $field): bool => !$this->isSensitiveField($field)
+        ));
+        $configuredNames = array_column($configured, 'field_name');
+        $readable = array_values(array_unique(array_merge($readable, array_intersect($configuredNames, $columns))));
         $query = Db::connect((string) $context['form']->connection)->table($context['table'])->field($readable)->where($context['foreignKey'], $id);
         if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
         $total = (clone $query)->count();
@@ -501,10 +639,39 @@ final class FormDataService
         return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
     }
 
+    private function isExcludedFromSubmission(array $field): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        $source = is_array($field['options_source'] ?? null) ? $field['options_source'] : [];
+        return (string) ($field['type'] ?? '') === 'hidden'
+            || filter_var($props['disabled'] ?? false, FILTER_VALIDATE_BOOL)
+            || (int) ($field['form_readonly'] ?? 0) === 1
+            || (string) ($source['kind'] ?? $source['mode'] ?? '') === 'computed'
+            || filter_var($props['computed'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['primary'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['system'] ?? false, FILTER_VALIDATE_BOOL);
+    }
+
+    private function isSensitiveField(array $field): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        return (string) ($field['type'] ?? '') === 'password'
+            || filter_var($props['sensitive'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['writeOnly'] ?? false, FILTER_VALIDATE_BOOL);
+    }
+
     private function assertIdentifier(string $identifier, string $label): void
     {
         if (!preg_match('/^[a-z_][a-z0-9_]*$/', $identifier)) {
             throw new InvalidArgumentException($label . '不合法');
+        }
+    }
+
+    private function assertAsyncValid($fields, array $data): void
+    {
+        $errors = $this->revalidateAsync($fields, $data);
+        if ($errors !== []) {
+            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATION_FAILED', $errors);
         }
     }
 

@@ -25,7 +25,7 @@ import { computed } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
 import { isExternal } from '@/utils/is';
 import { useMenuTitle } from '@/composables/useMenuTitle';
-import { getVisibleMenuChildren } from '@/utils/route';
+import { getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
 interface Props {
   route: RouteRecordRaw;
@@ -39,9 +39,7 @@ const visibleChildren = computed(() => getVisibleMenuChildren(props.route));
 
 const resolvedPath = computed(() => {
   if (isExternal(props.route.path)) return props.route.path;
-  if (props.route.path.startsWith('/')) return props.route.path;
-  const base = props.basePath.endsWith('/') ? props.basePath.slice(0, -1) : props.basePath;
-  return `${base}/${props.route.path}`;
+  return resolveMenuPath(props.basePath, props.route.path);
 });
 
 defineOptions({ name: 'TopSubItem' });
