@@ -126,6 +126,9 @@ final class Manifest
 
     private static function assertNoSymlinks(string $directory): void
     {
+        if (is_link($directory)) {
+            throw new RuntimeException('插件目录禁止符号链接：' . $directory);
+        }
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST

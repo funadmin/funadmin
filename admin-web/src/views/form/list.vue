@@ -55,10 +55,11 @@
 
     <el-dialog v-model="generationVisible" title="生成记录" width="760px">
       <el-descriptions v-if="currentGeneration" :column="1" border>
-        <el-descriptions-item label="表单">{{ currentGeneration.name }}</el-descriptions-item>
-        <el-descriptions-item label="生成记录 ID">{{ currentGeneration.crud_generation_id }}</el-descriptions-item>
-        <el-descriptions-item label="Definition Hash">{{ currentGeneration.published_definition_hash }}</el-descriptions-item>
-        <el-descriptions-item label="发布时间">{{ currentGeneration.published_at }}</el-descriptions-item>
+        <el-descriptions-item label="表单">{{ currentGeneration.form.name }}</el-descriptions-item>
+        <el-descriptions-item label="生成记录 ID">{{ currentGeneration.form.crud_generation_id }}</el-descriptions-item>
+        <el-descriptions-item label="Definition Hash">{{ currentGeneration.record.definition_hash || currentGeneration.form.published_definition_hash }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ currentGeneration.record.status }}</el-descriptions-item>
+        <el-descriptions-item label="Manifest"><el-input :model-value="JSON.stringify(currentGeneration.record.manifest ?? {}, null, 2)" type="textarea" :rows="12" readonly /></el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -121,7 +122,7 @@ const query = reactive({ page: 1, pageSize: 20, keyword: '', status: '' as numbe
 const tables = ref<Array<{ name: string; comment?: string }>>([]);
 const createVisible = ref(false);
 const generationVisible = ref(false);
-const currentGeneration = ref<FormDefinition | null>(null);
+const currentGeneration = ref<{ form: FormDefinition; record: Record<string, unknown> } | null>(null);
 const createFormRef = ref<FormInstance>();
 const createForm = reactive({ name: '', form_key: '', source_type: 'created' as 'created' | 'adopted', table_name: '', remark: '' });
 const createRules: FormRules = {
@@ -184,8 +185,8 @@ async function onCreate() {
 const goDesigner = (row: FormDefinition) => router.push({ path: '/development/form/designer', query: { id: String(row.id) } });
 const goData = (row: FormDefinition) => router.push({ path: `/form/data/${row.form_key}` });
 const goGenerated = (row: FormDefinition) => router.push(row.publish_config?.routePath || `/generated/${row.form_key.replace(/_/g, '-')}`);
-const showGeneration = (row: FormDefinition) => {
-  currentGeneration.value = row;
+const showGeneration = async (row: FormDefinition) => {
+  currentGeneration.value = { form: row, record: await formDesignerApi.generation(row.id as number) };
   generationVisible.value = true;
 };
 const publishStatusLabel = (status?: string) => ({ draft: '草稿', publishing: '发布中', published: '已发布', partial: '部分完成', conflict: '有冲突', failed: '失败' }[status || 'draft'] || status);

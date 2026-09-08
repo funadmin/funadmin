@@ -42,7 +42,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="部门" prop="deptId">
+          <el-form-item label="主部门" prop="deptId">
             <el-tree-select
               v-model="form.deptId"
               :data="departmentOptions"
@@ -50,6 +50,26 @@
               node-key="id"
               check-strictly
               placeholder="选择部门"
+              class="w-full"
+              :loading="optionsLoading"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="兼任部门" prop="departmentIds">
+            <el-tree-select
+              v-model="form.departmentIds"
+              :data="additionalDepartmentOptions"
+              :props="{ label: 'name', children: 'children' }"
+              node-key="id"
+              multiple
+              show-checkbox
+              check-strictly
+              collapse-tags
+              collapse-tags-tooltip
+              clearable
+              placeholder="可选，可兼任多个部门"
+              no-data-text="暂无可兼任部门"
               class="w-full"
               :loading="optionsLoading"
             />
@@ -92,6 +112,7 @@ import { userApi, type UserModel } from '@/api/system/user';
 import { roleApi, type RoleModel } from '@/api/system/role';
 import { deptApi, type DeptModel } from '@/api/system/dept';
 import { roleTree } from '../../role/roleHierarchy';
+import { filterDepartmentTree } from '../departmentAssignment';
 
 interface Props {
   modelValue: boolean;
@@ -121,9 +142,11 @@ const initialForm = () => ({
   password: '',
   status: 1 as 0 | 1,
   deptId: undefined as number | undefined,
+  departmentIds: [] as number[],
   roleIds: [] as number[]
 });
 const form = reactive<ReturnType<typeof initialForm>>(initialForm());
+const additionalDepartmentOptions = computed(() => filterDepartmentTree(departmentOptions.value, form.deptId));
 
 const rules: FormRules = {
   username: [
@@ -152,6 +175,9 @@ watch(
   }
 );
 watch(visible, (value) => emit('update:modelValue', value));
+watch(() => form.deptId, (deptId) => {
+  if (deptId !== undefined) form.departmentIds = form.departmentIds.filter((id) => id !== deptId);
+});
 
 function initForm() {
   Object.assign(form, initialForm());
@@ -163,6 +189,7 @@ function initForm() {
     form.mobile = props.row.mobile || '';
     form.status = props.row.status;
     form.deptId = props.row.deptId;
+    form.departmentIds = [...(props.row.departmentIds || [])];
     form.roleIds = [...(props.row.roleIds || [])];
   }
 }
@@ -182,7 +209,12 @@ async function onSubmit() {
   await formRef.value?.validate();
   saving.value = true;
   try {
-    const payload = { ...form, deptId: form.deptId as number, roleIds: [...form.roleIds] };
+    const payload = {
+      ...form,
+      deptId: form.deptId as number,
+      departmentIds: [...form.departmentIds],
+      roleIds: [...form.roleIds]
+    };
     if (isEdit.value && props.row) {
       const { password, ...rest } = payload;
       void password;

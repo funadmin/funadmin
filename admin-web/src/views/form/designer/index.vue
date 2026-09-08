@@ -149,8 +149,11 @@
         </el-checkbox-group>
       </template>
 
-      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '发布成功' : '发布未完全完成'" :sub-title="publishResult?.routePath || ''">
-        <template #extra><el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button></template>
+      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '发布成功' : '发布未完全完成'" :sub-title="publishResult?.generation.resourceApplyError || publishResult?.routePath || ''">
+        <template #extra>
+          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
+          <el-button v-if="publishResult?.publishStatus === 'partial' && publishResult.form.id" :loading="retryingResources" @click="onRetryResources">重试菜单权限</el-button>
+        </template>
       </el-result>
 
       <template #footer>
@@ -225,6 +228,7 @@ const publishVisible = ref(false);
 const publishStep = ref(0);
 const previewingPublish = ref(false);
 const publishing = ref(false);
+const retryingResources = ref(false);
 const publishPreview = ref<FormPublishPreview | null>(null);
 const publishResult = ref<FormPublishResult | null>(null);
 const allowOverwrite = ref<string[]>([]);
@@ -388,6 +392,19 @@ const onPublish = async () => {
 };
 const openGeneratedRoute = () => {
   if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
+};
+const onRetryResources = async () => {
+  const formId = publishResult.value?.form.id;
+  if (!formId) return;
+  retryingResources.value = true;
+  try {
+    const result = await formDesignerApi.retryResources(formId);
+    if (publishResult.value) publishResult.value.publishStatus = result.publishStatus;
+    await permissionStore.fetchMenus();
+    ElMessage.success('菜单与权限应用成功');
+  } finally {
+    retryingResources.value = false;
+  }
 };
 
 async function onInfer() {

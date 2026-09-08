@@ -6,6 +6,7 @@ use fun\plugins\ActivationGate;
 use fun\plugins\Manifest;
 use fun\plugins\PluginActivationReader;
 use fun\plugins\PluginEntryFactory;
+use fun\plugins\PluginExecutionGate;
 use think\facade\Route;
 use think\helper\Str;
 
@@ -59,6 +60,38 @@ if (!function_exists('get_plugin_instance')) {
 }
 
 /** 通过正式 MigrationService 执行 manifest 声明的迁移。 */
+if (!function_exists('execute_plugin_command')) {
+    function execute_plugin_command(array $descriptor, array $payload = []): mixed
+    {
+        return (new PluginExecutionGate(new PluginActivationReader(root_path('runtime/plugins/activation'))))
+            ->executeCommand($descriptor, $payload);
+    }
+}
+
+if (!function_exists('dispatch_plugin_listener')) {
+    function dispatch_plugin_listener(array $descriptor, mixed $event): mixed
+    {
+        return (new PluginExecutionGate(new PluginActivationReader(root_path('runtime/plugins/activation'))))
+            ->dispatchListener($descriptor, $event);
+    }
+}
+
+if (!function_exists('run_plugin_job')) {
+    function run_plugin_job(array $descriptor, array $payload = []): mixed
+    {
+        return (new PluginExecutionGate(new PluginActivationReader(root_path('runtime/plugins/activation'))))
+            ->runJob($descriptor, $payload);
+    }
+}
+
+if (!function_exists('register_plugin_provider')) {
+    function register_plugin_provider(array $descriptor, mixed $application): mixed
+    {
+        return (new PluginExecutionGate(new PluginActivationReader(root_path('runtime/plugins/activation'))))
+            ->registerProvider($descriptor, $application);
+    }
+}
+
 if (!function_exists('run_plugin_migrations')) {
     function run_plugin_migrations(string $code): array
     {

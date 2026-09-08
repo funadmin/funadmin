@@ -81,6 +81,7 @@ final class FormPublishService
         $formId = (int) ($definitionPayload['id'] ?? 0);
         $this->updateStatus($formId, 'publishing');
         $ddl = null;
+        $generationFloor = (int) (\app\console\model\CrudGeneration::max('id') ?: 0);
         try {
             $ddl = $this->forms->applyMigration($definitionPayload);
             $generated = $this->crud->generate(
@@ -108,9 +109,17 @@ final class FormPublishService
                 'routePath' => (string) $crudDefinition->get('routePath'),
             ];
         } catch (Throwable $exception) {
+            $generationId = $this->latestRetryableGenerationId($crudDefinition->hash(), $generationFloor);
             $ddlApplied = $ddl !== null || ($exception instanceof FormMigrationException && $exception->ddlApplied);
-            $status = $this->isConflict($exception) ? 'conflict' : ($ddlApplied ? 'partial' : 'failed');
-            $this->updateStatus($formId, $status);
+            if ($generationId !== null) {
+                $this->updateStatus($formId, 'partial', [
+                    'crud_generation_id' => $generationId,
+                    'published_definition_hash' => $crudDefinition->hash(),
+                ]);
+            } else {
+                $status = $this->isConflict($exception) ? 'conflict' : ($ddlApplied ? 'partial' : 'failed');
+                $this->updateStatus($formId, $status);
+            }
             throw $exception;
         }
     }
@@ -127,6 +136,11 @@ final class FormPublishService
             'definitionHash' => $form->published_definition_hash,
             'publishConfig' => $form->publish_config ?? [],
         ];
+    }
+
+    public function generation(int $generationId): ?array
+    {
+        return $this->crud->generation($generationId);
     }
 
     public function retryResources(int $formId): array
@@ -159,6 +173,22 @@ final class FormPublishService
             (array) ($saved['fields'] ?? [])
         );
         return $data;
+    }
+
+    private function latestRetryableGenerationId(string $definitionHash, int $afterId): ?int
+    {
+        $records = \app\console\model\CrudGeneration::where('operation', 'generate')
+            ->where('definition_hash', $definitionHash)
+            ->where('id', '>', $afterId)
+            ->order('id', 'desc')
+            ->select();
+        foreach ($records as $record) {
+            $manifest = is_array($record->manifest) ? $record->manifest : [];
+            if (in_array((string) ($manifest['resourceApplyStatus'] ?? ''), ['pending', 'failed'], true)) {
+                return (int) $record->id;
+            }
+        }
+        return null;
     }
 
     private function isConflict(Throwable $exception): bool

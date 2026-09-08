@@ -142,6 +142,7 @@ export function buildAdminUserRows(): MockUserRow[] {
       status: (isAdmin ? 1 : i % 5 === 0 ? 0 : 1) as 0 | 1,
       roleIds: isAdmin ? [...ADMIN_DEMO_USER.roleIds] : i % 3 === 0 ? [1, 2] : [2],
       deptId: DEPT_CYCLE[i % DEPT_CYCLE.length],
+      departmentIds: [],
       createdAt: isAdmin ? unixToDatetime(ADMIN_DEMO_USER.createTimeUnix) : ts(i),
       updatedAt: isAdmin ? unixToDatetime(ADMIN_DEMO_USER.updateTimeUnix) : ts(Math.max(0, i - 1))
     };

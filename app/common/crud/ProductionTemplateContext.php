@@ -498,7 +498,21 @@ final class ProductionTemplateContext
         $statusColumn = $enabled['status']
             ? "          <el-table-column label=\"状态操作\"><template #default=\"scope\"><el-switch :model-value=\"Number(scope.row.status) === 1\" :disabled=\"recycled\" @change=\"value => changeStatus(scope.row as {$type}, value === true)\" /></template></el-table-column>\n"
             : '';
-        $searchSlot = $enabled['search'] ? "      <template #search><SearchForm :model=\"query\" :loading=\"loading\" @search=\"onSearch\" @reset=\"onReset\" /></template>\n" : '';
+        $searchItems = [];
+        foreach ($data['fields'] as $field) {
+            if (($field['search'] ?? false) !== true) continue;
+            $key = self::camel($field['name']);
+            $operator = (string) ($field['searchOperator'] ?? 'eq');
+            $parameter = $key . (in_array($operator, ['range', 'date'], true) ? 'Range' : '');
+            $label = htmlspecialchars((string) ($field['label'] ?? $field['name']), ENT_QUOTES);
+            $control = in_array($operator, ['range', 'date'], true)
+                ? "<el-input v-model=\"query.{$parameter}\" placeholder=\"起,止\" clearable />"
+                : "<el-input v-model=\"query.{$parameter}\" placeholder=\"请输入{$label}\" clearable />";
+            $searchItems[] = "<el-form-item label=\"{$label}\">{$control}</el-form-item>";
+        }
+        $searchSlot = $enabled['search']
+            ? "      <template #search><SearchForm :model=\"query\" :loading=\"loading\" @search=\"onSearch\" @reset=\"onReset\">" . implode('', $searchItems) . "</SearchForm></template>\n"
+            : '';
         $toolbar = [];
         if ($enabled['softDelete']) {
             $toolbar[] = '<el-button @click="switchMode(false)">正常列表</el-button><el-button @click="switchMode(true)">回收站</el-button>';
@@ -573,6 +587,7 @@ final class ProductionTemplateContext
 
     private static function form(array $data, string $class): string
     {
+        if (($data['layoutSchema'] ?? []) !== []) return self::schemaForm($data, $class);
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
         $enabled = self::enabledCapabilities($data);
@@ -627,6 +642,21 @@ final class ProductionTemplateContext
             . ($enabled['update'] ? "if (props.row) await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ", form); " : '')
             . ($enabled['create'] ? ($enabled['update'] ? "else " : '') . "await {$camel}Api.create(form); " : '')
             . "visible.value = false; emit('success'); }\n</script>\n";
+    }
+
+    private static function schemaForm(array $data, string $class): string
+    {
+        $camel = self::camel($class);
+        $type = self::tsTypeName($class);
+        $schema = self::json($data['layoutSchema']);
+        $formKey = str_replace('-', '_', (string) $data['entity']);
+        return "<template><el-dialog v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaForm ref=\"schemaFormRef\" form-key=\"{$formKey}\" :fields=\"layoutSchema\" :values=\"form\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></el-dialog></template>\n"
+            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaForm from '@/views/form/components/SchemaForm.vue';\n"
+            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
+            . "const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<{$type}Payload>({}); const schemaFormRef=ref<InstanceType<typeof SchemaForm>>(); const layoutSchema={$schema} as any[];\n"
+            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key as keyof {$type}Payload]);Object.assign(form,row||{});},{immediate:true});\n"
+            . "async function submit(){await schemaFormRef.value?.validate();if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",form);else await {$camel}Api.create(form);visible.value=false;emit('success');}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string

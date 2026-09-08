@@ -15,8 +15,5 @@ INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resour
 SELECT @plugin_permission_id,'console','development:plugin:package','console/development.devplugin','package','打包插件','route',1,0,123,'admin_web','plugin_center',NOW(),NOW(),123,NULL
 WHERE @plugin_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='development:plugin:package');
 INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
-SELECT @plugin_permission_id,'console','development:plugin:download','console/development.devplugin','packagedownload','下载插件包','route',1,0,124,'admin_web','plugin_center',NOW(),NOW(),124,NULL
-WHERE @plugin_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='development:plugin:download');
-INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
 SELECT @crud_permission_id,'console','development:plugin:options','console/development.devplugin','options','读取可开发插件','route',1,0,101,'admin_web','development_crud',NOW(),NOW(),101,NULL
 WHERE @crud_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='development:plugin:options');

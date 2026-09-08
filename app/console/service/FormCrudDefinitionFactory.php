@@ -45,10 +45,8 @@ final class FormCrudDefinitionFactory
             if (!is_array($field)) continue;
             if ($adopted && (string) ($field['field_name'] ?? '') === $primaryKey) continue;
             $type = (string) ($field['type'] ?? 'input');
-            if (in_array($type, self::LAYOUT_TYPES, true)) {
-                $layoutSchema[] = $this->layoutNode($field);
-                continue;
-            }
+            $layoutSchema[] = $this->formSchemaNode($field, $type);
+            if (in_array($type, self::LAYOUT_TYPES, true)) continue;
             $fields[] = $this->field($field, $type, $relations, $optionSources);
         }
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
@@ -257,13 +255,18 @@ final class FormCrudDefinitionFactory
         ];
     }
 
-    private function layoutNode(array $field): array
+    private function formSchemaNode(array $field, string $type): array
     {
-        return [
-            'type' => (string) ($field['type'] ?? ''), 'fieldName' => (string) ($field['field_name'] ?? ''),
-            'label' => (string) ($field['label'] ?? ''), 'span' => (int) ($field['form_span'] ?? 24),
-            'props' => (array) ($field['control_props'] ?? []),
-        ];
+        return array_replace([
+            'field_name' => '', 'label' => '', 'type' => $type, 'column_type' => '', 'nullable' => 1,
+            'default_value' => '', 'comment' => '', 'unsigned' => 0, 'index_type' => 'none', 'placeholder' => '',
+            'options_source' => null, 'control_props' => null, 'validate_rules' => null, 'link_rules' => null,
+            'relation_type' => 'none', 'relation_table' => '', 'relation_label_field' => '',
+            'relation_value_field' => 'id', 'relation_multiple' => 0, 'relation_on_delete' => 'restrict',
+            'list_show' => 0, 'list_sort' => 0, 'list_filter' => '', 'list_formatter' => '', 'list_width' => 0,
+            'form_show' => 1, 'form_required' => 0, 'form_group' => '', 'form_span' => 24,
+            'form_readonly' => 0, 'sort_order' => 0,
+        ], $field);
     }
 
     private function rules(array $rules): array

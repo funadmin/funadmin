@@ -26,11 +26,18 @@ final class DevPluginService
     /** @var Closure(string, string, callable): array */
     private readonly Closure $archivePackager;
 
+    /** @var Closure(): array */
+    private readonly Closure $installedRecords;
+
+    private readonly string $funadminVersion;
+
     public function __construct(
         private readonly string $projectRoot,
         ?callable $archiveVerifier = null,
         ?callable $auditWriter = null,
-        ?callable $archivePackager = null
+        ?callable $archivePackager = null,
+        ?callable $installedRecords = null,
+        ?string $funadminVersion = null
     ) {
         $this->archiveVerifier = Closure::fromCallable($archiveVerifier ?? function (string $archive): void {
             $packages = PluginPackageService::instance();
@@ -46,6 +53,18 @@ final class DevPluginService
         $this->archivePackager = Closure::fromCallable($archivePackager ?? static function (string $code, string $output, callable $verify) use ($pluginsDirectory): array {
             return (new PluginArchiveService($pluginsDirectory, $verify))->package($code, $output);
         });
+        $this->installedRecords = Closure::fromCallable($installedRecords ?? static function (): array {
+            $records = [];
+            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
+                $records[(string) $record->code] = [
+                    'version' => (string) $record->version,
+                    'lifecycle_state' => (string) $record->lifecycle_state,
+                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
+                ];
+            }
+            return $records;
+        });
+        $this->funadminVersion = $funadminVersion ?? (function_exists('config') ? (string) config('funadmin.version') : '1.0.0');
     }
 
     public function previewCreate(array $input): array
@@ -92,15 +111,10 @@ final class DevPluginService
         PluginScaffolder::assertValidName($code);
         try {
             $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
-            $records = [];
-            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
-                $records[(string) $record->code] = [
-                    'version' => (string) $record->version,
-                    'lifecycle_state' => (string) $record->lifecycle_state,
-                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
-                ];
-            }
-            (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
+            (new DependencyValidator($this->funadminVersion, PHP_VERSION))->assertSatisfied(
+                $manifest,
+                ($this->installedRecords)()
+            );
             $data = $manifest->toArray();
             $plan = [
                 'operation' => 'validate',
@@ -159,16 +173,9 @@ final class DevPluginService
         PluginScaffolder::assertValidName($code);
         $manifest = Manifest::fromDirectory($this->pluginsDirectory() . DIRECTORY_SEPARATOR . $code);
         $filename = $code . '-' . $manifest->version() . '.zip';
-        $root = $this->projectRoot() . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'download' . DIRECTORY_SEPARATOR . 'plugins';
+        $root = $this->downloadRoot();
         $rootReal = realpath($root);
         $path = $root . DIRECTORY_SEPARATOR . $filename;
-        $current = $this->projectRoot();
-        foreach (['runtime', 'download', 'plugins'] as $segment) {
-            $current .= DIRECTORY_SEPARATOR . $segment;
-            if (is_link($current)) {
-                throw new RuntimeException('插件包下载目录或文件禁止符号链接');
-            }
-        }
         if ($rootReal === false || is_link($path)) {
             throw new RuntimeException('插件包下载目录或文件禁止符号链接');
         }

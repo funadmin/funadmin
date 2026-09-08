@@ -146,6 +146,17 @@ final class Designer extends AdminApiController
         return $this->execute(fn (): array => $this->publisher->status($id));
     }
 
+    #[Get('generation/:id')]
+    #[Pattern('id', '\d+')]
+    public function generation(int $id): Response
+    {
+        $status = $this->publisher->status($id);
+        $generationId = (int) ($status['generationId'] ?? 0);
+        if ($generationId < 1) return $this->fail(msg: '表单没有生成记录', code: 404);
+        $record = $this->publisher->generation($generationId);
+        return $record === null ? $this->fail(msg: '生成记录不存在', code: 404) : $this->ok(data: $record);
+    }
+
     #[Post('retry-resources/:id')]
     #[Pattern('id', '\d+')]
     public function retryResources(int $id): Response

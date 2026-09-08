@@ -65,6 +65,7 @@ export const systemMockHandlers: MockRoute[] = [
         status: body.status ?? 1,
         roleIds: body.roleIds || [],
         deptId: body.deptId || 1,
+        departmentIds: body.departmentIds || [],
         createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
         updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
       };
@@ -129,6 +130,7 @@ export const systemMockHandlers: MockRoute[] = [
           status: row.status === 0 || row.status === '0' ? 0 : 1,
           roleIds: Array.isArray(row.roleIds) ? row.roleIds.map(Number) : [],
           deptId: Number(row.deptId) || 1,
+          departmentIds: Array.isArray(row.departmentIds) ? row.departmentIds.map(Number) : [],
           createdAt: now,
           updatedAt: now
         });

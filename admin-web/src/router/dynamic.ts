@@ -114,8 +114,9 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
  * 递归子路由；parentAbsolutePath 为父级完整路径（如 /system），用于子 path 拼接与中间目录 redirect。
  */
 function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRecordRaw {
-  const seg = menu.path.replace(/^\//, '');
-  const fullPath = `${parentAbsolutePath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
+  const absolute = menu.path.startsWith('/');
+  const seg = absolute ? ensureLeadingSlash(menu.path) : menu.path.replace(/^\//, '');
+  const fullPath = absolute ? seg : `${parentAbsolutePath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
   const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
   const route: RouteRecordRaw = {
     path: seg,

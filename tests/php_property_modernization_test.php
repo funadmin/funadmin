@@ -646,6 +646,7 @@ $ormPropertyExemptions = [
     UpgradeManifest::class => ['name', 'json', 'jsonAssoc'],
     \app\common\model\UpgradeTask::class => ['name', 'json', 'jsonAssoc'],
     \app\console\model\AdminMenu::class => ['name'],
+    \app\console\model\AdminDepartment::class => ['name', 'pk', 'autoWriteTimestamp'],
     \app\console\model\AuthGroupDepartment::class => ['name', 'autoWriteTimestamp'],
     \app\console\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
     \app\console\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],

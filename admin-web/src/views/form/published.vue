@@ -13,7 +13,16 @@
       </template>
       <el-table :data="rows" border row-key="id">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column v-for="field in listFields" :key="field.field_name" :prop="field.field_name" :label="field.label" :width="field.list_width || undefined" show-overflow-tooltip />
+        <el-table-column v-for="field in listFields" :key="field.field_name" :prop="field.field_name" :label="field.label" :width="field.list_width || undefined" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ Number(row[field.field_name]) === 1 ? '是' : '否' }}</el-tag>
+            <el-tag v-else-if="field.list_formatter === 'tag'">{{ row[field.field_name] }}</el-tag>
+            <el-image v-else-if="field.list_formatter === 'image'" :src="String(row[field.field_name] || '')" fit="cover" class="h-10 w-10 rounded" />
+            <span v-else-if="field.list_formatter === 'money'">￥{{ Number(row[field.field_name] || 0).toFixed(2) }}</span>
+            <span v-else-if="field.list_formatter === 'percent'">{{ Number(row[field.field_name] || 0).toFixed(2) }}%</span>
+            <span v-else>{{ row[field.field_name] }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDialog(row)">编辑</el-button>

@@ -61,7 +61,8 @@ $service = new DevPluginService(
         file_put_contents($output, 'test archive');
         $verify($output);
         return ['sha256' => hash_file('sha256', $output), 'tree_hash' => hash('sha256', 'tree'), 'files' => ['plugin.json']];
-    }
+    },
+    static fn (): array => []
 );
 
 try {
@@ -116,9 +117,11 @@ try {
     }
 
     $migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/067_plugin_development_permissions.sql');
-    foreach (['previewcreate', 'create', 'validate', 'package', 'packagedownload', 'options'] as $action) {
+    foreach (['previewcreate', 'create', 'validate', 'package', 'options'] as $action) {
         devPluginExpect(str_contains($migration, "'console/development.devplugin','{$action}'"), '插件开发权限资源必须匹配控制器：' . $action);
     }
+    $downloadMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/071_plugin_admin_web_registry_naming.sql');
+    devPluginExpect(str_contains($downloadMigration, "'console/development.devplugin','packagedownload'"), '插件包下载权限必须通过新 migration 向前补充');
 
     $crudController = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/development/DevCrud.php');
     $crudService = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/DevCrudService.php');

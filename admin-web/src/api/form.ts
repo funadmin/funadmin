@@ -123,5 +123,6 @@ export const formDesignerApi = {
   publish: (definition: Record<string, unknown>, confirmToken: string, allowOverwrite: string[]) =>
     http.post<FormPublishResult>(`${PREFIX}/publish`, { definition, confirmToken, allowOverwrite }),
   publishStatus: (id: number) => http.get<{ publishStatus: FormPublishStatus; publishedAt?: string | null; generationId?: number | null }>(`${PREFIX}/publish-status/${id}`),
+  generation: (id: number) => http.get<Record<string, unknown>>(`${PREFIX}/generation/${id}`),
   retryResources: (id: number) => http.post<{ publishStatus: FormPublishStatus; resourceApplyStatus: string }>(`${PREFIX}/retry-resources/${id}`)
 };
