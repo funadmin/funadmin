@@ -22,7 +22,8 @@ describe('插件 code/name 字段硬切契约', () => {
     const api = read('admin-web/src/api/system/plugin.ts');
 
     expect(api).toContain("marketDetail: (code: string)");
-    expect(api).toContain("checkUpdates: (installed: Array<{ code: string; version: string }>)");
+    expect(api).toMatch(/interface UpdateCheckRequest\s*\{[\s\S]*?code: string;[\s\S]*?code_version: string;[\s\S]*?db_version: string;[\s\S]*?modified: boolean;/);
+    expect(api).toContain("checkUpdates: (installed: UpdateCheckRequest[])");
     expect(api).toContain("detail: (code: string)");
     expect(api).not.toMatch(/\((?:name|pluginName): string/);
   });

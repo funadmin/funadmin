@@ -98,9 +98,9 @@ final class PluginMarketplaceService extends AbstractService
         return $this->gateway->versions($code);
     }
 
-    public function checkUpdates(array $installed): array
+    public function checkUpdates(UpdateCheckRequestDto $request): array
     {
-        return $this->gateway->checkUpdates(new UpdateCheckRequestDto($installed));
+        return $this->gateway->checkUpdates($request);
     }
 
     public function installCloud(string $code, string $version): array

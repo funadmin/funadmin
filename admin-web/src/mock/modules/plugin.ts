@@ -3,7 +3,7 @@ import type { MockRoute } from '../types';
 import { fail, ok, page } from '../types';
 
 let account: Record<string, unknown> | null = null;
-const initialInstalled = (): PluginItem[] => [{ code: 'demo', name: '演示插件', version: '1.0.0', latestVersion: '1.1.0', dbVersion: '1.0.0', state: 'disabled', dependencies: {}, migrationPending: false, lastError: '', source: 'installed', needsReinstall: false, operation: '', progress: 0 }];
+const initialInstalled = (): PluginItem[] => [{ code: 'demo', name: '演示插件', version: '1.0.0', latestVersion: '1.1.0', dbVersion: '1.0.0', state: 'disabled', dependencies: {}, migrationPending: false, modified: false, lastError: '', source: 'installed', needsReinstall: false, operation: '', progress: 0 }];
 const installed: PluginItem[] = initialInstalled();
 
 export function resetPluginMockState(): void {
@@ -82,6 +82,7 @@ export const pluginMockHandlers: MockRoute[] = [
         state: 'disabled',
         dependencies: {},
         migrationPending: false,
+        modified: false,
         lastError: '',
         source: 'cloud',
         needsReinstall: false,

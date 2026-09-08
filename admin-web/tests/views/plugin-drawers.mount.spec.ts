@@ -3,10 +3,12 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PluginAccountDrawer from '@/views/system/plugin/components/PluginAccountDrawer.vue';
 import PluginHistoryDrawer from '@/views/system/plugin/components/PluginHistoryDrawer.vue';
+import PluginMarketDrawer from '@/views/system/plugin/components/PluginMarketDrawer.vue';
 
 const api = vi.hoisted(() => ({
   currentAccount: vi.fn(), accountLogin: vi.fn(), accountRefresh: vi.fn(), accountLogout: vi.fn(),
-  operations: vi.fn(), history: vi.fn(), recoveryInfo: vi.fn(), historyDownloadUrl: vi.fn(), redeployHistory: vi.fn()
+  operations: vi.fn(), history: vi.fn(), recoveryInfo: vi.fn(), historyDownloadUrl: vi.fn(), redeployHistory: vi.fn(),
+  marketDetail: vi.fn(), marketVersions: vi.fn()
 }));
 const dialogs = vi.hoisted(() => ({ confirm: vi.fn() }));
 const messages = vi.hoisted(() => ({ success: vi.fn() }));
@@ -54,7 +56,11 @@ const ElButton = defineComponent({
   setup(props, { attrs, slots, emit }) { return () => h('button', { ...attrs, disabled: props.disabled, 'data-loading': String(props.loading), onClick: () => emit('click') }, slots.default?.()); }
 });
 const ElTable = defineComponent({ setup(_, { slots }) { return () => h('div', slots.default?.()); } });
-const ElTableColumn = defineComponent({ setup(_, { slots }) { return () => h('div', slots.default?.({ row: { id: 7, version: '1.0.0', downloadable: true } })); } });
+const ElTableColumn = defineComponent({ setup(_, { slots }) { return () => h('div', slots.default?.({ row: {
+  id: 7, version: '1.0.0', downloadable: true, compatible: false, compatibleReason: 'PHP 版本不兼容',
+  manifestSchema: 2, packageFormat: 'funadmin-native-app-v1', applications: { app: true, console: true },
+  signatureAlgorithm: 'ed25519', databaseCapability: '003_seed.sql'
+} })); } });
 const globals = {
   stubs: {
     ElDrawer, ElAlert, ElForm, ElFormItem, ElInput, ElButton,
@@ -77,6 +83,8 @@ beforeEach(() => {
   api.recoveryInfo.mockResolvedValue({ available: true, stage: 'migration', message: '请禁用插件后重试迁移' });
   api.historyDownloadUrl.mockReturnValue('/system/plugin/demo/history/7/download');
   api.redeployHistory.mockResolvedValue({});
+  api.marketDetail.mockResolvedValue({ id: 1, code: 'demo', name: 'Demo', description: '插件', author: 'FunAdmin', versions: [] });
+  api.marketVersions.mockResolvedValue([]);
 });
 
 function accountDrawer(modelValue = true) {
@@ -233,6 +241,26 @@ describe('插件抽屉 mount 行为', () => {
     await redeploy?.trigger('click');
     await flushPromises();
     expect(api.redeployHistory).toHaveBeenCalledWith('demo', 7, false);
+  });
+
+  it('市场抽屉展示 v3 能力并禁止安装不兼容版本', async () => {
+    api.marketVersions.mockResolvedValue([{
+      id: 1, pluginCode: 'demo', version: '2.0.0', changelog: 'v3', compatible: false, requires: {}, compatibleRange: '',
+      publishedAt: '', sha256: 'a'.repeat(64), signature: 'sig', signatureAlgorithm: 'ed25519', size: 100,
+      manifestSchema: 2, packageFormat: 'funadmin-native-app-v1', treeHash: 'b'.repeat(64), databaseCapability: '003_seed.sql',
+      applications: { app: true, console: true }, compatibleReason: 'PHP 版本不兼容'
+    }]);
+    const wrapper = mount(PluginMarketDrawer, { props: { modelValue: true, code: 'demo' }, global: globals });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Manifest v2');
+    expect(wrapper.text()).toContain('原生包');
+    expect(wrapper.text()).toContain('应用能力');
+    expect(wrapper.text()).toContain('Ed25519');
+    expect(wrapper.text()).toContain('003_seed.sql');
+    expect(wrapper.text()).toContain('PHP 版本不兼容');
+    const install = wrapper.findAll('button').find((button) => button.text() === '安装');
+    expect(install?.attributes('disabled')).toBeDefined();
   });
 
   it('历史重部署按生命周期门禁禁用并展示原因', async () => {

@@ -18,6 +18,8 @@ use think\facade\Db;
  */
 final class PluginCenterService extends AbstractService
 {
+    private ?PluginModificationDetector $modificationDetector = null;
+
     public function discovered(): array
     {
         $installed = array_fill_keys(Plugin::column('code'), true);
@@ -177,8 +179,14 @@ final class PluginCenterService extends AbstractService
             'operation' => (string) ($record?->operation_token ?? '') !== '' ? (string) ($operation?->operation ?? 'unknown') : '',
             'progress' => (int) ($operation?->progress ?? 0),
             'disabledReason' => $this->disabledReason($record, $dependencies),
+            'modified' => $record !== null && $this->modificationDetector()->isModified((string) $record->code),
             'adminWeb' => is_array($data['adminWeb'] ?? null) ? $data['adminWeb'] : null,
         ];
+    }
+
+    private function modificationDetector(): PluginModificationDetector
+    {
+        return $this->modificationDetector ??= PluginModificationDetector::create();
     }
 
     private function decodedManifest(?Plugin $record): array

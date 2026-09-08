@@ -25,7 +25,15 @@ export interface PluginItem {
   needsReinstall: boolean;
   operation: string;
   progress: number;
+  modified: boolean;
   disabledReason?: string;
+}
+
+export interface UpdateCheckRequest {
+  code: string;
+  code_version: string;
+  db_version: string;
+  modified: boolean;
 }
 
 export interface UpdateCheck {
@@ -33,6 +41,10 @@ export interface UpdateCheck {
   installedVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
+  compatible: boolean;
+  databaseCompatible: boolean;
+  requiresManualMerge: boolean;
+  reason: string;
 }
 
 export interface MarketplaceVersion {
@@ -48,6 +60,12 @@ export interface MarketplaceVersion {
   signature: string | null;
   signatureAlgorithm: string | null;
   size: number;
+  manifestSchema: number;
+  packageFormat: string;
+  treeHash: string;
+  databaseCapability: string;
+  applications: Record<string, boolean>;
+  compatibleReason: string;
 }
 
 export interface MarketplacePlugin {
@@ -122,7 +140,7 @@ export const pluginApi = {
   marketSearch: (params: API.PageQuery & { categoryId?: number }) => http.get<API.PageResult<MarketplacePlugin>>(`${PREFIX}/market/search`, params),
   marketDetail: (code: string) => http.get<MarketplacePlugin>(`${PREFIX}/market/${code}`),
   marketVersions: (code: string) => http.get<MarketplaceVersion[]>(`${PREFIX}/market/${code}/versions`),
-  checkUpdates: (installed: Array<{ code: string; version: string }>) => http.post<UpdateCheck[]>(`${PREFIX}/market/check-updates`, { installed }),
+  checkUpdates: (installed: UpdateCheckRequest[]) => http.post<UpdateCheck[]>(`${PREFIX}/market/check-updates`, { installed }),
   discovered: () => http.get<PluginItem[]>(`${PREFIX}/local/discovered`),
   installed: () => http.get<PluginItem[]>(`${PREFIX}/local/installed`),
   detail: (code: string) => http.get<PluginItem>(`${PREFIX}/local/${code}`),

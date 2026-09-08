@@ -34,6 +34,9 @@
 !/tests/plugin_runtime_hard_cut_test.php
 !/tests/dev_plugin_api_test.php
 !/tests/plugin_phase1_test.php
+!/tests/plugin_phase2_test.php
+!/tests/plugin_marketplace_remaining_test.php
+!/tests/plugin_modification_detector_test.php
 !/tests/crud/
 !/tests/crud/plugin_target_test.php
 !/tests/fixtures/

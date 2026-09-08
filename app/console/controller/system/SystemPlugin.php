@@ -14,6 +14,7 @@ use app\console\service\PluginPackagePipeline;
 use app\console\service\PluginPackageService;
 use app\console\service\PluginService;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
+use app\common\plugin\marketplace\dto\UpdateCheckRequestDto;
 use InvalidArgumentException;
 use RuntimeException;
 use think\annotation\route\Delete;
@@ -129,7 +130,7 @@ final class SystemPlugin extends AdminApiController
     {
         $installed = $this->request->post('installed', []);
         return is_array($installed)
-            ? $this->execute(fn () => $this->marketplace->checkUpdates($installed))
+            ? $this->execute(fn () => $this->marketplace->checkUpdates(new UpdateCheckRequestDto($installed)))
             : $this->fail(msg: 'installed 必须是数组', code: 422);
     }
 

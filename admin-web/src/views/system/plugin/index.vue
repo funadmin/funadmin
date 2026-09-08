@@ -51,7 +51,8 @@
         <el-table-column prop="code" label="code" width="130" /><el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
         <el-table-column label="latest version" width="120"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
-        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
+        <el-table-column label="能力" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
+        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
       </el-table>
     </template>
 
@@ -101,6 +102,15 @@ function openDevelopment(mode: 'create' | 'maintain' | 'crud') {
   developmentVisible.value = true;
 }
 function dependencies(value: Record<string, string>) { return Object.entries(value || {}).map(([name, version]) => `${name} ${version}`).join(', ') || '-'; }
+function marketCapabilities(item: MarketplacePlugin) {
+  const version = item.versions[0];
+  if (!version) return '-';
+  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => name).join('、');
+  const signature = version.signatureAlgorithm === 'ed25519' ? 'Ed25519' : (version.signatureAlgorithm || '未签名');
+  const database = version.databaseCapability ? `DB ${version.databaseCapability}` : 'DB 无迁移要求';
+  const compatibility = version.compatibleReason ? ` · ${version.compatibleReason}` : '';
+  return `Manifest v${version.manifestSchema} · ${version.packageFormat === 'funadmin-native-app-v1' ? '原生包' : version.packageFormat} · ${apps || '无应用能力'} · ${signature} · ${database}${compatibility}`;
+}
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === 'object' && 'msg' in error && typeof error.msg === 'string') return error.msg;
@@ -108,6 +118,8 @@ function errorMessage(error: unknown) {
 }
 function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' | 'enable' | 'disable' | 'uninstall' | 'purge') {
   if (row.operation) return row.disabledReason || `插件正在执行 ${row.operation}（${row.progress}%）`;
+  if (action === 'update' && row.modified) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '检测到本地修改，需要人工合并';
+  if (action === 'update' && (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '';
   if (row.needsReinstall && action !== 'purge') return '插件需要重新安装后才能执行此操作';
   if (action === 'enable' && row.migrationPending) return '存在待执行数据库迁移，完成迁移后才能启用';
   if (action === 'enable' && Object.keys(row.dependencies || {}).length > 0 && row.disabledReason) return row.disabledReason;
@@ -125,11 +137,19 @@ async function load() {
     items.value = loaded;
     if (activeTab.value !== 'installed' || loaded.length === 0) return;
     try {
-      const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ code: item.code, version: item.version })));
+      const updates = await pluginApi.checkUpdates(loaded.map((item) => ({
+        code: item.code,
+        code_version: item.version,
+        db_version: item.dbVersion,
+        modified: item.modified
+      })));
       const updatesByCode = new Map(updates.map((item) => [item.code, item]));
       items.value = loaded.map((item) => {
         const update = updatesByCode.get(item.code);
-        return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '' };
+        const updateBlockedReason = update?.requiresManualMerge || update?.compatible === false || update?.databaseCompatible === false
+          ? update.reason || '当前版本不允许自动更新'
+          : '';
+        return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '', updateBlockedReason };
       });
     } catch (error) {
       pageError.value = errorMessage(error);
@@ -154,7 +174,7 @@ async function deletePackage(row: PluginItem) { await confirmAction(() => ElMess
 function openConfig(row: PluginItem) { selectedCode.value = row.code; configVisible.value = true; }
 function openHistory(row: PluginItem) { selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
 function openMarket(row: MarketplacePlugin) { selectedCode.value = row.code; marketVisible.value = true; }
-async function installMarket(row: MarketplacePlugin) { const version = row.versions[0]?.version; if (!version) return; await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${row.code} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
+async function installMarket(row: MarketplacePlugin) { const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${row.code} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
 async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${selectedCode.value} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
 onMounted(load);
 </script>

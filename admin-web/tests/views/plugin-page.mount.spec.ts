@@ -45,7 +45,11 @@ const ElButton = defineComponent({
 });
 const ElTabs = defineComponent({
   props: { modelValue: String }, emits: ['update:modelValue', 'tab-change'],
-  setup(_, { slots, emit }) { return () => h('nav', [slots.default?.(), h('button', { 'data-tab': 'local', onClick: () => { emit('update:modelValue', 'local'); emit('tab-change', 'local'); } }, '本地包')]); }
+  setup(_, { slots, emit }) { return () => h('nav', [
+    slots.default?.(),
+    h('button', { 'data-tab': 'local', onClick: () => { emit('update:modelValue', 'local'); emit('tab-change', 'local'); } }, '本地包'),
+    h('button', { 'data-tab': 'market', onClick: () => { emit('update:modelValue', 'market'); emit('tab-change', 'market'); } }, '云市场')
+  ]); }
 });
 const passthrough = defineComponent({ setup(_, { slots }) { return () => h('div', slots.default?.()); } });
 const ElAlert = defineComponent({ props: { title: String }, setup(props) { return () => h('div', { role: 'alert' }, props.title); } });
@@ -53,7 +57,7 @@ const ElAlert = defineComponent({ props: { title: String }, setup(props) { retur
 const plugin = (overrides: Partial<Row> = {}) => ({
   code: 'demo', name: 'Demo', version: '1.0.0', latestVersion: '', dbVersion: '001',
   state: 'disabled', dependencies: {}, migrationPending: false, lastError: '', source: 'installed',
-  needsReinstall: false, operation: '', progress: 0, disabledReason: '', ...overrides
+  needsReinstall: false, operation: '', progress: 0, disabledReason: '', modified: false, ...overrides
 });
 
 const mountPage = (permissions: string[] = []) => mount(PluginPage, {
@@ -121,7 +125,7 @@ describe('插件中心页面 mount 行为', () => {
 
   it('按权限隐藏写操作，并按生命周期与进行中操作禁用按钮且展示原因', async () => {
     api.installed.mockResolvedValue([plugin({ operation: 'update', progress: 45, disabledReason: '插件正在执行 update（45%）' })]);
-    api.checkUpdates.mockResolvedValue([{ code: 'demo', installedVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true }]);
+    api.checkUpdates.mockResolvedValue([{ code: 'demo', installedVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true, compatible: true, databaseCompatible: true, requiresManualMerge: false, reason: '' }]);
     const wrapper = mountPage(['system:plugin:update']);
     await flushPromises();
 
@@ -129,6 +133,43 @@ describe('插件中心页面 mount 行为', () => {
     expect(update?.attributes('disabled')).toBeDefined();
     expect(update?.attributes('title')).toContain('45%');
     expect(visibleButton(wrapper, '卸载')).toBeUndefined();
+  });
+
+  it('更新检查发送本地 modified 并按 manual merge 禁用云更新', async () => {
+    api.installed.mockResolvedValue([plugin({ modified: true })]);
+    api.checkUpdates.mockResolvedValue([{ code: 'demo', installedVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true, compatible: true, databaseCompatible: true, requiresManualMerge: true, reason: '存在本地修改，需要人工合并' }]);
+    const wrapper = mountPage(['system:plugin:update']);
+    await flushPromises();
+
+    expect(api.checkUpdates).toHaveBeenCalledWith([{ code: 'demo', code_version: '1.0.0', db_version: '001', modified: true }]);
+    const update = visibleButton(wrapper, '更新');
+    expect(update?.attributes('disabled')).toBeDefined();
+    expect(update?.attributes('title')).toContain('人工合并');
+  });
+
+  it('云市场列表显示完整 v3 能力与不兼容原因', async () => {
+    api.marketSearch.mockResolvedValue({ list: [{
+      id: 1, code: 'demo', name: 'Demo', description: '插件', author: 'FunAdmin', versions: [{
+        id: 2, pluginCode: 'demo', version: '2.0.0', changelog: '', compatible: false,
+        requires: {}, compatibleRange: '', publishedAt: '', sha256: 'a'.repeat(64), signature: 'c2ln',
+        signatureAlgorithm: 'ed25519', size: 100, manifestSchema: 2,
+        packageFormat: 'funadmin-native-app-v1', treeHash: 'b'.repeat(64),
+        databaseCapability: '003_seed.sql', applications: { app: true, console: true },
+        compatibleReason: 'PHP 版本不兼容'
+      }]
+    }], total: 1 });
+    const wrapper = mountPage(['system:plugin:install']);
+    await flushPromises();
+    await wrapper.get('[data-tab="market"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Manifest v2');
+    expect(wrapper.text()).toContain('原生包');
+    expect(wrapper.text()).toContain('app、console');
+    expect(wrapper.text()).toContain('Ed25519');
+    expect(wrapper.text()).toContain('DB 003_seed.sql');
+    expect(wrapper.text()).toContain('PHP 版本不兼容');
+    expect(visibleButton(wrapper, '安装')?.attributes('disabled')).toBeDefined();
   });
 
   it('云市场未登录时保留已安装列表并展示可读错误', async () => {

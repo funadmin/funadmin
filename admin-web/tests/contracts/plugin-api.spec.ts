@@ -23,20 +23,22 @@ describe('pluginApi', () => {
     expect(http.post).toHaveBeenCalledWith('/system/plugin/cloud/demo/install', { version: '1.2.3' }, expect.any(Object));
   });
 
-  it('更新检查使用 UpdateCheck 数组契约', async () => {
+  it('更新检查发送精确 v3 installed 字段并返回兼容门禁', async () => {
     const checks: UpdateCheck[] = [{
-      name: 'demo',
+      code: 'demo',
       installedVersion: '1.0.0',
       latestVersion: '1.1.0',
-      updateAvailable: true
+      updateAvailable: true,
+      compatible: true,
+      databaseCompatible: true,
+      requiresManualMerge: false,
+      reason: ''
     }];
     vi.mocked(http.post).mockResolvedValueOnce(checks);
+    const installed = [{ code: 'demo', code_version: '1.0.0', db_version: '003_seed.sql', modified: true }];
 
-    await expect(pluginApi.checkUpdates([{ name: 'demo', version: '1.0.0' }])).resolves.toEqual(checks);
-    expect(http.post).toHaveBeenCalledWith(
-      '/system/plugin/market/check-updates',
-      { installed: [{ name: 'demo', version: '1.0.0' }] }
-    );
+    await expect(pluginApi.checkUpdates(installed)).resolves.toEqual(checks);
+    expect(http.post).toHaveBeenCalledWith('/system/plugin/market/check-updates', { installed });
   });
 
   it('刷新、发现安装、本地更新与历史动作使用独立契约', async () => {
