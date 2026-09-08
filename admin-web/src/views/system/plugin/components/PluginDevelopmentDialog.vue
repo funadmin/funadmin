@@ -11,7 +11,7 @@
         </el-form>
         <el-alert v-if="preview?.conflicts.length" type="error" :title="`冲突：${preview.conflicts.join(', ')}`" :closable="false" />
         <el-table v-if="preview?.plan" :data="planFiles(preview.plan.files)" size="small" max-height="220"><el-table-column prop="path" label="目标文件" /><el-table-column prop="status" label="状态" width="90" /></el-table>
-        <div class="actions"><el-button :loading="loading" @click="previewPlugin">预览</el-button><el-button type="primary" :loading="loading" :disabled="!preview || preview.conflicts.length > 0" @click="createPlugin">确认创建</el-button></div>
+        <div class="actions"><el-button v-perm="'development:plugin:create-preview'" :loading="loading" @click="previewPlugin">预览</el-button><el-button v-perm="'development:plugin:create'" type="primary" :loading="loading" :disabled="!preview || preview.conflicts.length > 0" @click="createPlugin">确认创建</el-button></div>
       </el-tab-pane>
       <el-tab-pane label="校验/打包" name="maintain">
         <el-form label-width="110px"><el-form-item label="插件"><el-select v-model="selectedCode" class="w-full"><el-option v-for="item in plugins" :key="item.code" :label="`${item.name} (${item.code})`" :value="item.code" /></el-select></el-form-item></el-form>
