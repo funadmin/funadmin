@@ -410,6 +410,12 @@ final class SystemPlugin extends AdminApiController
             'signature' => $item->signature,
             'signatureAlgorithm' => $item->signatureAlgorithm,
             'size' => $item->size,
+            'manifestSchema' => $item->manifestSchema,
+            'packageFormat' => $item->packageFormat,
+            'treeHash' => $item->treeHash,
+            'databaseCapability' => $item->databaseCapability,
+            'applications' => $item->applications,
+            'compatibleReason' => $item->compatibleReason,
         ];
     }
 }

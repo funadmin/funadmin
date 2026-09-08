@@ -14,6 +14,7 @@ use app\common\plugin\marketplace\dto\MarketplaceSearchResultDto;
 use app\common\plugin\marketplace\dto\PluginDetailDto;
 use app\common\plugin\marketplace\dto\PluginVersionDto;
 use app\common\plugin\marketplace\dto\UpdateCheckDto;
+use app\common\plugin\marketplace\dto\UpdateCheckRequestDto;
 
 /**
  * 插件市场能力边界，隐藏远端旧接口与字段差异。
@@ -38,8 +39,8 @@ interface PluginMarketplaceGateway
     /** @return list<PluginVersionDto> */
     public function versions(string $code): array;
 
-    /** @param array<string, string> $installed @return list<UpdateCheckDto> */
-    public function checkUpdates(array $installed): array;
+    /** @return list<UpdateCheckDto> */
+    public function checkUpdates(UpdateCheckRequestDto $request): array;
 
     public function authorize(string $code, string $version): AuthorizationDto;
 

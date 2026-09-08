@@ -8,14 +8,13 @@ use GuzzleHttp\ClientInterface;
 use JsonException;
 
 /**
- * 旧云 API 的无状态 HTTP transport，统一超时与传输错误。
+ * 插件市场 v3 无状态 HTTP transport，统一超时与传输错误。
  */
-final class LegacyCloudHttpTransport
+final class NativeMarketplaceHttpTransport
 {
     public function __construct(
         private readonly ClientInterface $client,
         private readonly string $domain,
-        private readonly string $platformVersion,
         private readonly int $timeout = 30,
         private readonly int $connectTimeout = 10
     ) {
@@ -29,7 +28,7 @@ final class LegacyCloudHttpTransport
         }
         try {
             $response = $this->client->request('POST', rtrim($this->domain, '/') . '/' . ltrim($endpoint, '/'), [
-                'form_params' => ['app_version' => $this->platformVersion] + $params,
+                'json' => $params,
                 'headers' => $headers,
                 'timeout' => $this->timeout,
                 'connect_timeout' => $this->connectTimeout,

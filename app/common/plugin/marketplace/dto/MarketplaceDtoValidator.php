@@ -22,6 +22,29 @@ final class MarketplaceDtoValidator
         }
     }
 
+    public static function hash(string $hash, string $field): void
+    {
+        if (!preg_match('/^[a-f0-9]{64}$/', $hash)) {
+            throw new InvalidArgumentException($field . ' 必须是 64 位小写十六进制 SHA-256');
+        }
+    }
+
+    public static function databaseCapability(string $capability): void
+    {
+        if ($capability !== '' && !preg_match('/^\d+[A-Za-z0-9._-]*\.sql$/', $capability)) {
+            throw new InvalidArgumentException('数据库能力格式无效');
+        }
+    }
+
+    public static function applications(array $applications): void
+    {
+        if (array_keys($applications) !== ['app', 'console']
+            || !is_bool($applications['app'])
+            || !is_bool($applications['console'])) {
+            throw new InvalidArgumentException('applications 必须严格包含 app 与 console 布尔值');
+        }
+    }
+
     public static function downloadUrl(string $url): void
     {
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));

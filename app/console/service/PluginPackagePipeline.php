@@ -106,6 +106,7 @@ final class PluginPackagePipeline
         if ($descriptor->code !== $code || $descriptor->version !== $version) {
             throw new RuntimeException('云请求版本、下载描述版本或插件标识不一致');
         }
+        $downloader->assertCloudDescriptor($descriptor);
         $archive = $downloader->download($descriptor);
         try {
             return $this->run(

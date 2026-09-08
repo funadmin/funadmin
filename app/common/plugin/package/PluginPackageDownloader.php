@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace app\common\plugin\package;
 
 use app\common\plugin\marketplace\dto\DownloadDescriptorDto;
+use app\common\plugin\marketplace\dto\MarketplaceProtocol;
 use InvalidArgumentException;
+use JsonException;
 use RuntimeException;
 
 /**
@@ -38,8 +40,20 @@ final class PluginPackageDownloader
         }
     }
 
+    public function assertCloudDescriptor(DownloadDescriptorDto $descriptor): void
+    {
+        if ($descriptor->manifestSchema !== MarketplaceProtocol::MANIFEST_SCHEMA
+            || $descriptor->packageFormat !== MarketplaceProtocol::PACKAGE_FORMAT
+            || $descriptor->algorithm !== MarketplaceProtocol::SIGNATURE_ALGORITHM
+            || trim($descriptor->signature) === ''
+            || preg_match('/^[a-f0-9]{64}$/', $descriptor->treeHash) !== 1) {
+            throw new RuntimeException('云下载描述不符合 v3 原生包契约');
+        }
+    }
+
     public function download(DownloadDescriptorDto $descriptor): string
     {
+        $this->assertCloudDescriptor($descriptor);
         if (strtolower((string) parse_url($descriptor->url, PHP_URL_SCHEME)) !== 'https' && !$this->allowHttpForInjectedTestStream) {
             throw new RuntimeException('生产云下载必须使用 HTTPS');
         }
@@ -77,8 +91,30 @@ final class PluginPackageDownloader
     {
         return [
             'signature_algorithm' => $descriptor->algorithm,
-            'signature_verified' => $descriptor->signature !== null && trim((string) $this->publicKey) !== '',
+            'signature_verified' => trim((string) $this->publicKey) !== '',
+            'manifest_schema' => $descriptor->manifestSchema,
+            'package_format' => $descriptor->packageFormat,
+            'tree_hash' => $descriptor->treeHash,
+            'database_capability' => $descriptor->databaseCapability,
         ];
+    }
+
+    public static function signaturePayload(DownloadDescriptorDto $descriptor): string
+    {
+        try {
+            return json_encode([
+                'code' => $descriptor->code,
+                'code_version' => $descriptor->version,
+                'database_capability' => $descriptor->databaseCapability,
+                'manifest_schema' => $descriptor->manifestSchema,
+                'package_format' => $descriptor->packageFormat,
+                'sha256' => $descriptor->sha256,
+                'size' => $descriptor->size,
+                'tree_hash' => $descriptor->treeHash,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('插件包签名 metadata 无法规范化', 0, $exception);
+        }
     }
 
     private function verifyFile(string $file, DownloadDescriptorDto $descriptor): void
@@ -88,36 +124,31 @@ final class PluginPackageDownloader
             throw new RuntimeException('插件安装包大小不匹配或超过 100MB 限制');
         }
         $actualHash = hash_file('sha256', $file);
-        if (!is_string($actualHash) || !hash_equals(strtolower($descriptor->sha256), strtolower($actualHash))) {
+        if (!is_string($actualHash) || !hash_equals($descriptor->sha256, strtolower($actualHash))) {
             throw new RuntimeException('插件安装包 SHA-256 校验失败');
         }
-        $this->verifySignature($actualHash, $descriptor);
+        $this->verifySignature($descriptor);
     }
 
-    private function verifySignature(string $hash, DownloadDescriptorDto $descriptor): void
+    private function verifySignature(DownloadDescriptorDto $descriptor): void
     {
         $hasPublicKey = trim((string) $this->publicKey) !== '';
-        if ($descriptor->signature === null) {
-            if ($hasPublicKey || $this->unsignedPolicy !== 'allow_unsigned') {
-                throw new RuntimeException('当前签名策略拒绝未签名插件包');
-            }
-            return;
-        }
-        if (strtolower((string) $descriptor->algorithm) !== 'rsa-sha256') {
-            throw new RuntimeException('不支持的插件包签名算法，必须为 rsa-sha256');
-        }
         if (!$hasPublicKey) {
             if ($this->unsignedPolicy === 'allow_unsigned') {
                 return;
             }
             throw new RuntimeException('插件包包含签名但未配置验证公钥');
         }
-        $signature = base64_decode($descriptor->signature, true);
-        if ($signature === false || !function_exists('openssl_verify')) {
-            throw new RuntimeException('插件包签名格式无效或 OpenSSL 不可用');
+        if (!function_exists('sodium_crypto_sign_verify_detached')) {
+            throw new RuntimeException('插件包签名验证需要 Sodium 扩展');
         }
-        $rawDigest = hex2bin($hash);
-        if ($rawDigest === false || openssl_verify($rawDigest, $signature, $this->publicKey, OPENSSL_ALGO_SHA256) !== 1) {
+        $signature = base64_decode($descriptor->signature, true);
+        $publicKey = base64_decode((string) $this->publicKey, true);
+        if ($signature === false || strlen($signature) !== SODIUM_CRYPTO_SIGN_BYTES
+            || $publicKey === false || strlen($publicKey) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
+            throw new RuntimeException('插件包 Ed25519 签名或公钥格式无效');
+        }
+        if (!sodium_crypto_sign_verify_detached($signature, self::signaturePayload($descriptor), $publicKey)) {
             throw new RuntimeException('插件包签名验证失败');
         }
     }

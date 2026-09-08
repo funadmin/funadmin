@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace app\console\service;
 
 use app\common\plugin\marketplace\CloudAccountSession;
-use app\common\plugin\marketplace\LegacyCloudHttpTransport;
-use app\common\plugin\marketplace\LegacyCloudMarketplaceAdapter;
+use app\common\plugin\marketplace\NativeMarketplaceAdapter;
+use app\common\plugin\marketplace\NativeMarketplaceHttpTransport;
 use app\common\plugin\marketplace\PluginMarketplaceGateway;
 use app\common\plugin\marketplace\ThinkSessionStore;
 use app\common\plugin\marketplace\dto\CloudAccountDto;
@@ -14,6 +14,7 @@ use app\common\plugin\marketplace\dto\LoginRequestDto;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
 use app\common\plugin\marketplace\dto\MarketplaceSearchResultDto;
 use app\common\plugin\marketplace\dto\PluginDetailDto;
+use app\common\plugin\marketplace\dto\UpdateCheckRequestDto;
 use app\common\plugin\package\GuzzlePackageStreamDownloader;
 use app\common\plugin\package\PluginPackageDownloader;
 use app\common\service\AbstractService;
@@ -36,15 +37,17 @@ final class PluginMarketplaceService extends AbstractService
     {
         $client = new Client();
         $marketplace = (array) config('plugins.marketplace');
-        $gateway = new LegacyCloudMarketplaceAdapter(
-            new LegacyCloudHttpTransport(
+        $platformVersion = (string) config('funadmin.version');
+        $gateway = new NativeMarketplaceAdapter(
+            new NativeMarketplaceHttpTransport(
                 $client,
                 (string) config('funadmin.api_domain'),
-                (string) config('funadmin.version'),
                 (int) ($marketplace['request_timeout'] ?? 30),
                 (int) ($marketplace['connect_timeout'] ?? 10)
             ),
-            new CloudAccountSession(new ThinkSessionStore())
+            new CloudAccountSession(new ThinkSessionStore()),
+            $platformVersion,
+            PHP_VERSION
         );
         $downloader = new PluginPackageDownloader(
             runtime_path('plugins' . DIRECTORY_SEPARATOR . 'download'),
@@ -97,7 +100,7 @@ final class PluginMarketplaceService extends AbstractService
 
     public function checkUpdates(array $installed): array
     {
-        return $this->gateway->checkUpdates($installed);
+        return $this->gateway->checkUpdates(new UpdateCheckRequestDto($installed));
     }
 
     public function installCloud(string $code, string $version): array
