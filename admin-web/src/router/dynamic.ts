@@ -154,8 +154,9 @@ function findFirstLeafRedirectPath(menu: API.MenuItem, menuFullPath: string): st
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   if (!vis.length) return undefined;
   const first = vis[0];
+  const absolute = first.path.startsWith('/');
   const seg = first.path.replace(/^\//, '');
-  const nextBase = `${menuFullPath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
+  const nextBase = absolute ? ensureLeadingSlash(first.path) : `${menuFullPath.replace(/\/$/, '')}/${seg}`.replace(/\/+/g, '/');
   const sub = (first.children || []).filter((c) => c.type !== 'B');
   if (!sub.length) return nextBase;
   return findFirstLeafRedirectPath(first, nextBase);

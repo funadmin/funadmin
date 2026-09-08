@@ -242,7 +242,7 @@ final class ProductionTemplateContext
         foreach ($data['fields'] as $field) {
             if (($field['search'] ?? false) === true) {
                 $operator = $field['searchOperator'] ?? 'eq';
-                $parameter = self::camel($field['name']) . ($operator === 'range' ? 'Range' : '');
+                $parameter = self::camel($field['name']) . (in_array($operator, ['range', 'date'], true) ? 'Range' : '');
                 if ($operator === 'like') $search[$parameter] = $field['name'];
                 elseif (in_array($operator, ['range', 'date'], true)) $range[$parameter] = $field['name'];
                 elseif ($operator === 'eq') $exact[$parameter] = $field['name'];
@@ -649,14 +649,18 @@ final class ProductionTemplateContext
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
         $schema = self::json($data['layoutSchema']);
+        $fieldMap = self::json(array_values(array_map(
+            static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
+            array_filter($data['fields'], static fn (array $field): bool => !($field['managed'] ?? false))
+        )));
         $formKey = str_replace('-', '_', (string) $data['entity']);
         return "<template><el-dialog v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaForm ref=\"schemaFormRef\" form-key=\"{$formKey}\" :fields=\"layoutSchema\" :values=\"form\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></el-dialog></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaForm from '@/views/form/components/SchemaForm.vue';\n"
             . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<{$type}Payload>({}); const schemaFormRef=ref<InstanceType<typeof SchemaForm>>(); const layoutSchema={$schema} as any[];\n"
-            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key as keyof {$type}Payload]);Object.assign(form,row||{});},{immediate:true});\n"
-            . "async function submit(){await schemaFormRef.value?.validate();if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",form);else await {$camel}Api.create(form);visible.value=false;emit('success');}\n</script>\n";
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaForm>>(); const layoutSchema={$schema} as any[]; const fieldMap={$fieldMap};\n"
+            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key]);for(const item of fieldMap)form[item.target]=row?.[item.source as keyof {$type}]??'';},{immediate:true});\n"
+            . "async function submit(){await schemaFormRef.value?.validate();const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",payload);else await {$camel}Api.create(payload);visible.value=false;emit('success');}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string
