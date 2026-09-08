@@ -80,12 +80,6 @@ final class Manifest
         return is_string($value) && $value !== '' ? $value : null;
     }
 
-    /** Manifest v2 使用原生应用目录，旧运行加载器调用时返回空边界。 */
-    public function loadPath(string $type): ?string
-    {
-        return null;
-    }
-
     public function directory(): string
     {
         return $this->directory;

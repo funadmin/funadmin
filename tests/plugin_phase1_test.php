@@ -59,7 +59,7 @@ $manifest = Manifest::fromDirectory($root . '/demo');
 expect($manifest->code() === 'demo' && $manifest->name() === '演示插件', '应读取 plugin.json code/name');
 expect($manifest->version() === '1.2.0', '应读取版本号');
 expect($manifest->dependencies() === ['base' => '^2.0'], '应读取带版本约束的依赖');
-expect($manifest->loadPath('services') === null, 'Manifest v2 旧加载边界必须为空');
+expect(!method_exists($manifest, 'loadPath'), 'Manifest v2 必须删除旧 runtime 加载边界');
 expectException(static fn () => Manifest::fromDirectory($root . '/missing'), 'plugin.json');
 file_put_contents($root . '/demo/plugin.ini', 'name=legacy');
 expect(Manifest::fromDirectory($root . '/demo')->code() === 'demo', '不得读取 plugin.ini');
