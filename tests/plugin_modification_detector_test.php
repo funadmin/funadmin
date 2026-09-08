@@ -93,4 +93,10 @@ file_put_contents($public . '/plugin-assets/demo/local.txt', 'untracked');
 detectorExpect($detector->isModified('demo') === true, 'file 发布根目录未登记文件必须 modified');
 detectorExpect($repository->records === $records, '修改检测必须只读且不得变更 registry');
 
+$linkedRoot = $root . '/linked-public';
+mkdir($linkedRoot . '/plugin-assets', 0755, true);
+symlink($public . '/plugin-assets/demo', $linkedRoot . '/plugin-assets/demo');
+$linkDetector = new PluginModificationDetector($app, $linkedRoot, $adminWeb, $repository);
+detectorExpect($linkDetector->isModified('demo') === true, '目标路径祖先符号链接必须判定 modified');
+
 echo "plugin modification detector tests: PASS\n";

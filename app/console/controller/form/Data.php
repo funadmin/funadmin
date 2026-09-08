@@ -70,8 +70,8 @@ final class Data extends AdminApiController
 
     #[Get('detail/:key/:id')]
     #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '\d+')]
-    public function detail(string $key, int $id): Response
+    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    public function detail(string $key, int|string $id): Response
     {
         return $this->execute(fn (): array => $this->data->detail($key, $id));
     }
@@ -102,8 +102,8 @@ final class Data extends AdminApiController
 
     #[Post('update/:key/:id')]
     #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '\d+')]
-    public function update(string $key, int $id): Response
+    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    public function update(string $key, int|string $id): Response
     {
         return $this->execute(fn (): array => $this->data->update($key, $id, $this->payload()), '更新成功');
     }
@@ -112,7 +112,8 @@ final class Data extends AdminApiController
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     public function remove(string $key): Response
     {
-        return $this->execute(fn (): array => $this->data->remove($key, (int) $this->request->post('id', 0)), '删除成功');
+        $id = $this->request->post('id', '');
+        return $this->execute(fn (): array => $this->data->remove($key, is_int($id) ? $id : trim((string) $id)), '删除成功');
     }
 
     private function payload(): array

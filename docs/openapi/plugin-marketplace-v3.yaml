@@ -1,0 +1,702 @@
+openapi: 3.1.0
+info:
+  title: FunAdmin 原生插件市场 API
+  version: 3.0.0
+  description: |
+    FunAdmin 原生插件市场 v3 服务端契约。
+    v3 仅接受 manifest schema 2、funadmin-native-app-v1 包格式和 Ed25519 签名制品。
+servers:
+  - url: https://api.funadmin.com
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+  - name: Marketplace
+paths:
+  /api/v3/auth/login:
+    post:
+      tags: [Authentication]
+      operationId: loginMarketplaceAccount
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/v3/auth/refresh:
+    post:
+      tags: [Authentication]
+      operationId: refreshMarketplaceToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: 令牌刷新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/v3/plugins/categories:
+    get:
+      tags: [Marketplace]
+      operationId: listPluginCategories
+      parameters:
+        - $ref: '#/components/parameters/ManifestSchema'
+        - $ref: '#/components/parameters/PackageFormat'
+        - $ref: '#/components/parameters/PlatformVersion'
+        - $ref: '#/components/parameters/PhpVersion'
+      responses:
+        '200':
+          description: 插件分类列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v3/plugins:
+    get:
+      tags: [Marketplace]
+      operationId: searchPlugins
+      parameters:
+        - $ref: '#/components/parameters/ManifestSchema'
+        - $ref: '#/components/parameters/PackageFormat'
+        - $ref: '#/components/parameters/PlatformVersion'
+        - $ref: '#/components/parameters/PhpVersion'
+        - name: keyword
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: category_id
+          in: query
+          schema:
+            type: [integer, 'null']
+            minimum: 1
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 插件搜索结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginSearchResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/v3/plugins/{code}:
+    get:
+      tags: [Marketplace]
+      operationId: getPluginDetail
+      parameters:
+        - $ref: '#/components/parameters/PluginCode'
+        - $ref: '#/components/parameters/ManifestSchema'
+        - $ref: '#/components/parameters/PackageFormat'
+        - $ref: '#/components/parameters/PlatformVersion'
+        - $ref: '#/components/parameters/PhpVersion'
+      responses:
+        '200':
+          description: 插件详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v3/plugins/{code}/versions:
+    get:
+      tags: [Marketplace]
+      operationId: listPluginVersions
+      parameters:
+        - $ref: '#/components/parameters/PluginCode'
+        - $ref: '#/components/parameters/ManifestSchema'
+        - $ref: '#/components/parameters/PackageFormat'
+        - $ref: '#/components/parameters/PlatformVersion'
+        - $ref: '#/components/parameters/PhpVersion'
+      responses:
+        '200':
+          description: 插件版本列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PluginVersionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v3/plugins/check-updates:
+    post:
+      tags: [Marketplace]
+      operationId: checkPluginUpdates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MarketplaceContext'
+                - $ref: '#/components/schemas/UpdateCheckRequest'
+              unevaluatedProperties: false
+      responses:
+        '200':
+          description: 更新检查结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCheckResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/v3/plugins/{code}/authorize:
+    post:
+      tags: [Marketplace]
+      operationId: authorizePluginDownload
+      parameters:
+        - $ref: '#/components/parameters/PluginCode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MarketplaceContext'
+                - $ref: '#/components/schemas/VersionOperationRequest'
+              unevaluatedProperties: false
+      responses:
+        '200':
+          description: 下载授权结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/v3/plugins/{code}/download:
+    post:
+      tags: [Marketplace]
+      operationId: createPluginDownload
+      parameters:
+        - $ref: '#/components/parameters/PluginCode'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MarketplaceContext'
+                - $ref: '#/components/schemas/VersionOperationRequest'
+              unevaluatedProperties: false
+      responses:
+        '200':
+          description: 已签名的原生插件包下载描述
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PluginCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PluginCode'
+    ManifestSchema:
+      name: manifest_schema
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/ManifestSchema'
+    PackageFormat:
+      name: package_format
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/PackageFormat'
+    PlatformVersion:
+      name: platform_version
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/SemanticVersion'
+    PhpVersion:
+      name: php_version
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$'
+  responses:
+    Unauthorized:
+      description: 登录状态无效或令牌已过期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 当前账号无权下载插件
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 插件或版本不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: 请求字段不符合 v3 契约
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    PluginCode:
+      type: string
+      pattern: '^[a-z][a-z0-9]*$'
+    SemanticVersion:
+      type: string
+      pattern: '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$'
+    ManifestSchema:
+      type: integer
+      const: 2
+    PackageFormat:
+      type: string
+      const: funadmin-native-app-v1
+    SignatureAlgorithm:
+      type: string
+      const: ed25519
+    Sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+    MarketplaceContext:
+      type: object
+      required: [manifest_schema, package_format, platform_version, php_version]
+      properties:
+        manifest_schema:
+          $ref: '#/components/schemas/ManifestSchema'
+        package_format:
+          $ref: '#/components/schemas/PackageFormat'
+        platform_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        php_version:
+          type: string
+          pattern: '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$'
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [account, password]
+      properties:
+        account:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+    Account:
+      type: object
+      additionalProperties: false
+      required: [id, username, nickname, avatar]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        username:
+          type: string
+          minLength: 1
+        nickname:
+          type: string
+          minLength: 1
+        avatar:
+          type: string
+    TokenData:
+      type: object
+      required: [access_token, refresh_token, expires_in]
+      properties:
+        access_token:
+          type: string
+          minLength: 1
+        refresh_token:
+          type: string
+          minLength: 1
+        expires_in:
+          type: integer
+          minimum: 1
+    LoginData:
+      allOf:
+        - $ref: '#/components/schemas/TokenData'
+        - type: object
+          required: [account]
+          properties:
+            account:
+              $ref: '#/components/schemas/Account'
+    Category:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+    Applications:
+      type: object
+      minProperties: 1
+      additionalProperties:
+        type: boolean
+    PluginVersion:
+      allOf:
+        - $ref: '#/components/schemas/PluginVersionFields'
+      unevaluatedProperties: false
+    PluginVersionFields:
+      type: object
+      required:
+        - id
+        - code
+        - code_version
+        - changelog
+        - compatible
+        - requires
+        - compatible_range
+        - published_at
+        - sha256
+        - signature
+        - signature_algorithm
+        - size
+        - manifest_schema
+        - package_format
+        - tree_hash
+        - database_capability
+        - applications
+        - compatible_reason
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        code_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        changelog:
+          type: string
+        compatible:
+          type: boolean
+        requires:
+          type: object
+          additionalProperties: true
+        compatible_range:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        sha256:
+          $ref: '#/components/schemas/Sha256'
+        signature:
+          type: string
+          minLength: 1
+        signature_algorithm:
+          $ref: '#/components/schemas/SignatureAlgorithm'
+        size:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+        manifest_schema:
+          $ref: '#/components/schemas/ManifestSchema'
+        package_format:
+          $ref: '#/components/schemas/PackageFormat'
+        tree_hash:
+          $ref: '#/components/schemas/Sha256'
+        database_capability:
+          type: string
+          pattern: '^(?:|\d+[A-Za-z0-9._-]*\.sql)$'
+        applications:
+          $ref: '#/components/schemas/Applications'
+        compatible_reason:
+          type: string
+    PluginDetail:
+      type: object
+      additionalProperties: false
+      required: [id, code, name, description, author, versions]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        author:
+          type: string
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PluginVersion'
+    InstalledPlugin:
+      type: object
+      additionalProperties: false
+      required: [code, code_version, db_version, modified]
+      properties:
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        code_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        db_version:
+          type: string
+        modified:
+          type: boolean
+    UpdateCheckRequest:
+      type: object
+      required: [installed]
+      properties:
+        installed:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstalledPlugin'
+    UpdateCheck:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - installed_version
+        - latest_version
+        - update_available
+        - compatible
+        - database_compatible
+        - requires_manual_merge
+        - reason
+      properties:
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        installed_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        latest_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        update_available:
+          type: boolean
+        compatible:
+          type: boolean
+        database_compatible:
+          type: boolean
+        requires_manual_merge:
+          type: boolean
+        reason:
+          type: string
+    VersionOperationRequest:
+      type: object
+      required: [code, code_version, db_version]
+      properties:
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        code_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        db_version:
+          type: string
+    Authorization:
+      type: object
+      additionalProperties: false
+      required: [code, code_version, authorized, message]
+      properties:
+        code:
+          $ref: '#/components/schemas/PluginCode'
+        code_version:
+          $ref: '#/components/schemas/SemanticVersion'
+        authorized:
+          type: boolean
+        message:
+          type: string
+    DownloadDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/PluginVersionFields'
+        - type: object
+          required: [url]
+          properties:
+            url:
+              type: string
+              format: uri
+              pattern: '^https://'
+      unevaluatedProperties: false
+    SuccessEnvelope:
+      type: object
+      required: [code, data]
+      properties:
+        code:
+          type: integer
+          const: 200
+        msg:
+          type: string
+        data: {}
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoginData'
+    RefreshResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TokenData'
+    CategoryListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Category'
+    PluginSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [items, total, page, limit]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PluginDetail'
+                total:
+                  type: integer
+                  minimum: 0
+                page:
+                  type: integer
+                  minimum: 1
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+    PluginDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PluginDetail'
+    PluginVersionListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PluginVersion'
+    UpdateCheckResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UpdateCheck'
+    AuthorizationResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Authorization'
+    DownloadResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DownloadDescriptor'
+    ErrorResponse:
+      type: object
+      required: [code, msg]
+      properties:
+        code:
+          type: integer
+        msg:
+          type: string
+        data:
+          type: [object, 'null']

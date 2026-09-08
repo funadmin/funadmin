@@ -316,4 +316,42 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__
 }
 remainingExpect(!str_contains($production, '/api/v2') && !str_contains($production, 'LegacyCloudMarketplaceAdapter'), '生产代码不得保留 v2 endpoint 或 Legacy adapter 引用');
 
+$openApiFile = dirname(__DIR__) . '/docs/openapi/plugin-marketplace-v3.yaml';
+remainingExpect(is_file($openApiFile), '必须提供插件市场服务端 v3 OpenAPI 契约');
+$openApi = (string) file_get_contents($openApiFile);
+foreach ([
+    '/api/v3/auth/login:',
+    '/api/v3/auth/refresh:',
+    '/api/v3/plugins/categories:',
+    '/api/v3/plugins:',
+    '/api/v3/plugins/{code}:',
+    '/api/v3/plugins/{code}/versions:',
+    '/api/v3/plugins/check-updates:',
+    '/api/v3/plugins/{code}/authorize:',
+    '/api/v3/plugins/{code}/download:',
+] as $path) {
+    remainingExpect(str_contains($openApi, $path), 'OpenAPI 缺少路径 ' . $path);
+}
+foreach ([
+    'MarketplaceContext:',
+    'UpdateCheckRequest:',
+    'PluginVersion:',
+    'DownloadDescriptor:',
+    'manifest_schema:',
+    'package_format:',
+    'tree_hash:',
+    'database_capability:',
+    'signature_algorithm:',
+] as $contract) {
+    remainingExpect(str_contains($openApi, $contract), 'OpenAPI 缺少契约 ' . $contract);
+}
+remainingExpect(str_contains($openApi, 'openapi: 3.1.0'), 'OpenAPI 契约版本必须为 3.1.0');
+remainingExpect(str_contains($openApi, 'const: 2'), 'OpenAPI 必须固定 manifest_schema=2');
+remainingExpect(str_contains($openApi, 'const: funadmin-native-app-v1'), 'OpenAPI 必须固定原生 package_format');
+remainingExpect(str_contains($openApi, 'const: ed25519'), 'OpenAPI 必须固定 Ed25519 签名算法');
+remainingExpect(substr_count($openApi, 'unevaluatedProperties: false') >= 4, 'OpenAPI 复合对象必须在最终 schema 禁止未评估字段');
+remainingExpect(!preg_match('/UpdateCheckRequest:\s+[\s\S]*?additionalProperties: false[\s\S]*?required: \[installed\]/', $openApi), 'UpdateCheckRequest 不得在 allOf 子 schema 提前封闭字段');
+remainingExpect(!preg_match('/VersionOperationRequest:\s+[\s\S]*?additionalProperties: false[\s\S]*?required: \[code, code_version, db_version\]/', $openApi), 'VersionOperationRequest 不得在 allOf 子 schema 提前封闭字段');
+remainingExpect(str_contains($openApi, "pattern: '^(?:|\\d+[A-Za-z0-9._-]*\\.sql)$'"), 'OpenAPI 数据库能力必须与客户端数字前缀规则一致');
+
 echo "plugin marketplace remaining tests: PASS\n";

@@ -49,7 +49,11 @@ final class PluginModificationDetector
         $nativeUnits = [];
         foreach ($records as $record) {
             $targetPath = (string) ($record['target_path'] ?? '');
-            $target = $this->resolveTarget($targetPath, $pluginCode);
+            try {
+                $target = $this->resolveTarget($targetPath, $pluginCode);
+            } catch (RuntimeException) {
+                return true;
+            }
             $registeredFiles[$target] = true;
             if (!is_file($target) || is_link($target)) {
                 return true;
@@ -179,10 +183,28 @@ final class PluginModificationDetector
     {
         $root = rtrim($root, DIRECTORY_SEPARATOR);
         if ($relative === '' || str_contains($relative, "\0") || str_contains($relative, '\\')
-            || str_starts_with($relative, '/') || preg_match('~(^|/)\.\.?(/|$)~', $relative) === 1) {
+            || str_starts_with($relative, '/') || preg_match('~(^|/)\.\.?(/|$)~', $relative) === 1
+            || is_link($root)) {
             throw new RuntimeException('插件 registry 目标路径越界');
         }
-        return $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        $rootReal = realpath($root);
+        if ($rootReal === false) {
+            throw new RuntimeException('插件 registry 根目录不存在');
+        }
+        $target = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        $current = $root;
+        foreach (explode('/', $relative) as $segment) {
+            $current .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($current)) {
+                throw new RuntimeException('插件 registry 目标路径禁止符号链接');
+            }
+        }
+        $targetReal = realpath($target);
+        if ($targetReal !== false && $targetReal !== $rootReal
+            && !str_starts_with($targetReal, $rootReal . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('插件 registry 目标路径越界');
+        }
+        return $target;
     }
 
     private function assertPluginCode(string $pluginCode): void

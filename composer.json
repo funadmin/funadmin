@@ -31,6 +31,7 @@
   "require": {
     "php": ">=8.1.0",
     "ext-json": "*",
+    "ext-sodium": "*",
     "topthink/framework": "^8.1.4",
     "topthink/think-orm": "^4.0",
     "topthink/think-view": "^2.0",

@@ -2,7 +2,8 @@
 
 $marketplacePublicKey = trim((string) (getenv('PLUGIN_MARKETPLACE_PUBLIC_KEY') ?: ''));
 $decodedMarketplacePublicKey = base64_decode($marketplacePublicKey, true);
-if ($decodedMarketplacePublicKey === false
+if (!defined('SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES')
+    || $decodedMarketplacePublicKey === false
     || strlen($decodedMarketplacePublicKey) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES
     || !hash_equals(base64_encode($decodedMarketplacePublicKey), $marketplacePublicKey)) {
     $marketplacePublicKey = '';

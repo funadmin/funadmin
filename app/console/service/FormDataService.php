@@ -27,7 +27,10 @@ final class FormDataService
     /** 表单元数据（启用态）。 */
     public function meta(string $key): array
     {
-        return ['form' => $this->form($key), 'fields' => $this->fields($key)];
+        $form = $this->form($key);
+        $fields = $this->fields($key);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        return ['form' => $form, 'fields' => $fields, 'primaryKey' => $this->primaryKey($schema)];
     }
 
     /** 列表：筛选/排序/分页/关联标签 LEFT JOIN。 */
@@ -35,6 +38,8 @@ final class FormDataService
     {
         $fields = $this->fields($key);
         $form = $this->form($key);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
         $query = $this->baseQuery($form, $fields);
         foreach ($fields as $field) {
             $filterType = (string) $field->list_filter;
@@ -78,7 +83,7 @@ final class FormDataService
         }
         $sortable = $this->sortableColumns($fields);
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
-        $query->order(in_array($sort, $sortable, true) ? $sort : 'id', $order);
+        $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
         $total = (clone $query)->count();
         $rows = $query->page($page, $pageSize)->select()->toArray();
         return ['list' => $rows, 'total' => (int) $total];
@@ -87,16 +92,18 @@ final class FormDataService
     /** 导出：上限 5000 行。 */
     public function export(string $key, array $filters): array
     {
-        $result = $this->listing($key, $filters, 'id', 'asc', 1, self::EXPORT_LIMIT);
+        $result = $this->listing($key, $filters, '', 'asc', 1, self::EXPORT_LIMIT);
         return $result['list'];
     }
 
     /** 详情：行 + has_many 子表首屏。 */
-    public function detail(string $key, int $id): array
+    public function detail(string $key, int|string $id): array
     {
         $form = $this->form($key);
         $fields = $this->fields($key);
-        $row = $this->baseQuery($form, $fields)->where($form->table_name . '.id', $id)->find();
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $row = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
         if (!$row) {
             throw new InvalidArgumentException('数据不存在');
         }
@@ -116,7 +123,8 @@ final class FormDataService
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, false);
         $payload = $this->filterPayload($fields, $data, false);
-        $columns = array_keys(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
         $now = date('Y-m-d H:i:s');
         if (in_array('created_at', $columns, true)) {
             $payload['created_at'] = $now;
@@ -124,36 +132,41 @@ final class FormDataService
         if (in_array('updated_at', $columns, true)) {
             $payload['updated_at'] = $now;
         }
-        $id = (int) Db::connect((string) $form->connection)->table((string) $form->table_name)->insertGetId($payload);
-        return ['id' => $id];
+        $primary = $this->primaryKey($schema);
+        $id = Db::connect((string) $form->connection)->table((string) $form->table_name)->insertGetId($payload, $primary['name']);
+        return ['id' => $primary['type'] === 'integer' ? (int) $id : (string) $id, 'primaryKey' => $primary['name']];
     }
 
     /** 更新：禁改字段剔除 + 动态校验。 */
-    public function update(string $key, int $id, array $data): array
+    public function update(string $key, int|string $id, array $data): array
     {
         $form = $this->form($key);
         $fields = $this->fields($key);
         $this->assertValid($fields, $data, true);
         $payload = $this->filterPayload($fields, $data, true);
-        $columns = array_keys(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
         if (in_array('updated_at', $columns, true)) {
             $payload['updated_at'] = date('Y-m-d H:i:s');
         }
-        Db::connect((string) $form->connection)->table((string) $form->table_name)->where('id', $id)->update($payload);
-        return ['id' => $id];
+        $primary = $this->primaryKey($schema);
+        Db::connect((string) $form->connection)->table((string) $form->table_name)->where($primary['name'], $id)->update($payload);
+        return ['id' => $id, 'primaryKey' => $primary['name']];
     }
 
     /** 删除：含 deleted_at 列则软删。 */
-    public function remove(string $key, int $id): array
+    public function remove(string $key, int|string $id): array
     {
         $form = $this->form($key);
-        $columns = array_keys(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
         $connection = Db::connect((string) $form->connection)->table((string) $form->table_name);
         if (in_array('deleted_at', $columns, true)) {
-            $connection->where('id', $id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
+            $connection->where($primary['name'], $id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
             return ['removed' => 1, 'mode' => 'soft'];
         }
-        $connection->where('id', $id)->delete();
+        $connection->where($primary['name'], $id)->delete();
         return ['removed' => 1, 'mode' => 'hard'];
     }
 
@@ -317,7 +330,8 @@ final class FormDataService
         $table = (string) $form->table_name;
         $this->assertIdentifier($table, '绑定表');
         $columns = array_keys(Db::connect((string) $form->connection)->getFields($table));
-        $readable = array_values(array_intersect(['id', 'created_at', 'updated_at'], $columns));
+        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields($table));
+        $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
             if (in_array((string) $field->type, self::LAYOUT_TYPES, true)) {
                 continue;
@@ -353,6 +367,15 @@ final class FormDataService
             $query->addField($alias . '.' . $label . ' as __label_' . $field->field_name);
         }
         return $query;
+    }
+
+    private function primaryKey(array $schema): array
+    {
+        $primary = array_filter($schema, static fn (array $field): bool => ($field['primary'] ?? false) === true);
+        if (count($primary) !== 1) throw new InvalidArgumentException('业务表必须且只能包含一个主键');
+        $name = (string) array_key_first($primary);
+        $type = strtolower((string) ($primary[$name]['type'] ?? ''));
+        return ['name' => $name, 'type' => preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', $type) ? 'integer' : 'string'];
     }
 
     private function sortableColumns($fields): array
