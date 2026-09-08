@@ -1,0 +1,104 @@
+{
+    "schema_version": 2,
+    "code": "shop",
+    "name": "商城插件",
+    "description": "",
+    "author": "",
+    "version": "1.0.0",
+    "requires": {
+        "php": ">=8.1",
+        "funadmin": ">=1.0.0",
+        "plugins": {}
+    },
+    "entry": {
+        "class": "plugins\\shop\\Plugin",
+        "file": "Plugin.php"
+    },
+    "resources": {
+        "public": {
+            "source": "resources/public",
+            "target": "plugin-assets/shop/public"
+        }
+    },
+    "migrations": {
+        "path": "database/migrations"
+    },
+    "storage": {
+        "path": "storage"
+    },
+    "purge": {
+        "supported": false
+    },
+    "adminWeb": {
+        "source": "admin-web",
+        "components": {
+            "Index": "Index.vue",
+            "Product": "product/index.vue"
+        },
+        "minFrontendVersion": "1.0.0",
+        "permissions": [
+            {
+                "code": "shop:product:batch-delete",
+                "name": "批量删除"
+            },
+            {
+                "code": "shop:product:batch-destroy",
+                "name": "批量永久删除"
+            },
+            {
+                "code": "shop:product:batch-restore",
+                "name": "批量恢复"
+            },
+            {
+                "code": "shop:product:create",
+                "name": "新增"
+            },
+            {
+                "code": "shop:product:delete",
+                "name": "删除"
+            },
+            {
+                "code": "shop:product:destroy",
+                "name": "永久删除"
+            },
+            {
+                "code": "shop:product:detail",
+                "name": "查看详情"
+            },
+            {
+                "code": "shop:product:list",
+                "name": "查看列表"
+            },
+            {
+                "code": "shop:product:restore",
+                "name": "恢复"
+            },
+            {
+                "code": "shop:product:status",
+                "name": "切换状态"
+            },
+            {
+                "code": "shop:product:update",
+                "name": "编辑"
+            }
+        ],
+        "menu": [
+            {
+                "name": "商品管理",
+                "path": "/plugin/shop/product",
+                "permission": "shop:product:list"
+            }
+        ],
+        "routes": [
+            {
+                "path": "/plugin/shop/product",
+                "name": "Plugin_shop_Product",
+                "component": "Product",
+                "meta": {
+                    "title": "商品",
+                    "permission": "shop:product:list"
+                }
+            }
+        ]
+    }
+}

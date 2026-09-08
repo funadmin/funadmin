@@ -4,9 +4,12 @@ import { listToTree } from '@/utils/tree';
 export type RoleTreeNode = RoleModel & { children?: RoleTreeNode[] };
 
 export function roleTree(roles: RoleModel[]): RoleTreeNode[] {
-  return listToTree(roles.map((role) => ({ ...role, children: undefined })), {
-    parentKey: 'parentId'
-  });
+  const visibleIds = new Set(roles.map((role) => role.id));
+  return listToTree(roles.map((role) => ({
+    ...role,
+    parentId: visibleIds.has(role.parentId) ? role.parentId : 0,
+    children: undefined
+  })), { parentKey: 'parentId' });
 }
 
 export function parentRoleOptions(roles: RoleModel[], currentRoleId?: number): RoleTreeNode[] {

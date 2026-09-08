@@ -7,6 +7,8 @@
 /plugins/*
 !/plugins/example/
 !/plugins/example/**
+!/plugins/shop/
+!/plugins/shop/**
 /runtime
 /public/static/plugins
 /public/static/cms
@@ -24,6 +26,12 @@
 !/tests/plugin_manifest_schema_test.php
 !/tests/plugin_resource_publisher_test.php
 !/tests/plugin_app_publication_lifecycle_test.php
+!/tests/plugin_app_publication_service_test.php
+!/tests/plugin_activation_registry_test.php
+!/tests/plugin_application_guard_test.php
+!/tests/plugin_activation_lifecycle_test.php
+!/tests/plugin_runtime_hard_cut_test.php
+!/tests/dev_plugin_api_test.php
 !/tests/plugin_phase1_test.php
 !/tests/crud/
 !/tests/crud/plugin_target_test.php
