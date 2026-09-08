@@ -182,9 +182,12 @@ $pluginsConfig = require $repositoryRoot . '/config/plugins.php';
 foreach (['autoload', 'hooks', 'route', 'service'] as $legacyConfigKey) {
     expect(!array_key_exists($legacyConfigKey, $pluginsConfig), 'plugins 配置不得保留旧 runtime 键：' . $legacyConfigKey);
 }
-expect(preg_match('/function\s+get_plugin_instance\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留 Registry 约束的实例获取薄门面');
+expect(preg_match('/function\s+get_plugin_instance\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留 ActivationGate 约束的实例获取薄门面');
+expect(str_contains((string) $functionsSource, 'PluginActivationReader'), '实例获取必须读取可信激活快照');
+expect(str_contains((string) $functionsSource, 'ActivationGate'), '实例获取必须通过激活门禁');
+$activationGateSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/ActivationGate.php');
+expect(str_contains((string) $activationGateSource, "['needs_reinstall']"), '激活门禁必须排除 needs_reinstall 插件');
 expect(preg_match('/function\s+run_plugin_migrations\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留正式 MigrationService 薄门面');
-expect(str_contains((string) $functionsSource, 'needs_reinstall'), '实例获取必须排除 needs_reinstall 插件');
 expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/Route.php'), '旧插件通配路由执行器必须移除');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');

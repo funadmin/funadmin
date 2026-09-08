@@ -23,6 +23,13 @@ export function parentRoleOptions(roles: RoleModel[], currentRoleId?: number): R
   return roleTree(roles.filter((role) => !excluded.has(role.id)));
 }
 
+export function filterRoleTree(tree: RoleTreeNode[], predicate: (role: RoleModel) => boolean): RoleTreeNode[] {
+  return tree.flatMap((role) => {
+    const children = filterRoleTree(role.children || [], predicate);
+    return predicate(role) || children.length ? [{ ...role, children }] : [];
+  });
+}
+
 export function childRoleLevel(parentRoleIds: number[], roles: RoleModel[], currentLevel: number): number {
   const selectedLevels = roles
     .filter((role) => parentRoleIds.includes(role.id))
