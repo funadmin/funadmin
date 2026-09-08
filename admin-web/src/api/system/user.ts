@@ -11,6 +11,7 @@ export interface UserModel {
   status: 0 | 1;
   roleIds?: number[];
   deptId?: number;
+  departmentIds?: number[];
   createdAt?: string;
   updatedAt?: string;
 }
