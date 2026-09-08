@@ -345,7 +345,8 @@ class PluginPackageService extends AbstractService
                     continue;
                 }
                 $relative = substr($item->getPathname(), strlen($source) + 1);
-                if (!$zip->addFile($item->getPathname(), str_replace(DIRECTORY_SEPARATOR, '/', $relative))) {
+                $entry = basename($source) . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
+                if (!$zip->addFile($item->getPathname(), $entry)) {
                     throw new RuntimeException('插件包归档文件失败：' . $relative);
                 }
             }

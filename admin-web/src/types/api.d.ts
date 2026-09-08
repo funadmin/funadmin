@@ -61,6 +61,7 @@ declare namespace API {
     keepAlive: boolean;
     affix: boolean;
     permission?: string;
+    formKey?: string;
     children?: MenuItem[];
   }
 }

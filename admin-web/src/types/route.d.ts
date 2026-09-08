@@ -13,6 +13,7 @@ declare module 'vue-router' {
     breadcrumb?: boolean;
     transition?: string;
     rank?: number;
+    formKey?: string;
   }
 }
 

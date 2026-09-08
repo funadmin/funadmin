@@ -43,6 +43,7 @@ final class FormCrudDefinitionFactory
 
         foreach ((array) ($form['fields'] ?? []) as $field) {
             if (!is_array($field)) continue;
+            if ($adopted && (string) ($field['field_name'] ?? '') === $primaryKey) continue;
             $type = (string) ($field['type'] ?? 'input');
             if (in_array($type, self::LAYOUT_TYPES, true)) {
                 $layoutSchema[] = $this->layoutNode($field);

@@ -246,7 +246,10 @@ trait PluginServiceSupport
         foreach (Plugin::withTrashed()->select() as $record) {
             $code = (string) $record->code;
             $records[$code] = $record->getData();
-            $manifest = json_decode((string) ($record->manifest ?? ''), true);
+            $storedManifest = $record->manifest ?? null;
+            $manifest = is_array($storedManifest)
+                ? $storedManifest
+                : json_decode(is_string($storedManifest) ? $storedManifest : '', true);
             if (is_array($manifest) && ($manifest['schema_version'] ?? null) === 2 && ($manifest['code'] ?? null) === $code) {
                 $manifests[$code] = $manifest;
             }

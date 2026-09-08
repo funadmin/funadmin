@@ -17,10 +17,10 @@ function hookExpect(bool $condition, string $message): void
 
 $expectedHooks = [
     'payload', 'validatePayload', 'transformData', 'resourceName', 'searchFields',
-    'exactFilters', 'rangeFilters', 'sortFields', 'primaryKey', 'primaryKeyType',
+    'exactFilters', 'rangeFilters', 'operatorFilters', 'sortFields', 'primaryKey', 'primaryKeyType',
     'primaryKeyPattern', 'query', 'baseQuery', 'order', 'importFields',
     'exportFields', 'importPayload', 'importLimit', 'exportLimit', 'beforeDelete',
-    'afterSave', 'applyFilters', 'mapImportRow',
+    'afterSave', 'usesSoftDeletes', 'applyFilters', 'mapImportRow',
 ];
 
 $trait = new ReflectionClass(Crud::class);

@@ -57,6 +57,25 @@ final class FormPublishService
         bool $canApplyResources,
         string $operator
     ): array {
+        $crudDefinition = $this->definitions->create(
+            $payload,
+            (array) ($payload['publish_config'] ?? []),
+            $this->schema($payload)
+        );
+        try {
+            $this->crud->preflightGeneration(
+                $crudDefinition->toArray(),
+                $confirmToken,
+                $allowOverwrite,
+                $canOverwrite,
+                $canApplyResources
+            );
+        } catch (Throwable $exception) {
+            $formId = (int) ($payload['id'] ?? 0);
+            if ($formId > 0) $this->updateStatus($formId, $this->isConflict($exception) ? 'conflict' : 'failed');
+            throw $exception;
+        }
+
         $saved = $this->forms->save($payload);
         $definitionPayload = $this->definitionPayload($saved);
         $formId = (int) ($definitionPayload['id'] ?? 0);
@@ -64,11 +83,6 @@ final class FormPublishService
         $ddl = null;
         try {
             $ddl = $this->forms->applyMigration($definitionPayload);
-            $crudDefinition = $this->definitions->create(
-                $definitionPayload,
-                (array) ($definitionPayload['publish_config'] ?? []),
-                $this->schema($definitionPayload)
-            );
             $generated = $this->crud->generate(
                 $crudDefinition->toArray(),
                 $confirmToken,
@@ -93,7 +107,7 @@ final class FormPublishService
                 'routePath' => (string) $crudDefinition->get('routePath'),
             ];
         } catch (Throwable $exception) {
-            $this->updateStatus($formId, $ddl === null ? 'failed' : 'partial');
+            $this->updateStatus($formId, $this->isConflict($exception) ? 'conflict' : 'failed');
             throw $exception;
         }
     }
@@ -142,6 +156,11 @@ final class FormPublishService
             (array) ($saved['fields'] ?? [])
         );
         return $data;
+    }
+
+    private function isConflict(Throwable $exception): bool
+    {
+        return preg_match('/(?:token|冲突|hash|计划|已变化)/i', $exception->getMessage()) === 1;
     }
 
     private function updateStatus(int $formId, string $status, array $extra = []): void

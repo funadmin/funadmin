@@ -3,10 +3,10 @@
     <div class="mb-4 flex flex-wrap gap-2">
       <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">市场账号</el-button>
       <el-button type="success" plain v-perm="'system:plugin:install'" @click="installVisible = true">上传本地 ZIP</el-button>
-      <el-button plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
-      <el-button plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
-      <el-button plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
-      <el-button plain v-perm="'development:crud:generate'" @click="openDevelopment('crud')">生成 CRUD</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
+      <el-button type="info" plain v-perm="'development:crud:generate'" @click="openDevelopment('crud')">生成 CRUD</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
       <el-button type="info" plain @click="load">刷新</el-button>
     </div>

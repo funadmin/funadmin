@@ -54,8 +54,21 @@ final class CrudGenerator
         array $allowOverwrite = [],
         string $operator = 'unknown'
     ): array {
+        return $this->generatePlanned($definition, $this->plan($definition), $confirmToken, $allowOverwrite, $operator);
+    }
+
+    /** 使用预检时产生的同一计划写入，避免 DDL 后重新规划产生竞态。 */
+    public function generatePlanned(
+        CrudDefinition $definition,
+        array $plan,
+        string $confirmToken,
+        array $allowOverwrite = [],
+        string $operator = 'unknown'
+    ): array {
         $startedAt = gmdate(DATE_ATOM);
-        $plan = $this->plan($definition);
+        if (!hash_equals($definition->hash(), (string) ($plan['definitionHash'] ?? ''))) {
+            throw new InvalidArgumentException('预检计划与 Definition 不一致');
+        }
         try {
             $write = (new AtomicWriter($this->projectRoot, null, $this->tokens))->write($plan, $confirmToken, $allowOverwrite);
             $manifest = GenerationManifest::create(

@@ -122,13 +122,8 @@ final class PluginActivationCompiler
 
     private function deleted(array $record): bool
     {
-        foreach (['delete_time', 'deleted_at'] as $field) {
-            $value = $record[$field] ?? null;
-            if ($value !== null && $value !== '' && $value !== 0 && $value !== '0') {
-                return true;
-            }
-        }
-        return false;
+        $value = $record['deleted_at'] ?? null;
+        return $value !== null && $value !== '' && $value !== 0 && $value !== '0';
     }
 
     private function ensureDirectory(string $directory): void

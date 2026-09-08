@@ -113,7 +113,12 @@ import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { roleApi, type DataScope, type RoleModel } from '@/api/system/role';
 import { deptApi, type DeptModel } from '@/api/system/dept';
-import { childRoleLevel, parentRoleOptions as availableParentRoles } from '../roleHierarchy';
+import {
+  additionalParentRoleIds,
+  childRoleLevel,
+  parentRoleOptions as availableParentRoles,
+  treeParentValue
+} from '../roleHierarchy';
 
 interface Props {
   modelValue: boolean;
@@ -141,7 +146,7 @@ const initialForm = () => ({
   dataScope: 'self' as DataScope,
   status: 1 as 0 | 1,
   remark: '',
-  parentId: 0,
+  parentId: null as number | null,
   parentRoleIds: [] as number[],
   departmentIds: [] as number[]
 });
@@ -182,8 +187,10 @@ watch(
 );
 watch(visible, (value) => emit('update:modelValue', value));
 watch(() => [form.parentId, ...form.parentRoleIds], () => {
-  form.parentRoleIds = form.parentRoleIds.filter((id) => id !== form.parentId);
-  const inheritedRoleIds = [form.parentId, ...form.parentRoleIds].filter((id) => id > 0);
+  const nextParentRoleIds = additionalParentRoleIds(form.parentRoleIds, form.parentId);
+  if (nextParentRoleIds !== form.parentRoleIds) form.parentRoleIds = nextParentRoleIds;
+  const inheritedRoleIds = [form.parentId, ...form.parentRoleIds]
+    .filter((id): id is number => typeof id === 'number' && id > 0);
   if (!inheritedRoleIds.length) return;
   form.level = childRoleLevel(inheritedRoleIds, roleOptions.value, form.level);
 });
@@ -201,7 +208,7 @@ function initForm() {
     form.dataScope = props.row.dataScope;
     form.status = props.row.status;
     form.remark = props.row.remark || '';
-    form.parentId = props.row.parentId || 0;
+    form.parentId = treeParentValue(props.row.parentId);
     form.parentRoleIds = [...(props.row.parentRoleIds || [])];
     form.departmentIds = [...(props.row.departmentIds || [])];
   }
@@ -222,7 +229,12 @@ async function onSubmit() {
   await formRef.value?.validate();
   saving.value = true;
   try {
-    const payload = { ...form, parentRoleIds: [...form.parentRoleIds], departmentIds: [...form.departmentIds] };
+    const payload = {
+      ...form,
+      parentId: form.parentId ?? 0,
+      parentRoleIds: [...form.parentRoleIds],
+      departmentIds: [...form.departmentIds]
+    };
     if (isEdit.value && props.row) await roleApi.update(props.row.id, payload);
     else await roleApi.create(payload);
     emit('success');

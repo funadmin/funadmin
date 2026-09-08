@@ -66,7 +66,7 @@ $records = [
     'removed' => [
         'code' => 'removed', 'lifecycle_state' => 'enabled', 'status' => 1,
         'needs_reinstall' => 0, 'operation_token' => null, 'version' => '1.0.0', 'package_hash' => 'removed-hash',
-        'delete_time' => '2026-09-07 12:00:00',
+        'deleted_at' => '2026-09-07 12:00:00',
     ],
 ];
 $manifests = [

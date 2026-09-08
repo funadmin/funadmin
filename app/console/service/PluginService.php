@@ -109,12 +109,14 @@ class PluginService extends AbstractService
             } catch (\Throwable $cleanupException) {
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
             }
-            if (!$success && $lock) {
+            if ($lock) {
                 try {
                     $this->rebuildActivationCache();
-                    $this->clearApplicationCache();
+                    if (!$success) {
+                        $this->clearApplicationCache();
+                    }
                 } catch (\Throwable $cacheException) {
-                    error_log('插件失败态缓存重建失败：' . $cacheException->getMessage());
+                    error_log(($success ? '插件最终' : '插件失败态') . '缓存重建失败：' . $cacheException->getMessage());
                 }
             }
             if ($lock) {

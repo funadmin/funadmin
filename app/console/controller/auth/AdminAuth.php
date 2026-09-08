@@ -155,6 +155,7 @@ class AdminAuth extends BaseController
             'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOL),
             'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOL),
             'permission' => (string) ($permission->code ?? ''),
+            'formKey' => (string) ($meta['formKey'] ?? ''),
         ];
     }
 

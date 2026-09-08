@@ -24,7 +24,7 @@ final class DatabaseCapabilityGuard
             return;
         }
         $targetCapability = $packageCapability;
-        if ($targetCapability === '' || ($currentCodeVersion !== '' && version_compare($targetVersion, $currentCodeVersion, '<='))) {
+        if ($targetCapability === '') {
             $targetCapability = ($this->versionCapability)($plugin, $targetVersion);
         }
         if ($targetCapability === null || $targetCapability === '') {

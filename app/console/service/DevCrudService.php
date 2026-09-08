@@ -163,6 +163,36 @@ final class DevCrudService
         }
     }
 
+    /** 在任何不可逆副作用前验证确认令牌、冲突授权与生成权限。 */
+    public function preflightGeneration(
+        array $definition,
+        string $confirmToken,
+        array $allowOverwrite,
+        bool $canOverwrite,
+        bool $canApplyResources
+    ): array {
+        if ($confirmToken === '') throw new InvalidArgumentException('缺少 preview 确认 token');
+        if ($allowOverwrite !== [] && !$canOverwrite) throw new InvalidArgumentException('缺少单独的 overwrite 权限');
+        if (!$canApplyResources) throw new InvalidArgumentException('缺少 resource apply 专用权限');
+        $crudDefinition = CrudDefinition::fromArray($definition);
+        $this->assertMenuParent($crudDefinition);
+        $plan = (new CrudGenerator($this->projectRoot))->plan($crudDefinition);
+        $digest = (string) ($plan['planDigest'] ?? '');
+        (new \app\common\crud\ConfirmationToken($this->projectRoot))->verify($confirmToken, $digest);
+        $allowed = array_fill_keys(array_map(static fn (string $path): string => str_replace('\\', '/', $path), $allowOverwrite), true);
+        foreach ((array) ($plan['files'] ?? []) as $file) {
+            $path = (string) ($file['path'] ?? '');
+            $status = (string) ($file['status'] ?? '');
+            if ($status === 'blocked') throw new InvalidArgumentException('目标路径被阻塞：' . $path);
+            if ($status === 'conflict' && !isset($allowed[$path])) throw new InvalidArgumentException('冲突文件未确认覆盖：' . $path);
+            if (isset($allowed[$path]) && $status !== 'conflict') throw new InvalidArgumentException('只允许授权冲突文件：' . $path);
+        }
+        if (array_diff(array_keys($allowed), array_column((array) ($plan['files'] ?? []), 'path')) !== []) {
+            throw new InvalidArgumentException('allowOverwrite 包含计划外路径');
+        }
+        return $plan;
+    }
+
     public function generate(
         array $definition,
         string $confirmToken,
@@ -170,7 +200,8 @@ final class DevCrudService
         bool $canOverwrite,
         string $operator,
         bool $applyResources = false,
-        bool $canApplyResources = false
+        bool $canApplyResources = false,
+        ?array $validatedPlan = null
     ): array {
         if ($confirmToken === '') {
             throw new InvalidArgumentException('缺少 preview 确认 token');
@@ -184,12 +215,10 @@ final class DevCrudService
         try {
             $crudDefinition = CrudDefinition::fromArray($definition);
             $this->assertMenuParent($crudDefinition);
-            $result = (new CrudGenerator($this->projectRoot))->generate(
-                $crudDefinition,
-                $confirmToken,
-                $allowOverwrite,
-                $operator
-            );
+            $generator = new CrudGenerator($this->projectRoot);
+            $result = $validatedPlan === null
+                ? $generator->generate($crudDefinition, $confirmToken, $allowOverwrite, $operator)
+                : $generator->generatePlanned($crudDefinition, $validatedPlan, $confirmToken, $allowOverwrite, $operator);
             unset($result['plan']['confirmToken']);
             $manifest = $result['manifest'] ?? [];
             $manifest['resourceApplyStatus'] = $applyResources ? 'pending' : 'not_requested';

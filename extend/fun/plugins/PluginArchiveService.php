@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace fun\plugins;
 
+use Closure;
 use RuntimeException;
 use Throwable;
 use ZipArchive;
@@ -13,12 +14,11 @@ final class PluginArchiveService
 {
     private const FIXED_MTIME = 315532800;
 
-    /** @var callable(string):void */
-    private $stageVerifier;
+    private readonly Closure $stageVerifier;
 
     public function __construct(private readonly string $pluginsDirectory, callable $stageVerifier)
     {
-        $this->stageVerifier = $stageVerifier;
+        $this->stageVerifier = Closure::fromCallable($stageVerifier);
     }
 
     public function package(string $name, string $output): array

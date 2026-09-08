@@ -61,7 +61,7 @@ final class DefinitionValidator
         $this->identifier((string) ($data['table'] ?? ''), 'table', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
         $this->identifier((string) ($data['primaryKey'] ?? ''), 'primaryKey', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
         $this->text((string) ($data['title'] ?? ''), 'title');
-        if (isset($data['description'])) {
+        if (isset($data['description']) && $data['description'] !== '') {
             $this->text((string) $data['description'], 'description');
         }
         foreach (['apiPrefix', 'routePath'] as $pathField) {

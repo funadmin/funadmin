@@ -64,7 +64,7 @@ final class PluginInfrastructureService
 
     public function withPublicationLock(callable $operation): mixed
     {
-        $file = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'publication.lock');
+        $file = rtrim(runtime_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'publication.lock';
         $directory = dirname($file);
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new RuntimeException('无法创建插件发布锁目录');

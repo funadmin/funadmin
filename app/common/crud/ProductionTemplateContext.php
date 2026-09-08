@@ -387,12 +387,11 @@ final class ProductionTemplateContext
         $parent = $menu['parentSourceName'] !== ''
             ? "COALESCE((SELECT `id` FROM `fun_admin_menu` WHERE `source_type` IN ('admin_web','generated') AND `source_name` = " . self::sqlLiteral($menu['parentSourceName']) . " ORDER BY `id` LIMIT 1),0)"
             : (string) ($menu['parentId'] ?? 0);
-        $href = $menu['parentSourceName'] !== '' || $menu['parentId'] !== null
-            ? basename(trim((string) $data['routePath'], '/'))
-            : '/' . ltrim((string) $data['routePath'], '/');
+        $href = '/' . ltrim((string) $data['routePath'], '/');
         $listPermission = $permission['enabled'] ? self::listPermissionCode($data) : '';
         $query = 'component=generated/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
-            . '&type=C' . ($listPermission === '' ? '' : '&permission=' . $listPermission)
+            . '&type=C&formKey=' . str_replace('-', '_', (string) $data['entity'])
+            . ($listPermission === '' ? '' : '&permission=' . $listPermission)
             . '&hidden=' . ($menu['hidden'] ? '1' : '0') . '&keepAlive=' . ($menu['keepAlive'] ? '1' : '0')
             . '&affix=' . ($menu['affix'] ? '1' : '0');
         $fields = [self::sqlLiteral($menu['name']), self::sqlLiteral($href), self::sqlLiteral($query), self::sqlLiteral($menu['target']), self::sqlLiteral($menu['icon'])];

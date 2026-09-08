@@ -29,6 +29,10 @@ function resolveComponent(component?: string): RouteComponent {
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;
   if (!loader) {
+    if (normalized.startsWith('generated/')) {
+      console.info(`[router] 生成源码尚未进入当前构建，使用运行时发布宿主: ${normalized}`);
+      return () => import('@/views/form/published.vue');
+    }
     console.warn(`[router] 未找到组件: ${candidates.join(' | ')}，请检查后端菜单 component 字段`);
     return () => import('@/views/error/404.vue');
   }
@@ -98,7 +102,8 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
           keepAlive: Boolean(menu.keepAlive),
           permission: menu.permission,
           rank: menu.sort,
-          activeMenu: path
+          activeMenu: path,
+          formKey: menu.formKey
         }
       } as RouteRecordRaw
     ]
@@ -123,7 +128,8 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
       hidden: Boolean(menu.hidden),
       keepAlive: Boolean(menu.keepAlive),
       permission: menu.permission,
-      rank: menu.sort
+      rank: menu.sort,
+      formKey: menu.formKey
     }
   } as RouteRecordRaw;
 

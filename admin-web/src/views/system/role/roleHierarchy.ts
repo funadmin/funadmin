@@ -33,6 +33,15 @@ export function filterRoleTree(tree: RoleTreeNode[], predicate: (role: RoleModel
   });
 }
 
+export function treeParentValue(parentId: number): number | null {
+  return parentId > 0 ? parentId : null;
+}
+
+export function additionalParentRoleIds(parentRoleIds: number[], parentId: number | null): number[] {
+  if (parentId === null || !parentRoleIds.includes(parentId)) return parentRoleIds;
+  return parentRoleIds.filter((id) => id !== parentId);
+}
+
 export function childRoleLevel(parentRoleIds: number[], roles: RoleModel[], currentLevel: number): number {
   const selectedLevels = roles
     .filter((role) => parentRoleIds.includes(role.id))

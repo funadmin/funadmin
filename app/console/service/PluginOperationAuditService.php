@@ -56,7 +56,9 @@ final class PluginOperationAuditService
                 ? PluginOperationRecorder::stagesThrough(0, 'complete')['complete']
                 : 0,
             'result' => (string) $audit['result'],
-            'error_message' => $audit['error'] ?? null,
+            'error_message' => isset($audit['error'])
+                ? substr(is_scalar($audit['error']) ? (string) $audit['error'] : json_encode($audit['error'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), 0, 2000)
+                : null,
         ]);
     }
 

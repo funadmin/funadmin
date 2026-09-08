@@ -245,7 +245,7 @@ final class FormDesignerService
         $rows = [];
         foreach ($schema['columns'] as $index => $column) {
             $name = (string) $column['name'];
-            if ($name === 'id' || in_array($name, ['created_at', 'updated_at', 'deleted_at'], true)) {
+            if (in_array($name, array_merge((array) ($schema['primaryKey'] ?? []), ['created_at', 'updated_at', 'deleted_at']), true)) {
                 continue;
             }
             $dbType = (string) $column['type'];
