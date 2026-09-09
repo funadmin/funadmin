@@ -76,6 +76,7 @@ final class FormFullPublishService
         [$form, $module, $schema, $definition, $dependencyHash] = $this->prepare($payload, true);
         $generationId = (int) ($payload['generationId'] ?? 0);
         if ($generationId < 1) throw new InvalidArgumentException('完整发布缺少 preview generationId');
+        if (!$canApplyResources) throw new InvalidArgumentException('没有应用菜单与权限资源的权限');
         [$attempt, $leaseToken] = $this->beginAttempt($operationKey, $schema, $definition, $dependencyHash);
         if ((string) $attempt->status === 'completed' && is_array($attempt->result)) return $attempt->result;
         if (!in_array((string) $attempt->stage, ['prepared', 'metadata_saved', 'ddl_applied'], true)) {
@@ -93,7 +94,7 @@ final class FormFullPublishService
             $this->publishBusinessModule($formId, $schema, $definition, $operator, $generationId);
             $this->updateStatus($formId, 'published', [
                 'crud_generation_id' => $generationId,
-                'published_definition_hash' => $definition->hash(),
+                'published_definition_hash' => (string) $generated['definitionHash'],
                 'published_schema_hash' => $schema->hash(),
                 'published_at' => date('Y-m-d H:i:s'),
             ]);

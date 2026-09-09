@@ -55,6 +55,14 @@ publishExpect(str_contains($fullPublishSource, '->preview(') && str_contains($fu
 foreach (['DevCrudService', 'preflightGeneration(', '->generate('] as $legacyManagedPath) {
     publishExpect(!str_contains($fullPublishSource, $legacyManagedPath), '完整发布不得调用旧 DevCrud generate 路径：' . $legacyManagedPath);
 }
+publishExpect(
+    str_contains($fullPublishSource, 'if (!$canApplyResources)'),
+    '完整发布执行 managed 资源事务前必须显式校验资源权限'
+);
+publishExpect(
+    str_contains($fullPublishSource, "'published_definition_hash' => (string) \$generated['definitionHash']"),
+    '发布元数据必须绑定实际 managed Definition hash'
+);
 $fullPublishController = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/FullPublish.php');
 publishExpect(!str_contains($fullPublishController, "post('definition'"), '完整发布 Controller 不得接收完整 Definition');
 publishExpect(str_contains($fullPublishController, "post('formId'"), '完整发布 Controller 必须仅以 formId 定位服务端已发布 Schema');
