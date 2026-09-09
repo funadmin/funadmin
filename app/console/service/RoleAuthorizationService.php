@@ -51,6 +51,7 @@ final class RoleAuthorizationService
         if (!$roleScope->canAssignPermissions($permissionIds)) {
             throw new InvalidArgumentException('不能分配超出当前账号拥有范围的权限');
         }
+        $this->assertOperatorFieldGrants($fieldGrants, $roleScope);
         $this->assertAllowedFields($role, $permissionIds, $fieldGrants);
         $this->assertDataScope($role, $dataScope, $departmentIds);
 
@@ -255,6 +256,48 @@ final class RoleAuthorizationService
             }
         }
         return array_values($result);
+    }
+
+    private function assertOperatorFieldGrants(array $grants, RoleScopeService $roleScope): void
+    {
+        if (!$grants || $roleScope->isSuperAdmin()) {
+            return;
+        }
+        $roleIds = (new RoleGuardService())->ancestorRoleIds($roleScope->currentRoleIds());
+        $rows = AuthGroupFieldPermission::whereIn('role_id', $roleIds ?: [0])
+            ->field('field_id,can_view,can_edit')->select()->toArray();
+        $viewIds = [];
+        $editIds = [];
+        foreach ($rows as $row) {
+            $fieldId = (int) $row['field_id'];
+            if ((bool) $row['can_view'] || (bool) $row['can_edit']) {
+                $viewIds[] = $fieldId;
+            }
+            if ((bool) $row['can_edit']) {
+                $editIds[] = $fieldId;
+            }
+        }
+        $this->assertOperatorFieldGrantsWithinScope($grants, $this->ids($viewIds), $this->ids($editIds), false);
+    }
+
+    private function assertOperatorFieldGrantsWithinScope(
+        array $grants,
+        array $viewIds,
+        array $editIds,
+        bool $isSuperAdmin
+    ): void {
+        if ($isSuperAdmin) {
+            return;
+        }
+        foreach ($grants as $grant) {
+            $fieldId = (int) $grant['fieldId'];
+            if ((bool) $grant['view'] && !in_array($fieldId, $viewIds, true)) {
+                throw new InvalidArgumentException('不能授予当前账号不可查看的字段');
+            }
+            if ((bool) $grant['edit'] && !in_array($fieldId, $editIds, true)) {
+                throw new InvalidArgumentException('不能授予当前账号不可编辑的字段');
+            }
+        }
     }
 
     private function assertAllowedFields(AuthGroup $role, array $permissionIds, array $grants): void

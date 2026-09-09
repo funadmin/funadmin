@@ -21,6 +21,8 @@
 /tests/*
 !/tests/form_data_relation_mysql_test.php
 !/tests/business_development_migration_test.php
+!/tests/business_development_api_test.php
+!/tests/business_development_permission_test.php
 !/tests/business_generation_wal_test.php
 !/tests/business_generation_recovery_test.php
 !/tests/field_capability_registry_test.php
@@ -34,6 +36,7 @@
 !/tests/crud_three_way_merge_test.php
 !/tests/crud_hook_naming_test.php
 !/tests/php_property_modernization_test.php
+!/tests/role_authorization_test.php
 !/tests/plugin_code_name_cutover_test.php
 !/tests/plugin_development_tools_test.php
 !/tests/plugin_manifest_schema_test.php
