@@ -10,12 +10,23 @@ export interface FormSchemaAsyncValidation {
   cacheTtl?: number;
 }
 
+export interface FormSchemaCondition {
+  field?: string;
+  op: string;
+  value?: unknown;
+  conditions?: FormSchemaCondition[];
+  condition?: FormSchemaCondition;
+}
+
 export interface FormSchemaValidationRule {
   type: string;
   value?: unknown;
   message?: string;
   trigger?: string[];
   validator?: FormSchemaAsyncValidation;
+  when?: FormSchemaCondition;
+  severity?: 'error' | 'warning';
+  bail?: boolean;
 }
 
 export interface FormSchemaDataSource {

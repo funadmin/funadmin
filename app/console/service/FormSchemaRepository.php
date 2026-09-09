@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace app\console\service;
 
 use app\common\form\component\PluginFormComponentRegistry;
+use app\common\form\dependency\FormSchemaDependencyChecker;
+use app\common\form\registry\FieldCapabilityRegistry;
+use app\common\form\registry\FormRegistryFactory;
 use app\common\form\schema\FormSchema;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaException;
@@ -20,12 +23,28 @@ use think\facade\Db;
 final class FormSchemaRepository
 {
     private FormSchemaCompiler $compiler;
+    private FormSchemaDependencyChecker $dependencyChecker;
+    private FieldCapabilityRegistry $fieldCapabilities;
 
     public function __construct(
         private readonly FormSchemaMigrator $migrator = new FormSchemaMigrator(),
-        private readonly PluginFormComponentRegistry $pluginComponents = new PluginFormComponentRegistry()
+        private readonly PluginFormComponentRegistry $pluginComponents = new PluginFormComponentRegistry(),
+        ?FormSchemaDependencyChecker $dependencyChecker = null,
+        ?FieldCapabilityRegistry $fieldCapabilities = null
     ) {
-        $this->compiler = new FormSchemaCompiler(new FormSchemaValidator($this->pluginComponents));
+        $registries = FormRegistryFactory::production();
+        $this->fieldCapabilities = $fieldCapabilities ?? new FieldCapabilityRegistry($this->pluginComponents->catalog());
+        $this->compiler = new FormSchemaCompiler(new FormSchemaValidator($this->pluginComponents, $this->fieldCapabilities));
+        if ($dependencyChecker !== null) {
+            $this->dependencyChecker = $dependencyChecker;
+            return;
+        }
+        $this->dependencyChecker = new FormSchemaDependencyChecker(
+            $registries->actions(),
+            $registries->dataSources(),
+            $registries->asyncValidators(),
+            $this->pluginComponents
+        );
     }
 
     public function compile(array $definition): FormSchema
@@ -49,6 +68,12 @@ final class FormSchemaRepository
             'hash' => $compiled->hash(),
             'projection' => $compiled->fieldProjection(),
         ];
+    }
+
+    /** 返回发布所需生产能力依赖诊断与稳定版本哈希。 */
+    public function checkDependencies(FormSchema|array $schema): array
+    {
+        return $this->dependencyChecker->check($schema instanceof FormSchema ? $schema->document() : $schema);
     }
 
     /**
@@ -176,49 +201,13 @@ final class FormSchemaRepository
      */
     public function componentCatalog(): array
     {
-        return [
-            'schemaVersion' => 2,
-            'components' => array_merge(
-                array_map(
-                    static fn (string $type): array => [
-                        'type' => $type,
-                        'namespace' => 'core',
-                        'component' => $type,
-                        'kind' => in_array($type, ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'], true) ? 'layout' : 'field',
-                        'valueType' => 'mixed',
-                        'defaultValue' => null,
-                        'defaultProps' => [],
-                        'propertySchema' => ['type' => 'object', 'properties' => []],
-                        'codec' => 'core:identity',
-                        'allowedAttrs' => [],
-                        'allowedEvents' => ['change', 'blur', 'focus'],
-                        'renderer' => 'core:registry',
-                    ],
-                    FormSchemaValidator::COMPONENTS
-                ),
-                array_map(
-                    fn (array $definition): array => $this->catalogPluginComponent($definition),
-                    $this->pluginComponents->catalog()
-                )
-            ),
-        ];
+        return $this->fieldCapabilities->catalog();
     }
 
-    /** 补齐可信 manifest 的前端渲染契约，不向客户端暴露任意模块路径。 */
-    private function catalogPluginComponent(array $definition): array
+    /** 返回与当前可信插件组件一致的字段能力注册表。 */
+    public function fieldCapabilities(): FieldCapabilityRegistry
     {
-        $properties = (array) ($definition['propertySchema']['properties'] ?? []);
-        return array_replace([
-            'kind' => 'field',
-            'valueType' => 'mixed',
-            'defaultValue' => null,
-            'defaultProps' => [],
-            'propertySchema' => ['type' => 'object', 'properties' => $properties],
-            'codec' => '',
-            'allowedAttrs' => [],
-            'allowedEvents' => [],
-            'renderer' => 'plugin:module',
-        ], $definition);
+        return $this->fieldCapabilities;
     }
 
     private function persistCurrent(Form $form, FormSchema $compiled, string $origin): void

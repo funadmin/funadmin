@@ -73,13 +73,15 @@ final class FormSchemaDependencyChecker
 
     private function checkValidator(array $rule, string $path, array &$diagnostics, array &$dependencies): void
     {
-        $key = (string) ($rule['key'] ?? '');
+        $validator = is_array($rule['validator'] ?? null) ? $rule['validator'] : $rule;
+        $validatorPath = isset($rule['validator']) ? $path . '/validator' : $path;
+        $key = (string) ($validator['key'] ?? '');
         $definition = $this->asyncValidators->definitions()[$key] ?? null;
         if ($definition === null) {
-            $this->diagnostic($diagnostics, $path . '/key', 'FORM_ASYNC_VALIDATOR_NOT_REGISTERED', '异步验证器未注册：' . $key);
+            $this->diagnostic($diagnostics, $validatorPath . '/key', 'FORM_ASYNC_VALIDATOR_NOT_REGISTERED', '异步验证器未注册：' . $key);
             return;
         }
-        $this->checkVersion($rule, $definition, $path, 'FORM_ASYNC_VALIDATOR', $diagnostics);
+        $this->checkVersion($validator, $definition, $validatorPath, 'FORM_ASYNC_VALIDATOR', $diagnostics);
         $dependencies['validators'][$key] = $this->version($definition);
     }
 

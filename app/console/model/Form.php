@@ -26,4 +26,14 @@ class Form extends BackendModel
     {
         return $this->hasMany(FormField::class, 'form_id', 'id');
     }
+
+    public function businessModule()
+    {
+        return $this->hasOne(BusinessModule::class, 'form_id', 'id');
+    }
+
+    public function generations()
+    {
+        return $this->hasMany(CrudGeneration::class, 'form_id', 'id');
+    }
 }

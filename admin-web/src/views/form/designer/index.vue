@@ -1,48 +1,54 @@
 <template>
-  <PageWrapper title="表单设计器" subtitle="拖拽控件到画布；右侧编辑字段参数；created 表保存前需应用守卫式迁移">
+  <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <template #extra>
       <div class="flex flex-wrap items-center gap-2">
-        <el-button :disabled="!store.canUndo.value" @click="store.undo()">撤销</el-button>
-        <el-button :disabled="!store.canRedo.value" @click="store.redo()">重做</el-button>
+        <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
+        <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
         <el-radio-group v-model="workspaceMode" size="small">
-          <el-radio-button value="edit">编辑模式</el-radio-button>
-          <el-radio-button value="desktop">桌面预览</el-radio-button>
-          <el-radio-button value="mobile">移动预览</el-radio-button>
+          <el-radio-button value="edit">{{ t('formDesigner.editMode', '编辑模式') }}</el-radio-button>
+          <el-radio-button value="desktop">{{ t('formDesigner.desktopPreview', '桌面预览') }}</el-radio-button>
+          <el-radio-button value="mobile">{{ t('formDesigner.mobilePreview', '移动预览') }}</el-radio-button>
         </el-radio-group>
-        <el-button @click="jsonEditorVisible = true">高级 JSON</el-button>
-        <el-button @click="onExportSchema">导出 Schema</el-button>
-        <el-button :disabled="!store.form.value.id" @click="versionVisible = true">版本历史</el-button>
-        <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">重新推断</el-button>
-        <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">迁移预览</el-button>
-        <el-button :loading="saving" @click="onSave">保存草稿</el-button>
-        <el-button type="primary" @click="openPublish">发布</el-button>
+        <el-button @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
+        <el-button @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
+        <el-button :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
+        <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">{{ t('formDesigner.reInfer', '重新推断') }}</el-button>
+        <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">{{ t('formDesigner.migrationPreview', '迁移预览') }}</el-button>
+        <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
+        <el-button
+          :type="store.dirty.value ? 'primary' : 'default'"
+          :loading="store.saveStatus.value === 'saving'"
+          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
+          @click="onSave"
+        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
+        <el-button type="primary" @click="openPublish">{{ t('formDesigner.publish', '发布') }}</el-button>
       </div>
     </template>
 
     <el-card shadow="never" class="mb-3">
-      <template #header>表单基本信息</template>
+      <template #header>{{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
       <el-form label-width="90px" class="designer-meta-form">
-        <el-form-item label="表单名称" required>
-          <el-input :model-value="store.form.value.name" maxlength="100" placeholder="如：活动报名" @update:model-value="(name) => store.updateForm({ name })" />
+        <el-form-item :label="t('formDesigner.formName', '表单名称')" required>
+          <el-input :model-value="store.form.value.name" maxlength="100" :placeholder="t('formDesigner.namePlaceholder', '如：活动报名')" @update:model-value="(name) => store.updateForm({ name })" />
         </el-form-item>
-        <el-form-item label="表单标识" required>
+        <el-form-item :label="t('formDesigner.formKey', '表单标识')" required>
           <el-input
             :model-value="store.form.value.form_key"
             maxlength="61"
             @update:model-value="(form_key) => store.updateForm({ form_key })"
-            placeholder="如 activity_form"
+            :placeholder="t('formDesigner.keyPlaceholder', '如 activity_form')"
             @blur="normalizeFormKey"
           />
-          <div class="form-tip">用于接口和数据页地址，以小写字母开头，只能包含小写字母、数字和下划线。</div>
+          <div class="form-tip">{{ t('formDesigner.keyTip', '用于接口和数据页地址，以小写字母开头，只能包含小写字母、数字和下划线。') }}</div>
         </el-form-item>
-        <el-form-item label="来源" required>
+        <el-form-item :label="t('formDesigner.source', '来源')" required>
           <el-radio-group :model-value="store.form.value.source_type" @update:model-value="updateSourceType">
-            <el-radio-button value="created">创建新表</el-radio-button>
-            <el-radio-button value="adopted">采纳已有表</el-radio-button>
+            <el-radio-button value="created">{{ t('formDesigner.createTable', '创建新表') }}</el-radio-button>
+            <el-radio-button value="adopted">{{ t('formDesigner.adoptTable', '采纳已有表') }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="绑定表" required>
-          <el-input :model-value="store.form.value.table_name" placeholder="如 fun_activity" @update:model-value="(table_name) => store.updateForm({ table_name })" @blur="normalizeFormKey" />
+        <el-form-item :label="t('formDesigner.boundTable', '绑定表')" required>
+          <el-input :model-value="store.form.value.table_name" :placeholder="t('formDesigner.tablePlaceholder', '如 fun_activity')" @update:model-value="(table_name) => store.updateForm({ table_name })" @blur="normalizeFormKey" />
         </el-form-item>
       </el-form>
     </el-card>
@@ -87,6 +93,10 @@
               :key="control.type"
               class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-1.5 text-sm"
               :data-type="control.type"
+              role="button"
+              tabindex="0"
+              :aria-label="`添加${control.label}`"
+              @keydown.enter.prevent="store.addNode(control.type)"
             >
               {{ control.label }}
             </div>
@@ -102,39 +112,14 @@
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
-        <div v-if="workspaceMode === 'edit'" ref="canvasRef" class="designer-canvas flex flex-col gap-2">
-          <div
-            v-for="(field, index) in store.fields.value"
-            :key="field.field_name"
-            class="canvas-item cursor-pointer rounded border px-3 py-2"
-            :class="store.selectedKey.value === field.field_name ? 'border-[var(--el-color-primary)] bg-[var(--el-color-primary-light-9)]' : 'border-[var(--el-border-color)]'"
-            @click="selectFieldNode(field.field_name)"
-          >
-            <div class="mb-1 flex items-center justify-between text-xs text-[var(--el-text-color-secondary)]">
-              <span>{{ field.field_name }} · {{ controlMeta(field.type).label }} · span {{ field.form_span }}</span>
-              <span class="flex gap-1">
-                <el-button link size="small" @click.stop="store.duplicateField(field.field_name)">复制</el-button>
-                <el-button link size="small" type="danger" @click.stop="store.removeField(field.field_name)">删除</el-button>
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span v-if="controlMeta(field.type).kind !== 'layout' && field.type !== 'hidden'" class="w-[110px] shrink-0 text-right text-sm">{{ field.label }}</span>
-              <div class="min-w-0 flex-1" @click.stop>
-                <FormControlRenderer
-                  :field="field"
-                  :model-value="field.default_value"
-                  :options="previewOptions(field)"
-                  disabled
-                  preview
-                />
-              </div>
-            </div>
-            <div class="mt-1 text-right text-xs text-[var(--el-text-color-placeholder)]">#{{ index + 1 }}</div>
-          </div>
-          <el-empty v-if="!store.fields.value.length" description="从左侧拖入控件开始设计" />
-        </div>
+        <DesignerCanvas
+          v-if="workspaceMode === 'edit'"
+          class="designer-canvas"
+          :nodes="store.nodes.value"
+          :store="store"
+        />
         <div v-else class="designer-canvas schema-preview" :class="workspaceMode === 'mobile' ? 'schema-preview-mobile' : 'schema-preview-desktop'">
-          <SchemaRenderer :schema="store.schemaDocument.value" :values="previewValues" :form-key="String(store.form.value.form_key ?? '')" disabled />
+          <SchemaRenderer :schema="store.schemaDocument.value" :values="previewValues" :form-key="String(store.form.value.form_key ?? '')" />
         </div>
       </el-card>
 
@@ -213,18 +198,21 @@
 
     <VersionHistoryDrawer v-model="versionVisible" :form-id="store.form.value.id" @rollback="onRollback" />
 
-    <el-card shadow="never" class="mt-3">
-      <template #header>调试摘要</template>
+    <el-card v-if="debugEnabled" shadow="never" class="mt-3">
+      <template #header>{{ t('formDesigner.debugPanel', '调试面板') }}</template>
       <el-descriptions :column="4" border size="small">
-        <el-descriptions-item label="节点">{{ debugSummary.nodes }}</el-descriptions-item>
-        <el-descriptions-item label="字段">{{ debugSummary.fields }}</el-descriptions-item>
-        <el-descriptions-item label="容器">{{ debugSummary.containers }}</el-descriptions-item>
-        <el-descriptions-item label="最大深度">{{ debugSummary.maxDepth }}</el-descriptions-item>
-        <el-descriptions-item label="验证">{{ debugSummary.validationRules }}</el-descriptions-item>
-        <el-descriptions-item label="联动">{{ debugSummary.conditions }}</el-descriptions-item>
-        <el-descriptions-item label="事件">{{ debugSummary.events }}</el-descriptions-item>
-        <el-descriptions-item label="数据源">{{ debugSummary.dataSources }}</el-descriptions-item>
+        <el-descriptions-item :label="t('formDesigner.nodes', '节点')">{{ debugSummary.nodes }}</el-descriptions-item>
+        <el-descriptions-item :label="t('formDesigner.fields', '字段')">{{ debugSummary.fields }}</el-descriptions-item>
+        <el-descriptions-item :label="t('formDesigner.containers', '容器')">{{ debugSummary.containers }}</el-descriptions-item>
+        <el-descriptions-item :label="t('formDesigner.maxDepth', '最大深度')">{{ debugSummary.maxDepth }}</el-descriptions-item>
       </el-descriptions>
+      <el-collapse class="mt-3">
+        <el-collapse-item :title="t('formDesigner.debugValues', '当前预览值')" name="values"><pre>{{ formatDebug(debugState.previewValues) }}</pre></el-collapse-item>
+        <el-collapse-item :title="t('formDesigner.debugConditions', '条件命中')" name="conditions"><pre>{{ formatDebug(debugState.conditionHits) }}</pre></el-collapse-item>
+        <el-collapse-item :title="t('formDesigner.debugActions', '动作轨迹')" name="actions"><pre>{{ formatDebug(debugState.actionTrace) }}</pre></el-collapse-item>
+        <el-collapse-item :title="t('formDesigner.debugDataSources', '数据源状态')" name="dataSources"><pre>{{ formatDebug(debugState.dataSources) }}</pre></el-collapse-item>
+        <el-collapse-item :title="t('formDesigner.debugValidation', '验证结果')" name="validation"><pre>{{ formatDebug(debugState.validationResults) }}</pre></el-collapse-item>
+      </el-collapse>
     </el-card>
 
     <!-- 迁移预览 -->
@@ -257,8 +245,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import {
@@ -275,15 +264,16 @@ import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
-import { buildSchemaDebugSummary } from './schemaEditor';
-import FormControlRenderer from '../components/FormControlRenderer.vue';
+import { buildDesignerDebugState, buildSchemaDebugSummary } from './schemaEditor';
 import SchemaRenderer from '../components/SchemaRenderer.vue';
+import DesignerCanvas from './components/DesignerCanvas.vue';
 import PropsPanel from './components/PropsPanel.vue';
 import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
 import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const permissionStore = usePermissionStore();
@@ -291,7 +281,6 @@ const store = useDesigner();
 const workspaceMode = ref<'edit' | 'desktop' | 'mobile'>('edit');
 const jsonEditorVisible = ref(false);
 const versionVisible = ref(false);
-const saving = ref(false);
 const applying = ref(false);
 const inferring = ref(false);
 const previewVisible = ref(false);
@@ -315,12 +304,14 @@ const publishConfig = ref<FormPublishConfig>({
   softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog'
 });
 const paletteRef = ref<HTMLElement>();
-const canvasRef = ref<HTMLElement>();
-const previewValues = computed<Record<string, unknown>>(() => Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
+const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
+watch(() => store.fields.value, (fields) => {
+  for (const field of fields) if (!(field.field_name in previewValues)) previewValues[field.field_name] = field.default_value;
+  for (const key of Object.keys(previewValues)) if (!fields.some((field) => field.field_name === key)) delete previewValues[key];
+}, { deep: true });
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortable: Sortable | null = null;
-let canvasSortable: Sortable | null = null;
 
 const definition = () => ({
   ...store.form.value,
@@ -331,15 +322,20 @@ const definition = () => ({
   fields: store.fields.value
 });
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
+const debugEnabled = import.meta.env.DEV && import.meta.env.VITE_FORM_DESIGNER_DEBUG !== 'false';
 const debugSummary = computed(() => buildSchemaDebugSummary(store.schemaDocument.value));
+const debugState = computed(() => buildDesignerDebugState(store.schemaDocument.value, previewValues));
+const formatDebug = (value: unknown) => JSON.stringify(value, null, 2);
+const saveStatusLabel = computed(() => ({
+  unsaved: t('formDesigner.unsaved', '未保存'),
+  saving: t('formDesigner.saving', '保存中'),
+  failed: t('formDesigner.saveFailed', '保存失败'),
+  saved: t('formDesigner.saved', '已保存')
+}[store.saveStatus.value]));
+const saveStatusType = computed(() => ({ unsaved: 'warning', saving: 'info', failed: 'danger', saved: 'success' } as const)[store.saveStatus.value]);
 const schemaOriginLabel = computed(() => ({
   designer: '可视化设计器', import: '外部导入', migration: '旧版迁移', api: 'API 写入'
 }[String(store.form.value.schema_origin ?? 'designer')] ?? String(store.form.value.schema_origin)));
-const selectFieldNode = (fieldName: string) => {
-  const node = store.flattenedNodes.value.find((entry) => entry.node.field === fieldName)?.node;
-  if (node) store.selectNode(node.id);
-  else store.selectedKey.value = fieldName;
-};
 const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument) => {
   const compiled = await formDesignerApi.compile(schema);
   const result = store.replaceSchema(compiled.document);
@@ -363,14 +359,10 @@ const onExportSchema = async () => {
 };
 const onRollback = (version: FormSchemaVersion) => {
   const result = store.replaceSchema(version.schema_document);
-  if (result.ok) store.markSaved({ ...store.form.value, schema_document: version.schema_document, schema_origin: 'rollback', fields: store.fields.value } as import('@/api/form').FormDefinition);
+  if (result.ok) store.updateForm({ schema_origin: 'rollback' });
 };
 const controlGroups = computed(() => [...new Set(designerControls.value.map((control) => control.group))]);
 const controlsOf = (group: string) => designerControls.value.filter((control) => control.group === group);
-const previewOptions = (field: { options_source?: Record<string, unknown> | null }) => {
-  const options = field.options_source?.options;
-  return Array.isArray(options) ? options as Array<{ label: string; value: string | number }> : [];
-};
 const normalizeIdentifier = (value: string) => value
   .trim()
   .toLowerCase()
@@ -390,15 +382,15 @@ const normalizeFormKey = () => {
 const validateDefinitionBasics = () => {
   normalizeFormKey();
   if (!String(store.form.value.name ?? '').trim()) {
-    ElMessage.warning('请填写表单名称');
+    ElMessage.warning(t('formDesigner.nameRequired', '请填写表单名称'));
     return false;
   }
   if (!/^[a-z][a-z0-9_]{0,60}$/.test(String(store.form.value.form_key ?? ''))) {
-    ElMessage.warning('请填写正确的表单标识');
+    ElMessage.warning(t('formDesigner.keyInvalid', '请填写正确的表单标识'));
     return false;
   }
   if (!/^[a-z][a-z0-9_]*$/.test(String(store.form.value.table_name ?? ''))) {
-    ElMessage.warning('请填写正确的绑定表名');
+    ElMessage.warning(t('formDesigner.tableInvalid', '请填写正确的绑定表名'));
     return false;
   }
   return true;
@@ -413,14 +405,15 @@ async function load() {
 }
 
 async function onSave() {
-  if (!validateDefinitionBasics()) return;
-  saving.value = true;
+  if (!validateDefinitionBasics() || !store.dirty.value) return;
+  store.beginSave();
   try {
     const saved = await formDesignerApi.save(definition());
     store.markSaved({ ...saved.form, fields: saved.fields });
-    ElMessage.success('保存成功');
-  } finally {
-    saving.value = false;
+    ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
+  } catch (error) {
+    store.failSave();
+    ElMessage.error(t('formDesigner.saveError', '保存失败，请重试'));
   }
 }
 
@@ -556,29 +549,18 @@ onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload);
   await loadPluginFormComponents();
   await load();
-  if (paletteRef.value && canvasRef.value) {
+  if (paletteRef.value) {
     paletteSortable = Sortable.create(paletteRef.value, {
       group: { name: 'form-designer', pull: 'clone', put: false },
       draggable: '.palette-item',
       sort: false,
       animation: 150
     });
-    canvasSortable = Sortable.create(canvasRef.value, {
-      group: { name: 'form-designer', pull: false, put: true },
-      animation: 150,
-      onAdd: (event) => {
-        const type = (event.item as HTMLElement).dataset.type ?? 'input';
-        event.item.remove();
-        store.addField(type);
-      },
-      onUpdate: (event) => store.moveField(event.oldIndex ?? 0, event.newIndex ?? 0)
-    });
   }
 });
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload);
   paletteSortable?.destroy();
-  canvasSortable?.destroy();
 });
 </script>
 
@@ -596,9 +578,6 @@ onBeforeUnmount(() => {
 }
 .designer-layout {
   align-items: flex-start;
-}
-.designer-canvas {
-  min-height: max(520px, calc(100vh - 260px));
 }
 .workspace-desktop .designer-canvas {
   margin: 0 auto;

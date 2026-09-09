@@ -3,11 +3,23 @@ import http from '@/utils/http';
 export type FormSchemaOrigin = 'designer' | 'import' | 'migration' | 'api' | string;
 export type FormSchemaNodeKind = 'field' | 'layout';
 
+export interface FormSchemaValidationCondition {
+  field?: string;
+  op: string;
+  value?: unknown;
+  conditions?: FormSchemaValidationCondition[];
+  condition?: FormSchemaValidationCondition;
+}
+
 export interface FormSchemaValidationRule {
   type: string;
   value?: unknown;
   message?: string;
   trigger?: string[];
+  validator?: { key: string; params?: Record<string, unknown>; debounce?: number; timeout?: number; cacheTtl?: number };
+  when?: FormSchemaValidationCondition;
+  severity?: 'error' | 'warning';
+  bail?: boolean;
 }
 
 export interface FormSchemaNode {

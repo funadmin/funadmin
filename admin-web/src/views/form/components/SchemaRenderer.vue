@@ -22,6 +22,7 @@
         :node="node"
         :values="values"
         :options="resolvedOptions"
+        :data-sources="resolvedDataSources"
         :disabled="disabled"
         :gutter="gutter"
         :state-of="runtime.nodeState"
@@ -43,8 +44,9 @@ import { flattenSchemaNodes } from '../schema/types';
 import SchemaNodeRenderer from './SchemaNodeRenderer.vue';
 import { createRuntimeState } from '../runtime/runtimeState';
 import type { ActionHandlers } from '../runtime/actionExecutor';
-import { useFormDataSource } from '../dataSource/useFormDataSource';
+import { useFormDataSource, type FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import { createAsyncValidatorRegistry } from '../validation/asyncValidatorRegistry';
+import { createElementPlusValidationRules } from '../validation/formSchemaDataValidator';
 import { assertRuntimeComponents } from '../schema/runtimeGuard';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
 import { formDataApi } from '@/api/formData';
@@ -66,6 +68,7 @@ const registryLoading = loadPluginFormComponents()
   .then(() => { registryReady.value = true; })
   .catch((error: unknown) => { registryError.value = error instanceof Error ? error.message : String(error); });
 const resolvedOptions = ref<Record<string, Array<{ label: string; value: unknown }>>>({ ...props.options });
+const resolvedDataSources = ref<Record<string, FormDataSourceControlState>>({});
 const runtime = createRuntimeState(props.schema.nodes, props.values, {
   requestKeys: props.requestKeys,
   request: props.actionHandlers.request,
@@ -96,6 +99,18 @@ const asyncDataSources = flattenSchemaNodes(props.schema.nodes).map(({ node }) =
   })
 }));
 for (const { node, source } of asyncDataSources) {
+  resolvedDataSources.value[node.id] = {
+    get loading() { return source.loading.value; },
+    get error() { return source.error.value; },
+    get page() { return source.page.value; },
+    pageSize: source.pageSize,
+    get total() { return source.total.value; },
+    searchable: source.searchable,
+    paginated: source.paginated,
+    search: source.search,
+    setPage: source.setPage,
+    retry: source.refresh
+  };
   watch(source.options, (options) => {
     resolvedOptions.value[node.id] = options.map((option) => ({ ...option, label: String(option.label ?? '') }));
   }, { immediate: true });
@@ -120,32 +135,21 @@ const rules = computed<FormRules>(() => {
   for (const { node } of flattenSchemaNodes(props.schema.nodes)) {
     const state = runtime.nodeState(node.id);
     if (!node.field || state.hidden) continue;
-    const items = (node.validation ?? []).map((rule) => validationRule(node, rule));
+    const items = createElementPlusValidationRules(node.field, node.validation ?? [], props.values, (key, rule) => (
+      asyncValidatorRegistry.rule('remote', {
+        debounce: rule.validator?.debounce,
+        timeout: rule.validator?.timeout,
+        cacheTtl: rule.validator?.cacheTtl,
+        values: props.values,
+        params: { field: node.field, validator: key, params: rule.validator?.params ?? {} },
+        message: rule.message
+      })
+    ));
     if (state.required && !items.some((rule) => rule.required === true)) items.unshift({ required: true, message: `${node.title}不能为空`, trigger: ['blur', 'change'] });
     if (items.length) result[node.field] = items;
   }
   return result;
 });
-const validationRule = (node: FormSchemaNode, rule: NonNullable<FormSchemaNode['validation']>[number]) => {
-  if (rule.validator && node.field) {
-    return {
-      validator: asyncValidatorRegistry.rule('remote', {
-        debounce: rule.validator.debounce,
-        timeout: rule.validator.timeout,
-        cacheTtl: rule.validator.cacheTtl,
-        values: props.values,
-        params: { field: node.field, validator: rule.validator.key, params: rule.validator.params ?? {} },
-        message: rule.message
-      }),
-      trigger: rule.trigger ?? ['blur', 'change']
-    };
-  }
-  if (rule.type === 'required') return { required: true, message: rule.message ?? `${node.title}不能为空`, trigger: rule.trigger ?? ['blur', 'change'] };
-  if (rule.type === 'pattern') return { pattern: new RegExp(String(rule.value ?? '')), message: rule.message ?? `${node.title}格式不正确`, trigger: rule.trigger ?? 'blur' };
-  if (rule.type === 'minlen') return { min: Number(rule.value), message: rule.message ?? `${node.title}长度不足`, trigger: rule.trigger ?? 'blur' };
-  if (rule.type === 'maxlen') return { max: Number(rule.value), message: rule.message ?? `${node.title}长度过长`, trigger: rule.trigger ?? 'blur' };
-  return { type: rule.type, message: rule.message, trigger: rule.trigger };
-};
 const updateValue = async (nodeId: string, field: string, value: unknown) => {
   props.values[field] = value;
   runtime.refresh();

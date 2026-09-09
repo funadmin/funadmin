@@ -14,4 +14,14 @@ final class CrudGeneration extends BackendModel
     protected $json = ['definition', 'manifest', 'error'];
 
     protected $jsonAssoc = true;
+
+    public function businessModule()
+    {
+        return $this->belongsTo(BusinessModule::class, 'business_module_id', 'id');
+    }
+
+    public function form()
+    {
+        return $this->belongsTo(Form::class, 'form_id', 'id');
+    }
 }

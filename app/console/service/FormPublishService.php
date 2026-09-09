@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\form\schema\FormSchemaException;
 use app\console\model\Form;
 use InvalidArgumentException;
 use Throwable;
@@ -30,15 +31,24 @@ final class FormPublishService
 
     public function preview(array $payload, bool $canGenerate): array
     {
-        $compiled = $this->schemas->compile($this->schemaPayload($payload));
+        $schemaPayload = $this->schemaPayload($payload);
+        $dependencies = $this->schemas->checkDependencies($schemaPayload);
+        if ($dependencies['diagnostics'] !== []) {
+            return [
+                'diagnostics' => $dependencies['diagnostics'],
+                'formDependencyHash' => $dependencies['dependencyHash'],
+                'publishStatus' => 'dependency_failed',
+            ];
+        }
+        $compiled = $this->schemas->compile($schemaPayload);
         $compatible = $this->compatiblePayload($payload, $compiled);
         $this->forms->validateDefinition($compatible);
-        $definition = $this->definitions->createFromSchema(
+        $definition = $this->withDependencyHash($this->definitions->createFromSchema(
             $compiled,
             $compatible,
             (array) ($compatible['publish_config'] ?? []),
             $this->schema($compatible)
-        );
+        ), $dependencies['dependencyHash']);
         $ddl = $this->forms->previewMigration($compatible);
         $crud = $this->crud->preview($definition->toArray(), $canGenerate, $canGenerate);
         $files = (array) ($crud['plan']['files'] ?? []);
@@ -47,6 +57,8 @@ final class FormPublishService
             'definition' => $definition->toArray(),
             'definitionHash' => $definition->hash(),
             'formSchemaHash' => $compiled->hash(),
+            'formDependencyHash' => $dependencies['dependencyHash'],
+            'diagnostics' => [],
             'ddl' => $ddl,
             'generationId' => $crud['generationId'] ?? null,
             'plan' => $crud['plan'] ?? [],
@@ -64,14 +76,20 @@ final class FormPublishService
         bool $canApplyResources,
         string $operator
     ): array {
-        $compiled = $this->schemas->compile($this->schemaPayload($payload));
+        $schemaPayload = $this->schemaPayload($payload);
+        $dependencies = $this->schemas->checkDependencies($schemaPayload);
+        if ($dependencies['diagnostics'] !== []) {
+            $diagnostic = $dependencies['diagnostics'][0];
+            throw new FormSchemaException($diagnostic['message'], $diagnostic['path'], $diagnostic['code']);
+        }
+        $compiled = $this->schemas->compile($schemaPayload);
         $compatible = $this->compatiblePayload($payload, $compiled);
-        $crudDefinition = $this->definitions->createFromSchema(
+        $crudDefinition = $this->withDependencyHash($this->definitions->createFromSchema(
             $compiled,
             $compatible,
             (array) ($compatible['publish_config'] ?? []),
             $this->schema($compatible)
-        );
+        ), $dependencies['dependencyHash']);
         try {
             $validatedPlan = $this->crud->preflightGeneration(
                 $crudDefinition->toArray(),
@@ -174,6 +192,17 @@ final class FormPublishService
             ]);
         }
         return $result + ['publishStatus' => ($result['resourceApplyStatus'] ?? '') === 'applied' ? 'published' : 'partial'];
+    }
+
+    private function withDependencyHash(\app\common\crud\CrudDefinition $definition, string $dependencyHash): \app\common\crud\CrudDefinition
+    {
+        $payload = $definition->toArray();
+        $schema = (array) ($payload['formSchema'] ?? []);
+        $extensions = (array) ($schema['extensions'] ?? []);
+        $extensions['dependencies'] = ['hash' => $dependencyHash];
+        $schema['extensions'] = $extensions;
+        $payload['formSchema'] = $schema;
+        return \app\common\crud\CrudDefinition::fromArray($payload);
     }
 
     private function schemaPayload(array $payload): array

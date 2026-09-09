@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\console\controller\form;
 
+use app\common\form\action\FormActionRegistry;
+use app\common\form\observability\FormObservability;
 use app\common\form\validation\FormAsyncValidationException;
 use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
@@ -18,6 +20,7 @@ use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
 use think\annotation\route\Post;
+use think\facade\Cache;
 use think\App;
 use think\Response;
 use Throwable;
@@ -32,6 +35,8 @@ final class Data extends AdminApiController
 
     private readonly FormDataService $data;
     private readonly AdminAuthorizationService $authorization;
+    private readonly FormActionRegistry $actions;
+    private readonly FormObservability $observability;
 
     public function __construct(App $app)
     {
@@ -44,6 +49,22 @@ final class Data extends AdminApiController
             FormDataSourceRegistry::core(is_array($dataSources) ? $dataSources : []),
             fn (string $permission): bool => $this->authorization->nodeAccess($permission)
         );
+        $actionDefinitions = is_array(config('form.actions', [])) ? config('form.actions', []) : [];
+        $actionDefinitions = array_map(static fn (array $definition): array => [
+            ...$definition,
+            'timeoutMs' => $definition['timeoutMs'] ?? config('form.action_timeout_ms', 3000),
+            'maxChain' => $definition['maxChain'] ?? config('form.action_max_chain', 5),
+        ], $actionDefinitions);
+        $this->actions = new FormActionRegistry($actionDefinitions, static function (string $scope): bool {
+            $cacheKey = 'form_action_idempotency:' . $scope;
+            $nonce = bin2hex(random_bytes(16));
+            return Cache::remember(
+                $cacheKey,
+                static fn (): string => $nonce,
+                max(1, (int) config('form.idempotency_ttl', 86400))
+            ) === $nonce;
+        });
+        $this->observability = new FormObservability();
     }
 
     #[Get('meta/:key')]
@@ -52,10 +73,13 @@ final class Data extends AdminApiController
     {
         $etag = '';
         $response = $this->execute(function () use ($key, &$etag): array {
-            $meta = $this->data->meta($key);
+            $meta = $this->observe($key, 'meta', fn (): array => $this->data->meta($key));
             $etag = (string) $meta['etag'];
             return $meta;
         });
+        if ($etag !== '' && trim((string) $this->request->header('If-None-Match', '')) === $etag) {
+            return response('', 304)->header(['ETag' => $etag])->code(304);
+        }
         return $etag === '' ? $response : $response->header(['ETag' => $etag]);
     }
 
@@ -88,7 +112,7 @@ final class Data extends AdminApiController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function detail(string $key, int|string $id): Response
     {
-        return $this->execute(fn (): array => $this->data->detail($key, $id));
+        return $this->execute(fn (): array => $this->observe($key, 'detail', fn (): array => $this->data->detail($key, $id)));
     }
 
     #[Get('options/:key/:field')]
@@ -96,11 +120,17 @@ final class Data extends AdminApiController
     #[Pattern('field', '[a-z][a-z0-9_]*')]
     public function options(string $key, string $field): Response
     {
-        return $this->execute(fn (): array => $this->data->paginateOptions(
-            $this->data->options($key, $field, $this->request->get()),
-            trim((string) $this->request->get('keyword', '')),
-            $this->page(),
-            $this->pageSize()
+        return $this->execute(fn (): array => $this->observe(
+            $key,
+            'options',
+            fn (): array => $this->data->paginateOptions(
+                $this->data->options($key, $field, $this->request->get()),
+                trim((string) $this->request->get('keyword', '')),
+                $this->page(),
+                $this->pageSize()
+            ),
+            nodeId: $field,
+            dataSource: 'options'
         ));
     }
 
@@ -114,13 +144,18 @@ final class Data extends AdminApiController
         if (!is_array($values) || !is_array($params)) {
             throw new InvalidArgumentException('values 和 params 必须为对象');
         }
-        return $this->execute(fn (): array => $this->data->validateAsync(
+        return $this->execute(fn (): array => $this->observe(
             $key,
-            $field,
-            trim((string) $this->request->post('validator', '')),
-            $this->request->post('value'),
-            $values,
-            $params
+            'validate',
+            fn (): array => $this->data->validateAsync(
+                $key,
+                $field,
+                trim((string) $this->request->post('validator', '')),
+                $this->request->post('value'),
+                $values,
+                $params
+            ),
+            nodeId: $field
         ));
     }
 
@@ -139,7 +174,12 @@ final class Data extends AdminApiController
     {
         $payload = $this->payload();
         $this->redactRequestPayload($key, $payload);
-        return $this->execute(fn (): array => $this->data->create($key, $payload, $this->include(), $this->schemaHash()), '新增成功');
+        return $this->execute(fn (): array => $this->observe(
+            $key,
+            'create',
+            fn (): array => $this->data->create($key, $payload, $this->include(), $this->schemaHash()),
+            $this->schemaHash()
+        ), '新增成功');
     }
 
     #[Post('update/:key/:id')]
@@ -149,7 +189,35 @@ final class Data extends AdminApiController
     {
         $payload = $this->payload();
         $this->redactRequestPayload($key, $payload);
-        return $this->execute(fn (): array => $this->data->update($key, $id, $payload, $this->include(), $this->schemaHash()), '更新成功');
+        return $this->execute(fn (): array => $this->observe(
+            $key,
+            'update',
+            fn (): array => $this->data->update($key, $id, $payload, $this->include(), $this->schemaHash()),
+            $this->schemaHash()
+        ), '更新成功');
+    }
+
+    #[Post('action/:key/:action')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Pattern('action', '[a-z][a-z0-9._-]*')]
+    public function action(string $key, string $action): Response
+    {
+        $parameters = $this->request->post('parameters', []);
+        if (!is_array($parameters)) {
+            throw new InvalidArgumentException('parameters 必须为对象');
+        }
+        $idempotencyKey = trim((string) $this->request->header('Idempotency-Key', ''));
+        $chainDepth = max(1, (int) $this->request->header('X-Form-Action-Depth', 1));
+        return $this->execute(fn (): array => $this->observe($key, 'action', function () use (
+            $key,
+            $action,
+            $parameters,
+            $idempotencyKey,
+            $chainDepth
+        ): array {
+            $result = $this->data->executeAction($key, $action, $parameters, $idempotencyKey, $chainDepth, $this->actions);
+            return ['result' => $result['result']];
+        }, actionKey: $action), '执行成功');
     }
 
     #[Post('remove/:key')]
@@ -191,6 +259,26 @@ final class Data extends AdminApiController
     {
         $filters = $this->request->get('filters', []);
         return is_array($filters) ? $filters : [];
+    }
+
+    private function observe(
+        string $formKey,
+        string $action,
+        callable $operation,
+        string $schemaHash = '',
+        string $nodeId = '',
+        string $dataSource = '',
+        string $actionKey = ''
+    ): mixed {
+        $runtime = $this->data->runtimeContext($formKey, $nodeId, $dataSource, $actionKey);
+        return $this->observability->measure([
+            'formKey' => $formKey,
+            'schemaHash' => $schemaHash !== '' ? $schemaHash : $runtime['schemaHash'],
+            'nodeId' => $runtime['nodeId'],
+            'action' => $action,
+            'dataSource' => $runtime['dataSource'],
+            'requestId' => trim((string) $this->request->header('X-Request-ID', '')),
+        ], $operation);
     }
 
     private function execute(callable $operation, string $message = '操作成功'): Response

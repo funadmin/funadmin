@@ -92,6 +92,63 @@ describe('useFormDataSource', () => {
     scope.stop();
   });
 
+  it('相同搜索词和页码不会重复请求，重试仍可强制刷新', async () => {
+    const request: FormDataSourceRequest = vi.fn(async () => ({ options: [], total: 40 }));
+    const scope = effectScope();
+    const source = scope.run(() => useFormDataSource({
+      formKey: 'member', field: 'owner_id',
+      definition: { kind: 'user', pagination: { pageSize: 20 } },
+      values: reactive({}), request, debounceMs: 0
+    }))!;
+
+    await flush();
+    source.search('');
+    source.setPage(1);
+    await flush();
+    expect(request).toHaveBeenCalledTimes(1);
+
+    await source.refresh();
+    expect(request).toHaveBeenCalledTimes(2);
+    scope.stop();
+  });
+
+  it('同一实例相同参数的在途刷新复用请求且不取消共享请求', async () => {
+    const pending = deferred<{ options: Array<{ label: string; value: number }>; total: number }>();
+    const signals: AbortSignal[] = [];
+    const request: FormDataSourceRequest = vi.fn((_key, _field, _params, signal) => {
+      signals.push(signal);
+      return pending.promise;
+    });
+    const scope = effectScope();
+    const source = scope.run(() => useFormDataSource({
+      formKey: 'member', field: 'owner_id', definition: { kind: 'user' },
+      values: reactive({}), request, debounceMs: 0
+    }))!;
+
+    await vi.runAllTimersAsync();
+    const retry = source.refresh();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(signals[0]?.aborted).toBe(false);
+    pending.resolve({ options: [{ label: '用户', value: 1 }], total: 1 });
+    await retry;
+    expect(source.options.value).toEqual([{ label: '用户', value: 1 }]);
+    scope.stop();
+  });
+
+  it('暴露页大小、搜索及分页能力供控件消费', async () => {
+    const scope = effectScope();
+    const source = scope.run(() => useFormDataSource({
+      formKey: 'member', field: 'owner_id',
+      definition: { kind: 'user', searchable: true, pagination: { pageSize: 15 } },
+      values: reactive({}), request: vi.fn(async () => ({ options: [], total: 0 })), debounceMs: 0
+    }))!;
+
+    expect(source.pageSize).toBe(15);
+    expect(source.searchable).toBe(true);
+    expect(source.paginated).toBe(true);
+    scope.stop();
+  });
+
   it('TTL 内复用缓存并对相同在途请求去重', async () => {
     const pending = deferred<{ options: Array<{ label: string; value: number }> }>();
     const request: FormDataSourceRequest = vi.fn(() => pending.promise);

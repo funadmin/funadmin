@@ -19,6 +19,7 @@ interface NodeLocation {
 }
 
 export type DesignerKeyboardMove = 'up' | 'down' | 'indent' | 'outdent';
+export type DesignerSaveStatus = 'unsaved' | 'saving' | 'failed' | 'saved';
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -153,6 +154,7 @@ export function useDesigner() {
   const selectedKey = ref<string | null>(null);
   const selectedNodeId = ref<string | null>(null);
   const dirty = ref(false);
+  const saveStatus = ref<DesignerSaveStatus>('saved');
   const undoStack = shallowRef<string[]>([]);
   const redoStack = shallowRef<string[]>([]);
   let nodeSequence = 0;
@@ -162,6 +164,7 @@ export function useDesigner() {
   const selectedNode = computed(() => flattenedNodes.value.find((entry) => entry.node.id === selectedNodeId.value)?.node ?? null);
   const canUndo = computed(() => undoStack.value.length > 0);
   const canRedo = computed(() => redoStack.value.length > 0);
+  const historyDepth = computed(() => ({ undo: undoStack.value.length, redo: redoStack.value.length }));
 
   const snapshot = () => JSON.stringify({
     fields: fields.value,
@@ -172,6 +175,7 @@ export function useDesigner() {
     undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
     redoStack.value = [];
     dirty.value = true;
+    saveStatus.value = 'unsaved';
   };
   const restore = (raw: string) => {
     const state = JSON.parse(raw) as DesignerSnapshot;
@@ -185,17 +189,19 @@ export function useDesigner() {
     const previous = undoStack.value.at(-1);
     if (previous === undefined) return;
     undoStack.value = undoStack.value.slice(0, -1);
-    redoStack.value = [...redoStack.value, snapshot()];
+    redoStack.value = [...redoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
     restore(previous);
     dirty.value = true;
+    saveStatus.value = 'unsaved';
   };
   const redo = () => {
     const next = redoStack.value.at(-1);
     if (next === undefined) return;
     redoStack.value = redoStack.value.slice(0, -1);
-    undoStack.value = [...undoStack.value, snapshot()];
+    undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
     restore(next);
     dirty.value = true;
+    saveStatus.value = 'unsaved';
   };
 
   const usedNodeIds = () => new Set(flattenNodes(nodes.value).map((entry) => entry.node.id));
@@ -415,14 +421,17 @@ export function useDesigner() {
     undoStack.value = [];
     redoStack.value = [];
     dirty.value = false;
+    saveStatus.value = 'saved';
     selectedKey.value = null;
     selectedNodeId.value = null;
   };
+  const beginSave = () => { saveStatus.value = 'saving'; };
+  const failSave = () => { saveStatus.value = 'failed'; };
   const markSaved = (definition: FormDefinition) => load(definition);
 
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
-    dirty, canUndo, canRedo, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
+    dirty, saveStatus, beginSave, failSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
     duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, replaceFields, replaceSchema, load, markSaved
   };
 }

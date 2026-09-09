@@ -92,9 +92,11 @@ describe('设计器插件组件目录', () => {
     const state = createPluginCatalog();
     const incompatible = { ...catalog, schemaVersion: 3 } as unknown as FormComponentCatalog;
 
+    state.accept(catalog, registered());
     state.accept(incompatible, registered());
 
     expect(state.controls.value).toEqual([]);
+    expect(createField('demo:rating', 1).type).toBe('input');
     expect(state.diagnostics.value[0]).toMatchObject({ code: 'version-mismatch' });
     expect(state.canPublish([])).toBe(false);
   });

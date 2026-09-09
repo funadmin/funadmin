@@ -14,7 +14,7 @@ final class FormSchemaCompiler
 
     public function compile(array $schema): FormSchema
     {
-        $schema = $this->validator->normalize($schema);
+        $schema = $this->normalizeOrigin($this->validator->normalize($schema));
         $this->validator->validate($schema);
         $canonical = $this->canonicalize($schema);
         try {
@@ -23,6 +23,18 @@ final class FormSchemaCompiler
             throw new FormSchemaException('Schema 无法编码：' . $exception->getMessage(), '/');
         }
         return new FormSchema($canonical, $json, $this->projection($canonical['nodes']));
+    }
+
+    /**
+     * origin 仅描述入口来源，不属于业务文档语义，编译和 hash 前统一移除。
+     */
+    private function normalizeOrigin(array $schema): array
+    {
+        if (!is_array($schema['extensions'] ?? null)) {
+            return $schema;
+        }
+        unset($schema['extensions']['origin']);
+        return $schema;
     }
 
     private function canonicalize(mixed $value): mixed

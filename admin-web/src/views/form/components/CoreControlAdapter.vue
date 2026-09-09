@@ -3,6 +3,7 @@
     :field="field"
     :model-value="modelValue"
     :options="options"
+    :data-source-state="dataSourceState"
     :disabled="disabled"
     :readonly="readonly"
     :input-attrs="inputAttrs"
@@ -15,11 +16,13 @@
 <script setup lang="ts">
 import type { FormFieldDef } from '@/api/form';
 import FormControlRenderer from './FormControlRenderer.vue';
+import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 
 withDefaults(defineProps<{
   field: FormFieldDef;
   modelValue?: unknown;
   options?: Array<{ label: string; value: unknown }>;
+  dataSourceState?: FormDataSourceControlState;
   disabled?: boolean;
   readonly?: boolean;
   inputAttrs?: Record<string, unknown>;

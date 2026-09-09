@@ -6,7 +6,7 @@
     tabindex="0"
     :aria-level="depth"
     :aria-selected="store.selectedNodeId.value === node.id"
-    :aria-expanded="container ? String(!collapsed) : undefined"
+    :aria-expanded="container ? !collapsed : undefined"
     :data-node-id="node.id"
     :data-node-type="node.type"
     @click.stop="store.selectNode(node.id)"
@@ -41,15 +41,16 @@
       <span v-else class="text-xs text-[var(--el-text-color-placeholder)]">{{ node.title }}</span>
     </div>
 
-    <DesignerCanvas
-      v-else-if="!collapsed"
-      :nodes="node.children"
-      :store="store"
-      :parent-id="node.id"
-      :depth="depth + 1"
-      :root="false"
-    />
-    <div v-else class="collapsed-summary">已折叠 {{ descendantCount }} 个后代节点</div>
+    <template v-else>
+      <div v-if="collapsed" class="collapsed-summary">已折叠 {{ descendantCount }} 个后代节点，仍可拖入此容器</div>
+      <DesignerCanvas
+        :nodes="collapsed ? [] : node.children"
+        :store="store"
+        :parent-id="node.id"
+        :depth="depth + 1"
+        :root="false"
+      />
+    </template>
   </div>
 </template>
 

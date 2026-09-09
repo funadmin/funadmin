@@ -123,9 +123,9 @@ schemaApiExpect(str_contains($controllerSource, 'errorCode()') && str_contains($
 $migrations = array_map('basename', glob(dirname(__DIR__) . '/database/migrations/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 $permissionMigrationName = '076_form_schema_api_permissions.sql';
-schemaApiExpect(end($migrations) === $permissionMigrationName, '新增权限迁移必须使用当前不冲突的 076 编号');
+schemaApiExpect(in_array($permissionMigrationName, $migrations, true), 'FormSchema API 权限迁移必须保留独立的 076 编号');
 $permissionMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/' . $permissionMigrationName);
-foreach (['compile', 'import', 'export', 'versions', 'version', 'diff', 'rollback', 'componentCatalog'] as $action) {
+foreach (['compile', 'import', 'export', 'versions', 'version', 'diff', 'rollback', 'componentcatalog'] as $action) {
     schemaApiExpect(str_contains($permissionMigration, "'console/form.designer:{$action}'"), '权限迁移缺少动作：' . $action);
 }
 schemaApiExpect(str_contains($permissionMigration, 'INSERT IGNORE'), '权限迁移必须幂等');

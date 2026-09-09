@@ -15,14 +15,20 @@ final class FormObservability
     ];
 
     private readonly Closure $writer;
+    private readonly Closure $counter;
+    private readonly Closure $duration;
 
-    public function __construct(?callable $writer = null)
+    public function __construct(?callable $writer = null, ?callable $counter = null, ?callable $duration = null)
     {
         $this->writer = $writer !== null
             ? Closure::fromCallable($writer)
             : static function (array $event): void {
                 Log::info('form.event', $event);
             };
+        $this->counter = Closure::fromCallable($counter ?? static function (string $metric, array $labels): void {
+        });
+        $this->duration = Closure::fromCallable($duration ?? static function (string $metric, float $value, array $labels): void {
+        });
     }
 
     public function record(array $context): void
@@ -55,5 +61,11 @@ final class FormObservability
         $context['stage'] = $stage;
         $context['duration'] = (hrtime(true) - $startedAt) / 1_000_000;
         $this->record($context);
+        $labels = [];
+        foreach (['formKey', 'nodeId', 'action', 'dataSource', 'stage'] as $field) {
+            $labels[$field] = (string) ($context[$field] ?? '');
+        }
+        ($this->counter)('form_operations_total', $labels);
+        ($this->duration)('form_operation_duration_ms', (float) $context['duration'], $labels);
     }
 }

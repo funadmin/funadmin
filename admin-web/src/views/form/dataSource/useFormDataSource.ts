@@ -9,6 +9,7 @@ export interface FormDataSourceDefinition {
   staleValue?: StaleValuePolicy;
   debounce?: number;
   cacheTtl?: number;
+  searchable?: boolean;
   pagination?: { pageSize?: number };
 }
 
@@ -23,6 +24,19 @@ export type FormDataSourceRequest = (
   params: Record<string, unknown>,
   signal: AbortSignal
 ) => Promise<FormDataSourceResult>;
+
+export interface FormDataSourceControlState {
+  loading: boolean;
+  error?: unknown;
+  page: number;
+  pageSize: number;
+  total: number;
+  searchable: boolean;
+  paginated: boolean;
+  search: (keyword: string) => void;
+  setPage: (page: number) => void;
+  retry: () => Promise<void>;
+}
 
 interface UseFormDataSourceOptions {
   formKey: string;
@@ -88,6 +102,9 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
   error: Ref<unknown>;
   page: Ref<number>;
   total: Ref<number>;
+  pageSize: number;
+  searchable: boolean;
+  paginated: boolean;
   search: (keyword: string) => void;
   setPage: (page: number) => void;
   refresh: () => Promise<void>;
@@ -105,6 +122,8 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
   let controller: AbortController | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let dependencyChanged = false;
+  let activeKey = '';
+  let activeRefresh: Promise<void> | null = null;
 
   const parameters = (): Record<string, unknown> => {
     const declared = Object.fromEntries(Object.entries(config.definition.params ?? {}).map(([name, value]) => [name, resolveParameter(value, config.values)]));
@@ -112,32 +131,42 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
     return { ...declared, ...dependencyValues, keyword: keyword.value, page: page.value, pageSize };
   };
 
-  const refresh = async (): Promise<void> => {
+  const refresh = (): Promise<void> => {
+    const params = parameters();
+    const key = stableKey([config.formKey, config.field, params]);
+    if (activeRefresh && activeKey === key) return activeRefresh;
+
     const current = ++sequence;
     controller?.abort();
     controller = new AbortController();
     loading.value = true;
     error.value = undefined;
-    const params = parameters();
-    const key = stableKey([config.formKey, config.field, params]);
-    try {
-      const result = await cachedRequest(key, ttl, () => (config.request ?? defaultRequest)(config.formKey, config.field, params, controller!.signal));
-      if (current !== sequence) return;
-      options.value = result.options;
-      total.value = result.total ?? result.options.length;
-      if (dependencyChanged) {
-        config.values[config.field] = applyStaleValuePolicy(
-          config.definition.staleValue ?? 'clear',
-          config.values[config.field],
-          result.options.map((option) => option.value)
-        );
-        dependencyChanged = false;
+    activeKey = key;
+    const requestController = controller;
+    let task!: Promise<void>;
+    task = (async (): Promise<void> => {
+      try {
+        const result = await cachedRequest(key, ttl, () => (config.request ?? defaultRequest)(config.formKey, config.field, params, requestController.signal));
+        if (current !== sequence) return;
+        options.value = result.options;
+        total.value = result.total ?? result.options.length;
+        if (dependencyChanged) {
+          config.values[config.field] = applyStaleValuePolicy(
+            config.definition.staleValue ?? 'clear',
+            config.values[config.field],
+            result.options.map((option) => option.value)
+          );
+          dependencyChanged = false;
+        }
+      } catch (reason) {
+        if (current === sequence && !(reason instanceof DOMException && reason.name === 'AbortError')) error.value = reason;
+      } finally {
+        if (current === sequence) loading.value = false;
+        if (activeRefresh === task) activeRefresh = null;
       }
-    } catch (reason) {
-      if (current === sequence && !(reason instanceof DOMException && reason.name === 'AbortError')) error.value = reason;
-    } finally {
-      if (current === sequence) loading.value = false;
-    }
+    })();
+    activeRefresh = task;
+    return task;
   };
 
   const schedule = (): void => {
@@ -146,12 +175,15 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
   };
 
   const search = (value: string): void => {
+    if (keyword.value === value && page.value === 1) return;
     keyword.value = value;
     page.value = 1;
     schedule();
   };
   const setPage = (value: number): void => {
-    page.value = Math.max(1, value);
+    const nextPage = Math.max(1, value);
+    if (page.value === nextPage) return;
+    page.value = nextPage;
     schedule();
   };
 
@@ -168,5 +200,10 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
     controller?.abort();
   });
 
-  return { options, loading, error, page, total, search, setPage, refresh };
+  return {
+    options, loading, error, page, total, pageSize,
+    searchable: config.definition.searchable ?? true,
+    paginated: Boolean(config.definition.pagination),
+    search, setPage, refresh
+  };
 };

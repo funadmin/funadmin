@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\console\service;
 
 use app\common\crud\SchemaInspector;
+use app\common\form\registry\FieldCapabilityRegistry;
 use app\common\model\SystemMigration;
 use app\console\model\Form;
 use app\console\model\FormField;
@@ -43,10 +44,15 @@ final class FormDesignerService
     private const ON_DELETE = ['restrict' => 'RESTRICT', 'cascade' => 'CASCADE', 'set_null' => 'SET NULL'];
 
     private readonly FormSchemaRepository $schemas;
+    private readonly FieldCapabilityRegistry $fieldCapabilities;
 
-    public function __construct(private readonly string $projectRoot, ?FormSchemaRepository $schemas = null)
-    {
+    public function __construct(
+        private readonly string $projectRoot,
+        ?FormSchemaRepository $schemas = null,
+        ?FieldCapabilityRegistry $fieldCapabilities = null
+    ) {
         $this->schemas = $schemas ?? new FormSchemaRepository();
+        $this->fieldCapabilities = $fieldCapabilities ?? $this->schemas->fieldCapabilities();
     }
 
     /** 表单分页列表（含字段数）。 */
@@ -117,7 +123,7 @@ final class FormDesignerService
                 throw new InvalidArgumentException($label . '显示名称不能为空');
             }
             $type = (string) ($field['type'] ?? 'input');
-            if (!array_key_exists($type, self::CONTROL_TYPES)) {
+            if (!$this->fieldCapabilities->has($type)) {
                 throw new InvalidArgumentException($label . '控件类型不支持：' . $type);
             }
             if (!in_array((string) ($field['index_type'] ?? 'none'), self::INDEX_TYPES, true)) {
@@ -381,7 +387,7 @@ final class FormDesignerService
             'type' => $type,
             'column_type' => in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true)
                 ? ''
-                : (trim((string) ($field['column_type'] ?? '')) ?: self::CONTROL_TYPES[$type]),
+                : (trim((string) ($field['column_type'] ?? '')) ?: (string) ($this->fieldCapabilities->get($type)['defaultColumnType'] ?? '')),
             'nullable' => (int) ($field['nullable'] ?? 1),
             'default_value' => (string) ($field['default_value'] ?? ''),
             'comment' => trim((string) ($field['comment'] ?? '')),
@@ -489,7 +495,8 @@ final class FormDesignerService
     private function columnDdl(array $field): string
     {
         $name = trim((string) $field['field_name']);
-        $type = trim((string) ($field['column_type'] ?? '')) ?: self::CONTROL_TYPES[(string) ($field['type'] ?? 'input')];
+        $type = trim((string) ($field['column_type'] ?? ''))
+            ?: (string) ($this->fieldCapabilities->get((string) ($field['type'] ?? 'input'))['defaultColumnType'] ?? '');
         if ((int) ($field['unsigned'] ?? 0) === 1 && preg_match('/^(tinyint|int|bigint|decimal)/', $type)) {
             $type .= ' unsigned';
         }

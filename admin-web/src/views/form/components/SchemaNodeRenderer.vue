@@ -33,6 +33,7 @@
         :field="legacyField"
         :model-value="node.field ? values[node.field] : undefined"
         :options="nodeOptions"
+        :data-source-state="dataSourceState"
         :disabled="state.disabled || disabled"
         :read-only="readOnly"
         :input-attrs="controlAttrs"
@@ -50,12 +51,14 @@ import { computed } from 'vue';
 import type { FormFieldDef } from '@/api/form';
 import { componentRegistry } from '../schema/componentRegistry';
 import type { FormSchemaNode } from '../schema/types';
+import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import RegisteredControlRenderer from './RegisteredControlRenderer.vue';
 
 const props = withDefaults(defineProps<{
   node: FormSchemaNode;
   values: Record<string, unknown>;
   options?: Record<string, Array<{ label: string; value: unknown }>>;
+  dataSources?: Record<string, FormDataSourceControlState>;
   disabled?: boolean;
   gutter?: number;
   stateOf?: (nodeId: string) => { hidden: boolean; disabled: boolean; required: boolean };
@@ -64,7 +67,7 @@ const props = withDefaults(defineProps<{
   readOnly?: boolean;
   errors?: Record<string, string>;
   designMode?: boolean;
-}>(), { options: () => ({}), disabled: false, gutter: 16, stateOf: undefined, runtimeVersion: 0, idPrefix: 'form', readOnly: false, errors: () => ({}), designMode: false });
+}>(), { options: () => ({}), dataSources: () => ({}), disabled: false, gutter: 16, stateOf: undefined, runtimeVersion: 0, idPrefix: 'form', readOnly: false, errors: () => ({}), designMode: false });
 
 const emit = defineEmits<{ change: [field: string, value: unknown] }>();
 const definition = computed(() => componentRegistry.resolve(props.node.type));
@@ -88,6 +91,7 @@ const state = computed(() => {
   void props.runtimeVersion;
   return props.stateOf?.(props.node.id) ?? { hidden: Boolean(props.node.hidden), disabled: Boolean(props.node.disabled), required: false };
 });
+const dataSourceState = computed(() => props.dataSources[props.node.id]);
 const nodeOptions = computed(() => {
   const supplied = props.options[props.node.id];
   if (supplied) return supplied;

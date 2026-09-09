@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace app\common\form\schema;
 
 use app\common\form\component\PluginFormComponentRegistry;
+use app\common\form\registry\FieldCapabilityRegistry;
+use app\common\form\validation\FormSchemaDataValidator;
 
 final class FormSchemaValidator
 {
@@ -34,7 +36,7 @@ final class FormSchemaValidator
         'disable' => [['target'], ['target']],
         'setRequired' => [['target'], ['target', 'value']],
         'validate' => [[], ['target']],
-        'request' => [['key'], ['key', 'concurrency', 'params', 'parameters']],
+        'request' => [['key'], ['key', 'concurrency', 'params', 'parameters', 'permission', 'capabilityVersion']],
         'notify' => [[], ['message', 'level', 'tone']],
         'openDialog' => [['key'], ['key', 'params']],
         'navigate' => [['route'], ['route', 'params', 'query']],
@@ -49,9 +51,11 @@ final class FormSchemaValidator
         'notEmpty', 'matches', 'and', 'or', 'not',
     ];
     private const VALIDATION_TYPES = [
-        'required', 'min', 'max', 'minlen', 'maxlen', 'length', 'pattern', 'email', 'url', 'number', 'integer',
-        'array', 'object', 'async',
+        'required', 'type', 'min', 'max', 'minLength', 'maxLength', 'minlen', 'maxlen', 'length', 'enum', 'pattern',
+        'format', 'email', 'url', 'number', 'integer', 'same', 'different', 'before', 'after', 'precision', 'file',
+        'array', 'object', 'items', 'properties', 'async',
     ];
+    private const RULE_KEYS = ['type', 'value', 'message', 'trigger', 'validator', 'when', 'severity', 'bail'];
     private const MAX_SCHEMA_BYTES = 1048576;
     private const MAX_DEPTH = 20;
     private const MAX_NODES = 1000;
@@ -61,8 +65,13 @@ final class FormSchemaValidator
     private const MAX_DATA_SOURCES = 100;
     private const MAX_OPTIONS = 1000;
 
-    public function __construct(private readonly ?PluginFormComponentRegistry $pluginComponents = null)
-    {
+    private readonly FieldCapabilityRegistry $fieldCapabilities;
+
+    public function __construct(
+        private readonly ?PluginFormComponentRegistry $pluginComponents = null,
+        ?FieldCapabilityRegistry $fieldCapabilities = null
+    ) {
+        $this->fieldCapabilities = $fieldCapabilities ?? new FieldCapabilityRegistry();
     }
 
     public function normalize(array $schema): array
@@ -173,7 +182,7 @@ final class FormSchemaValidator
 
             $type = (string) ($node['type'] ?? '');
             $pluginComponent = str_contains($type, ':') ? $this->pluginComponents?->definition($type) : null;
-            if (!in_array($type, self::COMPONENTS, true) && $pluginComponent === null) {
+            if (!$this->fieldCapabilities->has($type) && $pluginComponent === null) {
                 throw new FormSchemaException('组件未注册：' . $type, $nodePath . '/type', 'FORM_COMPONENT_NOT_REGISTERED');
             }
             if ($pluginComponent !== null) {
@@ -293,10 +302,82 @@ final class FormSchemaValidator
             throw new FormSchemaException('每节点规则数量超过限制', $path, 'FORM_SCHEMA_LIMIT_EXCEEDED');
         }
         foreach ($rules as $index => $rule) {
-            if (!is_array($rule) || !in_array($rule['type'] ?? null, self::VALIDATION_TYPES, true)) {
-                throw new FormSchemaException('验证规则类型未注册', $path . '/' . $index . '/type');
+            $rulePath = $path . '/' . $index;
+            if (!is_array($rule) || array_is_list($rule) || !in_array($rule['type'] ?? null, self::VALIDATION_TYPES, true)) {
+                throw new FormSchemaException('验证规则类型未注册', $rulePath . '/type');
             }
-            $this->validateSafeValue($rule, $path . '/' . $index);
+            foreach (array_keys($rule) as $key) {
+                if (!in_array($key, self::RULE_KEYS, true)) {
+                    throw new FormSchemaException('验证规则参数未授权', $rulePath . '/' . $key);
+                }
+            }
+            if (isset($rule['severity']) && !in_array($rule['severity'], ['error', 'warning'], true)) {
+                throw new FormSchemaException('验证严重级别不合法', $rulePath . '/severity');
+            }
+            if (isset($rule['bail']) && !is_bool($rule['bail'])) {
+                throw new FormSchemaException('验证 bail 必须为布尔值', $rulePath . '/bail');
+            }
+            if (isset($rule['when'])) {
+                $this->validateValidationCondition($rule['when'], $rulePath . '/when');
+            }
+            $type = (string) $rule['type'];
+            if ($type === 'pattern' && (!is_string($rule['value'] ?? null) || !FormSchemaDataValidator::isPatternSafe($rule['value']))) {
+                throw new FormSchemaException('正则不安全或不兼容', $rulePath . '/value', 'FORM_SCHEMA_PATTERN_UNSAFE');
+            }
+            if ($type === 'async') {
+                $validator = $rule['validator'] ?? null;
+                if (!is_array($validator) || array_is_list($validator) || !is_string($validator['key'] ?? null) || trim($validator['key']) === '') {
+                    throw new FormSchemaException('异步验证器 key 不能为空', $rulePath . '/validator/key');
+                }
+            }
+            if ($type === 'items') {
+                if (!is_array($rule['value'] ?? null) || !array_is_list($rule['value'])) {
+                    throw new FormSchemaException('items.value 必须为规则数组', $rulePath . '/value');
+                }
+                $this->validateRules($rule['value'], $rulePath . '/value');
+            }
+            if ($type === 'properties') {
+                $properties = $rule['value'] ?? null;
+                if (!is_array($properties) || array_is_list($properties)) {
+                    throw new FormSchemaException('properties.value 必须为规则对象', $rulePath . '/value');
+                }
+                foreach ($properties as $property => $propertyRules) {
+                    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', (string) $property)) {
+                        throw new FormSchemaException('属性名称不合法', $rulePath . '/value/' . $this->escapePointer((string) $property));
+                    }
+                    $this->validateRules($propertyRules, $rulePath . '/value/' . $this->escapePointer((string) $property));
+                }
+            }
+            $this->validateSafeValue($rule, $rulePath);
+        }
+    }
+
+    private function validateValidationCondition(mixed $condition, string $path): void
+    {
+        if (!is_array($condition) || array_is_list($condition)) {
+            throw new FormSchemaException('验证条件必须为对象', $path);
+        }
+        $operator = (string) ($condition['op'] ?? '');
+        if (!in_array($operator, self::CONDITION_OPERATORS, true)) {
+            throw new FormSchemaException('验证条件操作符未注册', $path . '/op');
+        }
+        if (in_array($operator, ['and', 'or'], true)) {
+            $conditions = $condition['conditions'] ?? null;
+            if (!is_array($conditions) || !array_is_list($conditions) || $conditions === []) {
+                throw new FormSchemaException('验证条件组不能为空', $path . '/conditions');
+            }
+            foreach ($conditions as $index => $nested) $this->validateValidationCondition($nested, $path . '/conditions/' . $index);
+            return;
+        }
+        if ($operator === 'not') {
+            $this->validateValidationCondition($condition['condition'] ?? null, $path . '/condition');
+            return;
+        }
+        if (!preg_match('/^[a-z][a-z0-9_.]{0,100}$/', (string) ($condition['field'] ?? ''))) {
+            throw new FormSchemaException('验证条件字段不合法', $path . '/field');
+        }
+        if ($operator === 'matches' && (!is_string($condition['value'] ?? null) || !FormSchemaDataValidator::isPatternSafe($condition['value']))) {
+            throw new FormSchemaException('验证条件正则不安全或不兼容', $path . '/value', 'FORM_SCHEMA_PATTERN_UNSAFE');
         }
     }
 

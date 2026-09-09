@@ -76,6 +76,7 @@ export const createPluginCatalog = () => {
     diagnostics.value = [...registration.diagnostics];
     if (catalog.schemaVersion !== 2) {
       controls.value = [];
+      setPluginControls([]);
       diagnostics.value.unshift({
         code: 'version-mismatch',
         message: `组件目录版本不匹配：期望 2，收到 ${String(catalog.schemaVersion)}`

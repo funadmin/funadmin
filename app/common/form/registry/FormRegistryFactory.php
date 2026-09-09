@@ -21,6 +21,10 @@ final class FormRegistryFactory
     public static function production(?callable $enabledPluginManifests = null): self
     {
         $config = function_exists('config') ? config('form', []) : [];
+        if (!is_array($config) || $config === []) {
+            $path = dirname(__DIR__, 4) . '/config/form.php';
+            $config = is_file($path) ? require $path : [];
+        }
         return new self(is_array($config) ? $config : [], $enabledPluginManifests);
     }
 
@@ -42,6 +46,12 @@ final class FormRegistryFactory
     public function pluginComponents(): PluginFormComponentRegistry
     {
         return new PluginFormComponentRegistry($this->enabledPluginManifests);
+    }
+
+    /** 合并核心能力与可信启用插件声明，核心定义不可覆盖。 */
+    public function fieldCapabilities(): FieldCapabilityRegistry
+    {
+        return new FieldCapabilityRegistry($this->pluginComponents()->catalog());
     }
 
     private function section(string $key): array

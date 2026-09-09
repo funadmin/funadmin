@@ -12,6 +12,7 @@
     :field="field"
     :model-value="modelValue"
     :options="options"
+    :data-source-state="dataSourceState"
     :disabled="disabled"
     :readonly="readOnly"
     :input-attrs="inputAttrs"
@@ -27,12 +28,14 @@ import { computed, defineAsyncComponent } from 'vue';
 import type { FormFieldDef } from '@/api/form';
 import { componentRegistry, sanitizeComponentBindings } from '../schema/componentRegistry';
 import type { FormSchemaNode } from '../schema/types';
+import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 
 const props = withDefaults(defineProps<{
   node: FormSchemaNode;
   field: FormFieldDef;
   modelValue?: unknown;
   options?: Array<{ label: string; value: unknown }>;
+  dataSourceState?: FormDataSourceControlState;
   disabled?: boolean;
   readOnly?: boolean;
   inputAttrs?: Record<string, unknown>;

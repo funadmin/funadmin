@@ -13,6 +13,10 @@ final class FormSchemaMigrator
         if ((int) ($definition['schemaVersion'] ?? 0) === 2) {
             return $definition;
         }
+        if (is_array($definition['schema_document'] ?? null)
+            && (int) ($definition['schema_document']['schemaVersion'] ?? 0) === 2) {
+            return $definition['schema_document'];
+        }
 
         $nodes = [];
         foreach (array_values((array) ($definition['fields'] ?? [])) as $index => $field) {
@@ -23,13 +27,13 @@ final class FormSchemaMigrator
             'schemaVersion' => 2,
             'key' => trim((string) ($definition['form_key'] ?? '')),
             'title' => trim((string) ($definition['name'] ?? '')),
-            'model' => [],
-            'layout' => [],
+            'model' => is_array($definition['model_config'] ?? null) ? $definition['model_config'] : [],
+            'layout' => is_array($definition['layout_config'] ?? null) ? $definition['layout_config'] : [],
             'nodes' => $nodes,
-            'dataSources' => [],
-            'actions' => [],
+            'dataSources' => is_array($definition['data_sources'] ?? null) ? $definition['data_sources'] : [],
+            'actions' => is_array($definition['actions'] ?? null) ? $definition['actions'] : [],
             'form' => is_array($definition['form_config'] ?? null) ? $definition['form_config'] : [],
-            'submit' => [],
+            'submit' => is_array($definition['submit_config'] ?? null) ? $definition['submit_config'] : [],
             'list' => is_array($definition['list_config'] ?? null) ? $definition['list_config'] : [],
             'database' => [
                 'table' => trim((string) ($definition['table_name'] ?? '')),

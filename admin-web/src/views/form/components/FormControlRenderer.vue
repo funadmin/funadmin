@@ -61,50 +61,86 @@
     v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
-  <el-select
-    v-else-if="selectTypes.includes(field.type)"
-    :model-value="modelValue"
-    :multiple="multiple"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    class="w-full"
-    v-bind="controlAttrs"
-    @update:model-value="updateValue"
-  >
-    <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
-  </el-select>
-  <el-select-v2
-    v-else-if="field.type === 'selectV2'"
-    :model-value="modelValue"
-    :options="options"
-    :multiple="multiple"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    class="w-full"
-    v-bind="controlAttrs"
-    @update:model-value="updateValue"
-  />
-  <el-tree-select
-    v-else-if="['treeSelect', 'department'].includes(field.type)"
-    :model-value="modelValue"
-    :data="options"
-    :multiple="multiple"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    class="w-full"
-    v-bind="controlAttrs"
-    @update:model-value="updateValue"
-  />
-  <el-cascader
-    v-else-if="field.type === 'cascader'"
-    :model-value="modelValue"
-    :options="options"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    class="w-full"
-    v-bind="controlAttrs"
-    @update:model-value="updateValue"
-  />
+  <div v-else-if="dataSourceSelectionTypes.includes(field.type)" class="data-source-control">
+    <el-select
+      v-if="selectTypes.includes(field.type)"
+      v-bind="controlAttrs"
+      :model-value="modelValue"
+      :multiple="multiple"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :loading="dataSourceState?.loading ?? false"
+      :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
+      :remote="remoteSearchable"
+      :remote-method="dataSourceState?.search"
+      class="w-full"
+      @update:model-value="updateValue"
+    >
+      <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
+    </el-select>
+    <el-select-v2
+      v-else-if="field.type === 'selectV2'"
+      v-bind="controlAttrs"
+      :model-value="modelValue"
+      :options="options"
+      :multiple="multiple"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :loading="dataSourceState?.loading ?? false"
+      :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
+      :remote="remoteSearchable"
+      :remote-method="dataSourceState?.search"
+      class="w-full"
+      @update:model-value="updateValue"
+    />
+    <el-tree-select
+      v-else-if="['treeSelect', 'department'].includes(field.type)"
+      v-bind="controlAttrs"
+      :model-value="modelValue"
+      :data="options"
+      :multiple="multiple"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :loading="dataSourceState?.loading ?? false"
+      :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
+      :remote="remoteSearchable"
+      :remote-method="dataSourceState?.search"
+      class="w-full"
+      @update:model-value="updateValue"
+    />
+    <el-cascader
+      v-else
+      v-bind="controlAttrs"
+      :model-value="modelValue"
+      :options="options"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :loading="dataSourceState?.loading ?? false"
+      :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
+      :remote="remoteSearchable"
+      :remote-method="dataSourceState?.search"
+      :filter-method="filterCascader"
+      class="w-full"
+      @update:model-value="updateValue"
+    />
+    <el-alert v-if="dataSourceState?.error" :title="dataSourceError" type="error" :closable="false" show-icon class="data-source-error">
+      <template #default>
+        <el-button link type="primary" :loading="dataSourceState.loading" @click="dataSourceState.retry">重试</el-button>
+      </template>
+    </el-alert>
+    <el-pagination
+      v-if="dataSourceState?.paginated && dataSourceState.total > dataSourceState.pageSize"
+      small
+      background
+      layout="prev, pager, next, total"
+      :current-page="dataSourceState.page"
+      :page-size="dataSourceState.pageSize"
+      :total="dataSourceState.total"
+      :disabled="dataSourceState.loading"
+      class="data-source-pagination"
+      @current-change="dataSourceState.setPage"
+    />
+  </div>
   <el-radio-group v-else-if="field.type === 'radio'" :model-value="modelValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue">
     <el-radio v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</el-radio>
   </el-radio-group>
@@ -134,6 +170,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FormFieldDef } from '@/api/form';
+import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
 import RepeatableField from './RepeatableField.vue';
@@ -149,6 +186,7 @@ const props = withDefaults(defineProps<{
   field: FormFieldDef;
   modelValue?: any;
   options?: ControlOption[];
+  dataSourceState?: FormDataSourceControlState;
   disabled?: boolean;
   readonly?: boolean;
   inputAttrs?: Record<string, unknown>;
@@ -170,6 +208,17 @@ const controlAttrs = computed(() => ({ ...controlProps.value, ...props.inputAttr
 const placeholder = computed(() => props.field.placeholder || props.field.label);
 const multiple = computed(() => props.field.relation_multiple === 1 || Boolean(controlProps.value.multiple));
 const selectTypes = ['select', 'dictionary', 'relation', 'user'];
+const dataSourceSelectionTypes = [...selectTypes, 'selectV2', 'treeSelect', 'cascader', 'department'];
+const remoteSearchable = computed(() => Boolean(props.dataSourceState?.searchable));
+const dataSourceError = computed(() => {
+  const reason = props.dataSourceState?.error;
+  if (reason instanceof Error) return reason.message;
+  return typeof reason === 'string' ? reason : '选项加载失败';
+});
+const filterCascader = (_node: unknown, keyword: string): boolean => {
+  props.dataSourceState?.search(keyword);
+  return true;
+};
 const dateTypes = ['date', 'datetime', 'daterange', 'datetimerange'];
 const datePickerType = computed(() => props.field.type as 'date' | 'datetime' | 'daterange' | 'datetimerange');
 const inputType = computed(() => {
@@ -204,4 +253,7 @@ const updateValue = (value: any) => {
 .form-layout-control { width: 100%; }
 .layout-grid { width: 100%; }
 .layout-placeholder { padding: 12px; border: 1px dashed var(--el-border-color); border-radius: 4px; text-align: center; color: var(--el-text-color-secondary); }
+.data-source-control { width: 100%; }
+.data-source-error { margin-top: 8px; }
+.data-source-pagination { justify-content: flex-end; margin-top: 8px; }
 </style>

@@ -20,6 +20,11 @@ export interface DataSourceDefinition {
   params?: Record<string, unknown>;
   response?: Partial<DataSourceResponseMapping>;
   staleValue?: StaleValuePolicy;
+  dependsOn?: string[];
+  debounce?: number;
+  cacheTtl?: number;
+  searchable?: boolean;
+  pagination?: { pageSize?: number };
 }
 
 export interface DataSourceContext {
@@ -49,6 +54,7 @@ export interface DataSourceOption {
   label: unknown;
   value: unknown;
   disabled?: boolean;
+  children?: DataSourceOption[];
 }
 
 const kinds: readonly DataSourceKind[] = ['static', 'dictionary', 'department', 'user', 'relation', 'endpoint', 'computed'];

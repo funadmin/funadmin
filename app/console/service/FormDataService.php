@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\form\action\FormActionRegistry;
+use app\common\form\component\PluginFormComponentRegistry;
 use app\common\form\dataSource\FormDataSourceRegistry;
 use app\common\form\validation\FormAsyncValidationException;
 use app\common\form\validation\FormAsyncValidatorRegistry;
+use app\common\form\validation\FormSchemaDataValidator;
 use app\common\model\DictItem;
 use app\common\model\DictType;
 use app\console\model\Admin;
@@ -27,16 +30,19 @@ final class FormDataService
 {
     private readonly FormAsyncValidatorRegistry $asyncValidators;
     private readonly FormDataSourceRegistry $dataSources;
+    private readonly PluginFormComponentRegistry $pluginComponents;
     private readonly Closure $permissionChecker;
 
     public function __construct(
         ?FormAsyncValidatorRegistry $asyncValidators = null,
         ?FormDataSourceRegistry $dataSources = null,
-        ?callable $permissionChecker = null
+        ?callable $permissionChecker = null,
+        ?PluginFormComponentRegistry $pluginComponents = null
     ) {
         $this->asyncValidators = $asyncValidators ?? new FormAsyncValidatorRegistry();
         $this->dataSources = $dataSources ?? FormDataSourceRegistry::core();
         $this->permissionChecker = Closure::fromCallable($permissionChecker ?? static fn (string $permission): bool => false);
+        $this->pluginComponents = $pluginComponents ?? new PluginFormComponentRegistry();
     }
 
     private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
@@ -63,6 +69,21 @@ final class FormDataService
             'schema' => $published['schema'],
             'schemaHash' => $published['schemaHash'],
             'etag' => '"' . $published['schemaHash'] . '"',
+        ];
+    }
+
+    /** 返回不含业务值的已发布运行态观测上下文。 */
+    public function runtimeContext(string $key, string $nodeId = '', string $dataSource = '', string $actionKey = ''): array
+    {
+        $published = $this->publishedRuntime($this->form($key));
+        if ($actionKey !== '') {
+            $reference = $this->publishedActionReference($published['schema'], $actionKey);
+            $nodeId = $reference['nodeId'];
+        }
+        return [
+            'schemaHash' => $published['schemaHash'],
+            'nodeId' => $nodeId,
+            'dataSource' => $dataSource,
         ];
     }
 
@@ -128,6 +149,7 @@ final class FormDataService
         $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
         $total = (clone $query)->count();
         $rows = $query->page($page, $pageSize)->select()->toArray();
+        $rows = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $rows);
         return ['list' => $rows, 'total' => (int) $total];
     }
 
@@ -165,8 +187,9 @@ final class FormDataService
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         $fields = $published['fields'];
+        $this->assertSchemaValid($published['schema'], $data);
         $this->assertValid($fields, $data, false);
-        $this->assertAsyncValid($fields, $data);
+        $this->assertAsyncValid($published['schema'], $data);
         $split = $this->splitPayload($fields, $data, false, $include);
         $connection = Db::connect((string) $form->connection);
         $schema = $connection->getFields((string) $form->table_name);
@@ -198,8 +221,9 @@ final class FormDataService
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         $fields = $published['fields'];
+        $this->assertSchemaValid($published['schema'], $data);
         $this->assertValid($fields, $data, true);
-        $this->assertAsyncValid($fields, $data);
+        $this->assertAsyncValid($published['schema'], $data);
         $split = $this->splitPayload($fields, $data, true, $include);
         $connection = Db::connect((string) $form->connection);
         $schema = $connection->getFields((string) $form->table_name);
@@ -330,6 +354,65 @@ final class FormDataService
         return $this->dataSources->execute($source, $context, $this->permissionChecker);
     }
 
+    /**
+     * 在已发布快照中定位 request 动作，返回节点与声明链深度。
+     *
+     * @return array{nodeId: string, chainDepth: int}
+     */
+    public function publishedActionReference(array $schema, string $actionKey): array
+    {
+        $found = $this->findActionReference((array) ($schema['actions'] ?? []), $actionKey, '', 0);
+        if ($found !== null) {
+            return $found;
+        }
+        $visit = function (array $nodes) use (&$visit, $actionKey): ?array {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) {
+                    continue;
+                }
+                foreach ((array) ($node['events'] ?? []) as $actions) {
+                    $found = $this->findActionReference((array) $actions, $actionKey, (string) ($node['id'] ?? ''), 0);
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+                $found = $visit((array) ($node['children'] ?? []));
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+            return null;
+        };
+        $found = $visit((array) ($schema['nodes'] ?? []));
+        if ($found === null) {
+            throw new InvalidArgumentException('FORM_ACTION_NOT_DECLARED');
+        }
+        return $found;
+    }
+
+    /** 执行已发布 Schema 明确引用的生产动作。 */
+    public function executeAction(
+        string $key,
+        string $actionKey,
+        array $parameters,
+        string $idempotencyKey,
+        int $chainDepth,
+        FormActionRegistry $actions
+    ): array {
+        $published = $this->publishedRuntime($this->form($key));
+        $reference = $this->publishedActionReference($published['schema'], $actionKey);
+        $result = $actions->execute($actionKey, $parameters, $this->permissionChecker, [
+            'formKey' => $key,
+            'idempotencyKey' => $idempotencyKey,
+            'chainDepth' => max($chainDepth, $reference['chainDepth']),
+        ]);
+        return [
+            'result' => $result,
+            'schemaHash' => $published['schemaHash'],
+            'nodeId' => $reference['nodeId'],
+        ];
+    }
+
     /** 子表分页（has_many）。 */
     public function sub(string $key, string $relation, int|string $id, int $page, int $pageSize): array
     {
@@ -429,6 +512,56 @@ final class FormDataService
         return $errors;
     }
 
+    /** 返回已发布 FormSchema AST 中字段声明的全部同 key 异步规则。 */
+    public function schemaAsyncDeclarations(array $schema, string $field, string $validator): array
+    {
+        $declarations = [];
+        $visit = function (array $nodes) use (&$visit, &$declarations, $field, $validator): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                if (($node['field'] ?? null) === $field) {
+                    foreach ((array) ($node['validation'] ?? []) as $rule) {
+                        if (!is_array($rule) || ($rule['type'] ?? '') !== 'async' || !is_array($rule['validator'] ?? null)) continue;
+                        if (($rule['validator']['key'] ?? null) === $validator) $declarations[] = $rule;
+                    }
+                }
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        return $declarations;
+    }
+
+    /** 直接按已发布 FormSchema AST 原序复验异步规则。 */
+    public function revalidateSchemaAsync(array $schema, array $data): array
+    {
+        $errors = [];
+        $dataValidator = new FormSchemaDataValidator();
+        $visit = function (array $nodes) use (&$visit, &$errors, $data, $dataValidator): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                $field = (string) ($node['field'] ?? '');
+                if ($field !== '' && array_key_exists($field, $data) && !$dataValidator->valueIsEmpty($data[$field])) {
+                    foreach ((array) ($node['validation'] ?? []) as $rule) {
+                        if (!is_array($rule) || ($rule['type'] ?? '') !== 'async' || !is_array($rule['validator'] ?? null)) continue;
+                        if (!$dataValidator->conditionMatches($rule['when'] ?? null, $data)) continue;
+                        $validator = $rule['validator'];
+                        $message = $this->asyncValidators->validate(
+                            (string) ($validator['key'] ?? ''), $data[$field], $data,
+                            is_array($validator['params'] ?? null) ? $validator['params'] : []
+                        );
+                        if ($message === null) continue;
+                        $errors[] = ['path' => $field, 'message' => $message];
+                        if (($rule['bail'] ?? true) === true) break;
+                    }
+                }
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        return $errors;
+    }
+
     /**
      * 执行单字段受控异步验证，供前端即时反馈；提交仍会再次整表复验。
      *
@@ -438,23 +571,30 @@ final class FormDataService
      */
     public function validateAsync(string $key, string $field, string $validator, mixed $value, array $values, array $params = []): array
     {
-        $metadata = $this->fields($key)->firstWhere('field_name', $field);
-        if (!$metadata) {
-            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATION_FIELD_NOT_FOUND');
-        }
-        $row = $metadata->toArray();
-        $rules = is_array($row['validate_rules'] ?? null) ? $row['validate_rules'] : [];
-        $declarations = $rules['async'] ?? [];
-        if (isset($declarations['key'])) {
-            $declarations = [$declarations];
-        }
-        $allowed = array_filter($declarations, static fn (mixed $item): bool => is_array($item) && ($item['key'] ?? null) === $validator);
-        if ($allowed === []) {
+        $published = $this->publishedRuntime($this->form($key));
+        $declarations = $this->schemaAsyncDeclarations($published['schema'], $field, $validator);
+        if ($declarations === []) {
             throw new FormAsyncValidationException('FORM_ASYNC_VALIDATOR_NOT_DECLARED');
         }
         $values[$field] = $value;
-        $message = $this->asyncValidators->validate($validator, $value, $values, $params);
-        $errors = $message === null ? [] : [['path' => $field, 'message' => $message]];
+        $dataValidator = new FormSchemaDataValidator();
+        if ($dataValidator->valueIsEmpty($value)) {
+            return ['valid' => true, 'fieldErrors' => []];
+        }
+        $errors = [];
+        foreach ($declarations as $rule) {
+            if (!$dataValidator->conditionMatches($rule['when'] ?? null, $values)) continue;
+            $declaration = $rule['validator'];
+            $message = $this->asyncValidators->validate(
+                $validator,
+                $value,
+                $values,
+                is_array($declaration['params'] ?? null) ? $declaration['params'] : []
+            );
+            if ($message === null) continue;
+            $errors[] = ['path' => $field, 'message' => $message];
+            if (($rule['bail'] ?? true) === true) break;
+        }
         return ['valid' => $errors === [], 'fieldErrors' => $errors];
     }
 
@@ -489,6 +629,14 @@ final class FormDataService
                 continue;
             }
             $value = $data[$name];
+            $type = (string) ($field['type'] ?? '');
+            if (str_contains($type, ':')) {
+                $message = $this->pluginComponents->validateValue($type, $value, $data, (array) ($field['control_props'] ?? []));
+                if ($message !== null) {
+                    throw new InvalidArgumentException($message);
+                }
+                $value = $this->pluginComponents->encode($type, $value);
+            }
             if ((int) ($field['relation_multiple'] ?? 0) === 1 && is_array($value)) {
                 $value = implode(',', array_map('strval', $value));
             } elseif (strtolower((string) ($field['column_type'] ?? '')) === 'json' && (is_array($value) || is_object($value))) {
@@ -510,8 +658,14 @@ final class FormDataService
     {
         foreach ($fieldRows as $field) {
             $row = is_array($field) ? $field : $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
             if ($this->isSensitiveField($row)) {
-                unset($record[(string) ($row['field_name'] ?? '')]);
+                unset($record[$name]);
+                continue;
+            }
+            $type = (string) ($row['type'] ?? '');
+            if ($name !== '' && array_key_exists($name, $record) && str_contains($type, ':')) {
+                $record[$name] = $this->pluginComponents->decode($type, $record[$name]);
             }
         }
         return $record;
@@ -654,7 +808,9 @@ final class FormDataService
         $query = Db::connect((string) $context['form']->connection)->table($context['table'])->field($readable)->where($context['foreignKey'], $id);
         if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
         $total = (clone $query)->count();
-        return ['list' => $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray(), 'total' => (int) $total];
+        $rows = $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray();
+        $rows = array_map(fn (array $row): array => $this->sanitizeRecord($context['fields'], $row), $rows);
+        return ['list' => $rows, 'total' => (int) $total];
     }
 
     private function syncRelations($connection, Form $parentForm, $fields, int|string $parentId, array $relations, bool $isUpdate): void
@@ -736,6 +892,24 @@ final class FormDataService
         return $payload;
     }
 
+    private function findActionReference(array $actions, string $actionKey, string $nodeId, int $depth): ?array
+    {
+        foreach ($actions as $action) {
+            if (!is_array($action)) {
+                continue;
+            }
+            $currentDepth = array_key_exists('type', $action) ? $depth + 1 : $depth;
+            if (($action['type'] ?? '') === 'request' && ($action['key'] ?? '') === $actionKey) {
+                return ['nodeId' => $nodeId, 'chainDepth' => $currentDepth];
+            }
+            $found = $this->findActionReference((array) ($action['steps'] ?? []), $actionKey, $nodeId, $currentDepth);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+        return null;
+    }
+
     private function isLayoutField(array $field): bool
     {
         return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
@@ -769,9 +943,30 @@ final class FormDataService
         }
     }
 
-    private function assertAsyncValid($fields, array $data): void
+    private function assertSchemaValid(array $schema, array $data): void
     {
-        $errors = $this->revalidateAsync($fields, $data);
+        $rules = [];
+        $visit = function (array $nodes) use (&$visit, &$rules): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                $field = (string) ($node['field'] ?? '');
+                if ($field !== '' && is_array($node['validation'] ?? null)) $rules[$field] = $node['validation'];
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        $errors = (new FormSchemaDataValidator())->validate($data, $rules);
+        if ($errors !== []) {
+            throw new FormAsyncValidationException('FORM_SCHEMA_VALIDATION_FAILED', array_map(
+                static fn (array $error): array => ['path' => '/' . $error['field'], 'message' => $error['message']],
+                $errors
+            ));
+        }
+    }
+
+    private function assertAsyncValid(array $schema, array $data): void
+    {
+        $errors = $this->revalidateSchemaAsync($schema, $data);
         if ($errors !== []) {
             throw new FormAsyncValidationException('FORM_ASYNC_VALIDATION_FAILED', $errors);
         }

@@ -174,12 +174,12 @@
             />
             <el-select
               v-else-if="property.type === 'select'"
-              :model-value="propertyValue(property)"
+              :model-value="selectPropertyValue(property)"
               clearable
               class="w-full"
               @update:model-value="updateProperty(property, $event)"
             >
-              <el-option v-for="option in property.options" :key="String(option)" :label="String(option)" :value="option" />
+              <el-option v-for="option in property.options" :key="String(option)" :label="String(option)" :value="optionValue(option)" />
             </el-select>
             <el-input
               v-else
@@ -217,9 +217,9 @@ import { crudDevelopmentApi } from '@/api/development/crud';
 import type { CrudTable } from '@/types/development/crud';
 import { componentRegistry } from '../../schema/componentRegistry';
 import { normalizePropertySchema, patchDynamicProperty, type DynamicPropertyField } from '../structuredEditor';
-import { COLUMN_TYPE_OPTIONS, CONTROL_REGISTRY, LIST_FILTERS, LIST_FORMATTERS, controlMeta } from '../../registry';
+import { COLUMN_TYPE_OPTIONS, LIST_FILTERS, LIST_FORMATTERS, controlMeta, type ControlMeta } from '../../registry';
 
-const props = defineProps<{ field: FormFieldDef; sourceType: 'created' | 'adopted' }>();
+const props = defineProps<{ field: FormFieldDef; sourceType: 'created' | 'adopted'; controls: ControlMeta[] }>();
 const emit = defineEmits<{ (event: 'update', patch: Partial<FormFieldDef>): void }>();
 
 interface RelationColumn {
@@ -246,6 +246,12 @@ const numberPropertyValue = (property: DynamicPropertyField): number | undefined
   const value = propertyValue(property);
   return typeof value === 'number' ? value : undefined;
 };
+const optionValue = (value: unknown): string | number | boolean | Record<string, unknown> => (
+  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+    ? value
+    : value && typeof value === 'object' ? value as Record<string, unknown> : String(value ?? '')
+);
+const selectPropertyValue = (property: DynamicPropertyField) => optionValue(propertyValue(property));
 const displayPropertyValue = (property: DynamicPropertyField): string => {
   const value = propertyValue(property);
   if (value === undefined || value === null) return '';
@@ -266,8 +272,8 @@ const updatePropertyInput = (property: DynamicPropertyField, value: string) => {
   }
 };
 const controlGroups = computed(() => {
-  const labels = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
-  return labels.map((label) => ({ label, options: CONTROL_REGISTRY.filter((control) => control.group === label) }));
+  const labels = [...new Set(props.controls.map((control) => control.group))];
+  return labels.map((label) => ({ label, options: props.controls.filter((control) => control.group === label) }));
 });
 const propsJson = computed(() => JSON.stringify(props.field.control_props ?? {}, null, 2));
 const optionsJson = computed(() => JSON.stringify(props.field.options_source ?? {}, null, 2));

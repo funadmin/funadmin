@@ -56,8 +56,8 @@
             <el-form label-width="76px" size="small">
               <el-form-item label="动作类型"><el-select :model-value="action.type" class="w-full" @update:model-value="(type) => changeActionType(eventName, actionIndex, type)"><el-option v-for="type in ACTION_TYPES" :key="type" :label="type" :value="type" /></el-select></el-form-item>
               <el-form-item v-for="parameter in actionParameters(action.type)" :key="parameter.name" :label="parameter.name">
-                <el-switch v-if="parameter.type === 'boolean'" v-model="action[parameter.name]" @change="emitEvents" />
-                <el-select v-else-if="parameter.type === 'select'" v-model="action[parameter.name]" class="w-full" @change="emitEvents"><el-option v-for="option in parameter.options" :key="option" :label="option" :value="option" /></el-select>
+                <el-switch v-if="parameter.type === 'boolean'" :model-value="Boolean(action[parameter.name])" @update:model-value="(value) => updateBooleanActionParameter(eventName, actionIndex, parameter.name, Boolean(value))" />
+                <el-select v-else-if="parameter.type === 'select'" :model-value="String(action[parameter.name] ?? '')" class="w-full" @update:model-value="(value) => updateActionParameter(eventName, actionIndex, parameter.name, value, parameter.type)"><el-option v-for="option in parameter.options" :key="option" :label="option" :value="option" /></el-select>
                 <el-input v-else :model-value="displayValue(action[parameter.name])" @change="(value) => updateActionParameter(eventName, actionIndex, parameter.name, value, parameter.type)" />
               </el-form-item>
             </el-form>
@@ -74,8 +74,8 @@
       <el-form label-width="92px" size="small">
         <el-form-item label="kind"><el-select v-model="dataSource.kind" class="w-full" @change="changeDataSourceKind"><el-option v-for="kind in DATA_SOURCE_KINDS" :key="kind" :label="kind" :value="kind" /></el-select></el-form-item>
         <el-form-item v-if="dataSource.kind === 'endpoint'" label="endpoint key"><el-select v-model="dataSource.endpoint" filterable allow-create default-first-option class="w-full" placeholder="已注册 endpoint key" @change="emitDataSource"><el-option v-if="dataSource.endpoint" :label="String(dataSource.endpoint)" :value="dataSource.endpoint" /></el-select></el-form-item>
-        <el-form-item v-if="dataSource.kind === 'dictionary'" label="字典编码"><el-input v-model="dataSource.dictionary" @change="emitDataSource" /></el-form-item>
-        <el-form-item v-if="dataSource.kind === 'relation'" label="关联名称"><el-input v-model="dataSource.relation" @change="emitDataSource" /></el-form-item>
+        <el-form-item v-if="dataSource.kind === 'dictionary'" label="字典编码"><el-input :model-value="String(dataSource.dictionary ?? '')" @update:model-value="(value) => updateDataSourceText('dictionary', value)" /></el-form-item>
+        <el-form-item v-if="dataSource.kind === 'relation'" label="关联名称"><el-input :model-value="String(dataSource.relation ?? '')" @update:model-value="(value) => updateDataSourceText('relation', value)" /></el-form-item>
         <el-form-item label="参数映射"><KeyValueEditor v-model="dataSource.params" @change="emitDataSource" /></el-form-item>
         <el-form-item label="响应映射">
           <div class="w-full"><el-input v-model="dataSource.response.items" placeholder="items: data.rows" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.label" placeholder="label: name" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.value" placeholder="value: id" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.disabled" placeholder="disabled（可选）" @change="emitDataSource" /></div>
@@ -165,11 +165,16 @@ const removeAction = (name: string, index: number) => { events[name].splice(inde
 const changeActionType = (name: string, index: number, type: ActionType) => { events[name][index] = createEventAction(type); emitEvents(); };
 const actionParameters = (type: unknown) => ACTION_PARAMETER_SCHEMAS[type as ActionType] ?? [];
 const updateActionParameter = (eventName: string, index: number, name: string, value: string, type: string) => { events[eventName][index][name] = type === 'json' ? parseValue(value) : value; emitEvents(); };
+const updateBooleanActionParameter = (eventName: string, index: number, name: string, value: boolean) => { events[eventName][index][name] = value; emitEvents(); };
 
 const emitDataSource = () => emit('update', { dataSource: clone(dataSource) });
+const updateDataSourceText = (name: string, value: string) => { dataSource[name] = value; emitDataSource(); };
 const changeDataSourceKind = (kind: DataSourceKind) => { replaceReactive(dataSource, createDataSource(kind)); emitDataSource(); };
 const testDataSource = async (): Promise<void> => {
-  if (!props.node.field) return ElMessage.warning('布局节点不能测试数据源');
+  if (!props.node.field) {
+    ElMessage.warning('布局节点不能测试数据源');
+    return;
+  }
   testing.value = true;
   testResult.value = '';
   try {
