@@ -54,6 +54,14 @@
       :closable="false"
       show-icon
     />
+    <el-alert
+      v-if="catalogDiagnostics.length"
+      class="mb-3"
+      :title="catalogDiagnostics.map((item) => item.message).join('；')"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
     <el-card shadow="never" class="mb-3">
       <template #header>
@@ -68,7 +76,7 @@
     <div class="designer-layout flex gap-3" :class="`workspace-${workspaceMode}`">
       <!-- 左：控件 palette -->
       <el-card shadow="never" class="w-[230px] shrink-0">
-        <template #header>控件（{{ CONTROL_REGISTRY.length }}）</template>
+        <template #header>控件（{{ designerControls.length }}）</template>
         <div ref="paletteRef" class="palette-list flex max-h-[calc(100vh-250px)] flex-col gap-2 overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
             <div class="sticky top-0 z-10 bg-[var(--el-bg-color-overlay)] py-1 text-xs font-semibold text-[var(--el-text-color-secondary)]">
@@ -133,7 +141,7 @@
       <!-- 右：属性面板 -->
       <el-card shadow="never" class="w-[360px] shrink-0">
         <template #header>字段属性</template>
-        <PropsPanel v-if="store.selected.value" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" @update="store.updateField" />
+        <PropsPanel v-if="store.selected.value" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
         <el-empty v-else description="点选画布字段编辑参数" />
         <template v-if="store.selectedNode.value">
           <el-divider content-position="left">结构化配置</el-divider>
@@ -265,6 +273,8 @@ import { crudDevelopmentApi } from '@/api/development/crud';
 import { usePermissionStore } from '@/store/modules/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
+import { pluginCatalog } from './pluginCatalog';
+import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
 import { buildSchemaDebugSummary } from './schemaEditor';
 import FormControlRenderer from '../components/FormControlRenderer.vue';
 import SchemaRenderer from '../components/SchemaRenderer.vue';
@@ -307,6 +317,8 @@ const publishConfig = ref<FormPublishConfig>({
 const paletteRef = ref<HTMLElement>();
 const canvasRef = ref<HTMLElement>();
 const previewValues = computed<Record<string, unknown>>(() => Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
+const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
+const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortable: Sortable | null = null;
 let canvasSortable: Sortable | null = null;
 
@@ -353,8 +365,8 @@ const onRollback = (version: FormSchemaVersion) => {
   const result = store.replaceSchema(version.schema_document);
   if (result.ok) store.markSaved({ ...store.form.value, schema_document: version.schema_document, schema_origin: 'rollback', fields: store.fields.value } as import('@/api/form').FormDefinition);
 };
-const controlGroups = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
-const controlsOf = (group: string) => CONTROL_REGISTRY.filter((control) => control.group === group);
+const controlGroups = computed(() => [...new Set(designerControls.value.map((control) => control.group))]);
+const controlsOf = (group: string) => designerControls.value.filter((control) => control.group === group);
 const previewOptions = (field: { options_source?: Record<string, unknown> | null }) => {
   const options = field.options_source?.options;
   return Array.isArray(options) ? options as Array<{ label: string; value: string | number }> : [];
@@ -431,6 +443,10 @@ async function onApply() {
 
 const openPublish = async () => {
   if (!validateDefinitionBasics() || !store.fields.value.some((field) => controlMeta(field.type).kind !== 'layout')) return;
+  if (!pluginCatalog.canPublish(store.fields.value)) {
+    ElMessage.warning(catalogDiagnostics.value.map((item) => item.message).join('；') || '插件组件目录尚未加载');
+    return;
+  }
   const key = String(store.form.value.form_key ?? '').replace(/_/g, '-');
   publishConfig.value = {
     ...publishConfig.value,
@@ -538,7 +554,7 @@ onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚�
 
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload);
-  await formDesignerApi.catalog();
+  await loadPluginFormComponents();
   await load();
   if (paletteRef.value && canvasRef.value) {
     paletteSortable = Sortable.create(paletteRef.value, {
