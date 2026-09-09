@@ -52,7 +52,7 @@ describe('表单设计器结构化编辑模型', () => {
   it('事件动作使用白名单和动态参数', () => {
     expect(createEventAction('request')).toEqual({ type: 'request', key: '', concurrency: 'latest' });
     expect(ACTION_PARAMETER_SCHEMAS.request.map((item) => item.name)).toEqual(['key', 'concurrency']);
-    expect(ACTION_PARAMETER_SCHEMAS.navigate.map((item) => item.name)).toEqual(['to']);
+    expect(ACTION_PARAMETER_SCHEMAS.navigate.map((item) => item.name)).toEqual(['route']);
   });
 
   it('数据源覆盖注册键、映射、依赖、搜索分页缓存与旧值策略', () => {

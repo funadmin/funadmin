@@ -42,6 +42,7 @@
             <el-button link type="primary" @click="goDesigner(row as FormDefinition)">{{ row.publish_status === 'published' ? '重新发布' : '设计并发布' }}</el-button>
             <el-button link @click="goData(row as FormDefinition)">预览运行时</el-button>
             <el-button v-if="row.publish_status === 'published'" link type="success" @click="goGenerated(row as FormDefinition)">打开独立页面</el-button>
+            <el-button v-if="row.crud_generation_id" link @click="showGeneration(row as FormDefinition)">查看生成记录</el-button>
             <el-button link type="warning" @click="toggleStatus(row as FormDefinition)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
             <el-button link type="danger" @click="onDelete(row as FormDefinition)">删除</el-button>
           </template>
@@ -51,6 +52,8 @@
         <Pagination v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />
       </template>
     </DataTableShell>
+
+    <el-drawer v-model="generationVisible" title="生成记录" size="55%"><pre class="whitespace-pre-wrap">{{ generationRecord }}</pre></el-drawer>
 
     <el-dialog v-model="createVisible" title="新建表单" width="520px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
@@ -99,7 +102,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
-import { formDesignerApi, type FormDefinition } from '@/api/form';
+import { formDesignerApi, formFullPublishApi, type FormDefinition } from '@/api/form';
 import { crudDevelopmentApi } from '@/api/development/crud';
 
 const router = useRouter();
@@ -110,6 +113,8 @@ const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20, keyword: '', status: '' as number | string });
 const tables = ref<Array<{ name: string; comment?: string }>>([]);
 const createVisible = ref(false);
+const generationVisible = ref(false);
+const generationRecord = ref('');
 const createFormRef = ref<FormInstance>();
 const createForm = reactive({ name: '', form_key: '', source_type: 'created' as 'created' | 'adopted', table_name: '', remark: '' });
 const createRules: FormRules = {
@@ -172,6 +177,11 @@ async function onCreate() {
 const goDesigner = (row: FormDefinition) => router.push({ path: '/development/form/designer', query: { id: String(row.id) } });
 const goData = (row: FormDefinition) => router.push({ path: `/form/data/${row.form_key}` });
 const goGenerated = (row: FormDefinition) => router.push(`/development/business/runtime/${row.form_key}`);
+const showGeneration = async (row: FormDefinition) => {
+  if (!row.id) return;
+  generationRecord.value = JSON.stringify(await formFullPublishApi.generation(row.id), null, 2);
+  generationVisible.value = true;
+};
 const publishStatusLabel = (status?: string) => ({ draft: '草稿', publishing: '发布中', published: '已发布', partial: '部分完成', conflict: '有冲突', failed: '失败' }[status || 'draft'] || status);
 const publishTagType = (status?: string) => status === 'published' ? 'success' : status === 'failed' ? 'danger' : status === 'partial' || status === 'conflict' ? 'warning' : 'info';
 async function toggleStatus(row: FormDefinition) {

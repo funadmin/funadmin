@@ -27,6 +27,8 @@ describe('统一表单发布引擎契约', () => {
     }
     expect(factory).toContain("managedField('id', 'bigint unsigned', true)");
     expect(factory).toContain("foreach (['created_at', 'updated_at', 'deleted_at'] as $managed)");
+    for (const target of ['model/generated', 'validate/generated', 'service/generated', 'controller/generated']) expect(factory).toContain(target);
+    expect(factory).toContain("'enabled' => (bool) $config['dataScopeEnabled']");
   });
 
   it('动态发布 DDL 契约不要求迁移文件', () => {
@@ -34,18 +36,18 @@ describe('统一表单发布引擎契约', () => {
     expect(api).toMatch(/interface MigrationPreview[\s\S]*?file\?: string;/);
   });
 
-  it('发布服务只保留纯动态 API 与兼容委托', () => {
-    const service = read('app/console/service/FormPublishService.php');
-    expect(service).toContain('public function previewDynamic(');
-    expect(service).toContain('public function publishDynamic(');
-    expect(service).toContain('return $this->previewDynamic($payload);');
-    expect(service).toContain('return $this->publishDynamic($payload, $operator);');
-    expect(service).toContain('applyDynamicDdl($payload)');
-    expect(service).not.toContain('applyMigration($payload)');
-    for (const forbidden of ['DevCrudService', 'FormCrudDefinitionFactory', 'CrudGenerator', 'AtomicWriter', 'preflightGeneration(', '->generate(', 'generation(', 'retryResources(']) {
-      expect(service).not.toContain(forbidden);
-    }
-    expect(existsSync(resolve(root, 'app/console/service/FormFullPublishService.php'))).toBe(false);
+  it('纯动态与完整静态发布并列且各自保持边界', () => {
+    const dynamic = read('app/console/service/FormPublishService.php');
+    const full = read('app/console/service/FormFullPublishService.php');
+    expect(dynamic).toContain('public function previewDynamic(');
+    expect(dynamic).toContain('public function publishDynamic(');
+    expect(dynamic).toContain('applyDynamicDdl($payload)');
+    expect(dynamic).not.toContain('preflightGeneration(');
+    expect(full).toContain('DevCrudService');
+    expect(full).toContain('FormCrudDefinitionFactory');
+    expect(full.indexOf('preflightGeneration(')).toBeLessThan(full.indexOf('applyMigration('));
+    expect(full).toContain('$validatedPlan');
+    expect(full).toContain('retryResources(');
   });
 
   it('表单控制器通过原端点调用纯动态发布服务', () => {
@@ -69,6 +71,10 @@ describe('统一表单发布引擎契约', () => {
     }
     expect(migration).toContain('CONVERT(X\'');
     expect(migration).not.toMatch(/'[\u4e00-\u9fff]+(?:[\u4e00-\u9fff/ ]*)'/);
+    const fullMigration = read('database/migrations/079_form_full_publish_permissions.sql');
+    for (const action of ['preview', 'publish', 'status', 'generation', 'retryresources']) {
+      expect(fullMigration).toContain(`console/form.full-publish:${action}`);
+    }
   });
 
   it('CRUD Definition 接受完整筛选、格式化和布局元数据', () => {
@@ -81,15 +87,15 @@ describe('统一表单发布引擎契约', () => {
     expect(definition).toContain("'layoutSchema'");
   });
 
-  it('设计器提供纯动态发布向导与发布结果', () => {
+  it('设计器提供完整发布向导、冲突确认与发布结果', () => {
     const designer = read('admin-web/src/views/form/designer/index.vue');
     for (const label of ['发布设置', '变更预览', '冲突确认', '发布结果']) expect(designer).toContain(label);
-    expect(designer).toContain('previewPublish');
+    expect(designer).toContain('formFullPublishApi.preview');
     expect(designer).toContain('formSchemaHash');
     expect(designer).toContain('formDependencyHash');
     expect(designer).toContain('publishResult');
-    expect(designer).not.toContain('allowOverwrite');
-    expect(designer).not.toContain('confirmToken');
+    expect(designer).toContain('allowOverwrite');
+    expect(designer).toContain('confirmToken');
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
@@ -132,7 +138,7 @@ describe('统一表单发布引擎契约', () => {
     for (const label of ['发布状态', '预览运行时', '打开独立页面', '重新发布']) expect(list).toContain(label);
     expect(list).toContain('publish_status');
     expect(list).toContain('/development/business/runtime/');
-    expect(list).not.toContain('生成记录');
-    expect(list).not.toContain('crud_generation_id');
+    expect(list).toContain('查看生成记录');
+    expect(list).toContain('crud_generation_id');
   });
 });

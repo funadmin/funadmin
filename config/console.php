@@ -6,6 +6,7 @@ return [
         'crud:validate' => 'fun\command\CrudValidate',
         'crud:preview' => 'fun\command\CrudPreview',
         'crud:generate' => 'fun\command\CrudGenerate',
+        'business:generation-recover' => 'fun\command\BusinessGenerationRecover',
         'plugin:activation-cache' => 'fun\command\PluginActivationCacheRebuild',
         'plugin:make' => 'fun\command\PluginMake',
         'plugin:make-crud' => 'fun\command\PluginMakeCrud',

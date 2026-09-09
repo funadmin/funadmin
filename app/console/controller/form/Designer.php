@@ -250,6 +250,9 @@ final class Designer extends AdminApiController
             if ($exception->getMessage() === 'FORM_SCHEMA_CONFLICT') {
                 return $this->fail(msg: '表单 Schema 已变化，请刷新后重试', data: ['code' => 'FORM_SCHEMA_CONFLICT'], code: 409);
             }
+            if ($exception->getMessage() === 'FORM_DEPENDENCY_CONFLICT') {
+                return $this->fail(msg: '表单运行依赖已变化，请重新预览', data: ['code' => 'FORM_DEPENDENCY_CONFLICT'], code: 409);
+            }
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 500);

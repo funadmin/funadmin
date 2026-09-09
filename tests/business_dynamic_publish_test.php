@@ -155,7 +155,7 @@ dynamicPublishExpect($preview['formSchemaHash'] === $hash && $preview['publishSt
 dynamicPublishExpect(!isset($preview['definition'], $preview['generationId'], $preview['plan'], $preview['sensitive']), 'preview 不得返回源码生成计划或确认令牌');
 dynamicPublishExpect($effects === ['save' => 0, 'ddl' => 0, 'verify' => 0, 'metadata' => 0], 'preview 必须零写入、零生成副作用');
 
-$result = $service->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+$result = $service->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
 dynamicPublishExpect($result['publishStatus'] === 'dynamic_published', '发布完成状态必须为 dynamic_published');
 dynamicPublishExpect($result['routePath'] === '/development/business/runtime/orders', '发布响应路径必须精确命中稳定动态业务宿主路由');
 dynamicPublishExpect(($result['form']['publish_status'] ?? null) === 'published', '发布响应必须返回元数据事务完成后重读的最终 Form 状态');
@@ -183,11 +183,12 @@ $adoptedService = new FormPublishService(
 );
 $adoptedSchema = dynamicPublishSchema('adopted');
 $adoptedHash = $schemas->compile($adoptedSchema)->hash();
-$adoptedService->publishDynamic(['schema_document' => $adoptedSchema, 'schemaHash' => $adoptedHash], 'tester');
+$adoptedDependencyHash = $adoptedService->previewDynamic(['schema_document' => $adoptedSchema, 'schemaHash' => $adoptedHash])['formDependencyHash'];
+$adoptedService->publishDynamic(['schema_document' => $adoptedSchema, 'schemaHash' => $adoptedHash, 'formDependencyHash' => $adoptedDependencyHash], 'tester');
 dynamicPublishExpect($adoptedEffects['ddl'] === 0, 'adopted 表发布严禁执行结构修改');
 
 try {
-    $service->publishDynamic(['schema_document' => $schema, 'schemaHash' => str_repeat('f', 64)], 'tester');
+    $service->publishDynamic(['schema_document' => $schema, 'schemaHash' => str_repeat('f', 64), 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, '请求 schemaHash 冲突必须拒绝');
 } catch (InvalidArgumentException $exception) {
     dynamicPublishExpect($exception->getMessage() === 'FORM_SCHEMA_CONFLICT', '发布 hash 冲突必须提供稳定 409 语义');
@@ -206,7 +207,7 @@ $saveFailure = new FormPublishService(
     static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0]
 );
 try {
-    $saveFailure->publishDynamic(['id' => 9, 'schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+    $saveFailure->publishDynamic(['id' => 9, 'schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, 'DDL 前保存失败必须抛出');
 } catch (RuntimeException) {
     dynamicPublishExpect(end($failureStatuses) === 'ddl_failed', 'DDL 前保存失败必须标记 ddl_failed');
@@ -225,7 +226,7 @@ $verifyFailure = new FormPublishService(
     static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0]
 );
 try {
-    $verifyFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+    $verifyFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, 'DDL 成功后 verify 失败必须抛出');
 } catch (RuntimeException) {
     dynamicPublishExpect(end($verifyStatuses) === 'metadata_partial', 'DDL 成功后 verify 失败必须标记 metadata_partial');
@@ -244,7 +245,7 @@ $migrationFailure = new FormPublishService(
     static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0]
 );
 try {
-    $migrationFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+    $migrationFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, 'ddlApplied=true 的迁移异常必须抛出');
 } catch (FormMigrationException) {
     dynamicPublishExpect(end($migrationStatuses) === 'metadata_partial', 'ddlApplied=true 的迁移异常必须标记 metadata_partial');
@@ -267,7 +268,7 @@ $concurrentService = new FormPublishService(
     static fn (): array => ['exists' => true, 'hash' => str_repeat('a', 64), 'version' => 4]
 );
 try {
-    $concurrentService->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+    $concurrentService->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, '并发旧发布必须被稳定拒绝');
 } catch (InvalidArgumentException $exception) {
     dynamicPublishExpect($exception->getMessage() === 'FORM_SCHEMA_CONFLICT', '并发旧发布必须返回稳定 FORM_SCHEMA_CONFLICT');
@@ -288,7 +289,7 @@ $metadataFailure = new FormPublishService(
     static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0]
 );
 try {
-    $metadataFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash], 'tester');
+    $metadataFailure->publishDynamic(['schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');
     dynamicPublishExpect(false, 'DDL 后元数据失败必须抛出');
 } catch (RuntimeException) {
     dynamicPublishExpect(end($metadataStatuses) === 'metadata_partial', 'DDL 后元数据失败必须标记 metadata_partial 且不得反向 DDL');

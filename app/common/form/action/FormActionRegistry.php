@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\form\action;
 
+use app\common\form\DeadlineExecutor;
 use Closure;
 use InvalidArgumentException;
 use JsonException;
@@ -55,12 +56,11 @@ final class FormActionRegistry
         }
 
         $allowed = array_flip(array_map('strval', (array) ($definition['parameters'] ?? [])));
-        $startedAt = hrtime(true);
-        $result = ($definition['handler'])(array_intersect_key($parameters, $allowed));
-        $elapsedMs = (hrtime(true) - $startedAt) / 1_000_000;
-        if ($elapsedMs > max(1, min(30000, (int) ($definition['timeoutMs'] ?? 3000)))) {
-            throw new InvalidArgumentException('FORM_ACTION_TIMEOUT');
-        }
+        $result = DeadlineExecutor::run(
+            fn (): mixed => ($definition['handler'])(array_intersect_key($parameters, $allowed)),
+            (int) ($definition['timeoutMs'] ?? 3000),
+            static fn (): InvalidArgumentException => new InvalidArgumentException('FORM_ACTION_TIMEOUT')
+        );
         if (!$this->safeResult($result)) {
             throw new InvalidArgumentException('FORM_ACTION_UNSAFE_RESULT');
         }

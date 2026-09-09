@@ -1,1 +1,0 @@
-import{Jt as e,hn as t,tn as n}from"./element-ak_OyJq5.js";import{t as r}from"./ErrorPage-TJYXK052.js";var i=n({__name:`404`,setup(n){return(n,i)=>(t(),e(r,{code:`404`}))}});export{i as default};

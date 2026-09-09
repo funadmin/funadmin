@@ -70,6 +70,17 @@
       </div>
     </el-tab-pane>
 
+    <el-tab-pane label="字段权限" name="access">
+      <el-form label-width="92px" size="small">
+        <el-form-item label="读取权限"><el-select v-model="access.read" multiple filterable allow-create default-first-option class="w-full" @change="emitAccess" /></el-form-item>
+        <el-form-item label="写入权限"><el-select v-model="access.write" multiple filterable allow-create default-first-option class="w-full" @change="emitAccess" /></el-form-item>
+        <el-form-item label="提交策略">
+          <el-select v-model="access.include" class="w-full" @change="emitAccess"><el-option label="自动" value="auto" /><el-option label="始终包含" value="always" /><el-option label="始终排除" value="never" /></el-select>
+        </el-form-item>
+      </el-form>
+      <RawJson title="字段权限原始 JSON" :value="access" @apply="applyRaw('access', $event)" />
+    </el-tab-pane>
+
     <el-tab-pane label="数据源" name="dataSource">
       <el-form label-width="92px" size="small">
         <el-form-item label="kind"><el-select v-model="dataSource.kind" class="w-full" @change="changeDataSourceKind"><el-option v-for="kind in DATA_SOURCE_KINDS" :key="kind" :label="kind" :value="kind" /></el-select></el-form-item>
@@ -115,6 +126,7 @@ const validation = ref<DesignerValidationRule[]>([]);
 const conditions = ref<DesignerConditionRule[]>([]);
 const events = reactive<Record<string, FormAction[]>>({});
 const dataSource = reactive<DesignerDataSource>(createDataSource('static'));
+const access = reactive<{ read: string[]; write: string[]; include: 'auto' | 'always' | 'never' }>({ read: [], write: [], include: 'auto' });
 const newEvent = ref('');
 const testing = ref(false);
 const testResult = ref('');
@@ -130,6 +142,7 @@ const syncDraft = (): void => {
   conditions.value = clone((props.node.conditions ?? []).map((rule) => ({ ...createConditionRule(), ...(rule as DesignerConditionRule) })) as DesignerConditionRule[]);
   replaceReactive(events, clone(props.node.events ?? {}) as Record<string, unknown>);
   replaceReactive(dataSource, { ...createDataSource((props.node.dataSource?.kind ?? props.node.dataSource?.mode ?? 'static') as DataSourceKind), ...(clone(props.node.dataSource ?? {}) as object) });
+  replaceReactive(access, { read: [], write: [], include: 'auto', ...(clone(props.node.access ?? {}) as object) });
 };
 watch(() => props.node, syncDraft, { immediate: true, deep: true });
 
@@ -167,6 +180,7 @@ const actionParameters = (type: unknown) => ACTION_PARAMETER_SCHEMAS[type as Act
 const updateActionParameter = (eventName: string, index: number, name: string, value: string, type: string) => { events[eventName][index][name] = type === 'json' ? parseValue(value) : value; emitEvents(); };
 const updateBooleanActionParameter = (eventName: string, index: number, name: string, value: boolean) => { events[eventName][index][name] = value; emitEvents(); };
 
+const emitAccess = () => emit('update', { access: clone(access) });
 const emitDataSource = () => emit('update', { dataSource: clone(dataSource) });
 const updateDataSourceText = (name: string, value: string) => { dataSource[name] = value; emitDataSource(); };
 const changeDataSourceKind = (kind: DataSourceKind) => { replaceReactive(dataSource, createDataSource(kind)); emitDataSource(); };
@@ -187,11 +201,12 @@ const testDataSource = async (): Promise<void> => {
   } finally { testing.value = false; }
 };
 
-const applyRaw = (key: 'validation' | 'conditions' | 'events' | 'dataSource', value: unknown): void => {
+const applyRaw = (key: 'validation' | 'conditions' | 'events' | 'dataSource' | 'access', value: unknown): void => {
   if (key === 'validation' && Array.isArray(value)) validation.value = value as DesignerValidationRule[];
   else if (key === 'conditions' && Array.isArray(value)) conditions.value = value as DesignerConditionRule[];
   else if (key === 'events' && value && typeof value === 'object') replaceReactive(events, value as Record<string, unknown>);
   else if (key === 'dataSource' && value && typeof value === 'object') replaceReactive(dataSource, value as Record<string, unknown>);
+  else if (key === 'access' && value && typeof value === 'object') replaceReactive(access, value as Record<string, unknown>);
   emit('update', { [key]: clone(value) });
 };
 

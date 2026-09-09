@@ -1,0 +1,8 @@
+-- 079 表单完整发布独立 API 权限。
+SET @form_group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='form_management' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
+INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`) VALUES
+(@form_group_id,'console','console/form.full-publish:preview','console/form.full-publish','preview',CONVERT(X'E9A284E8A788E8A1A8E58D95E5AE8CE695B4E58F91E5B883' USING utf8mb4),'route',1,0,79,'admin_web','form_management',NOW(),NOW(),79,NULL),
+(@form_group_id,'console','console/form.full-publish:publish','console/form.full-publish','publish',CONVERT(X'E5AE8CE695B4E58F91E5B883' USING utf8mb4),'route',1,0,80,'admin_web','form_management',NOW(),NOW(),80,NULL),
+(@form_group_id,'console','console/form.full-publish:status','console/form.full-publish','status',CONVERT(X'E69FA5E79C8BE5AE8CE695B4E58F91E5B883E78AB6E68081' USING utf8mb4),'route',1,0,81,'admin_web','form_management',NOW(),NOW(),81,NULL),
+(@form_group_id,'console','console/form.full-publish:generation','console/form.full-publish','generation',CONVERT(X'E69FA5E79C8BE7949FE68890E8AEB0E5BD95' USING utf8mb4),'route',1,0,82,'admin_web','form_management',NOW(),NOW(),82,NULL),
+(@form_group_id,'console','console/form.full-publish:retryresources','console/form.full-publish','retryresources',CONVERT(X'E9878DE8AF95E8A1A8E58D95E88F9CE58D95E69D83E99990' USING utf8mb4),'route',1,0,83,'admin_web','form_management',NOW(),NOW(),83,NULL);

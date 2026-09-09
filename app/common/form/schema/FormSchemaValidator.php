@@ -136,6 +136,9 @@ final class FormSchemaValidator
         $nodeCount = 0;
         $edges = [];
         $this->validateNodes($schema['nodes'], '/nodes', 1, $ids, $fields, $nodeCount, $edges, $dataSourceIds, $dataSourceCount);
+        $this->validateFieldReferences($schema['nodes'], '/nodes', $fields);
+        $this->validateTopLevelDataSourceReferences((array) ($schema['dataSources'] ?? []), '/dataSources', $fields);
+        $this->validateGlobalActionReferences((array) ($schema['actions'] ?? []), '/actions', $fields);
         $this->validateConditionCycles($edges);
     }
 
@@ -188,6 +191,10 @@ final class FormSchemaValidator
             if ($pluginComponent !== null) {
                 $this->validatePluginProps((array) ($node['props'] ?? []), $pluginComponent, $nodePath . '/props');
                 $this->validatePluginEvents((array) ($node['events'] ?? []), $pluginComponent, $nodePath . '/events');
+            } else {
+                $capability = $this->fieldCapabilities->get($type);
+                $this->validateComponentProps((array) ($node['props'] ?? []), $capability, $nodePath . '/props');
+                $this->validateComponentAttrs((array) ($node['attrs'] ?? []), $nodePath . '/attrs');
             }
             $field = (string) ($node['field'] ?? '');
             if ($kind === 'field') {
@@ -460,10 +467,7 @@ final class FormSchemaValidator
             if (!is_array($condition) || !is_array($condition['when'] ?? null) || !is_array($condition['then'] ?? null)) {
                 throw new FormSchemaException('条件结构不合法', $conditionPath);
             }
-            $operator = (string) ($condition['when']['op'] ?? '');
-            if (!in_array($operator, self::CONDITION_OPERATORS, true)) {
-                throw new FormSchemaException('条件操作符未注册', $conditionPath . '/when/op');
-            }
+            $this->validateValidationCondition($condition['when'], $conditionPath . '/when');
             $action = (string) ($condition['then']['action'] ?? '');
             if (!in_array($action, self::ACTIONS, true)) {
                 throw new FormSchemaException('条件动作未注册', $conditionPath . '/then/action');
@@ -471,12 +475,102 @@ final class FormSchemaValidator
             if ($action !== 'setValue') {
                 continue;
             }
-            $source = (string) ($condition['when']['field'] ?? '');
             $target = (string) ($condition['then']['target'] ?? $field);
-            if ($source === '' || $target === '') {
+            $sources = $this->conditionFields($condition['when']);
+            if ($sources === [] || $target === '') {
                 throw new FormSchemaException('条件字段不能为空', $conditionPath . '/then/target');
             }
-            $edges[$source][] = ['target' => $target, 'path' => $conditionPath . '/then/target'];
+            foreach ($sources as $source) {
+                $edges[$source][] = ['target' => $target, 'path' => $conditionPath . '/then/target'];
+            }
+        }
+    }
+
+    private function conditionFields(array $condition): array
+    {
+        $op = (string) ($condition['op'] ?? '');
+        if (in_array($op, ['and', 'or'], true)) {
+            return array_values(array_unique(array_merge(...array_map(
+                fn (array $item): array => $this->conditionFields($item),
+                array_values(array_filter((array) ($condition['conditions'] ?? []), 'is_array'))
+            ))));
+        }
+        if ($op === 'not' && is_array($condition['condition'] ?? null)) {
+            return $this->conditionFields($condition['condition']);
+        }
+        $field = trim((string) ($condition['field'] ?? ''));
+        return $field === '' ? [] : [$field];
+    }
+
+    private function validateFieldReferences(array $nodes, string $path, array $fields): void
+    {
+        foreach ($nodes as $index => $node) {
+            if (!is_array($node)) continue;
+            $nodePath = $path . '/' . $index;
+            $source = (array) ($node['dataSource'] ?? []);
+            foreach ((array) ($source['dependsOn'] ?? []) as $dependencyIndex => $dependency) {
+                $root = explode('.', (string) $dependency)[0];
+                if (!isset($fields[$root])) throw new FormSchemaException('数据源依赖字段不存在', $nodePath . '/dataSource/dependsOn/' . $dependencyIndex, 'FORM_FIELD_REFERENCE_INVALID');
+            }
+            foreach ((array) ($node['validation'] ?? []) as $ruleIndex => $rule) {
+                if (is_array($rule['when'] ?? null)) $this->assertConditionReferences($rule['when'], $nodePath . '/validation/' . $ruleIndex . '/when', $fields);
+            }
+            foreach ((array) ($node['conditions'] ?? []) as $conditionIndex => $condition) {
+                if (!is_array($condition)) continue;
+                if (is_array($condition['when'] ?? null)) $this->assertConditionReferences($condition['when'], $nodePath . '/conditions/' . $conditionIndex . '/when', $fields);
+                $target = (string) ($condition['then']['target'] ?? '');
+                if ($target !== '' && !isset($fields[$target])) throw new FormSchemaException('条件目标字段不存在', $nodePath . '/conditions/' . $conditionIndex . '/then/target', 'FORM_FIELD_REFERENCE_INVALID');
+            }
+            foreach ((array) ($node['events'] ?? []) as $event => $actions) {
+                $this->assertActionReferences((array) $actions, $nodePath . '/events/' . $event, $fields);
+            }
+            $this->validateFieldReferences((array) ($node['children'] ?? []), $nodePath . '/children', $fields);
+        }
+    }
+
+    private function validateTopLevelDataSourceReferences(array $sources, string $path, array $fields): void
+    {
+        foreach ($sources as $index => $source) {
+            if (!is_array($source)) continue;
+            foreach ((array) ($source['dependsOn'] ?? []) as $dependencyIndex => $dependency) {
+                $root = explode('.', (string) $dependency)[0];
+                if (!isset($fields[$root])) throw new FormSchemaException('数据源依赖字段不存在', $path . '/' . $index . '/dependsOn/' . $dependencyIndex, 'FORM_FIELD_REFERENCE_INVALID');
+            }
+        }
+    }
+
+    private function validateGlobalActionReferences(array $actions, string $path, array $fields): void
+    {
+        foreach ($actions as $index => $action) {
+            if (!is_array($action)) continue;
+            if (isset($action['type'])) $this->assertActionReferences([$action], $path . '/' . $index, $fields);
+            $this->assertActionReferences((array) ($action['steps'] ?? []), $path . '/' . $index . '/steps', $fields);
+        }
+    }
+
+    private function assertConditionReferences(array $condition, string $path, array $fields): void
+    {
+        $operator = (string) ($condition['op'] ?? '');
+        if (in_array($operator, ['and', 'or'], true)) {
+            foreach ((array) ($condition['conditions'] ?? []) as $index => $nested) if (is_array($nested)) $this->assertConditionReferences($nested, $path . '/conditions/' . $index, $fields);
+            return;
+        }
+        if ($operator === 'not' && is_array($condition['condition'] ?? null)) {
+            $this->assertConditionReferences($condition['condition'], $path . '/condition', $fields);
+            return;
+        }
+        $field = explode('.', (string) ($condition['field'] ?? ''))[0];
+        if (!isset($fields[$field])) throw new FormSchemaException('条件引用字段不存在', $path . '/field', 'FORM_FIELD_REFERENCE_INVALID');
+    }
+
+    private function assertActionReferences(array $actions, string $path, array $fields): void
+    {
+        foreach ($actions as $index => $action) {
+            if (!is_array($action)) continue;
+            foreach (['source', 'target'] as $parameter) {
+                $field = (string) ($action[$parameter] ?? '');
+                if ($field !== '' && !isset($fields[$field])) throw new FormSchemaException('动作引用字段不存在', $path . '/' . $index . '/' . $parameter, 'FORM_FIELD_REFERENCE_INVALID');
+            }
         }
     }
 
@@ -506,6 +600,12 @@ final class FormSchemaValidator
     private function validateAccess(array $access, string $path): void
     {
         foreach ($access as $operation => $permissions) {
+            if ($operation === 'include') {
+                if (!in_array($permissions, ['auto', 'always', 'never'], true)) {
+                    throw new FormSchemaException('access include 配置不合法', $path . '/include');
+                }
+                continue;
+            }
             if (!in_array($operation, ['read', 'write'], true) || !is_array($permissions) || !array_is_list($permissions)) {
                 throw new FormSchemaException('access 配置不合法', $path . '/' . $operation);
             }
@@ -561,6 +661,27 @@ final class FormSchemaValidator
                 throw new FormSchemaException('危险属性不允许使用', $nestedPath, 'FORM_SCHEMA_UNSAFE');
             }
             $this->validateSafeValue($nested, $nestedPath);
+        }
+    }
+
+    private function validateComponentProps(array $props, array $component, string $path): void
+    {
+        $allowed = array_fill_keys((array) ($component['allowedAttrs'] ?? []), true);
+        foreach (array_keys($props) as $property) {
+            if (!isset($allowed[$property])) {
+                $this->validateSafeValue($props[$property], $path . '/' . $property);
+                throw new FormSchemaException('核心组件属性未授权：' . $property, $path . '/' . $property, 'FORM_SCHEMA_UNSAFE');
+            }
+        }
+    }
+
+    private function validateComponentAttrs(array $attrs, string $path): void
+    {
+        $allowed = array_fill_keys(['autocomplete', 'aria-label', 'aria-describedby', 'name', 'id'], true);
+        foreach (array_keys($attrs) as $attribute) {
+            if (!isset($allowed[$attribute])) {
+                throw new FormSchemaException('组件原生属性未授权：' . $attribute, $path . '/' . $attribute, 'FORM_SCHEMA_UNSAFE');
+            }
         }
     }
 

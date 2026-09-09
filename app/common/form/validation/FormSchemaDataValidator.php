@@ -135,20 +135,34 @@ final class FormSchemaDataValidator
             return $op === 'and' ? !in_array(false, $matches, true) : in_array(true, $matches, true);
         }
         if ($op === 'not') return !$this->whenMatches($condition['condition'] ?? null, $values);
-        $actual = $values[(string) ($condition['field'] ?? '')] ?? null;
+        $actual = $this->readPath($values, (string) ($condition['field'] ?? ''));
         $expected = $condition['value'] ?? null;
         return match ($op) {
             'eq' => $actual === $expected, 'neq' => $actual !== $expected,
-            'gt' => is_numeric($actual) && $actual > $expected, 'gte' => is_numeric($actual) && $actual >= $expected,
-            'lt' => is_numeric($actual) && $actual < $expected, 'lte' => is_numeric($actual) && $actual <= $expected,
+            'gt' => (is_int($actual) || is_float($actual)) && (is_int($expected) || is_float($expected)) && $actual > $expected,
+            'gte' => (is_int($actual) || is_float($actual)) && (is_int($expected) || is_float($expected)) && $actual >= $expected,
+            'lt' => (is_int($actual) || is_float($actual)) && (is_int($expected) || is_float($expected)) && $actual < $expected,
+            'lte' => (is_int($actual) || is_float($actual)) && (is_int($expected) || is_float($expected)) && $actual <= $expected,
             'in' => is_array($expected) && in_array($actual, $expected, true),
             'notIn' => is_array($expected) && !in_array($actual, $expected, true),
-            'contains' => is_string($actual) && is_string($expected) && str_contains($actual, $expected),
+            'contains' => is_array($actual)
+                ? in_array($expected, $actual, true)
+                : is_string($actual) && is_string($expected) && str_contains($actual, $expected),
             'startsWith' => is_string($actual) && is_string($expected) && str_starts_with($actual, $expected),
             'endsWith' => is_string($actual) && is_string($expected) && str_ends_with($actual, $expected),
             'empty' => $this->isEmpty($actual), 'notEmpty' => !$this->isEmpty($actual),
             'matches' => $this->matchesPattern($actual, $expected), default => false,
         };
+    }
+
+    private function readPath(array $values, string $path): mixed
+    {
+        $current = $values;
+        foreach (array_values(array_filter(explode('.', $path), 'strlen')) as $segment) {
+            if (!is_array($current) || !array_key_exists($segment, $current)) return null;
+            $current = $current[$segment];
+        }
+        return $current;
     }
 
     private function isEmpty(mixed $value): bool

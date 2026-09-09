@@ -178,7 +178,7 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(function () use ($code): array {
             $archive = $this->packages->archiveDiscovered($code);
             try {
-                return $this->pipeline->installLocal($archive);
+                return $this->pipeline->installLocal($archive, true);
             } finally {
                 if (is_file($archive)) {
                     unlink($archive);

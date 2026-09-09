@@ -155,8 +155,8 @@ export function useDesigner() {
   const selectedNodeId = ref<string | null>(null);
   const dirty = ref(false);
   const saveStatus = ref<DesignerSaveStatus>('saved');
-  const undoStack = shallowRef<string[]>([]);
-  const redoStack = shallowRef<string[]>([]);
+  const undoStack = shallowRef<DesignerSnapshot[]>([]);
+  const redoStack = shallowRef<DesignerSnapshot[]>([]);
   let nodeSequence = 0;
 
   const flattenedNodes = computed(() => flattenNodes(nodes.value));
@@ -166,22 +166,23 @@ export function useDesigner() {
   const canRedo = computed(() => redoStack.value.length > 0);
   const historyDepth = computed(() => ({ undo: undoStack.value.length, redo: redoStack.value.length }));
 
-  const snapshot = () => JSON.stringify({
+  const currentSnapshot = (): DesignerSnapshot => ({
     fields: fields.value,
     nodes: nodes.value,
     form: form.value
-  } satisfies DesignerSnapshot);
+  });
+  const snapshot = (): DesignerSnapshot => clone(currentSnapshot());
   const pushHistory = () => {
     undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
     redoStack.value = [];
     dirty.value = true;
     saveStatus.value = 'unsaved';
   };
-  const restore = (raw: string) => {
-    const state = JSON.parse(raw) as DesignerSnapshot;
-    fields.value = state.fields;
-    nodes.value = state.nodes;
-    form.value = state.form;
+  const restore = (snapshotValue: DesignerSnapshot) => {
+    // 快照从历史栈弹出后即转移为当前状态，无需再次深拷贝大型 AST。
+    fields.value = snapshotValue.fields;
+    nodes.value = snapshotValue.nodes;
+    form.value = snapshotValue.form;
     if (selectedKey.value && !fields.value.some((field) => field.field_name === selectedKey.value)) selectedKey.value = null;
     if (selectedNodeId.value && !findLocation(nodes.value, selectedNodeId.value)) selectedNodeId.value = null;
   };
@@ -189,7 +190,7 @@ export function useDesigner() {
     const previous = undoStack.value.at(-1);
     if (previous === undefined) return;
     undoStack.value = undoStack.value.slice(0, -1);
-    redoStack.value = [...redoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
+    redoStack.value = [...redoStack.value.slice(-HISTORY_LIMIT + 1), currentSnapshot()];
     restore(previous);
     dirty.value = true;
     saveStatus.value = 'unsaved';
@@ -198,7 +199,7 @@ export function useDesigner() {
     const next = redoStack.value.at(-1);
     if (next === undefined) return;
     redoStack.value = redoStack.value.slice(0, -1);
-    undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), snapshot()];
+    undoStack.value = [...undoStack.value.slice(-HISTORY_LIMIT + 1), currentSnapshot()];
     restore(next);
     dirty.value = true;
     saveStatus.value = 'unsaved';

@@ -9,7 +9,9 @@
     :input-attrs="inputAttrs"
     :preview="preview"
     :control-props="bindings"
+    :schema-node="schemaNode"
     @update:model-value="emit('update:modelValue', $event)"
+    @event="(name, payload) => emit('event', name, payload)"
   />
 </template>
 
@@ -17,6 +19,7 @@
 import type { FormFieldDef } from '@/api/form';
 import FormControlRenderer from './FormControlRenderer.vue';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
+import type { FormSchemaNode } from '../schema/types';
 
 withDefaults(defineProps<{
   field: FormFieldDef;
@@ -28,7 +31,11 @@ withDefaults(defineProps<{
   inputAttrs?: Record<string, unknown>;
   preview?: boolean;
   bindings?: Record<string, unknown>;
+  schemaNode?: FormSchemaNode;
 }>(), { modelValue: () => '', options: () => [], disabled: false, readonly: false, inputAttrs: () => ({}), preview: false, bindings: () => ({}) });
 
-const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
+const emit = defineEmits<{
+  'update:modelValue': [value: unknown];
+  event: [name: string, payload?: unknown];
+}>();
 </script>

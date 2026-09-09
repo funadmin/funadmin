@@ -73,7 +73,10 @@ final class FormSchemaCompiler
                 'comment' => (string) ($database['comment'] ?? ''),
                 'unsigned' => ($database['unsigned'] ?? false) ? 1 : 0,
                 'index_type' => (string) ($database['index'] ?? 'none'),
-                'control_props' => (array) ($node['props'] ?? []),
+                'control_props' => array_replace(
+                    (array) ($node['props'] ?? []),
+                    ['schemaAccess' => (array) ($node['access'] ?? [])]
+                ),
                 'validate_rules' => $rules === [] ? null : $rules,
                 'link_rules' => ['rules' => (array) ($node['conditions'] ?? [])],
                 'options_source' => $node['dataSource'] ?? null,

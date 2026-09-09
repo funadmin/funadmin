@@ -69,7 +69,10 @@ final class FormSchemaMigrator
             'title' => (string) ($field['label'] ?? $name),
             'defaultValue' => $field['default_value'] ?? null,
             'valueType' => $this->valueType($type, (string) ($field['column_type'] ?? '')),
-            'props' => is_array($field['control_props'] ?? null) ? $field['control_props'] : [],
+            'props' => array_diff_key(
+                is_array($field['control_props'] ?? null) ? $field['control_props'] : [],
+                array_flip(['primary', 'system', 'computed', 'schemaAccess'])
+            ),
             'attrs' => [],
             'className' => '',
             'style' => [],
@@ -83,7 +86,7 @@ final class FormSchemaMigrator
             'dataSource' => $field['options_source'] ?? null,
             'conditions' => array_values((array) (($field['link_rules']['rules'] ?? []))),
             'events' => [],
-            'access' => [],
+            'access' => (array) (($field['control_props']['schemaAccess'] ?? [])),
             'database' => [
                 'columnType' => (string) ($field['column_type'] ?? ''),
                 'nullable' => (int) ($field['nullable'] ?? 1) === 1,

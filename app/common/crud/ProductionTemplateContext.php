@@ -24,6 +24,14 @@ final class ProductionTemplateContext
         $data['_validateNamespace'] = (string) ($target['validateNamespace'] ?? $data['_namespace'] . '\\validate');
         $data['_serviceNamespace'] = (string) ($target['serviceNamespace'] ?? $data['_namespace'] . '\\service');
         $data['_controllerNamespace'] = (string) ($target['controllerNamespace'] ?? $data['_namespace'] . '\\controller');
+        if (($target['type'] ?? 'core') === 'core') {
+            foreach (['model', 'validate', 'service', 'controller'] as $artifact) {
+                if (str_contains((string) ($data['generationTargets'][$artifact] ?? ''), "/{$artifact}/generated/")) {
+                    $namespaceKey = '_' . $artifact . 'Namespace';
+                    $data[$namespaceKey] .= '\\generated';
+                }
+            }
+        }
         $class = self::studly((string) $data['entity']);
         $primary = array_values(array_filter(
             $data['fields'],
@@ -110,9 +118,9 @@ final class ProductionTemplateContext
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
             . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
-            . "    protected \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
-            . "    protected \$pk = '{$primary['name']}';\n"
-            . '    protected $type = ' . self::phpArray($casts) . ";\n\n"
+            . "    protected string \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
+            . "    protected string \$pk = '{$primary['name']}';\n"
+            . '    protected array $type = ' . self::phpArray($casts) . ";\n\n"
             . implode("\n\n", $methods) . "\n}\n";
     }
 
@@ -146,7 +154,7 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
-            . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
+            . '    protected array $rule = ' . self::phpArray($rules) . ";\n\n"
             . "    public function forUpdate(int|string \$id): self\n    {\n"
             . "        foreach (\$this->rule as &\$rule) {\n"
             . "            \$rule = str_replace('{{$primary['name']}}', (string) \$id, \$rule);\n"
@@ -572,7 +580,7 @@ final class ProductionTemplateContext
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0 }), rowKey: '{$primaryName}', pagination: true });\n"
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
-            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: Record<string, unknown>[]) => onSelectionChange(rows as unknown as {$type}[]);\n" : '')
+            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: {$type}[]) => onSelectionChange(rows);\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
@@ -663,7 +671,7 @@ final class ProductionTemplateContext
             . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\n"
             . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as FormSchemaDocument; const fieldMap={$fieldMap};\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap};\n"
             . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key]);for(const item of fieldMap)form[item.target]=row?.[item.source as keyof {$type}]??'';},{immediate:true});\n"
             . "async function submit(){await schemaFormRef.value?.validate();const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",payload);else await {$camel}Api.create(payload);visible.value=false;emit('success');}\n</script>\n";
     }

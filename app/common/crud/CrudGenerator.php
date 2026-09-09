@@ -48,6 +48,54 @@ final class CrudGenerator
         );
     }
 
+    /**
+     * business managed 正式生成只读规划；调用方必须显式传入可靠 baseline。
+     */
+    public function planManaged(CrudDefinition $definition, array $baselines): array
+    {
+        $this->validator->validate($definition, $this->projectRoot);
+        $target = (array) $definition->get('target', ['type' => 'core']);
+        if (($target['type'] ?? 'core') === 'plugin') {
+            throw new InvalidArgumentException('business managed 三方规划暂不支持插件目标');
+        }
+        $artifactByPath = [];
+        foreach ((array) $definition->get('generationTargets', []) as $artifactType => $path) {
+            if (is_string($path)) {
+                $artifactByPath[str_replace('\\', '/', $path)] = (string) $artifactType;
+            }
+        }
+        foreach ($baselines as &$baseline) {
+            if (is_array($baseline) && is_string($baseline['path'] ?? null)) {
+                $path = str_replace('\\', '/', $baseline['path']);
+                if (isset($artifactByPath[$path])) {
+                    $baseline['artifactType'] = $artifactByPath[$path];
+                } elseif (($baseline['artifactType'] ?? '') === 'migration') {
+                    unset($baseline['artifactType']);
+                }
+            }
+        }
+        unset($baseline);
+        return (new GenerationPlanner($this->projectRoot, $this->tokens))->planManaged(
+            $definition,
+            $this->renderFiles($definition),
+            $baselines
+        );
+    }
+
+    /**
+     * 返回仅供受信应用服务组装事务 bundle 的确定性 Remote 内容。
+     * 此入口不规划、不签发 token，也不写入文件。
+     */
+    public function renderManagedBundle(CrudDefinition $definition): array
+    {
+        $this->validator->validate($definition, $this->projectRoot);
+        $target = (array) $definition->get('target', ['type' => 'core']);
+        if (($target['type'] ?? 'core') === 'plugin') {
+            throw new InvalidArgumentException('business managed 渲染暂不支持插件目标');
+        }
+        return $this->renderFiles($definition);
+    }
+
     public function generate(
         CrudDefinition $definition,
         string $confirmToken,

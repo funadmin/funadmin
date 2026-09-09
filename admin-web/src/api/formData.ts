@@ -44,7 +44,12 @@ export const formDataApi = {
     ),
   sub: (key: string, relation: string, id: FormRecordId, params: Record<string, unknown>) =>
     http.get<{ list: Record<string, unknown>[]; total: number }>(`${PREFIX}/sub/${key}/${relation}/${id}`, params),
+  action: (key: string, action: string, parameters: Record<string, unknown>, idempotencyKey = crypto.randomUUID(), signal?: AbortSignal) =>
+    http.post<{ result: unknown }>(`${PREFIX}/action/${key}/${action}`, { parameters }, {
+      signal,
+      headers: { 'Idempotency-Key': idempotencyKey }
+    }),
   create: (key: string, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/create/${key}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
   update: (key: string, id: FormRecordId, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/update/${key}/${id}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
-  remove: (key: string, id: string | number) => http.post<{ removed: number; mode: string }>(`${PREFIX}/remove/${key}`, { id })
+  remove: (key: string, id: string | number, schemaHash = '') => http.post<{ removed: number; mode: string }>(`${PREFIX}/remove/${key}`, { id, schemaHash })
 };

@@ -55,9 +55,9 @@ final class PluginPackagePipeline
         );
     }
 
-    public function installLocal(string $archive): array
+    public function installLocal(string $archive, bool $trustedWorkspace = false): array
     {
-        return $this->run($archive, '', '', 'install', 'local', true);
+        return $this->run($archive, '', '', 'install', $trustedWorkspace ? 'workspace' : 'local', true);
     }
 
     public function updateLocal(string $archive, string $expectedCode, bool $migrate = true): array
@@ -141,7 +141,7 @@ final class PluginPackagePipeline
         }
 
         $basic = method_exists($this->packages, 'inspect')
-            ? $this->packages->inspect($archive, $expectedCode, $expectedVersion)
+            ? $this->packages->inspect($archive, $expectedCode, $expectedVersion, $source === 'local')
             : ['code' => $expectedCode ?: 'demo', 'version' => $expectedVersion];
         $code = (string) ($basic['code'] ?? '');
         $targetVersion = (string) ($basic['version'] ?? '');

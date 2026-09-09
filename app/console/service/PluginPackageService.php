@@ -17,7 +17,7 @@ class PluginPackageService extends AbstractService
     private const MAX_ARCHIVE_BYTES = 104857600;
     private const MAX_UNPACKED_BYTES = 524288000;
 
-    public function inspect(string $archive, string $expectedCode = '', string $expectedVersion = ''): array
+    public function inspect(string $archive, string $expectedCode = '', string $expectedVersion = '', bool $verifySignature = true): array
     {
         if (!is_file($archive)) {
             throw new RuntimeException('插件安装包不存在');
@@ -60,10 +60,39 @@ class PluginPackageService extends AbstractService
             if ($expectedVersion !== '' && $version !== $expectedVersion) {
                 throw new RuntimeException('插件包版本与请求版本不一致');
             }
+            if ($verifySignature) $this->verifyLocalSignature($zip, $manifestEntry, $manifest);
             return ['code' => $code, 'version' => $version, 'manifest' => $manifest];
         } finally {
             $zip->close();
         }
+    }
+
+    private function verifyLocalSignature(ZipArchive $zip, string $manifestEntry, array $manifest): void
+    {
+        $publicKey = trim((string) config('plugins.marketplace.public_key', ''));
+        $signatureEntry = dirname($manifestEntry) === '.' ? 'plugin.sig' : dirname($manifestEntry) . '/plugin.sig';
+        $signatureText = $zip->getFromName($signatureEntry);
+        if ($publicKey === '' || !is_string($signatureText)) {
+            throw new RuntimeException('本地插件包缺少可信签名或未配置公钥');
+        }
+        $signature = base64_decode(trim($signatureText), true);
+        $key = base64_decode($publicKey, true);
+        if (!is_string($signature) || !is_string($key)
+            || strlen($signature) !== SODIUM_CRYPTO_SIGN_BYTES
+            || strlen($key) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
+            throw new RuntimeException('本地插件包签名格式错误');
+        }
+        $canonical = $this->canonicalJson($manifest);
+        if (!sodium_crypto_sign_verify_detached($signature, $canonical, $key)) {
+            throw new RuntimeException('本地插件包签名验证失败');
+        }
+    }
+
+    private function canonicalJson(array $value): string
+    {
+        if (!array_is_list($value)) ksort($value, SORT_STRING);
+        foreach ($value as $index => $item) if (is_array($item)) $value[$index] = json_decode($this->canonicalJson($item), true, 512, JSON_THROW_ON_ERROR);
+        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     public function stage(string $archive, string $expectedCode = '', string $expectedVersion = ''): array

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\controller\form;
 
+use app\common\form\observability\FormObservability;
 use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
@@ -28,6 +29,7 @@ final class FullPublish extends AdminApiController
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     private readonly FormFullPublishService $publisher;
+    private readonly FormObservability $observability;
 
     public function __construct(App $app)
     {
@@ -41,6 +43,7 @@ final class FullPublish extends AdminApiController
             is_array($connections) ? array_values(array_filter($connections, 'is_string')) : [],
             schemas: $schemas
         );
+        $this->observability = new FormObservability();
     }
 
     #[Post('preview')]
@@ -62,6 +65,7 @@ final class FullPublish extends AdminApiController
         return $this->execute(fn (): array => $this->publisher->publish(
             $this->payload(),
             trim((string) $this->request->post('confirmToken', '')),
+            trim((string) $this->request->post('operationKey', '')),
             array_values(array_filter($overwrite, 'is_string')),
             $authorization->nodeAccess('form/publish/overwrite'),
             $authorization->nodeAccess('form/publish/apply-resources'),
@@ -91,20 +95,36 @@ final class FullPublish extends AdminApiController
     #[Pattern('id', '\d+')]
     public function retryResources(int $id): Response
     {
+        if (!(new AdminAuthorizationService())->nodeAccess('form/publish/apply-resources')) {
+            return $this->fail(msg: '没有应用菜单与权限资源的权限', code: 403);
+        }
         return $this->execute(fn (): array => $this->publisher->retryResources($id), '菜单与权限应用完成');
     }
 
     private function payload(): array
     {
-        $payload = $this->request->post('definition', []);
-        if (!is_array($payload)) throw new InvalidArgumentException('definition 必须为对象');
-        return $payload;
+        $formId = (int) $this->request->post('formId', 0);
+        if ($formId < 1) throw new InvalidArgumentException('formId 必须为正整数');
+        return [
+            'formId' => $formId,
+            'generationId' => (int) $this->request->post('generationId', 0),
+            'schemaHash' => trim((string) $this->request->post('schemaHash', '')),
+        ];
     }
 
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         try {
-            return $this->ok($message, $operation());
+            $action = (string) $this->request->action();
+            $formId = (int) $this->request->post('formId', 0);
+            return $this->ok($message, $this->observability->measure([
+                'formKey' => $formId > 0 ? 'form:' . $formId : '',
+                'schemaHash' => trim((string) $this->request->post('schemaHash', '')),
+                'nodeId' => '',
+                'action' => 'full-publish.' . $action,
+                'dataSource' => '',
+                'requestId' => trim((string) $this->request->header('X-Request-ID', '')),
+            ], $operation));
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {

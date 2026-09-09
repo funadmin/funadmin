@@ -20,17 +20,19 @@
     v-else-if="field.relation_type === 'has_many' || ['repeatable', 'subform'].includes(field.type)"
     :field="field"
     :model-value="arrayObjectValue"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
+    :schema-node="schemaNode"
     @update:model-value="updateValue"
+    @click="emitEvent('click', $event)"
   />
-  <input v-else-if="field.type === 'hidden'" type="hidden" :value="modelValue" />
+  <input v-else-if="field.type === 'hidden'" type="hidden" :value="modelValue" @click="emitEvent('click', $event)" />
   <el-text v-else-if="field.type === 'readonly'">{{ displayValue }}</el-text>
   <Upload
     v-else-if="uploadType"
     :model-value="modelValue"
     :type="uploadType"
     :multiple="field.type === 'files'"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
     v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
@@ -39,24 +41,28 @@
     :model-value="modelValue"
     :type="inputType"
     :placeholder="placeholder"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
     :readonly="readonly"
     v-bind="controlAttrs"
     @update:model-value="updateValue"
+    @blur="emitEvent('blur', $event)"
+    @focus="emitEvent('focus', $event)"
+    @clear="emitEvent('clear', $event)"
+    @click="emitEvent('click', $event)"
   />
   <el-mention
     v-else-if="field.type === 'mention'"
     :model-value="stringValue"
     :options="options"
     :placeholder="placeholder"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
     v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
   <el-input-number
     v-else-if="field.type === 'number'"
     :model-value="numberValue"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
     class="w-full"
     v-bind="controlAttrs"
     @update:model-value="updateValue"
@@ -68,13 +74,17 @@
       :model-value="modelValue"
       :multiple="multiple"
       :placeholder="placeholder"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       :loading="dataSourceState?.loading ?? false"
       :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
       :remote="remoteSearchable"
       :remote-method="dataSourceState?.search"
       class="w-full"
       @update:model-value="updateValue"
+      @change="emitEvent('select', $event)"
+      @clear="emitEvent('clear', $event)"
+      @blur="emitEvent('blur', $event)"
+      @focus="emitEvent('focus', $event)"
     >
       <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
     </el-select>
@@ -85,7 +95,7 @@
       :options="options"
       :multiple="multiple"
       :placeholder="placeholder"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       :loading="dataSourceState?.loading ?? false"
       :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
       :remote="remoteSearchable"
@@ -100,7 +110,7 @@
       :data="options"
       :multiple="multiple"
       :placeholder="placeholder"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       :loading="dataSourceState?.loading ?? false"
       :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
       :remote="remoteSearchable"
@@ -114,7 +124,7 @@
       :model-value="modelValue"
       :options="options"
       :placeholder="placeholder"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       :loading="dataSourceState?.loading ?? false"
       :filterable="remoteSearchable || Boolean(controlAttrs.filterable)"
       :remote="remoteSearchable"
@@ -141,36 +151,38 @@
       @current-change="dataSourceState.setPage"
     />
   </div>
-  <el-radio-group v-else-if="field.type === 'radio'" :model-value="modelValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue">
+  <el-radio-group v-else-if="field.type === 'radio'" :model-value="modelValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('select', $event)" @click="emitEvent('click', $event)">
     <el-radio v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</el-radio>
   </el-radio-group>
-  <el-checkbox-group v-else-if="field.type === 'checkbox'" :model-value="arrayValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue">
+  <el-checkbox-group v-else-if="field.type === 'checkbox'" :model-value="arrayValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('select', $event)" @click="emitEvent('click', $event)">
     <el-checkbox v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</el-checkbox>
   </el-checkbox-group>
-  <el-switch v-else-if="field.type === 'switch'" :model-value="modelValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-transfer v-else-if="field.type === 'transfer'" :model-value="arrayValue" :data="transferOptions" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
+  <el-switch v-else-if="field.type === 'switch'" :model-value="modelValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('change', $event)" @click="emitEvent('click', $event)" />
+  <el-transfer v-else-if="field.type === 'transfer'" :model-value="arrayValue" :data="transferOptions" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('select', $event)" />
   <el-date-picker
     v-else-if="dateTypes.includes(field.type)"
     :model-value="modelValue"
     :type="datePickerType"
     :placeholder="placeholder"
-    :disabled="disabled"
+    :disabled="disabled || readonly"
     class="w-full"
     v-bind="controlAttrs"
     @update:model-value="updateValue"
+    @change="emitEvent('select', $event)"
   />
-  <el-time-picker v-else-if="field.type === 'time'" :model-value="modelValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-time-select v-else-if="field.type === 'timeSelect'" :model-value="stringValue" :placeholder="placeholder" :disabled="disabled" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-slider v-else-if="field.type === 'slider'" :model-value="numberValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-rate v-else-if="field.type === 'rate'" :model-value="numberValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-color-picker v-else-if="field.type === 'color'" :model-value="stringValue" :disabled="disabled" v-bind="controlAttrs" @update:model-value="updateValue" />
-  <el-input v-else :model-value="modelValue" :placeholder="placeholder" :disabled="disabled" @update:model-value="updateValue" />
+  <el-time-picker v-else-if="field.type === 'time'" :model-value="modelValue" :placeholder="placeholder" :disabled="disabled || readonly" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('select', $event)" />
+  <el-time-select v-else-if="field.type === 'timeSelect'" :model-value="stringValue" :placeholder="placeholder" :disabled="disabled || readonly" class="w-full" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('select', $event)" />
+  <el-slider v-else-if="field.type === 'slider'" :model-value="numberValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('change', $event)" />
+  <el-rate v-else-if="field.type === 'rate'" :model-value="numberValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('change', $event)" />
+  <el-color-picker v-else-if="field.type === 'color'" :model-value="stringValue" :disabled="disabled || readonly" v-bind="controlAttrs" @update:model-value="updateValue" @change="emitEvent('change', $event)" />
+  <el-input v-else :model-value="modelValue" :placeholder="placeholder" :disabled="disabled || readonly" @update:model-value="updateValue" @blur="emitEvent('blur', $event)" @focus="emitEvent('focus', $event)" @click="emitEvent('click', $event)" />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FormFieldDef } from '@/api/form';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
+import type { FormSchemaNode } from '../schema/types';
 import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
 import RepeatableField from './RepeatableField.vue';
@@ -192,6 +204,7 @@ const props = withDefaults(defineProps<{
   inputAttrs?: Record<string, unknown>;
   preview?: boolean;
   controlProps?: Record<string, unknown>;
+  schemaNode?: FormSchemaNode;
 }>(), {
   modelValue: '',
   options: () => [],
@@ -201,7 +214,10 @@ const props = withDefaults(defineProps<{
   preview: false
 });
 
-const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
+const emit = defineEmits<{
+  'update:modelValue': [value: unknown];
+  event: [name: string, payload?: unknown];
+}>();
 const meta = computed(() => controlMeta(props.field.type));
 const controlProps = computed(() => props.controlProps ?? props.field.control_props ?? {});
 const controlAttrs = computed(() => ({ ...controlProps.value, ...props.inputAttrs }));
@@ -246,6 +262,9 @@ const numberProp = (key: string, fallback: number) => {
 };
 const updateValue = (value: any) => {
   if (!props.preview) emit('update:modelValue', value);
+};
+const emitEvent = (name: string, payload?: unknown) => {
+  if (!props.preview) emit('event', name, payload);
 };
 </script>
 

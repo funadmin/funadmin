@@ -45,6 +45,12 @@ final class Form extends NodeCollection
         return $this;
     }
 
+    public function dataSourceBuilder(string $id, string $kind, array $definition = []): DataSourceBuilder
+    {
+        $this->schema['dataSources'][] = ['id' => $id, 'kind' => $kind] + $definition;
+        return new DataSourceBuilder($this->schema['dataSources'][array_key_last($this->schema['dataSources'])]);
+    }
+
     public function action(string $id, string $event): ActionBuilder
     {
         $this->schema['actions'][] = ['id' => $id, 'event' => $event, 'steps' => []];
@@ -69,5 +75,10 @@ final class Form extends NodeCollection
     {
         $this->compile();
         return $this;
+    }
+
+    public function register(int $formId, string $actor = 'php-builder', string $summary = ''): \app\console\model\FormSchemaVersion
+    {
+        return (new \app\console\service\FormBuilderRegistryService())->register($formId, $this, $actor, $summary);
     }
 }

@@ -14,6 +14,7 @@ use app\console\model\AuthGroupInherit;
 use app\console\model\Permission;
 use app\console\service\RoleScopeService;
 use app\console\service\CasbinService;
+use app\console\service\RoleAuthorizationService;
 use app\console\service\RoleGuardService;
 use InvalidArgumentException;
 use think\annotation\route\Delete;
@@ -83,6 +84,54 @@ class SystemRole extends AdminApiController
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])->where('status', 1)
             ->order('level', 'asc')->order('id', 'asc')->select();
         return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
+    }
+
+    #[Get(':id/authorization')]
+    #[Pattern('id', '\\d+')]
+    public function authorization(int $id): Response
+    {
+        $role = AuthGroup::find($id);
+        if (!$role) {
+            return $this->fail(msg: '角色不存在', code: 404);
+        }
+        try {
+            return $this->ok(data: (new RoleAuthorizationService())->detail($role));
+        } catch (InvalidArgumentException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 403);
+        }
+    }
+
+    #[Put(':id/authorization')]
+    #[Pattern('id', '\\d+')]
+    public function saveAuthorization(int $id): Response
+    {
+        $role = AuthGroup::find($id);
+        if (!$role) {
+            return $this->fail(msg: '角色不存在', code: 404);
+        }
+        try {
+            (new RoleAuthorizationService())->save($role, (array) $this->request->post());
+            return $this->ok('授权已保存');
+        } catch (InvalidArgumentException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 403);
+        }
+    }
+
+    #[Post(':id/authorization/copy')]
+    #[Pattern('id', '\\d+')]
+    public function copyAuthorization(int $id): Response
+    {
+        $target = AuthGroup::find($id);
+        $source = AuthGroup::find((int) $this->request->post('sourceRoleId', 0));
+        if (!$target || !$source) {
+            return $this->fail(msg: '源角色或目标角色不存在', code: 404);
+        }
+        try {
+            (new RoleAuthorizationService())->copy($target, $source);
+            return $this->ok('授权已复制');
+        } catch (InvalidArgumentException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 403);
+        }
     }
 
     #[Get(':id')]

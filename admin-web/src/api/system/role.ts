@@ -19,6 +19,71 @@ export interface RoleModel {
   createdAt?: string;
 }
 
+export interface AuthorizationSource {
+  roleId: number;
+  roleName: string;
+}
+
+export interface PermissionAction {
+  id: number;
+  name: string;
+  code: string;
+  direct: boolean;
+  inherited: boolean;
+  inheritedFrom: AuthorizationSource[];
+}
+
+export interface PermissionResourceRow {
+  key: string;
+  name: string;
+  actions: PermissionAction[];
+}
+
+export interface PermissionGroup {
+  id: number;
+  name: string;
+  resources: PermissionResourceRow[];
+}
+
+export interface FieldPermission {
+  id: number;
+  permissionId: number;
+  resource: string;
+  field: string;
+  name: string;
+  view: boolean;
+  edit: boolean;
+  inheritedView: boolean;
+  inheritedEdit: boolean;
+  inheritedFrom: AuthorizationSource[];
+}
+
+export interface AuthorizationTreeNode {
+  id: number;
+  parentId: number;
+  name: string;
+  code?: string;
+  children?: AuthorizationTreeNode[];
+}
+
+export interface RoleAuthorization {
+  roleId: number;
+  roles: AuthorizationTreeNode[];
+  permissionGroups: PermissionGroup[];
+  fields: FieldPermission[];
+  dataScope: DataScope;
+  departmentIds: number[];
+  departmentTree: AuthorizationTreeNode[];
+  effectivePermissionIds: number[];
+}
+
+export interface SaveRoleAuthorization {
+  permissionIds: number[];
+  fieldPermissions: Array<{ fieldId: number; view: boolean; edit: boolean }>;
+  dataScope: DataScope;
+  departmentIds: number[];
+}
+
 export const roleApi = {
   list: (params: API.PageQuery) => http.get<API.PageResult<RoleModel>>(`${PREFIX}`, params),
   all: () => http.get<RoleModel[]>(`${PREFIX}/all`),
@@ -35,6 +100,15 @@ export const roleApi = {
     }),
   assignPermissions: (id: number, permissionIds: number[]) =>
     http.post<void>(`${PREFIX}/${id}/permissions`, { permissionIds }, {
+      requestOptions: { showSuccessMsg: true }
+    }),
+  authorization: (id: number) => http.get<RoleAuthorization>(`${PREFIX}/${id}/authorization`),
+  saveAuthorization: (id: number, data: SaveRoleAuthorization) =>
+    http.put<void>(`${PREFIX}/${id}/authorization`, data, {
+      requestOptions: { showSuccessMsg: true }
+    }),
+  copyAuthorization: (id: number, sourceRoleId: number) =>
+    http.post<void>(`${PREFIX}/${id}/authorization/copy`, { sourceRoleId }, {
       requestOptions: { showSuccessMsg: true }
     })
 };

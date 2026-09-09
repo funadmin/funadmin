@@ -117,7 +117,11 @@ final class FormCrudDefinitionFactory
                 'upload' => true, 'dictionary' => true, 'referenceProtection' => true,
                 'formMode' => (string) $config['formMode'], 'importLimit' => 10000, 'exportLimit' => 10000,
             ],
-            'dataScope' => ['enabled' => false, 'field' => ''],
+            'dataScope' => [
+                'enabled' => (bool) $config['dataScopeEnabled'],
+                'field' => (string) $config['dataScopeField'],
+                'resolver' => 'adminDepartmentIds',
+            ],
             'menu' => [
                 'enabled' => (bool) $config['menuEnabled'], 'parentId' => $config['parentId'],
                 'parentSourceName' => (string) $config['parentSourceName'], 'name' => (string) $config['menuName'],
@@ -223,6 +227,7 @@ final class FormCrudDefinitionFactory
             'menuEnabled' => true, 'parentId' => null, 'parentSourceName' => '',
             'menuName' => (string) ($form['name'] ?? $entity), 'icon' => 'i-ep-document', 'sortOrder' => 999,
             'softDeletes' => true, 'batchDelete' => true, 'import' => true, 'export' => true, 'formMode' => 'dialog',
+            'dataScopeEnabled' => false, 'dataScopeField' => '',
         ], $stored, $config);
     }
 
@@ -230,9 +235,9 @@ final class FormCrudDefinitionFactory
     {
         return [
             'migration' => "database/generated/{$entity}.sql",
-            'model' => "app/console/model/{$class}.php",
-            'validate' => "app/console/validate/{$class}Validate.php",
-            'service' => "app/console/service/{$class}Service.php",
+            'model' => "app/console/model/generated/{$class}.php",
+            'validate' => "app/console/validate/generated/{$class}Validate.php",
+            'service' => "app/console/service/generated/{$class}Service.php",
             'controller' => "app/console/controller/generated/{$class}Controller.php",
             'permissionMigration' => "database/generated/{$entity}_permissions.sql",
             'api' => "admin-web/src/api/generated/{$entity}.ts",

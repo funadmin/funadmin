@@ -16,6 +16,13 @@ final class FieldBuilder
         return $this;
     }
 
+    public function validation(?callable $builder = null): ValidationBuilder
+    {
+        $validation = new ValidationBuilder($this->node['validation']);
+        if ($builder !== null) $builder($validation);
+        return $validation;
+    }
+
     public function rule(string $type, mixed $value = true, string $message = '', array $trigger = ['blur', 'change']): self
     {
         $rule = ['type' => $type, 'value' => $value, 'trigger' => $trigger];
@@ -61,12 +68,24 @@ final class FieldBuilder
     }
 
     public function dataSource(array $definition): self { $this->node['dataSource'] = $definition; return $this; }
+    public function dataSourceBuilder(string $kind, array $definition = []): DataSourceBuilder
+    {
+        $this->node['dataSource'] = ['kind' => $kind] + $definition;
+        return new DataSourceBuilder($this->node['dataSource']);
+    }
     public function dataSourceRef(string $id): self { return $this->dataSource(['ref' => $id]); }
 
     public function condition(array $when, array $then): self
     {
         $this->node['conditions'][] = compact('when', 'then');
         return $this;
+    }
+
+    public function conditions(?callable $builder = null): ConditionBuilder
+    {
+        $conditions = new ConditionBuilder($this->node['conditions']);
+        if ($builder !== null) $builder($conditions);
+        return $conditions;
     }
 
     public function event(string $event): ActionBuilder

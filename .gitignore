@@ -21,6 +21,8 @@
 /tests/*
 !/tests/form_data_relation_mysql_test.php
 !/tests/business_development_migration_test.php
+!/tests/business_generation_wal_test.php
+!/tests/business_generation_recovery_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

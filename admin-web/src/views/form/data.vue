@@ -102,7 +102,7 @@
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" :before-close="beforeDialogClose" destroy-on-close>
-      <SchemaForm ref="schemaFormRef" :form-key="formKey" :fields="formFields" :values="dialogValues" />
+      <SchemaRenderer v-if="meta" ref="schemaRendererRef" :form-key="formKey" :schema="meta.schema" :values="dialogValues" />
       <template #footer>
         <el-button @click="requestDialogClose">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
@@ -134,7 +134,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
-import SchemaForm from './components/SchemaForm.vue';
+import SchemaRenderer from './components/SchemaRenderer.vue';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
@@ -160,7 +160,7 @@ const detailVisible = ref(false);
 const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, any>>({});
 const detail = ref<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> } | null>(null);
-const schemaFormRef = ref<InstanceType<typeof SchemaForm>>();
+const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const dialogSnapshot = ref('');
 let closeDialogAfterSave = false;
 
@@ -279,7 +279,7 @@ const responseFieldErrors = (reason: unknown): FormFieldError[] => {
 };
 async function onSave() {
   if (saving.value) return;
-  await schemaFormRef.value?.validate();
+  await schemaRendererRef.value?.submit();
   saving.value = true;
   try {
     const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
@@ -293,7 +293,7 @@ async function onSave() {
     loadData();
   } catch (reason) {
     const errors = responseFieldErrors(reason);
-    if (errors.length) schemaFormRef.value?.setFieldErrors(mapFieldErrors(errors));
+    if (errors.length) await schemaRendererRef.value?.setFieldErrors(mapFieldErrors(errors));
     else throw reason;
   } finally {
     saving.value = false;
@@ -306,7 +306,7 @@ async function openDetail(row: Record<string, unknown>) {
 }
 async function onDelete(row: Record<string, unknown>) {
   await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
-  await formDataApi.remove(formKey, row[primaryKeyName.value] as FormRecordId);
+  await formDataApi.remove(formKey, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
   loadData();
 }

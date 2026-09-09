@@ -22,6 +22,9 @@ use think\facade\Db;
 
 final class FormSchemaRepository
 {
+    /** @var array<string, FormSchema> */
+    private static array $compiledCache = [];
+
     private FormSchemaCompiler $compiler;
     private FormSchemaDependencyChecker $dependencyChecker;
     private FieldCapabilityRegistry $fieldCapabilities;
@@ -54,7 +57,8 @@ final class FormSchemaRepository
             throw new FormSchemaException('不支持的 FormSchema 版本', '/schemaVersion', 'FORM_SCHEMA_VERSION_UNSUPPORTED');
         }
         $schema = $schemaVersion === 2 ? $definition : $this->migrator->fromV1($definition);
-        return $this->compiler->compile($schema);
+        $compiled = $this->compiler->compile($schema);
+        return self::$compiledCache[$compiled->hash()] ??= $compiled;
     }
 
     /**
@@ -131,6 +135,34 @@ final class FormSchemaRepository
         ]);
         $this->persistCurrent($form, $compiled, $origin);
         return $version;
+    }
+
+    public function draft(int $formId): FormSchema
+    {
+        $form = Form::find($formId);
+        if (!$form || !is_array($form->schema_document)) {
+            throw new FormSchemaException('表单草稿不存在', '/formId', 'FORM_SCHEMA_DRAFT_NOT_FOUND');
+        }
+        return $this->compile((array) $form->schema_document);
+    }
+
+    public function version(int $formId, int $version): FormSchema
+    {
+        return $this->compile((array) $this->findVersion($formId, $version)->schema_document);
+    }
+
+    public function published(int $formId): FormSchema
+    {
+        $form = Form::find($formId);
+        $hash = $form ? trim((string) ($form->published_schema_hash ?? '')) : '';
+        if (!$form || $hash === '') {
+            throw new FormSchemaException('表单尚未发布', '/formId', 'FORM_SCHEMA_NOT_PUBLISHED');
+        }
+        $record = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $hash)->find();
+        if (!$record) {
+            throw new FormSchemaException('已发布表单版本不存在', '/schemaHash', 'FORM_SCHEMA_VERSION_NOT_FOUND');
+        }
+        return $this->compile((array) $record->schema_document);
     }
 
     public function versions(int $formId): array

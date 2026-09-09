@@ -196,8 +196,8 @@ final class FormDataService
         $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary): array {
-            $payload = $split['parent'];
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary, $published): array {
+            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns);
             $now = date('Y-m-d H:i:s');
             if (in_array('created_at', $columns, true)) $payload['created_at'] = $now;
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = $now;
@@ -230,25 +230,44 @@ final class FormDataService
         $schema = $connection->getFields((string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id): array {
-            $query = $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true);
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id, $published): array {
+            $query = $this->applyDataScope(
+                $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true),
+                $form,
+                $columns,
+                (string) $form->table_name
+            );
             if (!$query->find()) throw new InvalidArgumentException('数据不存在');
-            $payload = $split['parent'];
+            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns);
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = date('Y-m-d H:i:s');
-            if ($payload !== []) $connection->table((string) $form->table_name)->where($primary['name'], $id)->update($payload);
+            if ($payload !== []) {
+                $this->applyDataScope(
+                    $connection->table((string) $form->table_name)->where($primary['name'], $id),
+                    $form,
+                    $columns,
+                    (string) $form->table_name
+                )->update($payload);
+            }
             $this->syncRelations($connection, $form, $fields, $id, $split['relations'], true);
             return ['id' => $id, 'primaryKey' => $primary['name']];
         });
     }
 
     /** 删除：含 deleted_at 列则软删。 */
-    public function remove(string $key, int|string $id): array
+    public function remove(string $key, int|string $id, string $schemaHash = ''): array
     {
         $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        $connection = Db::connect((string) $form->connection)->table((string) $form->table_name);
+        $connection = $this->applyDataScope(
+            Db::connect((string) $form->connection)->table((string) $form->table_name),
+            $form,
+            $columns,
+            (string) $form->table_name
+        );
         if (in_array('deleted_at', $columns, true)) {
             $connection->where($primary['name'], $id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
             return ['removed' => 1, 'mode' => 'soft'];
@@ -297,10 +316,14 @@ final class FormDataService
                 ->toArray();
         }
         if ($mode === 'department') {
-            return Department::where('status', 1)->order('sort_order', 'asc')->field('id as value,name as label,pid')->select()->toArray();
+            $scope = (new DataScopeService())->resolve();
+            $query = Department::where('status', 1);
+            if (!$scope['all']) $query->whereIn('id', $scope['departmentIds'] ?: [0]);
+            return $query->order('sort_order', 'asc')->field('id as value,name as label,pid')->select()->toArray();
         }
         if ($mode === 'user') {
-            return Admin::where('status', 1)->order('id', 'asc')->field('id as value,nickname as label')->limit(500)->select()->toArray();
+            $ids = (new DataScopeService())->visibleAdminIds();
+            return Admin::where('status', 1)->whereIn('id', $ids ?: [0])->order('id', 'asc')->field('id as value,nickname as label')->limit(500)->select()->toArray();
         }
         if ($mode === 'relation') {
             $table = (string) ($source['table'] ?? $field->relation_table);
@@ -312,11 +335,26 @@ final class FormDataService
             $this->assertIdentifier($table, '关联选项表');
             $this->assertIdentifier($label, '关联选项显示字段');
             $this->assertIdentifier($value, '关联选项值字段');
-            return Db::connect((string) $this->form($key)->connection)->table($table)
-                ->field($value . ' as value,' . $label . ' as label')
-                ->limit(200)
-                ->select()
-                ->toArray();
+            $form = $this->form($key);
+            $connection = Db::connect((string) $form->connection);
+            $columns = array_keys($connection->getFields($table));
+            $query = $connection->table($table)->field($value . ' as value,' . $label . ' as label');
+            $scopeField = trim((string) ($source['department_field'] ?? $source['departmentField'] ?? ''));
+            if ($scopeField !== '') {
+                $this->assertIdentifier($scopeField, '关联选项部门字段');
+                if (!in_array($scopeField, $columns, true)) throw new InvalidArgumentException('关联选项部门字段不存在');
+                $scope = (new DataScopeService())->resolve();
+                if (!$scope['all']) $query->whereIn($scopeField, $scope['departmentIds'] ?: [0]);
+            }
+            $tenantField = trim((string) ($source['tenant_field'] ?? $source['tenantField'] ?? ''));
+            if ($tenantField !== '') {
+                $this->assertIdentifier($tenantField, '关联选项租户字段');
+                if (!in_array($tenantField, $columns, true)) throw new InvalidArgumentException('关联选项租户字段不存在');
+                $tenantId = (int) session('tenant.id');
+                if ($tenantId < 1) throw new InvalidArgumentException('当前租户上下文不可用');
+                $query->where($tenantField, $tenantId);
+            }
+            return $query->limit(200)->select()->toArray();
         }
         return [];
     }
@@ -417,7 +455,13 @@ final class FormDataService
     /** 子表分页（has_many）。 */
     public function sub(string $key, string $relation, int|string $id, int $page, int $pageSize): array
     {
-        $field = $this->fields($key)->firstWhere('field_name', $relation);
+        $form = $this->form($key);
+        $fields = $this->fields($key);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $parent = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
+        if (!$parent) throw new InvalidArgumentException('父数据不存在或无访问权限');
+        $field = $fields->firstWhere('field_name', $relation);
         if (!$field || (string) $field->relation_type !== 'has_many') {
             throw new InvalidArgumentException('子表不存在：' . $relation);
         }
@@ -626,7 +670,14 @@ final class FormDataService
             if ($name === '' || !array_key_exists($name, $data)) {
                 continue;
             }
-            if ($this->isExcludedFromSubmission($field) && !isset($included[$name])) {
+            if (!$this->fieldAccessAllowed($field, 'write')) {
+                continue;
+            }
+            $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+            $access = is_array($props['schemaAccess'] ?? null) ? $props['schemaAccess'] : [];
+            if ($this->isExcludedFromSubmission($field)
+                && ($access['include'] ?? 'auto') !== 'always'
+                && !isset($included[$name])) {
                 continue;
             }
             $value = $data[$name];
@@ -660,7 +711,7 @@ final class FormDataService
         foreach ($fieldRows as $field) {
             $row = is_array($field) ? $field : $field->toArray();
             $name = (string) ($row['field_name'] ?? '');
-            if ($this->isSensitiveField($row)) {
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
                 unset($record[$name]);
                 continue;
             }
@@ -706,7 +757,7 @@ final class FormDataService
     }
 
     /**
-     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \think\Collection}
+     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \think\Collection, module: BusinessModule}
      */
     private function publishedRuntime(Form $form): array
     {
@@ -740,7 +791,7 @@ final class FormDataService
             static fn (array $field): FormField => new FormField($field),
             $compiled->fieldProjection()
         ));
-        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields];
+        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields, 'module' => $module];
     }
 
     private function baseQuery(Form $form, $fields)
@@ -751,7 +802,9 @@ final class FormDataService
         $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields($table));
         $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
-            if (in_array((string) $field->type, self::LAYOUT_TYPES, true) || $this->isSensitiveField($field->toArray())) {
+            if (in_array((string) $field->type, self::LAYOUT_TYPES, true)
+                || $this->isSensitiveField($field->toArray())
+                || !$this->fieldAccessAllowed($field->toArray(), 'read')) {
                 continue;
             }
             $name = (string) $field->field_name;
@@ -765,6 +818,7 @@ final class FormDataService
         if (in_array('deleted_at', $columns, true)) {
             $query->whereNull($table . '.deleted_at');
         }
+        $query = $this->applyDataScope($query, $form, $columns, $table);
         $aliasIndex = 0;
         foreach ($fields as $field) {
             if ((string) $field->relation_type !== 'belongs_to' || (int) $field->list_show !== 1 || $this->isSensitiveField($field->toArray())) {
@@ -785,6 +839,42 @@ final class FormDataService
             $query->addField($alias . '.' . $label . ' as __label_' . $field->field_name);
         }
         return $query;
+    }
+
+    private function dataScopeField(Form $form, array $columns): string
+    {
+        $published = $this->publishedRuntime($form);
+        $publish = (array) ($published['module']->metadata['publishConfig'] ?? []);
+        $enabled = (bool) ($publish['dataScopeEnabled'] ?? false);
+        $field = trim((string) ($publish['dataScopeField'] ?? ''));
+        if (!$enabled) return '';
+        if ($field === '' || !in_array($field, $columns, true)) {
+            throw new InvalidArgumentException('已发布数据权限字段不存在，拒绝无范围访问');
+        }
+        $this->assertIdentifier($field, '数据权限字段');
+        return $field;
+    }
+
+    private function applyDataScope($query, Form $form, array $columns, string $table)
+    {
+        $field = $this->dataScopeField($form, $columns);
+        if ($field === '') return $query;
+        $scope = (new DataScopeService())->resolve();
+        if ($scope['all']) return $query;
+        return $query->whereIn($table . '.' . $field, $scope['departmentIds'] ?: [0]);
+    }
+
+    private function applyWriteDataScope(array $payload, Form $form, array $columns): array
+    {
+        $field = $this->dataScopeField($form, $columns);
+        if ($field === '') return $payload;
+        $scope = (new DataScopeService())->resolve();
+        if ($scope['all']) return $payload;
+        $requested = (int) ($payload[$field] ?? 0);
+        if (!in_array($requested, $scope['departmentIds'], true)) {
+            throw new InvalidArgumentException('数据不在当前部门权限范围内');
+        }
+        return $payload;
     }
 
     private function primaryKey(array $schema): array
@@ -926,6 +1016,18 @@ final class FormDataService
     private function isLayoutField(array $field): bool
     {
         return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
+    }
+
+    private function fieldAccessAllowed(array $field, string $operation): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        $access = is_array($props['schemaAccess'] ?? null) ? $props['schemaAccess'] : [];
+        if ($operation === 'write' && ($access['include'] ?? 'auto') === 'never') return false;
+        $permissions = is_array($access[$operation] ?? null) ? $access[$operation] : [];
+        foreach ($permissions as $permission) {
+            if (!is_string($permission) || !($this->permissionChecker)($permission)) return false;
+        }
+        return true;
     }
 
     private function isExcludedFromSubmission(array $field): bool

@@ -79,6 +79,7 @@ $legacyUnsafeMetadata = new FormActionRegistry([
 $publicDefinition = $legacyUnsafeMetadata->definitions()['unsafe.action'];
 actionExpect(!isset($publicDefinition['url'], $publicDefinition['javascript']), '动作定义不得暴露或执行 URL/JS');
 
+$slowStartedAt = hrtime(true);
 $slow = new FormActionRegistry([
     'member.slow' => [
         'permission' => 'member:update',
@@ -95,6 +96,8 @@ try {
     actionExpect(false, '超时动作必须失败');
 } catch (InvalidArgumentException $exception) {
     actionExpect($exception->getMessage() === 'FORM_ACTION_TIMEOUT', '超时必须返回稳定错误码');
+    $elapsedMs = (hrtime(true) - $slowStartedAt) / 1_000_000;
+    actionExpect($elapsedMs < 100, '超时动作必须在合理 deadline 内结束');
 }
 
 $unsafeResult = new FormActionRegistry([

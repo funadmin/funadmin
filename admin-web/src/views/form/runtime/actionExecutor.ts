@@ -42,6 +42,55 @@ export interface ActionExecutorOptions {
 const DEFAULT_MAX_STEPS = 100;
 const REQUEST_CONCURRENCY: readonly RequestConcurrency[] = ['parallel', 'latest', 'queue', 'drop'];
 const ACTION_TYPE_SET = new Set<string>(ACTION_TYPES);
+interface RequestExecutionState {
+  active: Promise<void> | null;
+  controller: AbortController | null;
+}
+type RequestHandler = ActionHandlers['request'];
+const requestStates = new WeakMap<RequestHandler, Map<string, RequestExecutionState>>();
+
+const requestState = (handler: RequestHandler, key: string): RequestExecutionState => {
+  let states = requestStates.get(handler);
+  if (!states) {
+    states = new Map();
+    requestStates.set(handler, states);
+  }
+  let state = states.get(key);
+  if (!state) {
+    state = { active: null, controller: null };
+    states.set(key, state);
+  }
+  return state;
+};
+
+const executeRequest = async (
+  action: RequestAction,
+  context: ActionContext,
+  handler: RequestHandler
+): Promise<void> => {
+  if (action.concurrency === 'parallel') {
+    await handler(action, context);
+    return;
+  }
+  const state = requestState(handler, action.key);
+  if (action.concurrency === 'drop' && state.active) return;
+  if (action.concurrency === 'latest') state.controller?.abort();
+  if (action.concurrency === 'queue' && state.active) {
+    try { await state.active; } catch { /* 前序失败不阻断队列中的后续请求。 */ }
+  }
+  const controller = new AbortController();
+  state.controller = controller;
+  const execution = Promise.resolve(handler(action, { ...context, signal: controller.signal }));
+  state.active = execution;
+  try {
+    await execution;
+  } finally {
+    if (state.active === execution) {
+      state.active = null;
+      state.controller = null;
+    }
+  }
+};
 
 const validateActions = (
   actions: readonly FormAction[],
@@ -75,6 +124,10 @@ export const executeActionChain = async (
   validateActions(actions, maxSteps, new Set(options.requestKeys ?? []));
 
   for (const action of actions) {
+    if (action.type === 'request') {
+      await executeRequest(action as RequestAction, context, handlers.request);
+      continue;
+    }
     await handlers[action.type](action as never, context);
   }
 };

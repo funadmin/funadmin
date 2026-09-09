@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\form\dataSource;
 
+use app\common\form\DeadlineExecutor;
+
 final class FormDataSourceRegistry
 {
     private const KINDS = ['static', 'dictionary', 'department', 'user', 'relation', 'endpoint', 'computed'];
@@ -100,13 +102,11 @@ final class FormDataSourceRegistry
             throw new FormDataSourceException('端点执行器未登记', 'FORM_DATA_SOURCE_ENDPOINT_NOT_ALLOWED');
         }
 
-        $timeoutMs = max(1, min(30000, (int) ($metadata['timeoutMs'] ?? 3000)));
-        $startedAt = hrtime(true);
-        $payload = $handler($resolved['arguments']);
-        $elapsedMs = (hrtime(true) - $startedAt) / 1_000_000;
-        if ($elapsedMs > $timeoutMs) {
-            throw new FormDataSourceException('端点数据源执行超时', 'FORM_DATA_SOURCE_ENDPOINT_TIMEOUT');
-        }
+        $payload = DeadlineExecutor::run(
+            fn (): mixed => $handler($resolved['arguments']),
+            (int) ($metadata['timeoutMs'] ?? 3000),
+            static fn (): FormDataSourceException => new FormDataSourceException('端点数据源执行超时', 'FORM_DATA_SOURCE_ENDPOINT_TIMEOUT')
+        );
 
         $items = $this->readPath($payload, $resolved['response']['items']);
         $limit = max(1, min(1000, (int) ($metadata['maxResults'] ?? 200)));

@@ -91,6 +91,11 @@ final class FormPublishService
             $compatible = $this->compatiblePayload($payload, $compiled);
             $this->forms->validateDefinition($compatible);
             $baseline ??= ($this->publishedBaselineReader)($formId, $compiled->key());
+            $requestedDependencyHash = trim((string) ($payload['formDependencyHash'] ?? $payload['form_dependency_hash'] ?? ''));
+            $currentDependencyHash = (string) $this->dependencies($compiled)['dependencyHash'];
+            if ($requestedDependencyHash !== '' && !hash_equals($currentDependencyHash, $requestedDependencyHash)) {
+                throw new InvalidArgumentException('FORM_DEPENDENCY_CONFLICT');
+            }
         } catch (Throwable $exception) {
             if ($exception->getMessage() !== 'FORM_SCHEMA_CONFLICT') {
                 $this->setStatus($formId, 'validation_failed', [], $baseline);
@@ -219,7 +224,10 @@ final class FormPublishService
                 'published_schema_hash' => $compiled->hash(),
                 'published_schema_version' => (int) $version->version,
                 'generation_status' => 'idle',
-                'metadata' => array_replace((array) ($module->metadata ?? []), ['publishedBy' => $operator]),
+                'metadata' => array_replace((array) ($module->metadata ?? []), [
+                    'publishedBy' => $operator,
+                    'publishConfig' => (array) ($definition['publish_config'] ?? []),
+                ]),
                 'updated_at' => $now,
                 'created_at' => $module->id ? $module->created_at : $now,
             ]);

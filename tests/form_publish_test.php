@@ -49,6 +49,16 @@ publishExpect(str_contains($serviceSource, 'return $this->publishDynamic($payloa
 publishExpect(str_contains($serviceSource, 'applyDynamicDdl($payload)'), '动态发布必须使用 forward-only DDL API');
 publishExpect(!str_contains($serviceSource, 'applyMigration($payload)'), '动态发布不得登记历史 migration 文件');
 
+$fullPublishSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/FormFullPublishService.php');
+publishExpect(str_contains($fullPublishSource, 'ManagedGenerationService'), '完整发布必须显式接入 ManagedGenerationService');
+publishExpect(str_contains($fullPublishSource, '->preview(') && str_contains($fullPublishSource, '->execute('), '完整发布必须使用 managed preview/execute');
+foreach (['DevCrudService', 'preflightGeneration(', '->generate('] as $legacyManagedPath) {
+    publishExpect(!str_contains($fullPublishSource, $legacyManagedPath), '完整发布不得调用旧 DevCrud generate 路径：' . $legacyManagedPath);
+}
+$fullPublishController = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/FullPublish.php');
+publishExpect(!str_contains($fullPublishController, "post('definition'"), '完整发布 Controller 不得接收完整 Definition');
+publishExpect(str_contains($fullPublishController, "post('formId'"), '完整发布 Controller 必须仅以 formId 定位服务端已发布 Schema');
+
 $registryHandler = static fn (array $parameters = []): array => $parameters;
 $registryConfig = [
     'data_sources' => ['member.options' => ['permission' => 'member:list', 'parameters' => ['keyword'], 'capabilityVersion' => '2', 'handler' => $registryHandler]],

@@ -2,13 +2,19 @@
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <template #extra>
       <div class="flex flex-wrap items-center gap-2">
+        <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
         <el-radio-group v-model="workspaceMode" size="small">
           <el-radio-button value="edit">{{ t('formDesigner.editMode', '编辑模式') }}</el-radio-button>
           <el-radio-button value="desktop">{{ t('formDesigner.desktopPreview', '桌面预览') }}</el-radio-button>
+          <el-radio-button value="tablet">{{ t('formDesigner.tabletPreview', '平板预览') }}</el-radio-button>
           <el-radio-button value="mobile">{{ t('formDesigner.mobilePreview', '移动预览') }}</el-radio-button>
         </el-radio-group>
+        <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" size="small" class="w-[110px]">
+          <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
+        </el-select>
+        <el-button v-if="workspaceMode !== 'edit'" size="small" @click="previewSettingsVisible = true">预览数据</el-button>
         <el-button @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
         <el-button @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
         <el-button :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
@@ -118,8 +124,14 @@
           :nodes="store.nodes.value"
           :store="store"
         />
-        <div v-else class="designer-canvas schema-preview" :class="workspaceMode === 'mobile' ? 'schema-preview-mobile' : 'schema-preview-desktop'">
-          <SchemaRenderer :schema="store.schemaDocument.value" :values="previewValues" :form-key="String(store.form.value.form_key ?? '')" />
+        <div v-else class="designer-canvas schema-preview" :class="`schema-preview-${workspaceMode}`">
+          <SchemaRenderer
+            ref="previewRenderer"
+            :schema="previewSchema"
+            :values="previewValues"
+            :form-key="String(store.form.value.form_key ?? '')"
+            :disabled="previewMode === 'readonly'"
+          />
         </div>
       </el-card>
 
@@ -154,6 +166,8 @@
         <el-form-item label="菜单图标"><el-select v-model="publishConfig.icon" filterable class="w-full"><el-option v-for="icon in icons" :key="icon" :label="icon" :value="icon" /></el-select></el-form-item>
         <el-form-item label="表单容器"><el-radio-group v-model="publishConfig.formMode"><el-radio-button value="dialog">弹窗</el-radio-button><el-radio-button value="drawer">抽屉</el-radio-button></el-radio-group></el-form-item>
         <el-form-item label="完整功能"><el-checkbox v-model="publishConfig.batchDelete">批量删除</el-checkbox><el-checkbox v-model="publishConfig.import">导入</el-checkbox><el-checkbox v-model="publishConfig.export">导出</el-checkbox><el-checkbox v-model="publishConfig.softDeletes">软删除</el-checkbox></el-form-item>
+        <el-form-item label="数据权限"><el-switch v-model="publishConfig.dataScopeEnabled" /></el-form-item>
+        <el-form-item v-if="publishConfig.dataScopeEnabled" label="部门字段"><el-select v-model="publishConfig.dataScopeField" filterable class="w-full"><el-option v-for="field in dataScopeFields" :key="field.field_name" :label="`${field.label} (${field.field_name})`" :value="field.field_name" /></el-select></el-form-item>
       </el-form>
 
       <template v-else-if="publishStep === 1">
@@ -163,16 +177,26 @@
           <el-collapse-item title="发布 Schema" name="schema">
             <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.formSchemaHash }}</el-descriptions-item><el-descriptions-item label="依赖 Hash">{{ publishPreview?.formDependencyHash }}</el-descriptions-item></el-descriptions>
           </el-collapse-item>
+          <el-collapse-item title="生成文件" name="files">
+            <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" label="路径" /><el-table-column prop="status" label="状态" width="110" /></el-table>
+          </el-collapse-item>
         </el-collapse>
       </template>
 
       <template v-else-if="publishStep === 2">
-        <el-alert title="动态发布不会生成或覆盖源码，确认后仅应用 forward-only DDL 并更新发布快照" type="success" :closable="false" class="mb-3" />
+        <el-alert v-if="!conflictFiles.length" title="没有人工修改冲突，可直接发布" type="success" :closable="false" class="mb-3" />
+        <el-checkbox-group v-else v-model="allowOverwrite" class="flex flex-col gap-3">
+          <el-card v-for="file in conflictFiles" :key="file.path" shadow="never">
+            <el-checkbox :value="file.path">允许覆盖 {{ file.path }}</el-checkbox>
+            <el-input :model-value="file.diff || ''" type="textarea" :rows="7" readonly class="mt-2" />
+          </el-card>
+        </el-checkbox-group>
       </template>
 
-      <el-result v-else icon="success" title="动态发布成功" :sub-title="publishResult?.routePath || ''">
+      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '全栈发布成功' : '发布未完全完成'" :sub-title="publishResult?.generation.resourceApplyError || publishResult?.routePath || ''">
         <template #extra>
-          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开动态页面</el-button>
+          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
+          <el-button v-if="publishResult?.publishStatus === 'partial' && store.form.value.id" :loading="retryingResources" @click="onRetryResources">重试菜单权限</el-button>
         </template>
       </el-result>
 
@@ -183,6 +207,14 @@
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
         <el-button v-else-if="publishStep === 2" type="primary" :loading="publishing" @click="onPublish">确认发布</el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="previewSettingsVisible" title="预览数据与服务端错误" width="680px">
+      <el-form label-width="120px">
+        <el-form-item label="初始值 JSON"><el-input v-model="previewValuesJson" type="textarea" :rows="8" /></el-form-item>
+        <el-form-item label="字段错误 JSON"><el-input v-model="previewErrorsJson" type="textarea" :rows="6" placeholder='{"field":"服务端错误"}' /></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="previewSettingsVisible = false">取消</el-button><el-button type="primary" @click="applyPreviewSettings">应用预览</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="jsonEditorVisible" title="FormSchema v2 高级 JSON 编辑" width="860px" :close-on-click-modal="false">
@@ -245,9 +277,10 @@ import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import {
   formDesignerApi,
+  formFullPublishApi,
   type FormPublishConfig,
-  type FormPublishPreview,
-  type FormPublishResult,
+  type FormFullPublishPreview,
+  type FormFullPublishResult,
   type FormSchemaVersion,
   type MigrationPreview
 } from '@/api/form';
@@ -271,7 +304,13 @@ const route = useRoute();
 const router = useRouter();
 const permissionStore = usePermissionStore();
 const store = useDesigner();
-const workspaceMode = ref<'edit' | 'desktop' | 'mobile'>('edit');
+const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
+const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
+const previewMode = ref<'create' | 'edit' | 'readonly' | 'search'>('create');
+const previewSettingsVisible = ref(false);
+const previewValuesJson = ref('{}');
+const previewErrorsJson = ref('{}');
+const previewRenderer = ref<{ setFieldErrors: (errors: Record<string, string>) => Promise<void> }>();
 const jsonEditorVisible = ref(false);
 const versionVisible = ref(false);
 const applying = ref(false);
@@ -284,15 +323,21 @@ const publishVisible = ref(false);
 const publishStep = ref(0);
 const previewingPublish = ref(false);
 const publishing = ref(false);
-const publishPreview = ref<FormPublishPreview | null>(null);
-const publishResult = ref<FormPublishResult | null>(null);
+const retryingResources = ref(false);
+const publishPreview = ref<FormFullPublishPreview | null>(null);
+const publishResult = ref<FormFullPublishResult | null>(null);
+const publishOperationKey = ref('');
+const allowOverwrite = ref<string[]>([]);
+const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
+const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
 const icons = ref<string[]>([]);
 const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
 const publishConfig = ref<FormPublishConfig>({
   module: 'generated', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
   parentSourceName: '', menuName: '', icon: 'i-ep-document', sortOrder: 999,
-  softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog'
+  softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog',
+  dataScopeEnabled: false, dataScopeField: ''
 });
 const paletteRef = ref<HTMLElement>();
 const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
@@ -303,6 +348,27 @@ watch(() => store.fields.value, (fields) => {
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortable: Sortable | null = null;
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let saveRevision = 0;
+let saveQueued = false;
+const localDraftKey = computed(() => `form-designer-draft:${String(store.form.value.id ?? store.form.value.form_key ?? 'new')}`);
+const persistLocalDraft = () => {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now() }));
+};
+const clearLocalDraft = () => { if (typeof localStorage !== 'undefined') localStorage.removeItem(localDraftKey.value); };
+const restoreLocalDraft = () => {
+  if (typeof localStorage === 'undefined') return;
+  const raw = localStorage.getItem(localDraftKey.value);
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw) as { definition?: import('@/api/form').FormDefinition };
+    if (draft.definition?.schema_document?.schemaVersion === 2 && window.confirm('检测到未同步的本地表单草稿，是否恢复？')) {
+      store.load(draft.definition);
+      store.updateForm({ schema_origin: 'designer' });
+    }
+  } catch { clearLocalDraft(); }
+};
 
 const definition = () => ({
   ...store.form.value,
@@ -313,6 +379,20 @@ const definition = () => ({
   publish_config: publishConfig.value,
   fields: store.fields.value
 });
+const previewSchema = computed(() => ({
+  ...store.schemaDocument.value,
+  form: { ...(store.schemaDocument.value.form ?? {}), mode: previewMode.value, readOnly: previewMode.value === 'readonly' }
+}));
+const applyPreviewSettings = async () => {
+  try {
+    const values = JSON.parse(previewValuesJson.value) as Record<string, unknown>;
+    const errors = JSON.parse(previewErrorsJson.value) as Record<string, string>;
+    Object.keys(previewValues).forEach((key) => delete previewValues[key]);
+    Object.assign(previewValues, values);
+    await previewRenderer.value?.setFieldErrors(errors);
+    previewSettingsVisible.value = false;
+  } catch { ElMessage.warning('请输入合法 JSON'); }
+};
 const debugEnabled = import.meta.env.DEV && import.meta.env.VITE_FORM_DESIGNER_DEBUG !== 'false';
 const debugSummary = computed(() => buildSchemaDebugSummary(store.schemaDocument.value));
 const debugState = computed(() => buildDesignerDebugState(store.schemaDocument.value, previewValues));
@@ -397,14 +477,29 @@ async function load() {
 
 async function onSave() {
   if (!validateDefinitionBasics() || !store.dirty.value) return;
+  if (store.saveStatus.value === 'saving') { saveQueued = true; return; }
+  const revision = ++saveRevision;
+  const payload = definition();
+  const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
-    const saved = await formDesignerApi.save(definition());
-    store.markSaved({ ...saved.form, fields: saved.fields });
-    ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
+    const saved = await formDesignerApi.save(payload);
+    const unchanged = revision === saveRevision && JSON.stringify(definition()) === payloadHash;
+    if (unchanged) {
+      store.markSaved({ ...saved.form, fields: saved.fields });
+      clearLocalDraft();
+      ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
+    } else {
+      store.failSave();
+    }
   } catch (error) {
     store.failSave();
     ElMessage.error(t('formDesigner.saveError', '保存失败，请重试'));
+  } finally {
+    if (saveQueued || store.dirty.value) {
+      saveQueued = false;
+      if (online.value) queueMicrotask(() => void onSave());
+    }
   }
 }
 
@@ -447,6 +542,7 @@ const openPublish = async () => {
   publishStep.value = 0;
   publishPreview.value = null;
   publishResult.value = null;
+  publishOperationKey.value = crypto.randomUUID();
   publishVisible.value = true;
 };
 const validatePublishConfig = () => {
@@ -466,14 +562,22 @@ const validatePublishConfig = () => {
     ElMessage.warning('请填写菜单名称');
     return false;
   }
+  if (publishConfig.value.dataScopeEnabled && !publishConfig.value.dataScopeField) {
+    ElMessage.warning('启用数据权限后请选择部门字段');
+    return false;
+  }
   return true;
 };
 const onPreviewPublish = async () => {
   if (!validatePublishConfig()) return;
+  const formId = Number(store.form.value.id || 0);
+  if (!formId || store.dirty.value) {
+    ElMessage.warning('请先保存表单，并发布服务端可信 Schema 后再执行完整发布');
+    return;
+  }
   previewingPublish.value = true;
   try {
-    const compiled = await formDesignerApi.compile(store.schemaDocument.value);
-    publishPreview.value = await formDesignerApi.previewPublish({ ...definition(), schemaHash: compiled.hash });
+    publishPreview.value = await formFullPublishApi.preview(formId);
     publishStep.value = 1;
   } finally {
     previewingPublish.value = false;
@@ -482,20 +586,42 @@ const onPreviewPublish = async () => {
 const onPublish = async () => {
   publishing.value = true;
   try {
-    publishResult.value = await formDesignerApi.publish({ ...definition(), schemaHash: publishPreview.value?.formSchemaHash || '' });
+    const formId = Number(store.form.value.id || 0);
+    const generationId = Number(publishPreview.value?.generationId || 0);
+    if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
+    publishResult.value = await formFullPublishApi.publish(
+      formId,
+      generationId,
+      publishPreview.value?.formSchemaHash || '',
+      publishPreview.value?.sensitive?.confirmToken || '',
+      publishOperationKey.value
+    );
     store.markSaved({ ...publishResult.value.form, fields: store.fields.value });
     const dynamicRoutes = await permissionStore.fetchMenus();
     dynamicRoutes.forEach((dynamicRoute) => {
       if (!dynamicRoute.name || !router.hasRoute(dynamicRoute.name)) router.addRoute(dynamicRoute);
     });
     publishStep.value = 3;
-    ElMessage.success('动态发布成功');
+    ElMessage.success(publishResult.value.publishStatus === 'published' ? '全栈发布成功' : '代码已生成，菜单权限需要重试');
   } finally {
     publishing.value = false;
   }
 };
 const openGeneratedRoute = () => {
   if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
+};
+const onRetryResources = async () => {
+  const formId = Number(store.form.value.id || 0);
+  if (!formId) return;
+  retryingResources.value = true;
+  try {
+    const result = await formFullPublishApi.retryResources(formId);
+    if (publishResult.value) publishResult.value.publishStatus = result.publishStatus;
+    await permissionStore.fetchMenus();
+    ElMessage.success('菜单与权限应用成功');
+  } finally {
+    retryingResources.value = false;
+  }
 };
 
 async function onInfer() {
@@ -517,10 +643,21 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
 };
 onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
 
+watch([() => store.form.value, () => store.nodes.value], () => {
+  if (!store.dirty.value) return;
+  persistLocalDraft();
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { if (online.value && store.dirty.value) void onSave(); }, 1200);
+}, { deep: true });
+const onOnline = () => { online.value = true; if (store.dirty.value) void onSave(); };
+const onOffline = () => { online.value = false; persistLocalDraft(); };
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload);
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
   await loadPluginFormComponents();
   await load();
+  restoreLocalDraft();
   if (paletteRef.value) {
     paletteSortable = Sortable.create(paletteRef.value, {
       group: { name: 'form-designer', pull: 'clone', put: false },
@@ -532,6 +669,9 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload);
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
   paletteSortable?.destroy();
 });
 </script>
@@ -559,6 +699,10 @@ onBeforeUnmount(() => {
 .schema-preview-mobile {
   margin: 0 auto;
   max-width: 390px;
+}
+.schema-preview-tablet {
+  margin: 0 auto;
+  max-width: 768px;
 }
 .schema-preview-desktop {
   margin: 0 auto;

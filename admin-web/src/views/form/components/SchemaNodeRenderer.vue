@@ -1,22 +1,22 @@
 <template>
   <el-col v-if="!state.hidden" v-bind="columnProps">
     <template v-if="node.kind === 'layout' && definition">
-      <el-divider v-if="node.type === 'divider'">{{ node.title }}</el-divider>
-      <el-text v-else-if="node.type === 'text'">{{ node.title }}</el-text>
-      <el-collapse v-else-if="node.type === 'collapse'" :model-value="[node.id]">
+      <el-divider v-if="node.type === 'divider'" v-bind="layoutBindings">{{ node.title }}</el-divider>
+      <el-text v-else-if="node.type === 'text'" v-bind="layoutBindings">{{ node.props?.content ?? node.title }}</el-text>
+      <el-collapse v-else-if="node.type === 'collapse'" :model-value="[node.id]" v-bind="layoutBindings">
         <el-collapse-item :name="node.id" :title="node.title">
           <el-row :gutter="gutter"><SchemaNodeRenderer v-for="child in node.children" :key="child.id" v-bind="$props" :node="child" /></el-row>
         </el-collapse-item>
       </el-collapse>
-      <el-tabs v-else-if="node.type === 'tabs'" type="border-card">
+      <el-tabs v-else-if="node.type === 'tabs'" v-bind="layoutBindings">
         <el-tab-pane v-for="child in node.children" :key="child.id" :label="child.title" :name="child.id">
           <el-row :gutter="gutter"><SchemaNodeRenderer v-bind="$props" :node="child" /></el-row>
         </el-tab-pane>
       </el-tabs>
-      <el-card v-else-if="node.type === 'group'" :header="node.title" shadow="never">
+      <el-card v-else-if="node.type === 'group'" :header="node.title" v-bind="layoutBindings">
         <el-row :gutter="gutter"><SchemaNodeRenderer v-for="child in node.children" :key="child.id" v-bind="$props" :node="child" /></el-row>
       </el-card>
-      <el-row v-else :gutter="gutter">
+      <el-row v-else :gutter="gutter" v-bind="layoutBindings">
         <SchemaNodeRenderer v-for="child in node.children" :key="child.id" v-bind="$props" :node="child" />
       </el-row>
     </template>
@@ -39,6 +39,7 @@
         :input-attrs="controlAttrs"
         :design-mode="designMode"
         @update:model-value="updateValue"
+        @event="(name, payload) => emit('event', node.id, name, payload)"
       />
       <el-text v-if="node.info" :id="helpId" type="info" size="small">{{ node.info }}</el-text>
       <span v-if="fieldError" :id="errorId" class="sr-only" role="alert">{{ fieldError }}</span>
@@ -49,7 +50,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FormFieldDef } from '@/api/form';
-import { componentRegistry } from '../schema/componentRegistry';
+import { componentRegistry, sanitizeComponentBindings } from '../schema/componentRegistry';
 import type { FormSchemaNode } from '../schema/types';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import RegisteredControlRenderer from './RegisteredControlRenderer.vue';
@@ -69,8 +70,14 @@ const props = withDefaults(defineProps<{
   designMode?: boolean;
 }>(), { options: () => ({}), dataSources: () => ({}), disabled: false, gutter: 16, stateOf: undefined, runtimeVersion: 0, idPrefix: 'form', readOnly: false, errors: () => ({}), designMode: false });
 
-const emit = defineEmits<{ change: [field: string, value: unknown] }>();
+const emit = defineEmits<{
+  change: [field: string, value: unknown];
+  event: [nodeId: string, name: string, payload?: unknown];
+}>();
 const definition = computed(() => componentRegistry.resolve(props.node.type));
+const layoutBindings = computed(() => definition.value
+  ? sanitizeComponentBindings(definition.value, { props: props.node.props, attrs: props.node.attrs })
+  : {});
 const controlId = computed(() => `${props.idPrefix}-field-${props.node.id}`);
 const helpId = computed(() => `${controlId.value}-help`);
 const errorId = computed(() => `${controlId.value}-error`);

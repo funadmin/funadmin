@@ -10,7 +10,7 @@
     :is="asyncRenderer"
     v-else
     :field="field"
-    :model-value="modelValue"
+    :model-value="decodedValue"
     :options="options"
     :data-source-state="dataSourceState"
     :disabled="disabled"
@@ -18,8 +18,10 @@
     :input-attrs="inputAttrs"
     :preview="designMode"
     :bindings="bindings"
+    :schema-node="node"
     v-bind="pluginBindings"
-    @update:model-value="emit('update:modelValue', $event)"
+    @update:model-value="emitEncodedValue"
+    @event="(name, payload) => emit('event', name, payload)"
   />
 </template>
 
@@ -42,11 +44,16 @@ const props = withDefaults(defineProps<{
   designMode?: boolean;
 }>(), { modelValue: () => '', options: () => [], disabled: false, readOnly: false, inputAttrs: () => ({}), designMode: false });
 
-const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
+const emit = defineEmits<{
+  'update:modelValue': [value: unknown];
+  event: [name: string, payload?: unknown];
+}>();
 const definition = computed(() => componentRegistry.resolve(props.node.type));
 const bindings = computed(() => definition.value
   ? sanitizeComponentBindings(definition.value, { props: props.node.props, attrs: props.node.attrs })
   : {});
 const asyncRenderer = computed(() => definition.value ? defineAsyncComponent(definition.value.renderer) : undefined);
+const decodedValue = computed(() => definition.value ? definition.value.codec.decode(props.modelValue) : props.modelValue);
+const emitEncodedValue = (value: unknown) => emit('update:modelValue', definition.value ? definition.value.codec.encode(value) : value);
 const pluginBindings = computed(() => definition.value?.namespace === 'core' ? {} : bindings.value);
 </script>

@@ -128,18 +128,18 @@ export interface ActionParameterField {
 
 export const ACTION_PARAMETER_SCHEMAS: Record<ActionType, ActionParameterField[]> = {
   setValue: [{ name: 'target', type: 'string' }, { name: 'value', type: 'json' }],
-  copyValue: [{ name: 'target', type: 'string' }, { name: 'from', type: 'string' }],
+  copyValue: [{ name: 'target', type: 'string' }, { name: 'source', type: 'string' }],
   clearValue: [{ name: 'target', type: 'string' }],
   show: [{ name: 'target', type: 'string' }],
   hide: [{ name: 'target', type: 'string' }],
   enable: [{ name: 'target', type: 'string' }],
   disable: [{ name: 'target', type: 'string' }],
-  setRequired: [{ name: 'target', type: 'string' }, { name: 'required', type: 'boolean' }],
+  setRequired: [{ name: 'target', type: 'string' }, { name: 'value', type: 'boolean' }],
   validate: [{ name: 'target', type: 'string' }],
   request: [{ name: 'key', type: 'string' }, { name: 'concurrency', type: 'select', options: ['parallel', 'latest', 'queue', 'drop'] }],
-  notify: [{ name: 'message', type: 'string' }, { name: 'level', type: 'select', options: ['success', 'warning', 'error', 'info'] }],
+  notify: [{ name: 'message', type: 'string' }, { name: 'tone', type: 'select', options: ['success', 'warning', 'error', 'info'] }],
   openDialog: [{ name: 'key', type: 'string' }],
-  navigate: [{ name: 'to', type: 'string' }],
+  navigate: [{ name: 'route', type: 'string' }],
   submit: [],
   reset: []
 };

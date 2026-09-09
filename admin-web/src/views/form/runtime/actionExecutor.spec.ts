@@ -67,6 +67,31 @@ describe('FormSchema v2 动作执行器', () => {
     const handlers = createHandlers();
     const action = { type: 'request' as const, key: 'profile.load', concurrency };
     await executeActionChain([action], { values: {} }, handlers, { requestKeys: ['profile.load'] });
-    expect(handlers.request).toHaveBeenCalledWith(action, { values: {} });
+    expect(handlers.request).toHaveBeenCalledWith(action, expect.objectContaining({ values: {} }));
+  });
+
+  it('drop 丢弃同 key 的并发请求，latest 取消前序请求', async () => {
+    const handlers = createHandlers();
+    let release: () => void = () => {};
+    handlers.request = vi.fn((_action, context) => new Promise<void>((resolve) => {
+      release = () => resolve();
+      context.signal && (context.signal as AbortSignal).addEventListener('abort', () => resolve(), { once: true });
+    }));
+    const drop = { type: 'request' as const, key: 'profile.load', concurrency: 'drop' as const };
+    const first = executeActionChain([drop], { values: {} }, handlers, { requestKeys: ['profile.load'] });
+    await Promise.resolve();
+    await executeActionChain([drop], { values: {} }, handlers, { requestKeys: ['profile.load'] });
+    expect(handlers.request).toHaveBeenCalledTimes(1);
+    release();
+    await first;
+
+    const latest = { ...drop, concurrency: 'latest' as const };
+    const previous = executeActionChain([latest], { values: {} }, handlers, { requestKeys: ['profile.load'] });
+    await Promise.resolve();
+    const current = executeActionChain([latest], { values: {} }, handlers, { requestKeys: ['profile.load'] });
+    await Promise.resolve();
+    expect(handlers.request).toHaveBeenCalledTimes(3);
+    release();
+    await Promise.all([previous, current]);
   });
 });

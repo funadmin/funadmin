@@ -31,6 +31,7 @@
         :read-only="readOnly"
         :errors="fieldErrors"
         @change="(field, value) => updateValue(node.id, field, value)"
+        @event="dispatchEvent"
       />
     </el-row>
   </el-form>
@@ -70,6 +71,8 @@ const registryLoading = loadPluginFormComponents()
 const resolvedOptions = ref<Record<string, Array<{ label: string; value: unknown }>>>({ ...props.options });
 const resolvedDataSources = ref<Record<string, FormDataSourceControlState>>({});
 const runtime = createRuntimeState(props.schema.nodes, props.values, {
+  actions: props.schema.actions as Array<{ id?: string; event?: string; steps?: import('../runtime/actionExecutor').FormAction[] }> | undefined,
+  submitAction: String(props.schema.submit?.action ?? ''),
   requestKeys: props.requestKeys,
   request: props.actionHandlers.request,
   notify: props.actionHandlers.notify,
@@ -150,11 +153,14 @@ const rules = computed<FormRules>(() => {
   }
   return result;
 });
+const dispatchEvent = async (nodeId: string, event: string, payload?: unknown) => {
+  await runtime.dispatch(nodeId, event, payload);
+  runtimeVersion.value += 1;
+};
 const updateValue = async (nodeId: string, field: string, value: unknown) => {
   props.values[field] = value;
   runtime.refresh();
-  await runtime.dispatch(nodeId, 'change', value);
-  runtimeVersion.value += 1;
+  await dispatchEvent(nodeId, 'change', value);
   emit('change', field, value);
 };
 watch(() => props.values, () => {
@@ -188,9 +194,12 @@ const validate = async () => {
     throw reason;
   }
 };
+const dispatchFormEvent = (event: 'submit' | 'reset' | 'mounted', payload?: unknown) => runtime.dispatch('', event, payload);
 const submit = async (handler?: () => unknown | Promise<unknown>) => {
   await validate();
+  await dispatchFormEvent('submit');
   return handler?.();
 };
-defineExpose({ validate, submit, setFieldErrors });
+void dispatchFormEvent('mounted');
+defineExpose({ validate, submit, setFieldErrors, dispatchFormEvent });
 </script>

@@ -61,6 +61,22 @@ const identityCodec: FormValueCodec = Object.freeze({
   encode: (value: unknown) => value,
   decode: (value: unknown) => value
 });
+const numberCodec: FormValueCodec = Object.freeze({
+  encode: (value: unknown) => value == null || value === '' ? null : Number(value),
+  decode: (value: unknown) => value == null || value === '' ? null : Number(value)
+});
+const booleanCodec: FormValueCodec = Object.freeze({
+  encode: (value: unknown) => Boolean(value),
+  decode: (value: unknown) => value === true || value === 1 || value === '1'
+});
+const arrayCodec: FormValueCodec = Object.freeze({
+  encode: (value: unknown) => Array.isArray(value) ? value : [],
+  decode: (value: unknown) => Array.isArray(value) ? value : []
+});
+const jsonCodec: FormValueCodec = Object.freeze({
+  encode: (value: unknown) => typeof value === 'string' ? JSON.parse(value || '{}') : value,
+  decode: (value: unknown) => typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)
+});
 const coreRenderer = async (): Promise<Component> => (await import('../components/CoreControlAdapter.vue')).default;
 const richTextRenderer = async (): Promise<Component> => (await import('../components/RichTextControl.vue')).default;
 const commonAttrs = ['autocomplete', 'aria-label', 'aria-describedby', 'name'] as const;
@@ -75,6 +91,7 @@ interface CoreDefinitionOptions {
   allowedAttrs?: readonly string[];
   allowedEvents?: readonly string[];
   renderer?: () => Promise<Component>;
+  codec?: FormValueCodec;
 }
 
 const core = (type: string, componentKey: string, options: CoreDefinitionOptions = {}): void => {
@@ -92,7 +109,13 @@ const core = (type: string, componentKey: string, options: CoreDefinitionOptions
       additionalProperties: false,
       properties: Object.fromEntries(allowedProps.map((name) => [name, {}]))
     },
-    codec: identityCodec,
+    codec: options.codec ?? (options.valueType === 'number'
+      ? numberCodec
+      : options.valueType === 'boolean'
+        ? booleanCodec
+        : options.valueType === 'array'
+          ? arrayCodec
+          : identityCodec),
     allowedProps,
     allowedAttrs: options.allowedAttrs ?? commonAttrs,
     allowedEvents: options.allowedEvents ?? commonEvents,
@@ -128,7 +151,7 @@ core('relation', 'ElSelect', { allowedProps: ['placeholder', 'clearable', 'disab
 core('department', 'ElTreeSelect', { allowedProps: ['placeholder', 'clearable', 'disabled', 'multiple', 'filterable', 'checkStrictly'] });
 core('user', 'ElSelect', { allowedProps: ['placeholder', 'clearable', 'disabled', 'multiple', 'filterable'] });
 core('richtext', 'RichTextControl', { allowedProps: ['placeholder', 'disabled', 'readonly', 'maxlength', 'rows'], renderer: richTextRenderer });
-core('json', 'ElInput', { valueType: 'object', defaultValue: {}, allowedProps: ['placeholder', 'disabled', 'readonly', 'rows', 'autosize'] });
+core('json', 'ElInput', { valueType: 'object', defaultValue: {}, codec: jsonCodec, allowedProps: ['placeholder', 'disabled', 'readonly', 'rows', 'autosize'] });
 core('hidden', 'input', { allowedProps: ['name'] });
 core('readonly', 'ElText', { allowedProps: ['type', 'size', 'truncated'] });
 core('repeatable', 'RepeatableField', { valueType: 'array', defaultValue: [], allowedProps: ['disabled', 'minRows', 'maxRows', 'primaryKey', 'columns'] });

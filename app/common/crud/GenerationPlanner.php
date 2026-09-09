@@ -69,6 +69,66 @@ final class GenerationPlanner
         ];
     }
 
+    /**
+     * business managed 正式生成专用只读入口；baseline 由调用方显式提供。
+     */
+    public function planManaged(CrudDefinition $definition, array $generatedFiles, array $baselines): array
+    {
+        ksort($generatedFiles, SORT_STRING);
+        $artifactByPath = [];
+        foreach ((array) $definition->get('generationTargets', []) as $artifactType => $path) {
+            if (is_string($path)) {
+                $artifactByPath[str_replace('\\', '/', $path)] = (string) $artifactType;
+            }
+        }
+        $baselineByPath = [];
+        foreach ($baselines as $baseline) {
+            if (!is_array($baseline) || !is_string($baseline['path'] ?? null)) {
+                throw new \InvalidArgumentException('生成 baseline 必须包含字符串 path');
+            }
+            $path = str_replace('\\', '/', $baseline['path']);
+            if (isset($baselineByPath[$path])) {
+                throw new \InvalidArgumentException('生成 baseline 路径重复：' . $path);
+            }
+            if (isset($artifactByPath[$path])) {
+                $baseline['artifactType'] = $artifactByPath[$path];
+            } elseif (($baseline['artifactType'] ?? '') === 'migration') {
+                unset($baseline['artifactType']);
+            }
+            $baselineByPath[$path] = $baseline;
+        }
+        $inputs = [];
+        foreach ($generatedFiles as $path => $content) {
+            if (!is_string($path) || !is_string($content)) {
+                throw new \InvalidArgumentException('生成文件路径和内容必须为字符串');
+            }
+            $normalizedPath = str_replace('\\', '/', $path);
+            $baseline = $baselineByPath[$normalizedPath] ?? ['path' => $normalizedPath];
+            $baseline['path'] = $normalizedPath;
+            if (isset($artifactByPath[$normalizedPath])) {
+                $baseline['artifactType'] = $artifactByPath[$normalizedPath];
+            }
+            $baseline['remoteContent'] = $content;
+            $baseline['remoteHash'] = hash('sha256', $content);
+            $inputs[] = $baseline;
+            unset($baselineByPath[$normalizedPath]);
+        }
+        foreach ($baselineByPath as $baseline) {
+            $baseline['remoteContent'] = null;
+            $inputs[] = $baseline;
+        }
+        $plan = (new ThreeWayMergePlanner($this->projectRoot))->plan($inputs);
+        $plan['definitionHash'] = $definition->hash();
+        $plan['planDigest'] = hash('sha256', CrudDefinition::canonicalJson([
+            'definitionHash' => $definition->hash(),
+            'files' => array_map(static function (array $file): array {
+                unset($file['content'], $file['baseContent'], $file['localContent'], $file['remoteContent']);
+                return $file;
+            }, $plan['files']),
+        ]));
+        return $plan;
+    }
+
     private function diff(string $old, string $new): string
     {
         if ($old === $new) {

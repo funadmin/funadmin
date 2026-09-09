@@ -88,14 +88,14 @@ final class Data extends AdminApiController
     public function index(string $key): Response
     {
         return $this->execute(function () use ($key): array {
-            $result = $this->data->listing(
+            $result = $this->observe($key, 'index', fn (): array => $this->data->listing(
                 $key,
                 $this->filters(),
                 trim((string) $this->request->get('sort', '')),
                 trim((string) $this->request->get('order', '')),
                 $this->page(),
                 $this->pageSize()
-            );
+            ));
             return $this->paginationData($result['list'], $result['total'], $this->page(), $this->pageSize());
         });
     }
@@ -104,7 +104,7 @@ final class Data extends AdminApiController
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     public function export(string $key): Response
     {
-        return $this->execute(fn (): array => ['list' => $this->data->export($key, $this->filters())]);
+        return $this->execute(fn (): array => $this->observe($key, 'export', fn (): array => ['list' => $this->data->export($key, $this->filters())]));
     }
 
     #[Get('detail/:key/:id')]
@@ -165,7 +165,7 @@ final class Data extends AdminApiController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function sub(string $key, string $relation, int|string $id): Response
     {
-        return $this->execute(fn (): array => $this->data->sub($key, $relation, $id, $this->page(), $this->pageSize()));
+        return $this->execute(fn (): array => $this->observe($key, 'sub', fn (): array => $this->data->sub($key, $relation, $id, $this->page(), $this->pageSize()), nodeId: $relation));
     }
 
     #[Post('create/:key')]
@@ -225,7 +225,11 @@ final class Data extends AdminApiController
     public function remove(string $key): Response
     {
         $id = $this->request->post('id', '');
-        return $this->execute(fn (): array => $this->data->remove($key, is_int($id) ? $id : trim((string) $id)), '删除成功');
+        return $this->execute(fn (): array => $this->observe($key, 'remove', fn (): array => $this->data->remove(
+            $key,
+            is_int($id) ? $id : trim((string) $id),
+            $this->schemaHash()
+        ), $this->schemaHash()), '删除成功');
     }
 
     private function payload(): array
