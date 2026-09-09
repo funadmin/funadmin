@@ -9,9 +9,17 @@ namespace app\common\form\validation;
  */
 final class FormAsyncValidatorRegistry
 {
-    /** @param array<string, callable> $validators */
+    /** @param array<string, callable|array{handler: callable, capabilityVersion?: int|string}> $validators */
     public function __construct(private readonly array $validators = [])
     {
+    }
+
+    /** 返回可安全参与依赖检查与哈希计算的验证器元数据。 */
+    public function definitions(): array
+    {
+        return array_map(static fn (mixed $definition): array => [
+            'capabilityVersion' => (string) (is_array($definition) ? ($definition['capabilityVersion'] ?? '1') : '1'),
+        ], $this->validators);
     }
 
     /**
@@ -20,7 +28,8 @@ final class FormAsyncValidatorRegistry
      */
     public function validate(string $key, mixed $value, array $values, array $options = []): ?string
     {
-        $validator = $this->validators[$key] ?? null;
+        $definition = $this->validators[$key] ?? null;
+        $validator = is_array($definition) ? ($definition['handler'] ?? null) : $definition;
         if (!is_callable($validator)) {
             throw new FormAsyncValidationException('FORM_ASYNC_VALIDATOR_NOT_REGISTERED');
         }

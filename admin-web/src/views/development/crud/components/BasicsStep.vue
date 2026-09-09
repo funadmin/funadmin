@@ -10,10 +10,15 @@
       <el-form :model="model" label-width="125px" class="definition-form">
         <el-form-item label="目标类型"><el-radio-group :model-value="model.target.type" @update:model-value="changeTarget"><el-radio-button value="core">核心</el-radio-button><el-radio-button value="plugin">插件</el-radio-button></el-radio-group></el-form-item>
         <template v-if="model.target.type === 'plugin'">
-          <el-form-item label="插件"><el-select :model-value="model.target.plugin" class="w-full" @update:model-value="$emit('change-plugin', $event)"><el-option v-for="item in plugins" :key="item.code" :label="`${item.name} (${item.code})`" :value="item.code" /></el-select></el-form-item>
-          <el-form-item label="scope"><el-select :model-value="model.target.scope" class="w-full" @update:model-value="$emit('change-scope', $event)"><el-option v-for="scope in activeScopes" :key="scope" :label="scope" :value="scope" /></el-select></el-form-item>
-          <el-form-item label="namespace"><el-input :model-value="pluginNamespaces.join('；')" disabled /></el-form-item>
-          <el-form-item label="URL"><el-input :model-value="model.apiPrefix" disabled /></el-form-item>
+          <el-form-item label="插件">
+            <div class="plugin-target-row">
+              <el-select :model-value="model.target.plugin" class="w-full" @update:model-value="$emit('change-plugin', $event)"><el-option v-for="item in plugins" :key="item.code" :label="`${item.name} (${item.code})`" :value="item.code" /></el-select>
+              <el-button type="primary" plain v-perm="'development:plugin:create'" @click="$emit('create-plugin')">新建插件</el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="生成范围"><el-select :model-value="model.target.scope" class="w-full" @update:model-value="$emit('change-scope', $event)"><el-option v-for="scope in activeScopes" :key="scope" :label="scopeLabel(scope)" :value="scope" /></el-select></el-form-item>
+          <el-form-item label="命名空间"><el-input :model-value="pluginNamespaces.join('；')" disabled /></el-form-item>
+          <el-form-item label="接口 URL"><el-input :model-value="model.apiPrefix" disabled /></el-form-item>
         </template>
         <el-form-item label="连接"><el-input v-model="model.connection" disabled /></el-form-item>
         <el-form-item label="表名"><el-input v-model="model.table" disabled /></el-form-item>
@@ -54,7 +59,7 @@
       <el-alert :title="laravelHint" :type="laravelReady ? 'success' : 'warning'" show-icon :closable="false" class="mt-3" />
       <el-divider content-position="left">生成目标摘要</el-divider>
       <el-descriptions v-if="model.target.type === 'core' && model.generationTargets" title="目标文件" :column="1" border><el-descriptions-item v-for="(path, key) in model.generationTargets" :key="key" :label="String(key)">{{ path }}</el-descriptions-item></el-descriptions>
-      <template v-else><el-alert title="插件目标路径由服务安全派生" type="info" :closable="false" /><el-descriptions title="目标文件" :column="1" border class="mt-3"><el-descriptions-item v-for="path in pluginTargets" :key="path" label="path">{{ path }}</el-descriptions-item></el-descriptions></template>
+      <template v-else><el-alert title="插件目标路径由服务安全派生" type="info" :closable="false" /><el-descriptions title="目标文件" :column="1" border class="mt-3"><el-descriptions-item v-for="path in pluginTargets" :key="path" label="路径">{{ path }}</el-descriptions-item></el-descriptions></template>
     </template>
     <el-empty v-else description="选择数据表后将自动推断模块与字段" />
   </div>
@@ -65,9 +70,10 @@ import { computed } from 'vue';
 import IconSelect from '@/components/IconSelect/index.vue';
 import type { DevelopmentPluginOption } from '@/api/development/plugin';
 import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
+import { scopeLabel } from '@/views/system/plugin/pluginDisplay';
 
 const props = defineProps<{ connection: string; table: string; connections: CrudConnection[]; tables: CrudTable[]; parentMenus: CrudParentMenu[]; plugins: DevelopmentPluginOption[]; model: CrudDefinition | null; schema: Record<string, unknown> | null; inferring: boolean }>();
-const emit = defineEmits<{ 'update:connection': [value: string]; 'update:table': [value: string]; 'change-target': [value: 'core' | 'plugin']; 'change-plugin': [value: string]; 'change-scope': [value: 'application' | 'console' | 'both'] }>();
+const emit = defineEmits<{ 'update:connection': [value: string]; 'update:table': [value: string]; 'change-target': [value: 'core' | 'plugin']; 'change-plugin': [value: string]; 'change-scope': [value: 'application' | 'console' | 'both']; 'create-plugin': [] }>();
 const changeTarget = (value: string | number | boolean | undefined) => {
   if (value === 'core' || value === 'plugin') emit('change-target', value);
 };
@@ -125,6 +131,7 @@ const laravelHint = computed(() => laravelReady.value
 
 <style scoped>
 .definition-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.plugin-target-row { display: flex; gap: 8px; width: 100%; }
 .summary-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 768px) { .definition-form, .summary-cards { grid-template-columns: 1fr; } }

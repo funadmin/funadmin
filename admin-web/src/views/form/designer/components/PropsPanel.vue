@@ -154,27 +154,57 @@
         </el-form-item>
       </el-form>
     </el-tab-pane>
-    <el-tab-pane label="高级" name="advanced">
-      <el-form label-width="90px" size="small">
-        <el-form-item label="props">
-          <el-input
-            :model-value="propsJson"
-            type="textarea"
-            :rows="6"
-            placeholder='{"size":"large"}'
-            @update:model-value="onPropsJson"
-          />
-        </el-form-item>
-        <el-form-item label="选项来源">
-          <el-input
-            :model-value="optionsJson"
-            type="textarea"
-            :rows="6"
-            placeholder='{"mode":"static","options":[{"label":"是","value":"1"}]}'
-            @update:model-value="onOptionsJson"
-          />
-        </el-form-item>
+    <el-tab-pane label="属性" name="properties">
+      <el-form label-width="100px" size="small">
+        <el-alert v-if="!propertyFields.length" title="当前组件没有可配置的动态属性" type="info" :closable="false" class="mb-3" />
+        <template v-for="property in propertyFields" :key="property.name">
+          <el-form-item :label="property.title">
+            <el-switch
+              v-if="property.type === 'boolean'"
+              :model-value="Boolean(propertyValue(property))"
+              @update:model-value="updateProperty(property, $event)"
+            />
+            <el-input-number
+              v-else-if="property.type === 'number'"
+              :model-value="numberPropertyValue(property)"
+              :min="property.minimum"
+              :max="property.maximum"
+              class="w-full"
+              @update:model-value="updateProperty(property, $event)"
+            />
+            <el-select
+              v-else-if="property.type === 'select'"
+              :model-value="propertyValue(property)"
+              clearable
+              class="w-full"
+              @update:model-value="updateProperty(property, $event)"
+            >
+              <el-option v-for="option in property.options" :key="String(option)" :label="String(option)" :value="option" />
+            </el-select>
+            <el-input
+              v-else
+              :model-value="displayPropertyValue(property)"
+              :type="property.type === 'json' ? 'textarea' : 'text'"
+              :rows="property.type === 'json' ? 3 : undefined"
+              clearable
+              @update:model-value="updatePropertyInput(property, $event)"
+            />
+            <div v-if="property.description" class="text-xs text-[var(--el-text-color-secondary)]">{{ property.description }}</div>
+          </el-form-item>
+        </template>
       </el-form>
+      <el-collapse>
+        <el-collapse-item title="原始 JSON（高级）" name="raw-props">
+          <el-form label-width="90px" size="small">
+            <el-form-item label="props">
+              <el-input :model-value="propsJson" type="textarea" :rows="6" placeholder='{"size":"large"}' @change="onPropsJson" />
+            </el-form-item>
+            <el-form-item label="选项来源">
+              <el-input :model-value="optionsJson" type="textarea" :rows="6" placeholder='{"mode":"static"}' @change="onOptionsJson" />
+            </el-form-item>
+          </el-form>
+        </el-collapse-item>
+      </el-collapse>
     </el-tab-pane>
   </el-tabs>
 </template>
@@ -185,6 +215,8 @@ import { ElMessage } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
 import { crudDevelopmentApi } from '@/api/development/crud';
 import type { CrudTable } from '@/types/development/crud';
+import { componentRegistry } from '../../schema/componentRegistry';
+import { normalizePropertySchema, patchDynamicProperty, type DynamicPropertyField } from '../structuredEditor';
 import { COLUMN_TYPE_OPTIONS, CONTROL_REGISTRY, LIST_FILTERS, LIST_FORMATTERS, controlMeta } from '../../registry';
 
 const props = defineProps<{ field: FormFieldDef; sourceType: 'created' | 'adopted' }>();
@@ -207,6 +239,32 @@ const patch = (value: Partial<FormFieldDef>) => emit('update', value);
 const emitUpdate = () => undefined;
 
 const selectedMeta = computed(() => controlMeta(props.field.type));
+const componentDefinition = computed(() => componentRegistry.resolve(props.field.type));
+const propertyFields = computed(() => normalizePropertySchema(componentDefinition.value?.propertySchema ?? {}));
+const propertyValue = (property: DynamicPropertyField): unknown => props.field.control_props?.[property.name] ?? property.defaultValue;
+const numberPropertyValue = (property: DynamicPropertyField): number | undefined => {
+  const value = propertyValue(property);
+  return typeof value === 'number' ? value : undefined;
+};
+const displayPropertyValue = (property: DynamicPropertyField): string => {
+  const value = propertyValue(property);
+  if (value === undefined || value === null) return '';
+  return property.type === 'json' ? JSON.stringify(value, null, 2) : String(value);
+};
+const updateProperty = (property: DynamicPropertyField, value: unknown) => {
+  patch({ control_props: patchDynamicProperty(props.field.control_props, property.name, value) });
+};
+const updatePropertyInput = (property: DynamicPropertyField, value: string) => {
+  if (property.type !== 'json' || value.trim() === '') {
+    updateProperty(property, value);
+    return;
+  }
+  try {
+    updateProperty(property, JSON.parse(value));
+  } catch {
+    ElMessage.warning(`${property.title} 需要合法 JSON`);
+  }
+};
 const controlGroups = computed(() => {
   const labels = [...new Set(CONTROL_REGISTRY.map((control) => control.group))];
   return labels.map((label) => ({ label, options: CONTROL_REGISTRY.filter((control) => control.group === label) }));

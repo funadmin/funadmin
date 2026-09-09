@@ -196,6 +196,9 @@ export interface FormComponentCatalogItem {
   namespace: string;
   component: string;
   kind?: FormSchemaNodeKind;
+  label?: string;
+  group?: string;
+  defaultColumnType?: string;
   valueType: string;
   defaultValue?: unknown;
   defaultProps: Record<string, unknown>;

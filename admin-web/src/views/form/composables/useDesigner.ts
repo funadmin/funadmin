@@ -18,6 +18,8 @@ interface NodeLocation {
   parent: FormSchemaNode | null;
 }
 
+export type DesignerKeyboardMove = 'up' | 'down' | 'indent' | 'outdent';
+
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const flattenNodes = (
@@ -56,6 +58,7 @@ const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
   field: controlMeta(field.type).kind === 'layout' ? null : field.field_name,
   title: field.label,
   defaultValue: field.default_value,
+  valueType: controlMeta(field.type).valueType as FormSchemaNode['valueType'],
   props: clone(field.control_props ?? {}),
   children: [],
   validation: validationFromField(field),
@@ -264,12 +267,28 @@ export function useDesigner() {
     const source = findLocation(nodes.value, nodeId);
     const destination = targetChildren(parentId);
     if (!source || !destination || nodeId === parentId || flattenNodes(source.node.children).some((entry) => entry.node.id === parentId)) return false;
+    const adjusted = source.siblings === destination && source.index < index ? index - 1 : index;
+    const targetIndex = Math.max(0, Math.min(adjusted, destination.length - (source.siblings === destination ? 1 : 0)));
+    if (source.siblings === destination && source.index === targetIndex) return false;
     pushHistory();
     const [moving] = source.siblings.splice(source.index, 1);
-    const adjusted = source.siblings === destination && source.index < index ? index - 1 : index;
     destination.splice(Math.max(0, Math.min(adjusted, destination.length)), 0, moving);
     fields.value = projectFields(nodes.value, fields.value);
     return true;
+  };
+  const moveNodeByKeyboard = (nodeId: string, direction: DesignerKeyboardMove) => {
+    const source = findLocation(nodes.value, nodeId);
+    if (!source) return false;
+    const parentId = source.parent?.id ?? null;
+    if (direction === 'up') return source.index > 0 && moveNode(nodeId, parentId, source.index - 1);
+    if (direction === 'down') return source.index < source.siblings.length - 1 && moveNode(nodeId, parentId, source.index + 2);
+    if (direction === 'indent') {
+      const previous = source.siblings[source.index - 1];
+      return Boolean(previous && CONTAINER_TYPES.has(previous.type) && moveNode(nodeId, previous.id, previous.children.length));
+    }
+    if (!source.parent) return false;
+    const parentLocation = findLocation(nodes.value, source.parent.id);
+    return Boolean(parentLocation && moveNode(nodeId, parentLocation.parent?.id ?? null, parentLocation.index + 1));
   };
   const moveField = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0 || from >= fields.value.length || to >= fields.value.length) return;
@@ -404,7 +423,7 @@ export function useDesigner() {
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
     dirty, canUndo, canRedo, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
-    duplicateNode, duplicateField, moveNode, moveField, updateField, updateNode, updateForm, replaceFields, replaceSchema, load, markSaved
+    duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, replaceFields, replaceSchema, load, markSaved
   };
 }
 

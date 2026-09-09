@@ -3,7 +3,7 @@
     <el-card v-loading="loading">
       <el-steps :active="workbench.step" finish-status="success" align-center class="workbench-steps"><el-step v-for="item in workbench.steps" :key="item.index" :title="item.title" /></el-steps>
       <el-alert v-if="workbench.error" :title="workbench.error" type="error" show-icon closable class="mb-4" @close="workbench.error = ''" />
-      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :parent-menus="parentMenus" :plugins="plugins" :model="definition" :schema="schema" :inferring="inferring" @change-target="changeTarget" @change-plugin="changePlugin" @change-scope="changeScope" />
+      <BasicsStep v-if="workbench.step === 0" v-model:connection="connection" v-model:table="table" :connections="connections" :tables="tables" :parent-menus="parentMenus" :plugins="plugins" :model="definition" :schema="schema" :inferring="inferring" @change-target="changeTarget" @change-plugin="changePlugin" @change-scope="changeScope" @create-plugin="pluginDialogVisible = true" />
       <FieldsStep v-else-if="workbench.step === 1 && definition" :definition="definition" />
       <CapabilitiesPreviewStep v-else-if="workbench.step === 2 && definition" :model="definition" :preview="workbench.preview" :loading="loading" :invalidated="workbench.previewInvalidated" @refresh="refreshPreview" />
       <ConfirmResultStep v-else-if="workbench.step === 3 && workbench.preview" v-model:allow-overwrite="workbench.allowOverwrite" v-model:apply-resources="workbench.applyResources" :preview="workbench.preview" :result="workbench.result" :conflicts="workbench.conflicts()" :can-overwrite="canOverwrite" :can-apply-resources="canApplyResources" :retrying="retrying" @retry-resources="applyResourcesAgain" />
@@ -15,6 +15,7 @@
         <el-button v-else type="primary" @click="reset">重新开始</el-button>
       </div>
     </el-card>
+    <PluginDevelopmentDialog v-model="pluginDialogVisible" initial-mode="create" @changed="pluginCreated" />
   </PageWrapper>
 </template>
 
@@ -25,10 +26,12 @@ import { pluginDevelopmentApi, type DevelopmentPluginOption } from '@/api/develo
 import { useUserStore } from '@/store/modules/user';
 import type { CrudConnection, CrudDefinition, CrudParentMenu, CrudTable } from '@/types/development/crud';
 import { applyCrudTarget, createCrudDefinition, createCrudWorkbench, createLatestRequestGate, snapshotCrudDefinition, syncPermissionActions, validateWorkbenchStep } from './workbench';
+import { pluginTargetFor } from './pluginTarget';
 import BasicsStep from './components/BasicsStep.vue';
 import CapabilitiesPreviewStep from './components/CapabilitiesPreviewStep.vue';
 import ConfirmResultStep from './components/ConfirmResultStep.vue';
 import FieldsStep from './components/FieldsStep.vue';
+import PluginDevelopmentDialog from '@/views/system/plugin/components/PluginDevelopmentDialog.vue';
 
 defineOptions({ name: 'DevelopmentCrud' });
 const userStore = useUserStore();
@@ -40,6 +43,7 @@ const connections = ref<CrudConnection[]>([]);
 const tables = ref<CrudTable[]>([]);
 const parentMenus = ref<CrudParentMenu[]>([]);
 const plugins = ref<DevelopmentPluginOption[]>([]);
+const pluginDialogVisible = ref(false);
 const connection = ref('');
 const table = ref('');
 const definition = ref<CrudDefinition | null>(null);
@@ -112,21 +116,35 @@ watch(definition, (value) => {
 const changeTarget = (type: 'core' | 'plugin') => {
   if (!definition.value) return;
   const plugin = plugins.value[0];
-  if (type === 'plugin' && !plugin) { workbench.fail('没有可开发的 Manifest v2 插件'); return; }
-  definition.value = applyCrudTarget(definition.value, type === 'core' ? { type: 'core' } : { type: 'plugin', plugin: plugin.code, scope: plugin.scopes[0] || 'console' });
+  if (type === 'plugin' && !plugin) { pluginDialogVisible.value = true; return; }
+  const target = plugin ? pluginTargetFor(plugin) : null;
+  if (type === 'plugin' && !target) { workbench.fail('插件没有可用的代码生成范围'); return; }
+  definition.value = applyCrudTarget(definition.value, type === 'core' ? { type: 'core' } : target!);
   workbench.definition = definition.value;
 };
 const changePlugin = (pluginCode: string) => {
   if (!definition.value || definition.value.target.type !== 'plugin') return;
   const plugin = plugins.value.find((item) => item.code === pluginCode);
   if (!plugin) return;
-  definition.value = applyCrudTarget(definition.value, { type: 'plugin', plugin: plugin.code, scope: plugin.scopes[0] || 'console' });
+  const target = pluginTargetFor(plugin);
+  if (!target) { workbench.fail('插件没有可用的代码生成范围'); return; }
+  definition.value = applyCrudTarget(definition.value, target);
   workbench.definition = definition.value;
 };
 const changeScope = (scope: 'application' | 'console' | 'both') => {
   if (!definition.value || definition.value.target.type !== 'plugin') return;
   definition.value = applyCrudTarget(definition.value, { ...definition.value.target, scope });
   workbench.definition = definition.value;
+};
+const pluginCreated = async (pluginCode?: string) => {
+  plugins.value = await pluginDevelopmentApi.options();
+  const created = plugins.value.find((item) => item.code === pluginCode);
+  if (!definition.value || !created) return;
+  const target = pluginTargetFor(created);
+  if (!target) { workbench.fail('新插件没有可用的代码生成范围'); return; }
+  definition.value = applyCrudTarget(definition.value, target);
+  workbench.definition = definition.value;
+  pluginDialogVisible.value = false;
 };
 const validationContext = () => ({ fields: definition.value?.fields, capabilities: definition.value?.capabilities, dataScope: definition.value?.dataScope });
 const requireValidStep = () => {

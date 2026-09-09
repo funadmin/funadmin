@@ -106,12 +106,15 @@ final class FormPublishService
             );
             $resourceStatus = (string) ($generated['resourceApplyStatus'] ?? 'failed');
             $status = $resourceStatus === 'applied' ? 'published' : 'partial';
-            $this->updateStatus($formId, $status, [
+            $publishMetadata = [
                 'crud_generation_id' => (int) ($generated['generationId'] ?? 0) ?: null,
                 'published_definition_hash' => $crudDefinition->hash(),
-                'published_schema_hash' => $compiled->hash(),
-                'published_at' => $status === 'published' ? date('Y-m-d H:i:s') : null,
-            ]);
+            ];
+            if ($status === 'published') {
+                $publishMetadata['published_schema_hash'] = $compiled->hash();
+                $publishMetadata['published_at'] = date('Y-m-d H:i:s');
+            }
+            $this->updateStatus($formId, $status, $publishMetadata);
             return [
                 'form' => $this->forms->detail($formId)['form'],
                 'ddl' => $ddl,
@@ -126,7 +129,6 @@ final class FormPublishService
                 $this->updateStatus($formId, 'partial', [
                     'crud_generation_id' => $generationId,
                     'published_definition_hash' => $crudDefinition->hash(),
-                    'published_schema_hash' => $compiled->hash(),
                 ]);
             } else {
                 $status = $this->isConflict($exception) ? 'conflict' : ($ddlApplied ? 'partial' : 'failed');
@@ -162,7 +164,14 @@ final class FormPublishService
         if ($generationId < 1) throw new InvalidArgumentException('表单没有可重试的生成记录');
         $result = $this->crud->applyResources($generationId);
         if (($result['resourceApplyStatus'] ?? '') === 'applied') {
-            $this->updateStatus($formId, 'published', ['published_at' => date('Y-m-d H:i:s')]);
+            $form = Form::find($formId);
+            $pendingHash = is_array($result['definition'] ?? null)
+                ? (string) (($result['definition']['formSchemaHash'] ?? ''))
+                : (string) ($form->schema_hash ?? '');
+            $this->updateStatus($formId, 'published', [
+                'published_at' => date('Y-m-d H:i:s'),
+                'published_schema_hash' => $pendingHash,
+            ]);
         }
         return $result + ['publishStatus' => ($result['resourceApplyStatus'] ?? '') === 'applied' ? 'published' : 'partial'];
     }

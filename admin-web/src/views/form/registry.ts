@@ -10,8 +10,10 @@ export interface ControlMeta {
   kind: ControlKind;
   group: ControlGroup;
   defaultColumnType: string;
+  valueType?: string;
   defaultOptions: Record<string, unknown> | null;
   defaultProps: Record<string, unknown> | null;
+  propertySchema?: Record<string, unknown>;
 }
 
 const staticOptions = (...labels: string[]) => ({
@@ -84,8 +86,16 @@ export const CONTROL_REGISTRY: ControlMeta[] = [
   control('tabs', '标签页', 'layout', '布局控件', '', null, { tabs: ['标签一', '标签二'] })
 ];
 
+const PLUGIN_CONTROL_REGISTRY = new Map<string, ControlMeta>();
+
+/** 用已通过构建白名单的插件控件替换设计器动态注册项。 */
+export const setPluginControls = (controls: ControlMeta[]): void => {
+  PLUGIN_CONTROL_REGISTRY.clear();
+  controls.forEach((item) => PLUGIN_CONTROL_REGISTRY.set(item.type, item));
+};
+
 export const controlMeta = (type: string): ControlMeta =>
-  CONTROL_REGISTRY.find((item) => item.type === type) ?? CONTROL_REGISTRY[0];
+  CONTROL_REGISTRY.find((item) => item.type === type) ?? PLUGIN_CONTROL_REGISTRY.get(type) ?? CONTROL_REGISTRY[0];
 
 const cloneConfig = (value: Record<string, unknown> | null) =>
   value === null ? null : JSON.parse(JSON.stringify(value)) as Record<string, unknown>;

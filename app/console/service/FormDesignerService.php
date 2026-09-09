@@ -184,6 +184,7 @@ final class FormDesignerService
         $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
+        $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? $payload['schema_hash'] ?? ''));
         $compiled = $this->schemas->compile($this->schemaPayload($payload));
         $document = $compiled->document();
         $database = (array) ($document['database'] ?? []);
@@ -198,12 +199,16 @@ final class FormDesignerService
             'schema_document' => $document,
             'schema_hash' => $compiled->hash(),
         ]);
-        $result = Db::transaction(function () use ($payload, $id, $expectedUpdatedAt): array {
+        return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled): array {
             $form = $id > 0 ? Form::find($id) : new Form();
             if ($id > 0 && !$form) {
                 throw new InvalidArgumentException('表单不存在');
             }
-            if ($id > 0 && $expectedUpdatedAt !== '' && (string) $form->updated_at !== $expectedUpdatedAt) {
+            if ($id > 0 && $expectedSchemaHash !== '' && (string) ($form->schema_hash ?? '') !== ''
+                && !hash_equals((string) $form->schema_hash, $expectedSchemaHash)) {
+                throw new InvalidArgumentException('表单 Schema 已被他人修改，请刷新后重试');
+            }
+            if ($id > 0 && $expectedSchemaHash === '' && $expectedUpdatedAt !== '' && (string) $form->updated_at !== $expectedUpdatedAt) {
                 throw new InvalidArgumentException('表单已被他人修改，请刷新后重试');
             }
             if ($id === 0 && Form::where('form_key', $payload['form_key'])->find()) {
@@ -231,17 +236,15 @@ final class FormDesignerService
             foreach (array_values($payload['fields']) as $sort => $field) {
                 (new FormField())->save($this->fieldRow((int) $form->id, $field, $sort));
             }
+            $this->schemas->saveCompiledVersion(
+                (int) $form->id,
+                $compiled,
+                (string) ($payload['schema_origin'] ?? 'designer'),
+                (string) ($payload['schema_actor'] ?? 'system'),
+                (string) ($payload['schema_change_summary'] ?? '')
+            );
             return $this->detail((int) $form->id);
         });
-        $formId = (int) $result['form']->id;
-        $this->schemas->saveVersion(
-            $formId,
-            (array) $payload['schema_document'],
-            (string) ($payload['schema_origin'] ?? 'designer'),
-            (string) ($payload['schema_actor'] ?? 'system'),
-            (string) ($payload['schema_change_summary'] ?? '')
-        );
-        return $this->detail($formId);
     }
 
     /** 删除表单（仅 created 且绑定表无数据时允许删表记录；元数据始终可删）。 */

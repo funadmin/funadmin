@@ -78,31 +78,34 @@ final class FormSchemaRepository
     public function saveVersion(int $formId, array $definition, string $origin, string $actor, string $summary = ''): FormSchemaVersion
     {
         $compiled = $this->compile($definition);
-        return Db::transaction(function () use ($formId, $compiled, $origin, $actor, $summary): FormSchemaVersion {
-            $form = Form::lock(true)->find($formId);
-            if (!$form) throw new InvalidArgumentException('表单不存在');
-            $existing = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $compiled->hash())->find();
-            if ($existing) {
-                $this->persistCurrent($form, $compiled, $origin);
-                return $existing;
-            }
-            $latest = FormSchemaVersion::where('form_id', $formId)->order('version', 'desc')->find();
-            $version = new FormSchemaVersion();
-            $version->save([
-                'form_id' => $formId,
-                'version' => (int) ($latest->version ?? 0) + 1,
-                'schema_version' => $compiled->version(),
-                'schema_hash' => $compiled->hash(),
-                'schema_document' => $compiled->document(),
-                'origin' => $origin,
-                'parent_version_id' => $latest?->id,
-                'change_summary' => $summary,
-                'created_by' => $actor,
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
+        return Db::transaction(fn (): FormSchemaVersion => $this->saveCompiledVersion($formId, $compiled, $origin, $actor, $summary));
+    }
+
+    public function saveCompiledVersion(int $formId, FormSchema $compiled, string $origin, string $actor, string $summary = ''): FormSchemaVersion
+    {
+        $form = Form::lock(true)->find($formId);
+        if (!$form) throw new InvalidArgumentException('表单不存在');
+        $existing = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $compiled->hash())->find();
+        if ($existing) {
             $this->persistCurrent($form, $compiled, $origin);
-            return $version;
-        });
+            return $existing;
+        }
+        $latest = FormSchemaVersion::where('form_id', $formId)->order('version', 'desc')->find();
+        $version = new FormSchemaVersion();
+        $version->save([
+            'form_id' => $formId,
+            'version' => (int) ($latest->version ?? 0) + 1,
+            'schema_version' => $compiled->version(),
+            'schema_hash' => $compiled->hash(),
+            'schema_document' => $compiled->document(),
+            'origin' => $origin,
+            'parent_version_id' => $latest?->id,
+            'change_summary' => $summary,
+            'created_by' => $actor,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->persistCurrent($form, $compiled, $origin);
+        return $version;
     }
 
     public function versions(int $formId): array

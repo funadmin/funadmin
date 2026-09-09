@@ -45,7 +45,7 @@ import { scopeLabel } from '../pluginDisplay';
 
 const visible = defineModel<boolean>({ default: false });
 const props = withDefaults(defineProps<{ initialMode?: 'create' | 'maintain' | 'crud' }>(), { initialMode: 'create' });
-const emit = defineEmits<{ changed: [] }>();
+const emit = defineEmits<{ changed: [pluginCode?: string] }>();
 const mode = ref<'create' | 'maintain' | 'crud'>('create');
 const loading = ref(false);
 const error = ref('');
@@ -70,7 +70,7 @@ async function loadOptions() { mode.value = props.initialMode; await run(async (
 function syncScope() { const scopes = selectedPlugin.value?.scopes || []; if (!scopes.includes(crudForm.scope)) crudForm.scope = scopes[0] || 'console'; }
 async function loadTables() { if (!crudForm.connection) return; tables.value = await crudDevelopmentApi.tables(crudForm.connection); }
 async function previewPlugin() { await run(async () => { preview.value = await pluginDevelopmentApi.previewCreate({ ...createForm }); }); }
-async function createPlugin() { await run(async () => { result.value = await pluginDevelopmentApi.create({ ...createForm }); ElMessage.success(`插件已创建，审计编号：${result.value.auditId}`); preview.value = null; await loadOptions(); emit('changed'); }); }
+async function createPlugin() { await run(async () => { result.value = await pluginDevelopmentApi.create({ ...createForm }); ElMessage.success(`插件已创建，审计编号：${result.value.auditId}`); const pluginCode = result.value.plugin?.code || createForm.name; preview.value = null; await loadOptions(); emit('changed', pluginCode); }); }
 async function validatePlugin() { if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.validate(selectedCode.value); ElMessage.success('插件校验通过'); }); }
 async function packagePlugin() { if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.package(selectedCode.value); ElMessage.success('插件打包完成'); }); }
 async function previewCrud() { await run(async () => { const inferred = await crudDevelopmentApi.inferPlugin(crudForm.connection, crudForm.table, crudForm.plugin, crudForm.entity, crudForm.scope); crudDefinition.value = inferred.definition; await crudDevelopmentApi.validate(inferred.definition); crudPreview.value = await crudDevelopmentApi.preview(inferred.definition); confirmToken.value = crudPreview.value.sensitive?.confirmToken || ''; }); }

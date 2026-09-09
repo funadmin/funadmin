@@ -282,10 +282,11 @@ async function onSave() {
   await schemaFormRef.value?.validate();
   saving.value = true;
   try {
-    const include = resolveSubmissionInclude(meta.value?.form);
+    const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
-    if (editingId.value !== null) await formDataApi.update(formKey, editingId.value, payload, include);
-    else await formDataApi.create(formKey, payload, include);
+    const schemaHash = meta.value?.schemaHash ?? '';
+    if (editingId.value !== null) await formDataApi.update(formKey, editingId.value, payload, include, schemaHash);
+    else await formDataApi.create(formKey, payload, include, schemaHash);
     closeDialogAfterSave = true;
     dialogVisible.value = false;
     ElMessage.success('保存成功');

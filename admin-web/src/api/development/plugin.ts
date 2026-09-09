@@ -22,6 +22,7 @@ export interface PluginDevelopmentResult {
   auditId: number | string;
   plan?: PluginDevelopmentPlan;
   conflicts: string[];
+  plugin?: { code: string; directory: string };
   valid?: boolean;
   manifest?: Record<string, unknown>;
   downloadPath?: string;

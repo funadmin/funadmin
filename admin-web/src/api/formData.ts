@@ -1,5 +1,6 @@
 import http from '@/utils/http';
 import type { FormDefinition, FormFieldDef } from '@/api/form';
+import type { FormSchemaDocument } from '@/views/form/schema/types';
 
 export type FormRecordId = string | number;
 
@@ -12,6 +13,9 @@ export interface FormDataMeta {
   form: FormDefinition;
   fields: FormFieldDef[];
   primaryKey: { name: string; type: 'integer' | 'string' };
+  schema: FormSchemaDocument;
+  schemaHash: string;
+  etag: string;
 }
 
 export interface FormFieldError {
@@ -40,7 +44,7 @@ export const formDataApi = {
     ),
   sub: (key: string, relation: string, id: FormRecordId, params: Record<string, unknown>) =>
     http.get<{ list: Record<string, unknown>[]; total: number }>(`${PREFIX}/sub/${key}/${relation}/${id}`, params),
-  create: (key: string, data: Record<string, unknown>, include: string[] = []) => http.post<FormDataMutationResult>(`${PREFIX}/create/${key}`, { data, include }, { requestOptions: { showErrorMsg: false } }),
-  update: (key: string, id: FormRecordId, data: Record<string, unknown>, include: string[] = []) => http.post<FormDataMutationResult>(`${PREFIX}/update/${key}/${id}`, { data, include }, { requestOptions: { showErrorMsg: false } }),
+  create: (key: string, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/create/${key}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
+  update: (key: string, id: FormRecordId, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/update/${key}/${id}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
   remove: (key: string, id: string | number) => http.post<{ removed: number; mode: string }>(`${PREFIX}/remove/${key}`, { id })
 };

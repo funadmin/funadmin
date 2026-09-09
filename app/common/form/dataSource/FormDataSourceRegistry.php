@@ -30,6 +30,16 @@ final class FormDataSourceRegistry
         return self::KINDS;
     }
 
+    /** 返回可安全参与依赖检查与哈希计算的端点元数据。 */
+    public function definitions(): array
+    {
+        return array_map(static fn (array $definition): array => [
+            'permission' => (string) ($definition['permission'] ?? ''),
+            'parameters' => array_values((array) ($definition['parameters'] ?? [])),
+            'capabilityVersion' => (string) ($definition['capabilityVersion'] ?? '1'),
+        ], $this->endpoints);
+    }
+
     public function applyStaleValuePolicy(string $policy, mixed $oldValue, array $validValues): mixed
     {
         if (!in_array($policy, self::STALE_POLICIES, true)) {
@@ -46,7 +56,7 @@ final class FormDataSourceRegistry
 
     public function resolve(array $definition, array $context = []): array
     {
-        $kind = (string) ($definition['kind'] ?? '');
+        $kind = (string) ($definition['kind'] ?? $definition['mode'] ?? '');
         if (!in_array($kind, self::KINDS, true)) {
             throw new FormDataSourceException('数据源类型未注册：' . $kind, 'FORM_DATA_SOURCE_NOT_REGISTERED');
         }
@@ -67,14 +77,56 @@ final class FormDataSourceRegistry
             'computed' => $this->resolveComputed($definition, $context),
         };
 
-        return [...$resolved, 'staleValue' => $staleValue];
+        return [...$resolved, 'kind' => $kind, 'mode' => $kind, 'staleValue' => $staleValue];
+    }
+
+    /**
+     * 执行已登记的数据源。endpoint 仅调用服务端注册 handler，绝不接受 URL。
+     */
+    public function execute(array $definition, array $context = [], ?callable $permissionChecker = null): array
+    {
+        $resolved = $this->resolve($definition, $context);
+        if ($resolved['kind'] !== 'endpoint') {
+            return (array) ($resolved['options'] ?? []);
+        }
+
+        $metadata = (array) $this->endpoints[$resolved['endpoint']];
+        $permission = (string) ($metadata['permission'] ?? '');
+        if ($permission === '' || $permissionChecker === null || !$permissionChecker($permission)) {
+            throw new FormDataSourceException('没有端点数据源权限', 'FORM_DATA_SOURCE_ENDPOINT_FORBIDDEN');
+        }
+        $handler = $metadata['handler'] ?? null;
+        if (!is_callable($handler)) {
+            throw new FormDataSourceException('端点执行器未登记', 'FORM_DATA_SOURCE_ENDPOINT_NOT_ALLOWED');
+        }
+
+        $timeoutMs = max(1, min(30000, (int) ($metadata['timeoutMs'] ?? 3000)));
+        $startedAt = hrtime(true);
+        $payload = $handler($resolved['arguments']);
+        $elapsedMs = (hrtime(true) - $startedAt) / 1_000_000;
+        if ($elapsedMs > $timeoutMs) {
+            throw new FormDataSourceException('端点数据源执行超时', 'FORM_DATA_SOURCE_ENDPOINT_TIMEOUT');
+        }
+
+        $items = $this->readPath($payload, $resolved['response']['items']);
+        $limit = max(1, min(1000, (int) ($metadata['maxResults'] ?? 200)));
+        return $this->mapOptions(array_slice(is_array($items) ? $items : [], 0, $limit), $resolved['response']);
     }
 
     private function resolveStatic(array $definition, array $response): array
     {
         $items = $this->readPath($definition['options'] ?? [], $response['items']);
+        return [
+            'kind' => 'static',
+            'options' => $this->mapOptions(is_array($items) ? $items : [], $response),
+            'response' => $response,
+        ];
+    }
+
+    private function mapOptions(array $items, array $response): array
+    {
         $options = [];
-        foreach (is_array($items) ? $items : [] as $item) {
+        foreach ($items as $item) {
             if (!is_array($item)) {
                 continue;
             }
@@ -87,7 +139,7 @@ final class FormDataSourceRegistry
             }
             $options[] = $option;
         }
-        return ['kind' => 'static', 'options' => $options, 'response' => $response];
+        return $options;
     }
 
     private function resolveProvider(string $kind, array $fixed, array $definition, array $context): array

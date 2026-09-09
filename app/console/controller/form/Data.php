@@ -9,6 +9,8 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
+use app\common\form\dataSource\FormDataSourceRegistry;
+use app\common\form\validation\FormAsyncValidatorRegistry;
 use app\console\service\AdminAuthorizationService;
 use app\console\service\FormDataService;
 use InvalidArgumentException;
@@ -34,15 +36,27 @@ final class Data extends AdminApiController
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->data = new FormDataService();
         $this->authorization = new AdminAuthorizationService();
+        $dataSources = config('form.data_sources', []);
+        $validators = config('form.validators', []);
+        $this->data = new FormDataService(
+            new FormAsyncValidatorRegistry(is_array($validators) ? $validators : []),
+            FormDataSourceRegistry::core(is_array($dataSources) ? $dataSources : []),
+            fn (string $permission): bool => $this->authorization->nodeAccess($permission)
+        );
     }
 
     #[Get('meta/:key')]
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     public function meta(string $key): Response
     {
-        return $this->execute(fn (): array => $this->data->meta($key));
+        $etag = '';
+        $response = $this->execute(function () use ($key, &$etag): array {
+            $meta = $this->data->meta($key);
+            $etag = (string) $meta['etag'];
+            return $meta;
+        });
+        return $etag === '' ? $response : $response->header(['ETag' => $etag]);
     }
 
     #[Get('index/:key')]
@@ -83,7 +97,7 @@ final class Data extends AdminApiController
     public function options(string $key, string $field): Response
     {
         return $this->execute(fn (): array => $this->data->paginateOptions(
-            $this->data->options($key, $field),
+            $this->data->options($key, $field, $this->request->get()),
             trim((string) $this->request->get('keyword', '')),
             $this->page(),
             $this->pageSize()
@@ -125,7 +139,7 @@ final class Data extends AdminApiController
     {
         $payload = $this->payload();
         $this->redactRequestPayload($key, $payload);
-        return $this->execute(fn (): array => $this->data->create($key, $payload, $this->include()), '新增成功');
+        return $this->execute(fn (): array => $this->data->create($key, $payload, $this->include(), $this->schemaHash()), '新增成功');
     }
 
     #[Post('update/:key/:id')]
@@ -135,7 +149,7 @@ final class Data extends AdminApiController
     {
         $payload = $this->payload();
         $this->redactRequestPayload($key, $payload);
-        return $this->execute(fn (): array => $this->data->update($key, $id, $payload, $this->include()), '更新成功');
+        return $this->execute(fn (): array => $this->data->update($key, $id, $payload, $this->include(), $this->schemaHash()), '更新成功');
     }
 
     #[Post('remove/:key')]
@@ -168,6 +182,11 @@ final class Data extends AdminApiController
         return is_array($include) ? array_values(array_filter(array_map('strval', $include))) : [];
     }
 
+    private function schemaHash(): string
+    {
+        return trim((string) $this->request->post('schemaHash', ''));
+    }
+
     private function filters(): array
     {
         $filters = $this->request->get('filters', []);
@@ -190,6 +209,9 @@ final class Data extends AdminApiController
                 code: 422
             );
         } catch (InvalidArgumentException $exception) {
+            if ($exception->getMessage() === 'FORM_SCHEMA_CONFLICT') {
+                return $this->fail(msg: '表单发布版本已更新，请刷新后重试', data: ['code' => 'FORM_SCHEMA_CONFLICT'], code: 409);
+            }
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 500);

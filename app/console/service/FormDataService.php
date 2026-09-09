@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\form\dataSource\FormDataSourceRegistry;
 use app\common\form\validation\FormAsyncValidationException;
 use app\common\form\validation\FormAsyncValidatorRegistry;
 use app\common\model\DictItem;
@@ -12,6 +13,8 @@ use app\console\model\Admin;
 use app\console\model\Department;
 use app\console\model\Form;
 use app\console\model\FormField;
+use app\console\model\FormSchemaVersion;
+use Closure;
 use InvalidArgumentException;
 use think\facade\Db;
 use think\facade\Validate;
@@ -23,28 +26,53 @@ use think\facade\Validate;
 final class FormDataService
 {
     private readonly FormAsyncValidatorRegistry $asyncValidators;
+    private readonly FormDataSourceRegistry $dataSources;
+    private readonly Closure $permissionChecker;
 
-    public function __construct(?FormAsyncValidatorRegistry $asyncValidators = null)
-    {
+    public function __construct(
+        ?FormAsyncValidatorRegistry $asyncValidators = null,
+        ?FormDataSourceRegistry $dataSources = null,
+        ?callable $permissionChecker = null
+    ) {
         $this->asyncValidators = $asyncValidators ?? new FormAsyncValidatorRegistry();
+        $this->dataSources = $dataSources ?? FormDataSourceRegistry::core();
+        $this->permissionChecker = Closure::fromCallable($permissionChecker ?? static fn (string $permission): bool => false);
     }
 
     private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
     private const EXPORT_LIMIT = 5000;
     private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
 
-    /** 表单元数据（启用态）。 */
+    /** 表单元数据只使用不可变的已发布 FormSchema 快照，禁止当前草稿污染运行态。 */
     public function meta(string $key): array
     {
         $form = $this->form($key);
-        $fields = $this->fields($key);
+        $published = $this->publishedRuntime($form);
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
         $safeFields = array_map(function ($field): array {
             $row = $field->toArray();
             if ($this->isSensitiveField($row)) $row['default_value'] = '';
             return $row;
-        }, $fields->all());
-        return ['form' => $form, 'fields' => $safeFields, 'primaryKey' => $this->primaryKey($schema)];
+        }, $published['fields']->all());
+        $formData = $form->toArray();
+        unset($formData['schema_document'], $formData['schema_hash']);
+        return [
+            'form' => $formData,
+            'fields' => $safeFields,
+            'primaryKey' => $this->primaryKey($schema),
+            'schema' => $published['schema'],
+            'schemaHash' => $published['schemaHash'],
+            'etag' => '"' . $published['schemaHash'] . '"',
+        ];
+    }
+
+    /** 校验提交基于当前已发布快照，防止旧页面向新 schema 写入数据。 */
+    public function assertPublishedSchemaHash(string $actual, string $expected): string
+    {
+        if ($actual === '' || !hash_equals($expected, $actual)) {
+            throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+        }
+        return $actual;
     }
 
     /** 列表：筛选/排序/分页/关联标签 LEFT JOIN。 */
@@ -131,10 +159,12 @@ final class FormDataService
     }
 
     /** 新增：白名单过滤 + 动态校验。 */
-    public function create(string $key, array $data, array $include = []): array
+    public function create(string $key, array $data, array $include = [], string $schemaHash = ''): array
     {
         $form = $this->form($key);
-        $fields = $this->fields($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $fields = $published['fields'];
         $this->assertValid($fields, $data, false);
         $this->assertAsyncValid($fields, $data);
         $split = $this->splitPayload($fields, $data, false, $include);
@@ -162,10 +192,12 @@ final class FormDataService
     }
 
     /** 更新：禁改字段剔除 + 动态校验。 */
-    public function update(string $key, int|string $id, array $data, array $include = []): array
+    public function update(string $key, int|string $id, array $data, array $include = [], string $schemaHash = ''): array
     {
         $form = $this->form($key);
-        $fields = $this->fields($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $fields = $published['fields'];
         $this->assertValid($fields, $data, true);
         $this->assertAsyncValid($fields, $data);
         $split = $this->splitPayload($fields, $data, true, $include);
@@ -201,14 +233,23 @@ final class FormDataService
     }
 
     /** 选项源：static / 关联表（belongs_to 或 options_source.mode=relation）。 */
-    public function options(string $key, string $fieldName): array
+    public function options(string $key, string $fieldName, array $context = []): array
     {
         $field = $this->fields($key)->firstWhere('field_name', $fieldName);
         if (!$field) {
             throw new InvalidArgumentException('字段不存在：' . $fieldName);
         }
         $source = is_array($field->options_source) ? $field->options_source : [];
-        $mode = (string) ($source['mode'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
+        $mode = (string) ($source['kind'] ?? $source['mode'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
+        $source['kind'] = $mode;
+        $source['mode'] = $mode;
+        if (in_array($mode, ['endpoint', 'computed'], true)) {
+            return $this->executeOptionsSource($source, [
+                'form' => ['key' => $key],
+                'context' => $context,
+                'search' => (string) ($context['keyword'] ?? ''),
+            ]);
+        }
         if ($mode === 'static') {
             $options = $source['options'] ?? [];
             return is_array($options) ? array_values($options) : [];
@@ -270,6 +311,23 @@ final class FormDataService
         $size = max(1, min(200, $pageSize));
         $offset = (max(1, $page) - 1) * $size;
         return ['options' => array_slice($filtered, $offset, $size), 'total' => count($filtered)];
+    }
+
+    /** 将列表或分页结果归一为 v2 list/total，并保留旧 options 契约。 */
+    public function normalizeOptionsResult(array $result): array
+    {
+        $list = array_is_list($result) ? $result : (array) ($result['list'] ?? $result['options'] ?? []);
+        return [
+            'list' => array_values($list),
+            'options' => array_values($list),
+            'total' => (int) ($result['total'] ?? count($list)),
+        ];
+    }
+
+    /** 执行已归一的数据源定义，供运行态与独立契约测试复用。 */
+    public function executeOptionsSource(array $source, array $context = []): array
+    {
+        return $this->dataSources->execute($source, $context, $this->permissionChecker);
     }
 
     /** 子表分页（has_many）。 */
@@ -478,13 +536,44 @@ final class FormDataService
         if (!$form) {
             throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
         }
+        $published = $this->publishedRuntime($form);
+        $database = (array) ($published['schema']['database'] ?? []);
+        $form->name = (string) ($published['schema']['title'] ?? $form->name);
+        $form->table_name = (string) ($database['table'] ?? $form->table_name);
+        $form->connection = (string) ($database['connection'] ?? $form->connection);
+        $form->source_type = (string) ($database['source'] ?? $form->source_type);
         return $form;
     }
 
     private function fields(string $key)
     {
-        $form = Form::where('form_key', $key)->find();
-        return FormField::where('form_id', (int) ($form->id ?? 0))->order('sort_order', 'asc')->order('id', 'asc')->select();
+        return $this->publishedRuntime($this->form($key))['fields'];
+    }
+
+    /**
+     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \think\Collection}
+     */
+    private function publishedRuntime(Form $form): array
+    {
+        $publishedHash = trim((string) ($form->published_schema_hash ?? ''));
+        if ($publishedHash === '') {
+            throw new InvalidArgumentException('表单尚未发布');
+        }
+        $version = FormSchemaVersion::where('form_id', (int) $form->id)
+            ->where('schema_hash', (string) $form->published_schema_hash)
+            ->find();
+        if (!$version) {
+            throw new InvalidArgumentException('已发布表单快照不存在');
+        }
+        $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
+        if (!hash_equals($publishedHash, $compiled->hash())) {
+            throw new InvalidArgumentException('已发布表单快照校验失败');
+        }
+        $fields = new \think\Collection(array_map(
+            static fn (array $field): FormField => new FormField($field),
+            $compiled->fieldProjection()
+        ));
+        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields];
     }
 
     private function baseQuery(Form $form, $fields)
@@ -583,15 +672,23 @@ final class FormDataService
             foreach ($relations[$name] as $row) {
                 if (!is_array($row)) throw new InvalidArgumentException($name . ' 子表行必须为对象');
                 $rowId = $row[$primaryName] ?? null;
-                if ($rowId !== null && $rowId !== '') {
+                $hasRowId = $rowId !== null && $rowId !== '';
+                $updatesExisting = $hasRowId && in_array((string) $rowId, $existingIds, true);
+                if ($hasRowId) {
                     $key = (string) $rowId;
                     if (isset($submitted[$key])) throw new InvalidArgumentException($name . ' 子表主键重复：' . $key);
-                    if (!in_array($key, $existingIds, true)) throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    if (!$updatesExisting && $connection->table($context['table'])->where($primaryName, $rowId)->find()) {
+                        throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    }
+                    if (!$updatesExisting && $context['primary']['type'] !== 'string') {
+                        throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    }
                     $submitted[$key] = true;
                 }
-                $payload = $this->filterChildPayload($context['fields'], $row, $rowId !== null && $rowId !== '');
+                $payload = $this->filterChildPayload($context['fields'], $row, $updatesExisting);
                 $payload[$context['foreignKey']] = $parentId;
-                if ($rowId === null || $rowId === '') {
+                if (!$updatesExisting) {
+                    if ($hasRowId) $payload[$primaryName] = (string) $rowId;
                     $connection->table($context['table'])->insert($payload);
                 } else {
                     unset($payload[$primaryName]);
@@ -617,14 +714,19 @@ final class FormDataService
         $this->assertIdentifier($foreignKey, '子表外键字段');
         $form = Form::where('table_name', $table)->where('status', 1)->find();
         if (!$form) throw new InvalidArgumentException('子表必须配置启用的表单元数据：' . $table);
-        $schema = Db::connect((string) $form->connection)->getFields($table);
+        $published = $this->publishedRuntime($form);
+        $database = (array) ($published['schema']['database'] ?? []);
+        $publishedTable = (string) ($database['table'] ?? $table);
+        if ($publishedTable !== $table) throw new InvalidArgumentException('已发布子表快照与关系配置不一致');
+        $form->connection = (string) ($database['connection'] ?? $form->connection);
+        $schema = Db::connect((string) $form->connection)->getFields($publishedTable);
         return [
-            'table' => $table,
+            'table' => $publishedTable,
             'foreignKey' => $foreignKey,
             'form' => $form,
             'schema' => $schema,
             'primary' => $this->primaryKey($schema),
-            'fields' => FormField::where('form_id', (int) $form->id)->order('sort_order', 'asc')->select(),
+            'fields' => $published['fields'],
         ];
     }
 

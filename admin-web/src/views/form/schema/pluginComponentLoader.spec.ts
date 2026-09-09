@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createFormComponentRegistry } from './componentRegistry';
 import { registerPluginFormComponents } from './pluginComponentLoader';
+import type { PluginCatalogRegistration } from '../designer/pluginCatalog';
 
 const catalog = {
   schemaVersion: 2 as const,
@@ -23,10 +24,11 @@ describe('受信插件表单组件加载', () => {
     const registry = createFormComponentRegistry();
     const loader = vi.fn(async () => ({ default: { name: 'Rating' } }));
 
-    registerPluginFormComponents(catalog, registry, {
+    const result = registerPluginFormComponents(catalog, registry, {
       '../../../modules/demo/Rating.vue': loader
     });
 
+    expect(result).toEqual<PluginCatalogRegistration>({ registered: ['demo:rating'], diagnostics: [] });
     const definition = registry.resolve('demo:rating');
     expect(definition?.namespace).toBe('demo');
     expect(definition?.allowedProps).toEqual(['max']);
@@ -34,15 +36,18 @@ describe('受信插件表单组件加载', () => {
     expect(loader).toHaveBeenCalledOnce();
   });
 
-  it('拒绝 catalog 命名空间越界和未进入 glob 白名单的组件', () => {
-    expect(() => registerPluginFormComponents({
+  it('把 catalog 命名空间越界和未进入 glob 白名单记录为诊断', () => {
+    const namespaceResult = registerPluginFormComponents({
       ...catalog,
       components: [{ ...catalog.components[0], namespace: 'other' }]
     }, createFormComponentRegistry(), {
       '../../../modules/demo/Rating.vue': async () => ({ default: {} })
-    })).toThrow('命名空间');
+    });
+    expect(namespaceResult.registered).toEqual([]);
+    expect(namespaceResult.diagnostics[0]).toMatchObject({ code: 'namespace-mismatch', type: 'demo:rating' });
 
-    expect(() => registerPluginFormComponents(catalog, createFormComponentRegistry(), {}))
-      .toThrow('未包含在当前构建');
+    const missingResult = registerPluginFormComponents(catalog, createFormComponentRegistry(), {});
+    expect(missingResult.registered).toEqual([]);
+    expect(missingResult.diagnostics[0]).toMatchObject({ code: 'missing-plugin', type: 'demo:rating' });
   });
 });
