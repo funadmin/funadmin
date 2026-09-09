@@ -119,6 +119,11 @@ try {
     crudExpect($definition->schemaVersion() === '1.0', 'Definition 必须保留 schemaVersion');
     crudExpect($definition->get('connection') === 'mysql', '旧 Definition 缺省连接必须归一化为 mysql');
     crudExpect($definition->fields()[0]['name'] === 'id', 'Definition 必须保留字段');
+    $generatedContext = \app\common\crud\ProductionTemplateContext::build($definition);
+    $generatedView = (string) ($generatedContext['viewContent'] ?? '');
+    crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: Record<string, unknown>[])'), 'audit-log index.vue selection 回调必须使用结构化通用行类型');
+    crudExpect(str_contains($generatedView, 'onSelectionChange(rows as unknown as AuditLogModel[])'), 'selection 回调必须在 useCrud 边界安全转换为生成模型类型');
+    crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');
 
     $definitionSchema = json_decode(
         (string) file_get_contents(dirname(__DIR__, 2) . '/app/common/crud/schema/crud-definition-v1.schema.json'),

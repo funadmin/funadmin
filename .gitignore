@@ -27,6 +27,9 @@
 !/tests/form_data_observability_contract_test.php
 !/tests/form_observability_test.php
 !/tests/form_schema_api_test.php
+!/tests/form_publish_test.php
+!/tests/business_dynamic_publish_test.php
+!/tests/crud_three_way_merge_test.php
 !/tests/crud_hook_naming_test.php
 !/tests/php_property_modernization_test.php
 !/tests/plugin_code_name_cutover_test.php

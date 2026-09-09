@@ -41,6 +41,8 @@ export default {
     railCollapseLabels: '隐藏标签'
   },
   tabs: {
+    scrollLeft: '向左滚动页签',
+    scrollRight: '向右滚动页签',
     more: '更多',
     refreshCurrent: '刷新当前',
     closeOthers: '关闭其他',

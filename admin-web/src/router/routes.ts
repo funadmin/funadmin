@@ -61,6 +61,12 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'FormData',
         component: () => import('@/views/form/data.vue'),
         meta: { title: '表单数据', hidden: true }
+      },
+      {
+        path: 'development/business/runtime/:formKey',
+        name: 'PublishedFormRuntime',
+        component: () => import('@/views/form/published.vue'),
+        meta: { title: '已发布表单', hidden: true }
       }
     ]
   },

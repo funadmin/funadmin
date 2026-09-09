@@ -1,9 +1,21 @@
 <template>
   <div class="app-tabs">
+    <button
+      type="button"
+      class="app-tabs__scroll-button is-left"
+      :title="t('tabs.scrollLeft')"
+      :aria-label="t('tabs.scrollLeft')"
+      :disabled="!canScrollLeft"
+      @click="scrollTabs(-1)"
+    >
+      <i class="i-ep-arrow-left" />
+    </button>
+
     <el-scrollbar
       ref="scrollRef"
       class="app-tabs__scroll"
       :always="false"
+      @scroll="updateScrollState"
       @wheel.passive="onWheel"
     >
       <div class="app-tabs__inner">
@@ -30,6 +42,17 @@
         </div>
       </div>
     </el-scrollbar>
+
+    <button
+      type="button"
+      class="app-tabs__scroll-button is-right"
+      :title="t('tabs.scrollRight')"
+      :aria-label="t('tabs.scrollRight')"
+      :disabled="!canScrollRight"
+      @click="scrollTabs(1)"
+    >
+      <i class="i-ep-arrow-right" />
+    </button>
 
     <el-dropdown trigger="click" @command="onCmd">
       <button class="app-tabs__more" :title="t('tabs.more')">
@@ -82,8 +105,34 @@
   </div>
 </template>
 
+<script lang="ts">
+export interface TabScrollMetrics {
+  scrollLeft: number;
+  clientWidth: number;
+  scrollWidth: number;
+}
+
+const SCROLL_BOUNDARY_EPSILON = 1;
+
+export function getTabScrollState({ scrollLeft, clientWidth, scrollWidth }: TabScrollMetrics) {
+  const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+  return {
+    canScrollLeft: scrollLeft > SCROLL_BOUNDARY_EPSILON,
+    canScrollRight: scrollLeft < maxScrollLeft - SCROLL_BOUNDARY_EPSILON
+  };
+}
+
+export function getClampedTabScrollLeft(
+  { scrollLeft, clientWidth, scrollWidth }: TabScrollMetrics,
+  direction: -1 | 1
+) {
+  const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+  return Math.min(maxScrollLeft, Math.max(0, scrollLeft + direction * clientWidth));
+}
+</script>
+
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useTabsStore, type TabItem } from '@/store/modules/tabs';
@@ -93,6 +142,8 @@ const { t, locale } = useI18n();
 
 // el-scrollbar 实例 / 单个 tab 元素的 ref
 const scrollRef = ref<any>(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
 
 // 拿到 el-scrollbar 内部真正可滚的 wrap DOM
 function getWrap(): HTMLElement | null {
@@ -100,6 +151,15 @@ function getWrap(): HTMLElement | null {
 }
 
 // 鼠标滚轮：把竖向滚动转换成 tabs 的横向滚动，避免顶栏被一并卷起
+function updateScrollState() {
+  const wrap = getWrap();
+  const state = wrap
+    ? getTabScrollState(wrap)
+    : { canScrollLeft: false, canScrollRight: false };
+  canScrollLeft.value = state.canScrollLeft;
+  canScrollRight.value = state.canScrollRight;
+}
+
 function onWheel(e: WheelEvent) {
   const wrap = getWrap();
   if (!wrap) return;
@@ -109,6 +169,16 @@ function onWheel(e: WheelEvent) {
   const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
   if (delta === 0) return;
   wrap.scrollLeft += delta;
+}
+
+// 点击方向按钮时按当前可视宽度翻动页签，保留上下文并避免逐个页签跳动
+function scrollTabs(direction: -1 | 1) {
+  const wrap = getWrap();
+  if (!wrap) return;
+  wrap.scrollTo({
+    left: getClampedTabScrollLeft(wrap, direction),
+    behavior: 'smooth'
+  });
 }
 
 // 激活 tab 自动滚动到可视区域（切菜单/新增 tab 时触发）
@@ -280,11 +350,17 @@ window.addEventListener('resize', closeMenu);
 window.addEventListener('blur', closeMenu);
 document.addEventListener('keydown', onDocKey);
 
+onMounted(() => {
+  updateScrollState();
+  window.addEventListener('resize', updateScrollState);
+});
+
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick);
   document.removeEventListener('contextmenu', onDocClick, true);
   window.removeEventListener('resize', closeMenu);
   window.removeEventListener('blur', closeMenu);
+  window.removeEventListener('resize', updateScrollState);
   document.removeEventListener('keydown', onDocKey);
 });
 
@@ -292,7 +368,10 @@ onBeforeUnmount(() => {
 watch(
   () => [tabsStore.activePath, tabsStore.tabs.length] as const,
   () => {
-    nextTick(scrollActiveIntoView);
+    nextTick(() => {
+      scrollActiveIntoView();
+      updateScrollState();
+    });
   },
   { immediate: true }
 );
@@ -396,6 +475,7 @@ watch(
   background: var(--el-color-danger);
   color: #fff;
 }
+.app-tabs__scroll-button,
 .app-tabs__more {
   flex-shrink: 0;
   width: 30px;
@@ -409,9 +489,14 @@ watch(
   align-items: center;
   justify-content: center;
 }
+.app-tabs__scroll-button:hover:not(:disabled),
 .app-tabs__more:hover {
   background: var(--app-divider);
   color: var(--el-color-primary);
+}
+.app-tabs__scroll-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 /* 夜间模式：--el-color-primary-light-9 在 dark 下偏白，会让激活 tab 出现白底浅字。

@@ -145,6 +145,18 @@ CREATE TABLE `fun_form_schema_version` (
   UNIQUE KEY `uk_form_schema_version` (`form_id`,`version`),
   UNIQUE KEY `uk_form_schema_hash` (`form_id`,`schema_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `fun_business_module` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(64) NOT NULL,
+  `form_id` bigint unsigned NOT NULL,
+  `lifecycle_status` varchar(32) NOT NULL DEFAULT 'draft',
+  `published_schema_hash` char(64) NULL,
+  `published_schema_version` int unsigned NULL,
+  `deleted_at` datetime NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_business_module_code` (`code`),
+  UNIQUE KEY `uk_business_module_form` (`form_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE `fun_fd_order` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `title` varchar(100) NOT NULL,
@@ -232,11 +244,13 @@ SQL);
     $schemaHashes = [];
     $insertVersion = $database->prepare('INSERT INTO fun_form_schema_version (form_id,version,schema_version,schema_hash,schema_document,created_at) VALUES (?,1,2,?,?,NOW())');
     $publishForm = $database->prepare('UPDATE fun_form SET published_schema_hash=? WHERE id=?');
+    $publishModule = $database->prepare("INSERT INTO fun_business_module (code,form_id,lifecycle_status,published_schema_hash,published_schema_version) VALUES (?,?,'dynamic_published',?,1)");
     foreach ($definitions as $formId => $definition) {
         $compiled = $repository->compile($definition);
         $schemaHashes[$definition['form_key']] = $compiled->hash();
         $insertVersion->execute([$formId, $compiled->hash(), json_encode($compiled->document(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)]);
         $publishForm->execute([$compiled->hash(), $formId]);
+        $publishModule->execute([$definition['form_key'], $formId, $compiled->hash()]);
     }
 
     $isolatedConfig = $originalDatabaseConfig;

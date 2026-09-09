@@ -13,6 +13,7 @@ use app\common\form\validation\FormSchemaDataValidator;
 use app\common\model\DictItem;
 use app\common\model\DictType;
 use app\console\model\Admin;
+use app\console\model\BusinessModule;
 use app\console\model\Department;
 use app\console\model\Form;
 use app\console\model\FormField;
@@ -709,15 +710,27 @@ final class FormDataService
      */
     private function publishedRuntime(Form $form): array
     {
-        $publishedHash = trim((string) ($form->published_schema_hash ?? ''));
-        if ($publishedHash === '') {
-            throw new InvalidArgumentException('表单尚未发布');
+        try {
+            $module = BusinessModule::where(function ($query) use ($form): void {
+                $query->where('form_id', (int) $form->id)->whereOr('code', (string) $form->form_key);
+            })->find();
+        } catch (\Throwable $exception) {
+            throw new InvalidArgumentException('业务模块存储不可用，请先执行 077_business_development_center 迁移', 0, $exception);
         }
-        $version = FormSchemaVersion::where('form_id', (int) $form->id)
-            ->where('schema_hash', (string) $form->published_schema_hash)
+        if (!$module || !in_array((string) $module->lifecycle_status, ['published', 'dynamic_published'], true)) {
+            throw new InvalidArgumentException('业务模块尚未发布');
+        }
+        $publishedHash = trim((string) ($module->published_schema_hash ?? ''));
+        $publishedVersion = (int) ($module->published_schema_version ?? 0);
+        if ($publishedHash === '' || $publishedVersion < 1) {
+            throw new InvalidArgumentException('业务模块已发布 Schema 绑定不完整');
+        }
+        $version = FormSchemaVersion::where('form_id', (int) $module->form_id)
+            ->where('version', $publishedVersion)
+            ->where('schema_hash', $publishedHash)
             ->find();
         if (!$version) {
-            throw new InvalidArgumentException('已发布表单快照不存在');
+            throw new InvalidArgumentException('业务模块已发布 FormSchema 快照不存在');
         }
         $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
         if (!hash_equals($publishedHash, $compiled->hash())) {

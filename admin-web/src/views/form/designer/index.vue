@@ -160,26 +160,19 @@
         <el-alert :title="publishPreview?.ddl.message || '正在等待预览'" type="info" :closable="false" class="mb-3" />
         <el-collapse>
           <el-collapse-item title="数据库迁移" name="ddl"><el-input :model-value="publishPreview?.ddl.sql || '无结构变更'" type="textarea" :rows="8" readonly /></el-collapse-item>
-          <el-collapse-item title="生成文件" name="files">
-            <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" label="路径" /><el-table-column prop="status" label="状态" width="110" /></el-table>
+          <el-collapse-item title="发布 Schema" name="schema">
+            <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.formSchemaHash }}</el-descriptions-item><el-descriptions-item label="依赖 Hash">{{ publishPreview?.formDependencyHash }}</el-descriptions-item></el-descriptions>
           </el-collapse-item>
         </el-collapse>
       </template>
 
       <template v-else-if="publishStep === 2">
-        <el-alert v-if="!conflictFiles.length" title="没有人工修改冲突，可直接发布" type="success" :closable="false" class="mb-3" />
-        <el-checkbox-group v-else v-model="allowOverwrite" class="flex flex-col gap-3">
-          <el-card v-for="file in conflictFiles" :key="file.path" shadow="never">
-            <el-checkbox :value="file.path">允许覆盖 {{ file.path }}</el-checkbox>
-            <el-input :model-value="file.diff || ''" type="textarea" :rows="7" readonly class="mt-2" />
-          </el-card>
-        </el-checkbox-group>
+        <el-alert title="动态发布不会生成或覆盖源码，确认后仅应用 forward-only DDL 并更新发布快照" type="success" :closable="false" class="mb-3" />
       </template>
 
-      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '发布成功' : '发布未完全完成'" :sub-title="publishResult?.generation.resourceApplyError || publishResult?.routePath || ''">
+      <el-result v-else icon="success" title="动态发布成功" :sub-title="publishResult?.routePath || ''">
         <template #extra>
-          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
-          <el-button v-if="publishResult?.publishStatus === 'partial' && publishResult.form.id" :loading="retryingResources" @click="onRetryResources">重试菜单权限</el-button>
+          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开动态页面</el-button>
         </template>
       </el-result>
 
@@ -291,10 +284,8 @@ const publishVisible = ref(false);
 const publishStep = ref(0);
 const previewingPublish = ref(false);
 const publishing = ref(false);
-const retryingResources = ref(false);
 const publishPreview = ref<FormPublishPreview | null>(null);
 const publishResult = ref<FormPublishResult | null>(null);
-const allowOverwrite = ref<string[]>([]);
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
 const icons = ref<string[]>([]);
 const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
@@ -317,11 +308,11 @@ const definition = () => ({
   ...store.form.value,
   schema_version: 2,
   schema_document: store.schemaDocument.value,
+  schemaHash: store.form.value.schema_hash,
   schema_origin: 'designer',
   publish_config: publishConfig.value,
   fields: store.fields.value
 });
-const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
 const debugEnabled = import.meta.env.DEV && import.meta.env.VITE_FORM_DESIGNER_DEBUG !== 'false';
 const debugSummary = computed(() => buildSchemaDebugSummary(store.schemaDocument.value));
 const debugState = computed(() => buildDesignerDebugState(store.schemaDocument.value, previewValues));
@@ -456,7 +447,6 @@ const openPublish = async () => {
   publishStep.value = 0;
   publishPreview.value = null;
   publishResult.value = null;
-  allowOverwrite.value = [];
   publishVisible.value = true;
 };
 const validatePublishConfig = () => {
@@ -482,48 +472,30 @@ const onPreviewPublish = async () => {
   if (!validatePublishConfig()) return;
   previewingPublish.value = true;
   try {
-    publishPreview.value = await formDesignerApi.previewPublish(definition());
+    const compiled = await formDesignerApi.compile(store.schemaDocument.value);
+    publishPreview.value = await formDesignerApi.previewPublish({ ...definition(), schemaHash: compiled.hash });
     publishStep.value = 1;
   } finally {
     previewingPublish.value = false;
   }
 };
 const onPublish = async () => {
-  const token = publishPreview.value?.sensitive?.confirmToken || '';
-  if (!token) {
-    ElMessage.warning('发布预览已失效，请重新预览');
-    publishStep.value = 0;
-    return;
-  }
   publishing.value = true;
   try {
-    publishResult.value = await formDesignerApi.publish(definition(), token, allowOverwrite.value);
+    publishResult.value = await formDesignerApi.publish({ ...definition(), schemaHash: publishPreview.value?.formSchemaHash || '' });
     store.markSaved({ ...publishResult.value.form, fields: store.fields.value });
     const dynamicRoutes = await permissionStore.fetchMenus();
     dynamicRoutes.forEach((dynamicRoute) => {
       if (!dynamicRoute.name || !router.hasRoute(dynamicRoute.name)) router.addRoute(dynamicRoute);
     });
     publishStep.value = 3;
-    ElMessage.success(publishResult.value.publishStatus === 'published' ? '全栈发布成功' : '代码已生成，菜单权限需要重试');
+    ElMessage.success('动态发布成功');
   } finally {
     publishing.value = false;
   }
 };
 const openGeneratedRoute = () => {
   if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
-};
-const onRetryResources = async () => {
-  const formId = publishResult.value?.form.id;
-  if (!formId) return;
-  retryingResources.value = true;
-  try {
-    const result = await formDesignerApi.retryResources(formId);
-    if (publishResult.value) publishResult.value.publishStatus = result.publishStatus;
-    await permissionStore.fetchMenus();
-    ElMessage.success('菜单与权限应用成功');
-  } finally {
-    retryingResources.value = false;
-  }
 };
 
 async function onInfer() {

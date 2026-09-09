@@ -465,7 +465,7 @@ final class ProductionTemplateContext
         if ($enabled['export']) $methods[] = "  exportRows: (params: Partial<{$type}Query>) => request.get<{$type}[]>('{$base}/export', params)";
         return "import request from '@/utils/http';\n\nexport interface {$type} {\n"
             . implode("\n", $fields) . "\n}\nexport type {$type}Id = {$idType};\n"
-            . "export interface {$type}Query { page: number; pageSize: number; recycled?: 0 | 1; sort?: string; order?: 'asc' | 'desc'; [key: string]: unknown }\n"
+            . "export interface {$type}Query { page: number; pageSize: number; recycled?: 0 | 1; sort?: string; order?: 'asc' | 'desc'; [key: string]: string | number | undefined }\n"
             . "export type {$type}Payload = Partial<Omit<{$type}, '{$primaryName}'>>;\n\nexport const {$camel}Api = {\n"
             . implode(",\n", $methods) . "\n};\n";
     }
@@ -572,7 +572,7 @@ final class ProductionTemplateContext
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0 }), rowKey: '{$primaryName}', pagination: true });\n"
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
-            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: unknown[]) => onSelectionChange(rows as {$type}[]);\n" : '')
+            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: Record<string, unknown>[]) => onSelectionChange(rows as unknown as {$type}[]);\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
@@ -733,19 +733,19 @@ final class ProductionTemplateContext
     {
         $value = "scope.row.{$key}";
         return match ($formatter) {
-            'tag' => "<template #default=\"scope\"><el-tag>{{ {$value} }}</el-tag></template>",
+            'tag' => "<template #default=\"scope\"><el-tag>{{ String({$value} ?? '') }}</el-tag></template>",
             'switch', 'boolean' => "<template #default=\"scope\"><el-tag :type=\"Number({$value}) === 1 ? 'success' : 'info'\">{{ Number({$value}) === 1 ? '是' : '否' }}</el-tag></template>",
             'image' => "<template #default=\"scope\"><el-image :src=\"String({$value} ?? '')\" fit=\"cover\" class=\"h-10 w-10 rounded\" /></template>",
             'images' => "<template #default=\"scope\"><span>{{ Array.isArray({$value}) ? {$value}.length + ' 张' : '' }}</span></template>",
             'money' => "<template #default=\"scope\"><span>￥{{ Number({$value} ?? 0).toFixed(2) }}</span></template>",
             'percent' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toFixed(2) }}%</span></template>",
             'number' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toLocaleString('zh-CN') }}</span></template>",
-            'link' => "<template #default=\"scope\"><el-link :href=\"String({$value} ?? '')\" target=\"_blank\">{{ {$value} }}</el-link></template>",
-            'email' => "<template #default=\"scope\"><el-link :href=\"'mailto:' + String({$value} ?? '')\">{{ {$value} }}</el-link></template>",
-            'phone' => "<template #default=\"scope\"><el-link :href=\"'tel:' + String({$value} ?? '')\">{{ {$value} }}</el-link></template>",
+            'link' => "<template #default=\"scope\"><el-link :href=\"String({$value} ?? '')\" target=\"_blank\">{{ String({$value} ?? '') }}</el-link></template>",
+            'email' => "<template #default=\"scope\"><el-link :href=\"'mailto:' + String({$value} ?? '')\">{{ String({$value} ?? '') }}</el-link></template>",
+            'phone' => "<template #default=\"scope\"><el-link :href=\"'tel:' + String({$value} ?? '')\">{{ String({$value} ?? '') }}</el-link></template>",
             'json' => "<template #default=\"scope\"><code>{{ JSON.stringify({$value}) }}</code></template>",
-            'date', 'datetime', 'time' => "<template #default=\"scope\"><span>{{ {$value} ?? '-' }}</span></template>",
-            default => "<template #default=\"scope\"><span>{{ {$value} }}</span></template>",
+            'date', 'datetime', 'time' => "<template #default=\"scope\"><span>{{ String({$value} ?? '-') }}</span></template>",
+            default => "<template #default=\"scope\"><span>{{ String({$value} ?? '') }}</span></template>",
         };
     }
 

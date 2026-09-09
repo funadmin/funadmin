@@ -62,7 +62,7 @@ import {
 } from './runtime/submissionPolicy';
 
 const route = useRoute();
-const formKey = computed(() => String(route.meta.formKey || route.query.formKey || ''));
+const formKey = computed(() => String(route.params.formKey || route.meta.formKey || route.query.formKey || ''));
 const loading = ref(false);
 const saving = ref(false);
 const meta = ref<FormDataMeta | null>(null);

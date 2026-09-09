@@ -43,4 +43,5 @@ pnpm-debug.log*
 /tests/*
 !/tests/contracts/
 /tests/contracts/*
+!/tests/contracts/form-publish.spec.ts
 !/tests/contracts/plugin-code-name-cutover.spec.ts

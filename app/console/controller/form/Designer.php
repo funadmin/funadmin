@@ -10,7 +10,6 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\service\AdminAuthorizationService;
 use app\console\service\FormDesignerService;
 use app\console\service\FormPublishService;
 use app\console\service\FormSchemaRepository;
@@ -42,14 +41,9 @@ final class Designer extends AdminApiController
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->forms = new FormDesignerService($app->getRootPath());
-        $connections = config('crud.connections', []);
-        $this->publisher = new FormPublishService(
-            $this->forms,
-            $app->getRootPath(),
-            is_array($connections) ? array_values(array_filter($connections, 'is_string')) : []
-        );
         $this->schemas = new FormSchemaRepository();
+        $this->forms = new FormDesignerService($app->getRootPath(), $this->schemas);
+        $this->publisher = new FormPublishService($this->forms, $this->schemas);
         $this->observability = new FormObservability();
     }
 
@@ -125,27 +119,16 @@ final class Designer extends AdminApiController
     #[Post('preview-publish')]
     public function previewPublish(): Response
     {
-        $authorization = new AdminAuthorizationService();
-        $canGenerate = $authorization->nodeAccess('console/form.designer/publish');
-        return $this->execute(fn (): array => $this->publisher->preview($this->payload(), $canGenerate));
+        return $this->execute(fn (): array => $this->publisher->previewDynamic($this->payload()));
     }
 
     #[Post('publish')]
     public function publish(): Response
     {
-        $allowOverwrite = $this->request->post('allowOverwrite', []);
-        if (!is_array($allowOverwrite)) {
-            return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
-        }
-        $authorization = new AdminAuthorizationService();
-        return $this->execute(fn (): array => $this->publisher->publish(
+        return $this->execute(fn (): array => $this->publisher->publishDynamic(
             $this->payload(),
-            trim((string) $this->request->post('confirmToken', '')),
-            array_values(array_filter($allowOverwrite, 'is_string')),
-            $authorization->nodeAccess('form/publish/overwrite'),
-            $authorization->nodeAccess('form/publish/apply-resources'),
             (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
-        ), '表单全栈发布完成');
+        ), '表单动态发布完成');
     }
 
     #[Post('compile')]
@@ -225,30 +208,6 @@ final class Designer extends AdminApiController
         return $this->execute(fn (): array => $this->publisher->status($id));
     }
 
-    #[Get('generation/:id')]
-    #[Pattern('id', '\d+')]
-    public function generation(int $id): Response
-    {
-        $status = $this->publisher->status($id);
-        $generationId = (int) ($status['generationId'] ?? 0);
-        if ($generationId < 1) return $this->fail(msg: '表单没有生成记录', code: 404);
-        $record = $this->publisher->generation($generationId);
-        return $record === null ? $this->fail(msg: '生成记录不存在', code: 404) : $this->ok(data: $record);
-    }
-
-    #[Post('retry-resources/:id')]
-    #[Pattern('id', '\d+')]
-    public function retryResources(int $id): Response
-    {
-        $authorization = new AdminAuthorizationService();
-        if (!$authorization->nodeAccess('console/form.designer/publish')
-            || !$authorization->nodeAccess('form/publish/overwrite')
-            || !$authorization->nodeAccess('form/publish/apply-resources')) {
-            return $this->fail(msg: '缺少资源重试权限', code: 403);
-        }
-        return $this->execute(fn (): array => $this->publisher->retryResources($id), '菜单与权限应用完成');
-    }
-
     private function payload(): array
     {
         $payload = $this->request->post('definition', []);
@@ -288,6 +247,9 @@ final class Designer extends AdminApiController
                 code: 422
             );
         } catch (InvalidArgumentException $exception) {
+            if ($exception->getMessage() === 'FORM_SCHEMA_CONFLICT') {
+                return $this->fail(msg: '表单 Schema 已变化，请刷新后重试', data: ['code' => 'FORM_SCHEMA_CONFLICT'], code: 409);
+            }
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 500);

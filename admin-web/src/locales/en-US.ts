@@ -40,6 +40,8 @@ export default {
     railCollapseLabels: 'Hide labels'
   },
   tabs: {
+    scrollLeft: 'Scroll tabs left',
+    scrollRight: 'Scroll tabs right',
     more: 'More',
     refreshCurrent: 'Refresh current',
     closeOthers: 'Close others',

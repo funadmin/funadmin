@@ -96,7 +96,16 @@ export interface FormFieldDef {
 }
 
 /** 表单定义 */
-export type FormPublishStatus = 'draft' | 'publishing' | 'published' | 'partial' | 'conflict' | 'failed';
+export type FormPublishStatus =
+  | 'draft'
+  | 'validating'
+  | 'validation_failed'
+  | 'ddl_pending'
+  | 'publishing'
+  | 'ddl_failed'
+  | 'metadata_partial'
+  | 'dynamic_published'
+  | 'published';
 
 export interface FormPublishConfig {
   module: string;
@@ -144,27 +153,24 @@ export interface FormDefinition {
 export interface MigrationPreview {
   mode: 'create' | 'additive' | 'none';
   sql: string;
-  file: string;
+  file?: string;
   message: string;
   applied?: boolean;
 }
 
 export interface FormPublishPreview {
-  definition: Record<string, unknown>;
-  definitionHash: string;
+  formSchemaHash: string;
+  formDependencyHash: string;
+  diagnostics: Array<{ path: string; code: string; message: string }>;
   ddl: MigrationPreview;
-  generationId?: number | null;
-  plan: { files: Array<{ path: string; status: 'create' | 'unchanged' | 'conflict' | 'blocked'; diff?: string; content?: string }> };
-  sensitive?: { confirmToken: string } | null;
-  conflicts: Array<{ path: string; status: 'conflict'; diff?: string }>;
-  publishStatus: 'ready' | 'conflict';
+  publishStatus: 'ready';
 }
 
 export interface FormPublishResult {
   form: FormDefinition;
+  businessModule: Record<string, unknown>;
   ddl: MigrationPreview;
-  generation: { generationId: number; resourceApplyStatus?: string; resourceApplyError?: string | null };
-  publishStatus: FormPublishStatus;
+  publishStatus: 'dynamic_published';
   routePath: string;
 }
 
@@ -247,9 +253,6 @@ export const formDesignerApi = {
   preview: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/preview`, { definition }),
   apply: (definition: Record<string, unknown>) => http.post<MigrationPreview>(`${PREFIX}/apply`, { definition }),
   previewPublish: (definition: Record<string, unknown>) => http.post<FormPublishPreview>(`${PREFIX}/preview-publish`, { definition }),
-  publish: (definition: Record<string, unknown>, confirmToken: string, allowOverwrite: string[]) =>
-    http.post<FormPublishResult>(`${PREFIX}/publish`, { definition, confirmToken, allowOverwrite }),
-  publishStatus: (id: number) => http.get<{ publishStatus: FormPublishStatus; publishedAt?: string | null; generationId?: number | null }>(`${PREFIX}/publish-status/${id}`),
-  generation: (id: number) => http.get<Record<string, unknown>>(`${PREFIX}/generation/${id}`),
-  retryResources: (id: number) => http.post<{ publishStatus: FormPublishStatus; resourceApplyStatus: string }>(`${PREFIX}/retry-resources/${id}`)
+  publish: (definition: Record<string, unknown>) => http.post<FormPublishResult>(`${PREFIX}/publish`, { definition }),
+  publishStatus: (id: number) => http.get<{ publishStatus: FormPublishStatus; publishedAt?: string | null }>(`${PREFIX}/publish-status/${id}`)
 };

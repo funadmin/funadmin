@@ -281,6 +281,10 @@ final class FieldCapabilityRegistry
         if (!is_array($definition)) {
             throw new InvalidArgumentException('插件字段能力定义必须为数组');
         }
+        $required = ['type', 'namespace', 'component', 'valueType', 'defaultProps', 'propertySchema', 'allowedEvents', 'codec'];
+        if (array_diff($required, array_keys($definition)) !== []) {
+            throw new InvalidArgumentException('插件字段能力定义字段不完整');
+        }
         $type = trim((string) ($definition['type'] ?? ''));
         $namespace = trim((string) ($definition['namespace'] ?? ''));
         if (isset($this->definitions[$type]) || in_array($type, self::TYPES, true)) {

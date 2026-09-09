@@ -109,7 +109,7 @@ final class FormDesignerService
             throw new InvalidArgumentException('至少需要一个字段');
         }
         $seen = [];
-        foreach ($fields as $index => $field) {
+        foreach (array_values($fields) as $index => $field) {
             $label = '第' . ($index + 1) . '个字段';
             $fieldName = trim((string) ($field['field_name'] ?? ''));
             if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $fieldName)) {
@@ -190,7 +190,7 @@ final class FormDesignerService
         $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
-        $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? $payload['schema_hash'] ?? ''));
+        $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? ''));
         $compiled = $this->schemas->compile($this->schemaPayload($payload));
         $document = $compiled->document();
         $database = (array) ($document['database'] ?? []);
@@ -331,6 +331,29 @@ final class FormDesignerService
         ];
     }
 
+    /** 动态发布专用 DDL：二次预检后仅执行 forward-only SQL，不生成或登记迁移文件。 */
+    public function applyDynamicDdl(array $payload): array
+    {
+        $expectedHash = trim((string) ($payload['dynamic_ddl_hash'] ?? ''));
+        $preview = $this->previewMigration($payload);
+        $actualHash = hash('sha256', (string) $preview['sql']);
+        if ($expectedHash === '' || !hash_equals($expectedHash, $actualHash)) {
+            throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+        }
+        if ($preview['mode'] === 'none' || $preview['sql'] === '') {
+            return $preview + ['applied' => false];
+        }
+        $this->assertDynamicForwardSql((string) $preview['sql']);
+        $ddlApplied = false;
+        try {
+            Db::execute(rtrim(trim((string) $preview['sql']), ';'));
+            $ddlApplied = true;
+        } catch (Throwable $exception) {
+            throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
+        }
+        return array_diff_key($preview, ['file' => true]) + ['applied' => true];
+    }
+
     /** 应用 DDL：写守卫式迁移文件→执行→登记仓库。 */
     public function applyMigration(array $payload): array
     {
@@ -369,6 +392,56 @@ final class FormDesignerService
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
         }
         return $preview + ['applied' => true];
+    }
+
+    private function assertDynamicForwardSql(string $sql): void
+    {
+        $statement = rtrim(trim($sql), ';');
+        if ($statement === '' || str_contains($statement, ';')) {
+            throw new InvalidArgumentException('动态发布仅允许单条 forward-only CREATE TABLE 或 ADDITIVE ALTER TABLE');
+        }
+        if (preg_match('/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\b/is', $statement) === 1) {
+            return;
+        }
+        if (preg_match('/^ALTER\s+TABLE\s+(?:`[^`]+`|[a-z_][a-z0-9_]*)\s+(.+)$/is', $statement, $match) !== 1) {
+            throw new InvalidArgumentException('动态发布仅允许单条 forward-only CREATE TABLE 或 ADDITIVE ALTER TABLE');
+        }
+        foreach ($this->dynamicAlterActions($match[1]) as $action) {
+            if (preg_match('/^ADD\s+(?:COLUMN|KEY|UNIQUE\s+KEY|CONSTRAINT)\b/is', $action) !== 1) {
+                throw new InvalidArgumentException('动态发布 ALTER TABLE 仅允许新增列、索引或约束');
+            }
+        }
+    }
+
+    /** 按顶层逗号切分 ALTER 动作，避免把 decimal(10,2) 或注释文本误识别为新动作。 */
+    private function dynamicAlterActions(string $sql): array
+    {
+        $actions = [];
+        $start = 0;
+        $depth = 0;
+        $quote = '';
+        $length = strlen($sql);
+        for ($index = 0; $index < $length; $index++) {
+            $character = $sql[$index];
+            if ($quote !== '') {
+                if ($character === $quote && ($quote === '`' || $index === 0 || $sql[$index - 1] !== '\\')) {
+                    $quote = '';
+                }
+                continue;
+            }
+            if (in_array($character, ["'", '"', '`'], true)) {
+                $quote = $character;
+            } elseif ($character === '(') {
+                $depth++;
+            } elseif ($character === ')') {
+                $depth--;
+            } elseif ($character === ',' && $depth === 0) {
+                $actions[] = trim(substr($sql, $start, $index - $start));
+                $start = $index + 1;
+            }
+        }
+        $actions[] = trim(substr($sql, $start));
+        return $actions;
     }
 
     private function schemaPayload(array $payload): array

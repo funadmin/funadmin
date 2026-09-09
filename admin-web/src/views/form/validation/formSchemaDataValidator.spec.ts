@@ -70,13 +70,15 @@ describe('FormSchema v2 双端统一验证协议', () => {
 
   it('async key 始终注册但 when 未命中时不调用远端验证', async () => {
     let calls = 0;
+    const values = { email: 'used', mode: 'strict' };
     const rules = createElementPlusValidationRules('email', [{
       type: 'async',
       validator: { key: 'account.unique' },
       when: { field: 'mode', op: 'eq', value: 'strict' }
-    }], { email: 'used', mode: 'relaxed' }, () => async () => { calls += 1; });
+    }], values, () => async () => { calls += 1; });
 
     expect(rules).toHaveLength(1);
+    values.mode = 'relaxed';
     await rules[0]?.validator?.({}, 'used', () => undefined);
     expect(calls).toBe(0);
   });

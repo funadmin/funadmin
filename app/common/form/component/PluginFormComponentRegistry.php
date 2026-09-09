@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\form\component;
 
+use Closure;
 use fun\plugins\Manifest;
 use fun\plugins\PluginActivationReader;
 use fun\plugins\PluginEntryFactory;
@@ -14,11 +15,13 @@ final class PluginFormComponentRegistry
 {
     /** @var array<string, object> */
     private array $entries = [];
+    private readonly ?Closure $enabledManifests;
+    private readonly ?Closure $entryResolver;
 
-    public function __construct(
-        private readonly mixed $enabledManifests = null,
-        private readonly mixed $entryResolver = null
-    ) {
+    public function __construct(?callable $enabledManifests = null, ?callable $entryResolver = null)
+    {
+        $this->enabledManifests = $enabledManifests === null ? null : Closure::fromCallable($enabledManifests);
+        $this->entryResolver = $entryResolver === null ? null : Closure::fromCallable($entryResolver);
     }
 
     public function catalog(): array
@@ -126,7 +129,7 @@ final class PluginFormComponentRegistry
         if (!$manifest instanceof Manifest) {
             throw new RuntimeException('插件组件所属插件未启用：' . $code);
         }
-        if (is_callable($this->entryResolver)) {
+        if ($this->entryResolver instanceof Closure) {
             $entry = ($this->entryResolver)($manifest);
         } else {
             $entry = (new PluginEntryFactory())->create(
@@ -139,7 +142,7 @@ final class PluginFormComponentRegistry
 
     private function manifests(): array
     {
-        if (is_callable($this->enabledManifests)) {
+        if ($this->enabledManifests instanceof Closure) {
             return (array) ($this->enabledManifests)();
         }
         $root = function_exists('root_path') ? root_path() : dirname(__DIR__, 4) . DIRECTORY_SEPARATOR;

@@ -192,6 +192,9 @@ $rejectPlugin = static function (array $definition, string $message): void {
 $missingRequired = $plugin;
 unset($missingRequired['component']);
 $rejectPlugin($missingRequired, '插件缺少 Manifest required 字段必须拒绝');
+$missingValueType = $plugin;
+unset($missingValueType['valueType']);
+$rejectPlugin($missingValueType, '插件缺少 valueType 时不得由 defaults 静默补齐');
 $invalidBoolean = $plugin;
 $invalidBoolean['supportsDynamic'] = 'true';
 $rejectPlugin($invalidBoolean, '插件布尔能力字段类型错误必须拒绝');
