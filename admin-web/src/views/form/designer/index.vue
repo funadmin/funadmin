@@ -18,8 +18,7 @@
         <el-button @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
         <el-button @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
         <el-button :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
-        <el-button v-if="store.form.value.source_type === 'adopted'" @click="inferVisible = true">{{ t('formDesigner.reInfer', '重新推断') }}</el-button>
-        <el-button v-if="store.form.value.source_type === 'created'" @click="onPreview">{{ t('formDesigner.migrationPreview', '迁移预览') }}</el-button>
+
         <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
         <el-button
           :type="store.dirty.value ? 'primary' : 'default'"
@@ -27,7 +26,8 @@
           :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
           @click="onSave"
         >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
-        <el-button type="primary" @click="openPublish">{{ t('formDesigner.publish', '发布') }}</el-button>
+        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
+        <el-button @click="openFormalGeneration">生成正式模块</el-button>
       </div>
     </template>
 
@@ -171,11 +171,10 @@
       </el-form>
 
       <template v-else-if="publishStep === 1">
-        <el-alert :title="publishPreview?.ddl.message || '正在等待预览'" type="info" :closable="false" class="mb-3" />
+        <el-alert :title="publishPreview?.plan.blocked ? '存在冲突，正式生成已阻断' : '正式生成计划已就绪'" :type="publishPreview?.plan.blocked ? 'warning' : 'success'" :closable="false" class="mb-3" />
         <el-collapse>
-          <el-collapse-item title="数据库迁移" name="ddl"><el-input :model-value="publishPreview?.ddl.sql || '无结构变更'" type="textarea" :rows="8" readonly /></el-collapse-item>
-          <el-collapse-item title="发布 Schema" name="schema">
-            <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.formSchemaHash }}</el-descriptions-item><el-descriptions-item label="依赖 Hash">{{ publishPreview?.formDependencyHash }}</el-descriptions-item></el-descriptions>
+          <el-collapse-item title="正式生成基线" name="schema">
+            <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.schemaHash }}</el-descriptions-item><el-descriptions-item label="Definition Hash">{{ publishPreview?.definitionHash }}</el-descriptions-item></el-descriptions>
           </el-collapse-item>
           <el-collapse-item title="生成文件" name="files">
             <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" label="路径" /><el-table-column prop="status" label="状态" width="110" /></el-table>
@@ -185,18 +184,23 @@
 
       <template v-else-if="publishStep === 2">
         <el-alert v-if="!conflictFiles.length" title="没有人工修改冲突，可直接发布" type="success" :closable="false" class="mb-3" />
-        <el-checkbox-group v-else v-model="allowOverwrite" class="flex flex-col gap-3">
+        <div v-else class="flex flex-col gap-3">
+          <el-alert title="存在冲突时禁止生成。请在本地人工处理后重新预览；系统不会强制覆盖文件。" type="warning" :closable="false" />
           <el-card v-for="file in conflictFiles" :key="file.path" shadow="never">
-            <el-checkbox :value="file.path">允许覆盖 {{ file.path }}</el-checkbox>
-            <el-input :model-value="file.diff || ''" type="textarea" :rows="7" readonly class="mt-2" />
+            <div class="mb-2 font-medium">{{ file.path }} · {{ file.status }}</div>
+            <el-tabs v-if="file.status !== 'binary-conflict'" type="border-card">
+              <el-tab-pane label="Base"><el-input :model-value="file.baseContent || ''" type="textarea" :rows="7" readonly /></el-tab-pane>
+              <el-tab-pane label="Local"><el-input :model-value="file.localContent || ''" type="textarea" :rows="7" readonly /></el-tab-pane>
+              <el-tab-pane label="Remote"><el-input :model-value="file.remoteContent || ''" type="textarea" :rows="7" readonly /></el-tab-pane>
+            </el-tabs>
+            <el-descriptions v-else :column="1" border size="small"><el-descriptions-item label="Base hash">{{ file.baseHash || '-' }}</el-descriptions-item><el-descriptions-item label="Local hash">{{ file.localHash || '-' }}</el-descriptions-item><el-descriptions-item label="Remote hash">{{ file.remoteHash || '-' }}</el-descriptions-item></el-descriptions>
           </el-card>
-        </el-checkbox-group>
+        </div>
       </template>
 
-      <el-result v-else :icon="publishResult?.publishStatus === 'published' ? 'success' : 'warning'" :title="publishResult?.publishStatus === 'published' ? '全栈发布成功' : '发布未完全完成'" :sub-title="publishResult?.generation.resourceApplyError || publishResult?.routePath || ''">
+      <el-result v-else :icon="publishResult?.state === 'completed' ? 'success' : 'warning'" :title="publishResult?.state === 'completed' ? '正式模块生成成功' : '正式模块生成未完成'" :sub-title="publishResult?.resourceApplyError || publishResult?.routePath || ''">
         <template #extra>
           <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
-          <el-button v-if="publishResult?.publishStatus === 'partial' && store.form.value.id" :loading="retryingResources" @click="onRetryResources">重试菜单权限</el-button>
         </template>
       </el-result>
 
@@ -205,7 +209,7 @@
         <el-button v-if="publishStep > 0 && publishStep < 3" @click="publishStep--">上一步</el-button>
         <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
-        <el-button v-else-if="publishStep === 2" type="primary" :loading="publishing" @click="onPublish">确认发布</el-button>
+        <el-button v-else-if="publishStep === 2" type="primary" :loading="publishing" :disabled="conflictFiles.length > 0" @click="onPublish">确认生成</el-button>
       </template>
     </el-dialog>
 
@@ -240,32 +244,6 @@
       </el-collapse>
     </el-card>
 
-    <!-- 迁移预览 -->
-    <el-dialog v-model="previewVisible" title="迁移预览" width="720px">
-      <el-alert :title="preview?.message ?? ''" type="info" :closable="false" class="mb-2" />
-      <el-input :model-value="preview?.sql ?? ''" type="textarea" :rows="14" readonly />
-      <template #footer>
-        <el-button @click="previewVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="applying" :disabled="!preview?.sql" @click="onApply">应用迁移</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 采纳推断 -->
-    <el-dialog v-model="inferVisible" title="从已有表推断字段" width="480px">
-      <el-form label-width="90px">
-        <el-form-item label="连接">
-          <el-input model-value="mysql" disabled />
-        </el-form-item>
-        <el-form-item label="数据表">
-          <el-input v-model="inferTable" placeholder="如 fun_activity" />
-        </el-form-item>
-      </el-form>
-      <el-alert title="推断将替换当前画布字段（可撤销）" type="warning" :closable="false" />
-      <template #footer>
-        <el-button @click="inferVisible = false">取消</el-button>
-        <el-button type="primary" :loading="inferring" @click="onInfer">推断</el-button>
-      </template>
-    </el-dialog>
   </PageWrapper>
 </template>
 
@@ -277,14 +255,10 @@ import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import {
   formDesignerApi,
-  formFullPublishApi,
   type FormPublishConfig,
-  type FormFullPublishPreview,
-  type FormFullPublishResult,
-  type FormSchemaVersion,
-  type MigrationPreview
+  type FormSchemaVersion
 } from '@/api/form';
-import { crudDevelopmentApi } from '@/api/development/crud';
+import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult } from '@/api/development/business';
 import { usePermissionStore } from '@/store/modules/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
@@ -313,21 +287,12 @@ const previewErrorsJson = ref('{}');
 const previewRenderer = ref<{ setFieldErrors: (errors: Record<string, string>) => Promise<void> }>();
 const jsonEditorVisible = ref(false);
 const versionVisible = ref(false);
-const applying = ref(false);
-const inferring = ref(false);
-const previewVisible = ref(false);
-const inferVisible = ref(false);
-const inferTable = ref('');
-const preview = ref<MigrationPreview | null>(null);
 const publishVisible = ref(false);
 const publishStep = ref(0);
 const previewingPublish = ref(false);
 const publishing = ref(false);
-const retryingResources = ref(false);
-const publishPreview = ref<FormFullPublishPreview | null>(null);
-const publishResult = ref<FormFullPublishResult | null>(null);
-const publishOperationKey = ref('');
-const allowOverwrite = ref<string[]>([]);
+const publishPreview = ref<BusinessFormalGenerationPreview | null>(null);
+const publishResult = ref<BusinessFormalGenerationResult | null>(null);
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
@@ -468,11 +433,14 @@ const validateDefinitionBasics = () => {
 };
 
 async function load() {
-  const id = Number(route.query.id ?? 0);
-  if (!id) return;
-  const data = await formDesignerApi.detail(id);
+  const moduleId = Number(route.query.moduleId ?? 0);
+  if (!moduleId) {
+    await router.replace('/development/business/mine');
+    return;
+  }
+  const data = await businessDevelopmentApi.module(moduleId);
+  if (!data.form) throw new Error('业务模块没有可设计表单');
   store.load({ ...data.form, fields: data.fields });
-  inferTable.value = data.form.table_name;
 }
 
 async function onSave() {
@@ -483,10 +451,13 @@ async function onSave() {
   const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
-    const saved = await formDesignerApi.save(payload);
+    const moduleId = Number(route.query.moduleId ?? 0);
+    const expectedHash = String(store.form.value.schema_hash ?? '');
+    if (!moduleId || !expectedHash) throw new Error('业务模块或 Schema hash 缺失');
+    const saved = await businessDevelopmentApi.saveSchema(moduleId, store.schemaDocument.value, expectedHash, '业务设计器保存');
     const unchanged = revision === saveRevision && JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
-      store.markSaved({ ...saved.form, fields: saved.fields });
+      store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
       clearLocalDraft();
       ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
     } else {
@@ -503,23 +474,26 @@ async function onSave() {
   }
 }
 
-async function onPreview() {
-  if (!validateDefinitionBasics()) return;
-  preview.value = await formDesignerApi.preview(definition());
-  previewVisible.value = true;
-}
-
-async function onApply() {
-  if (!validateDefinitionBasics()) return;
-  applying.value = true;
+const onDynamicPublish = async () => {
+  if (!validateDefinitionBasics() || store.dirty.value) return;
+  const moduleId = Number(route.query.moduleId ?? 0);
+  const schemaHash = String(store.form.value.schema_hash ?? '');
+  if (!moduleId || !schemaHash) throw new Error('业务模块或 Schema hash 缺失');
+  const payload = { schema_document: store.schemaDocument.value, schemaHash, expected_schema_hash: schemaHash, publish_config: publishConfig.value };
+  const previewResult = await businessDevelopmentApi.previewPublish(moduleId, payload);
+  await businessDevelopmentApi.publish(moduleId, { ...payload, formDependencyHash: previewResult.formDependencyHash });
+  ElMessage.success('动态发布成功');
+};
+const openFormalGeneration = async () => {
+  const moduleId = Number(route.query.moduleId ?? 0);
+  if (!moduleId || store.dirty.value) { ElMessage.warning('请先保存业务 Schema'); return; }
+  previewingPublish.value = true;
   try {
-    preview.value = await formDesignerApi.apply(definition());
-    ElMessage.success('迁移应用成功');
-  } finally {
-    applying.value = false;
-  }
-}
-
+    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, crypto.randomUUID());
+    publishStep.value = 1;
+    publishVisible.value = true;
+  } finally { previewingPublish.value = false; }
+};
 const openPublish = async () => {
   if (!validateDefinitionBasics() || !store.fields.value.some((field) => controlMeta(field.type).kind !== 'layout')) return;
   if (!pluginCatalog.canPublish(store.fields.value)) {
@@ -534,15 +508,9 @@ const openPublish = async () => {
     routePath: store.form.value.publish_config?.routePath || `/generated/${key}`,
     menuName: store.form.value.publish_config?.menuName || String(store.form.value.name ?? key)
   };
-  if (!parentMenus.value.length) {
-    const options = await crudDevelopmentApi.options();
-    parentMenus.value = options.parentMenus as unknown as Array<Record<string, unknown>>;
-    icons.value = options.icons;
-  }
   publishStep.value = 0;
   publishPreview.value = null;
   publishResult.value = null;
-  publishOperationKey.value = crypto.randomUUID();
   publishVisible.value = true;
 };
 const validatePublishConfig = () => {
@@ -577,7 +545,8 @@ const onPreviewPublish = async () => {
   }
   previewingPublish.value = true;
   try {
-    publishPreview.value = await formFullPublishApi.preview(formId);
+    const moduleId = Number(route.query.moduleId ?? 0);
+    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, crypto.randomUUID());
     publishStep.value = 1;
   } finally {
     previewingPublish.value = false;
@@ -589,20 +558,18 @@ const onPublish = async () => {
     const formId = Number(store.form.value.id || 0);
     const generationId = Number(publishPreview.value?.generationId || 0);
     if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
-    publishResult.value = await formFullPublishApi.publish(
-      formId,
+    const moduleId = Number(route.query.moduleId ?? 0);
+    publishResult.value = await businessDevelopmentApi.formalGeneration(
+      moduleId,
       generationId,
-      publishPreview.value?.formSchemaHash || '',
-      publishPreview.value?.sensitive?.confirmToken || '',
-      publishOperationKey.value
+      publishPreview.value?.sensitive?.confirmToken || ''
     );
-    store.markSaved({ ...publishResult.value.form, fields: store.fields.value });
     const dynamicRoutes = await permissionStore.fetchMenus();
     dynamicRoutes.forEach((dynamicRoute) => {
       if (!dynamicRoute.name || !router.hasRoute(dynamicRoute.name)) router.addRoute(dynamicRoute);
     });
     publishStep.value = 3;
-    ElMessage.success(publishResult.value.publishStatus === 'published' ? '全栈发布成功' : '代码已生成，菜单权限需要重试');
+    ElMessage.success(publishResult.value.state === 'completed' ? '正式模块生成成功' : '正式模块生成未完成');
   } finally {
     publishing.value = false;
   }
@@ -610,31 +577,6 @@ const onPublish = async () => {
 const openGeneratedRoute = () => {
   if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
 };
-const onRetryResources = async () => {
-  const formId = Number(store.form.value.id || 0);
-  if (!formId) return;
-  retryingResources.value = true;
-  try {
-    const result = await formFullPublishApi.retryResources(formId);
-    if (publishResult.value) publishResult.value.publishStatus = result.publishStatus;
-    await permissionStore.fetchMenus();
-    ElMessage.success('菜单与权限应用成功');
-  } finally {
-    retryingResources.value = false;
-  }
-};
-
-async function onInfer() {
-  inferring.value = true;
-  try {
-    const data = await formDesignerApi.infer('mysql', inferTable.value.trim());
-    store.replaceFields(data.fields);
-    inferVisible.value = false;
-    ElMessage.success('推断完成');
-  } finally {
-    inferring.value = false;
-  }
-}
 
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!store.dirty.value) return;

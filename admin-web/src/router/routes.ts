@@ -2,6 +2,10 @@ import type { RouteRecordRaw } from 'vue-router';
 // Layout 在 dynamic.ts 中也是静态导入，这里同样静态导入避免「dynamic + static 混用」打包警告
 import Layout from '@/layout/index.vue';
 
+const legacyDesignerRedirect = (to: { query: Record<string, unknown> }) => typeof to.query.moduleId === 'string'
+  ? { path: '/development/business/designer', query: { moduleId: to.query.moduleId }, replace: true }
+  : { path: '/development/business/mine', query: typeof to.query.id === 'string' ? { legacyFormId: to.query.id } : {}, replace: true };
+
 /**
  * 静态路由（无需登录或所有用户共享）
  * 注意：业务模块路由由后端菜单驱动，统一在 dynamic.ts 中根据用户菜单生成
@@ -63,10 +67,31 @@ export const staticRoutes: RouteRecordRaw[] = [
         meta: { title: '表单数据', hidden: true }
       },
       {
+        path: 'development/business/designer',
+        name: 'BusinessDesigner',
+        component: () => import('@/views/form/designer/index.vue'),
+        meta: { title: '业务设计器', hidden: true, permission: 'development:business:save' }
+      },
+      {
         path: 'development/business/runtime/:formKey',
         name: 'PublishedFormRuntime',
         component: () => import('@/views/form/published.vue'),
         meta: { title: '已发布表单', hidden: true }
+      },
+      {
+        path: 'development/form/designer',
+        redirect: legacyDesignerRedirect,
+        meta: { title: '旧表单设计入口', hidden: true }
+      },
+      {
+        path: 'development/form/list',
+        redirect: { path: '/development/business/mine', replace: true },
+        meta: { title: '旧表单管理入口', hidden: true }
+      },
+      {
+        path: 'development/crud',
+        redirect: { path: '/development/business/database', replace: true },
+        meta: { title: '旧 CRUD 入口', hidden: true }
       }
     ]
   },

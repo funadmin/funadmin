@@ -1,1 +1,0 @@
-import{Xt as e,hn as t,tn as n,un as r}from"./element-ak_OyJq5.js";import{c as i,s as a}from"./vue-ygi-Jmez.js";var o=n({__name:`index`,setup(n){let o=a(),s=i();return r(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(n,r)=>(t(),e(`div`))}});export{o as default};

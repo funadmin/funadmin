@@ -68,6 +68,13 @@ final class MemoryGenerationStateRepository
             && ($generation['plan_digest'] ?? null) === $planDigest
             && ($generation['recovery_status'] ?? null) === 'none';
     }
+
+    public function adoptResolvedBaseline(int $moduleId, int $generationId, array $record): array
+    {
+        $saved = $record + ['business_module_id' => $moduleId, 'generation_id' => $generationId, 'status' => 'active'];
+        $this->baselines[] = $saved;
+        return $saved;
+    }
 }
 
 final class MemoryGenerationResources
@@ -266,13 +273,50 @@ try {
     );
     $blockedPreview = $managed->preview(7, true, 'stable-preview-nonce');
     generationExpect(($blockedPreview['plan']['blocked'] ?? false) === true, 'existing no-base 必须阻断正式 managed 生成');
-    generationExpect($managedGenerations === [] && !isset($blockedPreview['sensitive']), '冲突不得创建 generation 或签发 token');
-    generationExpect(file_get_contents($managedRoot . '/' . $modelPath) === "parallel local edit\n", '正式生成冲突必须零副作用');
+    generationExpect(($blockedPreview['generationId'] ?? 0) === 100 && ($managedGenerations[100]['status'] ?? '') === 'conflict', '冲突必须保存无敏感内容的审计以支持严格采纳');
+    generationExpect(!isset($blockedPreview['sensitive']) && !isset($managedGenerations[100]['manifest']['plan']['files'][0]['remoteContent']), '冲突不得签发 token 或持久化敏感内容');
+    generationExpect(file_get_contents($managedRoot . '/' . $modelPath) === "parallel local edit\n", '正式生成冲突必须零文件副作用');
+
+    $resolvedPath = 'resolved/Model.php';
+    mkdir($managedRoot . '/resolved', 0755, true);
+    $resolvedContent = "resolved remote\n";
+    file_put_contents($managedRoot . '/' . $resolvedPath, $resolvedContent);
+    $resolvedHash = hash('sha256', $resolvedContent);
+    $conflictRecords = [
+        200 => [
+            'id' => 200, 'business_module_id' => 7, 'status' => 'conflict', 'definition_hash' => str_repeat('a', 64),
+            'manifest' => ['hashes' => ['templateVersion' => 'test-v1'], 'plan' => ['files' => [[
+                'path' => $resolvedPath, 'status' => 'conflict-no-base', 'remoteHash' => $resolvedHash,
+                'artifactType' => 'model', 'contentKind' => 'text',
+            ]]]],
+        ],
+        201 => ['id' => 201, 'business_module_id' => 7, 'status' => 'planned', 'manifest' => []],
+    ];
+    $latestConflict = 200;
+    $adoptionState = new MemoryGenerationStateRepository();
+    $adoptionService = new ManagedGenerationService(
+        $managedRoot,
+        baselines: new GeneratedFileBaselineRepository($managedRoot, $adoptionState),
+        stateRepository: $adoptionState,
+        tokens: new ConfirmationToken($managedRoot, 'adoption-secret'),
+        generationReader: static fn (int $id): ?array => $conflictRecords[$id] ?? null,
+        latestConflictReader: static function (int $moduleId) use (&$latestConflict): ?int {
+            return $latestConflict;
+        }
+    );
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 201, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), '最近冲突');
+    $latestConflict = 199;
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), '最近冲突');
+    $latestConflict = 200;
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, str_repeat('b', 64), $resolvedHash, 'tester'), '当前 Local hash');
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, str_repeat('c', 64), 'tester'), 'Remote hash 不匹配');
+    $adopted = $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester');
+    generationExpect(($adopted['base_hash'] ?? '') === $resolvedHash && ($adopted['target_hash'] ?? '') === $resolvedHash, '采纳成功必须把计划 Remote 保存为 baseline');
 
     unlink($managedRoot . '/' . $modelPath);
     $managedPreview = $managed->preview(7, true, 'stable-preview-nonce');
-    generationExpect(($managedPreview['plan']['managed'] ?? false) === true && ($managedPreview['generationId'] ?? 0) === 100, '正式预览必须创建绑定 module/form 的 planned generation');
-    $plannedDefinition = (array) ($managedGenerations[100]['definition'] ?? []);
+    generationExpect(($managedPreview['plan']['managed'] ?? false) === true && ($managedPreview['generationId'] ?? 0) === 101, '正式预览必须创建绑定 module/form 的 planned generation');
+    $plannedDefinition = (array) ($managedGenerations[101]['definition'] ?? []);
     $plannedDependencies = (array) (($plannedDefinition['formSchema']['extensions']['dependencies'] ?? []));
     generationExpect(
         preg_match('/^[a-f0-9]{64}$/', (string) ($plannedDependencies['hash'] ?? '')) === 1,
@@ -285,7 +329,7 @@ try {
             && str_ends_with($path, '.sql')
     ));
     generationExpect(count($migrationPaths) >= 1 && str_contains($migrationPaths[0], 'stable-preview-nonce'), 'migration 必须使用 preview/execute 稳定且唯一的不可变路径');
-    $managedResult = $managed->execute(7, 100, (string) $managedPreview['sensitive']['confirmToken']);
+    $managedResult = $managed->execute(7, 101, (string) $managedPreview['sensitive']['confirmToken']);
     generationExpect(($managedResult['state'] ?? '') === 'completed', '正式 managed execute 必须进入 GenerationTransactionService');
     generationExpect($managedState->baselines !== [] && glob($managedRoot . '/runtime/private/business-development/wal/*.json') !== [], '正式成功必须产生 WAL 与 baseline');
 

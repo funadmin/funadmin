@@ -66,6 +66,12 @@ publishExpect(
 $fullPublishController = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/FullPublish.php');
 publishExpect(!str_contains($fullPublishController, "post('definition'"), '完整发布 Controller 不得接收完整 Definition');
 publishExpect(str_contains($fullPublishController, "post('formId'"), '完整发布 Controller 必须仅以 formId 定位服务端已发布 Schema');
+publishExpect(
+    !str_contains($fullPublishController, "post('allowOverwrite'")
+        && !str_contains($fullPublishSource, '$allowOverwrite')
+        && !str_contains($fullPublishSource, '$canOverwrite'),
+    'managed 完整发布不得保留产品层 allowOverwrite'
+);
 
 $registryHandler = static fn (array $parameters = []): array => $parameters;
 $registryConfig = [

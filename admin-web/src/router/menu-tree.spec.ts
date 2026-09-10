@@ -45,42 +45,19 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 });
 
 describe('混合布局菜单全树路由', () => {
-  it('Mock 表单菜单生成可直达且设计器不出现在侧栏', () => {
+  it('Mock 菜单只暴露统一业务开发四入口', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
-    const formList = developmentMenu?.children?.find((menu) => menu.routeName === 'FormList');
-    const formDesigner = developmentMenu?.children?.find((menu) => menu.routeName === 'FormDesigner');
-
-    expect(formList).toMatchObject({
-      id: 202,
-      parentId: 200,
-      path: 'form/list',
-      sort: 40,
-      hidden: false,
-      keepAlive: false,
-      permission: 'console/formdesigner:index'
-    });
-    expect(formDesigner).toMatchObject({
-      id: 203,
-      parentId: 200,
-      path: 'form/designer',
-      component: 'form/designer/index',
-      sort: 1,
-      hidden: true,
-      keepAlive: false,
-      permission: 'console/formdesigner:index'
-    });
+    const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
+    expect(business).toMatchObject({ path: 'business', redirect: '/development/business/mine', permission: 'development:business:view' });
+    expect(business?.children?.map((item) => item.routeName)).toEqual(['BusinessMine', 'BusinessVisual', 'BusinessDatabase', 'BusinessRecords']);
 
     const routes = generateRoutes(menuSeed);
     const router = createRouter({ history: createMemoryHistory(), routes });
-    const resolved = router.resolve('/development/form/designer?id=1');
+    expect(router.resolve('/development/business/mine').name).toBe('BusinessMine');
     const developmentRoute = routes.find((route) => route.name === 'Development');
-    const visibleMenuNames = getVisibleMenuChildren(developmentRoute!).map((route) => route.name);
-
-    expect(resolved.name).toBe('FormDesigner');
-    expect(resolved.query).toEqual({ id: '1' });
-    expect(visibleMenuNames).toContain('FormList');
-    expect(visibleMenuNames).not.toContain('FormDesigner');
+    expect(getVisibleMenuChildren(developmentRoute!).map((route) => route.name)).toEqual(['BusinessDevelopment']);
+    expect(router.resolve('/development/business/designer?moduleId=1').name).toBe('BusinessDesigner');
     expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203]));
   });
 

@@ -7,6 +7,7 @@ namespace app\console\service;
 use app\common\crud\ConfirmationToken;
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
+use app\common\crud\PathGuard;
 use app\common\form\schema\FormSchema;
 use app\console\model\BusinessModule;
 use app\console\model\CrudGeneration;
@@ -33,6 +34,9 @@ final class ManagedGenerationService
     /** @var Closure(int): ?array<string, mixed> */
     private readonly Closure $generationReader;
 
+    /** @var Closure(int): ?int */
+    private readonly Closure $latestConflictReader;
+
     private readonly GeneratedFileBaselineRepository $baselines;
     private readonly mixed $stateRepository;
     private readonly mixed $resources;
@@ -52,7 +56,8 @@ final class ManagedGenerationService
         ?callable $formReader = null,
         ?callable $schemaReader = null,
         ?callable $generationWriter = null,
-        ?callable $generationReader = null
+        ?callable $generationReader = null,
+        ?callable $latestConflictReader = null
     ) {
         $this->stateRepository = $stateRepository ?? new DatabaseGenerationStateRepository();
         $this->baselines = $baselines ?? new GeneratedFileBaselineRepository($projectRoot, $this->stateRepository);
@@ -79,6 +84,13 @@ final class ManagedGenerationService
             $generation = CrudGeneration::find($id);
             return $generation ? $generation->toArray() : null;
         });
+        $this->latestConflictReader = Closure::fromCallable($latestConflictReader ?? static function (int $moduleId): ?int {
+            $id = CrudGeneration::where('business_module_id', $moduleId)
+                ->where('status', 'conflict')
+                ->order('id', 'desc')
+                ->value('id');
+            return $id === null ? null : (int) $id;
+        });
     }
 
     /** 只返回公开计划；确认 token 仅在有权限且计划可执行时返回。 */
@@ -87,11 +99,35 @@ final class ManagedGenerationService
         $nonce = $this->nonce($nonce);
         $bundle = $this->buildBundle($moduleId, $nonce);
         $publicPlan = $this->publicPlan($bundle['plan']);
-        if (($publicPlan['blocked'] ?? true) === true) {
-            return ['generationId' => null, 'plan' => $publicPlan, 'conflicts' => $this->conflicts($publicPlan)];
-        }
         $module = ($this->moduleReader)($moduleId);
         $formId = (int) ($module['form_id'] ?? 0);
+        if (($publicPlan['blocked'] ?? true) === true) {
+            $generationId = ($this->generationWriter)([
+                'business_module_id' => $moduleId,
+                'form_id' => $formId,
+                'binding_status' => 'bound',
+                'generation_mode' => 'managed',
+                'operation' => 'preview',
+                'status' => 'conflict',
+                'connection_name' => (string) $bundle['definition']->get('connection', ''),
+                'table_name' => (string) $bundle['definition']->get('table', ''),
+                'definition_hash' => $bundle['definitionHash'],
+                'definition' => null,
+                'manifest' => [
+                    'managedNonce' => $nonce,
+                    'plan' => $publicPlan,
+                    'hashes' => $this->stateHashes($bundle),
+                ],
+                'error' => ['code' => 'MANAGED_PLAN_CONFLICT'],
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            return [
+                'generationId' => $generationId,
+                'plan' => $publicPlan,
+                'conflicts' => $this->conflicts($includeSensitive ? $bundle['plan'] : $publicPlan, $includeSensitive),
+            ];
+        }
         $generationId = ($this->generationWriter)([
             'business_module_id' => $moduleId,
             'form_id' => $formId,
@@ -166,6 +202,61 @@ final class ManagedGenerationService
     {
         $record = ($this->generationReader)($generationId);
         return is_array($record) ? $record : null;
+    }
+
+    /** 仅采纳最近一次 conflict-no-base 计划中已由操作者解析为 Remote 的本地文件。 */
+    public function adoptResolvedBaseline(
+        int $moduleId,
+        int $generationId,
+        string $path,
+        string $localHash,
+        string $remoteHash,
+        string $actor
+    ): array {
+        if (!method_exists($this->stateRepository, 'adoptResolvedBaseline')) {
+            throw new RuntimeException('生成 baseline 数据仓储不支持采纳');
+        }
+        $record = ($this->generationReader)($generationId);
+        if (!is_array($record) || (int) ($record['business_module_id'] ?? 0) !== $moduleId
+            || (string) ($record['status'] ?? '') !== 'conflict') {
+            throw new InvalidArgumentException('仅可采纳该模块最近冲突计划');
+        }
+        $latest = ($this->latestConflictReader)($moduleId);
+        if ($latest !== $generationId) throw new InvalidArgumentException('仅可采纳最近冲突计划');
+        $manifest = (array) ($record['manifest'] ?? []);
+        $files = (array) (($manifest['plan']['files'] ?? null) ?? ($manifest['files'] ?? []));
+        $planned = null;
+        foreach ($files as $file) {
+            if ((string) ($file['path'] ?? '') === $path && (string) ($file['status'] ?? '') === 'conflict-no-base') {
+                $planned = $file;
+                break;
+            }
+        }
+        if (!is_array($planned) || !hash_equals((string) ($planned['remoteHash'] ?? ''), $remoteHash)) {
+            throw new InvalidArgumentException('路径不是该计划的 conflict-no-base 或 Remote hash 不匹配');
+        }
+        $absolute = PathGuard::resolve($this->projectRoot, $path, '冲突文件');
+        $stat = @lstat($absolute);
+        if ($stat === false || is_link($absolute) || (($stat['mode'] & 0170000) !== 0100000)) {
+            throw new InvalidArgumentException('当前 Local 必须为项目内普通文件');
+        }
+        $actualLocalHash = hash_file('sha256', $absolute);
+        if (!is_string($actualLocalHash) || !hash_equals($actualLocalHash, $localHash) || !hash_equals($localHash, $remoteHash)) {
+            throw new InvalidArgumentException('当前 Local hash 必须等于该计划 Remote hash');
+        }
+        $content = file_get_contents($absolute);
+        if (!is_string($content)) throw new RuntimeException('无法读取已解析文件');
+        $blob = $this->baselines->prepare($content);
+        return $this->stateRepository->adoptResolvedBaseline($moduleId, $generationId, [
+            'relative_path' => $path,
+            'artifact_type' => (string) ($planned['artifactType'] ?? 'source'),
+            'base_hash' => $remoteHash,
+            'base_storage_path' => $blob['path'],
+            'target_hash' => $remoteHash,
+            'template_version' => (string) ($manifest['hashes']['templateVersion'] ?? CrudGenerator::TEMPLATE_VERSION),
+            'definition_hash' => (string) ($record['definition_hash'] ?? ''),
+            'content_kind' => (string) ($planned['contentKind'] ?? 'text'),
+        ]);
     }
 
     /** @return array<string, mixed> */
@@ -306,11 +397,18 @@ final class ManagedGenerationService
         return $plan;
     }
 
-    private function conflicts(array $plan): array
+    private function conflicts(array $plan, bool $includeContents = false): array
     {
-        return array_values(array_filter((array) ($plan['files'] ?? []), static fn (array $file): bool => in_array(
+        $conflicts = array_values(array_filter((array) ($plan['files'] ?? []), static fn (array $file): bool => in_array(
             (string) ($file['status'] ?? ''), ['conflict', 'binary-conflict', 'conflict-no-base'], true
         )));
+        return array_map(static function (array $file) use ($includeContents): array {
+            unset($file['content']);
+            if (!$includeContents || ($file['contentKind'] ?? 'text') === 'binary') {
+                unset($file['baseContent'], $file['localContent'], $file['remoteContent']);
+            }
+            return $file;
+        }, $conflicts);
     }
 
     private function nonce(?string $nonce): string

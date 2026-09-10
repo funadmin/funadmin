@@ -45,6 +45,7 @@ $serviceSource = (string) file_get_contents($root . 'app/console/service/FormPub
 $designerSource = (string) file_get_contents($root . 'app/console/service/FormDesignerService.php');
 $dataSource = (string) file_get_contents($root . 'app/console/service/FormDataService.php');
 $designerController = (string) file_get_contents($root . 'app/console/controller/form/Designer.php');
+$businessController = (string) file_get_contents($root . 'app/console/controller/development/Business.php');
 
 preg_match('/public function previewDynamic\([^}]+\n    }/s', $serviceSource, $previewDynamicMatch);
 preg_match('/public function publishDynamic\([\s\S]+?\n    }\n\n    public function status/s', $serviceSource, $publishDynamicMatch);
@@ -56,13 +57,13 @@ foreach (['FormCrudDefinitionFactory', 'DevCrudService', 'preflightGeneration(',
 dynamicPublishExpect(str_contains($serviceSource, 'previewDynamic('), '动态发布服务缺少 previewDynamic');
 dynamicPublishExpect(str_contains($serviceSource, 'publishDynamic('), '动态发布服务缺少 publishDynamic');
 dynamicPublishExpect(str_contains($serviceSource, 'public function preview(') && str_contains($serviceSource, 'public function publish('), '完整静态发布必须与动态发布共存');
-dynamicPublishExpect(str_contains($designerController, 'previewDynamic(') && str_contains($designerController, 'publishDynamic('), '发布控制器必须调用纯动态 API');
-preg_match('/public function previewPublish\([\s\S]+?\n    }\n\n[\s\S]*?public function publish\([\s\S]+?\n    }\n\n/s', $designerController, $dynamicControllerMatch);
+dynamicPublishExpect(str_contains($designerController, '旧表单写 API 已下线') && str_contains($businessController, '$this->business->previewPublish(') && str_contains($businessController, '$this->business->publish('), '统一 Business 控制器必须独占动态发布入口');
+preg_match('/public function previewPublish\([\s\S]+?\n    }\n\n[\s\S]*?public function publish\([\s\S]+?\n    }\n\n/s', $businessController, $dynamicControllerMatch);
 $dynamicControllerMethods = $dynamicControllerMatch[0] ?? '';
 dynamicPublishExpect($dynamicControllerMethods !== '', '动态发布控制器方法边界不存在');
 dynamicPublishExpect(!str_contains($dynamicControllerMethods, "post('confirmToken'") && !str_contains($dynamicControllerMethods, "post('allowOverwrite'"), '动态发布控制器不得接受源码覆盖参数');
-foreach (['->preview(', '->publish(', '->generation(', '->retryResources('] as $legacyCall) {
-    dynamicPublishExpect(!str_contains($dynamicControllerMethods, $legacyCall), '动态发布控制器不得调用完整发布或已删除方法：' . $legacyCall);
+foreach (['->generation(', '->retryResources('] as $legacyCall) {
+    dynamicPublishExpect(!str_contains($dynamicControllerMethods, $legacyCall), '动态发布控制器不得调用旧完整发布方法：' . $legacyCall);
 }
 dynamicPublishExpect(str_contains($dataSource, 'BusinessModule'), '运行态必须通过 BusinessModule 解析已发布 Schema');
 dynamicPublishExpect(str_contains($dataSource, "where('schema_hash', \$publishedHash)"), '运行态必须按 BusinessModule 发布 hash 精确锁定不可变快照');

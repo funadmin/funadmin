@@ -133,7 +133,7 @@
               </el-input>
             </el-form-item>
 
-            <el-form-item prop="captcha">
+            <el-form-item v-if="captchaEnabled" prop="captcha">
               <div class="login__captcha">
                 <el-input v-model="form.captcha" :placeholder="t('login.captchaPh')" maxlength="4" clearable>
                   <template #prefix>
@@ -170,11 +170,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
+import { authApi } from '@/api/auth';
 import { APP_CONFIG } from '@/config';
 import Captcha from '@/components/Captcha/index.vue';
 import LogoMark from '@/components/LogoMark.vue';
@@ -191,6 +192,7 @@ const year = new Date().getFullYear();
 const formRef = ref<FormInstance>();
 const captchaRef = ref<InstanceType<typeof Captcha>>();
 const loading = ref(false);
+const captchaEnabled = ref(true);
 
 const form = reactive({
   username: 'admin',
@@ -202,13 +204,16 @@ const form = reactive({
 const rules = computed<FormRules>(() => ({
   username: [{ required: true, message: t('login.rulesUsername'), trigger: 'blur' }],
   password: [{ required: true, message: t('login.rulesPassword'), trigger: 'blur' }],
-  captcha: [{ required: true, message: t('login.rulesCaptcha'), trigger: 'blur' }]
+  captcha: captchaEnabled.value ? [{ required: true, message: t('login.rulesCaptcha'), trigger: 'blur' }] : []
 }));
+
+onMounted(async () => {
+  try { captchaEnabled.value = (await authApi.csrf()).captchaEnabled; } catch { captchaEnabled.value = true; }
+});
 
 async function onSubmit() {
   if (!formRef.value) return;
   await formRef.value.validate();
-
 
   loading.value = true;
   try {

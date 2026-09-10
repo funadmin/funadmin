@@ -8,7 +8,6 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\service\AdminAuthorizationService;
 use app\console\service\DevCrudService;
 use InvalidArgumentException;
 use think\annotation\route\Get;
@@ -88,56 +87,26 @@ final class DevCrud extends AdminApiController
     #[Post('definitions/validate')]
     public function validateDefinition(): Response
     {
-        return $this->execute(fn (): array => $this->crud->validate($this->definition()));
+        return $this->retired();
     }
 
     #[Post('preview')]
     public function preview(): Response
     {
-        $authorization = new AdminAuthorizationService();
-        $canGenerate = $authorization->nodeAccess('console/devcrud/generate');
-        return $this->execute(fn (): array => $this->crud->preview(
-            $this->definition(),
-            $canGenerate,
-            $canGenerate
-        ));
+        return $this->retired();
     }
 
     #[Post('generate')]
     public function generate(): Response
     {
-        $allowOverwrite = $this->request->post('allowOverwrite', []);
-        if (!is_array($allowOverwrite)) {
-            return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
-        }
-        $authorization = new AdminAuthorizationService();
-        $applyResources = filter_var($this->request->post('applyResources', false), FILTER_VALIDATE_BOOL);
-        $canApplyResources = $authorization->nodeAccess('development/crud/apply-resources');
-        if ($applyResources && !$canApplyResources) {
-            return $this->fail(msg: '缺少 resource apply 专用权限', code: 403);
-        }
-        return $this->execute(fn (): array => $this->crud->generate(
-            $this->definition(),
-            trim((string) $this->request->post('confirmToken', '')),
-            array_values(array_filter($allowOverwrite, 'is_string')),
-            $authorization->nodeAccess('development/crud/overwrite'),
-            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web'),
-            $applyResources,
-            $canApplyResources
-        ), 'CRUD 生成完成');
+        return $this->retired();
     }
 
     #[Post('generations/:id/apply-resources')]
     #[Pattern('id', '\\d+')]
     public function applyResources(int $id): Response
     {
-        $authorization = new AdminAuthorizationService();
-        if (!$authorization->nodeAccess('development/crud/generate')
-            || !$authorization->nodeAccess('development/crud/overwrite')
-            || !$authorization->nodeAccess('development/crud/apply-resources')) {
-            return $this->fail(msg: '缺少资源应用权限', code: 403);
-        }
-        return $this->execute(fn (): array => $this->crud->applyResources($id), '菜单与权限应用完成');
+        return $this->retired();
     }
 
     #[Get('generations/:id')]
@@ -148,6 +117,11 @@ final class DevCrud extends AdminApiController
         return $record === null
             ? $this->fail(msg: '生成记录不存在', code: 404)
             : $this->ok(data: $record);
+    }
+
+    private function retired(): Response
+    {
+        return $this->fail('旧 CRUD 写 API 已下线，请使用统一业务开发 API', ['newEntry' => '/development/business'], 410);
     }
 
     private function connection(): string

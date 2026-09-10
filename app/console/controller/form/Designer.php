@@ -71,22 +71,19 @@ final class Designer extends AdminApiController
     #[Post('save')]
     public function save(): Response
     {
-        return $this->execute(fn (): array => $this->forms->save($this->payload()), '表单保存成功');
+        return $this->retired();
     }
 
     #[Post('remove')]
     public function remove(): Response
     {
-        return $this->execute(fn (): array => $this->forms->remove((int) $this->request->post('id', 0)), '表单删除成功');
+        return $this->retired();
     }
 
     #[Post('status')]
     public function status(): Response
     {
-        return $this->execute(fn (): array => $this->forms->setStatus(
-            (int) $this->request->post('id', 0),
-            $this->binaryStatus($this->request->post('status'))
-        ), '状态更新成功');
+        return $this->retired();
     }
 
     #[Post('validate')]
@@ -113,7 +110,7 @@ final class Designer extends AdminApiController
     #[Post('apply')]
     public function apply(): Response
     {
-        return $this->execute(fn (): array => $this->forms->applyMigration($this->payload()), '迁移应用成功');
+        return $this->retired();
     }
 
     #[Post('preview-publish')]
@@ -125,10 +122,7 @@ final class Designer extends AdminApiController
     #[Post('publish')]
     public function publish(): Response
     {
-        return $this->execute(fn (): array => $this->publisher->publishDynamic(
-            $this->payload(),
-            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
-        ), '表单动态发布完成');
+        return $this->retired();
     }
 
     #[Post('compile')]
@@ -187,12 +181,7 @@ final class Designer extends AdminApiController
     #[Pattern('version', '\d+')]
     public function rollback(int $id, int $version): Response
     {
-        return $this->execute(fn (): array => $this->schemas->rollback(
-            $id,
-            $version,
-            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web'),
-            trim((string) $this->request->post('summary', ''))
-        )->toArray(), '回滚版本已创建');
+        return $this->retired();
     }
 
     #[Get('component-catalog')]
@@ -206,6 +195,11 @@ final class Designer extends AdminApiController
     public function publishStatus(int $id): Response
     {
         return $this->execute(fn (): array => $this->publisher->status($id));
+    }
+
+    private function retired(): Response
+    {
+        return $this->fail('旧表单写 API 已下线，请使用统一业务开发 API', ['newEntry' => '/development/business'], 410);
     }
 
     private function payload(): array

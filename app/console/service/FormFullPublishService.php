@@ -68,8 +68,6 @@ final class FormFullPublishService
         array $payload,
         string $confirmToken,
         string $operationKey,
-        array $allowOverwrite,
-        bool $canOverwrite,
         bool $canApplyResources,
         string $operator
     ): array {

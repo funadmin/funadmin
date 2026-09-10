@@ -6,7 +6,6 @@
       <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
       <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
       <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
-      <el-button type="info" plain v-perm="'development:crud:generate'" @click="openDevelopment('crud')">生成 CRUD</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
       <el-button type="info" plain @click="load">刷新</el-button>
     </div>
@@ -109,9 +108,9 @@ const marketVisible = ref(false);
 const configVisible = ref(false);
 const historyVisible = ref(false);
 const developmentVisible = ref(false);
-const developmentMode = ref<'create' | 'maintain' | 'crud'>('create');
+const developmentMode = ref<'create' | 'maintain'>('create');
 
-function openDevelopment(mode: 'create' | 'maintain' | 'crud') {
+function openDevelopment(mode: 'create' | 'maintain') {
   developmentMode.value = mode;
   developmentVisible.value = true;
 }

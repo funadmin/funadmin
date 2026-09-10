@@ -110,6 +110,17 @@ final class FormSchemaRepository
         return Db::transaction(fn (): FormSchemaVersion => $this->saveCompiledVersion($formId, $compiled, $origin, $actor, $summary));
     }
 
+    public function saveCompiledVersionIfCurrentHash(int $formId, FormSchema $compiled, string $expectedHash, string $origin, string $actor, string $summary = ''): FormSchemaVersion
+    {
+        return Db::transaction(function () use ($formId, $compiled, $expectedHash, $origin, $actor, $summary): FormSchemaVersion {
+            $form = Form::lock(true)->find($formId);
+            if (!$form) throw new InvalidArgumentException('表单不存在');
+            $current = $this->compile((array) $form->schema_document);
+            if (!hash_equals($current->hash(), $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            return $this->saveCompiledVersion($formId, $compiled, $origin, $actor, $summary);
+        });
+    }
+
     public function saveCompiledVersion(int $formId, FormSchema $compiled, string $origin, string $actor, string $summary = ''): FormSchemaVersion
     {
         $form = Form::lock(true)->find($formId);

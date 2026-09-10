@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
-import { formDesignerApi, type FormComponentCatalog, type FormComponentCatalogItem } from '@/api/form';
+import type { FormComponentCatalog, FormComponentCatalogItem } from '@/api/form';
+import { businessDevelopmentApi } from '@/api/development/business';
 import { componentRegistry, type FormComponentRegistry, type FormValueCodec } from './componentRegistry';
 import type { FormValueType } from './types';
 import { pluginCatalog, type PluginCatalogDiagnostic, type PluginCatalogRegistration } from '../designer/pluginCatalog';
@@ -60,8 +61,11 @@ let catalogPromise: Promise<void> | undefined;
 
 /** 拉取服务端可信 catalog；保留成功白名单项和逐项诊断供设计器使用。 */
 export const loadPluginFormComponents = (): Promise<void> => {
-  catalogPromise ??= formDesignerApi.catalog()
-    .then((catalog) => pluginCatalog.accept(catalog, registerPluginFormComponents(catalog)))
+  catalogPromise ??= businessDevelopmentApi.fieldCapabilities()
+    .then((payload) => {
+      const catalog: FormComponentCatalog = { schemaVersion: payload.schemaVersion, components: payload.capabilities };
+      pluginCatalog.accept(catalog, registerPluginFormComponents(catalog));
+    })
     .catch((error: unknown) => pluginCatalog.fail(error));
   return catalogPromise;
 };

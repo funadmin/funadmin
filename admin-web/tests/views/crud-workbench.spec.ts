@@ -126,31 +126,20 @@ describe('CRUD Workbench', () => {
     expect(workbench.previewInvalidated).toBe(true);
   });
 
-  it('合并页面固定四步、深度监听定义变化且结果留在第四步', () => {
+  it('旧 Workbench 页面只保留安全 replace 重定向', () => {
     const page = read('src/views/development/crud/index.vue');
-    expect(page).toContain('<BasicsStep v-if="workbench.step === 0"');
-    expect(page).toContain('<CapabilitiesPreviewStep v-else-if="workbench.step === 2');
-    expect(page).toContain('<ConfirmResultStep v-else-if="workbench.step === 3');
-    expect(page).toContain("{ deep: true, flush: 'sync' }");
-    expect(page).toContain('workbench.invalidatePreview()');
-    expect(page).toContain('workbench.step = 3');
-    expect(page).toContain('返回修改');
-    expect(page).toContain('重新开始');
-    expect(page).toContain('v-model:apply-resources="workbench.applyResources"');
-    expect(page).toContain('applyResources');
-    expect(page).toContain('applyResourcesAgain');
+    expect(page).toContain('LegacyDevelopmentCrudRedirect');
+    expect(page).toContain("router.replace('/development/business/database')");
+    expect(page).not.toContain('crudDevelopmentApi.');
+    expect(page).not.toContain('allowOverwrite');
   });
 
-  it('菜单权限配置加载安全父级并保持动作和权限码只读', () => {
+  it('旧 Workbench 组件保留为内部历史实现但不再由页面挂载', () => {
     const page = read('src/views/development/crud/index.vue');
     const basics = read('src/views/development/crud/components/BasicsStep.vue');
-    expect(page).toContain('crudDevelopmentApi.options()');
-    expect(page).toContain(':parent-menus="parentMenus"');
-    expect(page).toContain('syncPermissionActions(value)');
+    expect(page).not.toContain('BasicsStep');
     expect(basics).toContain('<el-tree-select');
     expect(basics).toContain('node-key="sourceName"');
-    expect(basics).toContain('<IconSelect v-model="model.menu.icon"');
-    expect(basics).toContain('prop="action"');
     expect(basics).not.toContain('v-model="row.action"');
     expect(basics).not.toContain('v-model="row.codeSuffix"');
   });

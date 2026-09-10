@@ -9,7 +9,6 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\service\AdminAuthorizationService;
 use app\console\service\FormDesignerService;
 use app\console\service\FormFullPublishService;
 use app\console\service\FormSchemaRepository;
@@ -49,28 +48,13 @@ final class FullPublish extends AdminApiController
     #[Post('preview')]
     public function preview(): Response
     {
-        $authorization = new AdminAuthorizationService();
-        return $this->execute(fn (): array => $this->publisher->preview(
-            $this->payload(),
-            $authorization->nodeAccess('console/form.full-publish/publish')
-        ));
+        return $this->retired();
     }
 
     #[Post('publish')]
     public function publish(): Response
     {
-        $overwrite = $this->request->post('allowOverwrite', []);
-        if (!is_array($overwrite)) return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
-        $authorization = new AdminAuthorizationService();
-        return $this->execute(fn (): array => $this->publisher->publish(
-            $this->payload(),
-            trim((string) $this->request->post('confirmToken', '')),
-            trim((string) $this->request->post('operationKey', '')),
-            array_values(array_filter($overwrite, 'is_string')),
-            $authorization->nodeAccess('form/publish/overwrite'),
-            $authorization->nodeAccess('form/publish/apply-resources'),
-            (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
-        ), '表单全栈发布完成');
+        return $this->retired();
     }
 
     #[Get('status/:id')]
@@ -95,10 +79,12 @@ final class FullPublish extends AdminApiController
     #[Pattern('id', '\d+')]
     public function retryResources(int $id): Response
     {
-        if (!(new AdminAuthorizationService())->nodeAccess('form/publish/apply-resources')) {
-            return $this->fail(msg: '没有应用菜单与权限资源的权限', code: 403);
-        }
-        return $this->execute(fn (): array => $this->publisher->retryResources($id), '菜单与权限应用完成');
+        return $this->retired();
+    }
+
+    private function retired(): Response
+    {
+        return $this->fail('旧完整发布写 API 已下线，请使用统一业务开发 API', ['newEntry' => '/development/business'], 410);
     }
 
     private function payload(): array

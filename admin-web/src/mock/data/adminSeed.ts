@@ -415,7 +415,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
       routeName: 'Development',
       path: '/development',
       component: 'Layout',
-      redirect: '/development/crud',
+      redirect: '/development/business/mine',
       type: 'M',
       icon: 'i-ep-tools',
       name: '开发工具',
@@ -427,48 +427,26 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
         {
           id: 201,
           parentId: 200,
-          routeName: 'DevelopmentCrud',
-          path: 'crud',
-          component: 'development/crud/index',
-          type: 'C',
-          icon: 'i-ep-magic-stick',
-          name: 'CRUD 生成器',
+          routeName: 'BusinessDevelopment',
+          path: 'business',
+          component: 'Blank',
+          redirect: '/development/business/mine',
+          type: 'M',
+          icon: 'i-ep-briefcase',
+          name: '业务开发',
           sort: 1,
-          hidden: false,
-          keepAlive: true,
-          affix: false,
-          permission: 'development:crud:list'
-        },
-        {
-          id: 203,
-          parentId: 200,
-          routeName: 'FormDesigner',
-          path: 'form/designer',
-          component: 'form/designer/index',
-          type: 'C',
-          icon: 'i-ep-edit',
-          name: '表单设计器',
-          sort: 1,
-          hidden: true,
-          keepAlive: false,
-          affix: false,
-          permission: 'console/formdesigner:index'
-        },
-        {
-          id: 202,
-          parentId: 200,
-          routeName: 'FormList',
-          path: 'form/list',
-          component: 'form/list',
-          type: 'C',
-          icon: 'i-ep-document-copy',
-          name: '表单管理',
-          sort: 40,
           hidden: false,
           keepAlive: false,
           affix: false,
-          permission: 'console/formdesigner:index'
-        }
+          permission: 'development:business:view',
+          children: [
+            { id: 202, parentId: 201, routeName: 'BusinessMine', path: 'mine', component: 'development/business/mine', type: 'C', name: '我的业务', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'development:business:view' },
+            { id: 203, parentId: 201, routeName: 'BusinessVisual', path: 'visual', component: 'development/business/visual', type: 'C', name: '可视化创建', sort: 20, hidden: false, keepAlive: false, affix: false, permission: 'development:business:save' },
+            { id: 204, parentId: 201, routeName: 'BusinessDatabase', path: 'database', component: 'development/business/database', type: 'C', name: '从数据库生成', sort: 30, hidden: false, keepAlive: false, affix: false, permission: 'development:business:inspect' },
+            { id: 205, parentId: 201, routeName: 'BusinessRecords', path: 'records', component: 'development/business/records', type: 'C', name: '生成与发布记录', sort: 40, hidden: false, keepAlive: true, affix: false, permission: 'development:business:records' }
+          ]
+        },
+        { id: 206, parentId: 200, routeName: 'BusinessDesigner', path: 'business/designer', component: 'form/designer/index', type: 'C', name: '业务设计器', sort: 90, hidden: true, keepAlive: false, affix: false, permission: 'development:business:save' }
       ]
     }
   ];

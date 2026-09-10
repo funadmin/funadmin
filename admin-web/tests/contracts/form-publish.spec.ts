@@ -43,23 +43,20 @@ describe('统一表单发布引擎契约', () => {
     expect(dynamic).toContain('public function publishDynamic(');
     expect(dynamic).toContain('applyDynamicDdl($payload)');
     expect(dynamic).not.toContain('preflightGeneration(');
-    expect(full).toContain('DevCrudService');
+    expect(full).toContain('ManagedGenerationService');
     expect(full).toContain('FormCrudDefinitionFactory');
-    expect(full.indexOf('preflightGeneration(')).toBeLessThan(full.indexOf('applyMigration('));
-    expect(full).toContain('$validatedPlan');
-    expect(full).toContain('retryResources(');
+    expect(full).not.toContain('DevCrudService');
+    expect(full).not.toContain('allowOverwrite');
   });
 
-  it('表单控制器通过原端点调用纯动态发布服务', () => {
+  it('旧表单写端点下线，动态发布只由 Business API 暴露', () => {
     const controller = read('app/console/controller/form/Designer.php');
-    for (const route of ["#[Post('preview-publish')]", "#[Post('publish')]", "#[Get('publish-status/:id')]"]) {
-      expect(controller).toContain(route);
-    }
-    expect(controller).toContain('$this->publisher->previewDynamic($this->payload())');
-    expect(controller).toContain('$this->publisher->publishDynamic(');
-    for (const forbidden of ['FormFullPublishService', "post('confirmToken'", "post('allowOverwrite'", "#[Post('retry-resources/:id')]", 'generation(', 'retryResources(']) {
-      expect(controller).not.toContain(forbidden);
-    }
+    const business = read('app/console/controller/development/Business.php');
+    expect(controller).toContain("旧表单写 API 已下线");
+    expect(controller).toContain("['newEntry' => '/development/business'], 410");
+    expect(business).toContain('$this->business->previewPublish(');
+    expect(business).toContain('$this->business->publish(');
+    for (const forbidden of ['FormFullPublishService', "post('confirmToken'", "post('allowOverwrite'", "#[Post('retry-resources/:id')]", 'generation(', 'retryResources(']) expect(controller).not.toContain(forbidden);
   });
 
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
@@ -87,15 +84,16 @@ describe('统一表单发布引擎契约', () => {
     expect(definition).toContain("'layoutSchema'");
   });
 
-  it('设计器提供完整发布向导、冲突确认与发布结果', () => {
+  it('设计器隔离动态发布与正式生成，并对冲突 fail closed', () => {
     const designer = read('admin-web/src/views/form/designer/index.vue');
-    for (const label of ['发布设置', '变更预览', '冲突确认', '发布结果']) expect(designer).toContain(label);
-    expect(designer).toContain('formFullPublishApi.preview');
-    expect(designer).toContain('formSchemaHash');
-    expect(designer).toContain('formDependencyHash');
-    expect(designer).toContain('publishResult');
-    expect(designer).toContain('allowOverwrite');
+    for (const label of ['动态发布', '生成正式模块', '变更预览', '冲突确认', '发布结果', 'Base', 'Local', 'Remote']) expect(designer).toContain(label);
+    expect(designer).toContain('businessDevelopmentApi.previewPublish');
+    expect(designer).toContain('businessDevelopmentApi.previewFormalGeneration');
+    expect(designer).toContain('businessDevelopmentApi.formalGeneration');
+    expect(designer).toContain(':disabled="conflictFiles.length > 0"');
     expect(designer).toContain('confirmToken');
+    expect(designer).not.toContain('allowOverwrite');
+    expect(designer).not.toContain('formFullPublishApi.');
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
@@ -133,12 +131,10 @@ describe('统一表单发布引擎契约', () => {
     expect(api).toContain('{ data, include, schemaHash }');
   });
 
-  it('表单列表展示发布状态并提供动态运行时入口', () => {
+  it('旧表单列表仅安全 replace 到统一业务入口', () => {
     const list = read('admin-web/src/views/form/list.vue');
-    for (const label of ['发布状态', '预览运行时', '打开独立页面', '重新发布']) expect(list).toContain(label);
-    expect(list).toContain('publish_status');
-    expect(list).toContain('/development/business/runtime/');
-    expect(list).toContain('查看生成记录');
-    expect(list).toContain('crud_generation_id');
+    expect(list).toContain("router.replace('/development/business/mine')");
+    expect(list).not.toContain('formDesignerApi.');
+    expect(list).not.toContain('formFullPublishApi.');
   });
 });

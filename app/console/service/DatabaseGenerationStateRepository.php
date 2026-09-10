@@ -34,6 +34,41 @@ final class DatabaseGenerationStateRepository
         return Db::transaction($operation);
     }
 
+    public function adoptResolvedBaseline(int $moduleId, int $generationId, array $record): array
+    {
+        return Db::transaction(function () use ($moduleId, $generationId, $record): array {
+            $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
+            $generation = CrudGeneration::where('id', $generationId)->where('business_module_id', $moduleId)->lock(true)->find();
+            if (!$module || !$generation) throw new RuntimeException('业务模块或生成记录不存在');
+            if ((string) $generation->status !== 'conflict') throw new RuntimeException('仅冲突生成记录可采纳 baseline');
+            $allowed = array_intersect_key($record, array_flip([
+                'relative_path', 'artifact_type', 'base_hash', 'base_storage_path', 'target_hash',
+                'template_version', 'definition_hash', 'content_kind',
+            ]));
+            $path = (string) ($allowed['relative_path'] ?? '');
+            $hashes = [(string) ($allowed['base_hash'] ?? ''), (string) ($allowed['target_hash'] ?? ''), (string) ($allowed['definition_hash'] ?? '')];
+            if ($path === '' || trim((string) ($allowed['artifact_type'] ?? '')) === ''
+                || trim((string) ($allowed['base_storage_path'] ?? '')) === ''
+                || preg_match('~(^|/)\.\.?(/|$)~', $path) === 1 || str_starts_with($path, '/') || str_contains($path, "\0")
+                || preg_match('/^[a-f0-9]{64}$/', $hashes[0]) !== 1
+                || preg_match('/^[a-f0-9]{64}$/', $hashes[1]) !== 1
+                || preg_match('/^[a-f0-9]{64}$/', $hashes[2]) !== 1) {
+                throw new RuntimeException('采纳 baseline 记录无效');
+            }
+            $baseline = GeneratedFileBaseline::withTrashed()->where('business_module_id', $moduleId)->where('relative_path', $path)->lock(true)->find();
+            if (!$baseline) $baseline = new GeneratedFileBaseline();
+            if ($baseline->id && $baseline->trashed()) $baseline->restore();
+            $baseline->save(array_replace($allowed, [
+                'business_module_id' => $moduleId,
+                'generation_id' => $generationId,
+                'status' => 'active',
+                'updated_at' => date('Y-m-d H:i:s'),
+                'created_at' => $baseline->id ? $baseline->created_at : date('Y-m-d H:i:s'),
+            ]));
+            return $baseline->toArray();
+        });
+    }
+
     public function isBaselineBlobReferenced(string $relativePath): bool
     {
         return GeneratedFileBaseline::withTrashed()

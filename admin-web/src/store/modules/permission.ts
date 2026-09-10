@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { markRaw } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
 import { authApi } from '@/api/auth';
 import { generateRoutes } from '@/router/dynamic';
@@ -31,7 +32,7 @@ export const usePermissionStore = defineStore('permission', {
     async fetchMenus() {
       const menus = await authApi.menus();
       this.rawMenus = menus;
-      this.dynamicRoutes = generateRoutes(menus);
+      this.dynamicRoutes = markRaw(generateRoutes(menus));
       return this.dynamicRoutes;
     },
 

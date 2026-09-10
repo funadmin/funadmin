@@ -178,7 +178,7 @@ export interface FormFullPublishPreview extends Omit<FormPublishPreview, 'publis
   generationId?: number | null;
   plan: { files: Array<{ path: string; status: 'create' | 'update' | 'auto-merged' | 'keep-local' | 'conflict' | 'binary-conflict' | 'conflict-no-base'; diff?: string }> };
   sensitive?: { confirmToken: string } | null;
-  conflicts: Array<{ path: string; status: 'conflict' | 'binary-conflict' | 'conflict-no-base'; diff?: string }>;
+  conflicts: Array<{ path: string; status: 'conflict' | 'binary-conflict' | 'conflict-no-base'; diff?: string; contentKind?: 'text' | 'binary'; baseHash?: string | null; localHash?: string | null; remoteHash?: string | null; baseContent?: string | null; localContent?: string | null; remoteContent?: string | null }>;
   publishStatus: 'ready' | 'conflict';
 }
 

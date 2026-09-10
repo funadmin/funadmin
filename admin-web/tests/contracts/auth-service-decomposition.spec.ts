@@ -87,7 +87,8 @@ describe('管理员认证最终架构契约', () => {
     expect(adminAuth).toContain('RoleScopeService');
     expect(adminAuth).not.toContain('AdminAuthorizationService');
     expect(profile).toContain('AdminSessionService');
-    expect(devCrud).toContain('AdminAuthorizationService');
+    expect(devCrud).toContain('return $this->retired()');
+    expect(devCrud).not.toContain('AdminAuthorizationService');
     expect(roleGuard).toContain('RoleScopeService');
     expect(systemCallers).toContain('RoleScopeService');
     for (const source of [adminAuth, profile, devCrud, roleGuard, systemCallers]) {
