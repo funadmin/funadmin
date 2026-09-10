@@ -170,8 +170,10 @@ $controllerMethods = implode("\n", array_map(static function (ReflectionMethod $
     $lines = file($controllerFile);
     return is_array($lines) ? implode('', array_slice($lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1)) : '';
 }, $controller->getMethods(ReflectionMethod::IS_PUBLIC)));
-businessApiExpect(str_contains($controllerSource, 'FORM_SCHEMA_CONFLICT') && str_contains($controllerSource, '409'), '控制器缺少 409 映射');
-businessApiExpect(str_contains($controllerSource, '410') && str_contains($controllerSource, '422') && str_contains($controllerSource, '500'), '控制器缺少 410/422/500 映射');
+$errorMapperSource = (string) file_get_contents($root . 'app/console/service/BusinessApiErrorMapper.php');
+businessApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), '控制器必须委托专用错误映射器');
+businessApiExpect(str_contains($errorMapperSource, 'FORM_SCHEMA_CONFLICT') && str_contains($errorMapperSource, '409'), '错误映射器缺少 409 映射');
+businessApiExpect(str_contains($errorMapperSource, '410') && str_contains($errorMapperSource, '422') && str_contains($errorMapperSource, '500'), '错误映射器缺少 410/422/500 映射');
 businessApiExpect(str_contains($controllerSource, "nodeAccess('development/business/generate')"), 'managed preview sensitive 必须仅由 generate 权限控制');
 businessApiExpect(substr_count($controllerSource, "nodeAccess('development/business/generate')") >= 2, 'managed execute 必须同时检查 generate 权限');
 businessApiExpect(str_contains($controllerSource, "nodeAccess('development/business/apply-resources')"), 'managed execute 必须额外检查 resource apply 权限');

@@ -225,6 +225,61 @@ export default {
     emailPlaceholder: '请输入邮箱',
     emailInvalid: '邮箱格式不正确'
   },
+  business: {
+    status: {
+      lifecycle: {
+        draft: { label: '草稿', description: '模块仍在编辑，尚未发布。' },
+        published: { label: '已正式发布', description: '模块已生成正式代码并可访问。' },
+        dynamic_published: { label: '已动态发布', description: '模块通过动态运行时发布。' },
+        disabled: { label: '已停用', description: '模块已停用，当前不可访问。' }
+      },
+      generation: {
+        idle: { label: '未生成', description: '尚未创建正式生成计划。' },
+        planned: { label: '已计划', description: '生成计划已创建，等待执行。' },
+        running: { label: '生成中', description: '正在写入文件并应用相关资源。' },
+        completed: { label: '已完成', description: '文件和资源已成功提交。' },
+        failed: { label: '生成失败', description: '生成未完成，请查看安全错误和恢复状态。' },
+        conflict: { label: '存在冲突', description: '本地修改与远端生成内容存在冲突。' },
+        superseded: { label: '已被替代', description: '该计划已由更新的生成计划替代。' }
+      },
+      recovery: {
+        none: { label: '无需恢复', description: '当前没有待处理的恢复操作。' },
+        recovering: { label: '恢复中', description: '系统正在确定性恢复生成事务。' },
+        rolled_back: { label: '已回滚', description: '未完成的生成变更已安全回滚。' },
+        recovered_completed: { label: '恢复后完成', description: '恢复确认生成已提交并完成收敛。' },
+        recovery_required: { label: '需要恢复', description: '生成事务需要授权用户执行恢复。' }
+      },
+      file: {
+        create: { label: '新建', description: '将创建新的生成文件。' },
+        update: { label: '更新', description: '将更新现有生成文件。' },
+        'auto-merged': { label: '自动合并', description: '本地与远端改动已自动合并。' },
+        delete: { label: '删除', description: '将删除不再由定义生成的文件。' },
+        'keep-local': { label: '保留本地', description: '本地文件保持不变。' },
+        conflict: { label: '文本冲突', description: 'Base、Local 与 Remote 内容需要人工比对。' },
+        'binary-conflict': { label: '二进制冲突', description: '二进制文件无法自动合并。' },
+        'conflict-no-base': { label: '无基线冲突', description: '缺少可信 Base，无法安全自动合并。' }
+      }
+    },
+    loading: '正在加载业务数据',
+    loadError: '业务数据加载失败',
+    empty: '暂无业务数据',
+    retry: '重试',
+    summary: '摘要',
+    statusTitle: '状态',
+    hashes: '哈希',
+    files: '文件',
+    recovery: '恢复',
+    result: '结果',
+    safeError: '安全错误',
+    conflicts: '冲突',
+    base: 'Base',
+    local: 'Local',
+    remote: 'Remote',
+    advancedJson: '高级：原始 JSON',
+    copy: '复制',
+    recover: '恢复生成',
+    noFiles: '没有文件变更'
+  },
   login: {
     brandTitle1: '企业级中后台',
     brandTitle2: '从未如此优雅',

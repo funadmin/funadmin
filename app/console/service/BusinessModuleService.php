@@ -82,8 +82,7 @@ final class BusinessModuleService
     private function sanitizeGeneration(mixed $record): array
     {
         $row = is_object($record) && method_exists($record, 'toArray') ? $record->toArray() : (array) $record;
-        unset($row['confirm_token'], $row['trusted_bundle']);
-        return $row;
+        return BusinessResponseSanitizer::sanitize($row);
     }
 }
 

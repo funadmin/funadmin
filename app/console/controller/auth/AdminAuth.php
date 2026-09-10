@@ -190,6 +190,7 @@ class AdminAuth extends BaseController
             'console/development.business:formalgeneration' => 'development:business:generate',
             'console/development.business:generations' => 'development:business:records',
             'console/development.business:generation' => 'development:business:records',
+            'console/development.business:recovergeneration' => 'development:business:recover',
             'console/development.business:retryresources' => 'development:business:apply-resources',
             'console/development.business:adoptresolvedbaseline' => 'development:business:save',
             'console/development.business:fieldcapabilities' => 'development:business:view',

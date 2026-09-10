@@ -23,13 +23,59 @@ export interface BusinessModule {
   updated_at?: string;
 }
 
+export type BusinessGenerationAction = 'recover' | 'retry-resources';
+
+export interface BusinessApiErrorDetail {
+  code: string;
+  requestId: string;
+  retryable: boolean;
+  details: Record<string, unknown>;
+}
+
+export interface BusinessApiErrorResponse {
+  code: number;
+  msg: string;
+  data: { error: BusinessApiErrorDetail };
+  time?: number;
+}
+
+export interface BusinessGenerationRecovery {
+  state?: string;
+  transactionId?: string;
+  [key: string]: unknown;
+}
+
+export interface BusinessGenerationResult {
+  state?: string;
+  routePath?: string;
+  definitionHash?: string;
+  schemaHash?: string;
+  resourceApplyStatus?: string;
+  resourceApplyError?: string | null;
+  [key: string]: unknown;
+}
+
 export interface BusinessGeneration {
   id: number;
+  businessModuleId?: number;
   business_module_id?: number;
   status: string;
+  generationMode?: string;
   generation_mode?: string;
+  recoveryStatus?: string;
   recovery_status?: string;
+  planDigest?: string | null;
   plan_digest?: string | null;
+  definitionHash?: string;
+  schemaHash?: string;
+  routePath?: string;
+  plan?: BusinessGenerationPlan;
+  recovery?: BusinessGenerationRecovery | null;
+  result?: BusinessGenerationResult | null;
+  error?: BusinessApiErrorDetail | null;
+  availableActions?: BusinessGenerationAction[];
+  createdAt?: string;
+  updatedAt?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -46,12 +92,20 @@ export interface BusinessGenerationFile {
   remoteContent?: string | null;
 }
 
+export interface BusinessGenerationPlan {
+  blocked: boolean;
+  summary?: Partial<Record<BusinessGenerationFile['status'], number>>;
+  files: BusinessGenerationFile[];
+  definitionHash?: string;
+  [key: string]: unknown;
+}
+
 export interface BusinessFormalGenerationPreview {
   generationId: number;
   definitionHash?: string;
   schemaHash?: string;
   routePath?: string;
-  plan: { blocked: boolean; files: BusinessGenerationFile[] };
+  plan: BusinessGenerationPlan;
   conflicts: BusinessGenerationFile[];
   sensitive?: { confirmToken: string };
 }
@@ -79,10 +133,33 @@ export interface BusinessPageResult<T> {
   pageSize: number;
 }
 
+export interface BusinessDatabaseIndex {
+  name: string;
+  columns?: string[];
+  unique?: boolean;
+  [key: string]: unknown;
+}
+
 export interface BusinessFieldInspection {
   fields: Array<Record<string, unknown>>;
   connection: string;
   table: string;
+  snapshotHash: string;
+  observedAt: string;
+  primaryKey: string[];
+  indexes: BusinessDatabaseIndex[];
+}
+
+export function isBusinessApiError(value: unknown): value is BusinessApiErrorResponse {
+  if (!value || typeof value !== 'object') return false;
+  const response = value as Partial<BusinessApiErrorResponse>;
+  const error = response.data?.error;
+  return typeof response.code === 'number'
+    && typeof response.msg === 'string'
+    && typeof error?.code === 'string'
+    && typeof error.requestId === 'string'
+    && typeof error.retryable === 'boolean'
+    && typeof error.details === 'object';
 }
 
 export const businessDevelopmentApi = {
@@ -125,6 +202,8 @@ export const businessDevelopmentApi = {
   generations: (params: { page?: number; pageSize?: number; moduleId?: number; status?: string } = {}) =>
     http.get<BusinessPageResult<BusinessGeneration>>(`${PREFIX}/generations`, params),
   generation: (id: number) => http.get<BusinessGeneration>(`${PREFIX}/generations/${id}`),
+  recoverGeneration: (id: number, expectedRecoveryStatus: string) =>
+    http.post<BusinessGenerationResult>(`${PREFIX}/generations/${id}/recover`, { expectedRecoveryStatus }),
   retryResources: (id: number) => http.post<Record<string, unknown>>(`${PREFIX}/generations/${id}/retry-resources`),
   fieldCapabilities: () => http.get<{ registryVersion: string; schemaVersion: 2; registryHash: string; capabilities: FormComponentCatalogItem[]; diagnostics: Array<Record<string, unknown>> }>(`${PREFIX}/field-capabilities`)
 };

@@ -37,6 +37,7 @@ final class RoleAuthorizationService
             'departmentIds' => $this->departmentIds($roleId),
             'departmentTree' => $this->departmentTree(),
             'effectivePermissionIds' => $effectivePermissionIds,
+            'inheritance' => $this->inheritanceDetail($role),
         ];
     }
 
@@ -180,6 +181,44 @@ final class RoleAuthorizationService
     {
         $source = trim((string) ($permission['source_name'] ?? ''));
         return $source !== '' ? $source : $resource;
+    }
+
+    private function inheritanceDetail(AuthGroup $role): array
+    {
+        $roleId = (int) $role->id;
+        $primaryParentId = (int) $role->pid;
+        $directParentIds = $this->ids(AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id'));
+        if ($primaryParentId > 0 && !in_array($primaryParentId, $directParentIds, true)) {
+            array_unshift($directParentIds, $primaryParentId);
+        }
+        $names = AuthGroup::whereIn('id', $directParentIds ?: [0])->column('name', 'id');
+        usort($directParentIds, static fn (int $left, int $right): int => ($left === $primaryParentId ? -1 : 0) <=> ($right === $primaryParentId ? -1 : 0));
+        $directParents = array_map(static fn (int $parentId): array => [
+            'roleId' => $parentId,
+            'roleName' => (string) ($names[$parentId] ?? $parentId),
+            'relation' => $parentId === $primaryParentId ? 'primary' : 'additional',
+        ], $directParentIds);
+
+        $ancestorSources = [];
+        foreach ($directParentIds as $sourceId) {
+            $ancestors = array_values(array_diff((new RoleGuardService())->ancestorRoleIds([$sourceId]), [$sourceId]));
+            foreach ($ancestors as $ancestorId) {
+                $ancestorSources[$ancestorId][] = $sourceId;
+            }
+        }
+        $ancestorIds = array_keys($ancestorSources);
+        $ancestorNames = AuthGroup::whereIn('id', $ancestorIds ?: [0])->column('name', 'id');
+        $ancestors = [];
+        foreach ($ancestorSources as $ancestorId => $sourceIds) {
+            $sourceIds = $this->ids($sourceIds);
+            $ancestors[] = [
+                'roleId' => (int) $ancestorId,
+                'roleName' => (string) ($ancestorNames[$ancestorId] ?? $ancestorId),
+                'sourceRoleIds' => $sourceIds,
+                'sourceRoleNames' => array_values(array_map(static fn (int $sourceId): string => (string) ($names[$sourceId] ?? $sourceId), $sourceIds)),
+            ];
+        }
+        return ['directParents' => $directParents, 'ancestors' => $ancestors];
     }
 
     private function inheritedPermissions(int $roleId): array

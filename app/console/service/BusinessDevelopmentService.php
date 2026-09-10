@@ -191,16 +191,18 @@ final class BusinessDevelopmentService
         return $this->data->meta((string) $detail['module']['code']);
     }
 
-    public function previewFormalGeneration(int $moduleId, bool $includeSensitive, ?string $nonce): array
+    public function previewFormalGeneration(int $moduleId, bool $includeSensitive, ?string $nonce, array $input = []): array
     {
         self::assertPositiveId($moduleId);
+        $this->assertFormalGenerationInput($input);
         return $this->managed->preview($moduleId, $includeSensitive, $nonce);
     }
 
-    public function formalGeneration(int $moduleId, int $generationId, string $confirmToken): array
+    public function formalGeneration(int $moduleId, int $generationId, string $confirmToken, array $input = []): array
     {
         self::assertPositiveId($moduleId);
         self::assertPositiveId($generationId);
+        $this->assertFormalGenerationInput($input);
         if ($confirmToken === '' || strlen($confirmToken) > 2048) throw new InvalidArgumentException('confirmToken 不合法');
         return $this->managed->execute($moduleId, $generationId, $confirmToken);
     }
@@ -216,6 +218,13 @@ final class BusinessDevelopmentService
     {
         self::assertPositiveId($id);
         return $this->modules->generation($id);
+    }
+
+    public function recoverGeneration(int $id, string $expectedRecoveryStatus, string $actor): array
+    {
+        self::assertPositiveId($id);
+        self::assertEnum($expectedRecoveryStatus, ['none', 'recovering', 'recovery_required'], 'expectedRecoveryStatus');
+        return GenerationTransactionService::production()->recoverGeneration($id, $expectedRecoveryStatus, $actor);
     }
 
     public function retryResources(int $id): array
@@ -312,6 +321,17 @@ final class BusinessDevelopmentService
         $formId = (int) ($detail['module']['form_id'] ?? 0);
         self::assertPositiveId($formId);
         return $formId;
+    }
+
+    private function assertFormalGenerationInput(array $input): void
+    {
+        $unsupported = array_values(array_intersect(
+            array_keys($input),
+            ['allowOverwrite', 'definition', 'trustedBundle', 'files', 'resources', 'routePath']
+        ));
+        if ($unsupported !== []) {
+            throw new BusinessOperationException('UNSUPPORTED_GENERATION_INPUT', ['fields' => $unsupported]);
+        }
     }
 
     private function assertSchemaIdentity(array $detail, string $code): void

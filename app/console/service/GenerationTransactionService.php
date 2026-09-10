@@ -79,7 +79,7 @@ final class GenerationTransactionService
         $this->executionOutcome = 'none';
         $this->assertTrustedBundle($bundle);
         if (($bundle['plan']['blocked'] ?? true) === true) {
-            throw new RuntimeException('冲突 managed plan 拒绝执行');
+            throw new BusinessOperationException('GENERATION_PLAN_CONFLICT', [], '冲突 managed plan 拒绝执行');
         }
         return $this->locked(function () use ($moduleId, $generationId, $bundle, $confirmToken, $claim): array {
             $digest = self::bundleDigest($bundle);
@@ -87,7 +87,7 @@ final class GenerationTransactionService
             $this->assertCurrentState($bundle);
             $this->assertTargetsCurrent($bundle['plan']['files']);
             if ($claim !== null && $claim() !== true) {
-                throw new RuntimeException('managed generation 已由其他执行者获取');
+                throw new BusinessOperationException('GENERATION_IN_PROGRESS', [], 'managed generation 已由其他执行者获取');
             }
             try {
                 $this->tokens->consume((string) $claims['nonce'], (int) $claims['expiresAt']);
@@ -102,6 +102,9 @@ final class GenerationTransactionService
             $transactionId = bin2hex(random_bytes(16));
             $journal = $this->newJournal($transactionId, $moduleId, $generationId, $bundle, $digest);
             $this->writeJournal($journal);
+            if (is_object($this->stateRepository) && method_exists($this->stateRepository, 'bindGenerationTransaction')) {
+                $this->stateRepository->bindGenerationTransaction($moduleId, $generationId, $transactionId);
+            }
             $resourcesBegun = false;
             try {
                 $journal = $this->stage($journal, $bundle);
@@ -160,6 +163,45 @@ final class GenerationTransactionService
     public function executionOutcome(): string
     {
         return $this->executionOutcome;
+    }
+
+    public function recoverGeneration(int $generationId, string $expectedRecoveryStatus, string $actor): array
+    {
+        if (!is_object($this->stateRepository) || !method_exists($this->stateRepository, 'generationForRecovery')
+            || !method_exists($this->stateRepository, 'claimRecovery')) {
+            throw new RuntimeException('generation state repository 不支持 API 恢复');
+        }
+        $record = $this->stateRepository->generationForRecovery($generationId);
+        if (!is_array($record)) throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+        if ((string) ($record['recovery_status'] ?? '') !== $expectedRecoveryStatus) {
+            throw new BusinessOperationException('GENERATION_RECOVERY_STATUS_CONFLICT');
+        }
+        $transactionId = (string) ($record['transaction_id'] ?? '');
+        try {
+            $journal = $this->inspect($transactionId);
+        } catch (Throwable $exception) {
+            throw new BusinessOperationException('GENERATION_BINDING_CONFLICT', [], previous: $exception);
+        }
+        if ((int) ($journal['generation_id'] ?? 0) !== $generationId
+            || (int) ($journal['module_id'] ?? 0) !== (int) ($record['business_module_id'] ?? 0)
+            || !hash_equals((string) ($journal['transaction_id'] ?? ''), $transactionId)) {
+            throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+        }
+        if (!$this->stateRepository->claimRecovery($generationId, $expectedRecoveryStatus, $actor)) {
+            throw new BusinessOperationException('GENERATION_RECOVERY_STATUS_CONFLICT');
+        }
+        try {
+            $result = $this->recover($transactionId);
+            if (($result['state'] ?? '') === 'completed') {
+                $this->stateRepository->markRecoveredCompleted($generationId, $actor);
+            } elseif (($result['state'] ?? '') === 'rolled_back') {
+                $this->stateRepository->markRolledBack($generationId, $actor);
+            }
+            return $result;
+        } catch (Throwable $exception) {
+            $this->syncRecoveryFailure($generationId, $actor, $exception);
+            throw $exception;
+        }
     }
 
     public function inspect(string $transactionId): array
@@ -298,7 +340,7 @@ final class GenerationTransactionService
         $actual = ($this->currentState)();
         foreach (['definitionHash', 'schemaHash', 'registryHash', 'templateVersion', 'migrationHash', 'resourcesHash'] as $key) {
             if (!is_string($actual[$key] ?? null) || !hash_equals((string) $bundle[$key], $actual[$key])) {
-                throw new RuntimeException($key . ' 已漂移');
+                throw new BusinessOperationException('GENERATION_PLAN_CONFLICT', ['component' => $key], $key . ' 已漂移');
             }
         }
     }
@@ -313,7 +355,7 @@ final class GenerationTransactionService
             }
             $actual = $stat === false ? null : hash_file('sha256', $target);
             if ($actual !== ($file['localHash'] ?? null)) {
-                throw new RuntimeException('目标文件 hash 已变化：' . $file['path']);
+                throw new BusinessOperationException('GENERATION_TARGET_DRIFT', ['path' => $file['path']], '目标文件 hash 已变化：' . $file['path']);
             }
         }
     }
@@ -693,6 +735,17 @@ final class GenerationTransactionService
         return $this->baselines->root();
     }
 
+    private function syncRecoveryFailure(int $generationId, string $actor, Throwable $exception): void
+    {
+        if (!method_exists($this->stateRepository, 'markRecoveryRequired')) return;
+        $this->stateRepository->markRecoveryRequired(
+            $generationId,
+            'GENERATION_RECOVERY_REQUIRED',
+            ['type' => $exception::class, 'message' => $exception->getMessage()],
+            $actor
+        );
+    }
+
     private function locked(callable $operation): mixed
     {
         $directory = rtrim($this->projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'cache';
@@ -700,7 +753,7 @@ final class GenerationTransactionService
         $handle = @fopen($directory . DIRECTORY_SEPARATOR . 'business-development-write.lock', 'c+');
         if ($handle === false || !flock($handle, LOCK_EX | LOCK_NB)) {
             if (is_resource($handle)) fclose($handle);
-            throw new RuntimeException('无法获取 business development 排他锁');
+            throw new BusinessOperationException('GENERATION_BUSY', [], 'generation 写操作未取得排他锁');
         }
         try {
             return $operation();

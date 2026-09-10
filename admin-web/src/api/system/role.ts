@@ -66,6 +66,20 @@ export interface AuthorizationTreeNode {
   children?: AuthorizationTreeNode[];
 }
 
+export interface RoleInheritanceParent extends AuthorizationSource {
+  relation: 'primary' | 'additional';
+}
+
+export interface RoleInheritanceAncestor extends AuthorizationSource {
+  sourceRoleIds: number[];
+  sourceRoleNames: string[];
+}
+
+export interface RoleInheritanceDetail {
+  directParents: RoleInheritanceParent[];
+  ancestors: RoleInheritanceAncestor[];
+}
+
 export interface RoleAuthorization {
   roleId: number;
   roles: AuthorizationTreeNode[];
@@ -75,6 +89,7 @@ export interface RoleAuthorization {
   departmentIds: number[];
   departmentTree: AuthorizationTreeNode[];
   effectivePermissionIds: number[];
+  inheritance?: RoleInheritanceDetail;
 }
 
 export interface SaveRoleAuthorization {

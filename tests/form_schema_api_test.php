@@ -118,7 +118,9 @@ $controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/
 foreach (['schema/compile', 'schema/export', 'schema/versions', 'schema/diff', 'rollback'] as $route) {
     schemaApiExpect(str_contains($controllerSource, $route), 'Business 缺少 Schema API 路由：' . $route);
 }
-schemaApiExpect(str_contains($controllerSource, 'FormSchemaException|InvalidArgumentException'), 'Business Schema API 必须统一处理 Schema 错误');
+$errorMapperSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/BusinessApiErrorMapper.php');
+schemaApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), 'Business Schema API 必须委托统一错误映射器');
+schemaApiExpect(str_contains($errorMapperSource, 'FormSchemaException') && str_contains($errorMapperSource, 'InvalidArgumentException'), 'Business 错误映射器必须统一处理 Schema 错误');
 
 $migrations = array_map('basename', glob(dirname(__DIR__) . '/database/migrations/*.sql') ?: []);
 sort($migrations, SORT_STRING);

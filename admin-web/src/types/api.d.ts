@@ -3,12 +3,25 @@
  * 后端统一响应风格：{ code, msg, data, time }
  */
 declare namespace API {
+  interface ErrorDetail {
+    code: string;
+    requestId: string;
+    retryable: boolean;
+    details: Record<string, unknown>;
+  }
+
+  interface ErrorData {
+    error: ErrorDetail;
+  }
+
   interface Response<T = any> {
     code: number;
     msg: string;
     data: T;
     time?: number;
   }
+
+  type ErrorResponse = Response<ErrorData>;
 
   interface PageResult<T = any> {
     list: T[];

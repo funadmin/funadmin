@@ -28,6 +28,9 @@
 !/tests/business_generation_canonical_state_test.php
 !/tests/business_generation_idempotency_test.php
 !/tests/business_schema_database_cas_test.php
+!/tests/business_development_safety_test.php
+!/tests/business_generation_api_recovery_test.php
+!/tests/legacy_write_api_gone_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

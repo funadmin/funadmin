@@ -54,6 +54,14 @@ foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 's
 }
 businessPermissionExpect(str_contains($auth, "'development:business:"), 'AdminAuth aliases 必须映射统一 business 权限');
 businessPermissionExpect(!str_contains($auth, "'console/devcrud:"), 'AdminAuth 不得保留 DevCrud aliases');
+businessPermissionExpect(str_contains($auth, "'console/development.business:recovergeneration' => 'development:business:recover'"), 'AdminAuth 缺少 recover 独立权限 alias');
+
+$recoverFile = $root . '/database/migrations/089_business_generation_recover_permission.sql';
+businessPermissionExpect(is_file($recoverFile), '缺少 089 recover 权限 migration');
+$recoverSql = (string) file_get_contents($recoverFile);
+businessPermissionExpect(!preg_match('/\b(?:DROP|TRUNCATE|DELETE|RENAME|UPDATE)\b/i', preg_replace('/^--.*$/m', '', $recoverSql)), '089 必须 forward-only');
+businessPermissionExpect(str_contains($recoverSql, "'development:business:recover'") && str_contains($recoverSql, "'console/development.business:recovergeneration'"), '089 必须新增独立 recover 权限与 action');
+businessPermissionExpect(!str_contains($recoverSql, 'allowOverwrite') && !str_contains($recoverSql, 'development:business:generate'), '089 不得引入 overwrite 或复用 generate 权限');
 
 $retirementFile = $root . '/database/migrations/087_legacy_form_crud_retirement.sql';
 businessPermissionExpect(is_file($retirementFile), '缺少 087 旧产品入口退役 migration');
@@ -115,6 +123,8 @@ SQL);
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-form' AND v2='development/business' AND v3='generate'")->fetchColumn() === 0, '旧授权不得跨能力扩大');
         foreach ([1, 2] as $_run) foreach ($statements->invoke($service, $remainingSql) as $statement) $database->exec($statement);
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-form' AND v2='console/development.business' AND v3='compileschema'")->fetchColumn() === 0, '无 compile 旧授权时不得扩大授权');
+        foreach ([1, 2] as $_run) foreach ($statements->invoke($service, $recoverSql) as $statement) $database->exec($statement);
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE source_name='business_development' AND code IN ('development:business:recover','console/development.business:recovergeneration')")->fetchColumn() === 2, '089 必须幂等创建独立 recover capability 与 route');
         foreach ([1, 2] as $_run) foreach ($statements->invoke($service, $retirementSql) as $statement) $database->exec($statement);
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE code='development:plugin:options' AND pid=3 AND source_name='plugin_center' AND status=1 AND deleted_at IS NULL")->fetchColumn() === 1, '087 必须启用插件 options 并归属 plugin_center');
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-plugin' AND v2='console/development.devplugin' AND v3='options'")->fetchColumn() === 1, '087 必须等价保留插件 options 授权且幂等');

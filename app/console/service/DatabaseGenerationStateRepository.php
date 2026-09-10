@@ -163,6 +163,39 @@ final class DatabaseGenerationStateRepository
             ]);
     }
 
+    public function bindGenerationTransaction(int $moduleId, int $generationId, string $transactionId): void
+    {
+        if (preg_match('/^[a-f0-9]{32}$/', $transactionId) !== 1) throw new RuntimeException('transaction ID 无效');
+        $updated = CrudGeneration::where('id', $generationId)
+            ->where('business_module_id', $moduleId)
+            ->where('status', 'running')
+            ->where(function ($query) use ($transactionId): void {
+                $query->whereNull('transaction_id')->whereOr('transaction_id', $transactionId);
+            })
+            ->update(['transaction_id' => $transactionId]);
+        if ($updated !== 1) throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+    }
+
+    public function generationForRecovery(int $generationId): ?array
+    {
+        $generation = CrudGeneration::where('id', $generationId)->find();
+        return $generation ? $generation->toArray() : null;
+    }
+
+    public function claimRecovery(int $generationId, string $expectedRecoveryStatus, string $actor): bool
+    {
+        return CrudGeneration::where('id', $generationId)
+            ->where('status', 'failed')
+            ->where('recovery_status', $expectedRecoveryStatus)
+            ->whereNotNull('transaction_id')
+            ->update([
+                'status' => 'running',
+                'recovery_status' => 'recovering',
+                'actor' => $actor,
+                'started_at' => date('Y-m-d H:i:s'),
+            ]) === 1;
+    }
+
     public function markRunning(int $generationId, string $actor): void
     {
         $this->updateGeneration($generationId, [
@@ -216,6 +249,25 @@ final class DatabaseGenerationStateRepository
             'recovery_status' => 'recovering',
             'actor' => $actor,
         ]);
+    }
+
+    public function markRecoveredCompleted(int $generationId, string $actor): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $updated = CrudGeneration::where('id', $generationId)
+            ->where('status', 'running')
+            ->where('recovery_status', 'recovering')
+            ->update([
+                'status' => 'completed',
+                'recovery_status' => 'recovered_completed',
+                'actor' => $actor,
+                'failure_code' => null,
+                'error' => null,
+                'completed_at' => $now,
+                'failed_at' => null,
+                'recovered_at' => $now,
+            ]);
+        if ($updated !== 1) throw new BusinessOperationException('GENERATION_RECOVERY_STATUS_CONFLICT');
     }
 
     public function markRolledBack(int $generationId, string $actor): void

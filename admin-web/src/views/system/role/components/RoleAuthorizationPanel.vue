@@ -41,10 +41,10 @@
         <el-empty v-if="!fields.length" description="暂无已登记的字段白名单" />
     </div>
     <div v-else>
-        <el-radio-group v-model="dataScope" class="data-scopes">
+        <el-radio-group v-model="authorization.dataScope" class="data-scopes">
           <el-radio value="all">全部数据</el-radio><el-radio value="dept_and_children">本部门及下级</el-radio><el-radio value="dept">本部门</el-radio><el-radio value="self">仅本人</el-radio><el-radio value="custom">自定义部门</el-radio>
         </el-radio-group>
-        <el-tree v-if="dataScope === 'custom'" ref="departmentTreeRef" :data="departmentTree" node-key="id" :props="{ label: 'name', children: 'children' }" show-checkbox default-expand-all check-strictly />
+        <el-tree v-if="authorization.dataScope === 'custom'" ref="departmentTreeRef" :data="authorization.departmentTree" node-key="id" :props="{ label: 'name', children: 'children' }" show-checkbox default-expand-all check-strictly @check="syncDepartmentIds" />
     </div>
     <div class="role-authorization-panel__footer"><el-button type="primary" :loading="saving" v-perm="'system:role:perm'" @click="save">保存整套授权</el-button></div>
   </div>
@@ -53,14 +53,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { roleApi, type AuthorizationSource, type AuthorizationTreeNode, type DataScope, type FieldPermission, type PermissionAction, type PermissionGroup } from '@/api/system/role';
+import { roleApi, type AuthorizationSource, type AuthorizationTreeNode, type FieldPermission, type PermissionAction, type RoleAuthorization } from '@/api/system/role';
 import { normalizeFieldGrant, toggleFieldEdit, toggleFieldView } from '../roleAuthorization';
 
-const props = defineProps<{ roleId?: number; section: 'permissions' | 'fields' | 'data' }>();
-const emit = defineEmits<{ success: [] }>();
+const props = defineProps<{ roleId?: number; section: 'permissions' | 'fields' | 'data'; authorization: RoleAuthorization }>();
+const emit = defineEmits<{ reload: [] }>();
 const loading = ref(false); const saving = ref(false); const copying = ref(false);
-const roles = ref<AuthorizationTreeNode[]>([]); const permissionGroups = ref<PermissionGroup[]>([]); const fields = ref<FieldPermission[]>([]);
-const dataScope = ref<DataScope>('self'); const departmentTree = ref<AuthorizationTreeNode[]>([]); const departmentIds = ref<number[]>([]); const expandedGroups = ref<number[]>([]); const copySourceRoleId = ref<number>();
+const roles = computed(() => props.authorization.roles); const permissionGroups = computed(() => props.authorization.permissionGroups); const fields = computed(() => props.authorization.fields);
+const expandedGroups = ref<number[]>(props.authorization.permissionGroups.map((group) => group.id)); const copySourceRoleId = ref<number>();
 const departmentTreeRef = ref<{ setCheckedKeys: (keys: number[]) => void; getCheckedKeys: () => Array<number | string> }>();
 const flatRoles = computed(() => {
   const result: AuthorizationTreeNode[] = [];
@@ -69,34 +69,29 @@ const flatRoles = computed(() => {
   return result.filter((role) => role.id !== props.roleId);
 });
 
-watch(() => props.roleId, (id) => { if (id) void load(id); }, { immediate: true });
-async function load(id: number) {
-  loading.value = true;
-  try {
-    const authorization = await roleApi.authorization(id);
-    roles.value = authorization.roles; permissionGroups.value = authorization.permissionGroups; fields.value = authorization.fields;
-    dataScope.value = authorization.dataScope; departmentIds.value = authorization.departmentIds; departmentTree.value = authorization.departmentTree;
-    expandedGroups.value = authorization.permissionGroups.map((group) => group.id);
-    await nextTick(); departmentTreeRef.value?.setCheckedKeys(departmentIds.value);
-  } finally { loading.value = false; }
-}
+watch(() => [props.roleId, props.authorization.departmentIds] as const, async () => {
+  if (props.section !== 'data') return;
+  await nextTick();
+  departmentTreeRef.value?.setCheckedKeys(props.authorization.departmentIds);
+}, { immediate: true });
 function setPermission(action: PermissionAction, checked: unknown) { if (!action.inherited) action.direct = Boolean(checked); }
 function setFieldView(field: FieldPermission, checked: unknown) { Object.assign(field, toggleFieldView(field, Boolean(checked))); }
 function setFieldEdit(field: FieldPermission, checked: unknown) { Object.assign(field, toggleFieldEdit(field, Boolean(checked))); }
 function inheritanceText(sources: AuthorizationSource[]) { return sources.length ? `继承自：${sources.map((source) => source.roleName).join('、')}` : ''; }
+function syncDepartmentIds(_data: AuthorizationTreeNode, checked: { checkedKeys: Array<number | string> }) { props.authorization.departmentIds = checked.checkedKeys.map(Number); }
 async function save() {
   if (!props.roleId) return; saving.value = true;
   try {
     const permissionIds = permissionGroups.value.flatMap((group) => group.resources).flatMap((resource) => resource.actions).filter((action) => action.direct).map((action) => action.id);
     const fieldPermissions = fields.value.map((field) => ({ fieldId: field.id, ...normalizeFieldGrant(field) })).filter((field) => field.view || field.edit);
-    const checked = dataScope.value === 'custom' ? (departmentTreeRef.value?.getCheckedKeys() || []).map(Number) : [];
-    await roleApi.saveAuthorization(props.roleId, { permissionIds, fieldPermissions, dataScope: dataScope.value, departmentIds: checked }); emit('success'); await load(props.roleId);
+    const departmentIds = props.authorization.dataScope === 'custom' ? props.authorization.departmentIds : [];
+    await roleApi.saveAuthorization(props.roleId, { permissionIds, fieldPermissions, dataScope: props.authorization.dataScope, departmentIds }); emit('reload');
   } finally { saving.value = false; }
 }
 async function copyAuthorization() {
   if (!props.roleId || !copySourceRoleId.value) return;
   await ElMessageBox.confirm('确认复制所选角色的整套授权吗？', '复制授权', { type: 'warning' }); copying.value = true;
-  try { await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); await load(props.roleId); emit('success'); } finally { copying.value = false; }
+  try { await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); emit('reload'); } finally { copying.value = false; }
 }
 </script>
 

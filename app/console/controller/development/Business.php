@@ -10,15 +10,15 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\service\AdminAuthorizationService;
-use app\console\service\BusinessConflictException;
+use app\console\service\BusinessApiErrorMapper;
 use app\console\service\BusinessDevelopmentService;
-use app\console\service\BusinessResourceGoneException;
 use InvalidArgumentException;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
 use think\annotation\route\Post;
 use think\App;
+use think\facade\Log;
 use think\Response;
 use Throwable;
 
@@ -133,7 +133,7 @@ final class Business extends AdminApiController
     #[Pattern('version', '\d+')]
     public function rollbackSchema(int $id, int $version): Response
     {
-        return $this->execute(fn (): array => $this->business->rollbackSchema($id, $version, $this->actor(), mb_substr(trim((string) $this->request->post('summary', '')), 0, 255)), '回滚版本已创建');
+        return $this->execute(fn (): array => $this->business->rollbackSchema($id, $version, trim((string) $this->request->post('expectedSchemaHash', '')), $this->actor(), mb_substr(trim((string) $this->request->post('summary', '')), 0, 255)), '回滚版本已创建');
     }
 
     #[Get('database/tables')]
@@ -175,7 +175,7 @@ final class Business extends AdminApiController
     public function previewFormalGeneration(int $id): Response
     {
         $canGenerate = (new AdminAuthorizationService())->nodeAccess('development/business/generate');
-        return $this->execute(fn (): array => $this->business->previewFormalGeneration($id, $canGenerate, ($nonce = trim((string) $this->request->post('nonce', ''))) === '' ? null : $nonce));
+        return $this->execute(fn (): array => $this->business->previewFormalGeneration($id, $canGenerate, ($nonce = trim((string) $this->request->post('nonce', ''))) === '' ? null : $nonce, $this->input()));
     }
 
     #[Post('modules/:id/formal-generation')]
@@ -189,7 +189,7 @@ final class Business extends AdminApiController
         if (!$authorization->nodeAccess('development/business/apply-resources')) {
             return $this->fail(msg: '缺少 resource apply 专用权限', code: 403);
         }
-        return $this->execute(fn (): array => $this->business->formalGeneration($id, (int) $this->request->post('generationId', 0), trim((string) $this->request->post('confirmToken', ''))), '正式生成完成');
+        return $this->execute(fn (): array => $this->business->formalGeneration($id, (int) $this->request->post('generationId', 0), trim((string) $this->request->post('confirmToken', '')), $this->input()), '正式生成完成');
     }
 
     #[Get('generations')]
@@ -206,6 +206,20 @@ final class Business extends AdminApiController
     public function generation(int $id): Response
     {
         return $this->execute(fn (): array => $this->business->generation($id));
+    }
+
+    #[Post('generations/:id/recover')]
+    #[Pattern('id', '\d+')]
+    public function recoverGeneration(int $id): Response
+    {
+        if (!(new AdminAuthorizationService())->nodeAccess('development/business/recover')) {
+            return $this->fail(msg: '缺少 generation recover 专用权限', code: 403);
+        }
+        return $this->execute(fn (): array => $this->business->recoverGeneration(
+            $id,
+            trim((string) $this->request->post('expectedRecoveryStatus', '')),
+            $this->actor()
+        ), '生成恢复完成');
     }
 
     #[Post('generations/:id/retry-resources')]
@@ -259,15 +273,13 @@ final class Business extends AdminApiController
     {
         try {
             return $this->ok($message, $operation());
-        } catch (BusinessConflictException $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 409);
-        } catch (BusinessResourceGoneException $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 410);
-        } catch (FormSchemaException|InvalidArgumentException $exception) {
-            $code = in_array($exception->getMessage(), ['FORM_SCHEMA_CONFLICT', 'FORM_DEPENDENCY_CONFLICT'], true) ? 409 : 422;
-            return $this->fail(msg: $exception->getMessage(), code: $code);
         } catch (Throwable $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 500);
+            $mapped = BusinessApiErrorMapper::map($exception, (string) $this->request->header('X-Request-ID', ''));
+            Log::error('business.development.error', [
+                'requestId' => $mapped['error']['requestId'],
+                'exception' => $exception,
+            ]);
+            return $this->fail($mapped['message'], ['error' => $mapped['error']], $mapped['httpStatus']);
         }
     }
 }

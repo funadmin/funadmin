@@ -168,7 +168,13 @@ final class ManagedGenerationService
             return $result + ['idempotentReplay' => true];
         }
         if ($status === 'superseded') {
-            throw new InvalidArgumentException('managed generation 已 superseded，不可执行');
+            throw new BusinessOperationException('GENERATION_SUPERSEDED', [], 'managed generation 已 superseded，不可执行');
+        }
+        if ($status === 'running') {
+            throw new BusinessOperationException('GENERATION_IN_PROGRESS', [], 'managed generation 已由其他执行者获取');
+        }
+        if (($record['recovery_status'] ?? 'none') === 'recovery_required') {
+            throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED', [], 'managed generation 需要人工恢复');
         }
         if ($status !== 'planned') {
             throw new InvalidArgumentException('managed generation 不存在、未绑定或不可执行');
@@ -179,7 +185,7 @@ final class ManagedGenerationService
         $trusted = $this->trustedBundle($bundle);
         if (!hash_equals((string) ($manifest['planDigest'] ?? ''), (string) $trusted['plan']['planDigest'])
             || !hash_equals((string) ($manifest['bundleDigest'] ?? ''), GenerationTransactionService::bundleDigest($trusted))) {
-            throw new RuntimeException('managed generation 计划已漂移');
+            throw new BusinessOperationException('GENERATION_PLAN_CONFLICT', [], 'managed generation 计划已漂移');
         }
         $transaction = new GenerationTransactionService(
             $this->projectRoot,
