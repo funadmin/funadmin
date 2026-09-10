@@ -124,33 +124,33 @@ INNER JOIN `fun_business_module` m ON m.`id`=f.`business_module_id` AND m.`delet
 SET g.`business_module_id`=m.`id`,g.`form_id`=f.`id`,g.`binding_status`='bound',g.`updated_at`=COALESCE(g.`updated_at`,NOW())
 WHERE g.`deleted_at` IS NULL
   AND (SELECT COUNT(*) FROM `fun_form` reliable_form WHERE reliable_form.`crud_generation_id`=g.`id` AND reliable_form.`deleted_at` IS NULL) = 1
-  AND JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash'))=m.`published_schema_hash`
+  AND JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash')) COLLATE utf8mb4_unicode_ci=m.`published_schema_hash`
   AND (g.`business_module_id` IS NULL OR g.`business_module_id`=m.`id`)
   AND (g.`form_id` IS NULL OR g.`form_id`=f.`id`);
 
 -- 第二优先级：无显式引用时，严格 hash 加 connection/table 只能唯一命中一个模块。
 UPDATE `fun_crud_generation` g
 INNER JOIN `fun_business_module` m
-  ON m.`published_schema_hash`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash'))
- AND m.`connection_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')),''),g.`connection_name`)
- AND m.`table_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')),''),g.`table_name`)
+  ON m.`published_schema_hash`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash')) COLLATE utf8mb4_unicode_ci
+ AND m.`connection_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')) COLLATE utf8mb4_unicode_ci,''),g.`connection_name`)
+ AND m.`table_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')) COLLATE utf8mb4_unicode_ci,''),g.`table_name`)
  AND m.`deleted_at` IS NULL
 SET g.`business_module_id`=m.`id`,g.`form_id`=m.`form_id`,g.`binding_status`='bound',g.`updated_at`=COALESCE(g.`updated_at`,NOW())
 WHERE g.`deleted_at` IS NULL AND g.`business_module_id` IS NULL AND g.`form_id` IS NULL
   AND NOT EXISTS(SELECT 1 FROM `fun_form` explicit_form WHERE explicit_form.`crud_generation_id`=g.`id` AND explicit_form.`deleted_at` IS NULL)
   AND JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash')) IS NOT NULL
   AND (SELECT COUNT(*) FROM `fun_business_module` reliable_module
-       WHERE reliable_module.`published_schema_hash`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash'))
-         AND reliable_module.`connection_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')),''),g.`connection_name`)
-         AND reliable_module.`table_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')),''),g.`table_name`)
+       WHERE reliable_module.`published_schema_hash`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.formSchemaHash')) COLLATE utf8mb4_unicode_ci
+         AND reliable_module.`connection_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')) COLLATE utf8mb4_unicode_ci,''),g.`connection_name`)
+         AND reliable_module.`table_name`=COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')) COLLATE utf8mb4_unicode_ci,''),g.`table_name`)
          AND reliable_module.`deleted_at` IS NULL) = 1;
 
 -- 无 hash 时仅允许 definition metadata 中的 formId、connection、table 三者一致且唯一。
 UPDATE `fun_crud_generation` g
 INNER JOIN `fun_business_module` m
   ON m.`form_id`=CAST(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.metadata.formId')) AS UNSIGNED)
- AND m.`connection_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection'))
- AND m.`table_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table'))
+ AND m.`connection_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')) COLLATE utf8mb4_unicode_ci
+ AND m.`table_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')) COLLATE utf8mb4_unicode_ci
  AND m.`deleted_at` IS NULL
 SET g.`business_module_id`=m.`id`,g.`form_id`=m.`form_id`,g.`binding_status`='bound',g.`updated_at`=COALESCE(g.`updated_at`,NOW())
 WHERE g.`deleted_at` IS NULL AND g.`business_module_id` IS NULL AND g.`form_id` IS NULL
@@ -158,8 +158,8 @@ WHERE g.`deleted_at` IS NULL AND g.`business_module_id` IS NULL AND g.`form_id` 
   AND JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.metadata.formId')) IS NOT NULL
   AND (SELECT COUNT(*) FROM `fun_business_module` reliable_module
        WHERE reliable_module.`form_id`=CAST(JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.metadata.formId')) AS UNSIGNED)
-         AND reliable_module.`connection_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection'))
-         AND reliable_module.`table_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table'))
+         AND reliable_module.`connection_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.connection')) COLLATE utf8mb4_unicode_ci
+         AND reliable_module.`table_name`=JSON_UNQUOTE(JSON_EXTRACT(g.`definition`,'$.table')) COLLATE utf8mb4_unicode_ci
          AND reliable_module.`deleted_at` IS NULL) = 1;
 
 UPDATE `fun_business_module` m

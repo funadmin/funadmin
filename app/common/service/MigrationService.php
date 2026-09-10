@@ -44,6 +44,7 @@ class MigrationService extends AbstractService
             }
 
             $this->preflightSchemaIntegrity006($scope, $version);
+            $this->preflightBusinessDevelopment077($scope, $version);
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
                 throw new RuntimeException('无法读取 migration：' . $file);
@@ -157,6 +158,21 @@ class MigrationService extends AbstractService
         if (!$indexes) {
             Db::execute("ALTER TABLE {$quotedTable} ADD UNIQUE KEY `uk_member_mobile` (`mobile`)");
         }
+    }
+
+    /** 077 回填依赖 published_schema_hash；历史 072 不可改写，因此在首次执行 077 前幂等扩列。 */
+    private function preflightBusinessDevelopment077(string $scope, string $version): void
+    {
+        if ($scope !== 'core' || $version !== '077_business_development_center') {
+            return;
+        }
+        $columns = $this->tableColumns('form');
+        if (in_array('published_schema_hash', $columns, true)) {
+            return;
+        }
+        $prefix = (string) config('database.connections.mysql.prefix');
+        Db::execute('ALTER TABLE ' . $this->quoteIdentifier($prefix . 'form')
+            . ' ADD COLUMN `published_schema_hash` char(64) NULL AFTER `published_definition_hash`');
     }
 
     /**

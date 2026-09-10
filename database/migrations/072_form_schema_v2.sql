@@ -5,7 +5,6 @@ SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHE
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='schema_document'),'ALTER TABLE `fun_form` ADD COLUMN `schema_document` json DEFAULT NULL AFTER `schema_version`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='schema_hash'),'ALTER TABLE `fun_form` ADD COLUMN `schema_hash` char(64) NULL AFTER `schema_document`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='schema_origin'),'ALTER TABLE `fun_form` ADD COLUMN `schema_origin` varchar(20) NOT NULL DEFAULT ''designer'' AFTER `schema_hash`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_form' AND COLUMN_NAME='published_schema_hash'),'ALTER TABLE `fun_form` ADD COLUMN `published_schema_hash` char(64) NULL AFTER `published_definition_hash`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS `fun_form_schema_version` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
