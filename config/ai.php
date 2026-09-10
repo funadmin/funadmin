@@ -17,6 +17,7 @@ return [
         'model' => (string) Env::get('AI_MODEL', ''),
         'connect_timeout' => (int) Env::get('AI_CONNECT_TIMEOUT', 5),
         'request_timeout' => (int) Env::get('AI_REQUEST_TIMEOUT', 60),
+        'max_retries' => (int) Env::get('AI_MAX_RETRIES', 2),
     ],
     'limits' => [
         'max_input_tokens' => (int) Env::get('AI_MAX_INPUT_TOKENS', 0),
@@ -37,6 +38,10 @@ return [
     'tools' => [
         'default' => 'deny',
         'allowlist' => $csv((string) Env::get('AI_TOOL_ALLOWLIST', '')),
+    ],
+    'stream' => [
+        'ticket_secret' => (string) Env::get('AI_STREAM_TICKET_SECRET', hash('sha256', (string) Env::get('APP_KEY', 'funadmin-local-change-me'))),
+        'ticket_ttl' => (int) Env::get('AI_STREAM_TICKET_TTL', 60),
     ],
     'storage' => [
         'private_path' => (string) Env::get('AI_PRIVATE_STORAGE_PATH', root_path() . 'runtime/ai/private'),

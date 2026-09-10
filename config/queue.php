@@ -30,9 +30,19 @@ return [
             'timeout'    => 0,
             'persistent' => false,
         ],
+        'ai-agent' => [
+            'type'       => env('APP_ENV') === 'testing' ? 'sync' : 'redis',
+            'queue'      => 'ai-agent',
+            'host'       => env('REDIS_HOST', '127.0.0.1'),
+            'port'       => (int) env('REDIS_PORT', 6379),
+            'password'   => env('REDIS_PASSWORD', ''),
+            'select'     => (int) env('AI_QUEUE_REDIS_DB', 1),
+            'timeout'    => 5,
+            'persistent' => false,
+        ],
     ],
     'failed'      => [
-        'type'  => 'none',
+        'type'  => 'database',
         'table' => 'failed_jobs',
     ],
 ];

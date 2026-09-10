@@ -10,6 +10,7 @@ const sidebarItem = readFileSync(resolve(process.cwd(), 'src/layout/components/S
 const topMenu = readFileSync(resolve(process.cwd(), 'src/layout/components/TopMenu.vue'), 'utf8');
 const topSubItem = readFileSync(resolve(process.cwd(), 'src/layout/components/TopSubItem.vue'), 'utf8');
 const iconGenerator = readFileSync(resolve(process.cwd(), 'scripts/generate-ep-icons.mjs'), 'utf8');
+const iconStyles = readFileSync(resolve(process.cwd(), 'src/styles/ep-icons.css'), 'utf8');
 const iconMigrationPath = resolve(process.cwd(), '../database/migrations/048_admin_menu_icon_completion.sql');
 
 describe('菜单表单图标字段', () => {
@@ -29,6 +30,14 @@ describe('菜单表单图标字段', () => {
   it('图标样式生成器扫描数据库菜单迁移中的图标类', () => {
     expect(iconGenerator).toContain("resolve('../database/migrations')");
     expect(iconGenerator).toContain("'.sql'");
+  });
+
+  it('开发工具菜单图标具有稳定 safelist 来源和生成样式', () => {
+    expect(iconGenerator).toContain('menuIconSafelist');
+    for (const iconClass of ['i-ep-briefcase', 'i-ep-coin']) {
+      expect(iconGenerator).toContain(`'${iconClass}'`);
+      expect(iconStyles).toContain(`.${iconClass}{`);
+    }
   });
 
   it('增量迁移为全部 Admin Web 菜单补齐图标字段', () => {

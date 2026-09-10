@@ -6,6 +6,7 @@ const output = resolve('src/styles/ep-icons.css');
 const icons = epIconPack.icons ?? {};
 const sourceRoots = [resolve('src'), resolve('../plugins'), resolve('../database/migrations')];
 const sourceExts = new Set(['.vue', '.ts', '.tsx', '.sql']);
+const menuIconSafelist = ['i-ep-briefcase', 'i-ep-coin'];
 
 function encodeSvg(svg) {
   return svg
@@ -58,9 +59,9 @@ async function collectFiles(dir) {
 }
 
 async function collectUsedIconNames() {
-  const names = new Set();
+  const names = new Set(menuIconSafelist.map((iconClass) => iconClass.replace(/^i-ep-/, '')));
   const files = (await Promise.all(sourceRoots.map(collectFiles))).flat();
-  const pattern = /\bi-ep-([a-z0-9-]+)\b/g;
+  const pattern = /\bi-ep-([a-z0-9-]+)\b(?![a-z0-9-])/g;
 
   for (const file of files) {
     const content = await readFile(file, 'utf8');

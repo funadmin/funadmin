@@ -97,10 +97,16 @@ final class AiConversationService
         ]);
     }
 
-    public function cancelTask(int $taskId, int $adminId): bool
+    public function getTask(int $taskId, int $adminId): array
     {
         $task = $this->store->task($taskId);
         if (!$task || !$this->store->conversation((int) $task['conversation_id'], $adminId)) throw new RuntimeException('资源不存在', 404);
+        return $task;
+    }
+
+    public function cancelTask(int $taskId, int $adminId): bool
+    {
+        $this->getTask($taskId, $adminId);
         return $this->store->compareAndSetTask($taskId, ['pending', 'running', 'paused'], ['status' => 'cancelled', 'completed_at' => date('Y-m-d H:i:s')]);
     }
 
