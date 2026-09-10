@@ -331,6 +331,9 @@ final class DatabaseGenerationStateRepository
             $isRecovery = (string) $generation->recovery_status === 'recovering';
             $result = [
                 'generationId' => $generationId,
+                'state' => 'completed',
+                'resourceApplyStatus' => 'applied',
+                'resourceApplyError' => null,
                 'routePath' => $routePath,
                 'definitionHash' => (string) $generation->definition_hash,
                 'schemaHash' => (string) ($definition['formSchemaHash'] ?? ''),

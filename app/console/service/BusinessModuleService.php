@@ -82,6 +82,17 @@ final class BusinessModuleService
     private function sanitizeGeneration(mixed $record): array
     {
         $row = is_object($record) && method_exists($record, 'toArray') ? $record->toArray() : (array) $record;
+        $recoveryStatus = (string) ($row['recovery_status'] ?? 'none');
+        $row['businessModuleId'] = isset($row['business_module_id']) ? (int) $row['business_module_id'] : null;
+        $row['generationMode'] = (string) ($row['generation_mode'] ?? '');
+        $row['recoveryStatus'] = $recoveryStatus;
+        $row['planDigest'] = $row['plan_digest'] ?? null;
+        $row['definitionHash'] = (string) ($row['definition_hash'] ?? '');
+        $row['createdAt'] = $row['created_at'] ?? null;
+        $row['updatedAt'] = $row['updated_at'] ?? null;
+        $row['availableActions'] = (string) ($row['status'] ?? '') === 'failed' && $recoveryStatus === 'recovery_required'
+            ? ['recover']
+            : [];
         return BusinessResponseSanitizer::sanitize($row);
     }
 }

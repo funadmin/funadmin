@@ -83,6 +83,25 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).not.toContain('formFullPublishApi.');
   });
 
+  it('正式生成复用服务端 operation，并在响应不确定时按 generationId 收敛', () => {
+    const designer = read('admin-web/src/views/form/designer/index.vue');
+    expect(designer).toContain('const formalGenerationNonce = ref(crypto.randomUUID())');
+    expect(designer).toContain('previewFormalGeneration(moduleId, formalGenerationNonce.value)');
+    expect(designer).toContain('businessDevelopmentApi.generation(generationId)');
+    expect(designer).toContain("generation.status === 'completed' && generation.result");
+    expect(designer).toContain('retryGenerationQuery');
+    expect(designer).toContain('查询生成结果');
+    expect(designer).toContain('useBusinessMenuRefresh');
+    expect(designer).toContain("ElMessage.warning('生成成功，菜单刷新失败')");
+    expect(designer).not.toContain('permissionStore.fetchMenus()');
+  });
+
+  it('正式生成按钮维持 generate 与 apply-resources 权限边界', () => {
+    const designer = read('admin-web/src/views/form/designer/index.vue');
+    expect(designer).toContain('v-perm="\'development:business:generate\'" @click="openFormalGeneration"');
+    expect(designer).toContain('v-perm="\'development:business:apply-resources\'"');
+  });
+
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
     const templates = read('app/common/crud/ProductionTemplateContext.php');
     expect(templates).toContain("'component=generated/'");

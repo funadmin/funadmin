@@ -163,6 +163,9 @@ businessApiExpect(
 );
 businessApiExpect(str_contains($stateRepositorySource, "(string) \$generation->status !== 'conflict'"), 'baseline 仓储必须二次确认 generation 为 conflict');
 businessApiExpect(str_contains($stateRepositorySource, 'array_intersect_key($record, array_flip('), 'baseline 仓储必须对白名单字段持久化');
+$moduleServiceSource = (string) file_get_contents($root . 'app/console/service/BusinessModuleService.php');
+businessApiExpect(str_contains($moduleServiceSource, "'availableActions'") && str_contains($moduleServiceSource, "'recover'"), 'generation DTO 必须根据恢复状态返回可用操作');
+businessApiExpect(str_contains($moduleServiceSource, "'recoveryStatus'") && str_contains($moduleServiceSource, "'generationMode'"), 'generation DTO 必须提供前端统一 camelCase 字段');
 $schemaRepositorySource = (string) file_get_contents($root . 'app/console/service/FormSchemaRepository.php');
 businessApiExpect(str_contains($schemaRepositorySource, 'public function saveCompiledVersionIfCurrentHash(') && str_contains($schemaRepositorySource, 'Form::lock(true)') && str_contains($schemaRepositorySource, "InvalidArgumentException('FORM_SCHEMA_CONFLICT')"), 'Schema CAS 必须锁定 Form 后比较当前 hash');
 

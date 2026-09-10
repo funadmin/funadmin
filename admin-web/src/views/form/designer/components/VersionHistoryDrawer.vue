@@ -35,9 +35,9 @@
 import { computed, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormSchemaDiff, FormSchemaVersion } from '@/api/form';
-import { businessDevelopmentApi } from '@/api/development/business';
+import { businessDevelopmentApi, isBusinessApiError } from '@/api/development/business';
 
-const props = defineProps<{ modelValue: boolean; moduleId: number }>();
+const props = defineProps<{ modelValue: boolean; moduleId: number; schemaHash: string }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; rollback: [version: FormSchemaVersion] }>();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const versions = ref<FormSchemaVersion[]>([]);
@@ -85,10 +85,16 @@ async function rollbackVersion(version: number) {
   await ElMessageBox.confirm(`确认回滚到 v${version}？系统会创建一个新的不可变版本。`, '回滚确认', { type: 'warning' });
   rollingBack.value = version;
   try {
-    const result = await businessDevelopmentApi.rollbackSchema(props.moduleId, version);
+    const result = await businessDevelopmentApi.rollbackSchema(props.moduleId, version, props.schemaHash);
     emit('rollback', result);
     await loadVersions();
     ElMessage.success('回滚版本已创建');
+  } catch (error) {
+    if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
+      ElMessage.warning('Schema 已更新，请刷新后重试');
+      return;
+    }
+    throw error;
   } finally {
     rollingBack.value = undefined;
   }

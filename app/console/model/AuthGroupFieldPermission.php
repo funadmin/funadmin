@@ -9,5 +9,5 @@ namespace app\console\model;
  */
 final class AuthGroupFieldPermission extends BackendModel
 {
-    protected $name = 'auth_group_field_permission';
+    protected string $name = 'auth_group_field_permission';
 }

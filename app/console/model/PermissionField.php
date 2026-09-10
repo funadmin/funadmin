@@ -9,5 +9,5 @@ namespace app\console\model;
  */
 final class PermissionField extends BackendModel
 {
-    protected $name = 'permission_field';
+    protected string $name = 'permission_field';
 }

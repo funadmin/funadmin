@@ -21,6 +21,7 @@ vi.mock('vue-router', async (importOriginal) => {
 });
 
 import BusinessVisual from './visual.vue';
+import visualSource from './visual.vue?raw';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -157,7 +158,7 @@ describe('BusinessVisual', () => {
   it('消费 HTTP Error details 中的 422 fieldErrors 并映射 Element Plus 字段错误', async () => {
     const error = Object.assign(new Error('参数验证失败'), {
       code: 422,
-      details: { fieldErrors: { name: '名称已占用', connection: ['连接不存在'] } }
+      details: { fieldErrors: [{ path: 'name', message: '名称已占用' }, { field: 'connection', message: '连接不存在' }] }
     });
     mocks.createVisual.mockRejectedValue(error);
     const { wrapper, formApi } = render();
@@ -175,7 +176,7 @@ describe('BusinessVisual', () => {
     expect(wrapper.get('#business-code-help').text()).toContain('小写字母');
     expect(wrapper.get('form').attributes('data-label-position')).toBe('top');
     expect(wrapper.find('.form-actions').exists()).toBe(true);
-    expect(wrapper.find('style').text()).toContain('flex-wrap: wrap');
-    expect(wrapper.find('style').text()).toContain('min-height: 44px');
+    expect(visualSource).toContain('flex-wrap: wrap');
+    expect(visualSource).toContain('min-height: 44px');
   });
 });

@@ -1,20 +1,20 @@
 <template>
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <template #extra>
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="designer-toolbar flex flex-wrap items-center gap-2">
         <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
-        <el-radio-group v-model="workspaceMode" size="small">
+        <el-radio-group v-model="workspaceMode">
           <el-radio-button value="edit">{{ t('formDesigner.editMode', '编辑模式') }}</el-radio-button>
           <el-radio-button value="desktop">{{ t('formDesigner.desktopPreview', '桌面预览') }}</el-radio-button>
           <el-radio-button value="tablet">{{ t('formDesigner.tabletPreview', '平板预览') }}</el-radio-button>
           <el-radio-button value="mobile">{{ t('formDesigner.mobilePreview', '移动预览') }}</el-radio-button>
         </el-radio-group>
-        <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" size="small" class="w-[110px]">
+        <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" class="w-[110px]">
           <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
         </el-select>
-        <el-button v-if="workspaceMode !== 'edit'" size="small" @click="previewSettingsVisible = true">预览数据</el-button>
+        <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">预览数据</el-button>
         <el-button @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
         <el-button @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
         <el-button :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
@@ -27,7 +27,7 @@
           @click="onSave"
         >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
         <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button @click="openFormalGeneration">生成正式模块</el-button>
+        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
       </div>
     </template>
 
@@ -200,6 +200,7 @@
 
       <el-result v-else :icon="publishResult?.state === 'completed' ? 'success' : 'warning'" :title="publishResult?.state === 'completed' ? '正式模块生成成功' : '正式模块生成未完成'" :sub-title="publishResult?.resourceApplyError || publishResult?.routePath || ''">
         <template #extra>
+          <el-button v-if="generationQueryPending" :loading="publishing" @click="retryGenerationQuery">查询生成结果</el-button>
           <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
         </template>
       </el-result>
@@ -209,7 +210,7 @@
         <el-button v-if="publishStep > 0 && publishStep < 3" @click="publishStep--">上一步</el-button>
         <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
-        <el-button v-else-if="publishStep === 2" type="primary" :loading="publishing" :disabled="conflictFiles.length > 0" @click="onPublish">确认生成</el-button>
+        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="conflictFiles.length > 0" @click="onPublish">确认生成</el-button>
       </template>
     </el-dialog>
 
@@ -225,7 +226,7 @@
       <SchemaJsonEditor :schema="store.schemaDocument.value" @apply="onApplySchemaJson" />
     </el-dialog>
 
-    <VersionHistoryDrawer v-model="versionVisible" :module-id="moduleId" @rollback="onRollback" />
+    <VersionHistoryDrawer v-model="versionVisible" :module-id="moduleId" :schema-hash="String(store.form.value.schema_hash ?? '')" @rollback="onRollback" />
 
     <el-card v-if="debugEnabled" shadow="never" class="mt-3">
       <template #header>{{ t('formDesigner.debugPanel', '调试面板') }}</template>
@@ -254,8 +255,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
-import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult } from '@/api/development/business';
-import { usePermissionStore } from '@/store/modules/permission';
+import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
@@ -268,12 +268,13 @@ import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
 import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
+import { useBusinessMenuRefresh } from '../../development/business/composables/useBusinessMenuRefresh';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const moduleId = computed(() => Number(route.query.moduleId ?? 0));
-const permissionStore = usePermissionStore();
+const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const store = useDesigner();
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -290,6 +291,8 @@ const previewingPublish = ref(false);
 const publishing = ref(false);
 const publishPreview = ref<BusinessFormalGenerationPreview | null>(null);
 const publishResult = ref<BusinessFormalGenerationResult | null>(null);
+const generationQueryPending = ref(false);
+const formalGenerationNonce = ref(crypto.randomUUID());
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
@@ -394,7 +397,7 @@ const onExportSchema = async () => {
 };
 const onRollback = (version: FormSchemaVersion) => {
   const result = store.replaceSchema(version.schema_document);
-  if (result.ok) store.updateForm({ schema_origin: 'rollback' });
+  if (result.ok) store.updateForm({ schema_origin: 'rollback', schema_hash: version.schema_hash });
 };
 const controlGroups = computed(() => [...new Set(designerControls.value.map((control) => control.group))]);
 const controlsOf = (group: string) => designerControls.value.filter((control) => control.group === group);
@@ -485,8 +488,10 @@ const openFormalGeneration = async () => {
   const moduleId = Number(route.query.moduleId ?? 0);
   if (!moduleId || store.dirty.value) { ElMessage.warning('请先保存业务 Schema'); return; }
   previewingPublish.value = true;
+  generationQueryPending.value = false;
+  publishResult.value = null;
   try {
-    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, crypto.randomUUID());
+    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, formalGenerationNonce.value);
     publishStep.value = 1;
     publishVisible.value = true;
   } finally { previewingPublish.value = false; }
@@ -541,32 +546,77 @@ const onPreviewPublish = async () => {
     return;
   }
   previewingPublish.value = true;
+  generationQueryPending.value = false;
+  publishResult.value = null;
   try {
     const moduleId = Number(route.query.moduleId ?? 0);
-    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, crypto.randomUUID());
+    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, formalGenerationNonce.value);
     publishStep.value = 1;
   } finally {
     previewingPublish.value = false;
   }
 };
-const onPublish = async () => {
+const completeFormalGeneration = async (result: BusinessFormalGenerationResult) => {
+  publishResult.value = result;
+  generationQueryPending.value = false;
+  publishStep.value = 3;
+  if (result.state !== 'completed') {
+    ElMessage.warning('正式模块生成未完成');
+    return;
+  }
+  try {
+    await refreshBusinessMenu();
+    ElMessage.success('正式模块生成成功');
+  } catch {
+    ElMessage.warning('生成成功，菜单刷新失败');
+  }
+};
+const generationResult = (generation: BusinessGeneration): BusinessFormalGenerationResult => ({
+  generationId: generation.id,
+  state: String(generation.result?.state ?? generation.status),
+  resourceApplyStatus: String(generation.result?.resourceApplyStatus ?? ''),
+  resourceApplyError: generation.result?.resourceApplyError,
+  routePath: generation.result?.routePath ?? generation.routePath,
+  definitionHash: generation.result?.definitionHash ?? generation.definitionHash,
+  schemaHash: generation.result?.schemaHash ?? generation.schemaHash
+});
+const retryGenerationQuery = async () => {
+  const generationId = Number(publishPreview.value?.generationId || 0);
+  if (!generationId) return;
   publishing.value = true;
   try {
-    const formId = Number(store.form.value.id || 0);
-    const generationId = Number(publishPreview.value?.generationId || 0);
+    const generation = await businessDevelopmentApi.generation(generationId);
+    if (generation.status === 'completed' && generation.result) {
+      await completeFormalGeneration(generationResult(generation));
+      return;
+    }
+    generationQueryPending.value = true;
+    publishStep.value = 3;
+    ElMessage.warning('生成状态尚未确认，请稍后重试查询');
+  } catch {
+    generationQueryPending.value = true;
+    publishStep.value = 3;
+    ElMessage.warning('生成状态查询失败，请重试查询');
+  } finally {
+    publishing.value = false;
+  }
+};
+const onPublish = async () => {
+  publishing.value = true;
+  const formId = Number(store.form.value.id || 0);
+  const generationId = Number(publishPreview.value?.generationId || 0);
+  try {
     if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
     const moduleId = Number(route.query.moduleId ?? 0);
-    publishResult.value = await businessDevelopmentApi.formalGeneration(
+    const result = await businessDevelopmentApi.formalGeneration(
       moduleId,
       generationId,
       publishPreview.value?.sensitive?.confirmToken || ''
     );
-    const dynamicRoutes = await permissionStore.fetchMenus();
-    dynamicRoutes.forEach((dynamicRoute) => {
-      if (!dynamicRoute.name || !router.hasRoute(dynamicRoute.name)) router.addRoute(dynamicRoute);
-    });
-    publishStep.value = 3;
-    ElMessage.success(publishResult.value.state === 'completed' ? '正式模块生成成功' : '正式模块生成未完成');
+    await completeFormalGeneration(result);
+  } catch {
+    if (generationId) await retryGenerationQuery();
+    else throw new Error('完整发布缺少 formId 或 generationId');
   } finally {
     publishing.value = false;
   }
@@ -616,6 +666,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+:deep(.designer-toolbar .el-radio-button__inner),
+:deep(.designer-toolbar .el-select__wrapper),
+:deep(.designer-toolbar .el-tag) {
+  height: 32px;
+  min-height: 32px;
+}
+:deep(.designer-toolbar .el-tag) {
+  font-size: 14px;
+  padding: 0 15px;
+}
 .publish-config-grid,
 .designer-meta-form {
   display: grid;

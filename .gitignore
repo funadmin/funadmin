@@ -19,6 +19,7 @@
 /.cursor
 /.qoder
 /tests/*
+!/tests/ai_development_phase1_test.php
 !/tests/form_data_relation_mysql_test.php
 !/tests/business_development_migration_test.php
 !/tests/business_development_api_test.php

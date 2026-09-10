@@ -146,6 +146,7 @@ SQL);
     $result = $repository->completedResult($generationId);
     canonicalStateExpect($completed->status === 'completed' && $completed->completed_at !== null, 'commitGeneration 未完成 generation');
     canonicalStateExpect($result['routePath'] === '/generated/orders' && $result['generationId'] === $generationId, 'completedResult 未返回可信结果');
+    canonicalStateExpect(($result['state'] ?? '') === 'completed' && ($result['resourceApplyStatus'] ?? '') === 'applied', '持久化成功结果必须满足前端正式生成契约');
     $module = Db::name('business_module')->where('id', 20)->find();
     canonicalStateExpect($module['lifecycle_status'] === 'published' && $module['generation_status'] === 'completed', '模块 canonical 发布状态错误');
     canonicalStateExpect($module['module_route'] === '/generated/orders' && (int) $module['current_generation_id'] === $generationId && (int) $module['last_success_generation_id'] === $generationId, '模块 route/generation 指针错误');

@@ -16,6 +16,15 @@ describe('businessDevelopmentApi', () => {
     });
   });
 
+  it('rollbackSchema 发送当前 Schema hash 作为 CAS 前置条件', async () => {
+    httpMocks.post.mockResolvedValue({ version: 8, schema_hash: 'next-hash' });
+    await businessDevelopmentApi.rollbackSchema(12, 7, 'current-hash', '恢复稳定版本');
+    expect(httpMocks.post).toHaveBeenCalledWith('/development/business/modules/12/schema/versions/7/rollback', {
+      expectedSchemaHash: 'current-hash',
+      summary: '恢复稳定版本'
+    });
+  });
+
   it('识别统一响应中的结构化安全错误', () => {
     expect(isBusinessApiError({
       code: 409,

@@ -183,8 +183,8 @@ export const businessDevelopmentApi = {
   schemaVersion: (id: number, version: number) => http.get<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}`),
   schemaDiff: (id: number, fromVersion: number, toVersion: number) =>
     http.get<FormSchemaDiff>(`${PREFIX}/modules/${id}/schema/diff`, { fromVersion, toVersion }),
-  rollbackSchema: (id: number, version: number, summary = '') =>
-    http.post<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}/rollback`, { summary }),
+  rollbackSchema: (id: number, version: number, expectedSchemaHash: string, summary = '') =>
+    http.post<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}/rollback`, { expectedSchemaHash, summary }),
   databaseTables: (connection: string, signal?: AbortSignal) => signal
     ? http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }, { signal })
     : http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }),
