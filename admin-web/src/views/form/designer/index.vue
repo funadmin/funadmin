@@ -313,6 +313,16 @@ watch(() => store.fields.value, (fields) => {
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortable: Sortable | null = null;
+const initializePalette = () => {
+  paletteSortable?.destroy();
+  if (!paletteRef.value) return;
+  paletteSortable = Sortable.create(paletteRef.value, {
+    group: { name: 'form-designer', pull: 'clone', put: false },
+    draggable: '.palette-item',
+    sort: false,
+    animation: 150
+  });
+};
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let saveRevision = 0;
 let saveQueued = false;
@@ -644,17 +654,10 @@ onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload);
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
+  initializePalette();
   await loadPluginFormComponents();
   await load();
   restoreLocalDraft();
-  if (paletteRef.value) {
-    paletteSortable = Sortable.create(paletteRef.value, {
-      group: { name: 'form-designer', pull: 'clone', put: false },
-      draggable: '.palette-item',
-      sort: false,
-      animation: 150
-    });
-  }
 });
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload);
