@@ -213,13 +213,12 @@
 import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
-import { crudDevelopmentApi } from '@/api/development/crud';
-import type { CrudTable } from '@/types/development/crud';
+import { businessDevelopmentApi, type BusinessDatabaseTable } from '@/api/development/business';
 import { componentRegistry } from '../../schema/componentRegistry';
 import { normalizePropertySchema, patchDynamicProperty, type DynamicPropertyField } from '../structuredEditor';
 import { COLUMN_TYPE_OPTIONS, LIST_FILTERS, LIST_FORMATTERS, controlMeta, type ControlMeta } from '../../registry';
 
-const props = defineProps<{ field: FormFieldDef; sourceType: 'created' | 'adopted'; controls: ControlMeta[] }>();
+const props = defineProps<{ moduleId: number; field: FormFieldDef; sourceType: 'created' | 'adopted'; controls: ControlMeta[] }>();
 const emit = defineEmits<{ (event: 'update', patch: Partial<FormFieldDef>): void }>();
 
 interface RelationColumn {
@@ -230,7 +229,7 @@ interface RelationColumn {
 }
 
 const tab = ref('column');
-const relationTables = ref<CrudTable[]>([]);
+const relationTables = ref<BusinessDatabaseTable[]>([]);
 const relationColumns = ref<RelationColumn[]>([]);
 const tablesLoading = ref(false);
 const columnsLoading = ref(false);
@@ -277,13 +276,13 @@ const controlGroups = computed(() => {
 });
 const propsJson = computed(() => JSON.stringify(props.field.control_props ?? {}, null, 2));
 const optionsJson = computed(() => JSON.stringify(props.field.options_source ?? {}, null, 2));
-const tableLabel = (table: CrudTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
+const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
 const columnLabel = (column: RelationColumn) => `${column.name}${column.comment ? `（${column.comment}）` : ''}${column.primary ? ' [主键]' : ''}`;
 const loadRelationTables = async (visible: boolean) => {
   if (!visible || relationTables.value.length || tablesLoading.value) return;
   tablesLoading.value = true;
   try {
-    relationTables.value = await crudDevelopmentApi.tables('mysql');
+    relationTables.value = await businessDevelopmentApi.databaseTables('mysql');
   } finally {
     tablesLoading.value = false;
   }
@@ -293,7 +292,7 @@ const loadRelationColumns = async (visible = true, selectedTable?: string) => {
   if (!visible || !table || columnsLoading.value || loadedRelationTable.value === table) return;
   columnsLoading.value = true;
   try {
-    const schema = await crudDevelopmentApi.tableSchema('mysql', table);
+    const schema = await businessDevelopmentApi.databaseTableSchema('mysql', table);
     relationColumns.value = Array.isArray(schema.columns) ? schema.columns as RelationColumn[] : [];
     loadedRelationTable.value = table;
   } finally {

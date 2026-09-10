@@ -1,7 +1,12 @@
 import http from '@/utils/http';
-import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormSchemaDocument, FormSchemaCompileResult } from '@/api/form';
+import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
 
 const PREFIX = '/development/business';
+
+export interface BusinessDatabaseTable {
+  name: string;
+  comment: string;
+}
 
 export interface BusinessModule {
   id: number;
@@ -93,6 +98,21 @@ export const businessDevelopmentApi = {
     http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/validate`, { schema }),
   saveSchema: (id: number, schema: FormSchemaDocument, expectedSchemaHash: string, summary = '') =>
     http.post<{ schemaHash: string; document: FormSchemaDocument }>(`${PREFIX}/modules/${id}/schema/save`, { schema, expectedSchemaHash, summary }),
+  compileSchema: (id: number, schema: FormSchemaDocument) =>
+    http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/compile`, { schema }),
+  exportSchema: (id: number, schema: FormSchemaDocument) =>
+    http.post<{ document: string }>(`${PREFIX}/modules/${id}/schema/export`, { schema }),
+  schemaVersions: (id: number) => http.get<{ list: FormSchemaVersion[] }>(`${PREFIX}/modules/${id}/schema/versions`),
+  schemaVersion: (id: number, version: number) => http.get<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}`),
+  schemaDiff: (id: number, fromVersion: number, toVersion: number) =>
+    http.get<FormSchemaDiff>(`${PREFIX}/modules/${id}/schema/diff`, { fromVersion, toVersion }),
+  rollbackSchema: (id: number, version: number, summary = '') =>
+    http.post<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}/rollback`, { summary }),
+  databaseTables: (connection: string, signal?: AbortSignal) => signal
+    ? http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }, { signal })
+    : http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }),
+  databaseTableSchema: (connection: string, table: string) =>
+    http.get<Record<string, unknown>>(`${PREFIX}/database/tables/${table}/schema`, { connection }),
   previewPublish: (id: number, payload: Record<string, unknown>) =>
     http.post<Record<string, unknown>>(`${PREFIX}/modules/${id}/publish/preview`, payload),
   publish: (id: number, payload: Record<string, unknown>) =>

@@ -88,6 +88,67 @@ final class Business extends AdminApiController
         return $this->execute(fn (): array => $this->business->saveSchema($id, $this->schema(), trim((string) $this->request->post('expectedSchemaHash', '')), $this->actor(), mb_substr(trim((string) $this->request->post('summary', '')), 0, 255)), 'Schema 版本保存成功');
     }
 
+    #[Post('modules/:id/schema/compile')]
+    #[Pattern('id', '\d+')]
+    public function compileSchema(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->business->compileSchema($id, $this->schema()));
+    }
+
+    #[Post('modules/:id/schema/export')]
+    #[Pattern('id', '\d+')]
+    public function exportSchema(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->business->exportSchema($id, $this->schema()));
+    }
+
+    #[Get('modules/:id/schema/versions')]
+    #[Pattern('id', '\d+')]
+    public function schemaVersions(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->business->schemaVersions($id));
+    }
+
+    #[Get('modules/:id/schema/versions/:version')]
+    #[Pattern('id', '\d+')]
+    #[Pattern('version', '\d+')]
+    public function schemaVersion(int $id, int $version): Response
+    {
+        return $this->execute(fn (): array => $this->business->schemaVersion($id, $version));
+    }
+
+    #[Get('modules/:id/schema/diff')]
+    #[Pattern('id', '\d+')]
+    public function schemaDiff(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->business->schemaDiff(
+            $id,
+            (int) $this->request->get('fromVersion', 0),
+            (int) $this->request->get('toVersion', 0)
+        ));
+    }
+
+    #[Post('modules/:id/schema/versions/:version/rollback')]
+    #[Pattern('id', '\d+')]
+    #[Pattern('version', '\d+')]
+    public function rollbackSchema(int $id, int $version): Response
+    {
+        return $this->execute(fn (): array => $this->business->rollbackSchema($id, $version, $this->actor(), mb_substr(trim((string) $this->request->post('summary', '')), 0, 255)), '回滚版本已创建');
+    }
+
+    #[Get('database/tables')]
+    public function databaseTables(): Response
+    {
+        return $this->execute(fn (): array => $this->business->databaseTables($this->connection()));
+    }
+
+    #[Get('database/tables/:table/schema')]
+    #[Pattern('table', '[a-z_][a-z0-9_]*')]
+    public function databaseTableSchema(string $table): Response
+    {
+        return $this->execute(fn (): array => $this->business->databaseTableSchema($this->connection(), $table));
+    }
+
     #[Post('modules/:id/publish/preview')]
     #[Pattern('id', '\d+')]
     public function previewPublish(int $id): Response
@@ -182,6 +243,11 @@ final class Business extends AdminApiController
         $schema = $this->request->post('schema', $this->request->post('schema_document', []));
         if (!is_array($schema) || array_is_list($schema)) throw new InvalidArgumentException('schema 必须为对象');
         return $schema;
+    }
+
+    private function connection(): string
+    {
+        return trim((string) $this->request->get('connection', 'mysql'));
     }
 
     private function actor(): string

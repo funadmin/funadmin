@@ -123,10 +123,8 @@ try {
     $downloadMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/071_plugin_admin_web_registry_naming.sql');
     devPluginExpect(str_contains($downloadMigration, "'console/development.devplugin','packagedownload'"), '插件包下载权限必须通过新 migration 向前补充');
 
-    $crudController = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/development/DevCrud.php');
-    $crudService = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/DevCrudService.php');
-    devPluginExpect(str_contains($crudService, 'PluginCrudDefinitionFactory'), 'DevCrud infer 必须复用 PluginCrudDefinitionFactory');
-    devPluginExpect(str_contains($crudController, "post('targetType'"), 'DevCrud infer 必须接受 targetType');
+    $retirementMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/087_legacy_form_crud_retirement.sql');
+    devPluginExpect(str_contains($retirementMigration, "'development:plugin:options'") && str_contains($retirementMigration, "`source_name`='plugin_center'"), '插件 options 权限必须迁回插件中心');
 } finally {
     devPluginRemove($root);
 }

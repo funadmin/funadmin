@@ -34,9 +34,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { formDesignerApi, type FormSchemaDiff, type FormSchemaVersion } from '@/api/form';
+import type { FormSchemaDiff, FormSchemaVersion } from '@/api/form';
+import { businessDevelopmentApi } from '@/api/development/business';
 
-const props = defineProps<{ modelValue: boolean; formId?: number }>();
+const props = defineProps<{ modelValue: boolean; moduleId: number }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; rollback: [version: FormSchemaVersion] }>();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const versions = ref<FormSchemaVersion[]>([]);
@@ -47,14 +48,14 @@ const diff = ref<FormSchemaDiff>();
 const loading = ref(false);
 const comparing = ref(false);
 const rollingBack = ref<number>();
-const canCompare = computed(() => Boolean(props.formId && fromVersion.value && toVersion.value && fromVersion.value !== toVersion.value));
+const canCompare = computed(() => Boolean(props.moduleId && fromVersion.value && toVersion.value && fromVersion.value !== toVersion.value));
 const detailText = computed(() => JSON.stringify(diff.value ?? selectedVersion.value?.schema_document ?? {}, null, 2));
 
 async function loadVersions() {
-  if (!props.formId) return;
+  if (!props.moduleId) return;
   loading.value = true;
   try {
-    versions.value = (await formDesignerApi.versions(props.formId)).list;
+    versions.value = (await businessDevelopmentApi.schemaVersions(props.moduleId)).list;
     fromVersion.value = versions.value[1]?.version;
     toVersion.value = versions.value[0]?.version;
   } finally {
@@ -63,28 +64,28 @@ async function loadVersions() {
 }
 
 async function viewVersion(version: number) {
-  if (!props.formId) return;
+  if (!props.moduleId) return;
   diff.value = undefined;
-  selectedVersion.value = await formDesignerApi.version(props.formId, version);
+  selectedVersion.value = await businessDevelopmentApi.schemaVersion(props.moduleId, version);
 }
 
 async function compareVersions() {
-  if (!props.formId || !fromVersion.value || !toVersion.value) return;
+  if (!props.moduleId || !fromVersion.value || !toVersion.value) return;
   comparing.value = true;
   try {
     selectedVersion.value = undefined;
-    diff.value = await formDesignerApi.diff(props.formId, fromVersion.value, toVersion.value);
+    diff.value = await businessDevelopmentApi.schemaDiff(props.moduleId, fromVersion.value, toVersion.value);
   } finally {
     comparing.value = false;
   }
 }
 
 async function rollbackVersion(version: number) {
-  if (!props.formId) return;
+  if (!props.moduleId) return;
   await ElMessageBox.confirm(`确认回滚到 v${version}？系统会创建一个新的不可变版本。`, '回滚确认', { type: 'warning' });
   rollingBack.value = version;
   try {
-    const result = await formDesignerApi.rollback(props.formId, version);
+    const result = await businessDevelopmentApi.rollbackSchema(props.moduleId, version);
     emit('rollback', result);
     await loadVersions();
     ElMessage.success('回滚版本已创建');

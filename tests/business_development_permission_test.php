@@ -37,10 +37,36 @@ businessPermissionExpect(substr_count($sql, "'console/development.business'") >=
 businessPermissionExpect(str_contains($sql, "source_name` IN ('form_management','development_crud')") || str_contains($sql, "source_name IN ('form_management','development_crud')"), '旧角色授权映射必须严格限定来源');
 businessPermissionExpect(!preg_match('/UPDATE\s+`fun_permission`[\s\S]*?WHERE[\s\S]*?source_name`\s*<>\s*\x27(?:form_management|development_crud)/i', $sql), '不得跨来源扩大或覆盖旧权限');
 
+$remainingFile = $root . '/database/migrations/086_business_remaining_capabilities.sql';
+businessPermissionExpect(is_file($remainingFile), '缺少 086 剩余能力迁移');
+$remainingSql = (string) file_get_contents($remainingFile);
+businessPermissionExpect(!preg_match('/[\x{4e00}-\x{9fff}]/u', preg_replace('/^--.*$/m', '', $remainingSql)), '086 SQL 中文必须使用 HEX');
+businessPermissionExpect(!preg_match('/\b(?:DROP|TRUNCATE|DELETE|RENAME|UPDATE)\b/i', preg_replace('/^--.*$/m', '', $remainingSql)), '086 必须 forward-only');
+foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 'schemadiff', 'rollbackschema', 'databasetables', 'databasetableschema'] as $action) {
+    businessPermissionExpect(str_contains($remainingSql, "'console/development.business:{$action}'"), '086 缺少 Business action：' . $action);
+}
+businessPermissionExpect(str_contains($remainingSql, "source_name` IN ('form_management','development_crud')"), '086 旧授权映射必须严格限定来源');
+
 $auth = (string) file_get_contents($root . '/app/console/controller/auth/AdminAuth.php');
 businessPermissionExpect(str_contains($auth, "'console/development.business:modules'") && str_contains($auth, "'console/development.business:fieldcapabilities'"), 'AdminAuth aliases 必须包含全部 Business actions');
+foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 'schemadiff', 'rollbackschema', 'databasetables', 'databasetableschema'] as $action) {
+    businessPermissionExpect(str_contains($auth, "'console/development.business:{$action}'"), 'AdminAuth aliases 缺少：' . $action);
+}
 businessPermissionExpect(str_contains($auth, "'development:business:"), 'AdminAuth aliases 必须映射统一 business 权限');
-businessPermissionExpect(str_contains($auth, "'console/devcrud:tableschema'") && str_contains($auth, "'console/devcrud:preview'"), '既有 DevCrud aliases 必须暂时保留');
+businessPermissionExpect(!str_contains($auth, "'console/devcrud:"), 'AdminAuth 不得保留 DevCrud aliases');
+
+$retirementFile = $root . '/database/migrations/087_legacy_form_crud_retirement.sql';
+businessPermissionExpect(is_file($retirementFile), '缺少 087 旧产品入口退役 migration');
+$retirementSql = (string) file_get_contents($retirementFile);
+businessPermissionExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME)\b/i', preg_replace('/^--.*$/m', '', $retirementSql)), '087 不得删除或重命名 schema');
+businessPermissionExpect(str_contains($retirementSql, "'development:plugin:options'") && str_contains($retirementSql, "'console/development.devplugin'") && str_contains($retirementSql, "'options'"), '087 必须迁移插件 options 权限');
+businessPermissionExpect(str_contains($retirementSql, "`source_name`='plugin_center'") && str_contains($retirementSql, '`status`=1') && str_contains($retirementSql, '`deleted_at`=NULL'), '插件 options 必须归属 plugin_center 并启用');
+businessPermissionExpect(str_contains($retirementSql, "('form_list','form_designer','development_crud')"), '087 必须软删除旧菜单');
+businessPermissionExpect(str_contains($retirementSql, "('form_management','development_crud')"), '087 必须软删除旧权限');
+businessPermissionExpect(preg_match('/DELETE\s+FROM\s+`fun_casbin_rule`/i', $retirementSql) === 1, '087 必须删除旧 Casbin p 策略');
+businessPermissionExpect(str_contains($retirementSql, "`ptype`='p'"), '087 只能清理 Casbin p 策略');
+businessPermissionExpect(str_contains($retirementSql, "'console/form.designer'") && str_contains($retirementSql, "'console/form.full-publish'") && str_contains($retirementSql, "'console/devcrud'") && str_contains($retirementSql, "'development/crud'"), '087 必须覆盖所有旧授权资源');
+businessPermissionExpect(str_contains($retirementSql, 'INSERT IGNORE INTO `fun_casbin_rule`'), '087 必须先等价迁移插件 options 授权');
 
 if (extension_loaded('pdo_mysql') && getenv('BUSINESS_PERMISSION_TEST_DB_HOST')) {
     $host = (string) getenv('BUSINESS_PERMISSION_TEST_DB_HOST');
@@ -56,16 +82,24 @@ if (extension_loaded('pdo_mysql') && getenv('BUSINESS_PERMISSION_TEST_DB_HOST'))
 CREATE TABLE fun_permission (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,app_name varchar(50) NOT NULL DEFAULT 'console',code varchar(255) NULL,obj varchar(190) NOT NULL DEFAULT '',act varchar(100) NOT NULL DEFAULT '',name varchar(100) NOT NULL DEFAULT '',resource_type enum('group','route') NOT NULL DEFAULT 'route',status tinyint NOT NULL DEFAULT 1,is_public tinyint NOT NULL DEFAULT 0,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_permission_code(code));
 CREATE TABLE fun_admin_menu (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,permission_id int unsigned NULL,app_name varchar(50) NOT NULL DEFAULT 'console',name varchar(100) NOT NULL DEFAULT '',href varchar(255) NOT NULL DEFAULT '',query varchar(250) NOT NULL DEFAULT '',target varchar(20) NOT NULL DEFAULT '_self',icon varchar(100) NOT NULL DEFAULT '',status tinyint NOT NULL DEFAULT 1,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_menu_location(app_name,href,query));
 CREATE TABLE fun_casbin_rule (id bigint unsigned NOT NULL AUTO_INCREMENT,ptype varchar(10) NOT NULL,v0 varchar(190) NOT NULL DEFAULT '',v1 varchar(190) NOT NULL DEFAULT '',v2 varchar(190) NOT NULL DEFAULT '',v3 varchar(190) NOT NULL DEFAULT '',v4 varchar(190) NOT NULL DEFAULT '',v5 varchar(190) NOT NULL DEFAULT '',rule_hash char(64) NOT NULL,PRIMARY KEY(id),UNIQUE KEY uk_rule_hash(rule_hash));
-INSERT INTO fun_permission (id,code,obj,act,name,resource_type,source_type,source_name) VALUES
-(1,NULL,'','','Console','group','admin_web','console_root'),(2,NULL,'','','Development','group','admin_web','development_tools'),
-(10,'console/form.designer:index','console/form.designer','index','Form list','route','admin_web','form_management'),
-(11,'console/form.designer:save','console/form.designer','save','Form save','route','admin_web','form_management'),
-(12,'console/devcrud:preview','console/devcrud','preview','CRUD preview','route','admin_web','development_crud'),
-(13,'development:crud:apply-resources','development/crud','apply-resources','CRUD apply','route','admin_web','development_crud');
+INSERT INTO fun_permission (id,pid,code,obj,act,name,resource_type,status,source_type,source_name) VALUES
+(1,0,NULL,'','','Console','group',1,'admin_web','console_root'),(2,1,NULL,'','','Development','group',1,'admin_web','development_tools'),
+(3,2,NULL,'','','Plugin center','group',1,'admin_web','plugin_center'),
+(10,2,'console/form.designer:index','console/form.designer','index','Form list','route',1,'admin_web','form_management'),
+(11,2,'console/form.designer:save','console/form.designer','save','Form save','route',1,'admin_web','form_management'),
+(12,2,'console/devcrud:preview','console/devcrud','preview','CRUD preview','route',1,'admin_web','development_crud'),
+(13,2,'development:crud:apply-resources','development/crud','apply-resources','CRUD apply','route',1,'admin_web','development_crud'),
+(14,2,'development:plugin:options','console/development.devplugin','options','Plugin options','route',0,'admin_web','development_crud');
+INSERT INTO fun_admin_menu (id,pid,name,href,query,status,source_type,source_name) VALUES
+(1,0,'Form list','/form/list','',1,'admin_web','form_list'),
+(2,0,'Form designer','/form/designer','',1,'admin_web','form_designer'),
+(3,0,'CRUD Workbench','/development/crud','',1,'admin_web','development_crud');
 INSERT INTO fun_casbin_rule (ptype,v0,v1,v2,v3,rule_hash) VALUES
 ('p','role-form','console','console/form.designer','save',SHA2(CONCAT_WS(CHAR(31),'p','role-form','console','console/form.designer','save'),256)),
 ('p','role-crud','console','console/devcrud','preview',SHA2(CONCAT_WS(CHAR(31),'p','role-crud','console','console/devcrud','preview'),256)),
-('p','role-apply','console','development/crud','apply-resources',SHA2(CONCAT_WS(CHAR(31),'p','role-apply','console','development/crud','apply-resources'),256));
+('p','role-apply','console','development/crud','apply-resources',SHA2(CONCAT_WS(CHAR(31),'p','role-apply','console','development/crud','apply-resources'),256)),
+('p','role-plugin','console','console/development.devplugin','options',SHA2(CONCAT_WS(CHAR(31),'p','role-plugin','console','console/development.devplugin','options'),256)),
+('g','admin-user','role-form','','',SHA2(CONCAT_WS(CHAR(31),'g','admin-user','role-form','',''),256));
 SQL);
         $service = new MigrationService();
         $statements = new ReflectionMethod($service, 'statements');
@@ -79,7 +113,15 @@ SQL);
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-apply' AND v2='console/development.business' AND v3='retryresources'")->fetchColumn() === 1, '旧 resource apply 角色必须获得等价 retry route');
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-form' AND v2='console/development.business' AND v3='adoptresolvedbaseline'")->fetchColumn() === 0, '旧表单保存不得扩大为 baseline 采纳权限');
         businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-form' AND v2='development/business' AND v3='generate'")->fetchColumn() === 0, '旧授权不得跨能力扩大');
-        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE source_name IN ('form_management','development_crud') AND status=1")->fetchColumn() === 4, '旧权限必须保留启用');
+        foreach ([1, 2] as $_run) foreach ($statements->invoke($service, $remainingSql) as $statement) $database->exec($statement);
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-form' AND v2='console/development.business' AND v3='compileschema'")->fetchColumn() === 0, '无 compile 旧授权时不得扩大授权');
+        foreach ([1, 2] as $_run) foreach ($statements->invoke($service, $retirementSql) as $statement) $database->exec($statement);
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE code='development:plugin:options' AND pid=3 AND source_name='plugin_center' AND status=1 AND deleted_at IS NULL")->fetchColumn() === 1, '087 必须启用插件 options 并归属 plugin_center');
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-plugin' AND v2='console/development.devplugin' AND v3='options'")->fetchColumn() === 1, '087 必须等价保留插件 options 授权且幂等');
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_admin_menu WHERE source_name IN ('form_list','form_designer','development_crud') AND status=0 AND deleted_at IS NOT NULL")->fetchColumn() === 3, '087 必须软删除并禁用全部旧菜单');
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE source_name IN ('form_management','development_crud') AND status=0 AND deleted_at IS NOT NULL")->fetchColumn() === 4, '087 必须软删除并禁用全部旧权限');
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE ptype='p' AND v2 IN ('console/form.designer','console/form.full-publish','form/publish','console/devcrud','development/crud')")->fetchColumn() === 0, '087 必须清理全部旧 Casbin p 策略');
+        businessPermissionExpect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE ptype='g' AND v0='admin-user' AND v1='role-form'")->fetchColumn() === 1, '087 不得删除 Casbin g 角色关系');
     } finally {
         $server->exec("DROP DATABASE IF EXISTS `{$databaseName}`");
     }

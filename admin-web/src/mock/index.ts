@@ -28,7 +28,6 @@ import { attachmentMockHandlers } from './modules/attachment';
 import { configMockHandlers } from './modules/config';
 import { pluginMockHandlers } from './modules/plugin';
 import { upgradeMockHandlers } from './modules/upgrade';
-import { developmentCrudMockHandlers } from './modules/developmentCrud';
 import { developmentBusinessMockHandlers } from './modules/developmentBusiness';
 import { developmentPluginMockHandlers } from './modules/developmentPlugin';
 import type { MockHandler, MockRoute, MockMethod } from './types';
@@ -51,7 +50,6 @@ const routes: MockRoute[] = [
   ...configMockHandlers,
   ...pluginMockHandlers,
   ...upgradeMockHandlers,
-  ...developmentCrudMockHandlers,
   ...developmentBusinessMockHandlers,
   ...developmentPluginMockHandlers
 ];

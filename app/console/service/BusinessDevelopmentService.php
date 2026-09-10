@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use app\common\crud\CrudDefinition;
 use app\common\form\registry\FieldCapabilityRegistry;
 use InvalidArgumentException;
 
@@ -61,15 +62,35 @@ final class BusinessDevelopmentService
     {
         self::assertIdentifier($connection, 'connection');
         self::assertIdentifier($table, 'table');
-        return $this->crud->infer($connection, $table);
+        $inspection = $this->crud->infer($connection, $table);
+        $schema = (array) ($inspection['schema'] ?? []);
+        $canonical = [
+            'connection' => $connection,
+            'table' => $table,
+            'fields' => (array) ($inspection['fields'] ?? []),
+            'primaryKey' => (array) ($schema['primaryKey'] ?? []),
+            'indexes' => (array) ($schema['indexes'] ?? []),
+        ];
+        return [
+            'connection' => $connection,
+            'table' => $table,
+            'snapshotHash' => hash('sha256', CrudDefinition::canonicalJson($canonical)),
+            'observedAt' => date(DATE_ATOM),
+            'fields' => $canonical['fields'],
+            'primaryKey' => $canonical['primaryKey'],
+            'indexes' => $canonical['indexes'],
+        ];
     }
 
     public function createFromDatabase(array $input, string $actor): array
     {
         $connection = trim((string) ($input['connection'] ?? 'mysql'));
         $table = trim((string) ($input['table'] ?? ''));
+        $expectedHash = trim((string) ($input['expectedInspectionHash'] ?? ''));
+        self::assertHash($expectedHash);
         $inspection = $this->inspectDatabase($connection, $table);
-        $payload = $this->creationPayload($input, 'adopted', (array) ($inspection['fields'] ?? []));
+        if (!hash_equals($inspection['snapshotHash'], $expectedHash)) throw new InvalidArgumentException('DATABASE_INSPECTION_STALE');
+        $payload = $this->creationPayload($input, 'adopted', $inspection['fields']);
         $payload['connection'] = $connection;
         $payload['table_name'] = $table;
         $payload['schema_origin'] = 'database';
@@ -93,6 +114,65 @@ final class BusinessDevelopmentService
         $this->assertSchemaIdentity($detail, $compiled->key());
         $version = $this->schemas->saveCompiledVersionIfCurrentHash($formId, $compiled, $expectedHash, 'business_api', $actor, $summary);
         return ['version' => $version->toArray(), 'document' => $compiled->document(), 'schemaHash' => $compiled->hash()];
+    }
+
+    public function compileSchema(int $moduleId, array $schema): array
+    {
+        return $this->validateSchema($moduleId, $schema);
+    }
+
+    public function exportSchema(int $moduleId, array $schema): array
+    {
+        $detail = $this->module($moduleId);
+        $compiled = $this->schemas->compile($schema);
+        $this->assertSchemaIdentity($detail, $compiled->key());
+        return ['document' => $this->schemas->export($schema)];
+    }
+
+    public function schemaVersions(int $moduleId): array
+    {
+        return ['list' => $this->schemas->versions($this->formId($moduleId))];
+    }
+
+    public function schemaVersion(int $moduleId, int $version): array
+    {
+        self::assertPositiveId($version);
+        return $this->schemas->findVersion($this->formId($moduleId), $version)->toArray();
+    }
+
+    public function schemaDiff(int $moduleId, int $fromVersion, int $toVersion): array
+    {
+        self::assertPositiveId($fromVersion);
+        self::assertPositiveId($toVersion);
+        if ($fromVersion === $toVersion) throw new InvalidArgumentException('版本号不能相同');
+        return $this->schemas->diff($this->formId($moduleId), $fromVersion, $toVersion);
+    }
+
+    public function rollbackSchema(
+        int $moduleId,
+        int $version,
+        string $expectedSchemaHash,
+        string $actor,
+        string $summary
+    ): array {
+        self::assertPositiveId($version);
+        self::assertHash($expectedSchemaHash);
+        $formId = $this->formId($moduleId);
+        // 旧实现 $this->schemas->rollback($formId, ...) 缺少并发基线，必须使用原子 CAS 回滚。
+        return $this->schemas->rollbackIfCurrentHash($formId, $version, $expectedSchemaHash, $actor, $summary)->toArray();
+    }
+
+    public function databaseTables(string $connection): array
+    {
+        self::assertIdentifier($connection, 'connection');
+        return $this->crud->tables($connection);
+    }
+
+    public function databaseTableSchema(string $connection, string $table): array
+    {
+        self::assertIdentifier($connection, 'connection');
+        self::assertIdentifier($table, 'table');
+        return $this->crud->inspect($connection, $table);
     }
 
     public function previewPublish(int $moduleId, array $payload): array
@@ -224,6 +304,14 @@ final class BusinessDevelopmentService
         $allowed['publish_config'] = $publishConfig;
         $allowed['id'] = (int) $detail['module']['form_id'];
         return $allowed;
+    }
+
+    private function formId(int $moduleId): int
+    {
+        $detail = $this->module($moduleId);
+        $formId = (int) ($detail['module']['form_id'] ?? 0);
+        self::assertPositiveId($formId);
+        return $formId;
     }
 
     private function assertSchemaIdentity(array $detail, string $code): void

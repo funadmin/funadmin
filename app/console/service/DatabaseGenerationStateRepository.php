@@ -6,8 +6,10 @@ namespace app\console\service;
 
 use app\console\model\BusinessModule;
 use app\console\model\CrudGeneration;
+use app\console\model\Form;
 use app\console\model\GeneratedFileBaseline;
 use RuntimeException;
+use Throwable;
 use think\facade\Db;
 
 /**
@@ -95,8 +97,162 @@ final class DatabaseGenerationStateRepository
             ->find() !== null;
     }
 
+    /** @return array<string, mixed> */
+    public function createOrReuseGeneration(array $row, string $actor): array
+    {
+        $operationKey = (string) ($row['operation_key'] ?? '');
+        if (preg_match('/^managed:[a-f0-9]{64}$/', $operationKey) !== 1) {
+            throw new RuntimeException('generation operation_key 无效');
+        }
+        try {
+            return Db::transaction(function () use ($row, $actor, $operationKey): array {
+                $moduleId = (int) ($row['business_module_id'] ?? 0);
+                if (!BusinessModule::where('id', $moduleId)->lock(true)->find()) {
+                    throw new RuntimeException('业务模块不存在');
+                }
+                $existing = CrudGeneration::where('operation_key', $operationKey)->find();
+                if ($existing) {
+                    return $existing->toArray();
+                }
+                $generation = CrudGeneration::create($row);
+                if ((string) ($row['status'] ?? '') === 'planned') {
+                    CrudGeneration::where('business_module_id', $moduleId)
+                        ->where('status', 'planned')
+                        ->where('id', '<>', (int) $generation->id)
+                        ->update([
+                            'status' => 'superseded',
+                            'superseded_by_id' => (int) $generation->id,
+                            'actor' => $actor,
+                            'completed_at' => date('Y-m-d H:i:s'),
+                        ]);
+                }
+                return $generation->toArray();
+            });
+        } catch (Throwable $exception) {
+            $existing = CrudGeneration::where('operation_key', $operationKey)->find();
+            if ($existing) {
+                return $existing->toArray();
+            }
+            throw $exception;
+        }
+    }
+
+    public function claimGeneration(int $moduleId, int $generationId, string $actor): bool
+    {
+        return CrudGeneration::where('id', $generationId)
+            ->where('business_module_id', $moduleId)
+            ->where('status', 'planned')
+            ->update([
+                'status' => 'running',
+                'recovery_status' => 'none',
+                'actor' => $actor,
+                'started_at' => date('Y-m-d H:i:s'),
+                'failed_at' => null,
+            ]) === 1;
+    }
+
+    public function releaseGenerationClaim(int $moduleId, int $generationId, string $actor): void
+    {
+        CrudGeneration::where('id', $generationId)
+            ->where('business_module_id', $moduleId)
+            ->where('status', 'running')
+            ->update([
+                'status' => 'planned',
+                'actor' => $actor,
+                'started_at' => null,
+            ]);
+    }
+
+    public function markRunning(int $generationId, string $actor): void
+    {
+        $this->updateGeneration($generationId, [
+            'status' => 'running',
+            'recovery_status' => 'none',
+            'actor' => $actor,
+            'started_at' => date('Y-m-d H:i:s'),
+            'failed_at' => null,
+        ]);
+    }
+
+    public function markFailed(int $generationId, string $failureCode, array $error, string $actor): void
+    {
+        $this->updateGeneration($generationId, [
+            'status' => 'failed',
+            'failure_code' => $failureCode,
+            'error' => $error,
+            'actor' => $actor,
+            'failed_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function markConflict(int $generationId, string $failureCode, array $error, string $actor): void
+    {
+        $this->updateGeneration($generationId, [
+            'status' => 'conflict',
+            'failure_code' => $failureCode,
+            'error' => $error,
+            'actor' => $actor,
+            'failed_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function markSuperseded(int $generationId, int $supersededById, string $actor): void
+    {
+        if ($generationId === $supersededById || CrudGeneration::where('id', $supersededById)->find() === null) {
+            throw new RuntimeException('替代 generation 无效');
+        }
+        $this->updateGeneration($generationId, [
+            'status' => 'superseded',
+            'superseded_by_id' => $supersededById,
+            'actor' => $actor,
+            'completed_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function markRecovering(int $generationId, string $actor): void
+    {
+        $this->updateGeneration($generationId, [
+            'status' => 'running',
+            'recovery_status' => 'recovering',
+            'actor' => $actor,
+        ]);
+    }
+
+    public function markRolledBack(int $generationId, string $actor): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->updateGeneration($generationId, [
+            'status' => 'failed',
+            'recovery_status' => 'rolled_back',
+            'actor' => $actor,
+            'failed_at' => $now,
+            'recovered_at' => $now,
+        ]);
+    }
+
+    public function markRecoveryRequired(int $generationId, string $failureCode, array $error, string $actor): void
+    {
+        $this->updateGeneration($generationId, [
+            'status' => 'failed',
+            'recovery_status' => 'recovery_required',
+            'failure_code' => $failureCode,
+            'error' => $error,
+            'actor' => $actor,
+            'failed_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function completedResult(int $generationId): ?array
+    {
+        $generation = CrudGeneration::where('id', $generationId)
+            ->where('status', 'completed')
+            ->find();
+        return $generation && is_array($generation->result) ? $generation->result : null;
+    }
+
     /**
-     * 锁定模块与生成记录，仅允许提交属于同一模块的 generation。
+     * 在同一数据库事务中提交 baseline、可信结果及模块/表单发布状态。
      */
     public function commitGeneration(
         int $moduleId,
@@ -105,27 +261,77 @@ final class DatabaseGenerationStateRepository
         string $transactionId,
         string $planDigest
     ): void {
-        $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
-        if (!$module) {
-            throw new RuntimeException('业务模块不存在');
-        }
-        $generation = CrudGeneration::where('id', $generationId)->lock(true)->find();
-        if (!$generation || (int) $generation->business_module_id !== $moduleId) {
-            throw new RuntimeException('生成记录与业务模块不匹配');
-        }
+        Db::transaction(function () use ($moduleId, $generationId, $records, $transactionId, $planDigest): void {
+            $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
+            if (!$module) {
+                throw new RuntimeException('业务模块不存在');
+            }
+            $generation = CrudGeneration::where('id', $generationId)->lock(true)->find();
+            if (!$generation || (int) $generation->business_module_id !== $moduleId) {
+                throw new RuntimeException('生成记录与业务模块不匹配');
+            }
+            $definition = is_array($generation->definition) ? $generation->definition : [];
+            $routePath = (string) ($definition['routePath'] ?? '');
+            if (preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', $routePath) !== 1) {
+                throw new RuntimeException('生成记录缺少可信 routePath');
+            }
+            $now = date('Y-m-d H:i:s');
+            $isRecovery = (string) $generation->recovery_status === 'recovering';
+            $result = [
+                'generationId' => $generationId,
+                'routePath' => $routePath,
+                'definitionHash' => (string) $generation->definition_hash,
+                'schemaHash' => (string) ($definition['formSchemaHash'] ?? ''),
+                'transactionId' => $transactionId,
+                'planDigest' => $planDigest,
+            ];
 
-        $this->replaceBaselines($moduleId, $generationId, $records);
-        $generation->save([
-            'status' => 'completed',
-            'transaction_id' => $transactionId,
-            'plan_digest' => $planDigest,
-            'recovery_status' => 'none',
-        ]);
-        $module->save([
-            'current_generation_id' => $generationId,
-            'last_success_generation_id' => $generationId,
-            'generation_status' => 'generated',
-        ]);
+            $this->replaceBaselines($moduleId, $generationId, $records);
+            $generation->save([
+                'status' => 'completed',
+                'transaction_id' => $transactionId,
+                'plan_digest' => $planDigest,
+                'recovery_status' => $isRecovery ? 'recovered_completed' : 'none',
+                'result' => $result,
+                'failure_code' => null,
+                'error' => null,
+                'completed_at' => $now,
+                'failed_at' => null,
+                'recovered_at' => $isRecovery ? $now : null,
+            ]);
+            $module->save([
+                'lifecycle_status' => 'published',
+                'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
+                'published_schema_version' => isset($definition['formSchemaVersion']) ? (int) $definition['formSchemaVersion'] : null,
+                'module_route' => $routePath,
+                'current_generation_id' => $generationId,
+                'last_success_generation_id' => $generationId,
+                'generation_status' => 'completed',
+            ]);
+            if ((int) $generation->form_id > 0) {
+                $form = Form::where('id', (int) $generation->form_id)->lock(true)->find();
+                if (!$form || ((int) $module->form_id > 0 && (int) $module->form_id !== (int) $form->id)) {
+                    throw new RuntimeException('生成记录与表单不匹配');
+                }
+                $form->save([
+                    'publish_mode' => 'generated',
+                    'publish_status' => 'published',
+                    'published_at' => $now,
+                    'crud_generation_id' => $generationId,
+                    'published_definition_hash' => (string) $generation->definition_hash,
+                    'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
+                ]);
+            }
+        });
+    }
+
+    private function updateGeneration(int $generationId, array $attributes): void
+    {
+        $generation = CrudGeneration::where('id', $generationId)->find();
+        if (!$generation) {
+            throw new RuntimeException('生成记录不存在');
+        }
+        $generation->save($attributes);
     }
 
     private function replaceBaselines(int $moduleId, int $generationId, array $records): void

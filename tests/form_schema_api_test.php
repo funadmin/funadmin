@@ -114,11 +114,11 @@ schemaApiExpect(str_contains($repositorySource, "'rollback'"), 'rollback 新版�
 schemaApiExpect(str_contains($repositorySource, "'rolledBackFromVersion'"), 'rollback 文档必须记录来源版本以产生新的不可变 hash');
 schemaApiExpect(str_contains($repositorySource, 'saveVersion($formId'), 'rollback 必须通过 saveVersion 创建新版本');
 
-$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/Designer.php');
-foreach (['compile', 'import', 'export', 'versions', 'version', 'diff', 'rollback', 'component-catalog'] as $route) {
-    schemaApiExpect(str_contains($controllerSource, "'{$route}"), 'Designer 缺少 API 路由：' . $route);
+$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/development/Business.php');
+foreach (['schema/compile', 'schema/export', 'schema/versions', 'schema/diff', 'rollback'] as $route) {
+    schemaApiExpect(str_contains($controllerSource, $route), 'Business 缺少 Schema API 路由：' . $route);
 }
-schemaApiExpect(str_contains($controllerSource, 'errorCode()') && str_contains($controllerSource, 'schemaPath()'), 'Schema API 错误响应必须包含 code/path');
+schemaApiExpect(str_contains($controllerSource, 'FormSchemaException|InvalidArgumentException'), 'Business Schema API 必须统一处理 Schema 错误');
 
 $migrations = array_map('basename', glob(dirname(__DIR__) . '/database/migrations/*.sql') ?: []);
 sort($migrations, SORT_STRING);

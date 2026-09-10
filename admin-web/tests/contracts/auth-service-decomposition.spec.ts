@@ -73,7 +73,7 @@ describe('管理员认证最终架构契约', () => {
   it('调用方直接使用会话、授权和角色范围服务', () => {
     const adminAuth = readRequiredFile('app/console/controller/auth/AdminAuth.php');
     const profile = readRequiredFile('app/console/controller/auth/AdminProfile.php');
-    const devCrud = readRequiredFile('app/console/controller/development/DevCrud.php');
+    const business = readRequiredFile('app/console/controller/development/Business.php');
     const roleGuard = readRequiredFile('app/console/service/RoleGuardService.php');
     const systemCallers = [
       'app/console/controller/system/SystemAdmin.php',
@@ -87,11 +87,10 @@ describe('管理员认证最终架构契约', () => {
     expect(adminAuth).toContain('RoleScopeService');
     expect(adminAuth).not.toContain('AdminAuthorizationService');
     expect(profile).toContain('AdminSessionService');
-    expect(devCrud).toContain('return $this->retired()');
-    expect(devCrud).not.toContain('AdminAuthorizationService');
+    expect(business).toContain('AdminAuthorizationService');
     expect(roleGuard).toContain('RoleScopeService');
     expect(systemCallers).toContain('RoleScopeService');
-    for (const source of [adminAuth, profile, devCrud, roleGuard, systemCallers]) {
+    for (const source of [adminAuth, profile, business, roleGuard, systemCallers]) {
       expect(source).not.toMatch(/\bAuthService\b/);
     }
   });

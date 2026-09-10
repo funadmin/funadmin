@@ -20,6 +20,7 @@ use app\console\service\FormSchemaRepository;
 use app\console\service\ManagedGenerationService;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
+use think\annotation\route\Pattern;
 use think\annotation\route\Post;
 
 function businessApiExpect(bool $condition, string $message): void
@@ -51,6 +52,14 @@ $routes = [
     'createFromDatabase' => [Post::class, 'modules/from-database'],
     'validateSchema' => [Post::class, 'modules/:id/schema/validate'],
     'saveSchema' => [Post::class, 'modules/:id/schema/save'],
+    'compileSchema' => [Post::class, 'modules/:id/schema/compile'],
+    'exportSchema' => [Post::class, 'modules/:id/schema/export'],
+    'schemaVersions' => [Get::class, 'modules/:id/schema/versions'],
+    'schemaVersion' => [Get::class, 'modules/:id/schema/versions/:version'],
+    'schemaDiff' => [Get::class, 'modules/:id/schema/diff'],
+    'rollbackSchema' => [Post::class, 'modules/:id/schema/versions/:version/rollback'],
+    'databaseTables' => [Get::class, 'database/tables'],
+    'databaseTableSchema' => [Get::class, 'database/tables/:table/schema'],
     'previewPublish' => [Post::class, 'modules/:id/publish/preview'],
     'publish' => [Post::class, 'modules/:id/publish'],
     'runtimeMeta' => [Get::class, 'modules/:id/runtime-meta'],
@@ -67,6 +76,10 @@ foreach ($routes as $method => [$attribute, $path]) {
     $attributes = $controller->getMethod($method)->getAttributes($attribute);
     businessApiExpect(count($attributes) === 1 && $attributes[0]->newInstance()->rule === $path, $method . ' 路由不匹配');
 }
+foreach (['module' => ['id'], 'compileSchema' => ['id'], 'exportSchema' => ['id'], 'schemaVersions' => ['id'], 'schemaVersion' => ['id', 'version'], 'schemaDiff' => ['id'], 'rollbackSchema' => ['id', 'version'], 'databaseTableSchema' => ['table']] as $method => $parameters) {
+    $patterns = array_map(static fn (ReflectionAttribute $attribute): string => $attribute->newInstance()->name, $controller->getMethod($method)->getAttributes(Pattern::class));
+    foreach ($parameters as $parameter) businessApiExpect(in_array($parameter, $patterns, true), $method . ' 缺少 Pattern：' . $parameter);
+}
 
 $controllerSource = (string) file_get_contents($controllerFile);
 foreach (['BusinessModule::', 'CrudGeneration::', 'GeneratedFileBaseline::', 'Db::'] as $forbidden) {
@@ -82,6 +95,11 @@ foreach ([FormDesignerService::class, FormSchemaRepository::class, FormPublishSe
 businessApiExpect(substr_count($developmentSource, '$this->assertSchemaIdentity(') >= 3, '动态发布必须再次绑定当前业务模块 Schema identity');
 businessApiExpect(str_contains($developmentSource, "if (!is_array(\$publishConfig))"), '动态发布 publish_config 必须校验类型');
 businessApiExpect(str_contains($developmentSource, 'saveCompiledVersionIfCurrentHash('), 'Schema 乐观锁比较与保存必须处于同一锁定事务');
+foreach (['compileSchema', 'exportSchema', 'schemaVersions', 'schemaVersion', 'schemaDiff', 'rollbackSchema', 'databaseTables', 'databaseTableSchema'] as $method) {
+    businessApiExpect((new ReflectionClass(BusinessDevelopmentService::class))->hasMethod($method), 'BusinessDevelopmentService 缺少能力：' . $method);
+}
+businessApiExpect(str_contains($developmentSource, '$this->schemas->rollback($formId,'), 'rollback 必须先通过 module id 解析 form id 并创建新版本');
+businessApiExpect(str_contains($developmentSource, '$this->crud->tables(') && str_contains($developmentSource, '$this->crud->inspect('), '数据库表与表结构元数据必须复用只读 DevCrudService');
 businessApiExpect(str_contains($developmentSource, '不支持独立重试'), 'managed 资源原子提交后不得伪装独立重试成功');
 
 $registry = new FieldCapabilityRegistry();
@@ -138,7 +156,11 @@ businessApiExpect(str_contains($managedSource, 'public function adoptResolvedBas
 businessApiExpect(str_contains($managedSource, "'conflict-no-base'") && str_contains($managedSource, 'remoteHash') && str_contains($managedSource, 'localHash'), 'adopt-resolved 必须严格校验最近 conflict-no-base 的 Local/Remote hash');
 businessApiExpect(str_contains($managedSource, 'PathGuard::resolve(') && str_contains($managedSource, 'is_link('), 'adopt-resolved 必须拒绝路径逃逸与符号链接');
 businessApiExpect(!str_contains($managedSource, "'metadata' => ['adoptedBy'"), 'baseline 表无 metadata 字段，不得写入不存在字段');
-businessApiExpect(str_contains($managedSource, "'status' => 'conflict'") && str_contains($managedSource, "'plan' => \$publicPlan"), 'blocked preview 必须保存可供严格采纳的冲突审计');
+businessApiExpect(
+    str_contains($managedSource, "'status' => \$blocked ? 'conflict' : 'planned'")
+        && str_contains($managedSource, "\$manifest['plan'] = \$publicPlan"),
+    'blocked preview 必须保存可供严格采纳的冲突审计'
+);
 businessApiExpect(str_contains($stateRepositorySource, "(string) \$generation->status !== 'conflict'"), 'baseline 仓储必须二次确认 generation 为 conflict');
 businessApiExpect(str_contains($stateRepositorySource, 'array_intersect_key($record, array_flip('), 'baseline 仓储必须对白名单字段持久化');
 $schemaRepositorySource = (string) file_get_contents($root . 'app/console/service/FormSchemaRepository.php');

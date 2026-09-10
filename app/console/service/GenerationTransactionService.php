@@ -28,6 +28,8 @@ final class GenerationTransactionService
     /** @var null|Closure(string, int, string): void */
     private readonly ?Closure $faultHook;
 
+    private string $executionOutcome = 'none';
+
     public function __construct(
         private readonly string $projectRoot,
         private readonly ConfirmationToken $tokens,
@@ -67,18 +69,35 @@ final class GenerationTransactionService
         return hash('sha256', CrudDefinition::canonicalJson($copy));
     }
 
-    public function execute(int $moduleId, int $generationId, array $bundle, string $confirmToken): array
-    {
+    public function execute(
+        int $moduleId,
+        int $generationId,
+        array $bundle,
+        string $confirmToken,
+        ?callable $claim = null
+    ): array {
+        $this->executionOutcome = 'none';
         $this->assertTrustedBundle($bundle);
         if (($bundle['plan']['blocked'] ?? true) === true) {
             throw new RuntimeException('冲突 managed plan 拒绝执行');
         }
-        return $this->locked(function () use ($moduleId, $generationId, $bundle, $confirmToken): array {
+        return $this->locked(function () use ($moduleId, $generationId, $bundle, $confirmToken, $claim): array {
             $digest = self::bundleDigest($bundle);
             $claims = $this->tokens->verify($confirmToken, $digest);
             $this->assertCurrentState($bundle);
             $this->assertTargetsCurrent($bundle['plan']['files']);
-            $this->tokens->consume((string) $claims['nonce'], (int) $claims['expiresAt']);
+            if ($claim !== null && $claim() !== true) {
+                throw new RuntimeException('managed generation 已由其他执行者获取');
+            }
+            try {
+                $this->tokens->consume((string) $claims['nonce'], (int) $claims['expiresAt']);
+            } catch (Throwable $exception) {
+                if (is_object($this->stateRepository) && method_exists($this->stateRepository, 'releaseGenerationClaim')) {
+                    $this->stateRepository->releaseGenerationClaim($moduleId, $generationId, 'system');
+                }
+                throw $exception;
+            }
+            $this->executionOutcome = 'running';
 
             $transactionId = bin2hex(random_bytes(16));
             $journal = $this->newJournal($transactionId, $moduleId, $generationId, $bundle, $digest);
@@ -117,8 +136,10 @@ final class GenerationTransactionService
                 $this->fault('after_resource_commit', -1, '');
                 $journal = $this->checkpoint($journal, 'completed');
                 $this->cleanupTransaction($journal);
+                $this->executionOutcome = 'completed';
                 return ['state' => 'completed', 'transactionId' => $transactionId, 'written' => count($journal['applied'])];
             } catch (GenerationInterruptionException $exception) {
+                $this->executionOutcome = 'recovery_required';
                 throw $exception;
             } catch (Throwable $exception) {
                 $journal = $this->inspect($transactionId);
@@ -127,11 +148,18 @@ final class GenerationTransactionService
                 }
                 $errors = $this->rollbackJournal($journal, $resourcesBegun);
                 if ($errors !== []) {
+                    $this->executionOutcome = 'recovery_required';
                     throw new RuntimeException($exception->getMessage() . '；回滚失败：' . implode('；', $errors), 0, $exception);
                 }
+                $this->executionOutcome = 'rolled_back';
                 throw $exception;
             }
         });
+    }
+
+    public function executionOutcome(): string
+    {
+        return $this->executionOutcome;
     }
 
     public function inspect(string $transactionId): array

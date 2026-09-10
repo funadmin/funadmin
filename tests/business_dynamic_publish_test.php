@@ -44,7 +44,6 @@ $root = dirname(__DIR__) . '/';
 $serviceSource = (string) file_get_contents($root . 'app/console/service/FormPublishService.php');
 $designerSource = (string) file_get_contents($root . 'app/console/service/FormDesignerService.php');
 $dataSource = (string) file_get_contents($root . 'app/console/service/FormDataService.php');
-$designerController = (string) file_get_contents($root . 'app/console/controller/form/Designer.php');
 $businessController = (string) file_get_contents($root . 'app/console/controller/development/Business.php');
 
 preg_match('/public function previewDynamic\([^}]+\n    }/s', $serviceSource, $previewDynamicMatch);
@@ -57,7 +56,7 @@ foreach (['FormCrudDefinitionFactory', 'DevCrudService', 'preflightGeneration(',
 dynamicPublishExpect(str_contains($serviceSource, 'previewDynamic('), '动态发布服务缺少 previewDynamic');
 dynamicPublishExpect(str_contains($serviceSource, 'publishDynamic('), '动态发布服务缺少 publishDynamic');
 dynamicPublishExpect(str_contains($serviceSource, 'public function preview(') && str_contains($serviceSource, 'public function publish('), '完整静态发布必须与动态发布共存');
-dynamicPublishExpect(str_contains($designerController, '旧表单写 API 已下线') && str_contains($businessController, '$this->business->previewPublish(') && str_contains($businessController, '$this->business->publish('), '统一 Business 控制器必须独占动态发布入口');
+dynamicPublishExpect(str_contains($businessController, '$this->business->previewPublish(') && str_contains($businessController, '$this->business->publish('), '统一 Business 控制器必须独占动态发布入口');
 preg_match('/public function previewPublish\([\s\S]+?\n    }\n\n[\s\S]*?public function publish\([\s\S]+?\n    }\n\n/s', $businessController, $dynamicControllerMatch);
 $dynamicControllerMethods = $dynamicControllerMatch[0] ?? '';
 dynamicPublishExpect($dynamicControllerMethods !== '', '动态发布控制器方法边界不存在');

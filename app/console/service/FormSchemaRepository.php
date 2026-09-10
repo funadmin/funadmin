@@ -226,6 +226,36 @@ final class FormSchemaRepository
     public function rollback(int $formId, int $version, string $actor, string $summary = ''): FormSchemaVersion
     {
         $source = $this->findVersion($formId, $version);
+        return $this->createRollbackVersion($formId, $source, $actor, $summary);
+    }
+
+    /**
+     * 锁定当前表单并校验调用方基线后，以历史文档创建新的不可变回滚版本。
+     */
+    public function rollbackIfCurrentHash(
+        int $formId,
+        int $targetVersion,
+        string $expectedHash,
+        string $actor,
+        string $summary = ''
+    ): FormSchemaVersion {
+        return Db::transaction(function () use ($formId, $targetVersion, $expectedHash, $actor, $summary): FormSchemaVersion {
+            $form = Form::lock(true)->find($formId);
+            if (!$form) throw new InvalidArgumentException('表单不存在');
+            $current = $this->compile((array) $form->schema_document);
+            if (!hash_equals($current->hash(), $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            $source = $this->findVersion($formId, $targetVersion);
+            return $this->createRollbackVersion($formId, $source, $actor, $summary);
+        });
+    }
+
+    private function createRollbackVersion(
+        int $formId,
+        FormSchemaVersion $source,
+        string $actor,
+        string $summary
+    ): FormSchemaVersion {
+        $version = (int) $source->version;
         $document = (array) $source->schema_document;
         $extensions = is_array($document['extensions'] ?? null) ? $document['extensions'] : [];
         $extensions['rollback'] = [

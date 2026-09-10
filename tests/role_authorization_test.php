@@ -90,6 +90,10 @@ roleAuthorizationExpect(str_contains($followupMigration, "'authorization'") && s
 roleAuthorizationExpect(!str_contains($followupMigration, "'copyauthorization'"), '复制授权权限必须保持独立，不得由旧策略自动授予');
 roleAuthorizationExpect(substr_count($adminAuth, "=> 'system:role:perm'") >= 3, '旧权限及新查看、保存权限都必须显示角色权限按钮');
 roleAuthorizationExpect(str_contains($adminAuth, "'console/systemrole:authorization' => 'system:role:perm'") && str_contains($adminAuth, "'console/systemrole:saveauthorization' => 'system:role:perm'"), 'AdminAuth 必须映射新查看与保存权限');
+roleAuthorizationExpect(str_contains($adminAuth, "'console/systemrole:copyauthorization' => 'system:role:perm-copy'"), '复制授权必须映射独立前端权限码');
 roleAuthorizationExpect(!str_contains($adminAuth, "'console/systemrole:copyauthorization' => 'system:role:perm'"), '复制权限不得并入角色权限按钮映射');
+foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 'schemadiff', 'rollbackschema', 'databasetables', 'databasetableschema'] as $action) {
+    roleAuthorizationExpect(str_contains($adminAuth, "'console/development.business:{$action}'"), "AdminAuth 必须保留 development 映射：{$action}");
+}
 
 echo "Role authorization tests passed\n";

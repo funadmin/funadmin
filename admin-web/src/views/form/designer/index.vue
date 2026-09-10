@@ -138,7 +138,7 @@
       <!-- 右：属性面板 -->
       <el-card shadow="never" class="w-[360px] shrink-0">
         <template #header>字段属性</template>
-        <PropsPanel v-if="store.selected.value" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
+        <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
         <el-empty v-else description="点选画布字段编辑参数" />
         <template v-if="store.selectedNode.value">
           <el-divider content-position="left">结构化配置</el-divider>
@@ -225,7 +225,7 @@
       <SchemaJsonEditor :schema="store.schemaDocument.value" @apply="onApplySchemaJson" />
     </el-dialog>
 
-    <VersionHistoryDrawer v-model="versionVisible" :form-id="store.form.value.id" @rollback="onRollback" />
+    <VersionHistoryDrawer v-model="versionVisible" :module-id="moduleId" @rollback="onRollback" />
 
     <el-card v-if="debugEnabled" shadow="never" class="mt-3">
       <template #header>{{ t('formDesigner.debugPanel', '调试面板') }}</template>
@@ -253,11 +253,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
-import {
-  formDesignerApi,
-  type FormPublishConfig,
-  type FormSchemaVersion
-} from '@/api/form';
+import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
 import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult } from '@/api/development/business';
 import { usePermissionStore } from '@/store/modules/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
@@ -276,6 +272,7 @@ import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const moduleId = computed(() => Number(route.query.moduleId ?? 0));
 const permissionStore = usePermissionStore();
 const store = useDesigner();
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
@@ -373,7 +370,8 @@ const schemaOriginLabel = computed(() => ({
   designer: '可视化设计器', import: '外部导入', migration: '旧版迁移', api: 'API 写入'
 }[String(store.form.value.schema_origin ?? 'designer')] ?? String(store.form.value.schema_origin)));
 const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument) => {
-  const compiled = await formDesignerApi.compile(schema);
+  if (!moduleId.value) throw new Error('业务模块 ID 缺失');
+  const compiled = await businessDevelopmentApi.compileSchema(moduleId.value, schema);
   const result = store.replaceSchema(compiled.document);
   if (!result.ok) {
     ElMessage.warning(result.error);
@@ -384,7 +382,8 @@ const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument
   ElMessage.success('FormSchema v2 已通过服务端校验并应用');
 };
 const onExportSchema = async () => {
-  const { document: exportedDocument } = await formDesignerApi.exportSchema(store.schemaDocument.value);
+  if (!moduleId.value) throw new Error('业务模块 ID 缺失');
+  const { document: exportedDocument } = await businessDevelopmentApi.exportSchema(moduleId.value, store.schemaDocument.value);
   const blob = new Blob([exportedDocument], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = window.document.createElement('a');
@@ -433,12 +432,11 @@ const validateDefinitionBasics = () => {
 };
 
 async function load() {
-  const moduleId = Number(route.query.moduleId ?? 0);
-  if (!moduleId) {
+  if (!moduleId.value) {
     await router.replace('/development/business/mine');
     return;
   }
-  const data = await businessDevelopmentApi.module(moduleId);
+  const data = await businessDevelopmentApi.module(moduleId.value);
   if (!data.form) throw new Error('业务模块没有可设计表单');
   store.load({ ...data.form, fields: data.fields });
 }
@@ -451,10 +449,9 @@ async function onSave() {
   const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
-    const moduleId = Number(route.query.moduleId ?? 0);
     const expectedHash = String(store.form.value.schema_hash ?? '');
-    if (!moduleId || !expectedHash) throw new Error('业务模块或 Schema hash 缺失');
-    const saved = await businessDevelopmentApi.saveSchema(moduleId, store.schemaDocument.value, expectedHash, '业务设计器保存');
+    if (!moduleId.value || !expectedHash) throw new Error('业务模块或 Schema hash 缺失');
+    const saved = await businessDevelopmentApi.saveSchema(moduleId.value, store.schemaDocument.value, expectedHash, '业务设计器保存');
     const unchanged = revision === saveRevision && JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
       store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);

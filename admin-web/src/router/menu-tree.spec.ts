@@ -26,13 +26,12 @@ const menus: API.MenuItem[] = [
     routeName: 'Development',
     path: '/development',
     component: 'Layout',
-    redirect: '/development/crud',
+    redirect: '/development/business/mine',
     type: 'M',
     name: '开发工具',
     sort: 20,
     children: [
-      { id: 38, parentId: 37, routeName: 'DevelopmentCrud', path: 'crud', component: 'development/crud/index', type: 'C', name: 'CRUD生成器', sort: 10 },
-      { id: 41, parentId: 37, routeName: 'FormList', path: '/form/list', component: 'form/list', type: 'C', name: '表单管理', sort: 20 }
+      { id: 200, parentId: 37, routeName: 'BusinessMine', path: 'business/mine', component: 'development/business/mine', type: 'C', name: '我的业务', sort: 10 }
     ]
   }
 ] as API.MenuItem[];
@@ -66,8 +65,8 @@ describe('混合布局菜单全树路由', () => {
 
     expect(getFirstLeafRouteFullPath(routes[0].children![0], routes[0].path)).toBe('/system/user');
     expect(resolveMenuPath(routes[0].path, routes[0].children![0].path)).toBe('/system/user');
-    expect(getFirstLeafRouteFullPath(routes[1].children![1], routes[1].path)).toBe('/form/list');
-    expect(resolveMenuPath(routes[1].path, routes[1].children![1].path)).toBe('/form/list');
+    expect(getFirstLeafRouteFullPath(routes[1].children![0], routes[1].path)).toBe('/development/business/mine');
+    expect(resolveMenuPath(routes[1].path, routes[1].children![0].path)).toBe('/development/business/mine');
   });
 
   it('每个可见叶子均由业务路由命中而不是 NotFound', () => {

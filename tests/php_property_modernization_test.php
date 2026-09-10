@@ -15,7 +15,6 @@ use app\common\service\PredisService;
 use app\common\service\UploadService;
 use app\common\model\UpgradeManifest;
 use app\common\validate\MemberValidate;
-use app\console\controller\development\DevCrud;
 use app\console\controller\system\SystemPlugin;
 use app\console\service\AdminAuthorizationService;
 use app\console\service\DevCrudService;
@@ -582,8 +581,6 @@ foreach ([
     modernizationTypedProperty(SystemPlugin::class, $property, $type, 'private', false, true);
 }
 modernizationCheck((new ReflectionClass(SystemPlugin::class))->isFinal(), 'SystemPlugin 必须保持 final');
-modernizationTypedProperty(DevCrud::class, 'crud', DevCrudService::class, 'private', false, true);
-modernizationCheck((new ReflectionClass(DevCrud::class))->isFinal(), 'DevCrud 必须保持 final');
 foreach ([['request', Request::class], ['app', 'string'], ['requestUrl', 'string']] as [$property, $type]) {
     modernizationTypedProperty(AdminAuthorizationService::class, $property, $type, 'private', false, true);
 }

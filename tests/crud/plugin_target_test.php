@@ -327,9 +327,6 @@ try {
     foreach (['permissionMigration', 'phpTest', 'vitestTest'] as $unusedArtifact) {
         pluginCrudExpect(!array_key_exists($unusedArtifact, $factoryTemplates), '插件 templates 不得声明永不生成制品：' . $unusedArtifact);
     }
-    $types = (string) file_get_contents($repository . '/admin-web/src/types/development/crud.ts');
-    pluginCrudExpect(str_contains($types, "type: 'plugin'") && str_contains($types, "scope: 'application' | 'console' | 'both'"), 'TS 类型未同步 plugin target');
-
     mkdir($root . '/templates', 0755, true);
     file_put_contents($root . '/templates/invalid.tpl', '{{unsafe.path}}');
     pluginCrudReject(

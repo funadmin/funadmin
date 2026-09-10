@@ -25,6 +25,9 @@
 !/tests/business_development_permission_test.php
 !/tests/business_generation_wal_test.php
 !/tests/business_generation_recovery_test.php
+!/tests/business_generation_canonical_state_test.php
+!/tests/business_generation_idempotency_test.php
+!/tests/business_schema_database_cas_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

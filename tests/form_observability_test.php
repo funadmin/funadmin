@@ -91,8 +91,8 @@ observabilityExpect($events[2]['stage'] === 'failure', '异常执行必须记录
 observabilityExpect(!str_contains(json_encode($events[2], JSON_THROW_ON_ERROR), 'failure-with-secret'), '异常消息不得进入事件');
 observabilityExpect(count($counters) === 2 && count($durations) === 2, '失败操作也必须记录 counter 与 duration');
 
-$controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/Designer.php');
-observabilityExpect(str_contains($controller, 'FormObservability'), '新增 Schema API 必须接入 FormObservability');
-observabilityExpect(str_contains($controller, 'requestId'), '控制器观测事件必须携带 requestId');
+$controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/Data.php');
+observabilityExpect(str_contains($controller, 'FormObservability'), '保留的 FormData API 必须接入 FormObservability');
+observabilityExpect(str_contains($controller, 'requestId'), 'FormData 控制器观测事件必须携带 requestId');
 
 echo "form observability tests: PASS\n";

@@ -31,32 +31,19 @@ describe('统一表单发布引擎契约', () => {
     expect(factory).toContain("'enabled' => (bool) $config['dataScopeEnabled']");
   });
 
-  it('动态发布 DDL 契约不要求迁移文件', () => {
-    const api = read('admin-web/src/api/form.ts');
-    expect(api).toMatch(/interface MigrationPreview[\s\S]*?file\?: string;/);
-  });
-
-  it('纯动态与完整静态发布并列且各自保持边界', () => {
+  it('动态发布与正式生成统一由 Business API 暴露', () => {
     const dynamic = read('app/console/service/FormPublishService.php');
-    const full = read('app/console/service/FormFullPublishService.php');
+    const business = read('app/console/controller/development/Business.php');
+    const orchestration = read('app/console/service/BusinessDevelopmentService.php');
     expect(dynamic).toContain('public function previewDynamic(');
     expect(dynamic).toContain('public function publishDynamic(');
     expect(dynamic).toContain('applyDynamicDdl($payload)');
     expect(dynamic).not.toContain('preflightGeneration(');
-    expect(full).toContain('ManagedGenerationService');
-    expect(full).toContain('FormCrudDefinitionFactory');
-    expect(full).not.toContain('DevCrudService');
-    expect(full).not.toContain('allowOverwrite');
-  });
-
-  it('旧表单写端点下线，动态发布只由 Business API 暴露', () => {
-    const controller = read('app/console/controller/form/Designer.php');
-    const business = read('app/console/controller/development/Business.php');
-    expect(controller).toContain("旧表单写 API 已下线");
-    expect(controller).toContain("['newEntry' => '/development/business'], 410");
     expect(business).toContain('$this->business->previewPublish(');
     expect(business).toContain('$this->business->publish(');
-    for (const forbidden of ['FormFullPublishService', "post('confirmToken'", "post('allowOverwrite'", "#[Post('retry-resources/:id')]", 'generation(', 'retryResources(']) expect(controller).not.toContain(forbidden);
+    expect(orchestration).toContain('ManagedGenerationService');
+    expect(orchestration).toContain('previewFormalGeneration(');
+    expect(orchestration).toContain('formalGeneration(');
   });
 
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
@@ -131,10 +118,4 @@ describe('统一表单发布引擎契约', () => {
     expect(api).toContain('{ data, include, schemaHash }');
   });
 
-  it('旧表单列表仅安全 replace 到统一业务入口', () => {
-    const list = read('admin-web/src/views/form/list.vue');
-    expect(list).toContain("router.replace('/development/business/mine')");
-    expect(list).not.toContain('formDesignerApi.');
-    expect(list).not.toContain('formFullPublishApi.');
-  });
 });

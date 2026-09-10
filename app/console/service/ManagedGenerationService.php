@@ -15,6 +15,7 @@ use app\console\model\Form;
 use Closure;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 /** 为 business-managed 正式发布构造可信 bundle 并执行 WAL 事务。 */
 final class ManagedGenerationService
@@ -101,54 +102,42 @@ final class ManagedGenerationService
         $publicPlan = $this->publicPlan($bundle['plan']);
         $module = ($this->moduleReader)($moduleId);
         $formId = (int) ($module['form_id'] ?? 0);
-        if (($publicPlan['blocked'] ?? true) === true) {
-            $generationId = ($this->generationWriter)([
-                'business_module_id' => $moduleId,
-                'form_id' => $formId,
-                'binding_status' => 'bound',
-                'generation_mode' => 'managed',
-                'operation' => 'preview',
-                'status' => 'conflict',
-                'connection_name' => (string) $bundle['definition']->get('connection', ''),
-                'table_name' => (string) $bundle['definition']->get('table', ''),
-                'definition_hash' => $bundle['definitionHash'],
-                'definition' => null,
-                'manifest' => [
-                    'managedNonce' => $nonce,
-                    'plan' => $publicPlan,
-                    'hashes' => $this->stateHashes($bundle),
-                ],
-                'error' => ['code' => 'MANAGED_PLAN_CONFLICT'],
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        $blocked = ($publicPlan['blocked'] ?? true) === true;
+        $manifest = [
+            'managedNonce' => $nonce,
+            'planDigest' => (string) $bundle['plan']['planDigest'],
+            'bundleDigest' => GenerationTransactionService::bundleDigest($this->trustedBundle($bundle)),
+            'hashes' => $this->stateHashes($bundle),
+        ];
+        if ($blocked) {
+            $manifest['plan'] = $publicPlan;
+        }
+        $row = [
+            'business_module_id' => $moduleId,
+            'form_id' => $formId,
+            'binding_status' => 'bound',
+            'generation_mode' => 'managed',
+            'operation' => $blocked ? 'preview' : 'generate',
+            'operation_key' => $this->operationKey($moduleId, $bundle),
+            'status' => $blocked ? 'conflict' : 'planned',
+            'connection_name' => (string) $bundle['definition']->get('connection', ''),
+            'table_name' => (string) $bundle['definition']->get('table', ''),
+            'definition_hash' => $bundle['definitionHash'],
+            'definition' => $blocked ? null : $bundle['definition']->toArray(),
+            'manifest' => $manifest,
+            'error' => $blocked ? ['code' => 'MANAGED_PLAN_CONFLICT'] : null,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+        $generation = $this->createOrReuseGeneration($row);
+        $generationId = (int) $generation['id'];
+        if ($blocked) {
             return [
                 'generationId' => $generationId,
                 'plan' => $publicPlan,
                 'conflicts' => $this->conflicts($includeSensitive ? $bundle['plan'] : $publicPlan, $includeSensitive),
             ];
         }
-        $generationId = ($this->generationWriter)([
-            'business_module_id' => $moduleId,
-            'form_id' => $formId,
-            'binding_status' => 'bound',
-            'generation_mode' => 'managed',
-            'operation' => 'generate',
-            'status' => 'planned',
-            'connection_name' => (string) $bundle['definition']->get('connection', ''),
-            'table_name' => (string) $bundle['definition']->get('table', ''),
-            'definition_hash' => $bundle['definitionHash'],
-            'definition' => $bundle['definition']->toArray(),
-            'manifest' => [
-                'managedNonce' => $nonce,
-                'planDigest' => (string) $bundle['plan']['planDigest'],
-                'bundleDigest' => GenerationTransactionService::bundleDigest($this->trustedBundle($bundle)),
-                'hashes' => $this->stateHashes($bundle),
-            ],
-            'error' => null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
         $result = [
             'generationId' => $generationId,
             'definitionHash' => $bundle['definitionHash'],
@@ -167,8 +156,21 @@ final class ManagedGenerationService
     public function execute(int $moduleId, int $generationId, string $confirmToken): array
     {
         $record = ($this->generationReader)($generationId);
-        if (!is_array($record) || (int) ($record['business_module_id'] ?? 0) !== $moduleId
-            || (string) ($record['status'] ?? '') !== 'planned') {
+        if (!is_array($record) || (int) ($record['business_module_id'] ?? 0) !== $moduleId) {
+            throw new InvalidArgumentException('managed generation 不存在、未绑定或不可执行');
+        }
+        $status = (string) ($record['status'] ?? '');
+        if ($status === 'completed') {
+            $result = $this->completedResult($generationId);
+            if ($result === null) {
+                throw new RuntimeException('completed managed generation 缺少持久化结果');
+            }
+            return $result + ['idempotentReplay' => true];
+        }
+        if ($status === 'superseded') {
+            throw new InvalidArgumentException('managed generation 已 superseded，不可执行');
+        }
+        if ($status !== 'planned') {
             throw new InvalidArgumentException('managed generation 不存在、未绑定或不可执行');
         }
         $manifest = (array) ($record['manifest'] ?? []);
@@ -187,13 +189,34 @@ final class ManagedGenerationService
             $this->resources,
             fn (): array => $this->stateHashes($this->buildBundle($moduleId, $nonce))
         );
-        return $transaction->execute($moduleId, $generationId, $trusted, $confirmToken) + [
+        try {
+            $execution = $transaction->execute(
+                $moduleId,
+                $generationId,
+                $trusted,
+                $confirmToken,
+                fn (): bool => $this->claimGeneration($moduleId, $generationId)
+            );
+        } catch (Throwable $exception) {
+            $completed = $this->completedResult($generationId);
+            if ($completed !== null) {
+                return $completed + ['idempotentReplay' => false];
+            }
+            $this->recordExecutionFailure($generationId, $transaction->executionOutcome(), $exception);
+            throw $exception;
+        }
+        $completed = $this->completedResult($generationId);
+        if ($completed !== null) {
+            return $completed + ['idempotentReplay' => false];
+        }
+        return $execution + [
             'generationId' => $generationId,
             'resourceApplyStatus' => 'applied',
             'resourceApplyError' => null,
             'routePath' => (string) $bundle['definition']->get('routePath'),
             'definitionHash' => $bundle['definitionHash'],
             'schemaHash' => $bundle['schemaHash'],
+            'idempotentReplay' => false,
         ];
     }
 
@@ -386,6 +409,60 @@ final class ManagedGenerationService
         return array_intersect_key($bundle, array_flip([
             'definitionHash', 'schemaHash', 'registryHash', 'templateVersion', 'migrationHash', 'resourcesHash',
         ]));
+    }
+
+    private function operationKey(int $moduleId, array $bundle): string
+    {
+        $identity = ['moduleId' => $moduleId] + $this->stateHashes($bundle) + [
+            'planDigest' => (string) $bundle['plan']['planDigest'],
+        ];
+        return 'managed:' . hash('sha256', CrudDefinition::canonicalJson($identity));
+    }
+
+    /** @return array<string, mixed> */
+    private function createOrReuseGeneration(array $row): array
+    {
+        if (is_object($this->stateRepository) && method_exists($this->stateRepository, 'createOrReuseGeneration')) {
+            return $this->stateRepository->createOrReuseGeneration($row, 'system');
+        }
+        $id = ($this->generationWriter)($row);
+        return $row + ['id' => $id];
+    }
+
+    private function claimGeneration(int $moduleId, int $generationId): bool
+    {
+        if (is_object($this->stateRepository) && method_exists($this->stateRepository, 'claimGeneration')) {
+            return $this->stateRepository->claimGeneration($moduleId, $generationId, 'system');
+        }
+        return true;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function completedResult(int $generationId): ?array
+    {
+        if (!is_object($this->stateRepository) || !method_exists($this->stateRepository, 'completedResult')) {
+            return null;
+        }
+        return $this->stateRepository->completedResult($generationId);
+    }
+
+    private function recordExecutionFailure(int $generationId, string $outcome, Throwable $exception): void
+    {
+        if (!is_object($this->stateRepository) || $outcome === 'none') {
+            return;
+        }
+        $error = ['message' => $exception->getMessage(), 'type' => $exception::class];
+        if ($outcome === 'rolled_back' && method_exists($this->stateRepository, 'markRolledBack')) {
+            $this->stateRepository->markRolledBack($generationId, 'system');
+            return;
+        }
+        if ($outcome === 'recovery_required' && method_exists($this->stateRepository, 'markRecoveryRequired')) {
+            $this->stateRepository->markRecoveryRequired($generationId, 'GENERATION_RECOVERY_REQUIRED', $error, 'system');
+            return;
+        }
+        if ($outcome === 'running' && method_exists($this->stateRepository, 'markFailed')) {
+            $this->stateRepository->markFailed($generationId, 'GENERATION_EXECUTION_FAILED', $error, 'system');
+        }
     }
 
     private function publicPlan(array $plan): array
