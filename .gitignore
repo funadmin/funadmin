@@ -20,6 +20,9 @@
 /.qoder
 /tests/*
 !/tests/ai_development_phase1_test.php
+!/tests/ai_openai_provider_test.php
+!/tests/ai_phase2_services_test.php
+!/tests/ai_phase2_contract_test.php
 !/tests/form_data_relation_mysql_test.php
 !/tests/business_development_migration_test.php
 !/tests/business_development_api_test.php

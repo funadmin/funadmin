@@ -66,12 +66,13 @@ final class OpenAiCompatibleGateway
         $calls = [];
         while (!$response->getBody()->eof()) {
             $buffer .= $response->getBody()->read(8192);
-            while (($separator = strpos($buffer, "\n\n")) !== false) {
-                $event = substr($buffer, 0, $separator);
-                $buffer = substr($buffer, $separator + 2);
-                foreach ($this->parseEvent($event, $calls) as $chunk) {
-                    yield $chunk;
-                }
+            foreach ($this->drainEvents($buffer, $calls) as $chunk) {
+                yield $chunk;
+            }
+        }
+        if ($buffer !== '') {
+            foreach ($this->parseEvent($buffer, $calls) as $chunk) {
+                yield $chunk;
             }
         }
         foreach ($calls as $call) {
@@ -82,7 +83,9 @@ final class OpenAiCompatibleGateway
 
     private function request(array $json, bool $stream = false): ResponseInterface
     {
-        $this->validateUrl(true);
+        $addresses = $this->validatedAddresses();
+        $host = (string) parse_url($this->baseUrl, PHP_URL_HOST);
+        $port = (int) (parse_url($this->baseUrl, PHP_URL_PORT) ?: 443);
         for ($attempt = 0; ; $attempt++) {
             try {
                 $response = $this->client->request('POST', $this->baseUrl . '/chat/completions', [
@@ -96,6 +99,7 @@ final class OpenAiCompatibleGateway
                     'stream' => $stream,
                     'http_errors' => false,
                     'allow_redirects' => false,
+                    'curl' => [CURLOPT_RESOLVE => array_map(static fn (string $address): string => "{$host}:{$port}:{$address}", $addresses)],
                 ]);
             } catch (Throwable $exception) {
                 throw new AiProviderException($this->isTimeout($exception) ? 'timeout' : 'transport', $this->isTimeout($exception) ? 'Provider 请求超时' : 'Provider 网络请求失败', previous: $exception);
@@ -132,6 +136,18 @@ final class OpenAiCompatibleGateway
             }
             return ['id' => (string) ($call['id'] ?? ''), 'name' => (string) ($function['name'] ?? ''), 'arguments' => is_array($arguments) ? $arguments : []];
         }, $calls);
+    }
+
+    private function drainEvents(string &$buffer, array &$calls): array
+    {
+        $output = [];
+        while (preg_match('/\r?\n\r?\n/', $buffer, $match, PREG_OFFSET_CAPTURE)) {
+            $separator = $match[0][1];
+            $event = substr($buffer, 0, $separator);
+            $buffer = substr($buffer, $separator + strlen($match[0][0]));
+            $output = array_merge($output, $this->parseEvent($event, $calls));
+        }
+        return $output;
     }
 
     private function parseEvent(string $event, array &$calls): array
@@ -190,13 +206,19 @@ final class OpenAiCompatibleGateway
         if ($this->isUnsafeHost($host)) {
             throw new InvalidArgumentException('AI Provider base URL 禁止访问本机、私网或元数据地址');
         }
-        if (!$resolve) {
-            return;
+        if ($resolve) {
+            $this->validatedAddresses();
         }
+    }
+
+    private function validatedAddresses(): array
+    {
+        $host = strtolower((string) parse_url($this->baseUrl, PHP_URL_HOST));
         $addresses = ($this->resolver)($host);
         if ($addresses === [] || array_filter($addresses, fn (string $address): bool => !$this->isPublicIp($address))) {
             throw new InvalidArgumentException('AI Provider DNS 必须仅解析到公网地址');
         }
+        return array_values(array_unique($addresses));
     }
 
     private function isUnsafeHost(string $host): bool

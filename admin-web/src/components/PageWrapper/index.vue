@@ -2,23 +2,18 @@
   <div class="flex min-h-full flex-col gap-0 box-border">
     <main class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-app-card">
       <header
-        v-if="title || $slots.header || $slots.extra"
+        v-if="$slots.header || $slots.extra"
         class="flex shrink-0 items-center justify-between gap-3 px-4 py-3"
       >
-        <div class="flex items-center gap-0">
-          <slot name="header">
-            <div>
-              <h2 class="m-0 text-[15px] font-semibold leading-normal text-app-text">{{ title }}</h2>
-              <p v-if="subtitle" class="mt-0.5 mb-0 text-[13px] leading-snug text-app-muted">{{ subtitle }}</p>
-            </div>
-          </slot>
+        <div v-if="$slots.header" class="flex items-center gap-0">
+          <slot name="header" />
         </div>
-        <div v-if="$slots.extra" class="flex shrink-0 items-center gap-2">
+        <div v-if="$slots.extra" class="ml-auto flex shrink-0 items-center gap-2">
           <slot name="extra" />
         </div>
       </header>
 
-      <div class="min-h-0 min-w-0 flex-1 overflow-auto px-4 pb-3">
+      <div class="min-h-0 min-w-0 flex-1 overflow-auto px-4 pb-3" :class="{ 'pt-3': !$slots.header && !$slots.extra }">
         <slot />
       </div>
     </main>

@@ -107,7 +107,7 @@ const stubs = {
   ElFormItem: defineComponent({ template: '<label><slot /></label>' }),
   ElInput: defineComponent({ template: '<input />' }),
   ElSelect: defineComponent({ template: '<select><slot /></select>' }),
-  ElOption: defineComponent({ template: '<option />' }),
+  ElOption: defineComponent({ props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' }),
   ElPagination: defineComponent({
     inheritAttrs: false,
     props: ['layout', 'total'],
@@ -154,6 +154,15 @@ beforeEach(() => {
 });
 
 describe('BusinessMine', () => {
+  it('来源筛选和标签仅提供可视化与数据库', async () => {
+    const wrapper = render();
+    await flushPromises();
+    const sourceOptions = wrapper.findAll('option').map((option) => option.attributes('value'));
+    expect(sourceOptions).toEqual(expect.arrayContaining(['visual', 'database']));
+    expect(sourceOptions).not.toContain('legacy_form');
+    expect(wrapper.text()).not.toContain('旧表单');
+  });
+
   it('区分 loading、请求错误、首次空态和筛选空态，并提供 aria 状态', async () => {
     const pending = deferred<BusinessPageResult<BusinessModule>>();
     mocks.modules.mockReturnValueOnce(pending.promise);

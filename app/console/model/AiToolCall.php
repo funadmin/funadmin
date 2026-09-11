@@ -12,4 +12,9 @@ final class AiToolCall extends BackendModel
     protected $json = ['redacted_arguments', 'result', 'error', 'side_effects'];
 
     protected $jsonAssoc = true;
+
+    public function task()
+    {
+        return $this->belongsTo(AiTask::class, 'task_id', 'id');
+    }
 }

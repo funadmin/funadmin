@@ -1,8 +1,11 @@
 <template>
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
-    <template #extra>
-      <div class="designer-toolbar flex flex-wrap items-center gap-2">
+    <div class="designer-command-bar designer-toolbar mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color-light)] bg-[var(--el-bg-color)] p-3">
         <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
+        <el-radio-group v-model="designerMode" aria-label="设计器功能模式">
+          <el-radio-button value="basic">基础模式</el-radio-button>
+          <el-radio-button value="advanced">高级模式</el-radio-button>
+        </el-radio-group>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
         <el-radio-group v-model="workspaceMode">
@@ -15,9 +18,9 @@
           <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
         </el-select>
         <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">预览数据</el-button>
-        <el-button @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
-        <el-button @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
-        <el-button :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
+        <el-button v-if="designerMode === 'advanced'" @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
+        <el-button v-if="designerMode === 'advanced'" @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
+        <el-button v-if="designerMode === 'advanced'" :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
 
         <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
         <el-button
@@ -28,11 +31,22 @@
         >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
         <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
         <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
-      </div>
-    </template>
+    </div>
+
+    <div v-if="workspaceMode === 'edit'" class="designer-edit-only">
+    <el-alert
+      class="designer-guide mb-3"
+      type="info"
+      :closable="false"
+      show-icon
+    >
+      <template #title>
+        <span>第一步：完善基本信息</span><span>第二步：拖入控件</span><span>第三步：配置字段</span><span>第四步：保存并发布</span>
+      </template>
+    </el-alert>
 
     <el-card shadow="never" class="mb-3">
-      <template #header>{{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
+      <template #header>第一步 · {{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
       <el-form label-width="90px" class="designer-meta-form">
         <el-form-item :label="t('formDesigner.formName', '表单名称')" required>
           <el-input :model-value="store.form.value.name" maxlength="100" :placeholder="t('formDesigner.namePlaceholder', '如：活动报名')" @update:model-value="(name) => store.updateForm({ name })" />
@@ -54,12 +68,31 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="t('formDesigner.boundTable', '绑定表')" required>
-          <el-input :model-value="store.form.value.table_name" :placeholder="t('formDesigner.tablePlaceholder', '如 fun_activity')" @update:model-value="(table_name) => store.updateForm({ table_name })" @blur="normalizeFormKey" />
+          <div class="w-full">
+            <el-select
+              :model-value="store.form.value.table_name"
+              filterable
+              :allow-create="store.form.value.source_type === 'created'"
+              :default-first-option="store.form.value.source_type === 'created'"
+              :loading="tableLoading"
+              class="w-full"
+              :placeholder="store.form.value.source_type === 'created' ? '选择或输入新表名' : '搜索并选择已有数据表'"
+              @visible-change="onTableSelectVisible"
+              @update:model-value="updateBoundTable"
+            >
+              <el-option v-for="table in databaseTables" :key="table.name" :label="tableLabel(table)" :value="table.name" />
+            </el-select>
+            <div class="form-tip">{{ tableHelp }}</div>
+            <el-alert v-if="tableLoadError" :title="tableLoadError" type="warning" :closable="false" class="mt-2">
+              <el-button link type="primary" @click="loadDatabaseTables(true)">重新加载</el-button>
+            </el-alert>
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
 
     <el-alert
+      v-if="designerMode === 'advanced'"
       class="mb-3"
       :title="`Schema 来源：${schemaOriginLabel}。高级 JSON 应用后来源将切换为外部导入。`"
       type="info"
@@ -75,7 +108,7 @@
       show-icon
     />
 
-    <el-card shadow="never" class="mb-3">
+    <el-card v-if="designerMode === 'advanced'" shadow="never" class="mb-3">
       <template #header>
         <div class="flex items-center justify-between">
           <span>FormSchema v2 AST 节点树</span>
@@ -84,11 +117,12 @@
       </template>
       <SchemaNodeTree :nodes="store.nodes.value" :store="store" />
     </el-card>
+    </div>
 
-    <div class="designer-layout flex gap-3" :class="`workspace-${workspaceMode}`">
+    <div class="designer-layout flex gap-3" :class="{ 'is-preview': workspaceMode !== 'edit' }">
       <!-- 左：控件 palette -->
-      <el-card shadow="never" class="w-[230px] shrink-0">
-        <template #header>控件（{{ designerControls.length }}）</template>
+      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="w-[230px] shrink-0">
+        <template #header>第二步 · 选择控件</template>
         <div ref="paletteRef" class="palette-list flex max-h-[calc(100vh-250px)] flex-col gap-2 overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
             <div class="sticky top-0 z-10 bg-[var(--el-bg-color-overlay)] py-1 text-xs font-semibold text-[var(--el-text-color-secondary)]">
@@ -114,7 +148,7 @@
       <el-card shadow="never" class="min-w-0 flex-1">
         <template #header>
           <div class="flex items-center justify-between">
-            <span>画布（{{ store.fields.value.length }} 字段）</span>
+            <span>第二步 · 设计画布（{{ store.fields.value.length }} 字段）</span>
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
@@ -136,13 +170,13 @@
       </el-card>
 
       <!-- 右：属性面板 -->
-      <el-card shadow="never" class="w-[360px] shrink-0">
-        <template #header>字段属性</template>
+      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
+        <template #header>第三步 · 字段属性</template>
         <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
         <el-empty v-else description="点选画布字段编辑参数" />
-        <template v-if="store.selectedNode.value">
-          <el-divider content-position="left">结构化配置</el-divider>
-          <SchemaStructurePanel :node="store.selectedNode.value" @update="store.updateNode" />
+        <template v-if="designerMode === 'advanced' && store.selectedNode.value">
+          <el-divider content-position="left">高级配置</el-divider>
+          <SchemaStructurePanel :node="store.selectedNode.value" :permission-options="permissionOptions" @update="store.updateNode" />
         </template>
       </el-card>
     </div>
@@ -228,7 +262,7 @@
 
     <VersionHistoryDrawer v-model="versionVisible" :module-id="moduleId" :schema-hash="String(store.form.value.schema_hash ?? '')" @rollback="onRollback" />
 
-    <el-card v-if="debugEnabled" shadow="never" class="mt-3">
+    <el-card v-if="designerMode === 'advanced' && debugEnabled" shadow="never" class="mt-3">
       <template #header>{{ t('formDesigner.debugPanel', '调试面板') }}</template>
       <el-descriptions :column="4" border size="small">
         <el-descriptions-item :label="t('formDesigner.nodes', '节点')">{{ debugSummary.nodes }}</el-descriptions-item>
@@ -255,7 +289,8 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
-import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
+import { businessDevelopmentApi, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
+import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
@@ -276,6 +311,7 @@ const router = useRouter();
 const moduleId = computed(() => Number(route.query.moduleId ?? 0));
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const store = useDesigner();
+const designerMode = ref<'basic' | 'advanced'>('basic');
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 const previewMode = ref<'create' | 'edit' | 'readonly' | 'search'>('create');
@@ -296,6 +332,10 @@ const formalGenerationNonce = ref(crypto.randomUUID());
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
+const databaseTables = ref<BusinessDatabaseTable[]>([]);
+const tableLoading = ref(false);
+const tableLoadError = ref('');
+const permissionOptions = ref<Array<{ label: string; value: string }>>([]);
 const icons = ref<string[]>([]);
 const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
 const publishConfig = ref<FormPublishConfig>({
@@ -313,6 +353,17 @@ watch(() => store.fields.value, (fields) => {
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortable: Sortable | null = null;
+const permissionEntries = (nodes: PermissionModel[]): Array<{ label: string; value: string }> => nodes.flatMap((node) => [
+  ...(node.status === 1 && node.resourceType === 'route' && node.code ? [{ label: node.name || node.code, value: node.code }] : []),
+  ...permissionEntries(node.children ?? [])
+]);
+const loadPermissionOptions = async () => {
+  try {
+    permissionOptions.value = permissionEntries(await permissionApi.tree());
+  } catch {
+    permissionOptions.value = [];
+  }
+};
 const initializePalette = () => {
   paletteSortable?.destroy();
   if (!paletteRef.value) return;
@@ -418,14 +469,46 @@ const normalizeIdentifier = (value: string) => value
   .replace(/[^a-z0-9_]/g, '')
   .replace(/^_+|_+$/g, '')
   .slice(0, 61);
+const suggestedTableName = computed(() => {
+  const key = normalizeIdentifier(String(store.form.value.form_key ?? ''));
+  return key ? `fun_${key}` : '';
+});
+const tableHelp = computed(() => store.form.value.source_type === 'created'
+  ? `新表将在保存或发布时按画布字段创建；建议表名：${suggestedTableName.value || 'fun_业务标识'}`
+  : '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。');
+const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
+const loadDatabaseTables = async (force = false) => {
+  if (tableLoading.value || (!force && databaseTables.value.length)) return;
+  tableLoading.value = true;
+  tableLoadError.value = '';
+  try {
+    databaseTables.value = await businessDevelopmentApi.databaseTables(String(store.form.value.connection ?? 'mysql'));
+  } catch (error) {
+    tableLoadError.value = error instanceof Error ? error.message : '数据表加载失败';
+  } finally {
+    tableLoading.value = false;
+  }
+};
+const onTableSelectVisible = (visible: boolean) => { if (visible) void loadDatabaseTables(); };
+const updateBoundTable = (value: string) => store.updateForm({ table_name: value });
 const updateSourceType = (sourceType: string | number | boolean | undefined) => {
-  if (sourceType === 'created' || sourceType === 'adopted') store.updateForm({ source_type: sourceType });
+  if (sourceType !== 'created' && sourceType !== 'adopted') return;
+  const patch: Record<string, unknown> = { source_type: sourceType };
+  if (sourceType === 'created' && !String(store.form.value.table_name ?? '').trim()) patch.table_name = suggestedTableName.value;
+  if (sourceType === 'adopted' && !databaseTables.value.some((table) => table.name === store.form.value.table_name)) patch.table_name = '';
+  store.updateForm(patch);
+  if (sourceType === 'adopted') void loadDatabaseTables();
 };
 const normalizeFormKey = () => {
   const current = normalizeIdentifier(String(store.form.value.form_key ?? ''));
   const fromTable = normalizeIdentifier(String(store.form.value.table_name ?? '')).replace(/^fun_/, '');
   const normalized = current || fromTable;
-  if (normalized !== store.form.value.form_key) store.updateForm({ form_key: normalized });
+  const patch: Record<string, unknown> = {};
+  if (normalized !== store.form.value.form_key) patch.form_key = normalized;
+  if (store.form.value.source_type === 'created' && (!store.form.value.table_name || store.form.value.table_name === `fun_${current}`)) {
+    patch.table_name = normalized ? `fun_${normalized}` : '';
+  }
+  if (Object.keys(patch).length) store.updateForm(patch);
 };
 const validateDefinitionBasics = () => {
   normalizeFormKey();
@@ -655,7 +738,7 @@ onMounted(async () => {
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
   initializePalette();
-  await loadPluginFormComponents();
+  await Promise.allSettled([loadPluginFormComponents(), loadPermissionOptions()]);
   await load();
   restoreLocalDraft();
 });
@@ -679,6 +762,11 @@ onBeforeUnmount(() => {
   font-size: 14px;
   padding: 0 15px;
 }
+.designer-guide :deep(.el-alert__title) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
 .publish-config-grid,
 .designer-meta-form {
   display: grid;
@@ -693,9 +781,16 @@ onBeforeUnmount(() => {
 .designer-layout {
   align-items: flex-start;
 }
-.workspace-desktop .designer-canvas {
-  margin: 0 auto;
-  max-width: 1100px;
+.designer-layout.is-preview {
+  display: block;
+}
+.designer-layout.is-preview > :deep(.el-card) {
+  width: 100%;
+}
+.designer-command-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 .workspace-mobile .designer-canvas,
 .schema-preview-mobile {

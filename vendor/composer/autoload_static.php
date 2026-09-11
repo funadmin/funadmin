@@ -99,6 +99,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
             'Opis\\String\\' => 12,
             'Opis\\JsonSchema\\' => 16,
         ),
+        'N' => 
+        array (
+            'Nyholm\\Psr7\\' => 12,
+        ),
         'M' => 
         array (
             'Mcp\\' => 4,
@@ -106,9 +110,14 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         ),
         'L' => 
         array (
+            'League\\Uri\\' => 11,
+            'League\\OAuth2\\Server\\' => 21,
             'League\\MimeTypeDetection\\' => 25,
             'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
+            'League\\Event\\' => 13,
+            'Lcobucci\\JWT\\' => 13,
+            'Lcobucci\\Clock\\' => 15,
         ),
         'H' => 
         array (
@@ -129,6 +138,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
             'Doctrine\\Deprecations\\' => 22,
             'Doctrine\\Common\\Lexer\\' => 22,
             'Doctrine\\Common\\Annotations\\' => 28,
+            'Defuse\\Crypto\\' => 14,
         ),
         'C' => 
         array (
@@ -333,6 +343,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         array (
             0 => __DIR__ . '/..' . '/opis/json-schema/src',
         ),
+        'Nyholm\\Psr7\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/nyholm/psr7/src',
+        ),
         'Mcp\\' => 
         array (
             0 => __DIR__ . '/..' . '/mcp/sdk/src',
@@ -340,6 +354,15 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Matrix\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
+        ),
+        'League\\Uri\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/uri',
+            1 => __DIR__ . '/..' . '/league/uri-interfaces',
+        ),
+        'League\\OAuth2\\Server\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/oauth2-server/src',
         ),
         'League\\MimeTypeDetection\\' => 
         array (
@@ -352,6 +375,18 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'League\\Flysystem\\' => 
         array (
             0 => __DIR__ . '/..' . '/league/flysystem/src',
+        ),
+        'League\\Event\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/event/src',
+        ),
+        'Lcobucci\\JWT\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/lcobucci/jwt/src',
+        ),
+        'Lcobucci\\Clock\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/lcobucci/clock/src',
         ),
         'Http\\Discovery\\' => 
         array (
@@ -384,6 +419,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Doctrine\\Common\\Annotations\\' => 
         array (
             0 => __DIR__ . '/..' . '/doctrine/annotations/lib/Doctrine/Common/Annotations',
+        ),
+        'Defuse\\Crypto\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/defuse/php-encryption/src',
         ),
         'Composer\\Pcre\\' => 
         array (

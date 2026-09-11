@@ -49,6 +49,9 @@
     "firebase/php-jwt": "^7.1",
     "overtrue/pinyin": "^5.3",
     "mcp/sdk": "^0.8.1",
+    "league/oauth2-server": "8.5.5",
+    "lcobucci/jwt": "^4.3",
+    "nyholm/psr7": "^1.8",
     "casbin/casbin": "^4.4",
     "topthink/think-annotation": "^3.0"
   },

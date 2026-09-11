@@ -215,7 +215,7 @@ final class FormPublishService
                 'code' => $code,
                 'name' => (string) ($compiled->document()['title'] ?? ''),
                 'form_id' => $formId,
-                'origin' => $module->origin ?: ((string) ($definition['source_type'] ?? 'created') === 'adopted' ? 'legacy_form' : 'visual'),
+                'origin' => $module->origin ?: ((string) ($definition['source_type'] ?? 'created') === 'adopted' ? 'database' : 'visual'),
                 'connection_name' => (string) ($definition['connection'] ?? 'mysql'),
                 'table_name' => (string) ($definition['table_name'] ?? ''),
                 'runtime_route' => '/development/business/runtime/' . $code,

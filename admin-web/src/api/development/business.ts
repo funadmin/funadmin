@@ -8,11 +8,13 @@ export interface BusinessDatabaseTable {
   comment: string;
 }
 
+export type BusinessModuleOrigin = 'visual' | 'database';
+
 export interface BusinessModule {
   id: number;
   code: string;
   name: string;
-  origin: 'visual' | 'database' | 'legacy_form' | string;
+  origin: BusinessModuleOrigin;
   lifecycle_status: 'draft' | 'published' | 'dynamic_published' | 'disabled' | string;
   generation_status?: string;
   table_name?: string;

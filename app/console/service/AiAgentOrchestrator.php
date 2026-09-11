@@ -13,7 +13,7 @@ final class AiAgentOrchestrator
     {
     }
 
-    public function run(array $messages, array $definitions, array $limits, ?callable $cancelled = null, ?callable $event = null): array
+    public function run(array $messages, array $definitions, array $limits, ?callable $cancelled = null, ?callable $event = null, array $toolContext = []): array
     {
         $maxRounds = max(1, (int) ($limits['maxRounds'] ?? 1));
         $budget = max(0, (int) ($limits['totalTokenBudget'] ?? 0));
@@ -30,8 +30,11 @@ final class AiAgentOrchestrator
             }
             $messages[] = ['role' => 'assistant', 'content' => $response['content'] ?? null, 'tool_calls' => $calls];
             foreach ($calls as $call) {
-                $result = $this->tools->execute($call);
+                $result = $this->tools->execute(array_merge($call, ['context' => $toolContext]));
                 $event && $event('tool.completed', ['id' => $call['id'] ?? '', 'name' => $call['name'] ?? '', 'status' => $result['status'] ?? 'unknown']);
+                if (($result['status'] ?? '') === 'awaiting_approval') {
+                    return ['status' => 'awaiting_approval', 'approvalId' => $result['approvalId'], 'usage' => ['totalTokens' => $usage], 'rounds' => $round];
+                }
                 $messages[] = ['role' => 'tool', 'tool_call_id' => $call['id'] ?? '', 'content' => json_encode($result, JSON_THROW_ON_ERROR)];
             }
         }

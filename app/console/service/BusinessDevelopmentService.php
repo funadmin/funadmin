@@ -42,7 +42,7 @@ final class BusinessDevelopmentService
     public function modules(int $page, int $pageSize, string $keyword, string $status, string $origin): array
     {
         self::assertEnum($status, ['', 'draft', 'published', 'dynamic_published', 'disabled'], 'status');
-        self::assertEnum($origin, ['', 'visual', 'database', 'legacy_form'], 'origin');
+        self::assertEnum($origin, ['', 'visual', 'database'], 'origin');
         return $this->modules->listing($page, $pageSize, $keyword, $status, $origin);
     }
 

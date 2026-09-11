@@ -16,4 +16,14 @@ final class AiTask extends BackendModel
     protected $json = ['input', 'output', 'error', 'usage', 'test_result'];
 
     protected $jsonAssoc = true;
+
+    public function conversation()
+    {
+        return $this->belongsTo(AiConversation::class, 'conversation_id', 'id');
+    }
+
+    public function toolCalls()
+    {
+        return $this->hasMany(AiToolCall::class, 'task_id', 'id');
+    }
 }

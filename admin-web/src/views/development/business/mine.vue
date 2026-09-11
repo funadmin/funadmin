@@ -6,7 +6,7 @@
           <el-form-item label="关键词"><el-input v-model="query.keyword" placeholder="业务名称或标识" clearable /></el-form-item>
           <el-form-item label="来源">
             <el-select v-model="query.origin" placeholder="全部" clearable class="!w-36">
-              <el-option label="可视化" value="visual" /><el-option label="数据库" value="database" /><el-option label="旧表单" value="legacy_form" />
+              <el-option label="可视化" value="visual" /><el-option label="数据库" value="database" />
             </el-select>
           </el-form-item>
           <el-form-item label="状态">
@@ -182,7 +182,7 @@ async function previewGeneration(row: BusinessModule) {
 }
 
 function originLabel(value: string) {
-  return ({ visual: '可视化', database: '数据库', legacy_form: '旧表单' } as Record<string, string>)[value] || value;
+  return ({ visual: '可视化', database: '数据库' } as Record<string, string>)[value] || value;
 }
 
 function lifecycleMeta(value: string) {

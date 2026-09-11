@@ -72,8 +72,8 @@
 
     <el-tab-pane label="字段权限" name="access">
       <el-form label-width="92px" size="small">
-        <el-form-item label="读取权限"><el-select v-model="access.read" multiple filterable allow-create default-first-option class="w-full" @change="emitAccess" /></el-form-item>
-        <el-form-item label="写入权限"><el-select v-model="access.write" multiple filterable allow-create default-first-option class="w-full" @change="emitAccess" /></el-form-item>
+        <el-form-item label="读取权限"><el-select v-model="access.read" multiple filterable allow-create default-first-option class="w-full" placeholder="选择或输入权限码" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
+        <el-form-item label="写入权限"><el-select v-model="access.write" multiple filterable allow-create default-first-option class="w-full" placeholder="选择或输入权限码" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
         <el-form-item label="提交策略">
           <el-select v-model="access.include" class="w-full" @change="emitAccess"><el-option label="自动" value="auto" /><el-option label="始终包含" value="always" /><el-option label="始终排除" value="never" /></el-select>
         </el-form-item>
@@ -119,7 +119,10 @@ import {
   type DesignerValidationRule
 } from '../structuredEditor';
 
-const props = defineProps<{ node: FormSchemaNode }>();
+const props = withDefaults(defineProps<{
+  node: FormSchemaNode;
+  permissionOptions?: Array<{ label: string; value: string }>;
+}>(), { permissionOptions: () => [] });
 const emit = defineEmits<{ update: [patch: Partial<FormSchemaNode>] }>();
 const activeTab = ref('validation');
 const validation = ref<DesignerValidationRule[]>([]);

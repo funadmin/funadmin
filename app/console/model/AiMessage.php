@@ -16,4 +16,9 @@ final class AiMessage extends BackendModel
     protected $json = ['content', 'metadata', 'usage'];
 
     protected $jsonAssoc = true;
+
+    public function conversation()
+    {
+        return $this->belongsTo(AiConversation::class, 'conversation_id', 'id');
+    }
 }

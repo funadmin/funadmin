@@ -93,7 +93,7 @@ final class AiConversationService
             'input_token_budget' => max(0, (int) ($this->limits['max_input_tokens'] ?? 0)),
             'output_token_budget' => max(0, (int) ($this->limits['max_output_tokens'] ?? 0)),
             'total_token_budget' => max(0, (int) ($this->limits['max_input_tokens'] ?? 0) + (int) ($this->limits['max_output_tokens'] ?? 0)),
-            'input' => (array) ($input['input'] ?? []),
+            'input' => array_replace((array) ($input['input'] ?? []), ['admin_id' => $adminId]),
         ]);
     }
 

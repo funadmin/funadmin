@@ -116,6 +116,17 @@ foreach ($modelContracts as $class => $contract) {
 foreach (['AiSession', 'AiExecution', 'AiArtifact', 'AiAuditLog'] as $wrongModel) {
     aiPhase1Expect(!class_exists('app\\console\\model\\' . $wrongModel), '不得保留错误模型：' . $wrongModel);
 }
+$modelRelations = [
+    AiConversation::class => ['messages', 'tasks'],
+    AiMessage::class => ['conversation'],
+    AiTask::class => ['conversation', 'toolCalls'],
+    AiToolCall::class => ['task'],
+];
+foreach ($modelRelations as $class => $relations) {
+    foreach ($relations as $relation) {
+        aiPhase1Expect(method_exists($class, $relation), "{$class} 缺少项目惯例要求的关键关联：{$relation}");
+    }
+}
 
 $configPath = $root . '/config/ai.php';
 aiPhase1Expect(is_file($configPath), '缺少 config/ai.php');

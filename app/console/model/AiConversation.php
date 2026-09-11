@@ -16,4 +16,14 @@ final class AiConversation extends BackendModel
     protected $json = ['context'];
 
     protected $jsonAssoc = true;
+
+    public function messages()
+    {
+        return $this->hasMany(AiMessage::class, 'conversation_id', 'id');
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(AiTask::class, 'conversation_id', 'id');
+    }
 }
