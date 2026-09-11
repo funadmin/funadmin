@@ -10,14 +10,15 @@ use InvalidArgumentException;
 final class AgentToolRegistry
 {
     private const FORBIDDEN = ['host_sensitive', 'deploy', 'push', 'host_credentials'];
+    private const IMAGE_TOOLS = ['read', 'list', 'search', 'git_status', 'git_diff', 'write', 'create', 'move', 'delete', 'shell', 'test', 'build', 'migration', 'git_write', 'crud_proposal'];
 
     private array $definitions;
 
-    public function __construct()
+    public function __construct(array $allowlist = [])
     {
         $path = ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024, 'format' => 'project-path'];
         $argv = ['type' => 'array', 'minItems' => 1, 'maxItems' => 64, 'items' => ['type' => 'string', 'maxLength' => 4096]];
-        $this->definitions = [
+        $definitions = [
             'read' => $this->definition('read', 'low', 10, false, ['path' => $path], ['path']),
             'list' => $this->definition('read', 'low', 10, false, ['path' => $path], ['path']),
             'search' => $this->definition('search', 'low', 20, false, ['query' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 512], 'path' => $path], ['query']),
@@ -35,6 +36,8 @@ final class AgentToolRegistry
             'git_write' => $this->definition('git_write', 'critical', 60, true, ['argv' => $argv], ['argv']),
             'crud_proposal' => $this->definition('write', 'medium', 60, true, ['path' => $path, 'proposal' => ['type' => 'object']], ['path', 'proposal']),
         ];
+        $allowed = array_values(array_unique(array_filter(array_map('strval', $allowlist))));
+        $this->definitions = array_intersect_key($definitions, array_flip(array_intersect($allowed, self::IMAGE_TOOLS)));
     }
 
     public function names(): array
