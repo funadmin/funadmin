@@ -16,6 +16,7 @@ use app\console\service\RoleScopeService;
 use app\console\service\CasbinService;
 use app\console\service\DataScopeService;
 use app\console\service\RoleGuardService;
+use app\common\service\identity\AdminIdentityAdapter;
 use fun\helper\SignHelper;
 use InvalidArgumentException;
 use think\annotation\route\Delete;
@@ -93,7 +94,9 @@ class SystemAdmin extends AdminApiController
                     'avatar' => '',
                     'token' => '',
                 ]);
-                $this->syncDepartments((int) $admin->id, array_merge([$data['deptId']], $data['departmentIds']));
+                $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
+                $this->syncDepartments((int) $admin->id, $departmentIds);
+                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
                 return $admin;
             });
@@ -131,7 +134,9 @@ class SystemAdmin extends AdminApiController
                     'dept_id' => $data['deptId'],
                     'status' => $data['status'],
                 ]);
-                $this->syncDepartments((int) $admin->id, array_merge([$data['deptId']], $data['departmentIds']));
+                $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
+                $this->syncDepartments((int) $admin->id, $departmentIds);
+                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
             Cache::clear();
@@ -201,7 +206,10 @@ class SystemAdmin extends AdminApiController
             if (!$this->isInDataScope($admin)) {
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
-            $admin->save(['password' => SignHelper::password($password), 'token' => '']);
+            Db::transaction(function () use ($admin, $password): void {
+                $admin->save(['password' => SignHelper::password($password), 'token' => '']);
+                (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
+            });
             return $this->ok('密码已重置');
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);
@@ -221,7 +229,10 @@ class SystemAdmin extends AdminApiController
             if (!$this->isInDataScope($admin)) {
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
-            $admin->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+            Db::transaction(function () use ($admin): void {
+                $admin->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+                (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
+            });
             return $this->ok('状态已更新');
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);

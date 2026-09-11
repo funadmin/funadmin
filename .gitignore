@@ -35,6 +35,8 @@
 !/tests/business_development_safety_test.php
 !/tests/business_generation_api_recovery_test.php
 !/tests/legacy_write_api_gone_test.php
+!/tests/identity_phase1_contract_test.php
+!/tests/identity_phase1_mysql_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

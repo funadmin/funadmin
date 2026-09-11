@@ -382,7 +382,7 @@ watch(
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 18px;
+  padding: 0 8px;
   gap: 4px;
 }
 .app-tabs__scroll {

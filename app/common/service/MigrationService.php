@@ -51,6 +51,7 @@ class MigrationService extends AbstractService
             }
             $this->assertForwardOnly($sql, $file);
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
+            $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
             $sql = str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'), $sql);
             $statements = $this->statements($sql);
             if (!$statements) {
@@ -217,6 +218,30 @@ class MigrationService extends AbstractService
         $this->contractLegacyModule('admin_menu');
 
         return 'SELECT 1';
+    }
+
+    /**
+     * 090 发布时管理员外键仍声明为 int；030 已将 admin.id 收敛为 bigint，执行前只修正未落库 SQL。
+     */
+    private function prepareAiAdminBigintCompatibility(string $scope, string $version, string $sql): string
+    {
+        if ($scope !== 'core' || $version !== '090_ai_development_assistant') {
+            return $sql;
+        }
+
+        return str_replace([
+            '`admin_id` int NOT NULL',
+            '`requested_by` int NOT NULL',
+            '`decided_by` int NULL',
+            '`created_by` int NOT NULL',
+            '`applied_by` int NULL',
+        ], [
+            '`admin_id` bigint unsigned NOT NULL',
+            '`requested_by` bigint unsigned NOT NULL',
+            '`decided_by` bigint unsigned NULL',
+            '`created_by` bigint unsigned NOT NULL',
+            '`applied_by` bigint unsigned NULL',
+        ], $sql);
     }
 
     private function expandAndBackfillAppName(string $tableName, array $columns): void

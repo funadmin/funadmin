@@ -10,6 +10,7 @@ use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\model\Admin;
 use app\console\service\AdminSessionService;
+use app\common\service\identity\AdminIdentityAdapter;
 use fun\helper\SignHelper;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -17,6 +18,7 @@ use think\annotation\route\Post;
 use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
+use think\facade\Db;
 use think\facade\Session;
 
 /**
@@ -69,7 +71,10 @@ class AdminProfile extends AdminApiController
             return $this->fail(msg: '头像地址过长', code: 422);
         }
 
-        $admin->save($data);
+        Db::transaction(function () use ($admin, $data): void {
+            $admin->save($data);
+            (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds($admin));
+        });
         $sessionAdmin = Session::get('admin', []);
         foreach ($data as $field => $value) {
             $sessionAdmin[$field] = $value;
@@ -98,10 +103,13 @@ class AdminProfile extends AdminApiController
             return $this->fail(msg: '新密码不能与原密码相同', code: 422);
         }
 
-        $admin->save([
-            'password' => SignHelper::password($newPassword),
-            'token' => SignHelper::salt(20),
-        ]);
+        Db::transaction(function () use ($admin, $newPassword): void {
+            $admin->save([
+                'password' => SignHelper::password($newPassword),
+                'token' => SignHelper::salt(20),
+            ]);
+            (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds($admin));
+        });
         Cache::clear();
         (new AdminSessionService())->logout();
         return $this->ok('密码已更新，请重新登录');
@@ -111,6 +119,14 @@ class AdminProfile extends AdminApiController
     {
         $adminId = (int) Session::get('admin.id', 0);
         return $adminId > 0 ? Admin::find($adminId) : null;
+    }
+
+    private function adminDepartmentIds(Admin $admin): array
+    {
+        return array_values(array_unique(array_filter(array_merge(
+            [(int) $admin->dept_id],
+            array_map('intval', \app\console\model\AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
+        ))));
     }
 
     private function profileData(Admin $admin): array

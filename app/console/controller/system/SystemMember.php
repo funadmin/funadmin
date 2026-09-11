@@ -14,6 +14,7 @@ use app\console\model\MemberGroupRelation;
 use app\console\model\MemberLevel;
 use app\console\model\MemberTag;
 use app\console\model\MemberTagRelation;
+use app\common\service\identity\MemberIdentityAdapter;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -90,6 +91,7 @@ class SystemMember extends AdminApiController
         try {
             $member = Db::transaction(function () use ($data, $groupIds, $tagIds): Member {
                 $member = Member::create($data);
+                (new MemberIdentityAdapter())->sync($member);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 return $member;
@@ -126,6 +128,7 @@ class SystemMember extends AdminApiController
         try {
             Db::transaction(function () use ($member, $data, $groupIds, $tagIds): void {
                 $member->save($data);
+                (new MemberIdentityAdapter())->sync($member);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
             });
@@ -147,7 +150,10 @@ class SystemMember extends AdminApiController
         if (!$member) {
             return $this->fail(msg: '会员不存在', code: 404);
         }
-        $member->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+        Db::transaction(function () use ($member): void {
+            $member->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+            (new MemberIdentityAdapter())->sync($member);
+        });
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
         return $this->ok('状态更新成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }

@@ -7,9 +7,11 @@ namespace app\console\service;
 use app\console\model\Admin as AdminModel;
 use app\common\model\Blacklist;
 use app\common\service\MemberInput;
+use app\common\service\identity\AdminIdentityAdapter;
 use fun\helper\SignHelper;
 use think\facade\Cache;
 use think\facade\Cookie;
+use think\facade\Db;
 use think\facade\Session;
 use Throwable;
 
@@ -74,10 +76,17 @@ class AdminSessionService
                 throw new \Exception(lang('You dont have permission'));
             }
 
-            $admin->last_login_ip = $ip;
-            $admin->ip = $ip;
-            $admin->token = SignHelper::authSign($admin);
-            $admin->save();
+            Db::transaction(function () use ($admin, $ip): void {
+                $admin->last_login_ip = $ip;
+                $admin->ip = $ip;
+                $admin->token = SignHelper::authSign($admin);
+                $admin->save();
+                $departmentIds = array_values(array_unique(array_filter(array_merge(
+                    [(int) $admin->dept_id],
+                    array_map('intval', \app\console\model\AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
+                ))));
+                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
+            });
             $sessionAdmin = $admin->toArray();
             $sessionAdmin['role_ids'] = $roleIds;
             $sessionAdmin['expiretime'] = ($rememberMe ? 30 * 24 * 3600 : (int) config('session.expire')) + time();

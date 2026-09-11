@@ -14,6 +14,7 @@ namespace app\common\model;
 
 use app\common\model\MemberGroupRelation;
 use app\common\service\MemberInput;
+use app\common\service\identity\MemberIdentityAdapter;
 use app\common\validate\MemberValidate;
 use fun\helper\StringHelper;
 use think\exception\ValidateException;
@@ -61,7 +62,12 @@ class  Member extends BaseModel{
         $member->last_ip = MemberInput::normalizeIp(request()->ip());
         $member->last_login = time();
         $member->token = token();
-        if (!$member->save())  throw new \Exception('login failed');
+        Db::transaction(function () use ($member): void {
+            if (!$member->save()) {
+                throw new \Exception('login failed');
+            }
+            (new MemberIdentityAdapter())->sync($member);
+        });
         session('member', $member);
         $_COOKIE['mid']= $member->id;
     }
@@ -97,6 +103,7 @@ class  Member extends BaseModel{
             session('regData', $data);
             unset($data['group_id']);
             $member = self::create($data);
+            (new MemberIdentityAdapter())->sync($member);
             MemberGroupRelation::create([
                 'member_id' => (int) $member->id,
                 'group_id' => 1,

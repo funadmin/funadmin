@@ -628,6 +628,12 @@ PHP);
 }
 
 $ormPropertyExemptions = [
+    \app\common\model\identity\IdentityAdminLink::class => ['name'],
+    \app\common\model\identity\IdentityCredential::class => ['name'],
+    \app\common\model\identity\IdentityMemberLink::class => ['name'],
+    \app\common\model\identity\IdentityTenant::class => ['name'],
+    \app\common\model\identity\IdentityUser::class => ['name'],
+    \app\common\model\identity\IdentityUserDepartment::class => ['name'],
     \app\common\model\DictItem::class => ['name'],
     \app\common\model\DictType::class => ['name'],
     \app\common\model\FieldVerify::class => ['pk'],

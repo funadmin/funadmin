@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace app\common\service;
 
 use app\common\model\Member;
+use app\common\service\identity\MemberIdentityAdapter;
+use think\facade\Db;
 
 /**
  * 会员 API 认证服务。
@@ -30,6 +32,10 @@ class MemberAuthService extends AbstractService
         if (!$member || !password_verify($password, (string) $member->password)) {
             return null;
         }
+
+        Db::transaction(static function () use ($member): void {
+            (new MemberIdentityAdapter())->sync($member);
+        });
 
         return [
             'id' => (int) $member->id,

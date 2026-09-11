@@ -347,7 +347,7 @@ html:not(.dark) .app-layout.menu-theme--fresh .app-layout__sidebar :deep(.el-sub
 .app-layout__main {
   flex: 1;
   overflow: auto;
-  padding: var(--app-gap);
+  padding: 16px 8px;
   background: var(--app-content-bg);
   display: flex;
   flex-direction: column;

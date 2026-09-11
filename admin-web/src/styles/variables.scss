@@ -30,11 +30,11 @@
   /* 侧栏与窄轨的内部分割线；浅侧栏用全局边框色 */
   --app-sidebar-separator: var(--app-border);
 
-  /* 顶栏 / 标签页：与内容区浅灰底一致，下拉与卡片用 --app-card-bg 纯白抬起层次（参考 SaiAdmin 类后台） */
-  --app-header-bg: var(--app-app-bg);
+  /* 顶栏 / 标签页：与 Logo 区统一为纯白，内容区继续使用浅灰底 */
+  --app-header-bg: var(--app-card-bg);
   --app-header-shadow: 0 1px 0 var(--app-border);
   --app-header-item-hover-bg: rgba(0, 0, 0, 0.045);
-  --app-tabs-bg: var(--app-app-bg);
+  --app-tabs-bg: var(--app-card-bg);
   --app-tabs-shadow: inset 0 -1px 0 var(--app-border);
 
   /* 圆角 */
@@ -96,9 +96,9 @@ html[data-preset='elegant'] {
   --app-sidebar-hover-bg: #f1f5f9;
   --app-sidebar-logo-bg: transparent;
 
-  --app-header-bg: var(--app-app-bg);
+  --app-header-bg: var(--app-card-bg);
   --app-header-shadow: 0 1px 0 var(--app-border);
-  --app-tabs-bg: var(--app-app-bg);
+  --app-tabs-bg: var(--app-card-bg);
   --app-tabs-shadow: inset 0 -1px 0 var(--app-border);
 
   /* 更柔的卡片阴影 */
@@ -126,9 +126,9 @@ html[data-preset='fresh'] {
   --app-sidebar-active-bg: var(--el-color-primary-light-9);
   --app-sidebar-hover-bg: rgba(19, 194, 194, 0.06);
   --app-sidebar-logo-bg: transparent;
-  --app-header-bg: var(--app-app-bg);
+  --app-header-bg: var(--app-card-bg);
   --app-header-shadow: 0 1px 0 var(--app-border);
-  --app-tabs-bg: var(--app-app-bg);
+  --app-tabs-bg: var(--app-card-bg);
 }
 
 /* 经典：浅色内容 + 深色侧栏（保留 Ant 经典暗色侧栏观感） */
