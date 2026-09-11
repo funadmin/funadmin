@@ -54,6 +54,12 @@ final class RedirectUriService
         });
     }
 
+    public function list(int $tenantId, int $clientId): array
+    {
+        if (!OAuthClient::forTenant($tenantId)->where('id', $clientId)->find()) throw new DomainException('OAuth client 不存在或跨租户');
+        return RedirectUri::forTenant($tenantId)->where('client_id', $clientId)->where('status', 1)->field('id,uri_type,redirect_uri')->order('id', 'asc')->select()->toArray();
+    }
+
     public function matches(int $tenantId, int $clientId, string $uri, string $type, bool $development = false): bool
     {
         $normalized = $this->normalize($uri, $type, $development);

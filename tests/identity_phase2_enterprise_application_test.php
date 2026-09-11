@@ -29,8 +29,7 @@ function enterpriseApplicationRejects(callable $callback, string $message): void
 $root = dirname(__DIR__);
 $migrations = glob($root . '/database/migrations/*.sql') ?: [];
 $numbers = array_map(static fn (string $file): int => (int) substr(basename($file), 0, 3), $migrations);
-sort($numbers);
-enterpriseApplicationExpect(end($numbers) === 96, 'Phase 2 必须使用下一个空闲 migration 096');
+enterpriseApplicationExpect(count(array_filter($numbers, static fn (int $number): bool => $number === 96)) === 1, 'Phase 2 migration 096 必须存在且版本唯一');
 $migration = $root . '/database/migrations/096_enterprise_application_center.sql';
 enterpriseApplicationExpect(is_file($migration), '缺少企业应用中心 096 migration');
 $sql = (string) file_get_contents($migration);

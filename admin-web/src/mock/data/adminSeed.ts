@@ -425,7 +425,8 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
       affix: false,
       permission: 'identity:application:view',
       children: [
-        { id: 301, parentId: 300, routeName: 'EnterpriseApplicationCenter', path: 'center', component: 'applications/index', type: 'C', name: '应用中心', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' }
+        { id: 301, parentId: 300, routeName: 'EnterpriseApplicationCenter', path: 'center', component: 'applications/index', type: 'C', name: '应用中心', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' },
+        { id: 302, parentId: 300, routeName: 'OAuthClientManagement', path: 'oauth-client', component: 'applications/oauth/index', type: 'C', name: 'OAuth Client', sort: 20, hidden: false, keepAlive: false, affix: false, permission: 'identity:oauth-client:view' }
       ]
     },
     {

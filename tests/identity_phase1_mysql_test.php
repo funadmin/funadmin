@@ -31,13 +31,13 @@ function identityMysqlQuote(string $identifier): string
     return '`' . $identifier . '`';
 }
 
-function identityMigrationDirectoryThrough094(string $source): string
+function identityMigrationDirectoryThrough(string $source, int $lastVersion): string
 {
     $target = sys_get_temp_dir() . '/funadmin_identity_migrations_' . bin2hex(random_bytes(6));
     identityMysqlExpect(mkdir($target, 0700), '无法创建隔离 migration 目录');
     foreach (glob($source . '/*.sql') ?: [] as $file) {
-        if ((int) substr(basename($file), 0, 3) <= 94) {
-            identityMysqlExpect(copy($file, $target . '/' . basename($file)), '无法复制 094 migration 链');
+        if ((int) substr(basename($file), 0, 3) <= $lastVersion) {
+            identityMysqlExpect(copy($file, $target . '/' . basename($file)), "无法复制 {$lastVersion} migration 链");
         }
     }
     return $target;
@@ -58,7 +58,8 @@ $original = (array) config('database');
 $mysql = (array) $original['connections']['mysql'];
 $databaseName = 'funadmin_identity_' . bin2hex(random_bytes(6));
 $upgradeDatabaseName = 'funadmin_identity_upgrade_' . bin2hex(random_bytes(6));
-$upgradeMigrationDirectory = identityMigrationDirectoryThrough094($root . '/database/migrations');
+$upgradeMigrationDirectory = identityMigrationDirectoryThrough($root . '/database/migrations', 94);
+$phase1MigrationDirectory = identityMigrationDirectoryThrough($root . '/database/migrations', 95);
 $serverConfig = $original;
 $serverConfig['connections']['mysql']['database'] = '';
 $app->config->set($serverConfig, 'database');
@@ -87,7 +88,7 @@ try {
     $upgradeAdminId = (int) Db::query("SELECT id FROM fun_admin WHERE username='upgrade-conflict'")[0]['id'];
     Db::execute("INSERT INTO fun_member (username,password,email,mobile,nickname,status,level_id,created_at,updated_at) VALUES ('upgrade-conflict',?,'upgrade@example.test','13900000003','Upgrade Member',1,1,NOW(),NOW())", [password_hash('UpgradeMember!1', PASSWORD_BCRYPT)]);
     $upgradeMemberId = (int) Db::query("SELECT id FROM fun_member WHERE username='upgrade-conflict'")[0]['id'];
-    $upgradeExecuted = $migrationService->runDirectory($root . '/database/migrations', 'core');
+    $upgradeExecuted = $migrationService->runDirectory($phase1MigrationDirectory, 'core');
     identityMysqlExpect($upgradeExecuted === ['095_identity_foundation'], '094 升级必须只执行 095');
     $upgradeAdminUserId = (int) IdentityAdminLink::forTenant(1)->where('admin_id', $upgradeAdminId)->value('user_id');
     $upgradeMemberUserId = (int) IdentityMemberLink::forTenant(1)->where('member_id', $upgradeMemberId)->value('user_id');
@@ -159,6 +160,7 @@ try {
     $cleanup->execute('DROP DATABASE IF EXISTS ' . identityMysqlQuote($databaseName));
     $cleanup->execute('DROP DATABASE IF EXISTS ' . identityMysqlQuote($upgradeDatabaseName));
     identityRemoveDirectory($upgradeMigrationDirectory);
+    identityRemoveDirectory($phase1MigrationDirectory);
     $app->config->set($original, 'database');
     Db::connect('mysql', true);
 }

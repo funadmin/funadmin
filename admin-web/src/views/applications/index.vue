@@ -25,7 +25,7 @@
         <el-tab-pane label="域名" name="domains"><el-form label-width="120"><el-form-item label="Identity 回调"><el-input v-model="domain.identityCallback" @input="domainTouched = true" /></el-form-item><el-form-item label="Logout 回调"><el-input v-model="domain.logoutCallback" @input="domainTouched = true" /></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="访问范围" name="assignments"><el-alert title="支持全部、用户、部门、角色的 allow/deny；显式拒绝始终优先。私有应用只有 user allow 可额外授权。" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item label="主体"><el-select v-model="assignment.subjectType"><el-option label="全部" value="all"/><el-option label="用户" value="user"/><el-option label="部门" value="department"/><el-option label="角色" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" label="主体 ID"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item label="效果"><el-radio-group v-model="assignment.effect"><el-radio value="allow">允许</el-radio><el-radio value="deny">拒绝</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="品牌" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item label="主色"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="OAuth" name="oauth"><el-empty description="OAuth 客户端配置将在后续阶段开放" /></el-tab-pane>
+        <el-tab-pane label="OAuth" name="oauth"><el-alert title="OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。" type="info" :closable="false"/><el-button class="mt-3" type="primary" :disabled="selectedId <= 0" @click="openOAuthManagement">管理 OAuth Client</el-button></el-tab-pane>
       </el-tabs>
       <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button type="primary" @click="saveSettings">保存</el-button></template>
     </el-drawer>
@@ -34,11 +34,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { applicationApi, serializeDomainChange, type ApplicationInput, type AssignmentInput, type DatabaseInput, type DomainInput, type EnterpriseApplication } from '@/api/identity/applications';
 import { canLaunchApplication } from './applicationPolicy';
 defineOptions({ name: 'EnterpriseApplicationCenter' });
 const { t } = useI18n();
+const router = useRouter();
 const applications = ref<EnterpriseApplication[]>([]); const loading = ref(false); const keyword = ref(''); const viewMode = ref<'card'|'list'>('card');
 const drawerVisible = ref(false); const activeTab = ref('basic'); const selectedId = ref(0); const brandColor = ref('#409eff');
 const domainTouched = ref(false); const expectedDomainIds = ref<number[]>([]);
@@ -86,6 +88,7 @@ async function saveSettings() {
   if (domainChange) writes.push(applicationApi.saveDomains(saved.id, domainChange));
   await Promise.all(writes); drawerVisible.value = false; await load();
 }
+async function openOAuthManagement() { if (selectedId.value > 0) { drawerVisible.value = false; await router.push({ path: '/applications/oauth-client', query: { applicationId: String(selectedId.value) } }); } }
 async function publish(item: EnterpriseApplication) { await applicationApi.publish(item.id); await load(); }
 async function disable(item: EnterpriseApplication) { await applicationApi.disable(item.id); await load(); }
 async function remove(item: EnterpriseApplication) { await ElMessageBox.confirm(`确定删除应用“${item.name}”吗？`, '删除确认', { type: 'warning' }); await applicationApi.remove(item.id); await load(); }
