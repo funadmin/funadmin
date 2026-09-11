@@ -11,7 +11,9 @@ interface AiSecurityStore
     public function pendingApprovals(int $adminId): array;
     public function approval(int $id, int $adminId): ?array;
     public function casApproval(int $id, int $version, string $status, array $data): bool;
-    public function approvedSessionOperation(int $conversationId, string $operation, string $mode): ?array;
+    public function approvedSessionOperation(int $conversationId, int $adminId, string $operation, string $mode): ?array;
+    public function consumeOnceApproval(int $toolCallId, int $conversationId, int $adminId, string $operation, string $mode): ?array;
+    public function toolCall(int $id, int $conversationId, int $taskId): ?array;
     public function createToolCall(array $data): array;
     public function updateToolCall(int $id, array $data): void;
     public function toolCalls(int $taskId): array;

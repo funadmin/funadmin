@@ -51,35 +51,35 @@ final class EnterpriseApplication extends AdminApiController
     #[Get('')]
     public function index(): Response
     {
-        return $this->ok($this->catalog->list($this->tenantId(), (int) $this->request->get('page', 1), (int) $this->request->get('pageSize', 20), trim((string) $this->request->get('keyword', ''))));
+        return $this->ok(data: $this->catalog->list($this->tenantId(), (int) $this->request->get('page', 1), (int) $this->request->get('pageSize', 20), trim((string) $this->request->get('keyword', ''))));
     }
 
     #[Get(':id')]
     #[Pattern('id', '\d+')]
-    public function detail(int $id): Response { return $this->ok($this->catalog->detail($this->tenantId(), $id)); }
+    public function detail(int $id): Response { return $this->ok(data: $this->catalog->detail($this->tenantId(), $id)); }
 
     #[Post('')]
-    public function save(): Response { return $this->ok($this->catalog->save($this->tenantId(), $this->request->post(), null, $this->isDevelopment(), $this->request->host()), '应用草稿创建成功'); }
+    public function save(): Response { return $this->ok(data: $this->catalog->save($this->tenantId(), $this->request->post(), null, $this->isDevelopment(), $this->request->host()), msg: '应用草稿创建成功'); }
 
     #[Put(':id')]
     #[Pattern('id', '\d+')]
-    public function update(int $id): Response { return $this->ok($this->catalog->save($this->tenantId(), $this->request->put(), $id, $this->isDevelopment(), $this->request->host()), '应用设置已保存'); }
+    public function update(int $id): Response { return $this->ok(data: $this->catalog->save($this->tenantId(), $this->request->put(), $id, $this->isDevelopment(), $this->request->host()), msg: '应用设置已保存'); }
 
     #[Delete(':id')]
     #[Pattern('id', '\d+')]
     public function delete(int $id): Response
     {
         $this->catalog->delete($this->tenantId(), $id);
-        return $this->ok(null, '应用已删除');
+        return $this->ok(data: null, msg: '应用已删除');
     }
 
     #[Post(':id/publish')]
     #[Pattern('id', '\d+')]
-    public function publish(int $id): Response { return $this->ok($this->catalog->publish($this->tenantId(), $id), '应用已发布'); }
+    public function publish(int $id): Response { return $this->ok(data: $this->catalog->publish($this->tenantId(), $id), msg: '应用已发布'); }
 
     #[Post(':id/disable')]
     #[Pattern('id', '\d+')]
-    public function disable(int $id): Response { return $this->ok($this->catalog->disable($this->tenantId(), $id), '应用已禁用'); }
+    public function disable(int $id): Response { return $this->ok(data: $this->catalog->disable($this->tenantId(), $id), msg: '应用已禁用'); }
 
     #[Get(':id/launch')]
     #[Pattern('id', '\d+')]
@@ -95,46 +95,46 @@ final class EnterpriseApplication extends AdminApiController
                 $actor['roleIds']
             ));
         } catch (DomainException $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 403);
+            return $this->fail(data: null, msg: $exception->getMessage(), code: 403);
         }
     }
 
     #[Get(':id/assignments')]
     #[Pattern('id', '\d+')]
-    public function assignments(int $id): Response { return $this->ok($this->assignmentService->list($this->tenantId(), $id)); }
+    public function assignments(int $id): Response { return $this->ok(data: $this->assignmentService->list($this->tenantId(), $id)); }
 
     #[Put(':id/assignments')]
     #[Pattern('id', '\d+')]
-    public function saveAssignments(int $id): Response { return $this->ok($this->assignmentService->replace($this->tenantId(), $id, (array) $this->request->put('assignments', [])), '访问范围已保存'); }
+    public function saveAssignments(int $id): Response { return $this->ok(data: $this->assignmentService->replace($this->tenantId(), $id, (array) $this->request->put('assignments', [])), msg: '访问范围已保存'); }
 
     #[Get(':id/domains')]
     #[Pattern('id', '\d+')]
-    public function domains(int $id): Response { return $this->ok($this->domainService->list($this->tenantId(), $id)); }
+    public function domains(int $id): Response { return $this->ok(data: $this->domainService->list($this->tenantId(), $id)); }
 
     #[Put(':id/domains')]
     #[Pattern('id', '\d+')]
     public function saveDomains(int $id): Response
     {
-        return $this->ok($this->domainService->replace(
+        return $this->ok(data: $this->domainService->replace(
             $this->tenantId(),
             $id,
             (array) $this->request->put('domains', []),
             $this->isDevelopment(),
             (array) $this->request->put('expectedDomainIds', [])
-        ), '域名设置已保存');
+        ), msg: '域名设置已保存');
     }
 
     #[Get(':id/database')]
     #[Pattern('id', '\d+')]
-    public function database(int $id): Response { return $this->ok($this->databaseService->get($this->tenantId(), $id)); }
+    public function database(int $id): Response { return $this->ok(data: $this->databaseService->get($this->tenantId(), $id)); }
 
     #[Put(':id/database')]
     #[Pattern('id', '\d+')]
-    public function saveDatabase(int $id): Response { return $this->ok($this->databaseService->save($this->tenantId(), $id, $this->request->put()), '数据模式已保存'); }
+    public function saveDatabase(int $id): Response { return $this->ok(data: $this->databaseService->save($this->tenantId(), $id, $this->request->put()), msg: '数据模式已保存'); }
 
     #[Post(':id/health')]
     #[Pattern('id', '\d+')]
-    public function health(int $id): Response { return $this->ok($this->databaseService->health($this->tenantId(), $id, $this->isDevelopment())); }
+    public function health(int $id): Response { return $this->ok(data: $this->databaseService->health($this->tenantId(), $id, $this->isDevelopment())); }
 
     /** @return array{tenantId:int,userId:int,departmentIds:array<int>,roleIds:array<int>} */
     private function launchActor(): array

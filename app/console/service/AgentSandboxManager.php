@@ -13,7 +13,7 @@ use RuntimeException;
 final class AgentSandboxManager
 {
     private const LABEL = 'com.funadmin.ai-agent=true';
-    private const EXCLUDED_ROOTS = ['.git', '.env', '.env.local', '.env.production'];
+    private const EXCLUDED_ROOTS = ['.git', '.env', '.env.local', '.env.production', 'runtime'];
 
     public function __construct(
         private readonly DockerProcessRunner $runner,
@@ -23,30 +23,44 @@ final class AgentSandboxManager
     ) {
     }
 
-    public function create(int $taskId): array
+    public function create(int $taskId, int $sessionId = 0): array
     {
         $image = trim((string) ($this->config['image'] ?? ''));
-        if ($image === '') {
-            throw new RuntimeException('Docker sandbox image 未配置');
+        if (preg_match('/^[^\s]+@sha256:[a-f0-9]{64}$/', $image) !== 1) {
+            throw new RuntimeException('Docker sandbox image 必须固定为 digest');
         }
         $this->assertDockerAvailable();
         $workspace = rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/sandboxes/' . $taskId . '-' . bin2hex(random_bytes(6));
-        $this->copyProject($workspace);
+        $snapshot = $workspace . '/snapshot';
+        $this->copyProject($snapshot);
+        $this->writeManifest($snapshot, $workspace . '/baseline-manifest.json');
+        $volume = 'funadmin-ai-' . $taskId . '-' . bin2hex(random_bytes(6));
         $argv = [
             'docker', 'create', '--label', self::LABEL, '--label', 'com.funadmin.ai-task=' . $taskId,
+            '--label', 'com.funadmin.ai-session=' . $sessionId, '--label', 'com.funadmin.ai-volume=' . $volume,
             '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=64m', '--tmpfs', '/run:rw,noexec,nosuid,nodev,size=16m',
             '--security-opt', 'no-new-privileges', '--cap-drop', 'ALL', '--cpus', (string) ($this->config['cpu'] ?? 0.5),
             '--memory', (int) ($this->config['memory_mb'] ?? 256) . 'm', '--pids-limit', (string) ($this->config['pids'] ?? 64),
-            '--network', ($this->config['network_enabled'] ?? false) ? 'bridge' : 'none', '--user', '10001:10001',
-            '--workdir', '/workspace', '--mount', 'type=bind,src=' . $workspace . ',dst=/workspace,rw', $image, 'sleep', 'infinity',
+            '--network', 'none', '--user', '10001:10001', '--workdir', '/workspace',
+            '--mount', 'type=volume,src=' . $volume . ',dst=/workspace', $image, 'sleep', 'infinity',
         ];
         $result = $this->checked($argv, 30, '创建 Docker sandbox 失败');
-        return ['containerId' => trim($result->stdout), 'workspace' => $workspace, 'status' => 'created'];
+        $containerId = trim($result->stdout);
+        $this->checked(['docker', 'cp', $snapshot . '/.', $this->containerId($containerId) . ':/workspace'], 120, '复制可信快照失败');
+        return ['containerId' => $containerId, 'workspace' => $workspace, 'status' => 'created', 'taskId' => $taskId, 'sessionId' => $sessionId];
     }
 
     public function start(string $containerId): void
     {
-        $this->checked(['docker', 'start', $this->containerId($containerId)], 30, '启动 Docker sandbox 失败');
+        $id = $this->containerId($containerId);
+        $this->checked(['docker', 'start', $id], 30, '启动 Docker sandbox 失败');
+        foreach ([
+            ['git', 'init'], ['git', 'config', 'user.name', 'FunAdmin AI Sandbox'],
+            ['git', 'config', 'user.email', 'sandbox@invalid.local'], ['git', 'add', '--all'],
+            ['git', 'commit', '--no-gpg-sign', '-m', 'sandbox baseline'],
+        ] as $argv) {
+            $this->checked(array_merge(['docker', 'exec', $id], $argv), 60, '初始化 sandbox baseline 失败');
+        }
     }
 
     public function exec(string $containerId, array $argv, int $timeoutSeconds): ProcessResult
@@ -65,10 +79,39 @@ final class AgentSandboxManager
         $this->checked(['docker', 'cp', $this->containerId($containerId) . ':/workspace/.', $destination], 60, '导出 Docker sandbox 失败');
     }
 
-    public function cleanup(string $containerId, string $workspace): void
+    public function exportChanges(string $containerId, string $workspace): array
     {
+        $id = $this->containerId($containerId);
+        $exportRoot = rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/exports/' . basename($workspace);
+        $tree = $exportRoot . '/tree';
+        if (!is_dir($tree) && !mkdir($tree, 0700, true) && !is_dir($tree)) throw new RuntimeException('无法创建变更导出目录');
+        $patch = $this->checked(['docker', 'exec', $id, 'git', 'diff', '--binary', '--no-ext-diff', 'HEAD'], 60, '导出 sandbox patch 失败')->stdout;
+        file_put_contents($exportRoot . '/changes.patch', $patch, LOCK_EX);
+        $this->checked(['docker', 'cp', $id . ':/workspace/.', $tree], 120, '导出 sandbox bundle 失败');
+        $manifest = $this->manifest($tree);
+        file_put_contents($exportRoot . '/manifest.json', json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX);
+        $bundle = [];
+        foreach (array_keys($manifest['files']) as $relative) {
+            $content = file_get_contents($tree . '/' . $relative);
+            if ($content !== false) $bundle[$relative] = base64_encode($content);
+        }
+        $bundlePath = $exportRoot . '/bundle.json';
+        file_put_contents($bundlePath, json_encode(['encoding'=>'base64','files'=>$bundle], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX);
+        return ['root'=>$exportRoot, 'patchPath'=>$exportRoot.'/changes.patch', 'patchSha256'=>hash_file('sha256', $exportRoot.'/changes.patch'),
+            'bundlePath'=>$bundlePath, 'bundleSha256'=>hash_file('sha256', $bundlePath), 'manifestPath'=>$exportRoot.'/manifest.json', 'manifestSha256'=>hash_file('sha256', $exportRoot.'/manifest.json'), 'manifest'=>$manifest];
+    }
+
+    public function cleanup(string $containerId, string $workspace, int $taskId, int $sessionId): void
+    {
+        $id = $this->containerId($containerId);
+        $labelsResult = $this->checked(['docker', 'inspect', '--format', '{{json .Config.Labels}}', $id], 15, '无法校验 sandbox 标签');
+        $labels = json_decode(trim($labelsResult->stdout), true);
+        if (!is_array($labels) || ($labels['com.funadmin.ai-agent'] ?? '') !== 'true'
+            || ($labels['com.funadmin.ai-task'] ?? '') !== (string)$taskId || ($labels['com.funadmin.ai-session'] ?? '') !== (string)$sessionId) {
+            throw new RuntimeException('sandbox 标签与任务或会话不匹配');
+        }
         try {
-            $this->runner->run(['docker', 'rm', '-f', $this->containerId($containerId)], 30);
+            $this->checked(['docker', 'rm', '-f', $id], 30, '删除 Docker sandbox 失败');
         } finally {
             $this->deleteTree($workspace);
         }
@@ -128,24 +171,44 @@ final class AgentSandboxManager
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->projectRoot, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
         foreach ($iterator as $item) {
             $relative = substr($item->getPathname(), strlen(rtrim($this->projectRoot, DIRECTORY_SEPARATOR)) + 1);
-            if ($this->excluded($relative) || $item->isLink()) {
-                continue;
-            }
+            if ($this->excluded($relative) || $item->isLink()) continue;
             $target = $destination . DIRECTORY_SEPARATOR . $relative;
             if ($item->isDir()) {
                 if (!is_dir($target)) mkdir($target, 0700, true);
             } else {
                 if (!is_dir(dirname($target))) mkdir(dirname($target), 0700, true);
-                copy($item->getPathname(), $target);
+                if (!copy($item->getPathname(), $target)) throw new RuntimeException('复制可信快照失败');
             }
         }
+    }
+
+    private function writeManifest(string $root, string $path): void
+    {
+        $json = json_encode($this->manifest($root), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (file_put_contents($path, $json, LOCK_EX) === false) throw new RuntimeException('保存 baseline manifest 失败');
+        chmod($path, 0600);
+    }
+
+    private function manifest(string $root): array
+    {
+        $files = [];
+        if (is_dir($root)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $item) {
+                if (!$item->isFile() || $item->isLink()) continue;
+                $relative = str_replace('\\', '/', substr($item->getPathname(), strlen(rtrim($root, DIRECTORY_SEPARATOR)) + 1));
+                $files[$relative] = ['sha256'=>hash_file('sha256', $item->getPathname()), 'size'=>$item->getSize()];
+            }
+        }
+        ksort($files);
+        return ['algorithm'=>'sha256', 'files'=>$files, 'digest'=>hash('sha256', json_encode($files, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR))];
     }
 
     private function excluded(string $relative): bool
     {
         $normalized = str_replace('\\', '/', $relative);
         $root = explode('/', $normalized)[0];
-        return in_array($root, self::EXCLUDED_ROOTS, true) || $root === 'runtime'
+        return in_array($root, self::EXCLUDED_ROOTS, true)
             || preg_match('#(^|/)\.env(?:\.|$)#', $normalized) === 1
             || preg_match('#(^|/)(?:id_rsa|id_ed25519|credentials|known_hosts)(?:$|/)#i', $normalized) === 1;
     }
@@ -153,10 +216,15 @@ final class AgentSandboxManager
     private function deleteTree(string $path): void
     {
         if (!is_dir($path)) return;
-        $items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        $root = realpath(rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/sandboxes');
+        $real = realpath($path);
+        if ($root === false || $real === false || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('拒绝删除 sandbox root 外路径');
+        }
+        $items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($real, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($items as $item) {
             $item->isDir() && !$item->isLink() ? rmdir($item->getPathname()) : unlink($item->getPathname());
         }
-        rmdir($path);
+        rmdir($real);
     }
 }
