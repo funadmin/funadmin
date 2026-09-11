@@ -18,6 +18,7 @@ class AdminIdentityAdapter
             'display_name' => ($admin->real_name ?? '') ?: $admin->username,
             'email' => $admin->email ?? null,
             'mobile' => $admin->mobile ?? null,
+            'avatar' => $admin->avatar ?? null,
             'status' => $admin->status,
         ]);
         $passwordHash = (string) ($admin->password ?? '');

@@ -16,6 +16,8 @@ export default {
     SystemDict: '字典管理',
     SystemLog: '日志管理',
     SystemLogOperation: '操作日志',
+    EnterpriseApplications: '企业应用中心',
+    EnterpriseApplicationCenter: '应用中心',
   },
   layout: {
     menuSearch: '菜单搜索',
@@ -224,6 +226,10 @@ export default {
     email: '邮箱',
     emailPlaceholder: '请输入邮箱',
     emailInvalid: '邮箱格式不正确'
+  },
+  enterpriseApplications: {
+    title: '企业应用中心',
+    subtitle: '统一管理企业应用、运行数据、域名与访问范围'
   },
   business: {
     status: {

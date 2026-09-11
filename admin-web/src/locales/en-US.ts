@@ -15,6 +15,8 @@ export default {
     SystemDict: 'Dictionaries',
     SystemLog: 'Logs',
     SystemLogOperation: 'Operation logs',
+    EnterpriseApplications: 'Enterprise Applications',
+    EnterpriseApplicationCenter: 'Application Center',
   },
   layout: {
     menuSearch: 'Menu search',
@@ -222,6 +224,10 @@ export default {
     email: 'Email',
     emailPlaceholder: 'Email address',
     emailInvalid: 'Invalid email format'
+  },
+  enterpriseApplications: {
+    title: 'Enterprise Applications',
+    subtitle: 'Manage enterprise apps, runtime data, domains, and access scope'
   },
   business: {
     status: {

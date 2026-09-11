@@ -30,6 +30,7 @@ import { pluginMockHandlers } from './modules/plugin';
 import { upgradeMockHandlers } from './modules/upgrade';
 import { developmentBusinessMockHandlers } from './modules/developmentBusiness';
 import { developmentPluginMockHandlers } from './modules/developmentPlugin';
+import { enterpriseApplicationMockHandlers } from './modules/applications';
 import type { MockHandler, MockRoute, MockMethod } from './types';
 
 const routes: MockRoute[] = [
@@ -51,7 +52,8 @@ const routes: MockRoute[] = [
   ...pluginMockHandlers,
   ...upgradeMockHandlers,
   ...developmentBusinessMockHandlers,
-  ...developmentPluginMockHandlers
+  ...developmentPluginMockHandlers,
+  ...enterpriseApplicationMockHandlers
 ];
 
 function stripBase(url: string): string {

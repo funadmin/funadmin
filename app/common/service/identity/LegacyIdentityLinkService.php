@@ -32,7 +32,9 @@ class LegacyIdentityLinkService
             'display_name' => (string) (($legacy->real_name ?? $legacy->nickname ?? '') ?: $legacy->username),
             'email' => $legacy->email ?? null,
             'mobile' => $legacy->mobile ?? null,
+            'avatar' => $legacy->avatar ?? null,
             'status' => (int) $legacy->status,
+            'last_login_at' => $this->lastLoginAt($legacy->last_login ?? null),
         ]);
         $linkClass::create([
             'tenant_id' => $tenantId,
@@ -40,5 +42,11 @@ class LegacyIdentityLinkService
             $sourceField => $sourceId,
         ]);
         return $user;
+    }
+
+    private function lastLoginAt(mixed $value): ?string
+    {
+        $timestamp = (int) $value;
+        return $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null;
     }
 }

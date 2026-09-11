@@ -43,7 +43,7 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     parentRoleIds: [],
     departmentIds: [],
     permissionIds: [],
-    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 200, 201, 202, 203],
+    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 200, 201, 202, 203, 300, 301],
     createdAt: unixToDatetime(1554298659)
   },
   {
@@ -407,6 +407,25 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
             }
 ]
         }
+      ]
+    },
+    {
+      id: 300,
+      parentId: 0,
+      routeName: 'EnterpriseApplications',
+      path: '/applications',
+      component: 'Layout',
+      redirect: '/applications/center',
+      type: 'M',
+      icon: 'i-ep-grid',
+      name: '企业应用中心',
+      sort: 15,
+      hidden: false,
+      keepAlive: false,
+      affix: false,
+      permission: 'identity:application:view',
+      children: [
+        { id: 301, parentId: 300, routeName: 'EnterpriseApplicationCenter', path: 'center', component: 'applications/index', type: 'C', name: '应用中心', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' }
       ]
     },
     {

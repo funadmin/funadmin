@@ -628,6 +628,10 @@ PHP);
 }
 
 $ormPropertyExemptions = [
+    \app\common\model\identity\ApplicationAssignment::class => ['name'],
+    \app\common\model\identity\ApplicationDatabase::class => ['name'],
+    \app\common\model\identity\ApplicationDomain::class => ['name'],
+    \app\common\model\identity\EnterpriseApplication::class => ['name'],
     \app\common\model\identity\IdentityAdminLink::class => ['name'],
     \app\common\model\identity\IdentityCredential::class => ['name'],
     \app\common\model\identity\IdentityMemberLink::class => ['name'],

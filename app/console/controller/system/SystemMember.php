@@ -239,6 +239,7 @@ class SystemMember extends AdminApiController
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds, $tagIds): void {
                     $member = Member::create($data);
+                    (new MemberIdentityAdapter())->sync($member);
                     $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                     $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 });

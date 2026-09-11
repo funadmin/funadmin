@@ -22,7 +22,7 @@ foreach ($migrationFiles as $file) {
     }
 }
 sort($numbers);
-identityPhase1Expect(end($numbers) === 95, 'Phase 1 必须使用首个连续空闲编号 095');
+identityPhase1Expect(in_array(95, $numbers, true), 'Phase 1 必须保留首个连续空闲编号 095');
 
 $migration = $root . '/database/migrations/095_identity_foundation.sql';
 identityPhase1Expect(is_file($migration), '缺少 095 identity foundation migration');
@@ -69,6 +69,11 @@ $memberAuthSource = (string) file_get_contents($root . '/app/common/service/Memb
 foreach (['email', 'mobile', 'status', 'avatar'] as $field) {
     identityPhase1Expect(str_contains($memberAuthSource, $field), '会员登录同步缺少 legacy 字段：' . $field);
 }
+$memberControllerSource = (string) file_get_contents($root . '/app/console/controller/system/SystemMember.php');
+$importStart = strpos($memberControllerSource, 'public function import(): Response');
+$importEnd = strpos($memberControllerSource, 'private function filteredQuery', $importStart ?: 0);
+$importSource = $importStart !== false && $importEnd !== false ? substr($memberControllerSource, $importStart, $importEnd - $importStart) : '';
+identityPhase1Expect(str_contains($importSource, 'MemberIdentityAdapter'), '会员导入创建必须接入 identity dual-write');
 
 $route = (string) file_get_contents($root . '/app/identity/route/app.php');
 foreach (["Route::get('authorize'", "Route::post('token'", "Route::get('.well-known/openid-configuration'", "Route::get('jwks'"] as $routePattern) {

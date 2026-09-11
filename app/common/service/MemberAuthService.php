@@ -26,7 +26,7 @@ class MemberAuthService extends AbstractService
                     ->whereOr('mobile', $account)
                     ->whereOr('email', $account);
             })
-            ->field('id,nickname,username,password')
+            ->field('id,nickname,username,password,email,mobile,avatar,status,last_login')
             ->find();
 
         if (!$member || !password_verify($password, (string) $member->password)) {

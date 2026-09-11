@@ -26,7 +26,11 @@ class IdentityUserService
     public function update(int $tenantId, int $userId, array $attributes): IdentityUser
     {
         $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->findOrFail();
-        $user->save($this->attributes($attributes));
+        $data = $this->attributes($attributes);
+        if ((int) $user->status !== (int) $data['status']) {
+            $data['session_version'] = (int) $user->session_version + 1;
+        }
+        $user->save($data);
         return $user;
     }
 

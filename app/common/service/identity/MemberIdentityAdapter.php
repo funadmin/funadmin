@@ -18,13 +18,21 @@ class MemberIdentityAdapter
             'display_name' => ($member->nickname ?? '') ?: $member->username,
             'email' => $member->email ?? null,
             'mobile' => $member->mobile ?? null,
+            'avatar' => $member->avatar ?? null,
             'status' => $member->status,
+            'last_login_at' => $this->lastLoginAt($member->last_login ?? null),
         ]);
         $passwordHash = (string) ($member->password ?? '');
         if ($passwordHash !== '') {
             (new IdentityCredentialService())->syncHash(self::TENANT_ID, (int) $user->id, $passwordHash, (int) $member->status);
         }
         return $user;
+    }
+
+    private function lastLoginAt(mixed $value): ?string
+    {
+        $timestamp = (int) $value;
+        return $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null;
     }
 
     public function compare(object $member): bool
