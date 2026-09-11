@@ -7,6 +7,8 @@ namespace app\identity\http;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UploadedFileInterface;
+use think\file\UploadedFile;
 use think\Request;
 use think\Response;
 
@@ -29,6 +31,8 @@ final class Psr7Adapter
         $psrRequest = $this->factory->createServerRequest($request->method(true), $uri, $request->server())
             ->withBody($body)
             ->withQueryParams($request->get())
+            ->withCookieParams($request->cookie())
+            ->withUploadedFiles($this->convertUploadedFiles($request->file() ?? []))
             ->withParsedBody($request->post());
 
         foreach ($request->header() as $name => $value) {
@@ -43,11 +47,53 @@ final class Psr7Adapter
      */
     public function toThinkResponse(ResponseInterface $response): Response
     {
-        $thinkResponse = Response::create((string) $response->getBody(), 'html', $response->getStatusCode());
+        /** @var Psr7Response $thinkResponse */
+        $thinkResponse = Response::create(
+            (string) $response->getBody(),
+            Psr7Response::class,
+            $response->getStatusCode()
+        );
         foreach ($response->getHeaders() as $name => $values) {
-            $thinkResponse->header([$name => implode(', ', $values)]);
+            foreach ($values as $value) {
+                $thinkResponse->appendHeader($name, $value);
+            }
         }
 
         return $thinkResponse;
+    }
+
+    /**
+     * 将 ThinkPHP 上传文件树递归转换为 PSR-7 上传文件树。
+     */
+    private function convertUploadedFiles(array $files): array
+    {
+        foreach ($files as $name => $file) {
+            if (is_array($file)) {
+                $files[$name] = $this->convertUploadedFiles($file);
+                continue;
+            }
+
+            if ($file instanceof UploadedFile) {
+                $files[$name] = $this->convertUploadedFile($file);
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * 转换单个 ThinkPHP 上传文件且保留客户端元数据。
+     */
+    private function convertUploadedFile(UploadedFile $file): UploadedFileInterface
+    {
+        $stream = $this->factory->createStreamFromFile($file->getPathname());
+
+        return $this->factory->createUploadedFile(
+            $stream,
+            $file->getSize(),
+            UPLOAD_ERR_OK,
+            $file->getOriginalName(),
+            $file->getOriginalMime()
+        );
     }
 }
