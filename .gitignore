@@ -37,6 +37,9 @@
 !/tests/legacy_write_api_gone_test.php
 !/tests/identity_phase1_contract_test.php
 !/tests/identity_phase1_mysql_test.php
+!/tests/identity_phase2_console_api_test.php
+!/tests/identity_phase2_enterprise_application_test.php
+!/tests/identity_phase2_mysql_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

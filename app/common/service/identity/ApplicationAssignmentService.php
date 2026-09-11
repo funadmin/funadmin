@@ -58,6 +58,43 @@ final class ApplicationAssignmentService
         return $allowed;
     }
 
+    /**
+     * 按应用可见性判定启动权限；任何匹配的显式 deny 均拥有最高优先级。
+     */
+    public static function canLaunch(string $visibility, ?int $ownerIdentityUserId, array $assignments, int $userId, array $departmentIds, array $roleIds): bool
+    {
+        if ($userId <= 0 || self::hasMatchingDeny($assignments, $userId, $departmentIds, $roleIds)) {
+            return false;
+        }
+        if ($visibility !== 'private') {
+            return in_array($visibility, ['tenant', 'public'], true);
+        }
+        if ($ownerIdentityUserId !== null && $ownerIdentityUserId === $userId) {
+            return true;
+        }
+        foreach ($assignments as $assignment) {
+            if ((int) ($assignment['status'] ?? 1) === 1
+                && ($assignment['effect'] ?? 'allow') === 'allow'
+                && ($assignment['subject_type'] ?? '') === 'user'
+                && self::matches($assignment, $userId, $departmentIds, $roleIds)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function hasMatchingDeny(array $assignments, int $userId, array $departmentIds, array $roleIds): bool
+    {
+        foreach ($assignments as $assignment) {
+            if ((int) ($assignment['status'] ?? 1) === 1
+                && ($assignment['effect'] ?? 'allow') === 'deny'
+                && self::matches($assignment, $userId, $departmentIds, $roleIds)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static function matches(array $assignment, int $userId, array $departmentIds, array $roleIds): bool
     {
         return match ($assignment['subject_type'] ?? '') {

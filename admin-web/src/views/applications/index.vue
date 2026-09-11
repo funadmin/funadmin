@@ -20,10 +20,10 @@
     </div>
     <el-drawer v-model="drawerVisible" :title="selectedId ? '应用设置' : '新建应用'" size="620px">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="基本信息" name="basic"><el-form label-width="110"><el-form-item label="名称"><el-input v-model="form.name" /></el-form-item><el-form-item label="标识"><el-input v-model="form.code" :disabled="selectedId > 0" /></el-form-item><el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane label="基本信息" name="basic"><el-form label-width="110"><el-form-item label="名称"><el-input v-model="form.name" /></el-form-item><el-form-item label="标识"><el-input v-model="form.code" :disabled="selectedId > 0" /></el-form-item><el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item><el-form-item label="可见性"><el-select v-model="form.visibility"><el-option label="私有" value="private"/><el-option label="租户" value="tenant"/><el-option label="公开" value="public"/></el-select></el-form-item><el-form-item v-if="form.visibility === 'private'" label="所有者身份 ID"><el-input-number v-model="form.ownerIdentityUserId" :min="1" /></el-form-item><el-alert title="显式拒绝始终优先；私有仅所有者或显式用户允许可进入；租户与公开允许同租户已启用身份进入。" type="info" :closable="false"/></el-form></el-tab-pane>
         <el-tab-pane label="运行与数据" name="runtime"><el-form label-width="110"><el-form-item label="运行类型"><el-select v-model="form.runtimeType"><el-option label="内部" value="internal"/><el-option label="插件" value="plugin"/><el-option label="独立应用" value="standalone"/></el-select></el-form-item><el-form-item label="启动地址"><el-input v-model="form.launchUrl" /></el-form-item><el-form-item label="数据模式"><el-select v-model="database.mode"><el-option label="共享" value="shared"/><el-option label="独立" value="dedicated"/><el-option label="外部" value="external"/></el-select></el-form-item><el-form-item v-if="database.mode !== 'shared'" label="凭证引用"><el-input v-model="database.credentialRef" placeholder="vault://..." /></el-form-item><el-form-item label="健康路径"><el-input v-model="database.healthPath" placeholder="/health" /></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="域名" name="domains"><el-form label-width="120"><el-form-item label="Identity 回调"><el-input v-model="domain.identityCallback" @input="domainTouched = true" /></el-form-item><el-form-item label="Logout 回调"><el-input v-model="domain.logoutCallback" @input="domainTouched = true" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="访问范围" name="assignments"><el-alert title="支持全部、用户、部门、角色的 allow/deny；deny 优先。" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item label="主体"><el-select v-model="assignment.subjectType"><el-option label="全部" value="all"/><el-option label="用户" value="user"/><el-option label="部门" value="department"/><el-option label="角色" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" label="主体 ID"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item label="效果"><el-radio-group v-model="assignment.effect"><el-radio value="allow">允许</el-radio><el-radio value="deny">拒绝</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane label="访问范围" name="assignments"><el-alert title="支持全部、用户、部门、角色的 allow/deny；显式拒绝始终优先。私有应用只有 user allow 可额外授权。" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item label="主体"><el-select v-model="assignment.subjectType"><el-option label="全部" value="all"/><el-option label="用户" value="user"/><el-option label="部门" value="department"/><el-option label="角色" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" label="主体 ID"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item label="效果"><el-radio-group v-model="assignment.effect"><el-radio value="allow">允许</el-radio><el-radio value="deny">拒绝</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="品牌" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item label="主色"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="OAuth" name="oauth"><el-empty description="OAuth 客户端配置将在后续阶段开放" /></el-tab-pane>
       </el-tabs>
@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { applicationApi, serializeDomainChange, type ApplicationInput, type AssignmentInput, type DatabaseInput, type DomainInput, type EnterpriseApplication } from '@/api/identity/applications';
 import { canLaunchApplication } from './applicationPolicy';
 defineOptions({ name: 'EnterpriseApplicationCenter' });
@@ -49,7 +49,16 @@ const domain = reactive<DomainInput>({ identityCallback: '', logoutCallback: '',
 const assignment = reactive<AssignmentInput>({ subjectType: 'all', effect: 'allow' });
 const statistics = computed(() => ({ total: applications.value.length, published: applications.value.filter((item) => item.status === 'published').length, inactive: applications.value.filter((item) => item.status !== 'published').length }));
 async function load() { loading.value = true; try { applications.value = (await applicationApi.list({ page: 1, pageSize: 100, keyword: keyword.value })).list; } finally { loading.value = false; } }
-async function launch(item: EnterpriseApplication) { if (!canLaunchApplication(item)) return; const { launchUrl } = await applicationApi.launch(item.id); window.location.assign(launchUrl); }
+async function launch(item: EnterpriseApplication) {
+  if (!canLaunchApplication(item)) return;
+  try {
+    const { launchUrl } = await applicationApi.launch(item.id);
+    window.location.assign(launchUrl);
+  } catch (caught) {
+    const error = caught as { code?: number; msg?: string };
+    if (error?.code === 403) ElMessage.error(error.msg || '当前账号无权进入该应用');
+  }
+}
 function resetSettings() {
   Object.assign(form, defaultForm());
   Object.assign(database, { mode: 'shared', credentialRef: '', healthPath: '', credentialConfigured: false });
@@ -60,7 +69,7 @@ function resetSettings() {
 function openCreate() { selectedId.value = 0; resetSettings(); drawerVisible.value = true; }
 async function openSettings(item: EnterpriseApplication) {
   selectedId.value = item.id; resetSettings();
-  Object.assign(form, { code: item.code, name: item.name, description: item.description, runtimeType: item.runtimeType, launchUrl: item.launchUrl, logoUrl: item.logoUrl, databaseMode: item.databaseMode, visibility: item.visibility, baseUrl: item.baseUrl, owner: item.owner });
+  Object.assign(form, { code: item.code, name: item.name, description: item.description, runtimeType: item.runtimeType, launchUrl: item.launchUrl, logoUrl: item.logoUrl, databaseMode: item.databaseMode, visibility: item.visibility, baseUrl: item.baseUrl, owner: item.owner, ownerIdentityUserId: item.ownerIdentityUserId });
   brandColor.value = typeof item.brandConfig.color === 'string' ? item.brandConfig.color : '#409eff';
   const [db, domains, assignments] = await Promise.all([applicationApi.database(item.id), applicationApi.domains(item.id), applicationApi.assignments(item.id)]);
   Object.assign(database, db); expectedDomainIds.value = domains.flatMap((entry) => entry.id === undefined ? [] : [entry.id]);

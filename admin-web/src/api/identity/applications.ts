@@ -5,22 +5,22 @@ export type ApplicationStatus = 'draft' | 'published' | 'disabled';
 export type RuntimeType = 'internal' | 'plugin' | 'standalone';
 export type DatabaseMode = 'shared' | 'dedicated' | 'external';
 
-type Visibility = 'private' | 'tenant' | 'public';
+export type Visibility = 'private' | 'tenant' | 'public';
 type DomainType = 'web' | 'admin' | 'api' | 'identity_callback' | 'logout_callback';
 
 export interface EnterpriseApplication {
   id: number; code: string; name: string; description: string; runtimeType: RuntimeType;
   launchUrl: string; status: ApplicationStatus; logoUrl?: string; brandConfig: Record<string, unknown>;
-  icon?: string; sortOrder?: number; visibility?: Visibility; databaseMode?: DatabaseMode; baseUrl?: string; owner?: string;
+  icon?: string; sortOrder?: number; visibility?: Visibility; databaseMode?: DatabaseMode; baseUrl?: string; owner?: string; ownerIdentityUserId?: number;
 }
-export interface ApplicationInput { code: string; name: string; description: string; runtimeType: RuntimeType; launchUrl: string; logoUrl?: string; brandConfig?: Record<string, unknown>; icon?: string; sortOrder?: number; visibility?: Visibility; databaseMode?: DatabaseMode; baseUrl?: string; owner?: string }
+export interface ApplicationInput { code: string; name: string; description: string; runtimeType: RuntimeType; launchUrl: string; logoUrl?: string; brandConfig?: Record<string, unknown>; icon?: string; sortOrder?: number; visibility?: Visibility; databaseMode?: DatabaseMode; baseUrl?: string; owner?: string; ownerIdentityUserId?: number }
 export interface AssignmentInput { id?: number; subjectType: 'all' | 'user' | 'department' | 'role'; subjectId?: number; effect: 'allow' | 'deny' }
 export interface DomainInput { id?: number; identityCallback: string; logoutCallback: string; domainType?: DomainType }
 export interface DatabaseInput { mode: DatabaseMode; credentialRef?: string; healthPath?: string; credentialConfigured?: boolean }
 
 interface ApplicationDto extends Omit<EnterpriseApplication, 'runtimeType' | 'launchUrl' | 'logoUrl' | 'brandConfig' | 'sortOrder' | 'databaseMode' | 'baseUrl'> {
   runtime_type: RuntimeType; launch_url: string; logo_url?: string; brand_config?: Record<string, unknown> | string | null;
-  sort_order?: number; database_mode?: DatabaseMode; base_url?: string;
+  sort_order?: number; database_mode?: DatabaseMode; base_url?: string; owner_identity_user_id?: number;
 }
 interface AssignmentDto { id?: number; subject_type: AssignmentInput['subjectType']; subject_id?: number | null; effect: AssignmentInput['effect'] }
 interface DomainDto { id?: number; domain_type?: DomainType; scheme: string; host: string; port: number; identity_callback_path?: string | null; logout_callback_path?: string | null }
@@ -41,7 +41,8 @@ export const mapApplication = (dto: ApplicationDto): EnterpriseApplication => ({
   id: dto.id, code: dto.code, name: dto.name, description: dto.description, status: dto.status,
   runtimeType: dto.runtime_type, launchUrl: dto.launch_url, logoUrl: dto.logo_url,
   brandConfig: parseBrandConfig(dto.brand_config), icon: dto.icon, sortOrder: dto.sort_order,
-  visibility: dto.visibility, databaseMode: dto.database_mode, baseUrl: dto.base_url, owner: dto.owner
+  visibility: dto.visibility, databaseMode: dto.database_mode, baseUrl: dto.base_url, owner: dto.owner,
+  ownerIdentityUserId: dto.owner_identity_user_id
 });
 export const mapAssignment = (dto: AssignmentDto): AssignmentInput => ({ id: dto.id, subjectType: dto.subject_type, subjectId: dto.subject_id ?? undefined, effect: dto.effect });
 export const mapDomain = (dto: DomainDto): DomainInput => ({ id: dto.id, domainType: dto.domain_type, identityCallback: callbackUrl(dto, dto.identity_callback_path), logoutCallback: callbackUrl(dto, dto.logout_callback_path) });

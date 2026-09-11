@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace app\console\controller\identity;
 
+use app\common\model\identity\IdentityAdminLink;
+use app\common\model\identity\IdentityUser;
+use app\common\model\identity\IdentityUserDepartment;
 use app\common\service\identity\ApplicationAssignmentService;
 use app\common\service\identity\ApplicationCatalogService;
 use app\common\service\identity\ApplicationDatabaseService;
 use app\common\service\identity\ApplicationDomainService;
 use app\common\service\identity\AdminIdentityAdapter;
 use app\console\controller\base\AdminApiController;
+use app\console\service\RoleScopeService;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
+use DomainException;
 use InvalidArgumentException;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
@@ -20,6 +25,7 @@ use think\annotation\route\Group;
 use think\annotation\route\Pattern;
 use think\annotation\route\Post;
 use think\annotation\route\Put;
+use think\facade\Session;
 use think\Response;
 
 /** 企业应用中心 Admin API。 */
@@ -77,7 +83,21 @@ final class EnterpriseApplication extends AdminApiController
 
     #[Get(':id/launch')]
     #[Pattern('id', '\d+')]
-    public function launch(int $id): Response { return $this->ok($this->catalog->launch($this->tenantId(), $id)); }
+    public function launch(int $id): Response
+    {
+        try {
+            $actor = $this->launchActor();
+            return $this->ok(data: $this->catalog->launch(
+                $actor['tenantId'],
+                $id,
+                $actor['userId'],
+                $actor['departmentIds'],
+                $actor['roleIds']
+            ));
+        } catch (DomainException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 403);
+        }
+    }
 
     #[Get(':id/assignments')]
     #[Pattern('id', '\d+')]
@@ -116,9 +136,41 @@ final class EnterpriseApplication extends AdminApiController
     #[Pattern('id', '\d+')]
     public function health(int $id): Response { return $this->ok($this->databaseService->health($this->tenantId(), $id, $this->isDevelopment())); }
 
+    /** @return array{tenantId:int,userId:int,departmentIds:array<int>,roleIds:array<int>} */
+    private function launchActor(): array
+    {
+        $adminId = (int) Session::get('admin.id', 0);
+        if ($adminId <= 0) {
+            throw new DomainException('后台登录已失效');
+        }
+
+        $links = IdentityAdminLink::where('admin_id', $adminId)->field('tenant_id,user_id')->limit(2)->select();
+        if ($links->count() !== 1) {
+            throw new DomainException('后台账号统一身份关联缺失或不唯一');
+        }
+
+        $link = $links->first();
+        $tenantId = (int) $link->tenant_id;
+        $userId = (int) $link->user_id;
+        if ($tenantId <= 0 || $userId <= 0 || !IdentityUser::forTenant($tenantId)
+            ->where('id', $userId)
+            ->where('status', 1)
+            ->find()) {
+            throw new DomainException('后台账号统一身份关联无效或身份未启用');
+        }
+        return [
+            'tenantId' => $tenantId,
+            'userId' => $userId,
+            'departmentIds' => array_map('intval', IdentityUserDepartment::forTenant($tenantId)
+                ->where('user_id', $userId)
+                ->column('department_id')),
+            'roleIds' => (new RoleScopeService())->adminRoleIds($adminId),
+        ];
+    }
+
     private function tenantId(): int
     {
-        $tenantId = (int) ($this->request->tenant_id ?? AdminIdentityAdapter::TENANT_ID);
+        $tenantId = AdminIdentityAdapter::TENANT_ID;
         if ($tenantId <= 0) throw new InvalidArgumentException('租户 ID 无效');
         return $tenantId;
     }

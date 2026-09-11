@@ -22,6 +22,14 @@ describe('企业应用中心', () => {
     expect(read('views/applications/index.vue')).not.toMatch(/[?&](?:token|access_token)=/);
   });
 
+  it('启动被准入策略拒绝时明确显示 403 提示且不跳转', () => {
+    const page = read('views/applications/index.vue');
+    expect(page).toContain("import { ElMessage, ElMessageBox } from 'element-plus'");
+    expect(page).toContain("error?.code === 403");
+    expect(page).toContain("ElMessage.error(error.msg || '当前账号无权进入该应用')");
+    expect(page).toMatch(/catch\s*\([^)]*\)/);
+  });
+
   it('提供卡片列表、统计搜索、应用管理和完整设置抽屉', () => {
     const page = read('views/applications/index.vue');
     for (const marker of ['viewMode', 'statistics', 'keyword', '新建应用', '发布', '停用', '删除', '进入应用', '基本信息', '运行与数据', '域名', '访问范围', '品牌', 'OAuth']) {
@@ -29,6 +37,17 @@ describe('企业应用中心', () => {
     }
     expect(page).toContain('applicationApi.domains');
     expect(page).toContain('applicationApi.assignments');
+  });
+
+  it('只展示 schema 支持的 visibility 并明确说明启动语义', () => {
+    const page = read('views/applications/index.vue');
+    for (const visibility of ['value="private"', 'value="tenant"', 'value="public"']) expect(page).toContain(visibility);
+    expect(page).not.toContain('value="assigned"');
+    expect(page).not.toContain('value="default"');
+    expect(page).toContain('显式拒绝始终优先');
+    expect(page).toContain('私有仅所有者或显式用户允许可进入');
+    expect(page).toContain('租户与公开允许同租户已启用身份进入');
+    expect(page).toContain('ownerIdentityUserId');
   });
 
   it('完整映射应用、database、domains、assignments 与 branding 的 snake_case DTO', () => {
@@ -44,8 +63,9 @@ describe('企业应用中心', () => {
       brand_config: '{"color":"#112233"}',
       sort_order: 9,
       database_mode: 'external',
-      base_url: 'https://app.example.com/base'
-    })).toMatchObject({ runtimeType: 'standalone', launchUrl: 'https://app.example.com', logoUrl: '/logo.svg', brandConfig: { color: '#112233' }, sortOrder: 9, databaseMode: 'external', baseUrl: 'https://app.example.com/base' });
+      base_url: 'https://app.example.com/base',
+      owner_identity_user_id: 23
+    })).toMatchObject({ runtimeType: 'standalone', launchUrl: 'https://app.example.com', logoUrl: '/logo.svg', brandConfig: { color: '#112233' }, sortOrder: 9, databaseMode: 'external', baseUrl: 'https://app.example.com/base', ownerIdentityUserId: 23 });
     expect(mapDatabase({ mode: 'external', credential_ref: 'vault://tenant/crm', health_path: '/health', credential_configured: true })).toEqual({ mode: 'external', credentialRef: 'vault://tenant/crm', healthPath: '/health', credentialConfigured: true });
     expect(mapAssignment({ id: 3, subject_type: 'department', subject_id: 11, effect: 'deny' })).toMatchObject({ id: 3, subjectType: 'department', subjectId: 11, effect: 'deny' });
     expect(mapDomain({ id: 5, domain_type: 'web', scheme: 'https', host: 'app.example.com', port: 443, identity_callback_path: '/identity', logout_callback_path: '/logout' })).toEqual({ id: 5, domainType: 'web', identityCallback: 'https://app.example.com/identity', logoutCallback: 'https://app.example.com/logout' });

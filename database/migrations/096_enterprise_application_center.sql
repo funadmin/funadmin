@@ -4,13 +4,15 @@ CREATE TABLE IF NOT EXISTS `fun_enterprise_application` (
   `code` varchar(64) NOT NULL, `name` varchar(100) NOT NULL, `description` varchar(500) NOT NULL DEFAULT '',
   `icon` varchar(255) NULL, `sort_order` int NOT NULL DEFAULT 0, `visibility` enum('private','tenant','public') NOT NULL DEFAULT 'tenant',
   `runtime_type` enum('internal','plugin','standalone') NOT NULL, `database_mode` enum('shared','dedicated','external') NOT NULL DEFAULT 'shared',
-  `launch_url` varchar(2048) NOT NULL, `base_url` varchar(2048) NULL, `owner` varchar(100) NULL,
+  `launch_url` varchar(2048) NOT NULL, `base_url` varchar(2048) NULL, `owner` varchar(100) NULL, `owner_identity_user_id` bigint unsigned NULL,
   `status` enum('draft','published','disabled') NOT NULL DEFAULT 'draft', `logo_url` varchar(255) NULL,
   `brand_config` json NULL, `oauth_config` json NULL, `published_at` datetime NULL,
   `created_at` datetime NULL, `updated_at` datetime NULL, `deleted_at` datetime NULL,
   PRIMARY KEY (`id`), UNIQUE KEY `uk_enterprise_application_tenant_id` (`tenant_id`,`id`), UNIQUE KEY `uk_enterprise_application_public` (`tenant_id`,`public_id`),
   UNIQUE KEY `uk_enterprise_application_code` (`tenant_id`,`code`), KEY `idx_enterprise_application_status` (`tenant_id`,`status`,`deleted_at`),
-  CONSTRAINT `fk_enterprise_application_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `fun_identity_tenant` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+  KEY `idx_enterprise_application_owner_identity_user` (`owner_identity_user_id`),
+  CONSTRAINT `fk_enterprise_application_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `fun_identity_tenant` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_enterprise_application_owner_identity_user` FOREIGN KEY (`owner_identity_user_id`) REFERENCES `fun_identity_user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业应用目录';
 
 CREATE TABLE IF NOT EXISTS `fun_application_database` (

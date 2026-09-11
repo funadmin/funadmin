@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace app\console\service;
 
+use Closure;
 use RuntimeException;
 
 /** nonce、digest、模式快照与 CAS 共同约束的一次性审批服务。 */
 final class AiApprovalService
 {
-    private $clock;
+    private readonly Closure $clock;
 
     public function __construct(private readonly AiSecurityStore $store, ?callable $clock = null)
     {
-        $this->clock = $clock ?? time(...);
+        $this->clock = $clock === null ? time(...) : Closure::fromCallable($clock);
     }
 
     public function pending(int $adminId): array

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace app\common\service\identity;
 
+use app\common\model\identity\ApplicationAssignment;
 use app\common\model\identity\EnterpriseApplication;
+use app\common\model\identity\IdentityUser;
 use DomainException;
 use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
@@ -38,6 +40,11 @@ final class ApplicationCatalogService
         if (!in_array($databaseMode, ['shared', 'dedicated', 'external'], true) || !in_array($visibility, ['private', 'tenant', 'public'], true)) {
             throw new InvalidArgumentException('数据模式或可见性无效');
         }
+        $ownerIdentityUserId = $input['ownerIdentityUserId'] ?? $input['owner_identity_user_id'] ?? null;
+        if ($ownerIdentityUserId !== null && (!is_numeric($ownerIdentityUserId) || (int) $ownerIdentityUserId <= 0
+            || !IdentityUser::forTenant($tenantId)->where('id', (int) $ownerIdentityUserId)->where('status', 1)->find())) {
+            throw new InvalidArgumentException('应用所有者统一身份无效');
+        }
         $row = [
             'tenant_id' => $tenantId,
             'code' => strtolower(trim((string) ($input['code'] ?? ''))),
@@ -51,6 +58,7 @@ final class ApplicationCatalogService
             'launch_url' => $this->urlPolicy->normalizeLaunchUrl($runtimeType, (string) ($input['launchUrl'] ?? $input['launch_url'] ?? ''), $development, $sameOriginHost),
             'base_url' => ($baseUrl = trim((string) ($input['baseUrl'] ?? $input['base_url'] ?? ''))) === '' ? null : $this->urlPolicy->normalizeLaunchUrl($runtimeType, $baseUrl, $development, $sameOriginHost),
             'owner' => ($owner = trim((string) ($input['owner'] ?? ''))) === '' ? null : $owner,
+            'owner_identity_user_id' => $ownerIdentityUserId === null ? null : (int) $ownerIdentityUserId,
             'logo_url' => ($logo = trim((string) ($input['logoUrl'] ?? $input['logo_url'] ?? ''))) === '' ? null : $logo,
             'brand_config' => json_encode((array) ($input['brandConfig'] ?? $input['brand_config'] ?? []), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
@@ -89,13 +97,35 @@ final class ApplicationCatalogService
         $application->delete();
     }
 
-    public function launch(int $tenantId, int $applicationId): array
+    public function launch(int $tenantId, int $applicationId, int $userId, array $departmentIds, array $roleIds): array
     {
         $application = $this->application($tenantId, $applicationId);
         if ($application->status !== 'published') {
             throw new DomainException('草稿或已禁用应用不可进入');
         }
-        return ['launchUrl' => (string) $application->launch_url];
+
+        $assignments = ApplicationAssignment::forTenant($tenantId)
+            ->where('application_id', $applicationId)
+            ->where('status', 1)
+            ->select()
+            ->toArray();
+        if (!ApplicationAssignmentService::canLaunch(
+            (string) $application->visibility,
+            $application->owner_identity_user_id === null ? null : (int) $application->owner_identity_user_id,
+            $assignments,
+            $userId,
+            $departmentIds,
+            $roleIds
+        )) {
+            throw new DomainException('当前账号未获准进入该应用');
+        }
+
+        return [
+            'applicationId' => (int) $application->id,
+            'code' => (string) $application->code,
+            'runtimeType' => (string) $application->runtime_type,
+            'launchUrl' => (string) $application->launch_url,
+        ];
     }
 
     private function application(int $tenantId, int $applicationId): EnterpriseApplication
