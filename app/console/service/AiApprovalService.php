@@ -51,8 +51,13 @@ final class AiApprovalService
         return array_replace($approval, ['status'=>$status,'scope'=>$scope,'cas_version'=>$version + 1]);
     }
 
-    public function hasSessionApproval(int $conversationId, string $operation, string $mode): bool
+    public function hasSessionApproval(int $conversationId, int $adminId, string $operation, string $mode): bool
     {
-        return $this->store->approvedSessionOperation($conversationId, $operation, $mode) !== null;
+        return $this->store->approvedSessionOperation($conversationId, $adminId, $operation, $mode) !== null;
+    }
+
+    public function consumeOnce(int $toolCallId, int $conversationId, int $adminId, string $operation, string $mode): bool
+    {
+        return $this->store->consumeOnceApproval($toolCallId, $conversationId, $adminId, $operation, $mode) !== null;
     }
 }
