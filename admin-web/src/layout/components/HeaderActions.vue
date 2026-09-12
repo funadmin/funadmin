@@ -31,10 +31,6 @@
       </template>
     </el-dropdown>
 
-    <button class="app-btn-icon" :title="t('layout.layoutSetting')" @click="openSetting">
-      <i class="i-ep-setting" />
-    </button>
-
     <el-divider direction="vertical" class="!h-5 !mx-2" />
 
     <el-dropdown trigger="click" @command="onUserCmd">
