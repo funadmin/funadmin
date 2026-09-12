@@ -20,7 +20,7 @@ final class OpaqueTokenService
     {
         return Db::transaction(function () use ($tenantId, $clientId, $userId, $scopeIds, $authorizationId, $familyId, $parentId, $generation, $sessionId): array {
             if ($userId !== null) $familyId ??= self::uuid();
-            $scopeNames = $this->scopeNames($scopeIds);
+            $scopeNames = $this->scopeNames($tenantId, $scopeIds);
             $access = $this->persist('access', $tenantId, $clientId, $userId, $scopeIds, time() + 900, $familyId, null, $generation, $authorizationId, $sessionId);
             $result = ['access_token' => $access['plain'], 'token_type' => 'Bearer', 'expires_in' => 900, 'scope' => implode(' ', $scopeNames)];
             if ($userId !== null && in_array('offline_access', $scopeNames, true)) {
@@ -101,7 +101,7 @@ final class OpaqueTokenService
         if ($user && array_key_exists('password_version', $token->toArray()) && (int) $token->password_version !== (int) $user->password_version) return ['active' => false];
         if ($user && array_key_exists('session_version', $token->toArray()) && (int) $token->session_version !== (int) $user->session_version) return ['active' => false];
         $member = $user ? IdentityMemberLink::forTenant((int) $token->tenant_id)->where('user_id', (int) $token->user_id)->find() : null;
-        return ['active' => true, 'client_id' => (string) $client->client_id, 'sub' => $user ? (string) $user->public_id : (string) $client->client_id, 'scope' => implode(' ', $this->scopeNames($scopeIds)), 'exp' => strtotime((string) $token->expires_at), 'token_type' => 'Bearer', 'member_id' => $member ? (int) $member->member_id : null, '_record' => $token->toArray()];
+        return ['active' => true, 'client_id' => (string) $client->client_id, 'sub' => $user ? (string) $user->public_id : (string) $client->client_id, 'scope' => implode(' ', $this->scopeNames((int) $token->tenant_id, $scopeIds)), 'exp' => strtotime((string) $token->expires_at), 'token_type' => 'Bearer', 'member_id' => $member ? (int) $member->member_id : null, '_record' => $token->toArray()];
     }
 
     private function persist(string $type, int $tenantId, int $clientId, ?int $userId, array $scopeIds, int $expires, ?string $family, ?int $parent, int $generation, ?int $authorizationId, ?string $sessionId): array
@@ -127,10 +127,10 @@ final class OpaqueTokenService
         return Db::query('SELECT COUNT(*) AS total FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?', ['fun_oauth_token', $column])[0]['total'] > 0;
     }
 
-    private function scopeNames(array $scopeIds): array
+    private function scopeNames(int $tenantId, array $scopeIds): array
     {
         if ($scopeIds === []) return [];
-        return (new \app\common\model\identity\OAuthScope())->whereIn('id', $scopeIds)->column('name');
+        return \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $scopeIds)->column('name');
     }
 
     private static function uuid(): string

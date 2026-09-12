@@ -120,14 +120,14 @@ final class OAuth
     private function authorizationCode(Request $request, ClientEntity $client, array $scopeIds): array
     {
         $code = (new AuthorizationTransactionService())->consumeCode((string) $request->post('code', ''), $client->databaseId, (string) $request->post('redirect_uri', ''), (string) $request->post('code_verifier', ''));
-        $original = (new \app\common\model\identity\OAuthAuthorizationScope())->where('authorization_id', $code['authorization_id'])->column('scope_id');
+        $original = \app\common\model\identity\OAuthAuthorizationScope::forTenant($client->tenantId)->where('authorization_id', $code['authorization_id'])->column('scope_id');
         if ($scopeIds !== [] && array_diff($scopeIds, $original) !== []) throw new DomainException('invalid_scope');
         $granted = $scopeIds ?: $original;
         $authorization = \app\common\model\identity\OAuthAuthorization::forTenant($client->tenantId)->where('id', $code['authorization_id'])->find();
         if (!$authorization) throw new DomainException('invalid_grant');
         $tokens = (new OpaqueTokenService())->issue($client->tenantId, $client->databaseId, (int) $code['user_id'], $granted, (int) $code['authorization_id'], sessionId: (string) $authorization->session_id);
-        if (in_array('openid', $this->scopeNames($granted), true)) {
-            $tokens['id_token'] = (new IdTokenService())->issue($client->tenantId, (int) $code['user_id'], $client->databaseId, $client->getIdentifier(), $this->scopeNames($granted), strtotime((string) $authorization->auth_time), $code['nonce'] ?: null, (string) $authorization->session_id);
+        if (in_array('openid', $this->scopeNames($client->tenantId, $granted), true)) {
+            $tokens['id_token'] = (new IdTokenService())->issue($client->tenantId, (int) $code['user_id'], $client->databaseId, $client->getIdentifier(), $this->scopeNames($client->tenantId, $granted), strtotime((string) $authorization->auth_time), $code['nonce'] ?: null, (string) $authorization->session_id);
         }
         return $tokens;
     }
@@ -135,7 +135,7 @@ final class OAuth
     private function clientCredentials(ClientEntity $client, array $scopeIds): array
     {
         if ($client->clientType !== 'machine') throw new DomainException('unauthorized_client');
-        \app\common\service\identity\OAuthScopeService::validateMachineScopes($this->scopeNames($scopeIds));
+        \app\common\service\identity\OAuthScopeService::validateMachineScopes($this->scopeNames($client->tenantId, $scopeIds));
         return (new OpaqueTokenService())->issue($client->tenantId, $client->databaseId, null, $scopeIds);
     }
 
@@ -162,7 +162,7 @@ final class OAuth
         return (new OAuthScopeService())->resolveIds($client->tenantId, $names);
     }
 
-    private function scopeNames(array $ids): array { return $ids === [] ? [] : (new \app\common\model\identity\OAuthScope())->whereIn('id', $ids)->column('name'); }
+    private function scopeNames(int $tenantId, array $ids): array { return $ids === [] ? [] : \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $ids)->column('name'); }
     private function appendQuery(string $uri, array $parameters): string { return $uri . (str_contains($uri, '?') ? '&' : '?') . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986); }
     private function redirectError(string $uri, string $error, ?string $state): Response { $params = ['error' => $error]; if ($state !== null) $params['state'] = $state; return redirect($this->appendQuery($uri, $params)); }
     private function error(string $error, int $status): Json

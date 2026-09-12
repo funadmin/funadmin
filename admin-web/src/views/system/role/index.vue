@@ -1,23 +1,28 @@
 <template>
   <PageWrapper title="角色管理" subtitle="维护角色层级、基本信息与授权">
-    <template #extra>
-      <div class="role-toolbar">
-        <el-button type="primary" v-perm="'system:role:add'" @click="startCreate()"><i class="i-ep-plus" /> 添加顶级角色</el-button>
-        <el-input v-model="keyword" placeholder="搜索角色" clearable class="role-toolbar__search" />
-        <el-button @click="setExpanded(true)"><i class="i-ep-expand" /> 展开全部</el-button>
-        <el-button @click="setExpanded(false)"><i class="i-ep-fold" /> 折叠全部</el-button>
-        <el-button :loading="loading" @click="loadRoles(activeRole?.id)"><i class="i-ep-refresh" /> 刷新</el-button>
-      </div>
-    </template>
-
     <div class="role-workspace">
-      <aside class="role-workspace__tree">
+      <aside class="role-tree-card role-workspace__tree">
+        <div class="role-tree-card__header">
+          <div>
+            <h3>角色目录</h3>
+            <span>{{ roles.length }} 个角色</span>
+          </div>
+          <el-button type="primary" link v-perm="'system:role:add'" @click="startCreate()"><i class="i-ep-plus" /> 新增</el-button>
+        </div>
+        <el-input v-model="keyword" placeholder="搜索角色名称或标识" clearable class="role-tree-card__search" />
         <el-tree ref="treeRef" :data="filteredTree" node-key="id" :props="{ label: 'name', children: 'children' }" highlight-current default-expand-all :current-node-key="activeRole?.id" @node-click="selectRole" @node-contextmenu="openContextMenu">
           <template #default="{ data }"><span class="role-node"><span>{{ data.name }}</span><el-tag :type="data.status === 1 ? 'success' : 'info'" size="small">{{ data.status === 1 ? '启用' : '禁用' }}</el-tag></span></template>
         </el-tree>
       </aside>
 
-      <main class="role-workspace__detail">
+      <main class="role-detail-card role-workspace__detail">
+        <div class="role-workspace__toolbar">
+          <div class="role-toolbar__actions">
+            <el-button @click="setExpanded(true)"><i class="i-ep-expand" /> 展开全部</el-button>
+            <el-button @click="setExpanded(false)"><i class="i-ep-fold" /> 折叠全部</el-button>
+            <el-button :loading="loading" @click="loadRoles(activeRole?.id)"><i class="i-ep-refresh" /> 刷新</el-button>
+          </div>
+        </div>
         <el-empty v-if="!activeRole && mode === 'view'" description="请选择角色或添加顶级角色" />
         <template v-else>
           <header class="role-detail__header">
@@ -127,5 +132,22 @@ onMounted(() => { document.addEventListener('click', closeContextMenu); void loa
 </script>
 
 <style scoped>
-.role-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }.role-toolbar__search { width: 220px; }.role-workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 190px); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; overflow: hidden; }.role-workspace__tree { padding: 16px; overflow: auto; border-right: 1px solid var(--el-border-color-lighter); background: var(--el-fill-color-lighter); }.role-workspace__detail { min-width: 0; padding: 0 20px 20px; overflow: auto; }.role-node { display: flex; width: 100%; justify-content: space-between; align-items: center; padding-right: 8px; }.role-detail__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--el-border-color-lighter); }.role-detail__header h3 { margin: 0 0 4px; }.role-detail__header span,.form-tip { color: var(--el-text-color-secondary); font-size: 12px; }.role-form { max-width: 820px; padding-top: 20px; }.role-form__actions { display: flex; justify-content: flex-end; gap: 8px; }.inheritance-info { display: grid; gap: 20px; padding: 20px; }.inheritance-info h4 { margin: 0 0 10px; }.inheritance-tags { display: flex; flex-wrap: wrap; gap: 8px; }.inheritance-source { margin-left: 12px; color: var(--el-text-color-secondary); }.role-context-menu { position: fixed; z-index: 4000; width: 168px; padding: 6px; border: 1px solid var(--el-border-color); border-radius: 6px; background: var(--el-bg-color-overlay); box-shadow: var(--el-box-shadow-light); }.role-context-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; background: transparent; text-align: left; cursor: pointer; }.role-context-menu button:hover { background: var(--el-fill-color-light); }.role-context-menu .danger { color: var(--el-color-danger); }@media (max-width: 900px) { .role-workspace { grid-template-columns: 220px minmax(0, 1fr); } }
+.role-workspace { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); min-height: calc(100vh - 190px); gap: 16px; }
+.role-tree-card, .role-detail-card { border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); box-shadow: 0 4px 18px rgb(15 23 42 / 4%); }
+.role-workspace__tree { padding: 0 14px 14px; overflow: auto; }
+.role-tree-card__header { display: flex; align-items: center; justify-content: space-between; padding: 18px 4px 14px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.role-tree-card__header h3 { margin: 0 0 4px; font-size: 15px; color: var(--el-text-color-primary); }
+.role-tree-card__header span { color: var(--el-text-color-secondary); font-size: 12px; }
+.role-tree-card__search { margin: 14px 0 10px; }
+.role-detail-card { min-width: 0; padding: 0 22px 22px; overflow: auto; }
+.role-workspace__toolbar { display: flex; justify-content: flex-end; padding: 14px 0 10px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.role-toolbar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.role-node { display: flex; width: 100%; justify-content: space-between; align-items: center; padding-right: 8px; }
+.role-detail__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
+.role-detail__header h3 { margin: 0 0 4px; }.role-detail__header span,.form-tip { color: var(--el-text-color-secondary); font-size: 12px; }
+.role-form { max-width: 820px; padding-top: 20px; }.role-form__actions { display: flex; justify-content: flex-end; gap: 8px; }
+.inheritance-info { display: grid; gap: 20px; padding: 20px; }.inheritance-info h4 { margin: 0 0 10px; }.inheritance-tags { display: flex; flex-wrap: wrap; gap: 8px; }.inheritance-source { margin-left: 12px; color: var(--el-text-color-secondary); }
+.role-context-menu { position: fixed; z-index: 4000; width: 168px; padding: 6px; border: 1px solid var(--el-border-color); border-radius: 6px; background: var(--el-bg-color-overlay); box-shadow: var(--el-box-shadow-light); }.role-context-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; background: transparent; text-align: left; cursor: pointer; }.role-context-menu button:hover { background: var(--el-fill-color-light); }.role-context-menu .danger { color: var(--el-color-danger); }
+@media (max-width: 900px) { .role-workspace { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: 10px; }.role-detail-card { padding: 0 14px 14px; } }
+@media (max-width: 680px) { .role-workspace { grid-template-columns: 1fr; }.role-workspace__tree { max-height: 320px; }.role-workspace__toolbar { justify-content: flex-start; } }
 </style>
