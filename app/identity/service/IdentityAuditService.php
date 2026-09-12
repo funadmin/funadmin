@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace app\identity\service;
 
 use app\common\model\identity\IdentityAuditLog;
+use think\facade\Db;
 
 /** 写入不含 token、code、secret、密码或原始网络标识的协议审计。 */
 final class IdentityAuditService
 {
     public function record(int $tenantId, string $event, bool $success, ?int $userId = null, ?int $clientId = null, array $context = [], ?string $subject = null, ?string $ip = null): void
     {
+        if (!in_array((string) config('database.connections.mysql.prefix') . 'identity_audit_log', Db::connect()->getTables(), true)) return;
         $safe = array_intersect_key($context, array_flip(['reason', 'grant_type', 'global', 'delivery_id', 'response_status', 'source', 'fields', 'realm']));
         IdentityAuditLog::create([
             'tenant_id' => $tenantId, 'user_id' => $userId, 'client_id' => $clientId,
