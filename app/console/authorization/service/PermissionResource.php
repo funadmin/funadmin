@@ -65,6 +65,15 @@ class PermissionResource
         $appName = self::normalizeSegment($appName);
         $controller = self::normalizeController($controller);
         $action = self::normalizeSegment($action ?: 'index');
+        if ($appName === 'console' && $controller === 'development.ai') {
+            $action = match ($action) {
+                'conversationgroupindex' => 'conversationindex',
+                'conversationgroupcreate' => 'conversationcreate',
+                'conversationgroupupdate', 'conversationstateupdate' => 'conversationupdate',
+                'conversationgroupdelete' => 'conversationdelete',
+                default => $action,
+            };
+        }
         if ($appName === '' || $controller === '' || $action === '') {
             throw new InvalidArgumentException('权限资源不能为空');
         }

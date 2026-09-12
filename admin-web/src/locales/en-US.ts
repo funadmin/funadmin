@@ -37,6 +37,14 @@ export default {
     task: 'Task',
     workspace: 'Workspace',
     conversations: 'Conversations',
+    management: {
+      createGroup: 'New group', deleteGroup: 'Delete group', groupName: 'Group name', ungrouped: 'Ungrouped',
+      rename: 'Rename', move: 'Move to group', archive: 'Archive', restore: 'Restore', delete: 'Delete',
+      archived: 'Archived', active: 'Back to conversations', unread: 'Unread', markRead: 'Mark as read', markUnread: 'Mark as unread', actions: 'Conversation actions',
+      title: 'Conversation title', confirm: 'Confirm', cancel: 'Cancel', required: 'Name cannot be empty',
+      deleteGroupConfirm: 'Deleting this group will archive all its conversations. Continue?', deleteConfirm: 'Delete this conversation? This cannot be undone.',
+      failed: 'Conversation operation failed. Please retry.', syncFailed: 'Messages or read status could not be synchronized. Reopen the conversation.'
+    },
     newConversation: 'New',
     unnamedConversation: 'Untitled conversation',
     noConversations: 'No conversations',

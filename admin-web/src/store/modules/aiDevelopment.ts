@@ -22,6 +22,7 @@ const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 const TERMINAL_TASK_STATUSES: AiTask['status'][] = ['succeeded', 'failed', 'cancelled'];
 const EVENT_TYPES = [
+  'assistant.message',
   'task.created',
   'task.started',
   'task.progress',
@@ -62,7 +63,13 @@ interface AiDevelopmentState {
   eventSource: AiEventSourceLike | null;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
   connectionGeneration: number;
+  selectionGeneration: number;
+  messageGeneration: number;
+  syncError: boolean;
 }
+
+// 同一会话的状态写入串行执行，避免手动未读被较早的自动已读覆盖。
+const stateQueues = new WeakMap<object, Map<number, Promise<unknown>>>();
 
 function readRouteState(): RouteState {
   try {
@@ -90,7 +97,10 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
     reconnectDelay: 0,
     eventSource: null,
     reconnectTimer: null,
-    connectionGeneration: 0
+    connectionGeneration: 0,
+    selectionGeneration: 0,
+    messageGeneration: 0,
+    syncError: false
   }),
 
   actions: {
@@ -103,8 +113,9 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
     },
 
     async restoreRouteState() {
-      this.closeEvents();
       const restored = readRouteState();
+      this.clearWorkspace();
+      const generation = this.selectionGeneration;
       this.selectedConversationId = restored.selectedConversationId ?? null;
       this.restoredTaskId = restored.taskId ?? null;
       this.eventCursor = restored.cursor ?? 0;
@@ -115,32 +126,43 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.toolCalls = [];
       this.changeSet = null;
       this.reconnectDelay = 0;
-      [this.conversations, this.conversationGroups] = await Promise.all([
+      const [conversations, groups] = await Promise.all([
         aiDevelopmentApi.conversations(),
         aiDevelopmentApi.conversationGroups()
       ]);
+      if (generation !== this.selectionGeneration) return;
+      this.conversations = conversations;
+      this.conversationGroups = groups;
       if (this.selectedConversationId !== null) {
+        const id = this.selectedConversationId;
         const [conversation, messages] = await Promise.all([
           aiDevelopmentApi.conversation(this.selectedConversationId),
           aiDevelopmentApi.messages(this.selectedConversationId)
         ]);
+        if (generation !== this.selectionGeneration) return;
+        if (conversation.is_archived) { this.clearWorkspace(); return; }
         const index = this.conversations.findIndex((item) => item.id === conversation.id);
         if (index >= 0) this.conversations[index] = conversation;
         else this.conversations.unshift(conversation);
         this.messages = messages;
+        await this.markViewedRead(id, generation);
+        if (generation !== this.selectionGeneration) return;
         if (this.restoredTaskId !== null) {
           try {
             const task = await aiDevelopmentApi.task(this.restoredTaskId);
+            if (generation !== this.selectionGeneration) return;
             if (task.id === this.restoredTaskId && task.conversation_id === this.selectedConversationId && this.conversations.some((item) => item.id === this.selectedConversationId)) {
               this.activeTask = task;
             } else {
               this.restoredTaskId = null;
             }
           } catch {
+            if (generation !== this.selectionGeneration) return;
             this.restoredTaskId = null;
           }
         }
       }
+      this.saveRouteState();
     },
 
     activateTask(task: AiTask | null) {
@@ -154,23 +176,83 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.changeSet = null;
     },
 
+    clearWorkspace() {
+      this.selectionGeneration += 1;
+      this.messageGeneration += 1;
+      this.activateTask(null);
+      this.selectedConversationId = null;
+      this.messages = [];
+      this.approvedFinalApproval = null;
+      this.reconnectDelay = 0;
+      this.syncError = false;
+      this.saveRouteState();
+    },
+
+    async updateConversationState(id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>, guard?: () => boolean) {
+      let queue = stateQueues.get(this);
+      if (!queue) { queue = new Map(); stateQueues.set(this, queue); }
+      const request = (queue.get(id) ?? Promise.resolve()).catch(() => {}).then(async () => {
+        if (guard && !guard()) return;
+        const updated = await aiDevelopmentApi.updateConversationState(id, payload);
+        if (guard && !guard()) return;
+        const current = this.conversations.find((item) => item.id === id);
+        // 只合并本次修改字段，避免完整响应覆盖并发改名、移动等操作。
+        if (current) for (const key of Object.keys(payload) as Array<keyof typeof payload>) {
+          Object.assign(current, { [key]: updated[key] });
+        }
+        if (payload.is_archived && this.selectedConversationId === id) this.clearWorkspace();
+      });
+      queue.set(id, request);
+      try { await request; } finally { if (queue.get(id) === request) queue.delete(id); }
+    },
+
+    async markViewedRead(id: number, generation: number) {
+      const current = () => this.selectedConversationId === id && this.selectionGeneration === generation;
+      if (!current()) return;
+      await this.updateConversationState(id, { is_unread: false }, current);
+    },
+
+    async refreshViewedMessages(id: number) {
+      if (this.selectedConversationId !== id) return;
+      const generation = this.selectionGeneration;
+      const refresh = ++this.messageGeneration;
+      try {
+        const messages = await aiDevelopmentApi.messages(id);
+        if (generation !== this.selectionGeneration || refresh !== this.messageGeneration || this.selectedConversationId !== id) return;
+        this.messages = messages;
+        await this.markViewedRead(id, generation);
+      } catch {
+        if (generation === this.selectionGeneration) this.syncError = true;
+      }
+    },
+
+    async deleteConversation(id: number) {
+      await aiDevelopmentApi.deleteConversation(id);
+      this.conversations = this.conversations.filter((item) => item.id !== id);
+      if (this.selectedConversationId === id) this.clearWorkspace();
+    },
+
+    async deleteConversationGroup(id: number) {
+      await aiDevelopmentApi.deleteConversationGroup(id);
+      this.conversationGroups = this.conversationGroups.filter((group) => group.id !== id);
+      for (const item of this.conversations) {
+        if (item.group_id !== id) continue;
+        Object.assign(item, { group_id: null, is_archived: true });
+        if (this.selectedConversationId === item.id) this.clearWorkspace();
+      }
+    },
+
     async selectConversation(id: number) {
-      const generation = this.connectionGeneration + 1;
-      this.closeEvents();
+      this.clearWorkspace();
+      const generation = this.selectionGeneration;
       this.selectedConversationId = id;
-      this.activeTask = null;
-      this.restoredTaskId = null;
-      this.events = [];
-      this.eventCursor = 0;
-      this.approvals = [];
-      this.toolCalls = [];
-      this.changeSet = null;
       const [conversation, messages] = await Promise.all([aiDevelopmentApi.conversation(id), aiDevelopmentApi.messages(id)]);
-      if (generation !== this.connectionGeneration || this.selectedConversationId !== id) return;
+      if (generation !== this.selectionGeneration || this.selectedConversationId !== id) return;
       const index = this.conversations.findIndex((item) => item.id === id);
       if (index >= 0) this.conversations[index] = conversation;
       this.messages = messages;
       this.saveRouteState();
+      await this.markViewedRead(id, generation);
     },
 
     closeEvents() {
@@ -210,6 +292,12 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         }
         this.eventCursor = id;
         this.events.push({ id, taskId, type: event.type, payload });
+        if (['assistant.message', 'task.completed', 'task.succeeded', 'task.failed', 'task.cancelled'].includes(event.type)) {
+          const conversationId = this.activeTask.conversation_id;
+          const conversation = this.conversations.find((item) => item.id === conversationId);
+          if (conversation) conversation.is_unread = true;
+          void this.refreshViewedMessages(conversationId);
+        }
         if (['task.succeeded', 'task.failed', 'task.cancelled'].includes(event.type)) {
           this.activeTask = { ...this.activeTask, status: event.type.replace('task.', '') as AiTask['status'] };
           this.closeEvents();
@@ -288,6 +376,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       if (!this.activeTask) return;
       const taskId = this.activeTask.id;
       await aiDevelopmentApi.cancelTask(taskId);
+      if (this.activeTask?.id !== taskId) return;
       this.closeEvents();
       this.activeTask = { ...this.activeTask, status: 'cancelled' };
       this.saveRouteState();

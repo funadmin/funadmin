@@ -22,17 +22,27 @@ final class AiConversationService
     public function createConversation(int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         if ($adminId <= 0) throw new InvalidArgumentException('管理员无效');
-        $approvalMode = (string) ($input['approval_mode'] ?? 'request_approval');
+        $this->validateFields($input, ['title', 'approval_mode', 'provider', 'model', 'context', 'group_id'], false);
+        $groupId = $this->validateGroupId($input['group_id'] ?? null, $adminId);
+        $title = array_key_exists('title', $input) ? $this->validateName($input['title'], 255) : '';
+        foreach (['approval_mode', 'provider', 'model'] as $field) {
+            if (array_key_exists($field, $input) && (!is_string($input[$field]) || mb_strlen($input[$field]) > 100)) throw new InvalidArgumentException($field . ' 必须为不超过 100 字符的字符串');
+        }
+        if (array_key_exists('context', $input) && !is_array($input['context'])) throw new InvalidArgumentException('context 必须为对象或数组');
+        $approvalMode = $input['approval_mode'] ?? 'request_approval';
         $this->assertModeAuthorized($approvalMode, $fullAccessAuthorized, $approveAuthorized);
         return $this->store->createConversation([
             'admin_id' => $adminId,
             'uuid' => Uuid::uuid4()->toString(),
-            'title' => mb_substr(trim((string) ($input['title'] ?? '')), 0, 255),
+            'title' => $title,
             'status' => 'draft',
             'approval_mode' => $approvalMode,
             'provider' => (string) ($input['provider'] ?? ''),
             'model' => (string) ($input['model'] ?? ''),
             'context' => (array) ($input['context'] ?? []),
+            'group_id' => $groupId,
+            'is_archived' => false,
+            'is_unread' => false,
         ]);
     }
 
@@ -48,35 +58,35 @@ final class AiConversationService
 
     public function createConversationGroup(int $adminId, array $input): array
     {
-        $name = trim((string) ($input['name'] ?? ''));
-        if ($name === '') throw new InvalidArgumentException('分组名称不能为空');
-        return $this->store->createConversationGroup(['admin_id' => $adminId, 'name' => mb_substr($name, 0, 100)]);
+        if ($adminId <= 0) throw new InvalidArgumentException('管理员无效');
+        $this->validateFields($input, ['name']);
+        $name = $this->validateName($input['name'] ?? null, 100);
+        return $this->store->createConversationGroup(['admin_id' => $adminId, 'name' => $name]);
     }
 
     public function updateConversationGroup(int $id, int $adminId, array $input): array
     {
         $this->ownedGroup($id, $adminId);
-        $name = trim((string) ($input['name'] ?? ''));
-        if ($name === '') throw new InvalidArgumentException('分组名称不能为空');
-        $this->store->updateConversationGroup($id, $adminId, ['name' => mb_substr($name, 0, 100)]);
+        $this->validateFields($input, ['name']);
+        $name = $this->validateName($input['name'] ?? null, 100);
+        $this->store->updateConversationGroup($id, $adminId, ['name' => $name]);
         return $this->ownedGroup($id, $adminId);
     }
 
     public function deleteConversationGroup(int $id, int $adminId): bool
     {
         $this->ownedGroup($id, $adminId);
-        $this->store->archiveGroupConversations($id, $adminId);
         return $this->store->deleteConversationGroup($id, $adminId);
     }
 
     public function updateConversationState(int $id, int $adminId, array $input): array
     {
         $this->ownedConversation($id, $adminId);
-        $allowed = array_intersect_key($input, array_flip(['group_id', 'is_archived', 'is_unread']));
-        if (array_key_exists('group_id', $allowed)) {
-            $groupId = $allowed['group_id'] === null ? null : (int) $allowed['group_id'];
-            if ($groupId !== null) $this->ownedGroup($groupId, $adminId);
-            $allowed['group_id'] = $groupId;
+        $this->validateFields($input, ['group_id', 'is_archived', 'is_unread']);
+        $allowed = $input;
+        if (array_key_exists('group_id', $allowed)) $allowed['group_id'] = $this->validateGroupId($allowed['group_id'], $adminId);
+        foreach (['is_archived', 'is_unread'] as $field) {
+            if (array_key_exists($field, $allowed) && !is_bool($allowed[$field])) throw new InvalidArgumentException($field . ' 必须为 boolean');
         }
         $this->store->updateConversation($id, $adminId, $allowed);
         return $this->ownedConversation($id, $adminId);
@@ -90,7 +100,11 @@ final class AiConversationService
     public function updateConversation(int $id, int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         $conversation = $this->ownedConversation($id, $adminId);
-        $allowed = array_intersect_key($input, array_flip(['title', 'context', 'approval_mode']));
+        $this->validateFields($input, ['title', 'context', 'approval_mode']);
+        $allowed = $input;
+        if (array_key_exists('title', $allowed)) $allowed['title'] = $this->validateName($allowed['title'], 255);
+        if (array_key_exists('context', $allowed) && !is_array($allowed['context'])) throw new InvalidArgumentException('context 必须为对象或数组');
+        if (array_key_exists('approval_mode', $allowed) && !is_string($allowed['approval_mode'])) throw new InvalidArgumentException('审批模式必须为字符串');
         if (array_key_exists('approval_mode', $allowed)) {
             $this->assertModeAuthorized((string) $allowed['approval_mode'], $fullAccessAuthorized, $approveAuthorized);
             if ($this->modeLevel((string) $allowed['approval_mode']) > $this->modeLevel((string) $conversation['approval_mode'])) {
@@ -181,8 +195,30 @@ final class AiConversationService
         return array_search($mode, ['request_approval', 'agent_approval', 'full_access'], true) ?: 0;
     }
 
+    private function validateFields(array $input, array $fields, bool $required = true): void
+    {
+        if (($required && $input === []) || array_diff(array_keys($input), $fields)) throw new InvalidArgumentException('请求字段为空或包含不支持的字段');
+    }
+
+    private function validateName(mixed $value, int $maximum): string
+    {
+        if (!is_string($value) || !mb_check_encoding($value, 'UTF-8')) throw new InvalidArgumentException('名称必须为 UTF-8 字符串');
+        $value = trim($value);
+        if ($value === '' || mb_strlen($value) > $maximum || preg_match('/[\x00-\x1f\x7f]/u', $value)) throw new InvalidArgumentException('名称为空、过长或包含控制字符');
+        return $value;
+    }
+
+    private function validateGroupId(mixed $id, int $adminId): ?int
+    {
+        if ($id === null) return null;
+        if (!is_int($id) || $id <= 0) throw new InvalidArgumentException('group_id 必须为正整数或 null');
+        $this->ownedGroup($id, $adminId);
+        return $id;
+    }
+
     private function ownedConversation(int $id, int $adminId): array
     {
+        if ($id <= 0 || $adminId <= 0) throw new RuntimeException('资源不存在', 404);
         $conversation = $this->store->conversation($id, $adminId);
         if (!$conversation) throw new RuntimeException('资源不存在', 404);
         return $conversation;
@@ -190,6 +226,7 @@ final class AiConversationService
 
     private function ownedGroup(int $id, int $adminId): array
     {
+        if ($id <= 0 || $adminId <= 0) throw new RuntimeException('分组不存在', 404);
         $group = $this->store->conversationGroup($id, $adminId);
         if (!$group) throw new RuntimeException('分组不存在', 404);
         return $group;

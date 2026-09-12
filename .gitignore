@@ -21,6 +21,7 @@
 /tests/*
 !/tests/ai_*test.php
 !/tests/form_data_relation_mysql_test.php
+!/tests/form_data_test.php
 !/tests/form_builder_migration_contract_test.php
 !/tests/extend_fun_removal_contract_test.php
 !/tests/business_development_migration_test.php
@@ -34,14 +35,7 @@
 !/tests/business_development_safety_test.php
 !/tests/business_generation_api_recovery_test.php
 !/tests/legacy_write_api_gone_test.php
-!/tests/identity_phase1_contract_test.php
-!/tests/identity_phase1_mysql_test.php
-!/tests/identity_phase2_console_api_test.php
-!/tests/identity_phase2_enterprise_application_test.php
-!/tests/identity_phase2_mysql_test.php
-!/tests/identity_phase4_contract_test.php
-!/tests/identity_phase9_cross_origin_journey.php
-!/tests/identity_phase9_cross_origin_contract_test.php
+!/tests/identity_*.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php
@@ -57,6 +51,7 @@
 !/tests/plugin_code_name_cutover_test.php
 !/tests/plugin_native_hard_cut_test.php
 !/tests/plugin_development_tools_test.php
+!/tests/plugin_service_convergence_test.php
 !/tests/plugin_manifest_schema_test.php
 !/tests/plugin_resource_publisher_test.php
 !/tests/plugin_app_publication_lifecycle_test.php

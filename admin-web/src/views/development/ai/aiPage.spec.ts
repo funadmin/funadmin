@@ -1,5 +1,8 @@
 import { computed, defineComponent, inject, nextTick, provide, reactive, ref, type InjectionKey, type Ref } from 'vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { ElMessageBox } from 'element-plus';
+import { aiDevelopmentApi } from '@/api/development/ai';
+import ConversationList from './components/ConversationList.vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import { readFileSync } from 'node:fs';
@@ -10,6 +13,7 @@ import enUS from '@/locales/en-US';
 
 const aiStore = reactive({
   conversations: [] as Array<Record<string, unknown>>,
+  conversationGroups: [] as Array<Record<string, unknown>>,
   selectedConversationId: null as number | null,
   messages: [] as Array<Record<string, unknown>>,
   activeTask: null as Record<string, unknown> | null,
@@ -20,6 +24,11 @@ const aiStore = reactive({
   refreshTaskContext: vi.fn().mockResolvedValue(undefined),
   connectEvents: vi.fn().mockResolvedValue(undefined),
   closeEvents: vi.fn(),
+  clearWorkspace: vi.fn(),
+  selectionGeneration: 0,
+  updateConversationState: vi.fn().mockResolvedValue(undefined),
+  deleteConversation: vi.fn().mockResolvedValue(undefined),
+  deleteConversationGroup: vi.fn().mockResolvedValue(undefined),
   selectConversation: vi.fn().mockResolvedValue(undefined),
   cancelActiveTask: vi.fn().mockResolvedValue(undefined),
   decideApproval: vi.fn().mockResolvedValue(undefined),
@@ -36,6 +45,10 @@ vi.mock('@/api/development/ai', async (importOriginal) => {
     ...actual,
     aiDevelopmentApi: {
       conversations: vi.fn().mockResolvedValue([]),
+      conversationGroups: vi.fn().mockResolvedValue([]),
+      createConversationGroup: vi.fn(),
+      updateConversationGroup: vi.fn(),
+      deleteConversationGroup: vi.fn(),
       createConversation: vi.fn(),
       updateConversation: vi.fn(),
       createMessage: vi.fn(),
@@ -93,6 +106,11 @@ const stubs = {
   ElButton: buttonStub,
   ElInput: inputStub,
   ElEmpty: emptyStub,
+  ElDropdown: defineComponent({ emits: ['command'], template: '<div><slot /><slot name="dropdown" /></div>' }),
+  ElDropdownMenu: passthrough,
+  ElDropdownItem: passthrough,
+  ElSelect: true,
+  ElOption: true,
   ElCheckbox: defineComponent({ template: '<input type="checkbox" />' }),
   ElDrawer: drawerStub,
   ElDialog: drawerStub,
@@ -145,6 +163,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     aiStore.conversations = [];
+    aiStore.conversationGroups = [];
     aiStore.selectedConversationId = null;
     aiStore.messages = [];
     aiStore.activeTask = null;
@@ -152,6 +171,106 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.toolCalls = [];
     aiStore.changeSet = null;
     vi.clearAllMocks();
+  });
+
+  it('显示空组、每会话日期，并通过已归档入口切换', async () => {
+    aiStore.conversationGroups = [{ id: 10, name: '空项目' }];
+    aiStore.conversations = [
+      { id: 1, title: '正常会话', group_id: null, status: 'running', is_archived: false, is_unread: true, updated_at: '2026-09-12 10:30:00' },
+      { id: 2, title: '归档会话', group_id: null, status: 'running', is_archived: true, is_unread: false }
+    ];
+    const { wrapper } = mountPage('zh-CN');
+    expect(wrapper.text()).toContain('空项目');
+    expect(wrapper.text()).toContain('09-12 10:30');
+    expect(wrapper.text()).not.toContain('归档会话');
+    await wrapper.find('[data-testid="archived-conversations"]').trigger('click');
+    expect(wrapper.text()).toContain('归档会话');
+    expect(wrapper.text()).not.toContain('正常会话');
+    wrapper.unmount();
+  });
+
+  it('分组使用 Element Plus 弹窗，取消不请求，确认后保留空组', async () => {
+    const dialog = vi.spyOn(ElMessageBox, 'prompt').mockRejectedValueOnce('cancel');
+    const { wrapper } = mountPage('zh-CN');
+    const list = wrapper.findComponent(ConversationList);
+    list.vm.$emit('create-group');
+    await flushPromises();
+    expect(aiDevelopmentApi.createConversationGroup).not.toHaveBeenCalled();
+    dialog.mockResolvedValueOnce({ value: ' 新项目 ' } as never);
+    vi.mocked(aiDevelopmentApi.createConversationGroup).mockResolvedValueOnce({ id: 10, name: '新项目' });
+    list.vm.$emit('create-group');
+    await flushPromises();
+    expect(aiDevelopmentApi.createConversationGroup).toHaveBeenCalledWith('新项目');
+    expect(wrapper.text()).toContain('新项目');
+    dialog.mockRestore();
+    wrapper.unmount();
+  });
+
+  it('会话菜单接入改名、归档、恢复、删除和手动未读', async () => {
+    aiStore.conversations = [{ id: 1, title: '旧标题', group_id: null, is_archived: false, is_unread: false }];
+    const { wrapper } = mountPage('zh-CN');
+    const list = wrapper.findComponent(ConversationList);
+    const dialog = vi.spyOn(ElMessageBox, 'prompt').mockResolvedValue({ value: '新标题' } as never);
+    vi.mocked(aiDevelopmentApi.updateConversation).mockResolvedValueOnce({ id: 1, title: '新标题' } as never);
+    list.vm.$emit('action', 'rename', 1);
+    await flushPromises();
+    expect(aiDevelopmentApi.updateConversation).toHaveBeenCalledWith(1, { title: '新标题' });
+    list.vm.$emit('action', 'unread', 1);
+    await flushPromises();
+    expect(aiStore.updateConversationState).toHaveBeenCalledWith(1, { is_unread: true });
+    list.vm.$emit('action', 'archive', 1);
+    await flushPromises();
+    expect(aiStore.updateConversationState).toHaveBeenCalledWith(1, { is_archived: true });
+    list.vm.$emit('action', 'restore', 1);
+    await flushPromises();
+    expect(aiStore.updateConversationState).toHaveBeenCalledWith(1, { is_archived: false });
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue({ action: 'confirm' } as never);
+    list.vm.$emit('action', 'delete', 1);
+    await flushPromises();
+    expect(aiStore.deleteConversation).toHaveBeenCalledWith(1);
+    confirm.mockRestore();
+    dialog.mockRestore();
+    wrapper.unmount();
+  });
+
+  it('移动组只提交 group_id，未分组提交 null；失败保留弹窗', async () => {
+    aiStore.conversations = [{ id: 1, title: '会话', group_id: 10 }];
+    aiStore.conversationGroups = [{ id: 10, name: '项目' }];
+    const { wrapper } = mountPage('zh-CN');
+    wrapper.findComponent(ConversationList).vm.$emit('action', 'move', 1);
+    await flushPromises();
+    const select = wrapper.findComponent({ name: 'ElSelect' });
+    select.vm.$emit('update:modelValue', 0);
+    await nextTick();
+    const confirm = wrapper.findAll('button').find((button) => button.text() === '确定')!;
+    aiStore.updateConversationState.mockRejectedValueOnce(new Error('失败'));
+    await confirm.trigger('click');
+    await flushPromises();
+    expect(aiStore.updateConversationState).toHaveBeenCalledWith(1, { group_id: null });
+    expect(wrapper.findComponent({ name: 'ElSelect' }).exists()).toBe(true);
+    select.vm.$emit('update:modelValue', 10);
+    await confirm.trigger('click');
+    await flushPromises();
+    expect(aiStore.updateConversationState).toHaveBeenLastCalledWith(1, { group_id: 10 });
+    wrapper.unmount();
+  });
+
+  it('发送中切换会话不把旧消息或任务写入新工作区', async () => {
+    aiStore.conversations = [{ id: 1, title: '旧会话' }, { id: 2, title: '新会话' }];
+    aiStore.selectedConversationId = 1;
+    let finish!: (value: unknown) => void;
+    vi.mocked(aiDevelopmentApi.createMessage).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve as never; }));
+    const { wrapper } = mountPage('zh-CN');
+    await wrapper.find('.composer textarea').setValue('旧请求');
+    await wrapper.find('.composer').trigger('submit');
+    aiStore.selectedConversationId = 2;
+    aiStore.selectionGeneration += 1;
+    finish({ id: 7, conversation_id: 1 });
+    await flushPromises();
+    expect(aiStore.messages).toEqual([]);
+    expect(aiDevelopmentApi.executeTask).not.toHaveBeenCalled();
+    expect(aiStore.activateTask).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('切换语言会更新页面、Tabs、按钮与真实空状态文案', async () => {
@@ -202,7 +321,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('reviewing、任务阶段类型与 ChangeSet 状态均翻译，未知枚举原样回退', async () => {
-    aiStore.conversations = [{ id: 1, title: '测试会话', status: 'reviewing' }];
+    aiStore.conversations = [{ id: 1, title: '测试会话', status: 'reviewing', group_id: null, is_archived: false, is_unread: false }];
     aiStore.selectedConversationId = 1;
     aiStore.activeTask = { id: 7, type: 'code_change', stage: 'review', status: 'paused' };
     aiStore.changeSet = { id: 9, status: 'proposed' };
@@ -242,7 +361,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('移动端通过顶部按钮打开会话和任务，选择会话后回到工作区', async () => {
-    aiStore.conversations = [{ id: 1, title: '移动会话', status: 'running' }];
+    aiStore.conversations = [{ id: 1, title: '移动会话', status: 'running', group_id: null, is_archived: false, is_unread: false }];
     const { wrapper } = mountPage('zh-CN', true);
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
 

@@ -102,7 +102,16 @@ final class AiAgentJob
                 (array) (($task['input']['tools'] ?? [])),
                 ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget']],
                 fn (): bool => ($this->store->task($taskId)['status'] ?? '') === 'cancelled',
-                fn (string $type, array $payload) => $this->store->appendEvent($taskId, $type, $payload),
+                function (string $type, array $payload) use ($taskId, $task): array {
+                    if ($type === 'assistant.message') {
+                        $this->store->appendMessage((int) $task['conversation_id'], [
+                            'role' => 'assistant',
+                            'content' => ['text' => $payload['content'] ?? null, 'tool_calls' => $payload['tool_calls'] ?? []],
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0],
+                        ]);
+                    }
+                    return $this->store->appendEvent($taskId, $type, $payload);
+                },
                 $context
             );
             if ($result['status'] === 'awaiting_approval') {

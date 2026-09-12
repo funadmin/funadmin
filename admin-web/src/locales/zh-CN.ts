@@ -38,6 +38,14 @@ export default {
     task: '任务',
     workspace: '工作区',
     conversations: '会话',
+    management: {
+      createGroup: '新建分组', deleteGroup: '删除分组', groupName: '分组名称', ungrouped: '未分组',
+      rename: '改名', move: '移动分组', archive: '归档', restore: '恢复', delete: '删除',
+      archived: '已归档', active: '返回会话', unread: '未读', markRead: '标为已读', markUnread: '标为未读', actions: '会话操作',
+      title: '会话标题', confirm: '确定', cancel: '取消', required: '名称不能为空',
+      deleteGroupConfirm: '删除分组后，其中全部会话将归档，是否继续？', deleteConfirm: '确定删除此会话？此操作不可撤销。',
+      failed: '会话操作失败，请重试', syncFailed: '消息或已读状态同步失败，请重新打开会话'
+    },
     newConversation: '新建',
     unnamedConversation: '未命名会话',
     noConversations: '暂无会话',

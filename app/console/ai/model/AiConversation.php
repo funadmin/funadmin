@@ -14,6 +14,8 @@ final class AiConversation extends BackendModel
 
     protected $name = 'ai_conversation';
 
+    protected $type = ['is_archived' => 'boolean', 'is_unread' => 'boolean', 'group_id' => 'integer'];
+
     protected $json = ['context'];
 
     protected $jsonAssoc = true;

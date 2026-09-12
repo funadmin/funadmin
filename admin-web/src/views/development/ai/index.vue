@@ -13,7 +13,7 @@
 
     <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
       <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
-        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup" />
+        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup" />
       </section>
 
       <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
@@ -25,6 +25,7 @@
           </div>
         </header>
         <div class="workspace-scroll" data-scroll-container="primary">
+          <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
           <MessageTimeline :messages="store.messages" />
           <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
           <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
@@ -40,12 +41,19 @@
 
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
     <ProviderSettingsDrawer v-if="providerSettings" v-model="providerOpen" :settings="providerSettings" @test="testProvider" />
+    <el-dialog v-model="moveOpen" :title="t('aiDevelopment.management.move')" width="min(440px, 94vw)">
+      <el-select v-model="moveGroupId" :aria-label="t('aiDevelopment.management.groupName')">
+        <el-option :value="0" :label="t('aiDevelopment.management.ungrouped')" />
+        <el-option v-for="group in store.conversationGroups" :key="group.id" :value="group.id" :label="group.name" />
+      </el-select>
+      <template #footer><el-button @click="moveOpen = false">{{ t('aiDevelopment.management.cancel') }}</el-button><el-button type="primary" :loading="moving" @click="confirmMove">{{ t('aiDevelopment.management.confirm') }}</el-button></template>
+    </el-dialog>
     <el-dialog v-model="logOpen" :title="t('aiDevelopment.toolLog')" width="min(760px, 94vw)"><pre class="tool-log">{{ toolLog }}</pre></el-dialog>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, ref } from 'vue';
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
@@ -65,6 +73,11 @@ const { t } = useI18n();
 const store = useAiDevelopmentStore();
 const userStore = useUserStore();
 const prompt = ref('');
+const showArchived = ref(false);
+const moveOpen = ref(false);
+const moveConversationId = ref<number | null>(null);
+const moveGroupId = ref(0);
+const moving = ref(false);
 const mobileQuery = typeof window === 'undefined' ? null : window.matchMedia('(max-width: 1024px)');
 const isMobile = ref(mobileQuery?.matches ?? false);
 const changeSetOpen = ref(false);
@@ -106,39 +119,109 @@ const ContextPanel = defineComponent({
   }
 });
 
-async function createConversationGroup() {
-  const name = window.prompt('请输入分组名称');
-  if (!name?.trim()) return;
-  const group = await aiDevelopmentApi.createConversationGroup(name.trim());
-  store.conversationGroups.push(group);
+async function manage(operation: () => Promise<void>) {
+  try { await operation(); } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error(t('aiDevelopment.management.failed'));
+  }
 }
 
-async function renameConversationGroup(id: number) {
-  const current = store.conversationGroups.find((group) => group.id === id);
-  const name = window.prompt('请输入新的分组名称', current?.name || '');
-  if (!name?.trim()) return;
-  const group = await aiDevelopmentApi.updateConversationGroup(id, name.trim());
-  if (current) Object.assign(current, group);
+async function askName(key: 'groupName' | 'title', value = '') {
+  const result = await ElMessageBox.prompt(t(`aiDevelopment.management.${key}`), t('aiDevelopment.management.rename'), {
+    inputValue: value,
+    inputValidator: (input) => Boolean(input?.trim()) || t('aiDevelopment.management.required'),
+    confirmButtonText: t('aiDevelopment.management.confirm'), cancelButtonText: t('aiDevelopment.management.cancel')
+  });
+  return result.value.trim();
 }
 
-async function deleteConversationGroup(id: number) {
-  if (!window.confirm('删除分组后，其中的会话将归档，是否继续？')) return;
-  await aiDevelopmentApi.deleteConversationGroup(id);
-  store.conversationGroups = store.conversationGroups.filter((group) => group.id !== id);
-  store.conversations.forEach((conversation) => {
-    if (conversation.group_id === id) Object.assign(conversation, { group_id: null, is_archived: true });
+async function confirmRemoval(key: 'deleteGroupConfirm' | 'deleteConfirm') {
+  await ElMessageBox.confirm(t(`aiDevelopment.management.${key}`), t('aiDevelopment.management.delete'), {
+    type: 'warning', confirmButtonText: t('aiDevelopment.management.confirm'), cancelButtonText: t('aiDevelopment.management.cancel')
   });
 }
 
+async function createConversationGroup() {
+  await manage(async () => {
+    const name = await askName('groupName');
+    const group = await aiDevelopmentApi.createConversationGroup(name);
+    store.conversationGroups.push(group);
+    showArchived.value = false;
+  });
+}
+
+async function renameConversationGroup(id: number) {
+  await manage(async () => {
+    const current = store.conversationGroups.find((group) => group.id === id);
+    if (!current) return;
+    const name = await askName('groupName', current.name);
+    const group = await aiDevelopmentApi.updateConversationGroup(id, name);
+    Object.assign(current, group);
+  });
+}
+
+async function deleteConversationGroup(id: number) {
+  await manage(async () => {
+    await confirmRemoval('deleteGroupConfirm');
+    await store.deleteConversationGroup(id);
+  });
+}
+
+async function conversationAction(command: string, id: number) {
+  await manage(async () => {
+    const current = store.conversations.find((item) => item.id === id);
+    if (!current) return;
+    if (command === 'rename') {
+      const title = await askName('title', current.title);
+      const updated = await aiDevelopmentApi.updateConversation(id, { title });
+      current.title = updated.title;
+    } else if (command === 'move') {
+      moveConversationId.value = id;
+      moveGroupId.value = current.group_id ?? 0;
+      moveOpen.value = true;
+    } else if (command === 'delete') {
+      await confirmRemoval('deleteConfirm');
+      await store.deleteConversation(id);
+    } else if (command === 'archive' || command === 'restore') {
+      await store.updateConversationState(id, { is_archived: command === 'archive' });
+    } else if (command === 'read' || command === 'unread') {
+      await store.updateConversationState(id, { is_unread: command === 'unread' });
+    }
+  });
+}
+
+async function confirmMove() {
+  if (moveConversationId.value === null || moving.value) return;
+  const id = moveConversationId.value;
+  moving.value = true;
+  await manage(async () => {
+    await store.updateConversationState(id, { group_id: moveGroupId.value || null });
+    moveOpen.value = false;
+  });
+  moving.value = false;
+}
+
+watch(() => store.selectedConversationId, () => {
+  prompt.value = '';
+  preview.value = null;
+  changeSetOpen.value = false;
+  logOpen.value = false;
+  toolLog.value = '';
+});
+
 async function createConversation() {
-  const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval' });
-  store.conversations.unshift(conversation);
-  await selectConversation(conversation.id);
+  await manage(async () => {
+    const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval' });
+    store.conversations.unshift(conversation);
+    showArchived.value = false;
+    await selectConversation(conversation.id);
+  });
 }
 
 async function selectConversation(id: number) {
-  await store.selectConversation(id);
-  if (isMobile.value) mobileTab.value = 'workspace';
+  await manage(async () => {
+    await store.selectConversation(id);
+    if (isMobile.value) mobileTab.value = 'workspace';
+  });
 }
 
 async function updateApprovalMode(mode: AiApprovalMode) {
@@ -153,14 +236,22 @@ async function updateApprovalMode(mode: AiApprovalMode) {
 
 async function sendMessage() {
   if (!store.selectedConversationId || !prompt.value.trim()) return;
-  const message = await aiDevelopmentApi.createMessage(store.selectedConversationId, { role: 'user', content: [{ type: 'text', text: prompt.value.trim() }] });
-  store.messages.push(message);
-  const task = await aiDevelopmentApi.executeTask(store.selectedConversationId, { idempotency_key: crypto.randomUUID(), type: 'chat', message_id: message.id });
-  store.activateTask(task);
-  prompt.value = '';
-  await store.refreshTaskContext();
-  await store.connectEvents();
-  store.saveRouteState();
+  const id = store.selectedConversationId;
+  const generation = store.selectionGeneration;
+  const current = () => store.selectedConversationId === id && store.selectionGeneration === generation;
+  await manage(async () => {
+    const message = await aiDevelopmentApi.createMessage(id, { role: 'user', content: [{ type: 'text', text: prompt.value.trim() }] });
+    if (!current()) return;
+    store.messages.push(message);
+    const task = await aiDevelopmentApi.executeTask(id, { idempotency_key: crypto.randomUUID(), type: 'chat', message_id: message.id });
+    if (!current()) return;
+    store.activateTask(task);
+    prompt.value = '';
+    await store.refreshTaskContext();
+    if (!current()) return;
+    await store.connectEvents();
+    store.saveRouteState();
+  });
 }
 
 async function ensurePreview() {
@@ -186,11 +277,13 @@ async function testProvider(payload: Record<string, unknown>) { await aiDevelopm
 
 onMounted(async () => {
   mobileQuery?.addEventListener('change', updateViewport);
-  await store.restoreRouteState();
-  if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); }
+  await manage(async () => {
+    await store.restoreRouteState();
+    if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); }
+  });
 });
 onUnmounted(() => mobileQuery?.removeEventListener('change', updateViewport));
-onBeforeUnmount(() => store.closeEvents());
+onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 </script>
 
 <style scoped>

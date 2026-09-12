@@ -2,6 +2,7 @@
 
 namespace app\console\plugin\service;
 
+use app\common\plugin\sdk\PluginArchiveService;
 use app\common\plugin\model\PluginOperation;
 use app\common\plugin\model\PluginVersionHistory;
 use app\common\service\AbstractService;
@@ -33,19 +34,8 @@ class PluginPackageService extends AbstractService
             throw new RuntimeException('无法打开插件安装包');
         }
         try {
-            $manifestEntry = null;
-            for ($index = 0; $index < $zip->numFiles; $index++) {
-                $entry = str_replace('\\', '/', (string) $zip->getNameIndex($index));
-                if ($entry === 'plugin.json' || preg_match('~^[^/]+/plugin\.json$~', $entry) === 1) {
-                    if ($manifestEntry !== null) {
-                        throw new RuntimeException('插件包包含多个 plugin.json');
-                    }
-                    $manifestEntry = $entry;
-                }
-            }
-            if ($manifestEntry === null) {
-                throw new RuntimeException('插件包缺少 plugin.json');
-            }
+            $signatureData = PluginArchiveService::localSignaturePayload($zip);
+            $manifestEntry = $signatureData['manifest_entry'];
             $json = $zip->getFromName($manifestEntry);
             $manifest = is_string($json) ? json_decode($json, true) : null;
             if (!is_array($manifest)) {
@@ -60,18 +50,18 @@ class PluginPackageService extends AbstractService
             if ($expectedVersion !== '' && $version !== $expectedVersion) {
                 throw new RuntimeException('插件包版本与请求版本不一致');
             }
-            if ($verifySignature) $this->verifyLocalSignature($zip, $manifestEntry, $manifest);
+            if ($verifySignature) $this->verifyLocalSignature($zip, $signatureData);
             return ['code' => $code, 'version' => $version, 'manifest' => $manifest];
         } finally {
             $zip->close();
         }
     }
 
-    private function verifyLocalSignature(ZipArchive $zip, string $manifestEntry, array $manifest): void
+    private function verifyLocalSignature(ZipArchive $zip, array $signatureData): void
     {
+        if (!function_exists('sodium_crypto_sign_verify_detached')) throw new RuntimeException('服务器未安装 Sodium 签名扩展');
         $publicKey = trim((string) config('plugins.marketplace.public_key', ''));
-        $signatureEntry = dirname($manifestEntry) === '.' ? 'plugin.sig' : dirname($manifestEntry) . '/plugin.sig';
-        $signatureText = $zip->getFromName($signatureEntry);
+        $signatureText = $zip->getFromName($signatureData['signature_entry']);
         if ($publicKey === '' || !is_string($signatureText)) {
             throw new RuntimeException('本地插件包缺少可信签名或未配置公钥');
         }
@@ -82,20 +72,32 @@ class PluginPackageService extends AbstractService
             || strlen($key) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
             throw new RuntimeException('本地插件包签名格式错误');
         }
-        $canonical = $this->canonicalJson($manifest);
-        if (!sodium_crypto_sign_verify_detached($signature, $canonical, $key)) {
+        if (!sodium_crypto_sign_verify_detached($signature, $signatureData['payload'], $key)) {
             throw new RuntimeException('本地插件包签名验证失败');
         }
     }
 
-    private function canonicalJson(array $value): string
+    /** 对已经生成的 ZIP 签名，私钥为 Base64 Ed25519 secret key，绝不写入归档。 */
+    public function signLocalArchive(string $archive, string $secretKey): void
     {
-        if (!array_is_list($value)) ksort($value, SORT_STRING);
-        foreach ($value as $index => $item) if (is_array($item)) $value[$index] = json_decode($this->canonicalJson($item), true, 512, JSON_THROW_ON_ERROR);
-        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (!function_exists('sodium_crypto_sign_detached')) throw new RuntimeException('服务器未安装 Sodium 签名扩展');
+        $key = base64_decode(trim($secretKey), true);
+        if ($key === false || strlen($key) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) throw new RuntimeException('本地插件包签名私钥格式错误');
+        $this->inspect($archive, '', '', false);
+        $zip = new ZipArchive();
+        if ($zip->open($archive) !== true) throw new RuntimeException('无法打开插件安装包');
+        try {
+            $data = PluginArchiveService::localSignaturePayload($zip);
+            $signature = base64_encode(sodium_crypto_sign_detached($data['payload'], $key));
+            if (!$zip->addFromString($data['signature_entry'], $signature)) throw new RuntimeException('无法写入插件签名');
+            $zip->setMtimeName($data['signature_entry'], 315532800);
+        } finally {
+            sodium_memzero($key);
+            if (!$zip->close()) throw new RuntimeException('无法保存插件签名');
+        }
     }
 
-    public function stage(string $archive, string $expectedCode = '', string $expectedVersion = ''): array
+    public function stage(string $archive, string $expectedCode = '', string $expectedVersion = '', bool $verifySignature = true): array
     {
         if ($expectedCode !== '') {
             $this->assertCode($expectedCode);
@@ -131,6 +133,9 @@ class PluginPackageService extends AbstractService
         }
 
         try {
+            // 在同一 ZIP 句柄上校验并解压，早于 Manifest 校验可能加载的任何插件 PHP。
+            $signatureData = PluginArchiveService::localSignaturePayload($zip);
+            if ($verifySignature) $this->verifyLocalSignature($zip, $signatureData);
             $unpackedBytes = 0;
             for ($index = 0; $index < $zip->numFiles; $index++) {
                 $stat = $zip->statIndex($index);

@@ -269,7 +269,14 @@ final class ProductionTemplateContext
         }
         $features = $data['features'];
         $enabled = self::enabledCapabilities($data);
-        $statusTraitAlias = $enabled['status'] ? "        status as private crudStatus; status as private;\n" : '';
+        if (!$data['_consoleController']) {
+            // both 的管理能力只用于 console，会员应用只生成列表和详情。
+            foreach ($enabled as $ability => $value) {
+                if (!in_array($ability, ['list', 'search', 'detail'], true)) $enabled[$ability] = false;
+            }
+            $data['dataScope']['enabled'] = false;
+        }
+        $statusTraitAlias = ($enabled['status'] || !$data['_consoleController']) ? "        status as private crudStatus; status as private;\n" : '';
         $methods = [];
         if ($enabled['list']) $methods[] = "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
         if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
@@ -332,6 +339,9 @@ final class ProductionTemplateContext
             . "    protected function primaryKeyType(): string { return '" . self::primaryKeyType($primary) . "'; }\n"
             . "    protected function primaryKeyPattern(): ?string { return " . var_export(self::primaryKeyPattern($primary), true) . "; }\n"
             . "    protected function usesSoftDeletes(): bool { return " . ($data['softDeletes'] ? 'true' : 'false') . "; }\n"
+            . (!$data['_consoleController']
+                ? "    // 会员读取永远不包含回收站；忽略客户端 recycled 和详情的 withTrashed。\n    protected function baseQuery(bool \$onlyTrashed, bool \$withTrashed)\n    {\n        return \$this->crudUnscopedBaseQuery(false, false);\n    }\n"
+                : '')
             . ($data['dataScope']['enabled']
                 ? "    protected function baseQuery(bool \$onlyTrashed, bool \$withTrashed)\n    {\n        \$query = \$this->crudUnscopedBaseQuery(\$onlyTrashed, \$withTrashed);\n        \$scope = (new DataScopeService())->resolve();\n        return \$scope['all'] ? \$query : \$query->whereIn('{$data['dataScope']['field']}', \$scope['departmentIds'] ?: [0]);\n    }\n"
                 : '')

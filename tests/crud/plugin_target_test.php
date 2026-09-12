@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/topthink/framework/src/helper.php';
 
 use app\common\crud\AtomicWriter;
 use app\common\crud\ConfirmationToken;
@@ -68,6 +69,10 @@ function pluginDefinition(string $scope, array $overrides = []): CrudDefinition
         'menu' => ['enabled' => true, 'parentId' => null, 'parentSourceName' => '', 'name' => '商品', 'icon' => 'i-ep-document', 'sortOrder' => 20, 'hidden' => false, 'keepAlive' => true, 'affix' => false, 'target' => '_self'],
         'permission' => ['enabled' => true, 'groupName' => '商品', 'actions' => []],
     ];
+    if ($scope === 'application') {
+        foreach (['form', 'create', 'update', 'delete', 'import', 'export'] as $ability) $data['capabilities'][$ability] = false;
+        foreach (['batchDelete', 'status', 'import', 'export', 'upload', 'dictionary'] as $ability) $data['features'][$ability] = false;
+    }
     return CrudDefinition::fromArray(array_replace_recursive($data, $overrides));
 }
 
@@ -79,7 +84,122 @@ $manifestPath = $root . '/plugins/shop/plugin.json';
 $manifest = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
 Manifest::fromDirectory($root . '/plugins/shop');
 
+// 查询替身只记录入口，不启动应用、不加载模型、不连接数据库。
+class PluginReadQueryProbe
+{
+    public static array $calls = [];
+    public static function __callStatic(string $name, array $arguments): self
+    {
+        self::$calls[] = [$name, $arguments];
+        return new self();
+    }
+    public function find(): ?\think\Model { return null; }
+    public function paginate(array $options): self { return $this; }
+    public function items(): array { return []; }
+    public function total(): int { return 0; }
+    public function __call(string $name, array $arguments): self
+    {
+        self::$calls[] = [$name, $arguments];
+        return $this;
+    }
+}
+
+function pluginReadOnlyController(string $class, bool $checkWrites = true): void
+{
+    $reflection = new ReflectionClass($class);
+    foreach (['create', 'update', 'status', 'remove', 'restoreOne', 'destroyOne', 'recycle', 'restore', 'destroy', 'restoreMany', 'destroyMany', 'import', 'export', 'crudCreate', 'crudStatus'] as $action) {
+        if ($checkWrites) pluginCrudExpect(!$reflection->hasMethod($action) || !$reflection->getMethod($action)->isPublic(), $class . ' 暴露管理能力：' . $action);
+    }
+    foreach (['index', 'detail'] as $action) pluginCrudExpect($reflection->getMethod($action)->isPublic(), '必须保留安全读取：' . $action);
+    $controller = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('model')->setValue($controller, PluginReadQueryProbe::class);
+    $reflection->getProperty('request')->setValue($controller, (new \think\Request())->withGet(['recycled' => 1]));
+    PluginReadQueryProbe::$calls = [];
+    pluginCrudExpect($controller->index()->getData()['code'] === 200, '列表读取应正常响应');
+    pluginCrudExpect($controller->detail(999)->getData()['code'] === 404, '不可见详情应为404');
+    pluginCrudExpect(!array_intersect(['onlyTrashed', 'withTrashed'], array_column(PluginReadQueryProbe::$calls, 0)), '真实列表/详情流程不得查询回收站');
+    foreach ([[true, false], [false, true], [false, false]] as $flags) {
+        PluginReadQueryProbe::$calls = [];
+        $reflection->getMethod('baseQuery')->invoke($controller, ...$flags);
+        pluginCrudExpect(!array_intersect(['onlyTrashed', 'withTrashed'], array_column(PluginReadQueryProbe::$calls, 0)), $class . ' 读取泄露回收站');
+    }
+}
+
 try {
+    $securityFailures = [];
+    $securityCheck = static function (string $name, callable $check) use (&$securityFailures): void {
+        try { $check(); } catch (Throwable $exception) { $securityFailures[] = $name . ': ' . $exception->getMessage(); }
+    };
+    foreach (['application', 'both'] as $scope) {
+        $securityCheck('生成只读 ' . $scope, static function () use ($scope): void {
+            $context = \app\common\crud\PluginTemplateContext::build(pluginDefinition($scope), 'shop', false);
+            $class = 'Security' . ucfirst($scope) . 'Controller';
+            eval(substr(str_replace('ProductItemController', $class, $context['controllerContent']), 5));
+            pluginReadOnlyController('app\\shop\\controller\\' . $class);
+        });
+    }
+    foreach (['form', 'create', 'update', 'delete', 'import', 'export'] as $ability) {
+        $securityCheck('手工 capability ' . $ability, static fn () => pluginCrudReject(
+            static fn () => (new CrudGenerator($root))->plan(pluginDefinition('application', ['capabilities' => [$ability => true]])), 'application'
+        ));
+    }
+    foreach (['batchDelete', 'import', 'export', 'upload', 'dictionary'] as $ability) {
+        $securityCheck('手工 feature ' . $ability, static fn () => pluginCrudReject(
+            static fn () => (new DefinitionValidator())->validate(pluginDefinition('application', ['features' => [$ability => true]]), $root), 'application'
+        ));
+    }
+    $securityCheck('预检写入不能绕过校验', static function () use ($root): void {
+        $unsafe = pluginDefinition('application', ['capabilities' => ['create' => true]]);
+        pluginCrudReject(static fn () => (new CrudGenerator($root))->generatePlanned($unsafe, ['definitionHash' => $unsafe->hash()], ''), 'application');
+    });
+    $securityCheck('both 全管理能力只用于console', static function (): void {
+        $data = pluginDefinition('both')->toArray();
+        $data['fields'][] = ['name' => 'status', 'dbType' => 'tinyint', 'nullable' => false];
+        foreach (['status', 'import', 'export', 'upload', 'dictionary'] as $ability) $data['features'][$ability] = true;
+        $data['capabilities']['import'] = $data['capabilities']['export'] = true;
+        $definition = CrudDefinition::fromArray($data);
+        $application = \app\common\crud\PluginTemplateContext::build($definition, 'shop', false)['controllerContent'];
+        eval(substr(str_replace('ProductItemController', 'SecurityFullController', $application), 5));
+        pluginReadOnlyController('app\\shop\\controller\\SecurityFullController');
+        $console = \app\common\crud\PluginTemplateContext::build($definition, 'shop', true)['controllerContent'];
+        foreach (['status', 'import', 'export'] as $action) pluginCrudExpect(str_contains($console, 'public function ' . $action . '('), 'console 管理能力丢失：' . $action);
+    });
+    $securityCheck('缺省 capabilities', static function () use ($root): void {
+        $data = pluginDefinition('application')->toArray();
+        unset($data['capabilities']);
+        pluginCrudReject(static fn () => (new DefinitionValidator())->validate(CrudDefinition::fromArray($data), $root), 'application');
+    });
+    $securityCheck('默认工厂', static function () use ($root): void {
+        $definition = (new PluginCrudDefinitionFactory($root))->fromInspection('shop', 'safe-item', 'shop_safe_item', 'application', [
+            'schema' => ['comment' => '安全读取'],
+            'fields' => [['name' => 'id', 'dbType' => 'bigint', 'nullable' => false, 'primary' => true]],
+        ]);
+        foreach (['form', 'create', 'update', 'delete', 'import', 'export'] as $ability) {
+            pluginCrudExpect($definition->get('capabilities')[$ability] === false, '默认开启 ' . $ability);
+        }
+    });
+    $securityCheck('已有商品', static function () use ($repository): void {
+        require $repository . '/plugins/shop/app/shop/controller/ProductController.php';
+        pluginReadOnlyController('app\\shop\\controller\\ProductController');
+    });
+    foreach (['shop', 'example'] as $plugin) {
+        $securityCheck($plugin . ' 静态入口', static function () use ($repository, $plugin): void {
+            require $repository . '/plugins/' . $plugin . '/app/' . $plugin . '/controller/Index.php';
+            $methods = (new ReflectionClass('app\\' . $plugin . '\\controller\\Index'))->getMethods(ReflectionMethod::IS_PUBLIC);
+            pluginCrudExpect(array_column($methods, 'name') === ['index'], '静态入口不得暴露管理方法');
+        });
+    }
+    foreach (['SecurityApplicationController', 'SecurityBothController', 'ProductController'] as $class) {
+        $securityCheck('回收站 ' . $class, static fn () => pluginReadOnlyController('app\\shop\\controller\\' . $class, false));
+    }
+    $securityCheck('状态手工开启', static function () use ($root): void {
+        $data = pluginDefinition('application')->toArray();
+        $data['fields'][] = ['name' => 'status', 'dbType' => 'tinyint', 'nullable' => false];
+        $data['features']['status'] = true;
+        pluginCrudReject(static fn () => (new DefinitionValidator())->validate(CrudDefinition::fromArray($data), $root), 'application');
+    });
+    pluginCrudExpect($securityFailures === [], implode("\n", $securityFailures));
+
     foreach (['application', 'console', 'both'] as $scope) {
         $definition = pluginDefinition($scope);
         (new DefinitionValidator())->validate($definition, $root);
@@ -108,6 +228,9 @@ try {
             $controller = $files['plugins/shop/app/console/controller/ProductItemController.php'];
             pluginCrudExpect(str_contains($controller, "#[Group('plugin/shop/product-item')]"), 'Console Group 前缀错误');
             pluginCrudExpect(str_contains($controller, 'extends AdminApiController'), 'Console controller 基类错误');
+            foreach (['create', 'update', 'remove', 'restore', 'destroy', 'recycle', 'restoreMany', 'destroyMany'] as $action) {
+                pluginCrudExpect(str_contains($controller, 'public function ' . $action . '('), 'Console 不得丢失管理能力：' . $action);
+            }
             $api = $files['plugins/shop/admin-web/product-item/api.ts'];
             pluginCrudExpect(str_contains($api, '/console/plugin/shop/product-item'), '插件 API URL 错误');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/index.vue'], "from './api'"), '根 view 必须从 ./api 导入');

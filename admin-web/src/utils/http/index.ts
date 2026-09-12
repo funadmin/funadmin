@@ -129,6 +129,8 @@ export const http = {
     request({ ...config, url, method: 'POST', data }),
   put: <T = any>(url: string, data?: any, config?: AdminRequestConfig): Promise<T> =>
     request({ ...config, url, method: 'PUT', data }),
+  patch: <T = any>(url: string, data?: any, config?: AdminRequestConfig): Promise<T> =>
+    request({ ...config, url, method: 'PATCH', data }),
   delete: <T = any>(url: string, params?: any, config?: AdminRequestConfig): Promise<T> =>
     request({ ...config, url, method: 'DELETE', params }),
   upload: <T = any>(url: string, formData: FormData, config?: AdminRequestConfig): Promise<T> =>

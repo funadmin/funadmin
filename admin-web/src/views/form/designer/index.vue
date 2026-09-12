@@ -21,8 +21,15 @@
         <el-button v-if="designerMode === 'advanced'" @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
         <el-button v-if="designerMode === 'advanced'" @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
         <el-button v-if="designerMode === 'advanced'" :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
-
-
+        <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
+        <el-button
+          :type="store.dirty.value ? 'primary' : 'default'"
+          :loading="store.saveStatus.value === 'saving'"
+          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
+          @click="onSave"
+        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
+        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
+        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
     </div>
 
     <div v-if="workspaceMode === 'edit'" class="designer-edit-only">
@@ -190,24 +197,6 @@
       </el-card>
     </div>
 
-    <el-card shadow="never" class="mt-3">
-      <template #header>
-        <button type="button" class="designer-section-toggle" :aria-expanded="!publishActionsCollapsed" @click="toggleDesignerSection('publishActions')">
-          <span>第四步 · 保存并发布</span><i :class="publishActionsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
-          <el-tag class="designer-section-toggle__status" :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
-        </button>
-      </template>
-      <div v-show="!publishActionsCollapsed" class="designer-publish-actions">
-        <el-button
-          :type="store.dirty.value ? 'primary' : 'default'"
-          :loading="store.saveStatus.value === 'saving'"
-          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
-          @click="onSave"
-        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
-        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
-      </div>
-    </el-card>
 
     <el-dialog v-model="publishVisible" title="发布表单" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
@@ -311,13 +300,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
-import { businessDevelopmentApi, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
+import { businessDevelopmentApi, isBusinessApiError, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { controlIcon, paletteContainers } from './controlPalette';
@@ -345,13 +334,11 @@ const basicInfoCollapsed = ref(false);
 const controlsCollapsed = ref(false);
 const canvasCollapsed = ref(false);
 const fieldPropsCollapsed = ref(false);
-const publishActionsCollapsed = ref(false);
-const toggleDesignerSection = (section: 'basicInfo' | 'controls' | 'canvas' | 'fieldProps' | 'publishActions') => {
+const toggleDesignerSection = (section: 'basicInfo' | 'controls' | 'canvas' | 'fieldProps') => {
   if (section === 'basicInfo') basicInfoCollapsed.value = !basicInfoCollapsed.value;
   if (section === 'controls') controlsCollapsed.value = !controlsCollapsed.value;
   if (section === 'canvas') canvasCollapsed.value = !canvasCollapsed.value;
   if (section === 'fieldProps') fieldPropsCollapsed.value = !fieldPropsCollapsed.value;
-  if (section === 'publishActions') publishActionsCollapsed.value = !publishActionsCollapsed.value;
 };
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -421,9 +408,11 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let localDraftTimer: ReturnType<typeof setTimeout> | null = null;
 let saveRevision = 0;
 let saveQueued = false;
+let designerActive = true;
+let localDraftRestorePending = false;
 const localDraftKey = computed(() => `form-designer-draft:${String(store.form.value.id ?? store.form.value.form_key ?? 'new')}`);
 const persistLocalDraft = () => {
-  if (typeof localStorage === 'undefined') return;
+  if (!designerActive || typeof localStorage === 'undefined') return;
   localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now() }));
 };
 const scheduleLocalDraft = () => {
@@ -435,6 +424,8 @@ const scheduleLocalDraft = () => {
 };
 const clearLocalDraft = () => { if (typeof localStorage !== 'undefined') localStorage.removeItem(localDraftKey.value); };
 const restoreLocalDraft = () => {
+  if (!designerActive || !localDraftRestorePending) return;
+  localDraftRestorePending = false;
   if (typeof localStorage === 'undefined') return;
   const raw = localStorage.getItem(localDraftKey.value);
   if (!raw) return;
@@ -557,22 +548,23 @@ const normalizeFormKey = () => {
   const patch: Record<string, unknown> = {};
   if (normalized !== store.form.value.form_key) patch.form_key = normalized;
   if (store.form.value.source_type === 'created' && (!store.form.value.table_name || store.form.value.table_name === `fun_${current}`)) {
-    patch.table_name = normalized ? `fun_${normalized}` : '';
+    const tableName = normalized ? `fun_${normalized}` : '';
+    if (tableName !== store.form.value.table_name) patch.table_name = tableName;
   }
   if (Object.keys(patch).length) store.updateForm(patch);
 };
-const validateDefinitionBasics = () => {
+const validateDefinitionBasics = (silent = false) => {
   normalizeFormKey();
   if (!String(store.form.value.name ?? '').trim()) {
-    ElMessage.warning(t('formDesigner.nameRequired', '请填写表单名称'));
+    if (!silent) ElMessage.warning(t('formDesigner.nameRequired', '请填写表单名称'));
     return false;
   }
   if (!/^[a-z][a-z0-9_]{0,60}$/.test(String(store.form.value.form_key ?? ''))) {
-    ElMessage.warning(t('formDesigner.keyInvalid', '请填写正确的表单标识'));
+    if (!silent) ElMessage.warning(t('formDesigner.keyInvalid', '请填写正确的表单标识'));
     return false;
   }
   if (!/^[a-z][a-z0-9_]*$/.test(String(store.form.value.table_name ?? ''))) {
-    ElMessage.warning(t('formDesigner.tableInvalid', '请填写正确的绑定表名'));
+    if (!silent) ElMessage.warning(t('formDesigner.tableInvalid', '请填写正确的绑定表名'));
     return false;
   }
   return true;
@@ -589,12 +581,17 @@ async function load() {
 }
 
 async function onSave() {
-  if (!validateDefinitionBasics() || !store.dirty.value) return;
+  return saveDefinition(false);
+}
+
+async function saveDefinition(automatic: boolean) {
+  if (!designerActive || !store.dirty.value || (automatic && !online.value)) return;
+  if (!validateDefinitionBasics(automatic)) return;
   if (store.saveStatus.value === 'saving') { saveQueued = true; return; }
   const expectedHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId.value || !expectedHash) {
     store.failSave();
-    ElMessage.warning('当前表单版本信息缺失，请刷新页面后重试');
+    if (!automatic) ElMessage.warning('当前表单版本信息缺失，请刷新页面后重试');
     return;
   }
   const revision = ++saveRevision;
@@ -607,18 +604,23 @@ async function onSave() {
     if (unchanged) {
       store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
       clearLocalDraft();
-      ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
+      if (designerActive) ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
     } else {
       store.failSave();
     }
   } catch (error) {
     store.failSave();
-    ElMessage.error(t('formDesigner.saveError', '保存失败，请重试'));
-  } finally {
-    if (saveQueued && online.value) {
-      saveQueued = false;
-      autoSaveTimer = setTimeout(() => void onSave(), 500);
+    if (!designerActive) return;
+    if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
+      ElMessage.warning('Schema 版本已变化，请刷新页面后重试');
+    } else if (isBusinessApiError(error)) {
+      ElMessage.error(`${error.msg}（请求 ID：${error.data.error.requestId}）`);
+    } else {
+      ElMessage.error(error instanceof Error ? error.message : t('formDesigner.saveError', '保存失败，请重试'));
     }
+  } finally {
+    if (saveQueued && designerActive && online.value) scheduleAutoSave(500);
+    saveQueued = false;
   }
 }
 
@@ -774,20 +776,52 @@ const openGeneratedRoute = () => {
 };
 
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  if (!store.dirty.value) return;
+  if (!designerActive || !store.dirty.value) return;
   event.preventDefault();
   event.returnValue = '';
 };
 onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
 
-watch([() => store.form.value, () => store.nodes.value], () => {
-  if (!store.dirty.value) return;
-  scheduleLocalDraft();
+const scheduleAutoSave = (delay = 1200) => {
+  if (!designerActive || !store.dirty.value) return;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => { if (online.value && store.dirty.value) void onSave(); }, 1200);
+  autoSaveTimer = setTimeout(() => {
+    autoSaveTimer = null;
+    void saveDefinition(true);
+  }, delay);
+};
+watch([() => store.form.value, () => store.nodes.value], () => {
+  if (!designerActive || !store.dirty.value) return;
+  scheduleLocalDraft();
+  scheduleAutoSave();
 }, { deep: true });
-const onOnline = () => { online.value = true; if (store.dirty.value) void onSave(); };
+const onOnline = () => { online.value = true; if (designerActive) void saveDefinition(true); };
 const onOffline = () => { online.value = false; persistLocalDraft(); };
+// KeepAlive 停用不卸载组件，必须同时停止定时器、监听器和异步保存的后续排队。
+const deactivateDesigner = () => {
+  designerActive = false;
+  saveQueued = false;
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  if (localDraftTimer) clearTimeout(localDraftTimer);
+  autoSaveTimer = null;
+  localDraftTimer = null;
+  window.removeEventListener('beforeunload', beforeUnload);
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
+};
+onDeactivated(deactivateDesigner);
+onActivated(() => {
+  designerActive = true;
+  online.value = navigator.onLine;
+  window.addEventListener('beforeunload', beforeUnload);
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
+  restoreLocalDraft();
+  if (store.dirty.value) {
+    scheduleLocalDraft();
+    scheduleAutoSave();
+  }
+});
 onMounted(async () => {
   window.addEventListener('beforeunload', beforeUnload);
   window.addEventListener('online', onOnline);
@@ -795,14 +829,11 @@ onMounted(async () => {
   initializePalette();
   await Promise.allSettled([loadPluginFormComponents(), loadPermissionOptions()]);
   await load();
+  localDraftRestorePending = true;
   restoreLocalDraft();
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', beforeUnload);
-  window.removeEventListener('online', onOnline);
-  window.removeEventListener('offline', onOffline);
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  if (localDraftTimer) clearTimeout(localDraftTimer);
+  deactivateDesigner();
   paletteSortables.forEach((sortable) => sortable.destroy());
 });
 </script>
@@ -854,16 +885,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   color: var(--el-text-color-secondary);
   font-size: 13px;
-}
-.designer-section-toggle > .text-xs,
-.designer-section-toggle__status {
-  margin-left: auto;
-}
-.designer-publish-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
 }
 .designer-layout.is-preview {
   display: block;

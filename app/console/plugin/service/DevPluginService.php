@@ -41,7 +41,7 @@ final class DevPluginService
     ) {
         $this->archiveVerifier = Closure::fromCallable($archiveVerifier ?? function (string $archive): void {
             $packages = PluginPackageService::instance();
-            $staged = $packages->stage($archive);
+            $staged = $packages->stage($archive, '', '', false);
             $packages->discard($staged);
         });
         $this->auditWriter = Closure::fromCallable($auditWriter ?? static function (array $audit): string {

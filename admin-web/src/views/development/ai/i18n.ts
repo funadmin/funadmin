@@ -16,15 +16,15 @@ export interface ConversationSection {
   conversations: AiConversation[];
 }
 
-export const groupConversations = (conversations: AiConversation[], groups: AiConversationGroup[]): ConversationSection[] => {
-  const sections = groups.map((group) => ({
+export const groupConversations = (conversations: AiConversation[], groups: AiConversationGroup[], ungroupedName = '未分组'): ConversationSection[] => {
+  const sections: ConversationSection[] = groups.map((group) => ({
     id: group.id,
     name: group.name,
     conversations: conversations.filter((item) => item.group_id === group.id)
   }));
-  const ungrouped = conversations.filter((item) => item.group_id === null);
-  if (ungrouped.length > 0) sections.push({ id: null, name: '未分组', conversations: ungrouped });
-  return sections.filter((section) => section.conversations.length > 0);
+  const ungrouped = conversations.filter((item) => !groups.some((group) => group.id === item.group_id));
+  if (ungrouped.length > 0) sections.push({ id: null, name: ungroupedName, conversations: ungrouped });
+  return sections;
 };
 
 export const conversationDate = (value?: string): string => {

@@ -16,12 +16,15 @@ interface AiConversationStore
     public function conversationGroup(int $id, int $adminId): ?array;
     public function createConversationGroup(array $data): array;
     public function updateConversationGroup(int $id, int $adminId, array $data): bool;
+    /** 原子归档并移出该管理员的组内会话，然后软删除分组；任一步失败均回滚。 */
     public function deleteConversationGroup(int $id, int $adminId): bool;
     public function archiveGroupConversations(int $groupId, int $adminId): void;
+    /** assistant 消息与会话未读标记必须在同一事务内落库。 */
     public function appendMessage(int $conversationId, array $data): array;
     public function messages(int $conversationId): array;
     public function createTask(array $data): array;
     public function task(int $id): ?array;
+    /** 任务首次进入成功、失败或取消终态时原子标记未读；CAS 失败不得标记。 */
     public function compareAndSetTask(int $id, array $from, array $data): bool;
     public function compareAndSetTaskOperation(int $id, string $operationToken, array $from, array $data): bool;
     public function updateTask(int $id, array $data): void;

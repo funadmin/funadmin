@@ -14,6 +14,78 @@ final class PluginArchiveService
 {
     private const FIXED_MTIME = 315532800;
 
+    /**
+     * 本地签包 v1：域前缀 + 无空白 JSON 二元组列表，路径按 SORT_STRING 排序。
+     * 文件记录为 [ZIP完整路径, 原始内容SHA-256小写hex]，显式目录为 [路径/, null]。
+     * 仅排除唯一 plugin.json 同目录的 plugin.sig；不包含 ZIP 哈希，避免签名自引用。
+     * 签包与验签共用此实现；不读取或执行任何插件 PHP。
+     */
+    public static function localSignaturePayload(ZipArchive $zip): array
+    {
+        $paths = $records = [];
+        $manifestEntry = null;
+        $total = 0;
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $path = (string) $zip->getNameIndex($index);
+            $directory = str_ends_with($path, '/');
+            $name = $directory ? substr($path, 0, -1) : $path;
+            if ($name === '' || preg_match('~[\\\\\\x00-\\x1f\\x7f:]~', $name)
+                || preg_match('//u', $name) !== 1) {
+                throw new RuntimeException('插件包包含非法路径');
+            }
+            foreach (explode('/', $name) as $segment) {
+                if ($segment === '' || $segment === '.' || $segment === '..' || rtrim($segment, '. ') !== $segment) {
+                    throw new RuntimeException('插件包包含歧义或穿越路径：' . $path);
+                }
+            }
+            $key = strtolower($name);
+            if (isset($paths[$key])) throw new RuntimeException('插件包包含重复路径：' . $path);
+            $paths[$key] = $directory ? 'directory' : 'file';
+            $opsys = $attributes = 0;
+            $zip->getExternalAttributesIndex($index, $opsys, $attributes);
+            $type = ($attributes >> 16) & 0170000;
+            if ($type !== 0 && $type !== ($directory ? 0040000 : 0100000)) {
+                throw new RuntimeException('插件包不允许包含符号链接或特殊文件：' . $path);
+            }
+            $stat = $zip->statIndex($index);
+            if ($stat === false || ($total += (int) $stat['size']) > 524288000) {
+                throw new RuntimeException('插件解压后超过 500MB 限制');
+            }
+            if ($path === 'plugin.json' || preg_match('~^[^/]+/plugin\\.json$~', $path) === 1) {
+                if ($manifestEntry !== null) throw new RuntimeException('插件包包含多个 plugin.json');
+                $manifestEntry = $path;
+            }
+            $records[$path] = $directory ? null : $index;
+        }
+        if ($manifestEntry === null) throw new RuntimeException('插件包缺少 plugin.json');
+        $signatureEntry = dirname($manifestEntry) === '.' ? 'plugin.sig' : dirname($manifestEntry) . '/plugin.sig';
+        foreach ($paths as $path => $type) {
+            for ($parent = dirname($path); $parent !== '.'; $parent = dirname($parent)) {
+                if (($paths[$parent] ?? null) === 'file') throw new RuntimeException('插件包包含冲突路径：' . $path);
+            }
+        }
+        unset($records[$signatureEntry]);
+        ksort($records, SORT_STRING);
+        $entries = [];
+        foreach ($records as $path => $index) {
+            $digest = null;
+            if ($index !== null) {
+                $stream = $zip->getStream($path);
+                if ($stream === false) throw new RuntimeException('无法读取插件包文件：' . $path);
+                try {
+                    $hash = hash_init('sha256');
+                    $size = hash_update_stream($hash, $stream);
+                    $stat = $zip->statIndex($index);
+                    if ($size === false || $size !== (int) $stat['size']) throw new RuntimeException('插件包文件读取不完整：' . $path);
+                    $digest = hash_final($hash);
+                } finally { fclose($stream); }
+            }
+            $entries[] = [$path, $digest];
+        }
+        return ['manifest_entry' => $manifestEntry, 'signature_entry' => $signatureEntry,
+            'payload' => "funadmin-plugin-files-v1\n" . json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)];
+    }
+
     private readonly Closure $stageVerifier;
 
     public function __construct(private readonly string $pluginsDirectory, callable $stageVerifier)

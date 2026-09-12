@@ -169,7 +169,7 @@ final class PluginPackagePipeline
             $deployed = false;
             $deploymentState = (array) ($operationContext['pre_operation_state'] ?? []);
             try {
-                $staged = $this->packages->stage($archive, $expectedCode, $expectedVersion);
+                $staged = $this->packages->stage($archive, $expectedCode, $expectedVersion, $source === 'local');
                 $phase && $phase('validate');
                 $targetVersion = (string) ($staged['version'] ?? '');
                 $maxDbVersion = $this->maxDatabaseVersion($staged);

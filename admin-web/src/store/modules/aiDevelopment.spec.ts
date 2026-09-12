@@ -2,8 +2,9 @@ import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  conversations: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
-  eventTicket: vi.fn(), eventStreamUrl: vi.fn(), decideApproval: vi.fn(), cancelTask: vi.fn(), changeSet: vi.fn(), applyChangeSet: vi.fn()
+  conversations: vi.fn(), conversationGroups: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
+  eventTicket: vi.fn(), eventStreamUrl: vi.fn(), decideApproval: vi.fn(), cancelTask: vi.fn(), changeSet: vi.fn(), applyChangeSet: vi.fn(),
+  updateConversationState: vi.fn(), deleteConversation: vi.fn(), deleteConversationGroup: vi.fn()
 }));
 vi.mock('@/api/development/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/development/ai')>();
@@ -27,7 +28,7 @@ class FakeEventSource {
   }
 }
 
-const conversation = { id: 1, admin_id: 1, uuid: 'one', title: '会话', status: 'running', approval_mode: 'request_approval' as const, provider: '', model: '', context: {} };
+const conversation = { id: 1, admin_id: 1, uuid: 'one', title: '会话', status: 'running', approval_mode: 'request_approval' as const, provider: '', model: '', context: {}, group_id: null, is_archived: false, is_unread: false };
 const task = { id: 8, conversation_id: 1, message_id: null, idempotency_key: 'key', type: 'chat' as const, stage: '', status: 'running' as const, approval_mode: 'request_approval' as const, provider: '', model: '' };
 
 beforeEach(() => {
@@ -35,6 +36,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   FakeEventSource.instances = [];
   mocks.conversations.mockResolvedValue([conversation]);
+  mocks.conversationGroups.mockResolvedValue([]);
+  mocks.updateConversationState.mockImplementation(async (id, state) => ({ ...conversation, id, ...state }));
+  mocks.deleteConversation.mockResolvedValue({ deleted: true });
+  mocks.deleteConversationGroup.mockResolvedValue({ deleted: true });
   mocks.conversation.mockResolvedValue(conversation);
   mocks.messages.mockResolvedValue([]);
   mocks.task.mockResolvedValue(task);
@@ -55,12 +60,131 @@ afterEach(() => {
 });
 
 describe('AI Development store', () => {
+  it('打开会话只 PATCH 已读字段，且立即移除旧消息', async () => {
+    const store = useAiDevelopmentStore();
+    store.messages = [{ id: 99 } as never];
+    store.conversations = [{ ...conversation, is_unread: true }];
+    const opening = store.selectConversation(1);
+    expect(store.messages).toEqual([]);
+    await opening;
+    expect(mocks.updateConversationState).toHaveBeenCalledWith(1, { is_unread: false });
+    expect(store.conversations[0].is_unread).toBe(false);
+  });
+
+  it('当前会话回复和终态刷新消息并清未读，其他会话不被清除', async () => {
+    const store = useAiDevelopmentStore();
+    store.selectedConversationId = 1;
+    store.activeTask = task;
+    store.conversations = [{ ...conversation, is_unread: true }, { ...conversation, id: 2, is_unread: true }];
+    mocks.messages.mockResolvedValue([{ id: 33, role: 'assistant' }]);
+    await store.connectEvents(FakeEventSource as never);
+    const source = FakeEventSource.instances[0];
+    source.emit('assistant.message', '1', {});
+    await vi.waitFor(() => expect(mocks.updateConversationState).toHaveBeenCalledWith(1, { is_unread: false }));
+    expect(store.messages).toEqual([{ id: 33, role: 'assistant' }]);
+    mocks.updateConversationState.mockClear();
+    source.emit('task.succeeded', '2', {});
+    await vi.waitFor(() => expect(mocks.updateConversationState).toHaveBeenCalledWith(1, { is_unread: false }));
+    expect(store.conversations[1].is_unread).toBe(true);
+  });
+
+  it('回复刷新途中切换会话，不清旧会话未读也不回写旧消息', async () => {
+    const store = useAiDevelopmentStore();
+    store.selectedConversationId = 1;
+    store.activeTask = task;
+    store.conversations = [{ ...conversation, is_unread: true }, { ...conversation, id: 2 }];
+    let finish!: (value: unknown[]) => void;
+    mocks.messages.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    await store.connectEvents(FakeEventSource as never);
+    FakeEventSource.instances[0].emit('assistant.message', '1', {});
+    await store.selectConversation(2);
+    finish([{ id: 77 }]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.updateConversationState).not.toHaveBeenCalledWith(1, expect.anything());
+    expect(store.messages).toEqual([]);
+    expect(store.conversations[0].is_unread).toBe(true);
+  });
+
+  it('已读响应晚于手动未读时不得覆盖手动状态', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation }];
+    let finish!: (value: typeof conversation) => void;
+    mocks.updateConversationState.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const opening = store.selectConversation(1);
+    await vi.waitFor(() => expect(mocks.updateConversationState).toHaveBeenCalled());
+    const marking = store.updateConversationState(1, { is_unread: true });
+    finish({ ...conversation, is_unread: false });
+    await Promise.all([opening, marking]);
+    expect(store.conversations[0].is_unread).toBe(true);
+    expect(mocks.updateConversationState).toHaveBeenLastCalledWith(1, { is_unread: true });
+  });
+
+  it('自动已读请求返回前切走且旧会话收到新未读，不覆盖旧会话状态', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, is_unread: true }, { ...conversation, id: 2 }];
+    let finish!: (value: typeof conversation) => void;
+    mocks.updateConversationState.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const opening = store.selectConversation(1);
+    await vi.waitFor(() => expect(mocks.updateConversationState).toHaveBeenCalled());
+    await store.selectConversation(2);
+    store.conversations[0].is_unread = true;
+    finish({ ...conversation, is_unread: false });
+    await opening;
+    expect(store.conversations[0].is_unread).toBe(true);
+  });
+
+  it('恢复列表未返回前切换会话，旧恢复不能覆盖选择或消息', async () => {
+    sessionStorage.setItem('funadmin.ai.route', JSON.stringify({ selectedConversationId: 1 }));
+    const store = useAiDevelopmentStore();
+    let finish!: (value: typeof conversation[]) => void;
+    mocks.conversations.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const restoring = store.restoreRouteState();
+    await store.selectConversation(2);
+    finish([conversation]);
+    await restoring;
+    expect(store.selectedConversationId).toBe(2);
+    expect(mocks.updateConversationState).not.toHaveBeenCalledWith(1, expect.anything());
+  });
+
+  it('归档当前会话清空全部工作区与连接，失败不清空', async () => {
+    const store = useAiDevelopmentStore();
+    store.selectedConversationId = 1;
+    store.activeTask = task;
+    store.conversations = [{ ...conversation }];
+    store.messages = [{ id: 1 } as never];
+    store.approvedFinalApproval = {} as never;
+    await store.connectEvents(FakeEventSource as never);
+    mocks.updateConversationState.mockRejectedValueOnce(new Error('失败'));
+    await expect(store.updateConversationState(1, { is_archived: true })).rejects.toThrow();
+    expect(store.selectedConversationId).toBe(1);
+    await store.updateConversationState(1, { is_archived: true });
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.messages).toEqual([]);
+    expect(store.activeTask).toBeNull();
+    expect(store.approvedFinalApproval).toBeNull();
+    expect(FakeEventSource.instances[0].close).toHaveBeenCalled();
+  });
+
+  it('删除组归档所有成员并清选中，删除其他会话不打断当前任务', async () => {
+    const store = useAiDevelopmentStore();
+    store.selectedConversationId = 1;
+    store.activeTask = task;
+    store.conversationGroups = [{ id: 10, name: '项目' }];
+    store.conversations = [{ ...conversation, group_id: 10 }, { ...conversation, id: 2, group_id: 10 }];
+    await store.deleteConversation(2);
+    expect(store.activeTask?.id).toBe(8);
+    await store.deleteConversationGroup(10);
+    expect(store.conversationGroups).toEqual([]);
+    expect(store.conversations[0]).toMatchObject({ group_id: null, is_archived: true });
+    expect(store.selectedConversationId).toBeNull();
+  });
   it('恢复选中会话但不持久化 API key', async () => {
     sessionStorage.setItem('funadmin.ai.route', JSON.stringify({ selectedConversationId: 1, taskId: 8, cursor: 4 }));
     const store = useAiDevelopmentStore();
     await store.restoreRouteState();
     expect(store.selectedConversationId).toBe(1);
     expect(store.eventCursor).toBe(4);
+    expect(JSON.parse(sessionStorage.getItem('funadmin.ai.route')!)).toMatchObject({ selectedConversationId: 1, taskId: 8, cursor: 4 });
     expect(JSON.stringify(store.$state)).not.toContain('must-not-survive');
     expect(store.$persist).toBeUndefined();
   });

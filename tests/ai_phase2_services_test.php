@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+require_once __DIR__ . '/fixtures/AiConversationGroupsFake.php';
 
 use app\common\ai\provider\AiProviderException;
 use app\console\ai\contract\AiConversationStore;
@@ -20,6 +21,7 @@ function phase2Expect(bool $condition, string $message): void
 
 final class MemoryAiStore implements AiConversationStore
 {
+    use AiConversationGroupsFake;
     public array $conversations = [];
     public array $messages = [];
     public array $tasks = [];
@@ -33,13 +35,13 @@ final class MemoryAiStore implements AiConversationStore
     public function conversation(int $id, int $adminId): ?array { $row = $this->conversations[$id] ?? null; return $row && $row['admin_id'] === $adminId ? $row : null; }
     public function updateConversation(int $id, int $adminId, array $data): bool { if (!$this->conversation($id, $adminId)) return false; $this->conversations[$id] = array_replace($this->conversations[$id], $data); return true; }
     public function deleteConversation(int $id, int $adminId): bool { if (!$this->conversation($id, $adminId)) return false; unset($this->conversations[$id]); return true; }
-    public function appendMessage(int $conversationId, array $data): array { $sequence = count(array_filter($this->messages, fn ($m) => $m['conversation_id'] === $conversationId)) + 1; $data += ['id' => $this->id++, 'conversation_id' => $conversationId, 'sequence' => $sequence]; $this->messages[] = $data; return $data; }
+    public function appendMessage(int $conversationId, array $data): array { $sequence = count(array_filter($this->messages, fn ($m) => $m['conversation_id'] === $conversationId)) + 1; $data += ['id' => $this->id++, 'conversation_id' => $conversationId, 'sequence' => $sequence]; $this->messages[] = $data; if ($data['role'] === 'assistant') $this->conversations[$conversationId]['is_unread'] = true; return $data; }
     public function messages(int $conversationId): array { return array_values(array_filter($this->messages, fn ($m) => $m['conversation_id'] === $conversationId)); }
     public function createTask(array $data): array { foreach ($this->tasks as $task) if ($task['conversation_id'] === $data['conversation_id'] && $task['idempotency_key'] === $data['idempotency_key']) return $task; $data['id'] = $this->id++; return $this->tasks[$data['id']] = $data; }
     public function task(int $id): ?array { return $this->tasks[$id] ?? null; }
-    public function compareAndSetTask(int $id, array $from, array $data): bool { if ($this->raceTerminalStatus !== null && in_array($data['status'] ?? '', ['succeeded', 'failed'], true)) { $this->tasks[$id]['status'] = $this->raceTerminalStatus; $this->raceTerminalStatus = null; return false; } if (!isset($this->tasks[$id]) || !in_array($this->tasks[$id]['status'], $from, true)) return false; $this->tasks[$id] = array_replace($this->tasks[$id], $data); return true; }
+    public function compareAndSetTask(int $id, array $from, array $data): bool { if ($this->raceTerminalStatus !== null && in_array($data['status'] ?? '', ['succeeded', 'failed'], true)) { $this->tasks[$id]['status'] = $this->raceTerminalStatus; $this->raceTerminalStatus = null; return false; } if (!isset($this->tasks[$id]) || !in_array($this->tasks[$id]['status'], $from, true)) return false; $this->updateTask($id, $data); return true; }
     public function compareAndSetTaskOperation(int $id, string $operationToken, array $from, array $data): bool { if (!isset($this->tasks[$id]) || !hash_equals((string)$this->tasks[$id]['operation_token'], $operationToken)) return false; return $this->compareAndSetTask($id, $from, $data); }
-    public function updateTask(int $id, array $data): void { $this->tasks[$id] = array_replace($this->tasks[$id], $data); }
+    public function updateTask(int $id, array $data): void { if (isset($data['status']) && $data['status'] !== $this->tasks[$id]['status'] && in_array($data['status'], ['succeeded', 'failed', 'cancelled'], true)) $this->conversations[$this->tasks[$id]['conversation_id']]['is_unread'] = true; $this->tasks[$id] = array_replace($this->tasks[$id], $data); }
     public function appendEvent(int $taskId, string $type, array $payload): array { $event = ['id' => $this->id++, 'task_id' => $taskId, 'type' => $type, 'payload' => $payload]; $this->events[] = $event; return $event; }
     public function events(int $taskId, int $afterId, int $limit): array { return array_slice(array_values(array_filter($this->events, fn ($e) => $e['task_id'] === $taskId && $e['id'] > $afterId)), 0, $limit); }
     public function consumeNonce(string $nonce, int $expiresAt): bool { if (isset($this->nonces[$nonce])) return false; $this->nonces[$nonce] = $expiresAt; return true; }

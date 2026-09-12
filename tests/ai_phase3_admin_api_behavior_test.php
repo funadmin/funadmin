@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+require_once __DIR__ . '/fixtures/AiConversationGroupsFake.php';
 
 use app\console\ai\contract\AiConversationStore;
 use app\console\ai\service\AiConversationService;
@@ -19,6 +20,7 @@ function phase3AdminExpect(bool $condition, string $message): void
 
 final class Phase3AdminStore implements AiConversationStore
 {
+    use AiConversationGroupsFake;
     public array $conversations = [];
     public array $tasks = [];
     private int $id = 1;

@@ -30,6 +30,10 @@ describe('AI 会话分组和日期显示', () => {
     expect(groups[1].conversations[0].id).toBe(2);
   });
 
+  it('保留空自定义分组', () => {
+    expect(groupConversations([], [{ id: 10, name: '空项目' }])).toEqual([{ id: 10, name: '空项目', conversations: [] }]);
+  });
+
   it('每个会话显示自己的日期和时间', () => {
     expect(conversationDate('2026-09-12 10:30:00')).toContain('09-12');
     expect(conversationDate('2026-09-12 10:30:00')).toContain('10:30');

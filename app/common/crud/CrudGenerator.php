@@ -113,6 +113,7 @@ final class CrudGenerator
         array $allowOverwrite = [],
         string $operator = 'unknown'
     ): array {
+        $this->validator->validate($definition, $this->projectRoot);
         $startedAt = gmdate(DATE_ATOM);
         if (!hash_equals($definition->hash(), (string) ($plan['definitionHash'] ?? ''))) {
             throw new InvalidArgumentException('预检计划与 Definition 不一致');

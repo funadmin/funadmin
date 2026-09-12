@@ -176,7 +176,7 @@ final class FormDataService
         }
         $children = [];
         foreach ($fields as $field) {
-            if ((string) $field->relation_type === 'has_many') {
+            if ((string) $field->relation_type === 'has_many' && $this->relationReadable($field)) {
                 $children[(string) $field->field_name] = $this->subRows($field, $id, 1, 20);
             }
         }
@@ -463,7 +463,13 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         $parent = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
         if (!$parent) throw new InvalidArgumentException('父数据不存在或无访问权限');
-        $field = $fields->firstWhere('field_name', $relation);
+        $field = null;
+        foreach ($fields as $candidate) {
+            if ((string) $candidate->field_name === $relation) {
+                $field = $candidate;
+                break;
+            }
+        }
         if (!$field || (string) $field->relation_type !== 'has_many') {
             throw new InvalidArgumentException('子表不存在：' . $relation);
         }
@@ -653,7 +659,7 @@ final class FormDataService
         foreach ($rows as $field) {
             if ((string) ($field['relation_type'] ?? 'none') !== 'has_many') continue;
             $name = (string) ($field['field_name'] ?? '');
-            if (!array_key_exists($name, $data)) continue;
+            if (!array_key_exists($name, $data) || !$this->fieldSubmissionAllowed($field, $include)) continue;
             if (!is_array($data[$name]) || !array_is_list($data[$name])) throw new InvalidArgumentException($name . ' 必须为子表行数组');
             $relations[$name] = $data[$name];
         }
@@ -663,7 +669,6 @@ final class FormDataService
     public function filterPayload(array $fieldRows, array $data, bool $isUpdate, array $include = []): array
     {
         $payload = [];
-        $included = array_fill_keys(array_map('strval', $include), true);
         foreach ($fieldRows as $field) {
             if ($this->isLayoutField($field) || (string) ($field['relation_type'] ?? 'none') === 'has_many') {
                 continue;
@@ -672,14 +677,7 @@ final class FormDataService
             if ($name === '' || !array_key_exists($name, $data)) {
                 continue;
             }
-            if (!$this->fieldAccessAllowed($field, 'write')) {
-                continue;
-            }
-            $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
-            $access = is_array($props['schemaAccess'] ?? null) ? $props['schemaAccess'] : [];
-            if ($this->isExcludedFromSubmission($field)
-                && ($access['include'] ?? 'auto') !== 'always'
-                && !isset($included[$name])) {
+            if (!$this->fieldSubmissionAllowed($field, $include)) {
                 continue;
             }
             $value = $data[$name];
@@ -866,12 +864,14 @@ final class FormDataService
         return $query->whereIn($table . '.' . $field, $scope['departmentIds'] ?: [0]);
     }
 
-    private function applyWriteDataScope(array $payload, Form $form, array $columns): array
+    private function applyWriteDataScope(array $payload, Form $form, array $columns, bool $isUpdate = false): array
     {
         $field = $this->dataScopeField($form, $columns);
         if ($field === '') return $payload;
         $scope = (new DataScopeService())->resolve();
         if ($scope['all']) return $payload;
+        // 已通过行级范围验证的更新，省略部门字段表示保留原值。
+        if ($isUpdate && !array_key_exists($field, $payload)) return $payload;
         $requested = (int) ($payload[$field] ?? 0);
         if (!in_array($requested, $scope['departmentIds'], true)) {
             throw new InvalidArgumentException('数据不在当前部门权限范围内');
@@ -901,17 +901,18 @@ final class FormDataService
 
     private function subRows(FormField $field, int|string $id, int $page, int $pageSize): array
     {
+        if (!$this->relationReadable($field)) throw new InvalidArgumentException('无子表读取权限');
         $context = $this->childContext($field);
         $columns = array_keys($context['schema']);
         $readable = array_values(array_intersect([$context['primary']['name'], $context['foreignKey'], 'created_at', 'updated_at'], $columns));
         $configured = array_values(array_filter(
             array_map(static fn ($field): array => $field->toArray(), $context['fields']->all()),
-            fn (array $field): bool => !$this->isSensitiveField($field)
+            fn (array $field): bool => !$this->isSensitiveField($field) && $this->fieldAccessAllowed($field, 'read')
         ));
         $configuredNames = array_column($configured, 'field_name');
         $readable = array_values(array_unique(array_merge($readable, array_intersect($configuredNames, $columns))));
-        $query = Db::connect((string) $context['form']->connection)->table($context['table'])->field($readable)->where($context['foreignKey'], $id);
-        if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
+        $query = $this->childQuery(Db::connect((string) $context['form']->connection), $context)
+            ->field($readable)->where($context['foreignKey'], $id);
         $total = (clone $query)->count();
         $rows = $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray();
         $rows = array_map(fn (array $row): array => $this->sanitizeRecord($context['fields'], $row), $rows);
@@ -926,8 +927,7 @@ final class FormDataService
             $context = $this->childContext($field);
             if ((string) $context['form']->connection !== (string) $parentForm->connection) throw new InvalidArgumentException('父子表必须使用同一数据库连接');
             $primaryName = $context['primary']['name'];
-            $existing = $connection->table($context['table'])->where($context['foreignKey'], $parentId);
-            if (in_array('deleted_at', array_keys($context['schema']), true)) $existing->whereNull('deleted_at');
+            $existing = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->lock(true);
             $existingIds = array_map('strval', $existing->column($primaryName));
             $submitted = [];
             foreach ($relations[$name] as $row) {
@@ -938,7 +938,7 @@ final class FormDataService
                 if ($hasRowId) {
                     $key = (string) $rowId;
                     if (isset($submitted[$key])) throw new InvalidArgumentException($name . ' 子表主键重复：' . $key);
-                    if (!$updatesExisting && $connection->table($context['table'])->where($primaryName, $rowId)->find()) {
+                    if (!$updatesExisting && $this->childQuery($connection, $context)->where($primaryName, $rowId)->find()) {
                         throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
                     }
                     if (!$updatesExisting && $context['primary']['type'] !== 'string') {
@@ -948,23 +948,34 @@ final class FormDataService
                 }
                 $payload = $this->filterChildPayload($context['fields'], $row, $updatesExisting);
                 $payload[$context['foreignKey']] = $parentId;
+                $payload = $this->applyWriteDataScope($payload, $context['form'], array_keys($context['schema']), $updatesExisting);
                 if (!$updatesExisting) {
                     if ($hasRowId) $payload[$primaryName] = (string) $rowId;
+                    // 仅执行普通 INSERT；不可见或已删除的字符串主键冲突由唯一约束拒绝，禁止覆盖。
                     $connection->table($context['table'])->insert($payload);
                 } else {
                     unset($payload[$primaryName]);
-                    $connection->table($context['table'])->where($primaryName, $rowId)->where($context['foreignKey'], $parentId)->update($payload);
+                    $this->childQuery($connection, $context)->where($primaryName, $rowId)->where($context['foreignKey'], $parentId)->update($payload);
                 }
             }
             if ($isUpdate) {
                 $removed = array_values(array_diff($existingIds, array_keys($submitted)));
                 if ($removed !== []) {
-                    $query = $connection->table($context['table'])->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
+                    $query = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
                     if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
                     else $query->delete();
                 }
             }
         }
+    }
+
+    /** 所有子表查询、更新及删除共用已发布范围，且排除已软删除行。 */
+    private function childQuery($connection, array $context)
+    {
+        $columns = array_keys($context['schema']);
+        $query = $this->applyDataScope($connection->table($context['table']), $context['form'], $columns, $context['table']);
+        if (in_array('deleted_at', $columns, true)) $query->whereNull($context['table'] . '.deleted_at');
+        return $query;
     }
 
     private function childContext(FormField $field): array
@@ -1018,6 +1029,23 @@ final class FormDataService
     private function isLayoutField(array $field): bool
     {
         return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
+    }
+
+    /** 普通字段和关系集合遵循同一提交规则，显式 include 不得越过写权限。 */
+    private function fieldSubmissionAllowed(array $field, array $include): bool
+    {
+        if (!$this->fieldAccessAllowed($field, 'write')) return false;
+        $access = (array) ($field['control_props']['schemaAccess'] ?? []);
+        return !$this->isExcludedFromSubmission($field)
+            || ($access['include'] ?? 'auto') === 'always'
+            || in_array((string) ($field['field_name'] ?? ''), array_map('strval', $include), true);
+    }
+
+    /** 详情和分页必须先校验父关系，不能只过滤子表自身字段。 */
+    private function relationReadable(FormField $field): bool
+    {
+        $row = $field->toArray();
+        return !$this->isSensitiveField($row) && $this->fieldAccessAllowed($row, 'read');
     }
 
     private function fieldAccessAllowed(array $field, string $operation): bool

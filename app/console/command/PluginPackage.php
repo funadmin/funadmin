@@ -20,15 +20,29 @@ final class PluginPackage extends Command
     {
         $this->setName('plugin:package')->setDescription('创建确定性 Manifest v2 插件包')
             ->addArgument('name', Argument::REQUIRED, '插件名称')
-            ->addOption('output', null, Option::VALUE_REQUIRED, 'ZIP 输出文件或目录', '');
+            ->addOption('output', null, Option::VALUE_REQUIRED, 'ZIP 输出文件或目录', '')
+            ->addOption('sign-key-file', null, Option::VALUE_REQUIRED, '包外 Base64 Ed25519 私钥文件', '');
     }
 
     protected function execute(Input $input, Output $output): int
     {
         $packageService = app(PluginPackageService::class);
         try {
-            $archive = new PluginArchiveService(root_path('plugins'), static function (string $file) use ($packageService): void {
-                $staged = $packageService->stage($file);
+            $keyFile = (string) $input->getOption('sign-key-file');
+            $secretKey = '';
+            if ($keyFile !== '') {
+                $realKey = realpath($keyFile);
+                $pluginsRoot = realpath(root_path('plugins'));
+                if ($realKey === false || !is_file($realKey) || !is_readable($realKey)
+                    || ($pluginsRoot !== false && str_starts_with($realKey, $pluginsRoot . DIRECTORY_SEPARATOR))) {
+                    throw new \RuntimeException('签名私钥必须是插件目录外的可读文件');
+                }
+                $secretKey = (string) file_get_contents($realKey);
+            }
+            $archive = new PluginArchiveService(root_path('plugins'), static function (string $file) use ($packageService, $secretKey): void {
+                if ($secretKey !== '') $packageService->signLocalArchive($file, $secretKey);
+                // 无密钥时只生成开发包，不能作为可信本地包安装。
+                $staged = $packageService->stage($file, '', '', $secretKey !== '');
                 $packageService->discard($staged);
             });
             $result = $archive->package(

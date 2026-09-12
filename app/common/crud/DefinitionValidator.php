@@ -99,6 +99,22 @@ final class DefinitionValidator
         $this->capabilities($data['capabilities'] ?? null);
         $this->features($data['features'] ?? null, $fieldNames);
         $this->dataScope($data['dataScope'] ?? null, $fieldNames);
+        if ($target['type'] === 'plugin' && $target['scope'] === 'application') {
+            // 会员认证不是管理授权；当前没有可执行的会员授权及归属策略，禁止声明管理入口。
+            foreach (['form', 'create', 'update', 'delete', 'import', 'export'] as $ability) {
+                if (($data['capabilities'][$ability] ?? null) !== false) {
+                    throw new InvalidArgumentException('application 必须显式禁用管理能力：' . $ability);
+                }
+            }
+            foreach (['batchDelete', 'status', 'import', 'export', 'upload', 'dictionary'] as $ability) {
+                if (($data['features'][$ability] ?? false) !== false) {
+                    throw new InvalidArgumentException('application 不支持管理功能：' . $ability);
+                }
+            }
+            if ($data['dataScope']['enabled']) {
+                throw new InvalidArgumentException('application 不支持 console 数据范围策略');
+            }
+        }
         $this->menu($data['menu'] ?? null);
         $this->permission($data['permission'] ?? null);
     }

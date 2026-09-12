@@ -25,6 +25,7 @@ final class PluginCrudDefinitionFactory
             throw new InvalidArgumentException('inspect/infer 必须得到唯一主键');
         }
         $title = trim((string) ($schema['comment'] ?? '')) ?: $entity;
+        $management = $scope !== 'application';
         $definition = CrudDefinition::fromArray([
             'schemaVersion' => '1.0', 'connection' => $connection, 'module' => $plugin,
             'entity' => $entity, 'table' => $table, 'title' => $title,
@@ -34,8 +35,8 @@ final class PluginCrudDefinitionFactory
             'target' => ['type' => 'plugin', 'plugin' => $plugin, 'scope' => $scope],
             'permissionPrefix' => $plugin . ':' . $entity, 'fields' => $fields,
             'relations' => [], 'optionsSource' => [], 'templates' => self::templates(),
-            'capabilities' => ['list' => true, 'search' => true, 'form' => true, 'detail' => true, 'create' => true, 'update' => true, 'delete' => true, 'import' => false, 'export' => false],
-            'features' => ['batchDelete' => true, 'status' => $this->has($fields, 'status'), 'detail' => true, 'import' => false, 'export' => false, 'upload' => false, 'dictionary' => false, 'referenceProtection' => false, 'formMode' => 'dialog', 'importLimit' => 100, 'exportLimit' => 100],
+            'capabilities' => ['list' => true, 'search' => true, 'form' => $management, 'detail' => true, 'create' => $management, 'update' => $management, 'delete' => $management, 'import' => false, 'export' => false],
+            'features' => ['batchDelete' => $management, 'status' => $management && $this->has($fields, 'status'), 'detail' => true, 'import' => false, 'export' => false, 'upload' => false, 'dictionary' => false, 'referenceProtection' => false, 'formMode' => 'dialog', 'importLimit' => 100, 'exportLimit' => 100],
             'dataScope' => ['enabled' => false, 'field' => ''],
             'menu' => ['enabled' => true, 'parentId' => null, 'parentSourceName' => '', 'name' => $title, 'icon' => 'i-ep-document', 'sortOrder' => 999, 'hidden' => false, 'keepAlive' => true, 'affix' => false, 'target' => '_self'],
             'permission' => ['enabled' => true, 'groupName' => $title, 'actions' => []],

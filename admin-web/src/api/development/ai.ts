@@ -10,7 +10,7 @@ export type AiApprovalScope = 'once' | 'session_operation';
 
 export interface AiConversationGroup {
   id: number;
-  admin_id: number;
+  admin_id?: number;
   name: string;
   created_at?: string;
   updated_at?: string;
@@ -204,7 +204,7 @@ export const aiDevelopmentApi = {
   createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }),
   updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }),
   deleteConversationGroup: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversation-groups/${id}`),
-  updateConversationState: (id: number, payload: Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload),
+  updateConversationState: (id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload),
   createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context'>>) => http.post<AiConversation>('/development/ai/conversations', payload),
   conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`),
   updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload),

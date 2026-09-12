@@ -164,6 +164,17 @@ try {
         static function (string $archive) use (&$verifiedStages): void {
             $verifiedStages++;
             developmentExpect(is_file($archive), '打包后必须调用完整 stage 重验');
+            $packages = new \app\console\plugin\service\PluginPackageService();
+            $pair = sodium_crypto_sign_seed_keypair(str_repeat('t', SODIUM_CRYPTO_SIGN_SEEDBYTES));
+            $packages->signLocalArchive($archive, base64_encode(sodium_crypto_sign_secretkey($pair)));
+            $zip = new ZipArchive();
+            developmentExpect($zip->open($archive) === true, '签名后必须能打开 ZIP');
+            $data = PluginArchiveService::localSignaturePayload($zip);
+            developmentExpect(sodium_crypto_sign_verify_detached(
+                base64_decode($zip->getFromName($data['signature_entry']), true),
+                $data['payload'], sodium_crypto_sign_publickey($pair)
+            ), '现有打包器必须产出可验证的完整文件签名');
+            $zip->close();
         }
     );
     file_put_contents($plugin . '/.DS_Store', 'ignored');

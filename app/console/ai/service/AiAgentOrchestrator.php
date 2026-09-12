@@ -26,6 +26,7 @@ final class AiAgentOrchestrator
             $usage += (int) ($response['usage']['totalTokens'] ?? 0);
             if ($budget > 0 && $usage > $budget) throw new AiProviderException('budget_exceeded', 'AI 任务 token 预算已耗尽');
             $calls = (array) ($response['toolCalls'] ?? []);
+            $event && $event('assistant.message', ['content' => $response['content'] ?? null, 'tool_calls' => $calls, 'round' => $round]);
             if ($calls === []) {
                 return ['status' => 'succeeded', 'content' => $response['content'] ?? null, 'usage' => ['totalTokens' => $usage], 'rounds' => $round];
             }

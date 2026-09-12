@@ -10,16 +10,12 @@ use app\console\traits\AdminCrudRequest;
 use app\console\traits\AdminPagination;
 use app\common\traits\JsonResponse;
 use app\shop\model\Product;
-use app\console\authorization\service\DataScopeService;
 use app\shop\service\ProductService;
 use app\shop\validate\ProductValidate;
 use app\common\traits\Crud;
-use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
 use think\Model;
 use think\Response;
 
@@ -56,37 +52,11 @@ final class ProductController extends BaseController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function detail(int|string $id): Response { return $this->crudDetail($id); }
 
-    #[Post('')]
-    public function create(): Response { return $this->crudCreate(); }
-
-    #[Put(':id')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
-    public function update(int|string $id): Response { return $this->crudUpdate($id); }
-
-    #[Post(':id/status')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
-    public function status(int|string $id): Response { return $this->crudStatus($id); }
-
-    #[Delete(':id')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
-    public function remove(int|string $id): Response { return $this->crudRemove($id); }
-
-    #[Post(':id/restore')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
-    public function restore(int|string $id): Response { return $this->crudRestoreOne($id); }
-
-    #[Delete(':id/destroy')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
-    public function destroy(int|string $id): Response { return $this->crudDestroyOne($id); }
-
-    #[Delete('')]
-    public function recycle(): Response { return $this->crudRecycle(); }
-
-    #[Post('restore')]
-    public function restoreMany(): Response { return $this->crudRestoreMany(); }
-
-    #[Delete('destroy')]
-    public function destroyMany(): Response { return $this->crudDestroyMany(); }
+    // 会员认证不授予商品管理权；只读查询不得包含软删除商品。
+    protected function baseQuery(bool $onlyTrashed, bool $withTrashed)
+    {
+        return $this->crudUnscopedBaseQuery(false, false);
+    }
 
     protected function searchFields(): array { return array (
   'name' => 'name',

@@ -58,19 +58,39 @@ final class PluginCenterService extends AbstractService
     public function deletePackage(string $code): void
     {
         $this->assertCode($code);
+        $root = rtrim(root_path(), DIRECTORY_SEPARATOR);
+        $parent = $root . DIRECTORY_SEPARATOR . PLUGIN_DIR;
+        $directory = $parent . DIRECTORY_SEPARATOR . $code;
+        // 先验证根和全部父级，不能让 realpath 隐藏危险链接，包括悬空链接。
+        clearstatcache(true);
+        for ($path = $directory; $path !== dirname($path); $path = dirname($path)) {
+            if (is_link($path)) throw new RuntimeException('本地插件包根或父目录不允许为符号链接');
+        }
+        $realRoot = realpath($root);
+        $realParent = realpath($parent);
+        $realDirectory = realpath($directory);
+        if ($realRoot === false || $realParent === false || $realDirectory === false || !is_dir($realDirectory)) {
+            throw new RuntimeException('本地插件包不存在');
+        }
+        if (!str_starts_with($realParent, $realRoot . DIRECTORY_SEPARATOR)
+            || dirname($realDirectory) !== $realParent || $realDirectory !== $realParent . DIRECTORY_SEPARATOR . $code) {
+            throw new RuntimeException('本地插件包真实路径越界');
+        }
         if (Plugin::where('code', $code)->find()) {
             throw new RuntimeException('请先卸载插件再删除本地包');
         }
-        $directory = root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code;
-        if (!is_dir($directory)) {
-            throw new RuntimeException('本地插件包不存在');
-        }
+        $directory = $realDirectory;
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($iterator as $item) {
-            $removed = $item->isDir() && !$item->isLink() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+            $path = $item->getPathname();
+            $realPath = $item->isLink() ? realpath(dirname($path)) : realpath($path);
+            if ($realPath === false || ($realPath !== $directory && !str_starts_with($realPath, $directory . DIRECTORY_SEPARATOR))) {
+                throw new RuntimeException('本地插件包真实路径越界');
+            }
+            $removed = $item->isDir() && !$item->isLink() ? rmdir($path) : unlink($path);
             if (!$removed) {
                 throw new RuntimeException('无法删除本地插件包');
             }

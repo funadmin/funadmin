@@ -176,7 +176,7 @@ export const businessDevelopmentApi = {
   validateSchema: (id: number, schema: FormSchemaDocument) =>
     http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/validate`, { schema }),
   saveSchema: (id: number, schema: FormSchemaDocument, expectedSchemaHash: string, summary = '') =>
-    http.post<{ schemaHash: string; document: FormSchemaDocument }>(`${PREFIX}/modules/${id}/schema/save`, { schema, expectedSchemaHash, summary }),
+    http.post<{ schemaHash: string; document: FormSchemaDocument }>(`${PREFIX}/modules/${id}/schema/save`, { schema, expectedSchemaHash, summary }, { requestOptions: { showErrorMsg: false } }),
   compileSchema: (id: number, schema: FormSchemaDocument) =>
     http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/compile`, { schema }),
   exportSchema: (id: number, schema: FormSchemaDocument) =>
