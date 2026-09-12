@@ -32,6 +32,15 @@ final class AuthorizationTransactionService
         return $plain;
     }
 
+    public function find(string $transactionId): OAuthAuthorization
+    {
+        $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->find();
+        if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) {
+            throw new DomainException('invalid_request');
+        }
+        return $authorization;
+    }
+
     public function decide(string $transactionId, array $identity, bool $approved): array
     {
         return Db::transaction(function () use ($transactionId, $identity, $approved): array {

@@ -16,7 +16,7 @@ use RuntimeException;
 final class AgentSandboxManager
 {
     private const LABEL = 'com.funadmin.ai-agent=true';
-    private const EXCLUDED_ROOTS = ['.git', '.env', '.env.local', '.env.production', 'runtime', 'node_modules', 'vendor', 'dist', 'build', '.cache', 'coverage'];
+    private const EXCLUDED_ROOTS = ['.git', 'runtime', 'node_modules', 'vendor', 'dist', 'build', '.cache', 'coverage'];
     private const MAX_BUNDLE_FILES = 100000;
     private const MAX_BUNDLE_BYTES = 67108864;
     private const MAX_BUNDLE_FILE_BYTES = 16777216;
@@ -38,23 +38,32 @@ final class AgentSandboxManager
         $this->assertDockerAvailable();
         $workspace = rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/sandboxes/' . $taskId . '-' . bin2hex(random_bytes(6));
         $snapshot = $workspace . '/snapshot';
-        $this->copyProject($snapshot);
-        $this->writeManifest($snapshot, $workspace . '/baseline-manifest.json');
         $volume = 'funadmin-ai-' . $taskId . '-' . bin2hex(random_bytes(6));
-        $argv = [
-            'docker', 'create', '--label', self::LABEL, '--label', 'com.funadmin.ai-task=' . $taskId,
-            '--label', 'com.funadmin.ai-session=' . $sessionId, '--label', 'com.funadmin.ai-volume=' . $volume,
-            '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=64m', '--tmpfs', '/run:rw,noexec,nosuid,nodev,size=16m',
-            '--security-opt', 'no-new-privileges', '--cap-drop', 'ALL', '--cpus', (string) ($this->config['cpu'] ?? 0.5),
-            '--memory', (int) ($this->config['memory_mb'] ?? 256) . 'm', '--pids-limit', (string) ($this->config['pids'] ?? 64),
-            '--network', 'none', '--user', '10001:10001', '--workdir', '/workspace',
-            '--mount', 'type=volume,src=' . $volume . ',dst=/workspace', $image, 'sleep', 'infinity',
-        ];
-        $result = $this->checked($argv, 30, '创建 Docker sandbox 失败');
-        $containerId = trim($result->stdout);
-        $this->checked(['docker', 'cp', $snapshot . '/.', $this->containerId($containerId) . ':/workspace'], 120, '复制可信快照失败');
-        $this->checked(['docker', 'run', '--rm', '--network', 'none', '--volumes-from', $this->containerId($containerId), '--user', '0:0', $image, 'chown', '-R', '10001:10001', '/workspace'], 120, '修正 sandbox workspace 所有权失败');
-        return ['containerId' => $containerId, 'volume' => $volume, 'workspace' => $workspace, 'status' => 'created', 'taskId' => $taskId, 'sessionId' => $sessionId];
+        $containerId = '';
+        try {
+            $this->copyProject($snapshot);
+            $this->writeManifest($snapshot, $workspace . '/baseline-manifest.json');
+            $this->checked([
+                'docker', 'volume', 'create', '--label', self::LABEL, '--label', 'com.funadmin.ai-task=' . $taskId,
+                '--label', 'com.funadmin.ai-session=' . $sessionId, $volume,
+            ], 30, '创建 sandbox volume 失败');
+            $argv = [
+                'docker', 'create', '--label', self::LABEL, '--label', 'com.funadmin.ai-task=' . $taskId,
+                '--label', 'com.funadmin.ai-session=' . $sessionId, '--label', 'com.funadmin.ai-volume=' . $volume,
+                '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=64m', '--tmpfs', '/run:rw,noexec,nosuid,nodev,size=16m',
+                '--security-opt', 'no-new-privileges', '--cap-drop', 'ALL', '--cpus', (string) ($this->config['cpu'] ?? 0.5),
+                '--memory', (int) ($this->config['memory_mb'] ?? 256) . 'm', '--pids-limit', (string) ($this->config['pids'] ?? 64),
+                '--network', 'none', '--user', '10001:10001', '--workdir', '/workspace',
+                '--mount', 'type=volume,src=' . $volume . ',dst=/workspace', $image, 'sleep', 'infinity',
+            ];
+            $containerId = trim($this->checked($argv, 30, '创建 Docker sandbox 失败')->stdout);
+            $this->checked(['docker', 'cp', $snapshot . '/.', $this->containerId($containerId) . ':/workspace'], 120, '复制可信快照失败');
+            $this->checked(['docker', 'run', '--rm', '--network', 'none', '--volumes-from', $this->containerId($containerId), '--user', '0:0', $image, 'chown', '-R', '10001:10001', '/workspace'], 120, '修正 sandbox workspace 所有权失败');
+            return ['containerId' => $containerId, 'volume' => $volume, 'workspace' => $workspace, 'status' => 'created', 'taskId' => $taskId, 'sessionId' => $sessionId];
+        } catch (\Throwable $exception) {
+            $this->rollbackCreate($containerId, $volume, $workspace, $taskId, $sessionId);
+            throw $exception;
+        }
     }
 
     public function start(string $containerId): void
@@ -89,30 +98,36 @@ final class AgentSandboxManager
     public function exportChanges(string $containerId, string $workspace): array
     {
         $id = $this->containerId($containerId);
-        $exportRoot = rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/exports/' . basename($workspace);
-        $tree = $exportRoot . '/tree';
-        if (!is_dir($tree) && !mkdir($tree, 0700, true) && !is_dir($tree)) throw new RuntimeException('无法创建变更导出目录');
-        $this->checked(['docker', 'exec', $id, 'git', 'add', '-N', '--all'], 60, '准备 sandbox patch 失败');
-        $patch = $this->checked(['docker', 'exec', $id, 'git', 'diff', '--binary', '--no-ext-diff', 'HEAD'], 60, '导出 sandbox patch 失败')->stdout;
-        file_put_contents($exportRoot . '/changes.patch', $patch, LOCK_EX);
-        $this->checked(['docker', 'cp', $id . ':/workspace/.', $tree], 120, '导出 sandbox bundle 失败');
-        $this->deleteExportTree($tree . '/.git');
-        $remoteManifest = $this->manifest($tree);
-        file_put_contents($exportRoot . '/manifest.json', json_encode($remoteManifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX);
-        $baselinePath = rtrim($workspace, DIRECTORY_SEPARATOR) . '/baseline-manifest.json';
-        $baselineManifest = is_file($baselinePath)
-            ? json_decode((string) file_get_contents($baselinePath), true, 512, JSON_THROW_ON_ERROR)
-            : ['algorithm' => 'sha256', 'files' => [], 'digest' => hash('sha256', '{}')];
-        $baselineBundlePath = $exportRoot . '/baseline-bundle.json';
-        $this->writeBundle($baselineBundlePath, rtrim($workspace, DIRECTORY_SEPARATOR) . '/snapshot', $baselineManifest['files'] ?? []);
-        chmod($baselineBundlePath, 0600);
-        $exportedBaselinePath = $exportRoot . '/baseline-manifest.json';
-        if (file_put_contents($exportedBaselinePath, json_encode($baselineManifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX) === false) {
-            throw new RuntimeException('保存 baseline manifest 失败');
+        $exportsRoot = rtrim($this->privateRoot, DIRECTORY_SEPARATOR) . '/exports';
+        if (!is_dir($exportsRoot) && !mkdir($exportsRoot, 0700, true) && !is_dir($exportsRoot)) throw new RuntimeException('无法创建变更导出目录');
+        $exportRoot = $exportsRoot . '/' . basename($workspace);
+        $temporaryRoot = $exportsRoot . '/.' . basename($workspace) . '.tmp-' . bin2hex(random_bytes(6));
+        $tree = $temporaryRoot . '/tree';
+        try {
+            if (!mkdir($tree, 0700, true) && !is_dir($tree)) throw new RuntimeException('无法创建变更导出目录');
+            $this->checked(['docker', 'exec', $id, 'git', 'add', '-N', '--all'], 60, '准备 sandbox patch 失败');
+            $patch = $this->checked(['docker', 'exec', $id, 'git', 'diff', '--binary', '--no-ext-diff', 'HEAD'], 60, '导出 sandbox patch 失败')->stdout;
+            $this->writeFile($temporaryRoot . '/changes.patch', $patch, '保存 sandbox patch 失败');
+            $this->checked(['docker', 'cp', $id . ':/workspace/.', $tree], 120, '导出 sandbox bundle 失败');
+            $this->deleteExportTree($tree . '/.git');
+            $remoteManifest = $this->manifest($tree);
+            $this->writeFile($temporaryRoot . '/manifest.json', json_encode($remoteManifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), '保存 remote manifest 失败');
+            $baselinePath = rtrim($workspace, DIRECTORY_SEPARATOR) . '/baseline-manifest.json';
+            $baselineManifest = is_file($baselinePath)
+                ? json_decode((string) file_get_contents($baselinePath), true, 512, JSON_THROW_ON_ERROR)
+                : ['algorithm' => 'sha256', 'files' => [], 'digest' => hash('sha256', '{}')];
+            $this->writeBundle($temporaryRoot . '/baseline-bundle.json', rtrim($workspace, DIRECTORY_SEPARATOR) . '/snapshot', $baselineManifest['files'] ?? []);
+            $this->writeFile($temporaryRoot . '/baseline-manifest.json', json_encode($baselineManifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), '保存 baseline manifest 失败');
+            $this->writeBundle($temporaryRoot . '/bundle.json', $tree, $remoteManifest['files'] ?? []);
+            foreach (['changes.patch','manifest.json','baseline-bundle.json','baseline-manifest.json','bundle.json'] as $name) chmod($temporaryRoot . '/' . $name, 0600);
+            if (is_dir($exportRoot) || !rename($temporaryRoot, $exportRoot)) throw new RuntimeException('原子发布 sandbox artifact 失败');
+        } catch (\Throwable $exception) {
+            $this->deleteExportTree($temporaryRoot);
+            throw $exception;
         }
-        chmod($exportedBaselinePath, 0600);
         $bundlePath = $exportRoot . '/bundle.json';
-        $this->writeBundle($bundlePath, $tree, $remoteManifest['files'] ?? []);
+        $exportedBaselinePath = $exportRoot . '/baseline-manifest.json';
+        $baselineBundlePath = $exportRoot . '/baseline-bundle.json';
         $remoteManifestSha256 = hash_file('sha256', $exportRoot . '/manifest.json');
         return ['root'=>$exportRoot, 'patchPath'=>$exportRoot.'/changes.patch', 'patchSha256'=>hash_file('sha256', $exportRoot.'/changes.patch'),
             'bundlePath'=>$bundlePath, 'bundleSha256'=>hash_file('sha256', $bundlePath), 'manifestPath'=>$exportRoot.'/manifest.json',
@@ -140,7 +155,10 @@ final class AgentSandboxManager
             $volume = (string)($labels['com.funadmin.ai-volume'] ?? $volume);
             $this->checkedUnlessMissing(['docker', 'rm', '-f', $id], 30, '删除 Docker sandbox 失败');
         }
-        if ($volume !== '') $this->checkedUnlessMissing(['docker', 'volume', 'rm', $volume], 30, '删除 sandbox volume 失败');
+        if ($volume !== '') {
+            $this->assertVolumeLabels($volume, $taskId, $sessionId);
+            $this->checkedUnlessMissing(['docker', 'volume', 'rm', $volume], 30, '删除 sandbox volume 失败');
+        }
         $this->deleteTree($workspace);
     }
 
@@ -191,6 +209,44 @@ final class AgentSandboxManager
         $argv = $containerId === null ? ['docker', 'info', '--format', '{{json .ServerVersion}}'] : ['docker', 'inspect', '--format', '{{json .State}}', $this->containerId($containerId)];
         $result = $this->checked($argv, 15, 'Docker sandbox 状态不可用');
         return ['available' => true, 'containerId' => $containerId, 'details' => trim($result->stdout)];
+    }
+
+    private function rollbackCreate(string $containerId, string $volume, string $workspace, int $taskId, int $sessionId): void
+    {
+        try {
+            if ($containerId !== '') {
+                $labelsResult = $this->runner->run(['docker', 'inspect', '--format', '{{json .Config.Labels}}', $this->containerId($containerId)], 15);
+                if ($labelsResult->exitCode === 0 && $this->labelsMatch($labelsResult->stdout, $taskId, $sessionId)) {
+                    $this->checkedUnlessMissing(['docker', 'rm', '-f', $containerId], 30, '回滚 Docker sandbox 失败');
+                }
+            }
+            $this->assertVolumeLabels($volume, $taskId, $sessionId);
+            $this->checkedUnlessMissing(['docker', 'volume', 'rm', $volume], 30, '回滚 sandbox volume 失败');
+        } catch (\Throwable) {
+            // 标签无法证明归属时 fail-closed，绝不删除可能属于其他任务的 Docker 资源。
+        }
+        try {
+            $this->deleteTree($workspace);
+        } catch (\Throwable) {
+        }
+    }
+
+    private function labelsMatch(string $json, int $taskId, int $sessionId): bool
+    {
+        $labels = json_decode(trim($json), true);
+        return is_array($labels) && ($labels['com.funadmin.ai-agent'] ?? '') === 'true'
+            && ($labels['com.funadmin.ai-task'] ?? '') === (string) $taskId
+            && ($labels['com.funadmin.ai-session'] ?? '') === (string) $sessionId;
+    }
+
+    private function assertVolumeLabels(string $volume, int $taskId, int $sessionId): void
+    {
+        $result = $this->runner->run(['docker', 'volume', 'inspect', '--format', '{{json .Labels}}', $volume], 15);
+        if ($result->exitCode !== 0) {
+            if ($this->isNotFound($result)) return;
+            throw new RuntimeException('无法校验 sandbox volume 标签: ' . trim($result->stderr));
+        }
+        if (!$this->labelsMatch($result->stdout, $taskId, $sessionId)) throw new RuntimeException('sandbox volume 标签与任务或会话不匹配');
     }
 
     private function assertDockerAvailable(): void
@@ -281,22 +337,42 @@ final class AgentSandboxManager
                 if (++$count > self::MAX_BUNDLE_FILES) throw new RuntimeException('bundle 文件数量超过资源上限');
                 $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
                 if (!is_file($path) || is_link($path)) throw new RuntimeException('bundle 文件缺失：' . $relative);
-                $size = filesize($path);
-                if ($size === false || $size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size) {
-                    throw new RuntimeException('bundle 大小超过资源上限：' . $relative);
-                }
                 $input = fopen($path, 'rb');
                 if ($input === false) throw new RuntimeException('无法读取 bundle：' . $relative);
-                $content = stream_get_contents($input);
-                fclose($input);
-                if (!is_string($content)) throw new RuntimeException('无法读取 bundle：' . $relative);
-                $bytes += $size;
+                $content = '';
+                $actualSize = 0;
+                $hash = hash_init('sha256');
+                try {
+                    while (!feof($input)) {
+                        $chunk = fread($input, 8192);
+                        if ($chunk === false) throw new RuntimeException('无法读取 bundle：' . $relative);
+                        if ($chunk === '') continue;
+                        $length = strlen($chunk);
+                        if ($actualSize > self::MAX_BUNDLE_FILE_BYTES - $length || $bytes > self::MAX_BUNDLE_BYTES - $actualSize - $length) {
+                            throw new RuntimeException('bundle 大小超过资源上限：' . $relative);
+                        }
+                        $actualSize += $length;
+                        hash_update($hash, $chunk);
+                        $content .= $chunk;
+                    }
+                } finally {
+                    fclose($input);
+                }
+                $meta = is_array($files[$relative] ?? null) ? $files[$relative] : [];
+                if ($actualSize !== (int) ($meta['size'] ?? -1) || !hash_equals((string) ($meta['sha256'] ?? ''), hash_final($hash))) {
+                    throw new RuntimeException('bundle 文件与 manifest 不一致：' . $relative);
+                }
+                $bytes += $actualSize;
                 $this->writeBundleLine($handle, ['path' => $relative, 'content' => base64_encode($content)]);
-                unset($content);
             }
         } finally {
             fclose($handle);
         }
+    }
+
+    private function writeFile(string $path, string $content, string $message): void
+    {
+        if (file_put_contents($path, $content, LOCK_EX) === false) throw new RuntimeException($message);
     }
 
     private function writeBundleLine($handle, array $payload): void
@@ -331,11 +407,13 @@ final class AgentSandboxManager
 
     private function excluded(string $relative): bool
     {
-        $normalized = str_replace('\\', '/', $relative);
+        $normalized = ltrim(str_replace('\\', '/', $relative), '/');
         $segments = explode('/', $normalized);
-        return array_intersect($segments, self::EXCLUDED_ROOTS) !== []
-            || preg_match('#(^|/)\.env(?:\.|$)#', $normalized) === 1
-            || preg_match('#(^|/)(?:id_rsa|id_ed25519|credentials|known_hosts)(?:$|/)#i', $normalized) === 1;
+        $first = strtolower((string) ($segments[0] ?? ''));
+        return in_array($first, self::EXCLUDED_ROOTS, true)
+            || preg_match('#(^|/)\.env(?:\.|$)#i', $normalized) === 1
+            || preg_match('#(^|/)(?:id_rsa|id_ed25519|credentials(?:\.json)?|known_hosts)(?:$|/)#i', $normalized) === 1
+            || preg_match('#(?:secret|private[_-]?key|\.pem$|\.key$)#i', $normalized) === 1;
     }
 
     private function deleteTree(string $path): void

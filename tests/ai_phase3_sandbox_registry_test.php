@@ -35,6 +35,9 @@ final class FakeDockerRunner implements DockerProcessRunner
         if (($argv[1] ?? '') === 'inspect') {
             return new ProcessResult(0, '{"com.funadmin.ai-agent":"true","com.funadmin.ai-task":"101","com.funadmin.ai-session":"77","com.funadmin.ai-volume":"funadmin-ai-101-test"}', '');
         }
+        if (($argv[1] ?? '') === 'volume' && ($argv[2] ?? '') === 'inspect') {
+            return new ProcessResult(0, '{"com.funadmin.ai-agent":"true","com.funadmin.ai-task":"101","com.funadmin.ai-session":"77"}', '');
+        }
         if (($argv[1] ?? '') === 'exec' && in_array('git', $argv, true)) {
             return new ProcessResult(0, '', '');
         }

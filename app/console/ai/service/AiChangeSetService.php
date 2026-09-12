@@ -116,7 +116,7 @@ final class AiChangeSetService
         }
         $segments = explode('/', strtolower($normalized));
         $name = strtolower((string) end($segments));
-        if (array_intersect($segments, self::FORBIDDEN_SEGMENTS) !== []
+        if (in_array((string) ($segments[0] ?? ''), self::FORBIDDEN_SEGMENTS, true)
             || in_array($name, self::SECRET_NAMES, true)
             || preg_match('/(?:secret|credential|private[_-]?key|\.pem$|\.key$)/i', $normalized) === 1) {
             throw new InvalidArgumentException('ChangeSet 路径禁止访问凭据、运行时、版本库或构建缓存：' . $normalized);
@@ -249,13 +249,25 @@ final class AiChangeSetService
 
     private function readPrivateFile(string $path, string $hash, string $label): string
     {
-        $real = $this->assertPrivateFile($path, $hash, $label);
-        $content = file_get_contents($real);
-        if (!is_string($content)) throw new RuntimeException('无法读取 ' . $label);
+        [$handle, $expectedHash] = $this->openPrivateFile($path, $hash, $label);
+        $content = '';
+        $context = hash_init('sha256');
+        try {
+            while (!feof($handle)) {
+                $chunk = fread($handle, 8192);
+                if ($chunk === false) throw new RuntimeException('无法读取 ' . $label);
+                if ($chunk === '') continue;
+                hash_update($context, $chunk);
+                $content .= $chunk;
+            }
+        } finally {
+            fclose($handle);
+        }
+        if (!hash_equals($expectedHash, hash_final($context))) throw new RuntimeException($label . ' sha256 校验失败');
         return $content;
     }
 
-    private function assertPrivateFile(string $path, string $hash, string $label): string
+    private function openPrivateFile(string $path, string $hash, string $label): array
     {
         if (preg_match(self::HASH_PATTERN, $hash) !== 1) throw new RuntimeException($label . ' sha256 不合法');
         $root = realpath($this->privateRoot);
@@ -263,9 +275,9 @@ final class AiChangeSetService
         if ($root === false || $real === false || is_link($path) || !str_starts_with($real, $root . DIRECTORY_SEPARATOR) || !is_file($real)) {
             throw new RuntimeException($label . ' 必须位于 AI 私有存储');
         }
-        $actual = hash_file('sha256', $real);
-        if (!is_string($actual) || !hash_equals($hash, $actual)) throw new RuntimeException($label . ' sha256 校验失败');
-        return $real;
+        $handle = fopen($real, 'rb');
+        if ($handle === false) throw new RuntimeException('无法读取 ' . $label);
+        return [$handle, $hash];
     }
 
     private function assertArtifactBinding(array $manifest, array $changeSet): void
@@ -317,40 +329,56 @@ final class AiChangeSetService
 
     private function readBundleArtifact(array $manifest, string $key, string $label): array
     {
-        $path = (string) ($manifest[$key . '_path'] ?? '');
-        $real = $this->assertPrivateFile($path, (string) ($manifest[$key . '_sha256'] ?? ''), $label);
-        if (filesize($real) > self::MAX_BUNDLE_BYTES * 2) throw new RuntimeException('bundle 超过资源上限');
-        $handle = fopen($real, 'rb');
-        if ($handle === false) throw new RuntimeException('无法读取 ' . $label);
+        [$handle, $expectedHash] = $this->openPrivateFile(
+            (string) ($manifest[$key . '_path'] ?? ''),
+            (string) ($manifest[$key . '_sha256'] ?? ''),
+            $label
+        );
+        $hash = hash_init('sha256');
+        $encodedBytes = 0;
         try {
             $firstLine = fgets($handle);
             if (!is_string($firstLine)) throw new RuntimeException('bundle 编码不合法');
+            $encodedBytes += strlen($firstLine);
+            hash_update($hash, $firstLine);
             $header = json_decode($firstLine, true, 512, JSON_THROW_ON_ERROR);
             if (($header['encoding'] ?? '') !== 'base64-ndjson') {
-                rewind($handle);
-                $legacy = stream_get_contents($handle);
-                $decoded = json_decode($legacy, true, 512, JSON_THROW_ON_ERROR);
-                return $this->decodeBundle($decoded);
-            }
-            if (($header['version'] ?? null) !== 1) throw new RuntimeException('bundle 版本不合法');
-            $files = [];
-            $bytes = 0;
-            while (($line = fgets($handle)) !== false) {
-                $entry = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
-                $relative = $entry['path'] ?? null;
-                $content = $entry['content'] ?? null;
-                if (!is_string($relative) || $relative === '' || isset($files[$relative]) || !is_string($content)
-                    || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
-                    || ($value = base64_decode($content, true)) === false) {
-                    throw new RuntimeException('bundle 文件编码不合法：' . (string) $relative);
+                $legacy = $firstLine;
+                while (!feof($handle)) {
+                    $chunk = fread($handle, 8192);
+                    if ($chunk === false) throw new RuntimeException('无法读取 ' . $label);
+                    if ($chunk === '') continue;
+                    $encodedBytes += strlen($chunk);
+                    if ($encodedBytes > self::MAX_BUNDLE_BYTES * 2) throw new RuntimeException('bundle 超过资源上限');
+                    hash_update($hash, $chunk);
+                    $legacy .= $chunk;
                 }
-                $size = strlen($value);
-                if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size || count($files) >= self::MAX_BUNDLE_FILES) {
-                    throw new RuntimeException('bundle 超过资源上限');
+                $files = $this->decodeBundle(json_decode($legacy, true, 512, JSON_THROW_ON_ERROR));
+            } else {
+                if (($header['version'] ?? null) !== 1) throw new RuntimeException('bundle 版本不合法');
+                $files = [];
+                $bytes = 0;
+                while (($line = fgets($handle)) !== false) {
+                    $encodedBytes += strlen($line);
+                    if ($encodedBytes > self::MAX_BUNDLE_BYTES * 2) throw new RuntimeException('bundle 超过资源上限');
+                    hash_update($hash, $line);
+                    $entry = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+                    $relative = $entry['path'] ?? null;
+                    $content = $entry['content'] ?? null;
+                    if (!is_string($relative) || $relative === '' || isset($files[$relative]) || !is_string($content)
+                        || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
+                        || ($value = base64_decode($content, true)) === false) {
+                        throw new RuntimeException('bundle 文件编码不合法：' . (string) $relative);
+                    }
+                    $size = strlen($value);
+                    if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size || count($files) >= self::MAX_BUNDLE_FILES) {
+                        throw new RuntimeException('bundle 超过资源上限');
+                    }
+                    $bytes += $size;
+                    $files[$relative] = $value;
                 }
-                $bytes += $size;
-                $files[$relative] = $value;
             }
+            if (!hash_equals($expectedHash, hash_final($hash))) throw new RuntimeException($label . ' sha256 校验失败');
             return $files;
         } finally {
             fclose($handle);
