@@ -182,13 +182,23 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(actions.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
 
-    await wrapper.find('[data-testid="mobile-conversations"]').trigger('click');
+    const workspaceButton = wrapper.find('[data-testid="mobile-workspace"]');
+    const conversationsButton = wrapper.find('[data-testid="mobile-conversations"]');
+    const contextButton = wrapper.find('[data-testid="mobile-context"]');
+    expect(workspaceButton.attributes('aria-pressed')).toBe('true');
+    expect(conversationsButton.attributes('aria-pressed')).toBe('false');
+    expect(contextButton.attributes('aria-pressed')).toBe('false');
+
+    await conversationsButton.trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['conversations']);
     expect(wrapper.find('[data-ai-region="conversations"]').text()).toContain('新建');
+    expect(workspaceButton.attributes('aria-pressed')).toBe('false');
+    expect(conversationsButton.attributes('aria-pressed')).toBe('true');
 
-    await wrapper.find('[data-testid="mobile-context"]').trigger('click');
+    await contextButton.trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['context']);
     expect(wrapper.find('[data-ai-region="context"]').text()).toContain('暂无活动任务');
+    expect(contextButton.attributes('aria-pressed')).toBe('true');
   });
 
   it('reviewing、任务阶段类型与 ChangeSet 状态均翻译，未知枚举原样回退', async () => {
@@ -221,13 +231,14 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(keys(zhCN.aiDevelopment).sort()).toEqual(keys(enUS.aiDevelopment).sort());
   });
 
-  it('工作区消息正文限制在舒适宽度，壳层使用剩余高度且只有工作区消息区滚动', () => {
+  it('工作区消息正文限制在舒适宽度，三栏各自处理溢出且主消息区保持独立滚动', () => {
     const { wrapper } = mountPage('zh-CN');
     expect(wrapper.find('.workspace-scroll').attributes('data-scroll-container')).toBe('primary');
     expect(timelineSource).toMatch(/\.message-timeline\s*\{[^}]*max-width:\s*\d+px/s);
     expect(pageSource).toMatch(/\.ai-page\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0/s);
     expect(pageSource).toMatch(/\.workspace-scroll\s*\{[^}]*overflow:\s*auto/s);
-    expect(pageSource).not.toMatch(/\.ai-conversations-pane[^}]*overflow:\s*auto/s);
+    expect(pageSource).toMatch(/\.ai-conversations-pane[^}]*overflow:\s*auto/s);
+    expect(pageSource).toMatch(/\.ai-context-pane[^}]*overflow:\s*auto/s);
   });
 
   it('移动端通过顶部按钮打开会话和任务，选择会话后回到工作区', async () => {
@@ -243,5 +254,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
     await wrapper.find('[data-testid="mobile-context"]').trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['context']);
+    await wrapper.find('[data-testid="mobile-workspace"]').trigger('click');
+    expect(visibleRegions(wrapper)).toEqual(['workspace']);
   });
 });

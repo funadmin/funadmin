@@ -136,8 +136,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'D' => 
         array (
             'Doctrine\\Deprecations\\' => 22,
-            'Doctrine\\Common\\Lexer\\' => 22,
-            'Doctrine\\Common\\Annotations\\' => 28,
             'Defuse\\Crypto\\' => 14,
         ),
         'C' => 
@@ -411,14 +409,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         'Doctrine\\Deprecations\\' => 
         array (
             0 => __DIR__ . '/..' . '/doctrine/deprecations/src',
-        ),
-        'Doctrine\\Common\\Lexer\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/lexer/src',
-        ),
-        'Doctrine\\Common\\Annotations\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/annotations/lib/Doctrine/Common/Annotations',
         ),
         'Defuse\\Crypto\\' => 
         array (

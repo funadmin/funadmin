@@ -42,7 +42,6 @@
     "topthink/think-filesystem": "^2.0",
     "topthink/think-queue": "^3.0",
     "topthink/think-throttle": "^2.0",
-    "doctrine/annotations": "^2.0.1",
     "ramsey/uuid": "^4.9.3",
     "phpoffice/phpspreadsheet": "^3.10.7",
     "guzzlehttp/guzzle": "^7.15.5",

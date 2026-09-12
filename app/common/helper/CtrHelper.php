@@ -1,8 +1,5 @@
 <?php
 namespace app\common\helper;
-use Doctrine\Common\Annotations\AnnotationReader;
-use app\common\annotation\ControllerAnnotation;
-use app\common\annotation\NodeAnnotation;
 use ReflectionClass;
 
 class CtrHelper
@@ -112,12 +109,7 @@ class CtrHelper
      */
     public static function getMethodComment(\ReflectionMethod $method): string
     {
-        // 首先尝试通过注解获取方法标题
-        $annotationTitle = self::getMethodTitleByAnnotation($method);
-        if ($annotationTitle) {
-            return $annotationTitle;
-        }
-        // 如果没有注解，则从文档注释中提取
+        // 从文档注释中提取
         $docComment = $method->getDocComment();
         if (!$docComment) {
             return $method->getName();
@@ -152,13 +144,9 @@ class CtrHelper
      */
     public static function getMethodTitleByAnnotation(\ReflectionMethod $method): string
     {
-        try {
-            $reader = new AnnotationReader();
-            $nodeAnnotation = $reader->getMethodAnnotation($method, NodeAnnotation::class);
-            return !empty($nodeAnnotation) && !empty($nodeAnnotation->title) ? $nodeAnnotation->title : '';
-        } catch (\Exception $e) {
-            return $method->getName();
-        }
+        $docComment = $method->getDocComment();
+        $title = $docComment ? self::getTitle($docComment) : '';
+        return $title !== '' ? $title : $method->getName();
     }
 
     public static function getTitle($doc)
@@ -176,42 +164,23 @@ class CtrHelper
      */
     public static function getControllerTitleByAnnotation(object $reflectionClass): string
     {
-        // 1. 首先尝试通过注解获取
-        try {
-            $reader = new AnnotationReader();
-            
-            // 尝试获取NodeAnnotation
-            $nodeAnnotation = $reader->getClassAnnotation($reflectionClass, NodeAnnotation::class);
-            if (!empty($nodeAnnotation) && !empty($nodeAnnotation->title)) {
-                return $nodeAnnotation->title;
-            }
-            
-            // 尝试获取ControllerAnnotation
-            $controllerAnnotation = $reader->getClassAnnotation($reflectionClass, ControllerAnnotation::class);
-            if (!empty($controllerAnnotation) && !empty($controllerAnnotation->title)) {
-                return $controllerAnnotation->title;
-            }
-        } catch (\Exception $e) {
-            // 注解读取失败，继续使用其他方法
-        }
-        
-        // 2. 从文档注释中提取
+        // 从文档注释中提取
         $docComment = $reflectionClass->getDocComment();
         if (!$docComment) {
             return $reflectionClass->getShortName();
         }
         
-        // 3. 尝试从NodeAnnotation中提取title
+        // 尝试从NodeAnnotation中提取title
         if (preg_match('/@NodeAnnotation\s*\(\s*title\s*=\s*["\']([^"\']+)["\']/', $docComment, $matches)) {
             return trim($matches[1]);
         }
         
-        // 4. 尝试从ControllerAnnotation中提取title
+        // 尝试从ControllerAnnotation中提取title
         if (preg_match('/@ControllerAnnotation\s*\(\s*title\s*=\s*["\']([^"\']+)["\']/', $docComment, $matches)) {
             return trim($matches[1]);
         }
         
-        // 5. 提取注释中的第一行描述
+        // 提取注释中的第一行描述
         $comment = preg_replace('/\/\*\*|\*\/|\*/', '', $docComment);
         $lines = explode("\n", $comment);
         
@@ -226,7 +195,7 @@ class CtrHelper
             }
         }
         
-        // 6. 如果都没有，返回类名
+        // 如果都没有，返回类名
         return $reflectionClass->getShortName();
     }
     /**

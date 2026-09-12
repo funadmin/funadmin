@@ -22,15 +22,7 @@
         <el-button v-if="designerMode === 'advanced'" @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
         <el-button v-if="designerMode === 'advanced'" :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
 
-        <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
-        <el-button
-          :type="store.dirty.value ? 'primary' : 'default'"
-          :loading="store.saveStatus.value === 'saving'"
-          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
-          @click="onSave"
-        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
-        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
+
     </div>
 
     <div v-if="workspaceMode === 'edit'" class="designer-edit-only">
@@ -46,8 +38,12 @@
     </el-alert>
 
     <el-card shadow="never" class="mb-3">
-      <template #header>第一步 · {{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
-      <el-form label-width="90px" class="designer-meta-form">
+      <template #header>
+        <button type="button" class="designer-section-toggle" :aria-expanded="!basicInfoCollapsed" @click="toggleDesignerSection('basicInfo')">
+          <span>第一步 · {{ t('formDesigner.basicInfo', '表单基本信息') }}</span><i :class="basicInfoCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
+        </button>
+      </template>
+      <el-form v-show="!basicInfoCollapsed" label-width="90px" class="designer-meta-form">
         <el-form-item :label="t('formDesigner.formName', '表单名称')" required>
           <el-input :model-value="store.form.value.name" maxlength="100" :placeholder="t('formDesigner.namePlaceholder', '如：活动报名')" @update:model-value="(name) => store.updateForm({ name })" />
         </el-form-item>
@@ -122,8 +118,12 @@
     <div class="designer-layout flex gap-3" :class="{ 'is-preview': workspaceMode !== 'edit' }">
       <!-- 左：控件 palette -->
       <el-card v-if="workspaceMode === 'edit'" shadow="never" class="control-palette shrink-0">
-        <template #header>第二步 · 选择控件</template>
-        <div ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
+        <template #header>
+          <button type="button" class="designer-section-toggle" :aria-expanded="!controlsCollapsed" @click="toggleDesignerSection('controls')">
+            <span>第二步 · 选择控件</span><i :class="controlsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
+          </button>
+        </template>
+        <div v-show="!controlsCollapsed" ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
             <div class="palette-group-title">{{ group }}</div>
             <div class="palette-group-grid">
@@ -148,39 +148,66 @@
       <!-- 中：画布 -->
       <el-card shadow="never" class="min-w-0 flex-1">
         <template #header>
-          <div class="flex items-center justify-between">
-            <span>第二步 · 设计画布（{{ store.fields.value.length }} 字段）</span>
+          <button type="button" class="designer-section-toggle" :aria-expanded="!canvasCollapsed" @click="toggleDesignerSection('canvas')">
+            <span>第二步 · 设计画布（{{ store.fields.value.length }} 字段）</span><i :class="canvasCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
-          </div>
+          </button>
         </template>
-        <DesignerCanvas
-          v-if="workspaceMode === 'edit'"
-          class="designer-canvas"
-          :nodes="store.nodes.value"
-          :store="store"
-        />
-        <div v-else class="designer-canvas schema-preview" :class="`schema-preview-${workspaceMode}`">
-          <SchemaRenderer
-            ref="previewRenderer"
-            :schema="previewSchema"
-            :values="previewValues"
-            :form-key="String(store.form.value.form_key ?? '')"
-            :disabled="previewMode === 'readonly'"
+        <div v-show="!canvasCollapsed">
+          <DesignerCanvas
+            v-if="workspaceMode === 'edit'"
+            class="designer-canvas"
+            :nodes="store.nodes.value"
+            :store="store"
           />
+          <div v-else class="designer-canvas schema-preview" :class="`schema-preview-${workspaceMode}`">
+            <SchemaRenderer
+              ref="previewRenderer"
+              :schema="previewSchema"
+              :values="previewValues"
+              :form-key="String(store.form.value.form_key ?? '')"
+              :disabled="previewMode === 'readonly'"
+            />
+          </div>
         </div>
       </el-card>
 
       <!-- 右：属性面板 -->
       <el-card v-if="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
-        <template #header>第三步 · 字段属性</template>
-        <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
-        <el-empty v-else description="点选画布字段编辑参数" />
-        <template v-if="designerMode === 'advanced' && store.selectedNode.value">
-          <el-divider content-position="left">高级配置</el-divider>
-          <SchemaStructurePanel :node="store.selectedNode.value" :permission-options="permissionOptions" @update="store.updateNode" />
+        <template #header>
+          <button type="button" class="designer-section-toggle" :aria-expanded="!fieldPropsCollapsed" @click="toggleDesignerSection('fieldProps')">
+            <span>第三步 · 字段属性</span><i :class="fieldPropsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
+          </button>
         </template>
+        <div v-show="!fieldPropsCollapsed">
+          <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
+          <el-empty v-else description="点选画布字段编辑参数" />
+          <template v-if="designerMode === 'advanced' && store.selectedNode.value">
+            <el-divider content-position="left">高级配置</el-divider>
+            <SchemaStructurePanel :node="store.selectedNode.value" :permission-options="permissionOptions" @update="store.updateNode" />
+          </template>
+        </div>
       </el-card>
     </div>
+
+    <el-card shadow="never" class="mt-3">
+      <template #header>
+        <button type="button" class="designer-section-toggle" :aria-expanded="!publishActionsCollapsed" @click="toggleDesignerSection('publishActions')">
+          <span>第四步 · 保存并发布</span><i :class="publishActionsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
+          <el-tag class="designer-section-toggle__status" :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
+        </button>
+      </template>
+      <div v-show="!publishActionsCollapsed" class="designer-publish-actions">
+        <el-button
+          :type="store.dirty.value ? 'primary' : 'default'"
+          :loading="store.saveStatus.value === 'saving'"
+          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
+          @click="onSave"
+        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
+        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
+        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
+      </div>
+    </el-card>
 
     <el-dialog v-model="publishVisible" title="发布表单" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
@@ -314,6 +341,18 @@ const moduleId = computed(() => Number(route.query.moduleId ?? 0));
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const store = useDesigner();
 const designerMode = ref<'basic' | 'advanced'>('basic');
+const basicInfoCollapsed = ref(false);
+const controlsCollapsed = ref(false);
+const canvasCollapsed = ref(false);
+const fieldPropsCollapsed = ref(false);
+const publishActionsCollapsed = ref(false);
+const toggleDesignerSection = (section: 'basicInfo' | 'controls' | 'canvas' | 'fieldProps' | 'publishActions') => {
+  if (section === 'basicInfo') basicInfoCollapsed.value = !basicInfoCollapsed.value;
+  if (section === 'controls') controlsCollapsed.value = !controlsCollapsed.value;
+  if (section === 'canvas') canvasCollapsed.value = !canvasCollapsed.value;
+  if (section === 'fieldProps') fieldPropsCollapsed.value = !fieldPropsCollapsed.value;
+  if (section === 'publishActions') publishActionsCollapsed.value = !publishActionsCollapsed.value;
+};
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 const previewMode = ref<'create' | 'edit' | 'readonly' | 'search'>('create');
@@ -552,13 +591,17 @@ async function load() {
 async function onSave() {
   if (!validateDefinitionBasics() || !store.dirty.value) return;
   if (store.saveStatus.value === 'saving') { saveQueued = true; return; }
+  const expectedHash = String(store.form.value.schema_hash ?? '');
+  if (!moduleId.value || !expectedHash) {
+    store.failSave();
+    ElMessage.warning('当前表单版本信息缺失，请刷新页面后重试');
+    return;
+  }
   const revision = ++saveRevision;
   const payload = definition();
   const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
-    const expectedHash = String(store.form.value.schema_hash ?? '');
-    if (!moduleId.value || !expectedHash) throw new Error('业务模块或 Schema hash 缺失');
     const saved = await businessDevelopmentApi.saveSchema(moduleId.value, store.schemaDocument.value, expectedHash, '业务设计器保存');
     const unchanged = revision === saveRevision && JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
@@ -793,6 +836,34 @@ onBeforeUnmount(() => {
 }
 .designer-layout {
   align-items: flex-start;
+}
+.designer-section-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.designer-section-toggle > i {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.designer-section-toggle > .text-xs,
+.designer-section-toggle__status {
+  margin-left: auto;
+}
+.designer-publish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .designer-layout.is-preview {
   display: block;

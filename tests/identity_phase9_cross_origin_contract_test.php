@@ -29,7 +29,7 @@ phase9ContractExpect(
     'standalone consent 必须按授权唯一键幂等恢复，避免重复提交冲突'
 );
 
-$php = '/opt/homebrew/opt/php@8.1/bin/php';
+$php = PHP_BINARY;
 $process = proc_open([$php, $journey], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $root);
 phase9ContractExpect(is_resource($process), '无法启动 Phase9 真实 HTTP 旅程');
 fclose($pipes[0]);

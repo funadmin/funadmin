@@ -6,8 +6,9 @@
     </template>
 
     <nav class="mobile-actions" :aria-label="t('aiDevelopment.workspace')">
-      <el-button data-testid="mobile-conversations" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
-      <el-button data-testid="mobile-context" @click="mobileTab = 'context'"><i class="i-ep-document" />{{ t('aiDevelopment.task') }}</el-button>
+      <el-button data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
+      <el-button data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
+      <el-button data-testid="mobile-context" :aria-pressed="mobileTab === 'context'" @click="mobileTab = 'context'"><i class="i-ep-document" />{{ t('aiDevelopment.task') }}</el-button>
     </nav>
 
     <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
@@ -174,7 +175,7 @@ onBeforeUnmount(() => store.closeEvents());
 h2 { margin: 0; font-size: 18px; } header small { color: var(--el-text-color-secondary); }
 .ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
 .ai-layout--inspector { grid-template-columns: minmax(220px, 260px) minmax(380px, 1fr) minmax(270px, 330px); }
-.ai-conversations-pane, .ai-context-pane { min-width: 0; overflow: hidden; background: var(--el-fill-color-extra-light); }
+.ai-conversations-pane, .ai-context-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
 .ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
 .ai-context-pane { border-left: 1px solid var(--el-border-color-lighter); }
 .ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
