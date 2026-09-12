@@ -35,7 +35,7 @@ final class AuthorizationTransactionService
     public function decide(string $transactionId, array $identity, bool $approved): array
     {
         return Db::transaction(function () use ($transactionId, $identity, $approved): array {
-            $authorization = (new OAuthAuthorization())->where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
+            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) throw new DomainException('invalid_request');
             (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             $user = $this->trustedUser($authorization, $identity);
@@ -62,7 +62,7 @@ final class AuthorizationTransactionService
     public function preflight(string $transactionId, array $identity): ?array
     {
         return Db::transaction(function () use ($transactionId, $identity): ?array {
-            $authorization = (new OAuthAuthorization())->where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
+            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) {
                 throw new DomainException('invalid_request');
             }
@@ -78,9 +78,9 @@ final class AuthorizationTransactionService
     public function consumeCode(string $code, int $clientId, string $redirectUri, string $verifier): array
     {
         return Db::transaction(function () use ($code, $clientId, $redirectUri, $verifier): array {
-            $record = (new OAuthAuthorizationCode())->where('code_hash', hash('sha256', $code))->where('client_id', $clientId)->lock(true)->find();
+            $record = OAuthAuthorizationCode::where('code_hash', hash('sha256', $code))->where('client_id', $clientId)->lock(true)->find();
             if (!$record || $record->consumed_at !== null || $record->revoked_at !== null || strtotime((string) $record->expires_at) <= time() || !hash_equals((string) $record->redirect_uri_hash, hash('sha256', $redirectUri)) || !PkceService::verify($verifier, (string) $record->code_challenge)) throw new DomainException('invalid_grant');
-            $updated = (new OAuthAuthorizationCode())->where('id', $record->id)->whereNull('consumed_at')->whereNull('revoked_at')->update(['consumed_at' => date('Y-m-d H:i:s')]);
+            $updated = OAuthAuthorizationCode::forTenant((int) $record->tenant_id)->where('id', $record->id)->whereNull('consumed_at')->whereNull('revoked_at')->update(['consumed_at' => date('Y-m-d H:i:s')]);
             if ($updated !== 1) throw new DomainException('invalid_grant');
             return $record->toArray();
         });

@@ -7,6 +7,7 @@ namespace app\console\ai\service;
 use app\console\ai\contract\DockerProcessRunner;
 use app\console\ai\infrastructure\ProcessResult;
 use FilesystemIterator;
+use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
@@ -15,7 +16,10 @@ use RuntimeException;
 final class AgentSandboxManager
 {
     private const LABEL = 'com.funadmin.ai-agent=true';
-    private const EXCLUDED_ROOTS = ['.git', '.env', '.env.local', '.env.production', 'runtime'];
+    private const EXCLUDED_ROOTS = ['.git', '.env', '.env.local', '.env.production', 'runtime', 'node_modules', 'vendor', 'dist', 'build', '.cache', 'coverage'];
+    private const MAX_BUNDLE_FILES = 100000;
+    private const MAX_BUNDLE_BYTES = 67108864;
+    private const MAX_BUNDLE_FILE_BYTES = 16777216;
 
     public function __construct(
         private readonly DockerProcessRunner $runner,
@@ -100,23 +104,15 @@ final class AgentSandboxManager
             ? json_decode((string) file_get_contents($baselinePath), true, 512, JSON_THROW_ON_ERROR)
             : ['algorithm' => 'sha256', 'files' => [], 'digest' => hash('sha256', '{}')];
         $baselineBundlePath = $exportRoot . '/baseline-bundle.json';
-        $baselineBundle = $this->bundle(rtrim($workspace, DIRECTORY_SEPARATOR) . '/snapshot', $baselineManifest['files'] ?? []);
-        if (file_put_contents($baselineBundlePath, json_encode(['encoding'=>'base64','files'=>$baselineBundle], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX) === false) {
-            throw new RuntimeException('保存 baseline bundle 失败');
-        }
+        $this->writeBundle($baselineBundlePath, rtrim($workspace, DIRECTORY_SEPARATOR) . '/snapshot', $baselineManifest['files'] ?? []);
         chmod($baselineBundlePath, 0600);
         $exportedBaselinePath = $exportRoot . '/baseline-manifest.json';
         if (file_put_contents($exportedBaselinePath, json_encode($baselineManifest, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX) === false) {
             throw new RuntimeException('保存 baseline manifest 失败');
         }
         chmod($exportedBaselinePath, 0600);
-        $bundle = [];
-        foreach (array_keys($remoteManifest['files']) as $relative) {
-            $content = file_get_contents($tree . '/' . $relative);
-            if ($content !== false) $bundle[$relative] = base64_encode($content);
-        }
         $bundlePath = $exportRoot . '/bundle.json';
-        file_put_contents($bundlePath, json_encode(['encoding'=>'base64','files'=>$bundle], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), LOCK_EX);
+        $this->writeBundle($bundlePath, $tree, $remoteManifest['files'] ?? []);
         $remoteManifestSha256 = hash_file('sha256', $exportRoot . '/manifest.json');
         return ['root'=>$exportRoot, 'patchPath'=>$exportRoot.'/changes.patch', 'patchSha256'=>hash_file('sha256', $exportRoot.'/changes.patch'),
             'bundlePath'=>$bundlePath, 'bundleSha256'=>hash_file('sha256', $bundlePath), 'manifestPath'=>$exportRoot.'/manifest.json',
@@ -244,7 +240,12 @@ final class AgentSandboxManager
         if (!mkdir($destination, 0700, true) && !is_dir($destination)) {
             throw new RuntimeException('无法创建 sandbox 工作副本');
         }
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->projectRoot, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
+        $directory = new RecursiveDirectoryIterator($this->projectRoot, FilesystemIterator::SKIP_DOTS);
+        $filter = new RecursiveCallbackFilterIterator($directory, function ($item): bool {
+            $relative = substr($item->getPathname(), strlen(rtrim($this->projectRoot, DIRECTORY_SEPARATOR)) + 1);
+            return !$this->excluded($relative) && !$item->isLink();
+        });
+        $iterator = new RecursiveIteratorIterator($filter, RecursiveIteratorIterator::SELF_FIRST);
         foreach ($iterator as $item) {
             $relative = substr($item->getPathname(), strlen(rtrim($this->projectRoot, DIRECTORY_SEPARATOR)) + 1);
             if ($this->excluded($relative) || $item->isLink()) continue;
@@ -265,30 +266,63 @@ final class AgentSandboxManager
         chmod($path, 0600);
     }
 
-    private function bundle(string $root, array $files): array
+    private function writeBundle(string $bundlePath, string $root, array $files): void
     {
-        $bundle = [];
-        foreach (array_keys($files) as $relative) {
-            if (!is_string($relative) || $this->excluded($relative)) continue;
-            $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-            if (!is_file($path) || is_link($path)) throw new RuntimeException('baseline bundle 文件缺失：' . $relative);
-            $content = file_get_contents($path);
-            if (!is_string($content)) throw new RuntimeException('无法读取 baseline bundle：' . $relative);
-            $bundle[$relative] = base64_encode($content);
+        $handle = fopen($bundlePath, 'wb');
+        if ($handle === false) throw new RuntimeException('无法创建 bundle');
+        $count = 0;
+        $bytes = 0;
+        try {
+            $this->writeBundleLine($handle, ['encoding' => 'base64-ndjson', 'version' => 1]);
+            $relativePaths = array_keys($files);
+            sort($relativePaths, SORT_STRING);
+            foreach ($relativePaths as $relative) {
+                if (!is_string($relative) || $this->excluded($relative)) continue;
+                if (++$count > self::MAX_BUNDLE_FILES) throw new RuntimeException('bundle 文件数量超过资源上限');
+                $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+                if (!is_file($path) || is_link($path)) throw new RuntimeException('bundle 文件缺失：' . $relative);
+                $size = filesize($path);
+                if ($size === false || $size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size) {
+                    throw new RuntimeException('bundle 大小超过资源上限：' . $relative);
+                }
+                $input = fopen($path, 'rb');
+                if ($input === false) throw new RuntimeException('无法读取 bundle：' . $relative);
+                $content = stream_get_contents($input);
+                fclose($input);
+                if (!is_string($content)) throw new RuntimeException('无法读取 bundle：' . $relative);
+                $bytes += $size;
+                $this->writeBundleLine($handle, ['path' => $relative, 'content' => base64_encode($content)]);
+                unset($content);
+            }
+        } finally {
+            fclose($handle);
         }
-        ksort($bundle, SORT_STRING);
-        return $bundle;
+    }
+
+    private function writeBundleLine($handle, array $payload): void
+    {
+        if (fwrite($handle, json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n") === false) {
+            throw new RuntimeException('保存 bundle 失败');
+        }
     }
 
     private function manifest(string $root): array
     {
         $files = [];
+        $count = 0;
+        $bytes = 0;
         if (is_dir($root)) {
             $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $item) {
                 if (!$item->isFile() || $item->isLink()) continue;
                 $relative = str_replace('\\', '/', substr($item->getPathname(), strlen(rtrim($root, DIRECTORY_SEPARATOR)) + 1));
-                $files[$relative] = ['sha256'=>hash_file('sha256', $item->getPathname()), 'size'=>$item->getSize()];
+                if ($this->excluded($relative)) continue;
+                $size = $item->getSize();
+                if (++$count > self::MAX_BUNDLE_FILES || $size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size) {
+                    throw new RuntimeException('sandbox 快照超过资源上限：' . $relative);
+                }
+                $bytes += $size;
+                $files[$relative] = ['sha256'=>hash_file('sha256', $item->getPathname()), 'size'=>$size];
             }
         }
         ksort($files);
@@ -298,8 +332,8 @@ final class AgentSandboxManager
     private function excluded(string $relative): bool
     {
         $normalized = str_replace('\\', '/', $relative);
-        $root = explode('/', $normalized)[0];
-        return in_array($root, self::EXCLUDED_ROOTS, true)
+        $segments = explode('/', $normalized);
+        return array_intersect($segments, self::EXCLUDED_ROOTS) !== []
             || preg_match('#(^|/)\.env(?:\.|$)#', $normalized) === 1
             || preg_match('#(^|/)(?:id_rsa|id_ed25519|credentials|known_hosts)(?:$|/)#i', $normalized) === 1;
     }

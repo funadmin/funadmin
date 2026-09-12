@@ -16,6 +16,9 @@ use RuntimeException;
 final class AiChangeSetService
 {
     private const HASH_PATTERN = '/^[a-f0-9]{64}$/';
+    private const MAX_BUNDLE_BYTES = 67108864;
+    private const MAX_BUNDLE_FILE_BYTES = 16777216;
+    private const MAX_BUNDLE_FILES = 100000;
     private const FORBIDDEN_SEGMENTS = ['.git', 'runtime', 'node_modules', 'vendor', 'dist', 'build', '.cache', 'coverage'];
     private const SECRET_NAMES = ['.env', '.npmrc', '.pypirc', 'credentials', 'credentials.json', 'id_rsa', 'id_ed25519', 'known_hosts'];
 
@@ -145,12 +148,15 @@ final class AiChangeSetService
         if ($patch === '') throw new RuntimeException('binary-safe patch 为空');
         $baseManifest = $this->readJsonArtifact($manifest, 'baseline_manifest', 'baseline manifest');
         $remoteManifest = $this->readJsonArtifact($manifest, 'remote_manifest', 'remote manifest');
-        $baseBundle = $this->readJsonArtifact($manifest, 'baseline_bundle', 'baseline bundle');
-        $remoteBundle = $this->readJsonArtifact($manifest, 'bundle', 'remote bundle');
         $this->assertManifest($baseManifest, (string) ($changeSet['base_digest'] ?? ''), 'baseline');
         $this->assertManifest($remoteManifest, '', 'remote');
         $this->assertPatchFiles($patch, $baseManifest, $remoteManifest);
-        return ['baseManifest'=>$baseManifest, 'remoteManifest'=>$remoteManifest, 'baseBundle'=>$this->decodeBundle($baseBundle), 'remoteBundle'=>$this->decodeBundle($remoteBundle)];
+        return [
+            'baseManifest'=>$baseManifest,
+            'remoteManifest'=>$remoteManifest,
+            'baseBundle'=>$this->readBundleArtifact($manifest, 'baseline_bundle', 'baseline bundle'),
+            'remoteBundle'=>$this->readBundleArtifact($manifest, 'bundle', 'remote bundle'),
+        ];
     }
 
     private function buildPlan(array $trusted, array $selection): array
@@ -243,6 +249,14 @@ final class AiChangeSetService
 
     private function readPrivateFile(string $path, string $hash, string $label): string
     {
+        $real = $this->assertPrivateFile($path, $hash, $label);
+        $content = file_get_contents($real);
+        if (!is_string($content)) throw new RuntimeException('无法读取 ' . $label);
+        return $content;
+    }
+
+    private function assertPrivateFile(string $path, string $hash, string $label): string
+    {
         if (preg_match(self::HASH_PATTERN, $hash) !== 1) throw new RuntimeException($label . ' sha256 不合法');
         $root = realpath($this->privateRoot);
         $real = realpath($path);
@@ -251,9 +265,7 @@ final class AiChangeSetService
         }
         $actual = hash_file('sha256', $real);
         if (!is_string($actual) || !hash_equals($hash, $actual)) throw new RuntimeException($label . ' sha256 校验失败');
-        $content = file_get_contents($real);
-        if (!is_string($content)) throw new RuntimeException('无法读取 ' . $label);
-        return $content;
+        return $real;
     }
 
     private function assertArtifactBinding(array $manifest, array $changeSet): void
@@ -303,12 +315,61 @@ final class AiChangeSetService
         }
     }
 
+    private function readBundleArtifact(array $manifest, string $key, string $label): array
+    {
+        $path = (string) ($manifest[$key . '_path'] ?? '');
+        $real = $this->assertPrivateFile($path, (string) ($manifest[$key . '_sha256'] ?? ''), $label);
+        if (filesize($real) > self::MAX_BUNDLE_BYTES * 2) throw new RuntimeException('bundle 超过资源上限');
+        $handle = fopen($real, 'rb');
+        if ($handle === false) throw new RuntimeException('无法读取 ' . $label);
+        try {
+            $firstLine = fgets($handle);
+            if (!is_string($firstLine)) throw new RuntimeException('bundle 编码不合法');
+            $header = json_decode($firstLine, true, 512, JSON_THROW_ON_ERROR);
+            if (($header['encoding'] ?? '') !== 'base64-ndjson') {
+                rewind($handle);
+                $legacy = stream_get_contents($handle);
+                $decoded = json_decode($legacy, true, 512, JSON_THROW_ON_ERROR);
+                return $this->decodeBundle($decoded);
+            }
+            if (($header['version'] ?? null) !== 1) throw new RuntimeException('bundle 版本不合法');
+            $files = [];
+            $bytes = 0;
+            while (($line = fgets($handle)) !== false) {
+                $entry = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+                $relative = $entry['path'] ?? null;
+                $content = $entry['content'] ?? null;
+                if (!is_string($relative) || $relative === '' || isset($files[$relative]) || !is_string($content)
+                    || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
+                    || ($value = base64_decode($content, true)) === false) {
+                    throw new RuntimeException('bundle 文件编码不合法：' . (string) $relative);
+                }
+                $size = strlen($value);
+                if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size || count($files) >= self::MAX_BUNDLE_FILES) {
+                    throw new RuntimeException('bundle 超过资源上限');
+                }
+                $bytes += $size;
+                $files[$relative] = $value;
+            }
+            return $files;
+        } finally {
+            fclose($handle);
+        }
+    }
+
     private function decodeBundle(array $bundle): array
     {
-        if (($bundle['encoding'] ?? '') !== 'base64' || !is_array($bundle['files'] ?? null)) throw new RuntimeException('bundle 编码不合法');
+        if (($bundle['encoding'] ?? '') !== 'base64' || !is_array($bundle['files'] ?? null) || count($bundle['files']) > self::MAX_BUNDLE_FILES) {
+            throw new RuntimeException('bundle 编码不合法');
+        }
         $decoded = [];
+        $bytes = 0;
         foreach ($bundle['files'] as $path => $content) {
-            if (!is_string($content) || ($value = base64_decode($content, true)) === false) throw new RuntimeException('bundle 文件编码不合法：' . $path);
+            if (!is_string($content) || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
+                || ($value = base64_decode($content, true)) === false) throw new RuntimeException('bundle 文件编码不合法：' . $path);
+            $size = strlen($value);
+            if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size) throw new RuntimeException('bundle 超过资源上限');
+            $bytes += $size;
             $decoded[(string)$path] = $value;
         }
         return $decoded;
