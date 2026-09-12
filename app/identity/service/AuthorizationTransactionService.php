@@ -116,7 +116,19 @@ final class AuthorizationTransactionService
         $application = $client ? EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->find() : null;
         if (!$application || (string) $application->runtime_type === 'internal') return;
         $scopes = $this->scopeNames((int) $authorization->tenant_id, (int) $authorization->id);
-        IdentityConsent::create(['tenant_id' => (int) $authorization->tenant_id, 'user_id' => $userId, 'client_id' => (int) $authorization->client_id, 'granted_scope_hash' => self::scopeHash($scopes), 'scope_names' => implode(' ', $scopes), 'granted_at' => date('Y-m-d H:i:s')]);
+        $scopeHash = self::scopeHash($scopes);
+        $consent = IdentityConsent::forTenant((int) $authorization->tenant_id)
+            ->where('user_id', $userId)
+            ->where('client_id', (int) $authorization->client_id)
+            ->where('granted_scope_hash', $scopeHash)
+            ->lock(true)
+            ->find();
+        $attributes = ['scope_names' => implode(' ', $scopes), 'granted_at' => date('Y-m-d H:i:s'), 'revoked_at' => null];
+        if ($consent) {
+            $consent->save($attributes);
+            return;
+        }
+        IdentityConsent::create(['tenant_id' => (int) $authorization->tenant_id, 'user_id' => $userId, 'client_id' => (int) $authorization->client_id, 'granted_scope_hash' => $scopeHash] + $attributes);
     }
 
     private function trustedUser(OAuthAuthorization $authorization, array $identity): IdentityUser

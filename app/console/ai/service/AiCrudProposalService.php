@@ -114,18 +114,22 @@ final class AiCrudProposalService
         $token = (string) ($input['confirmToken'] ?? '');
         if ($moduleId <= 0 || $generationId <= 0 || $token === '' || strlen($token) > 2048) throw new InvalidArgumentException('CRUD proposal apply 参数不合法');
         ($this->moduleReader)($moduleId);
+        $this->assertFinalApproval($approval, $adminId, $conversationId, $taskId);
         return ($this->generationApply)($moduleId, $generationId, $token);
     }
 
     private function assertFinalApproval(array $approval, int $adminId, int $conversationId, int $taskId): void
     {
+        $expiresAt = strtotime((string) ($approval['expires_at'] ?? ''));
         if (($approval['status'] ?? '') !== 'approved'
             || ($approval['operation'] ?? '') !== 'apply_workspace'
             || (int) ($approval['requested_by'] ?? 0) !== $adminId
             || (int) ($approval['decided_by'] ?? 0) !== $adminId
             || (int) ($approval['conversation_id'] ?? 0) !== $conversationId
             || $taskId <= 0
-            || (int) ($approval['task_id'] ?? 0) !== $taskId) {
+            || (int) ($approval['task_id'] ?? 0) !== $taskId
+            || $expiresAt === false
+            || $expiresAt <= time()) {
             throw new InvalidArgumentException('最终审批无效或不可绕过', 403);
         }
     }

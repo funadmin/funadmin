@@ -205,9 +205,21 @@ phase4Expect(($crudPreview['generationId'] ?? 0) === 77 && ($crudPreview['busine
 phase4Expect(($crudPreview['confirmToken'] ?? '') === 'server-token' && !isset($crudPreview['proposal']['form_schema']), 'CRUD preview 只返回服务端 generation token，不回传完整提案');
 phase4Expect(($crudCalls[1][2]['nodes'][0]['field'] ?? '') === 'title' && ($crudCalls[1][3] ?? '') === 'form_schema', 'CRUD preview 必须把规范化提案快照接入 managed generation，不能忽略提案读取旧 schema');
 phase4Reject(fn () => $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'server-token'], 7, 21), '最终审批');
-$crudApproval = ['status'=>'approved','operation'=>'apply_workspace','requested_by'=>7,'decided_by'=>7,'conversation_id'=>21,'task_id'=>31];
-$crudApplied = $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'server-token','taskId'=>31], 7, 21, $crudApproval);
-phase4Expect(($crudApplied['state'] ?? '') === 'completed' && count($crudCalls) === 3, 'CRUD apply 必须只凭 generationId/token 委托服务端可信重建');
+$crudApproval = ['status'=>'approved','operation'=>'apply_workspace','requested_by'=>7,'decided_by'=>7,'conversation_id'=>21,'task_id'=>31,'expires_at'=>date('Y-m-d H:i:s', time() + 3600)];
+$crudApplyInput = ['moduleId'=>9,'generationId'=>77,'confirmToken'=>'server-token','taskId'=>31];
+foreach ([
+    'pending' => array_replace($crudApproval, ['status'=>'pending']),
+    'denied' => array_replace($crudApproval, ['status'=>'denied']),
+    'expired' => array_replace($crudApproval, ['status'=>'expired']),
+    '已过有效期' => array_replace($crudApproval, ['expires_at'=>date('Y-m-d H:i:s', time() - 1)]),
+    '缺失 expires_at' => array_diff_key($crudApproval, ['expires_at'=>true]),
+] as $reason => $invalidCrudApproval) {
+    $callsBeforeRejectedApply = count($crudCalls);
+    phase4Reject(fn () => $proposalPipeline->apply($crudApplyInput, 7, 21, $invalidCrudApproval), '最终审批');
+    phase4Expect(count($crudCalls) === $callsBeforeRejectedApply, "CRUD {$reason} 最终审批不得调用 generationApply");
+}
+$crudApplied = $proposalPipeline->apply($crudApplyInput, 7, 21, $crudApproval);
+phase4Expect(($crudApplied['state'] ?? '') === 'completed' && count($crudCalls) === 3, 'CRUD 未来 expires_at 最终审批必须只凭 generationId/token 委托服务端可信重建');
 phase4Reject(fn () => $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'server-token','taskId'=>32], 7, 21, $crudApproval), '最终审批');
 phase4Reject(fn () => $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'fake','taskId'=>31,'bundle'=>[]], 7, 21, $crudApproval), '禁止');
 
