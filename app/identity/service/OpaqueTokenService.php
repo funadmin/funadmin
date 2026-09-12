@@ -38,6 +38,14 @@ final class OpaqueTokenService
             if (!$token || strtotime((string) $token->expires_at) <= time()) throw new DomainException('invalid_grant');
             if ($token->consumed_at !== null) {
                 $this->revokeFamily((int) $token->tenant_id, (string) $token->family_id);
+                (new IdentityAuditService())->record(
+                    (int) $token->tenant_id,
+                    'oauth.refresh_replay',
+                    false,
+                    $token->user_id === null ? null : (int) $token->user_id,
+                    (int) $token->client_id,
+                    ['reason' => 'refresh_token_reused', 'grant_type' => 'refresh_token']
+                );
                 return null;
             }
             if ($token->revoked_at !== null) throw new DomainException('invalid_grant');

@@ -5,7 +5,7 @@
       <nav>
         <label v-for="file in files" :key="file.path" class="file-option">
           <el-checkbox :model-value="selection.includes(file.path)" @update:model-value="toggle(file.path, Boolean($event))" />
-          <span>{{ file.path }}</span><el-tag size="small">{{ file.status }}</el-tag>
+          <span>{{ file.path }}</span><el-tag size="small">{{ aiEnumLabel(t, 'fileStatuses', file.status) }}</el-tag>
         </label>
       </nav>
       <FileDiffViewer v-if="activeFile" :file="activeFile" />
@@ -25,6 +25,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AiChangeSetFile, AiChangeSetPreview } from '@/api/development/ai';
 import FileDiffViewer from './FileDiffViewer.vue';
+import { aiEnumLabel } from '../i18n';
 const props = defineProps<{ modelValue: boolean; files: AiChangeSetFile[]; preview: AiChangeSetPreview | null; testStatus: string; securityStatus: string }>();
 defineEmits<{ 'update:modelValue': [value: boolean]; preview: [selection: string[]]; apply: [confirmToken: string, selection: string[]] }>();
 const { t } = useI18n();
@@ -33,11 +34,7 @@ const activePath = ref('');
 watch(() => props.files, (files) => { selection.value = files.filter((file) => !file.status.includes('conflict')).map((file) => file.path); activePath.value = files[0]?.path || ''; }, { immediate: true });
 const activeFile = computed(() => props.files.find((file) => file.path === activePath.value) || props.files[0]);
 const canApply = computed(() => Boolean(props.preview?.confirmToken) && !props.preview?.blocked && selection.value.length > 0);
-const statusLabel = (status: string) => {
-  const key = `aiDevelopment.statuses.${status}`;
-  const translated = t(key);
-  return translated === key ? status : translated;
-};
+const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
 function toggle(path: string, checked: boolean) { selection.value = checked ? Array.from(new Set([...selection.value, path])) : selection.value.filter((item) => item !== path); activePath.value = path; }
 </script>
 

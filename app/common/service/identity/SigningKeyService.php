@@ -75,6 +75,19 @@ final class SigningKeyService
         }
     }
 
+    public function retireExpired(int $tenantId, int $limit = 100, bool $dryRun = false): array
+    {
+        $limit = max(1, min(1000, $limit));
+        $ids = array_map('intval', OidcSigningKey::forTenant($tenantId)
+            ->where('status', 'retiring')->whereNotNull('publish_until')
+            ->where('publish_until', '<=', date('Y-m-d H:i:s'))->order('id')->limit($limit)->column('id'));
+        if (!$dryRun && $ids !== []) {
+            OidcSigningKey::forTenant($tenantId)->whereIn('id', $ids)->where('status', 'retiring')
+                ->update(['status' => 'retired', 'retired_at' => date('Y-m-d H:i:s')]);
+        }
+        return ['tenant_id' => $tenantId, 'dry_run' => $dryRun, 'retired' => count($ids), 'ids' => $ids];
+    }
+
     public function list(int $tenantId): array
     {
         return OidcSigningKey::forTenant($tenantId)->order('id', 'desc')->select()->toArray();

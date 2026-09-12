@@ -21,6 +21,9 @@ return [
         'ai:outbox-dispatch' => 'app\console\command\AiOutboxDispatch',
         'ai:change-set-recover' => 'app\console\command\AiChangeSetRecover',
         'identity:logout-deliveries:work' => 'app\console\command\IdentityLogoutDeliveriesWork',
+        'identity:cleanup' => 'app\console\command\IdentityCleanup',
+        'identity:health' => 'app\console\command\IdentityHealth',
+        'identity:signing-key' => 'app\console\command\IdentitySigningKey',
         'mcp' => 'app\console\command\McpServer',
     ],
 ];

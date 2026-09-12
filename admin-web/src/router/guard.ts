@@ -40,6 +40,7 @@ export function setupRouterGuard(router: Router) {
       ]);
       dynamicRoutes.forEach((route) => router.addRoute(route));
       await loadPluginModulesSafely(router);
+      if (router.hasRoute('BootstrapNotFound')) router.removeRoute('BootstrapNotFound');
       if (!router.hasRoute('NotFound')) {
         router.addRoute({
           path: '/:pathMatch(.*)*',

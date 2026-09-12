@@ -3,6 +3,15 @@
  * 优先读取 .env 中以 VITE_APP_ 开头的变量；没有则使用默认值
  */
 const env = import.meta.env;
+let mockModeEnabled = env.VITE_APP_MOCK === 'true';
+
+export function isMockModeEnabled(): boolean {
+  return mockModeEnabled;
+}
+
+export function setMockModeEnabled(enabled: boolean): void {
+  mockModeEnabled = enabled;
+}
 
 export const APP_CONFIG = {
   /** 应用标题 */

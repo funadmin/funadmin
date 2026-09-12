@@ -15,9 +15,7 @@ namespace app\common\model;
 use app\common\model\MemberGroupRelation;
 use app\common\service\MemberInput;
 use app\common\service\identity\MemberIdentityAdapter;
-use app\common\validate\MemberValidate;
 use app\common\helper\StringHelper;
-use think\exception\ValidateException;
 use think\facade\Db;
 use think\facade\Event;
 use app\common\model\concern\LaravelSoftDelete;
@@ -66,7 +64,9 @@ class  Member extends BaseModel{
             if (!$member->save()) {
                 throw new \Exception('login failed');
             }
-            (new MemberIdentityAdapter())->sync($member);
+            $adapter = new MemberIdentityAdapter();
+            $adapter->shadowRead($member);
+            $adapter->sync($member);
         });
         session('member', $member);
         $_COOKIE['mid']= $member->id;
@@ -89,14 +89,15 @@ class  Member extends BaseModel{
             $member = $data['email'] === null ? null : self::withTrashed()->where('email', $data['email'])->find();
             if ($member) throw new \Exception('email already exists');
             if ($data['password'] != $data['repassword']) throw new \Exception('inconsistent passwords');
-            try {
-                validate(MemberValidate::class)
-                    ->scene('Reg')
-                    ->check($data);
-            } catch (ValidateException $e) {
-                throw new \Exception($e->getError());
-            }
-            if (!captcha_check($data['vercode'])) throw new \Exception('验证码错误');
+            $username = trim((string) ($data['username'] ?? ''));
+            $password = (string) ($data['password'] ?? '');
+            $vercode = trim((string) ($data['vercode'] ?? ''));
+            if (mb_strlen($username) < 2 || mb_strlen($username) > 18) throw new \Exception('名称长度必须为 2 到 18 个字符');
+            if (self::withTrashed()->where('username', $username)->find()) throw new \Exception('名称已经存在');
+            if (strlen($password) < 6 || strlen($password) > 20) throw new \Exception('密码长度必须为 6 到 20 个字符');
+            if ($vercode === '' || mb_strlen($vercode) > 6) throw new \Exception('校验码格式错误');
+            $data['username'] = $username;
+            if (!captcha_check($vercode)) throw new \Exception('验证码错误');
             $num = rand(0, 13);
             $data['avatar'] = '/static/index/images/avatar/' . $num . '.jpg';
             $data['password'] = password($data['password']);

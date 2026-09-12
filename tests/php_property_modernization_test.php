@@ -14,7 +14,6 @@ use app\common\service\McpService;
 use app\common\service\PredisService;
 use app\common\service\UploadService;
 use app\common\model\UpgradeManifest;
-use app\common\validate\MemberValidate;
 use app\console\controller\plugin\SystemPlugin;
 use app\console\authorization\service\AdminAuthorizationService;
 use app\console\development\service\DevCrudService;
@@ -509,10 +508,10 @@ foreach ([['app', App::class], ['request', Request::class], ['batchValidate', 'b
 $baseController = new ReflectionClass(BaseController::class);
 modernizationCheck(!$baseController->hasProperty('noNeedLogin'), 'BaseController 必须删除 noNeedLogin');
 modernizationCheck(!$baseController->hasProperty('onlyNeedLogin'), 'BaseController 必须删除 onlyNeedLogin');
-modernizationTypedProperty(app\common\plugin\sdk\Service::class, 'plugins_path', 'string', 'protected', false, false);
-modernizationMethod(app\common\plugin\sdk\Service::class, 'getPluginsPath', [], 'string');
-modernizationMethod(app\common\plugin\sdk\Service::class, 'getPluginCodePath', [['code', 'string', false]], 'string');
-modernizationCheck(!(new ReflectionClass(app\common\plugin\sdk\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
+modernizationTypedProperty(\app\common\plugin\sdk\Service::class, 'plugins_path', 'string', 'protected', false, false);
+modernizationMethod(\app\common\plugin\sdk\Service::class, 'getPluginsPath', [], 'string');
+modernizationMethod(\app\common\plugin\sdk\Service::class, 'getPluginCodePath', [['code', 'string', false]], 'string');
+modernizationCheck(!(new ReflectionClass(\app\common\plugin\sdk\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
 
 // 第三批：插件基类的扩展面保持 protected，并以准确类型和生命周期签名约束子类。
 $pipelineReflection = new ReflectionClass(PluginPackagePipeline::class);
@@ -563,9 +562,6 @@ $predisReflection = new ReflectionClass(PredisService::class);
 modernizationCheck(!$predisReflection->hasProperty('instance'), 'PredisService 必须删除零引用 instance 属性');
 
 modernizationUntypedProperty(ExceptionHandle::class, 'ignoreReport');
-foreach (['rule', 'message'] as $property) {
-    modernizationUntypedProperty(MemberValidate::class, $property);
-}
 foreach (['name', 'json', 'jsonAssoc'] as $property) {
     modernizationUntypedProperty(UpgradeManifest::class, $property);
 }
@@ -631,13 +627,37 @@ $ormPropertyExemptions = [
     \app\common\model\identity\ApplicationAssignment::class => ['name'],
     \app\common\model\identity\ApplicationDatabase::class => ['name'],
     \app\common\model\identity\ApplicationDomain::class => ['name'],
+    \app\common\model\identity\ApplicationPermission::class => ['name'],
+    \app\common\model\identity\ApplicationRole::class => ['name'],
+    \app\common\model\identity\ApplicationRolePermission::class => ['name'],
+    \app\common\model\identity\ApplicationUserPermission::class => ['name'],
+    \app\common\model\identity\ApplicationUserRole::class => ['name'],
+    \app\common\model\identity\BackchannelLogoutDelivery::class => ['name'],
+    \app\common\model\identity\ClientGrant::class => ['name'],
+    \app\common\model\identity\ClientScope::class => ['name'],
+    \app\common\model\identity\ClientSecret::class => ['name', 'hidden'],
     \app\common\model\identity\EnterpriseApplication::class => ['name'],
     \app\common\model\identity\IdentityAdminLink::class => ['name'],
+    \app\common\model\identity\IdentityAuditLog::class => ['name', 'json'],
+    \app\common\model\identity\IdentityConsent::class => ['name'],
     \app\common\model\identity\IdentityCredential::class => ['name'],
+    \app\common\model\identity\IdentityLoginAttempt::class => ['name'],
     \app\common\model\identity\IdentityMemberLink::class => ['name'],
+    \app\common\model\identity\IdentitySsoConfig::class => ['name'],
     \app\common\model\identity\IdentityTenant::class => ['name'],
     \app\common\model\identity\IdentityUser::class => ['name'],
     \app\common\model\identity\IdentityUserDepartment::class => ['name'],
+    \app\common\model\identity\OAuthAuthorization::class => ['name'],
+    \app\common\model\identity\OAuthAuthorizationCode::class => ['name'],
+    \app\common\model\identity\OAuthAuthorizationScope::class => ['name'],
+    \app\common\model\identity\OAuthClient::class => ['name'],
+    \app\common\model\identity\OAuthScope::class => ['name'],
+    \app\common\model\identity\OAuthToken::class => ['name'],
+    \app\common\model\identity\OAuthTokenScope::class => ['name'],
+    \app\common\model\identity\OidcClientSession::class => ['name'],
+    \app\common\model\identity\OidcSession::class => ['name'],
+    \app\common\model\identity\OidcSigningKey::class => ['name', 'hidden'],
+    \app\common\model\identity\RedirectUri::class => ['name'],
     \app\common\model\DictItem::class => ['name'],
     \app\common\model\DictType::class => ['name'],
     \app\common\model\FieldVerify::class => ['pk'],
@@ -657,6 +677,7 @@ $ormPropertyExemptions = [
     \app\console\ai\model\AiChangeSet::class => ['name', 'json', 'jsonAssoc'],
     \app\console\ai\model\AiConversation::class => ['name', 'json', 'jsonAssoc'],
     \app\console\ai\model\AiMessage::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiOutbox::class => ['name', 'json', 'jsonAssoc'],
     \app\console\ai\model\AiStreamNonce::class => ['name', 'updateTime'],
     \app\console\ai\model\AiTask::class => ['name', 'json', 'jsonAssoc'],
     \app\console\ai\model\AiTaskEvent::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
@@ -679,8 +700,6 @@ $ormPropertyExemptions = [
 ];
 $propertyExemptions = [
     ExceptionHandle::class . '::$ignoreReport' => '父类 think\\exception\\Handle::isIgnoreReport() 直接读取该无类型扩展点',
-    MemberValidate::class . '::$rule' => '父类 think\\Validate 以无类型 protected $rule 提供验证规则扩展点',
-    MemberValidate::class . '::$message' => '父类 think\\Validate 以无类型 protected $message 提供验证消息扩展点',
 ];
 foreach ($ormPropertyExemptions as $class => $properties) {
     foreach ($properties as $property) {
@@ -709,11 +728,6 @@ modernizationCheck(
     (new ReflectionClass(ExceptionHandle::class))->getParentClass()?->hasProperty('ignoreReport') === true,
     'ExceptionHandle::$ignoreReport 豁免必须由父类同名可读属性支撑'
 );
-modernizationCheck(
-    (new ReflectionClass(MemberValidate::class))->getParentClass()?->hasProperty('rule') === true
-    && (new ReflectionClass(MemberValidate::class))->getParentClass()?->hasProperty('message') === true,
-    'MemberValidate 规则豁免必须由父类同名可读属性支撑'
-);
 $ormGetOption = new ReflectionMethod(think\Model::class, 'getOption');
 $ormSourceLines = file($ormGetOption->getFileName()) ?: [];
 $ormSource = implode('', array_slice(
@@ -735,12 +749,6 @@ foreach ($ormPropertyExemptions as $class => $properties) {
             "ThinkORM 必须实际读取 {$class}::\${$property} 的传统配置值"
         );
     }
-}
-try {
-    $memberValidate = new MemberValidate();
-    modernizationCheck(!$memberValidate->check([]), 'MemberValidate 专项行为必须实际读取 rule/message 并拒绝空数据');
-} catch (Throwable $exception) {
-    $failures[] = 'MemberValidate 豁免行为验证异常：' . $exception->getMessage();
 }
 foreach ($scan['assignments'] as $assignment) {
     if (is_a($assignment['class'], think\Model::class, true)) {

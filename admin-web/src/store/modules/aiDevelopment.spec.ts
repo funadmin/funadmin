@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   conversations: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
@@ -10,6 +10,7 @@ vi.mock('@/api/development/ai', async (importOriginal) => {
   return { ...actual, aiDevelopmentApi: { ...actual.aiDevelopmentApi, ...mocks } };
 });
 
+import { service } from '@/utils/http';
 import { useAiDevelopmentStore } from './aiDevelopment';
 
 class FakeEventSource {
@@ -45,6 +46,12 @@ beforeEach(() => {
   mocks.cancelTask.mockResolvedValue({ cancelled: true });
   mocks.changeSet.mockResolvedValue(null);
   mocks.applyChangeSet.mockResolvedValue({ state: 'completed' });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('AI Development store', () => {
@@ -199,6 +206,73 @@ describe('AI Development store', () => {
 
     expect(mocks.eventTicket).not.toHaveBeenCalled();
     expect(FakeEventSource.instances).toHaveLength(0);
+  });
+
+  it('Axios mock 已命中时即使 transport 模块读取到旧环境值也不创建原生 EventSource', async () => {
+    const originalAdapter = service.defaults.adapter;
+    vi.stubEnv('VITE_APP_MOCK', 'true');
+    await import('@/mock');
+    const adapter = service.defaults.adapter;
+    expect(adapter).toBeTypeOf('function');
+    if (typeof adapter !== 'function') throw new Error('mock adapter 未安装');
+    const response = await adapter({
+      url: '/development/ai/tasks/701/events/ticket',
+      method: 'POST',
+      headers: {}
+    } as never);
+    expect(response.data.data).toEqual({ ticket: 'mock-short-lived-ticket' });
+
+    vi.useFakeTimers();
+    vi.stubEnv('VITE_APP_MOCK', 'false');
+    const NativeEventSource = vi.fn(function (url: string) {
+      return new FakeEventSource(url);
+    });
+    vi.stubGlobal('EventSource', NativeEventSource);
+    const store = useAiDevelopmentStore();
+    store.activeTask = { ...task, id: 701, status: 'paused' };
+
+    await store.connectEvents();
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(NativeEventSource).not.toHaveBeenCalled();
+    expect(store.events.map((event) => event.type)).toContain('approval.required');
+    service.defaults.adapter = originalAdapter;
+  });
+
+  it('mock 模式使用内存事件传输，不创建原生 EventSource，并保持 paused 审批语义', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('VITE_APP_MOCK', 'true');
+    const NativeEventSource = vi.fn(function (url: string) {
+      return new FakeEventSource(url);
+    });
+    vi.stubGlobal('EventSource', NativeEventSource);
+    const store = useAiDevelopmentStore();
+    store.activeTask = { ...task, status: 'paused' };
+
+    await store.connectEvents();
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(NativeEventSource).not.toHaveBeenCalled();
+    expect(store.events.map((event) => event.type)).toContain('approval.required');
+    expect(store.activeTask.status).toBe('paused');
+  });
+
+  it('mock 事件传输在关闭和任务切换后清理定时器，且不会错误重连', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('VITE_APP_MOCK', 'true');
+    const store = useAiDevelopmentStore();
+    store.activeTask = { ...task, status: 'paused' };
+
+    await store.connectEvents();
+    const source = store.eventSource;
+    const close = vi.spyOn(source!, 'close');
+    store.activateTask({ ...task, id: 9, status: 'paused' });
+    await vi.runAllTimersAsync();
+
+    expect(close).toHaveBeenCalledOnce();
+    expect(store.events).toEqual([]);
+    expect(store.reconnectTimer).toBeNull();
+    expect(mocks.eventTicket).toHaveBeenCalledTimes(1);
   });
 
   it('任务进入终态时更新任务状态、关闭 SSE 且不再安排重连', async () => {

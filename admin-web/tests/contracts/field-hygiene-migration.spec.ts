@@ -136,12 +136,13 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
 
   it('Member 注册邮箱限制 60、包含软删除判重并明确空值归一策略', () => {
     const member = readProjectFile('app/common/model/Member.php');
-    const validator = readProjectFile('app/common/validate/MemberValidate.php');
+    const memberInput = readProjectFile('app/common/service/MemberInput.php');
     const registration = member.match(/public function reg\(\)[\s\S]*?(?=\n    public function )/)?.[0] ?? '';
-
-    expect(validator).toMatch(/['"]email\|邮箱['"]\s*=>\s*['"][^'"]*max:60/);
-    expect(registration).toMatch(/withTrashed\(\)[\s\S]*where\(\s*['"]email['"]/);
-    expect(registration).toMatch(/(?:trim\([\s\S]*email|email[\s\S]*\=\=\=\s*['"]{2})[\s\S]{0,200}(?:null|NULL)/);
+    
+    expect(memberInput).toMatch(/strlen\(\$email\)\s*>\s*60/);
+    expect(memberInput).toContain("filter_var($email, FILTER_VALIDATE_EMAIL)");
+    expect(registration).toMatch(/withTrashed\(\)[\s\S]*where\(\s*[\'"]email[\'"]/);
+    expect(registration).toMatch(/(?:trim\([\s\S]*email|email[\s\S]*\=\=\=\s*[\'"]{2})[\s\S]{0,200}(?:null|NULL)/);
   });
 
   it('Member 登录从 request 获取并验证 IPv4/IPv6，不直接读取 $_SERVER', () => {

@@ -37,6 +37,7 @@ final class AuthorizationTransactionService
         return Db::transaction(function () use ($transactionId, $identity, $approved): array {
             $authorization = (new OAuthAuthorization())->where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) throw new DomainException('invalid_request');
+            (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             $user = $this->trustedUser($authorization, $identity);
             $now = date('Y-m-d H:i:s');
             if (!$approved || !$this->canAccessApplication($authorization, $user)) {
@@ -65,6 +66,7 @@ final class AuthorizationTransactionService
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) {
                 throw new DomainException('invalid_request');
             }
+            (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             $user = $this->trustedUser($authorization, $identity);
             if ($this->canAccessApplication($authorization, $user)) {
                 return null;

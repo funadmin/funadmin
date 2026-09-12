@@ -10,7 +10,7 @@ import type {
 } from 'axios';
 import qs from 'qs';
 import { service } from '@/utils/http';
-import { APP_CONFIG, RESP_CODE } from '@/config';
+import { APP_CONFIG, RESP_CODE, setMockModeEnabled } from '@/config';
 import { authMockHandlers } from './modules/auth';
 import { systemMockHandlers } from './modules/system';
 import { profileMockHandlers } from './modules/profile';
@@ -151,6 +151,7 @@ const mockAdapter: AxiosAdapter = async (config) => {
 
 if (import.meta.env.VITE_APP_MOCK === 'true') {
   service.defaults.adapter = mockAdapter;
+  setMockModeEnabled(true);
    
   console.info(
     `%c[mock] 已启用前端 Mock，命中 ${routes.length} 条路由（admin / 123456 登录）`,

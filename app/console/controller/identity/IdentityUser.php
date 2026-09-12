@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace app\console\controller\identity;
 
+use app\common\model\Member;
 use app\common\model\identity\IdentityAdminLink;
 use app\common\model\identity\IdentityMemberLink;
 use app\common\model\identity\IdentityUser as IdentityUserModel;
 use app\common\model\identity\OAuthAuthorization;
 use app\common\model\identity\OidcSession;
 use app\common\service\identity\AdminIdentityAdapter;
+use app\common\service\identity\MemberIdentityAdapter;
+use app\console\authentication\model\Admin;
 use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
@@ -53,6 +56,7 @@ final class IdentityUser extends AdminApiController
         $user['links'] = ['admin' => IdentityAdminLink::forTenant($tenantId)->where('user_id', $id)->field('id,admin_id')->select()->toArray(), 'member' => IdentityMemberLink::forTenant($tenantId)->where('user_id', $id)->field('id,member_id')->select()->toArray()];
         $user['sessions'] = OidcSession::forTenant($tenantId)->where('user_id', $id)->withoutField('session_token_hash,password_version,session_version')->order('id', 'desc')->select()->toArray();
         $user['authorizations'] = OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->withoutField('transaction_hash,state,nonce,code_challenge,redirect_uri')->order('id', 'desc')->select()->toArray();
+        $user['shadowRead'] = $this->shadowRead($tenantId, $id);
         return $this->ok(data: $user);
     }
 
@@ -104,6 +108,26 @@ final class IdentityUser extends AdminApiController
         IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
         (new AuthorizationRevocationService())->revokeUser($tenantId, $id);
         return $this->ok(data: null, msg: '用户授权已撤销');
+    }
+
+    private function shadowRead(int $tenantId, int $userId): array
+    {
+        $result = [];
+        $adminId = IdentityAdminLink::forTenant($tenantId)->where('user_id', $userId)->value('admin_id');
+        if ($adminId !== null) {
+            $admin = Admin::withTrashed()->where('id', (int) $adminId)->find();
+            $result['admin'] = $admin
+                ? ['available' => true, 'fields' => (new AdminIdentityAdapter())->shadowRead($admin, false)]
+                : ['available' => false, 'fields' => ['legacy_record']];
+        }
+        $memberId = IdentityMemberLink::forTenant($tenantId)->where('user_id', $userId)->value('member_id');
+        if ($memberId !== null) {
+            $member = Member::withTrashed()->where('id', (int) $memberId)->find();
+            $result['member'] = $member
+                ? ['available' => true, 'fields' => (new MemberIdentityAdapter())->shadowRead($member, false)]
+                : ['available' => false, 'fields' => ['legacy_record']];
+        }
+        return $result;
     }
 
     private function maskEmail(?string $email): ?string

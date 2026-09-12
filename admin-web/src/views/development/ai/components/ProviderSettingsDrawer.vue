@@ -3,9 +3,9 @@
     <el-alert :title="t('aiDevelopment.providerSettings.securityNotice')" type="info" :closable="false" />
     <el-form class="provider-form" @submit.prevent="submit">
       <el-form-item :label="t('aiDevelopment.provider')"><el-input v-model="form.name" /></el-form-item>
-      <el-form-item label="Base URL"><el-input v-model="form.base_url" /></el-form-item>
-      <el-form-item label="Model"><el-input v-model="form.model" /></el-form-item>
-      <el-form-item label="API key">
+      <el-form-item :label="t('aiDevelopment.fields.baseUrl')"><el-input v-model="form.base_url" /></el-form-item>
+      <el-form-item :label="t('aiDevelopment.fields.model')"><el-input v-model="form.model" /></el-form-item>
+      <el-form-item :label="t('aiDevelopment.fields.apiKey')">
         <input v-model="apiKey" data-testid="provider-api-key" type="password" autocomplete="new-password" :placeholder="t('aiDevelopment.providerSettings.apiKeyPlaceholder')" />
         <small v-if="settings.provider.configured">{{ t('aiDevelopment.providerSettings.configured', { masked: settings.provider.masked || '••••••••' }) }}</small>
       </el-form-item>

@@ -34,7 +34,9 @@ class MemberAuthService extends AbstractService
         }
 
         Db::transaction(static function () use ($member): void {
-            (new MemberIdentityAdapter())->sync($member);
+            $adapter = new MemberIdentityAdapter();
+            $adapter->shadowRead($member);
+            $adapter->sync($member);
         });
 
         return [

@@ -8,6 +8,7 @@ import ChangeSetDrawer from './ChangeSetDrawer.vue';
 import FileDiffViewer from './FileDiffViewer.vue';
 import MessageTimeline from './MessageTimeline.vue';
 import ProviderSettingsDrawer from './ProviderSettingsDrawer.vue';
+import ToolCallTimeline from './ToolCallTimeline.vue';
 
 const approval = {
   id: 9,
@@ -36,8 +37,10 @@ const stubs = {
   ElCheckbox: { template: '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />', props: ['modelValue'] },
   ElTag: { template: '<span><slot /></span>' },
   ElAlert: { template: '<aside>{{ title }}</aside>', props: ['title'] },
+  ElTimeline: { template: '<div><slot /></div>' },
+  ElTimelineItem: { template: '<div><slot /></div>' },
   ElForm: { template: '<form><slot /></form>' },
-  ElFormItem: { template: '<label><slot /></label>' },
+  ElFormItem: { template: '<label>{{ label }}<slot /></label>', props: ['label'] },
   ElSelect: { template: '<select><slot /></select>' },
   ElOption: { template: '<option />' },
   ElEmpty: { template: '<div />' }
@@ -92,6 +95,36 @@ describe('AI Development components', () => {
     const binary = mountWithStubs(FileDiffViewer, { file: { path: 'logo.png', status: 'binary-conflict', contentKind: 'binary', contentOmitted: true } });
     expect(binary.text()).toContain('二进制');
     expect(binary.text()).toContain('内容已省略');
+  });
+
+  it('AI 后端枚举和固定字段使用翻译，未知值回退原始值', () => {
+    const approvalWrapper = mountWithStubs(ApprovalCard, { approval: { ...approval, operation: 'apply_workspace' } });
+    expect(approvalWrapper.text()).toContain('应用工作区');
+    expect(approvalWrapper.text()).not.toContain('apply_workspace');
+
+    const toolWrapper = mountWithStubs(ToolCallTimeline, { toolCalls: [{ id: 1, conversation_id: 1, task_id: 1, message_id: null, approval_id: null, tool_name: 'write_file', operation: 'write_workspace', risk_level: 'high', status: 'awaiting_approval', approval_decision: 'pending', redacted_arguments: {}, stdout_summary: '准备写入文件' }, { id: 2, conversation_id: 1, task_id: 1, message_id: null, approval_id: null, tool_name: 'unknown_tool', operation: 'unknown_operation', risk_level: 'unknown', status: 'unknown', approval_decision: 'pending', redacted_arguments: {} }] });
+    expect(toolWrapper.text()).toContain('高风险');
+    expect(toolWrapper.text()).toContain('写入工作区');
+    expect(toolWrapper.text()).toContain('unknown_operation');
+    expect(toolWrapper.text()).not.toContain('stdout：');
+    expect(toolWrapper.text()).toContain('标准输出：准备写入文件');
+
+    const changeSetWrapper = mountWithStubs(ChangeSetDrawer, { modelValue: true, files: [{ path: 'safe.ts', status: 'update', contentKind: 'text' }], preview: null, testStatus: 'passed', securityStatus: 'passed' });
+    expect(changeSetWrapper.text()).toContain('更新');
+    expect(changeSetWrapper.text()).toContain('已通过');
+
+    const diffWrapper = mountWithStubs(FileDiffViewer, { file: { path: 'safe.ts', status: 'update', contentKind: 'text', baseHash: 'base', localHash: 'local', remoteHash: 'remote' } });
+    expect(diffWrapper.text()).toContain('基线');
+    expect(diffWrapper.text()).toContain('本地');
+    expect(diffWrapper.text()).toContain('远端');
+  });
+
+  it('Provider 字段使用翻译标签', () => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings: { provider: { name: 'openai-compatible', base_url: '', model: '', connect_timeout: 5, request_timeout: 60, max_retries: 2 }, limits: {} } });
+    expect(wrapper.text()).toContain('Provider');
+    expect(wrapper.text()).toContain('Base URL');
+    expect(wrapper.text()).toContain('Model');
+    expect(wrapper.text()).toContain('API key');
   });
 
   it('Provider API key 仅在用户实际输入临时 key 时发送且关闭即清空', async () => {

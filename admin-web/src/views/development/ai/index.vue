@@ -5,6 +5,8 @@
       <el-button @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
     </template>
 
+    <ElTabs v-model="mobileTab" class="mobile-tabs"><el-tab-pane :label="t('aiDevelopment.conversations')" name="conversations" /><el-tab-pane :label="t('aiDevelopment.workspace')" name="workspace" /><el-tab-pane :label="t('aiDevelopment.task')" name="context" /></ElTabs>
+
     <div class="ai-layout">
       <section v-show="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
         <ConversationList :conversations="store.conversations" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" />
@@ -29,7 +31,6 @@
       <aside v-show="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
     </div>
 
-    <ElTabs v-model="mobileTab" class="mobile-tabs"><el-tab-pane :label="t('aiDevelopment.conversations')" name="conversations" /><el-tab-pane :label="t('aiDevelopment.workspace')" name="workspace" /><el-tab-pane :label="t('aiDevelopment.task')" name="context" /></ElTabs>
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
     <ProviderSettingsDrawer v-if="providerSettings" v-model="providerOpen" :settings="providerSettings" @test="testProvider" />
     <el-dialog v-model="logOpen" :title="t('aiDevelopment.toolLog')" width="min(760px, 94vw)"><pre class="tool-log">{{ toolLog }}</pre></el-dialog>
@@ -51,6 +52,7 @@ import ApprovalModeSelector from './components/ApprovalModeSelector.vue';
 import ToolCallTimeline from './components/ToolCallTimeline.vue';
 import ChangeSetDrawer from './components/ChangeSetDrawer.vue';
 import ProviderSettingsDrawer from './components/ProviderSettingsDrawer.vue';
+import { aiEnumLabel } from './i18n';
 
 const { t } = useI18n();
 const store = useAiDevelopmentStore();
@@ -70,11 +72,7 @@ const pendingApprovals = computed(() => store.approvals.filter((item) => item.st
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
 const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
-const statusLabel = (status: string) => {
-  const key = `aiDevelopment.statuses.${status}`;
-  const translated = t(key);
-  return translated === key ? status : translated;
-};
+const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
 const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobile.value = event.matches; };
 
 const ContextPanel = defineComponent({
@@ -88,13 +86,13 @@ const ContextPanel = defineComponent({
       h('h3', t('aiDevelopment.taskAndPermissions')),
       h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } }),
       store.activeTask ? h(ElDescriptions, { column: 1, border: true, size: 'small' }, () => [
-        h(ElDescriptionsItem, { label: t('aiDevelopment.task') }, () => `#${store.activeTask?.id} ${store.activeTask?.type}`),
-        h(ElDescriptionsItem, { label: t('aiDevelopment.stage') }, () => store.activeTask?.stage || '-'),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.task') }, () => `#${store.activeTask?.id} ${aiEnumLabel(t, 'taskTypes', store.activeTask?.type || 'unknown')}`),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.stage') }, () => aiEnumLabel(t, 'taskStages', store.activeTask?.stage || 'unknown')),
         h(ElDescriptionsItem, { label: t('aiDevelopment.status') }, () => h(ElTag, {}, () => statusLabel(store.activeTask?.status || 'unknown'))),
         h(ElDescriptionsItem, { label: t('aiDevelopment.test') }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-'),
         h(ElDescriptionsItem, { label: t('aiDevelopment.risk') }, () => pendingApprovals.value.map((item) => item.risk_reason).join('；') || t('aiDevelopment.noPendingRisk'))
       ]) : h('p', { class: 'empty-context' }, t('aiDevelopment.noActiveTask')),
-      store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `ChangeSet #${store.changeSet.id} · ${store.changeSet.status}`) : null
+      store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `${t('aiDevelopment.changeSet.entity')} #${store.changeSet.id} · ${aiEnumLabel(t, 'changeSetStatuses', store.changeSet.status)}`) : null
     ]);
   }
 });

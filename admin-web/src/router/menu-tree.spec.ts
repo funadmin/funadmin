@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router';
 import { generateRoutes } from './dynamic';
+import { staticRoutes } from './routes';
 import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
@@ -44,6 +45,25 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 });
 
 describe('混合布局菜单全树路由', () => {
+  it('首次深链启动前由 bootstrap catch-all 消除未匹配，并在动态路由加载后落到正式路由', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });
+
+    await router.push('/development/ai');
+    expect(router.currentRoute.value.matched).toHaveLength(1);
+    expect(router.currentRoute.value.name).toBe('BootstrapNotFound');
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('No match found'));
+
+    generateRoutes(getAdminMenuTreeSeed()).forEach((route) => router.addRoute(route));
+    router.removeRoute('BootstrapNotFound');
+    router.addRoute({ path: '/:pathMatch(.*)*', name: 'NotFound', component: { template: '<div />' } });
+    await router.replace('/development/ai');
+
+    expect(router.currentRoute.value.name).toBe('AiDevelopment');
+    expect(router.resolve('/not-permitted').name).toBe('NotFound');
+    warn.mockRestore();
+  });
+
   it('Mock 菜单暴露业务开发四入口与 AI 开发助手', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');

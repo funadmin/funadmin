@@ -11,7 +11,7 @@ final class IdentityAuditService
 {
     public function record(int $tenantId, string $event, bool $success, ?int $userId = null, ?int $clientId = null, array $context = [], ?string $subject = null, ?string $ip = null): void
     {
-        $safe = array_intersect_key($context, array_flip(['reason', 'grant_type', 'global', 'delivery_id', 'response_status']));
+        $safe = array_intersect_key($context, array_flip(['reason', 'grant_type', 'global', 'delivery_id', 'response_status', 'source', 'fields', 'realm']));
         IdentityAuditLog::create([
             'tenant_id' => $tenantId, 'user_id' => $userId, 'client_id' => $clientId,
             'event_type' => substr($event, 0, 64), 'outcome' => $success ? 'success' : 'failure',

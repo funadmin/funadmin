@@ -37,13 +37,19 @@ final class OAuth
             $interactionUrl = '/identity/interaction?transaction_id=' . rawurlencode($transactionId);
             if (str_contains(strtolower((string) $request->header('accept', '')), 'text/html')) return redirect($interactionUrl)->header($this->securityHeaders());
             return $this->secureJson(['transaction_id' => $transactionId, 'interaction_url' => $interactionUrl]);
-        } catch (InvalidArgumentException $exception) {
-            return $this->error($exception->getMessage(), 400);
+        } catch (DomainException|InvalidArgumentException $exception) {
+            return $this->error($exception->getMessage(), $exception->getMessage() === 'server_error' ? 503 : 400);
         }
     }
 
     public function decision(Request $request): Response
     {
+        try {
+            $authorization = (new AuthorizationTransactionService())->find((string) $request->post('transaction_id', ''));
+            (new \app\identity\service\IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
+        } catch (DomainException $exception) {
+            return $this->error($exception->getMessage() === 'server_error' ? 'server_error' : 'invalid_request', $exception->getMessage() === 'server_error' ? 503 : 400);
+        }
         $identity = IdentitySessionResolverFactory::make()->resolve($request);
         if ($identity === null) return $this->error('login_required', 401);
         try {
@@ -71,7 +77,11 @@ final class OAuth
             };
             return $this->secureJson($tokens);
         } catch (DomainException|InvalidArgumentException $exception) {
-            return $this->error($exception->getMessage(), $exception->getMessage() === 'invalid_client' ? 401 : 400);
+            return $this->error($exception->getMessage(), match ($exception->getMessage()) {
+                'invalid_client' => 401,
+                'server_error' => 503,
+                default => 400,
+            });
         }
     }
 

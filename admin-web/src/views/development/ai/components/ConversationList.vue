@@ -11,14 +11,11 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { AiConversation } from '@/api/development/ai';
+import { aiEnumLabel } from '../i18n';
 defineProps<{ conversations: AiConversation[]; selectedId: number | null }>();
 defineEmits<{ create: []; select: [id: number] }>();
 const { t } = useI18n();
-const statusLabel = (status: string) => {
-  const key = `aiDevelopment.statuses.${status}`;
-  const translated = t(key);
-  return translated === key ? status : translated;
-};
+const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
 </script>
 
 <style scoped>

@@ -87,7 +87,11 @@ export const staticRoutes: RouteRecordRaw[] = [
     name: 'ServerError',
     component: () => import('@/views/error/500.vue'),
     meta: { title: '服务异常', hidden: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'BootstrapNotFound',
+    component: () => import('@/views/error/404.vue'),
+    meta: { title: '页面加载中', hidden: true }
   }
-  // 注意：/:pathMatch(.*)* 通配符不在此注册，
-  // 改为在动态路由加载完成后由 guard.ts addRoute，确保业务路由优先匹配
 ];

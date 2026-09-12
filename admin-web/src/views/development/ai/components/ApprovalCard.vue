@@ -1,6 +1,6 @@
 <template>
   <el-card class="approval-card" shadow="never">
-    <template #header><div class="approval-card__title"><strong>{{ t('aiDevelopment.approval.required') }}</strong><el-tag type="danger">{{ approval.operation }}</el-tag></div></template>
+    <template #header><div class="approval-card__title"><strong>{{ t('aiDevelopment.approval.required') }}</strong><el-tag type="danger">{{ aiEnumLabel(t, 'operations', approval.operation) }}</el-tag></div></template>
     <el-alert :title="approval.risk_reason || t('aiDevelopment.approval.defaultRisk')" type="warning" show-icon :closable="false" />
     <details><summary>{{ t('aiDevelopment.approval.details') }}</summary><pre>{{ formattedImpact }}</pre></details>
     <el-input v-model="feedback" type="textarea" :rows="2" :placeholder="t('aiDevelopment.approval.feedbackPlaceholder')" />
@@ -16,6 +16,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AiApproval, AiApprovalScope } from '@/api/development/ai';
+import { aiEnumLabel } from '../i18n';
 
 const props = defineProps<{ approval: AiApproval }>();
 const emit = defineEmits<{ decision: [action: 'approve' | 'reject', scope: AiApprovalScope, feedback: string] }>();

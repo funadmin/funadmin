@@ -168,8 +168,11 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.text()).not.toContain('开始一个新的 AI 会话');
   });
 
-  it('移动端默认只显示工作区，切换三个 Tabs 只显示对应真实区域', async () => {
+  it('移动端 Tabs 位于内容区域之前且切换时只显示对应真实区域', async () => {
     const { wrapper } = mountPage('zh-CN', true);
+    const tabs = wrapper.find('[data-testid="mobile-tabs"]').element;
+    const layout = wrapper.find('.ai-layout').element;
+    expect(tabs.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
 
     await wrapper.find('[data-tab="conversations"]').trigger('click');
@@ -179,6 +182,21 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     await wrapper.find('[data-tab="context"]').trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['context']);
     expect(wrapper.find('[data-ai-region="context"]').text()).toContain('暂无活动任务');
+  });
+
+  it('reviewing、任务阶段类型与 ChangeSet 状态均翻译，未知枚举原样回退', () => {
+    aiStore.conversations = [{ id: 1, title: '测试会话', status: 'reviewing' }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 7, type: 'code_change', stage: 'review', status: 'paused' };
+    aiStore.changeSet = { id: 9, status: 'proposed' };
+    const { wrapper } = mountPage('zh-CN');
+    expect(wrapper.text()).toContain('审核中');
+    expect(wrapper.text()).toContain('#7 代码变更');
+    expect(wrapper.text()).toContain('审核');
+    expect(wrapper.text()).toContain('ChangeSet #9 · 待应用');
+    expect(wrapper.text()).not.toContain('reviewing');
+    expect(wrapper.text()).not.toContain('code_change');
+    expect(wrapper.text()).not.toContain('proposed');
   });
 
   it('桌面端保持会话、工作区、任务三栏同时显示，且中英文 key 完全对齐', () => {

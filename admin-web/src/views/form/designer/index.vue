@@ -121,24 +121,25 @@
 
     <div class="designer-layout flex gap-3" :class="{ 'is-preview': workspaceMode !== 'edit' }">
       <!-- 左：控件 palette -->
-      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="w-[230px] shrink-0">
+      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="control-palette shrink-0">
         <template #header>第二步 · 选择控件</template>
-        <div ref="paletteRef" class="palette-list flex max-h-[calc(100vh-250px)] flex-col gap-2 overflow-y-auto pr-1">
+        <div ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
-            <div class="sticky top-0 z-10 bg-[var(--el-bg-color-overlay)] py-1 text-xs font-semibold text-[var(--el-text-color-secondary)]">
-              {{ group }}
-            </div>
-            <div
-              v-for="control in controlsOf(group)"
-              :key="control.type"
-              class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-1.5 text-sm"
-              :data-type="control.type"
-              role="button"
-              tabindex="0"
-              :aria-label="`添加${control.label}`"
-              @keydown.enter.prevent="store.addNode(control.type)"
-            >
-              {{ control.label }}
+            <div class="palette-group-title">{{ group }}</div>
+            <div class="palette-group-grid">
+              <div
+                v-for="control in controlsOf(group)"
+                :key="control.type"
+                class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-2 text-sm"
+                :data-type="control.type"
+                role="button"
+                tabindex="0"
+                :aria-label="`添加${control.label}`"
+                @keydown.enter.prevent="store.addNode(control.type)"
+              >
+                <i :class="controlIcon(control)" aria-hidden="true" />
+                <span>{{ control.label }}</span>
+              </div>
             </div>
           </template>
         </div>
@@ -292,6 +293,7 @@ import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
 import { businessDevelopmentApi, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
+import { controlIcon } from './controlPalette';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
@@ -805,6 +807,12 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   max-width: 1100px;
 }
+.control-palette { width: 330px; }
+.palette-group-title { position: sticky; top: 0; z-index: 10; padding: 6px 2px; background: var(--el-bg-color-overlay); color: var(--el-text-color-secondary); font-size: 12px; font-weight: 600; }
+.palette-group-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.palette-item { display: flex; min-height: 58px; align-items: center; flex-direction: column; justify-content: center; gap: 5px; text-align: center; }
+.palette-item > i { font-size: 20px; line-height: 1; }
+.palette-item > span { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
 .palette-item:hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);

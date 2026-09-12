@@ -11,6 +11,10 @@ import {
   type AiTaskEvent,
   type AiToolCall
 } from '@/api/development/ai';
+import {
+  resolveAiEventSourceFactory,
+  type AiEventSourceConstructor
+} from '@/api/development/aiEventTransport';
 
 const ROUTE_STATE_KEY = 'funadmin.ai.route';
 const INITIAL_RECONNECT_DELAY = 1000;
@@ -33,8 +37,6 @@ const EVENT_TYPES = [
   'change_set.created',
   'change_set.updated'
 ];
-
-type EventSourceConstructor = new (url: string) => AiEventSourceLike;
 
 interface RouteState {
   selectedConversationId?: number;
@@ -175,17 +177,17 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.eventSource = null;
     },
 
-    async connectEvents(EventSourceImpl?: EventSourceConstructor) {
+    async connectEvents(EventSourceImpl?: AiEventSourceConstructor) {
       if (!this.activeTask || TERMINAL_TASK_STATUSES.includes(this.activeTask.status)) return;
-      const EventSourceClass = EventSourceImpl ?? (typeof EventSource !== 'undefined' ? EventSource : undefined);
-      if (!EventSourceClass) return;
+      const eventSourceFactory = resolveAiEventSourceFactory(EventSourceImpl);
+      if (!eventSourceFactory) return;
       const taskId = this.activeTask.id;
       this.connectionGeneration += 1;
       const generation = this.connectionGeneration;
       this.eventSource?.close();
       const { ticket } = await aiDevelopmentApi.eventTicket(taskId);
       if (generation !== this.connectionGeneration || this.activeTask?.id !== taskId) return;
-      const source = new EventSourceClass(aiDevelopmentApi.eventStreamUrl(taskId, ticket, this.eventCursor));
+      const source = eventSourceFactory.create(aiDevelopmentApi.eventStreamUrl(taskId, ticket, this.eventCursor));
       this.eventSource = source;
       source.onopen = () => { this.reconnectDelay = 0; };
 
@@ -219,7 +221,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         const delay = this.reconnectDelay;
         this.reconnectTimer = setTimeout(() => {
           this.reconnectTimer = null;
-          void this.connectEvents(EventSourceClass);
+          void this.connectEvents(EventSourceImpl);
         }, delay);
       };
     },

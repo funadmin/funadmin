@@ -33,6 +33,7 @@ export default {
     title: 'AI Development Assistant',
     subtitle: 'Conversations, tool approvals, and workspace changes',
     provider: 'Provider',
+    fields: { base: 'Base', local: 'Local', remote: 'Remote', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
     task: 'Task',
     workspace: 'Workspace',
     conversations: 'Conversations',
@@ -67,7 +68,7 @@ export default {
       feedbackPlaceholder: 'Optional feedback when rejecting', allowOnce: 'Allow once', allowSession: 'Allow for session operation', reject: 'Reject'
     },
     changeSet: {
-      title: 'ChangeSet / Diff', test: 'Tests: {status}', security: 'Security: {status}', fileSelectionOnly: 'Select whole files; hunk selection is unavailable',
+      entity: 'ChangeSet', title: 'ChangeSet / Diff', test: 'Tests: {status}', security: 'Security: {status}', fileSelectionOnly: 'Select whole files; hunk selection is unavailable',
       conflictBlocked: 'Blocked by conflicts. Deselect conflicting files or regenerate the ChangeSet.', previewRequired: 'Preview before applying. Final application always requires confirmation.',
       close: 'Close', preview: 'Preview', confirmApply: 'Confirm and apply', applyConfirm: 'The selected files will be applied to the workspace. Confirm again.',
       applyConfirmTitle: 'Final application confirmation', applyConfirmButton: 'Apply', applied: 'ChangeSet applied'
@@ -77,10 +78,19 @@ export default {
       title: 'Provider settings', securityNotice: 'The API key is sent only for this connection test. It is never displayed or stored in the browser.', apiKeyPlaceholder: 'Send only; never display',
       configured: 'Configured: {masked}', connectTimeout: 'Connection timeout', requestTimeout: 'Request timeout', testConnection: 'Test connection', testSuccess: 'Provider connection test succeeded'
     },
-    toolCalls: { viewStdout: 'View stdout', viewStderr: 'View stderr' },
+    toolCalls: { viewStdout: 'View stdout', viewStderr: 'View stderr', stdout: 'stdout', stderr: 'stderr' },
     statuses: {
-      running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending',
+      running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending', reviewing: 'Reviewing', applying: 'Applying', proposed: 'Proposed', completed: 'Completed', recovery_required: 'Recovery required',
       approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed'
+    },
+    enums: {
+      statuses: { running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending', reviewing: 'Reviewing', applying: 'Applying', proposed: 'Proposed', completed: 'Completed', recovery_required: 'Recovery required', approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed' },
+      riskLevels: { low: 'Low risk', medium: 'Medium risk', high: 'High risk', critical: 'Critical risk' },
+      operations: { apply_workspace: 'Apply to workspace', write_workspace: 'Write to workspace', read_workspace: 'Read workspace', run_command: 'Run command' },
+      fileStatuses: { create: 'Create', update: 'Update', 'auto-merged': 'Auto-merged', delete: 'Delete', 'keep-local': 'Keep local', conflict: 'Text conflict', 'binary-conflict': 'Binary conflict', 'conflict-no-base': 'Conflict without base' },
+      taskStages: { planning: 'Planning', execution: 'Execution', review: 'Review', applying: 'Applying', completed: 'Completed' },
+      taskTypes: { chat: 'Chat', crud: 'CRUD', code_change: 'Code change', fix: 'Fix', test: 'Test', migration: 'Migration' },
+      changeSetStatuses: { proposed: 'Proposed', applying: 'Applying', completed: 'Completed', failed: 'Failed', recovery_required: 'Recovery required' }
     },
     errors: { approvalModeUpdate: 'Could not update the approval mode. Check your permissions and try again.', applyUnavailable: 'Final application approval is missing or has not been granted', generic: 'The operation failed. Please try again later.' }
   },

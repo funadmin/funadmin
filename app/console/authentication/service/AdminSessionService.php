@@ -87,7 +87,9 @@ class AdminSessionService
                     [(int) $admin->dept_id],
                     array_map('intval', AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
                 ))));
-                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
+                $adapter = new AdminIdentityAdapter();
+                $adapter->shadowRead($admin);
+                $adapter->sync($admin, $departmentIds);
             });
             $sessionAdmin = $admin->toArray();
             $sessionAdmin['role_ids'] = $roleIds;

@@ -34,6 +34,7 @@ export default {
     title: 'AI 开发助手',
     subtitle: '会话、工具审批与工作区变更',
     provider: 'Provider',
+    fields: { base: '基线', local: '本地', remote: '远端', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
     task: '任务',
     workspace: '工作区',
     conversations: '会话',
@@ -68,7 +69,7 @@ export default {
       feedbackPlaceholder: '拒绝时可填写反馈', allowOnce: '仅本次允许', allowSession: '允许会话操作', reject: '拒绝'
     },
     changeSet: {
-      title: 'ChangeSet / Diff', test: '测试：{status}', security: '安全：{status}', fileSelectionOnly: '按文件选择，不支持逐块选择',
+      entity: 'ChangeSet', title: 'ChangeSet / Diff', test: '测试：{status}', security: '安全：{status}', fileSelectionOnly: '按文件选择，不支持逐块选择',
       conflictBlocked: '冲突阻断：请取消冲突文件或重新生成 ChangeSet', previewRequired: '预览后才能应用；最终应用总是需要二次确认',
       close: '关闭', preview: '预览', confirmApply: '二次确认并应用', applyConfirm: '将把选中的文件应用到工作区。请再次确认。',
       applyConfirmTitle: '最终应用二次确认', applyConfirmButton: '确认应用', applied: 'ChangeSet 已应用'
@@ -78,10 +79,19 @@ export default {
       title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
       configured: '已配置：{masked}', connectTimeout: '连接超时', requestTimeout: '请求超时', testConnection: '测试连接', testSuccess: 'Provider 连接测试成功'
     },
-    toolCalls: { viewStdout: '查看 stdout', viewStderr: '查看 stderr' },
+    toolCalls: { viewStdout: '查看 stdout', viewStderr: '查看 stderr', stdout: '标准输出', stderr: '标准错误' },
     statuses: {
-      running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理',
+      running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理', reviewing: '审核中', applying: '应用中', proposed: '待应用', completed: '已完成', recovery_required: '需要恢复',
       approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过'
+    },
+    enums: {
+      statuses: { running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理', reviewing: '审核中', applying: '应用中', proposed: '待应用', completed: '已完成', recovery_required: '需要恢复', approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过' },
+      riskLevels: { low: '低风险', medium: '中风险', high: '高风险', critical: '严重风险' },
+      operations: { apply_workspace: '应用工作区', write_workspace: '写入工作区', read_workspace: '读取工作区', run_command: '运行命令' },
+      fileStatuses: { create: '新建', update: '更新', 'auto-merged': '自动合并', delete: '删除', 'keep-local': '保留本地', conflict: '文本冲突', 'binary-conflict': '二进制冲突', 'conflict-no-base': '无基线冲突' },
+      taskStages: { planning: '规划', execution: '执行', review: '审核', applying: '应用', completed: '已完成' },
+      taskTypes: { chat: '对话', crud: 'CRUD', code_change: '代码变更', fix: '修复', test: '测试', migration: '迁移' },
+      changeSetStatuses: { proposed: '待应用', applying: '应用中', completed: '已完成', failed: '失败', recovery_required: '需要恢复' }
     },
     errors: { approvalModeUpdate: '审批模式更新失败，请检查权限后重试', applyUnavailable: '最终应用审批不存在或尚未批准', generic: '操作失败，请稍后重试' }
   },

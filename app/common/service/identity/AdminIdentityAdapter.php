@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace app\common\service\identity;
 
+use app\common\model\identity\IdentityCredential;
 use app\common\model\identity\IdentityUser;
+use app\common\model\identity\IdentityUserDepartment;
+use app\console\authorization\model\AdminDepartment;
+use app\identity\service\IdentityAuditService;
 
 class AdminIdentityAdapter
 {
@@ -29,10 +33,41 @@ class AdminIdentityAdapter
         return $user;
     }
 
-    public function compare(object $admin): bool
+    /** @return list<string> */
+    public function shadowRead(object $admin, bool $audit = true): array
     {
         $user = (new LegacyIdentityLinkService())->ensureAdmin(self::TENANT_ID, $admin);
-        return (string) $user->username === (string) $admin->username
-            && (int) $user->status === (int) $admin->status;
+        $expected = [
+            'username' => (string) $admin->username,
+            'display_name' => (string) (($admin->real_name ?? '') ?: $admin->username),
+            'email' => $admin->email ?? null,
+            'mobile' => $admin->mobile ?? null,
+            'avatar' => $admin->avatar ?? null,
+            'status' => (int) $admin->status,
+        ];
+        $differences = [];
+        foreach ($expected as $field => $value) {
+            if ((string) ($user->{$field} ?? null) !== (string) $value) $differences[] = $field;
+        }
+        $legacyDepartments = array_values(array_unique(array_filter(array_merge(
+            [(int) ($admin->dept_id ?? 0)],
+            array_map('intval', AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
+        ))));
+        $identityDepartments = array_values(array_unique(array_map('intval', IdentityUserDepartment::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->column('department_id'))));
+        sort($legacyDepartments);
+        sort($identityDepartments);
+        if ($legacyDepartments !== $identityDepartments) $differences[] = 'departments';
+        $credential = IdentityCredential::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->where('type', 'password')->find();
+        if (!$credential || !hash_equals((string) $credential->secret_hash, (string) ($admin->password ?? ''))) $differences[] = 'password';
+        $differences = array_values(array_unique($differences));
+        if ($audit && $differences !== []) {
+            (new IdentityAuditService())->record(self::TENANT_ID, 'identity.shadow_read_mismatch', false, (int) $user->id, null, ['source' => 'admin', 'realm' => 'admin', 'fields' => $differences]);
+        }
+        return $differences;
+    }
+
+    public function compare(object $admin): bool
+    {
+        return $this->shadowRead($admin) === [];
     }
 }

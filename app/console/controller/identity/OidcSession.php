@@ -55,6 +55,6 @@ final class OidcSession extends AdminApiController
     public function retryDelivery(int $id): Response
     {
         BackchannelLogoutDelivery::forTenant(AdminIdentityAdapter::TENANT_ID)->where('id', $id)->findOrFail();
-        return $this->ok(data: ['delivered' => (new BackchannelLogoutWorker())->retry($id)], msg: '退出投递已重试');
+        return $this->ok(data: ['delivered' => (new BackchannelLogoutWorker())->retry(AdminIdentityAdapter::TENANT_ID, $id)], msg: '退出投递已重试');
     }
 }

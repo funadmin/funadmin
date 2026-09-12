@@ -14,6 +14,7 @@ final class BackchannelLogoutDispatcher
 {
     public function enqueue(int $tenantId, int $opSessionId, array $clientSession, string $clientIdentifier, string $uri): ?array
     {
+        if (!(new IdentitySsoConfigService())->allowsBackchannelLogout($tenantId)) return null;
         try {
             (new BackchannelUrlPolicy())->validate($uri);
             $jti = Uuid::uuid4()->toString();
@@ -31,9 +32,9 @@ final class BackchannelLogoutDispatcher
     }
 
     /** 兼容旧调用；实际投递始终经过原子 claim。 */
-    public function dispatch(int $deliveryId): bool
+    public function dispatch(int $tenantId, int $deliveryId): bool
     {
-        return (new BackchannelLogoutWorker())->retry($deliveryId);
+        return (new BackchannelLogoutWorker())->retry($tenantId, $deliveryId);
     }
 
     /** 仅供已持有有效 claim 的 worker 调用。 */

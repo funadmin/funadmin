@@ -49,6 +49,7 @@ final class Identity
             (new IdentityCredentialService())->login((int) $authorization->tenant_id, trim((string) $request->post('username', '')), (string) $request->post('password', ''), (string) $request->post('captcha', ''), (string) $request->ip());
             return redirect('/identity/interaction?transaction_id=' . rawurlencode($transactionId))->header($this->securityHeaders());
         } catch (DomainException $exception) {
+            if ($exception->getMessage() === 'server_error') return response('统一身份服务不可用', 503, $this->securityHeaders());
             return $this->render($transactionId, $this->loginError($exception->getMessage()), 422);
         }
     }
@@ -79,7 +80,8 @@ final class Identity
         try {
             $authorization = $this->authorization($transactionId);
             (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
-        } catch (DomainException) {
+        } catch (DomainException $exception) {
+            if ($exception->getMessage() === 'server_error') return response('统一身份服务不可用', 503, $this->securityHeaders());
             return response('授权请求无效或已过期', 400, $this->securityHeaders());
         }
         $identity = IdentitySessionResolverFactory::make()->resolve(request());

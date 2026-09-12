@@ -6,6 +6,7 @@ namespace app\identity\service;
 
 use app\common\model\identity\IdentitySsoConfig;
 use DomainException;
+use Throwable;
 
 /** 每次请求直接读取租户 SSO 配置，配置异常时拒绝协议处理。 */
 final class IdentitySsoConfigService
@@ -13,7 +14,11 @@ final class IdentitySsoConfigService
     /** @return array<string,mixed> */
     public function requireIdentityProvider(int $tenantId): array
     {
-        $config = $this->read($tenantId);
+        try {
+            $config = $this->read($tenantId);
+        } catch (Throwable) {
+            throw new DomainException('server_error');
+        }
         if ($config === null || (int) ($config['enabled'] ?? 0) !== 1 || (string) ($config['provider_mode'] ?? '') !== 'identity_provider') {
             throw new DomainException('server_error');
         }
@@ -29,7 +34,11 @@ final class IdentitySsoConfigService
 
     public function allowsBackchannelLogout(int $tenantId): bool
     {
-        $config = $this->read($tenantId);
+        try {
+            $config = $this->read($tenantId);
+        } catch (Throwable) {
+            return false;
+        }
         return $config !== null
             && (int) ($config['enabled'] ?? 0) === 1
             && (string) ($config['provider_mode'] ?? '') === 'identity_provider'

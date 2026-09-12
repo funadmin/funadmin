@@ -1,16 +1,17 @@
 <template>
   <section class="file-diff-viewer">
-    <header><strong>{{ file.path }}</strong><el-tag size="small">{{ file.status }}</el-tag></header>
+    <header><strong>{{ file.path }}</strong><el-tag size="small">{{ aiEnumLabel(t, 'fileStatuses', file.status) }}</el-tag></header>
     <el-alert v-if="file.contentKind === 'binary'" :title="t('aiDevelopment.diff.binary')" type="warning" :closable="false" />
     <el-alert v-if="file.contentOmitted" :title="t('aiDevelopment.diff.omitted')" type="info" :closable="false" />
     <pre v-if="file.contentKind !== 'binary' && !file.contentOmitted"><code>{{ diff || t('aiDevelopment.diff.missing') }}</code></pre>
-    <dl><dt>Base</dt><dd>{{ file.baseHash || '-' }}</dd><dt>Local</dt><dd>{{ file.localHash || '-' }}</dd><dt>Remote</dt><dd>{{ file.remoteHash || '-' }}</dd></dl>
+    <dl><dt>{{ t('aiDevelopment.fields.base') }}</dt><dd>{{ file.baseHash || '-' }}</dd><dt>{{ t('aiDevelopment.fields.local') }}</dt><dd>{{ file.localHash || '-' }}</dd><dt>{{ t('aiDevelopment.fields.remote') }}</dt><dd>{{ file.remoteHash || '-' }}</dd></dl>
   </section>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { AiChangeSetFile } from '@/api/development/ai';
+import { aiEnumLabel } from '../i18n';
 defineProps<{ file: AiChangeSetFile; diff?: string }>();
 const { t } = useI18n();
 </script>

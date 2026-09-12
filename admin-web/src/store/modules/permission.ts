@@ -50,9 +50,11 @@ export const usePermissionStore = defineStore('permission', {
         }
       });
       clearPluginModules(router);
-      // 同时卸载 NotFound 通配，下次登录会重新注册到动态路由之后
-      if (router.hasRoute('NotFound')) {
-        router.removeRoute('NotFound');
+      // 同时卸载正式 NotFound，并恢复启动占位通配供下次深链导航使用
+      if (router.hasRoute('NotFound')) router.removeRoute('NotFound');
+      if (!router.hasRoute('BootstrapNotFound')) {
+        const bootstrapNotFound = staticRoutes.find((route) => route.name === 'BootstrapNotFound');
+        if (bootstrapNotFound) router.addRoute(bootstrapNotFound);
       }
       this.rawMenus = [];
       this.dynamicRoutes = [];
