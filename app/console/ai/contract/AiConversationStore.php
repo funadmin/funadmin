@@ -12,6 +12,12 @@ interface AiConversationStore
     public function conversation(int $id, int $adminId): ?array;
     public function updateConversation(int $id, int $adminId, array $data): bool;
     public function deleteConversation(int $id, int $adminId): bool;
+    public function conversationGroups(int $adminId): array;
+    public function conversationGroup(int $id, int $adminId): ?array;
+    public function createConversationGroup(array $data): array;
+    public function updateConversationGroup(int $id, int $adminId, array $data): bool;
+    public function deleteConversationGroup(int $id, int $adminId): bool;
+    public function archiveGroupConversations(int $groupId, int $adminId): void;
     public function appendMessage(int $conversationId, array $data): array;
     public function messages(int $conversationId): array;
     public function createTask(array $data): array;
