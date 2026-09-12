@@ -6,6 +6,7 @@ namespace app\console\ai\repository;
 
 use app\console\ai\contract\AiConversationStore;
 use app\console\ai\model\AiConversation;
+use app\console\ai\model\AiConversationGroup;
 use app\console\ai\model\AiMessage;
 use app\console\ai\model\AiStreamNonce;
 use app\console\ai\model\AiTask;
@@ -21,6 +22,12 @@ final class DatabaseAiConversationStore implements AiConversationStore
     public function conversation(int $id, int $adminId): ?array { return AiConversation::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
     public function updateConversation(int $id, int $adminId, array $data): bool { return AiConversation::where('id', $id)->where('admin_id', $adminId)->update($data) === 1; }
     public function deleteConversation(int $id, int $adminId): bool { $model = AiConversation::where('id', $id)->where('admin_id', $adminId)->find(); return $model ? (bool) $model->delete() : false; }
+    public function conversationGroups(int $adminId): array { return AiConversationGroup::where('admin_id', $adminId)->order('id')->select()->toArray(); }
+    public function conversationGroup(int $id, int $adminId): ?array { return AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
+    public function createConversationGroup(array $data): array { return AiConversationGroup::create($data)->toArray(); }
+    public function updateConversationGroup(int $id, int $adminId, array $data): bool { return AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->update($data) === 1; }
+    public function deleteConversationGroup(int $id, int $adminId): bool { $model = AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->find(); return $model ? (bool) $model->delete() : false; }
+    public function archiveGroupConversations(int $groupId, int $adminId): void { AiConversation::where('group_id', $groupId)->where('admin_id', $adminId)->update(['group_id' => null, 'is_archived' => 1]); }
 
     public function appendMessage(int $conversationId, array $data): array
     {

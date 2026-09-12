@@ -34,6 +34,7 @@ use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
+use think\annotation\route\Patch;
 use think\annotation\route\Post;
 use think\annotation\route\Put;
 use think\facade\Db;
@@ -66,6 +67,17 @@ final class Ai extends AdminApiController
 
     #[Get('conversations')]
     public function conversationIndex(): Response { return $this->run(fn () => $this->ai->listConversations($this->adminId())); }
+    #[Get('conversation-groups')]
+    public function conversationGroupIndex(): Response { return $this->run(fn () => $this->ai->listConversationGroups($this->adminId())); }
+    #[Post('conversation-groups')]
+    public function conversationGroupCreate(): Response { return $this->run(fn () => $this->ai->createConversationGroup($this->adminId(), $this->input())); }
+    #[Put('conversation-groups/:id')]
+    #[Pattern('id', '\d+')]
+    public function conversationGroupUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversationGroup($id, $this->adminId(), $this->input())); }
+    #[Delete('conversation-groups/:id')]
+    #[Pattern('id', '\d+')]
+    public function conversationGroupDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversationGroup($id, $this->adminId())]); }
+
     #[Post('conversations')]
     public function conversationCreate(): Response { return $this->run(fn () => $this->ai->createConversation($this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
     #[Get('conversations/:id')]
@@ -74,6 +86,9 @@ final class Ai extends AdminApiController
     #[Put('conversations/:id')]
     #[Pattern('id', '\d+')]
     public function conversationUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversation($id, $this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
+    #[Patch('conversations/:id/state')]
+    #[Pattern('id', '\d+')]
+    public function conversationStateUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversationState($id, $this->adminId(), $this->input())); }
     #[Delete('conversations/:id')]
     #[Pattern('id', '\d+')]
     public function conversationDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversation($id, $this->adminId())]); }
@@ -121,7 +136,7 @@ final class Ai extends AdminApiController
     public function approvalIndex(): Response { return $this->run(fn () => $this->approvals->pending($this->adminId())); }
 
     #[Post('approvals/:id/decision')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function approvalDecide(int $id): Response
     {
         return $this->run(function () use ($id): array {
@@ -157,11 +172,11 @@ final class Ai extends AdminApiController
     }
 
     #[Get('tasks/:id/tool-calls')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function taskToolCalls(int $id): Response { return $this->run(function () use ($id): array { $this->ai->getTask($id, $this->adminId()); return $this->security->toolCalls($id); }); }
 
     #[Get('tool-calls/:id/logs/:stream')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     #[Pattern('stream', 'stdout|stderr')]
     public function toolCallLog(int $id, string $stream): Response
     {
@@ -211,7 +226,7 @@ final class Ai extends AdminApiController
     }
 
     #[Get('change-sets/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function changeSetDetail(int $id): Response
     {
         return $this->run(function () use ($id): array {
@@ -220,7 +235,7 @@ final class Ai extends AdminApiController
     }
 
     #[Post('change-sets/:id/preview')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function changeSetPreview(int $id): Response
     {
         return $this->run(function () use ($id): array {
@@ -235,7 +250,7 @@ final class Ai extends AdminApiController
     }
 
     #[Post('change-sets/:id/apply')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function changeSetApply(int $id): Response
     {
         return $this->run(function () use ($id): array {
@@ -257,7 +272,7 @@ final class Ai extends AdminApiController
     }
 
     #[Post('change-sets/:id/recover')]
-    #[Pattern('id', '\\d+')]
+    #[Pattern('id', '\d+')]
     public function changeSetRecover(int $id): Response
     {
         return $this->run(function () use ($id): array {

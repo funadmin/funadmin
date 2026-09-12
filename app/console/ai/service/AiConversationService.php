@@ -41,6 +41,47 @@ final class AiConversationService
         return $this->store->conversations($adminId);
     }
 
+    public function listConversationGroups(int $adminId): array
+    {
+        return $this->store->conversationGroups($adminId);
+    }
+
+    public function createConversationGroup(int $adminId, array $input): array
+    {
+        $name = trim((string) ($input['name'] ?? ''));
+        if ($name === '') throw new InvalidArgumentException('分组名称不能为空');
+        return $this->store->createConversationGroup(['admin_id' => $adminId, 'name' => mb_substr($name, 0, 100)]);
+    }
+
+    public function updateConversationGroup(int $id, int $adminId, array $input): array
+    {
+        $this->ownedGroup($id, $adminId);
+        $name = trim((string) ($input['name'] ?? ''));
+        if ($name === '') throw new InvalidArgumentException('分组名称不能为空');
+        $this->store->updateConversationGroup($id, $adminId, ['name' => mb_substr($name, 0, 100)]);
+        return $this->ownedGroup($id, $adminId);
+    }
+
+    public function deleteConversationGroup(int $id, int $adminId): bool
+    {
+        $this->ownedGroup($id, $adminId);
+        $this->store->archiveGroupConversations($id, $adminId);
+        return $this->store->deleteConversationGroup($id, $adminId);
+    }
+
+    public function updateConversationState(int $id, int $adminId, array $input): array
+    {
+        $this->ownedConversation($id, $adminId);
+        $allowed = array_intersect_key($input, array_flip(['group_id', 'is_archived', 'is_unread']));
+        if (array_key_exists('group_id', $allowed)) {
+            $groupId = $allowed['group_id'] === null ? null : (int) $allowed['group_id'];
+            if ($groupId !== null) $this->ownedGroup($groupId, $adminId);
+            $allowed['group_id'] = $groupId;
+        }
+        $this->store->updateConversation($id, $adminId, $allowed);
+        return $this->ownedConversation($id, $adminId);
+    }
+
     public function getConversation(int $id, int $adminId): array
     {
         return $this->ownedConversation($id, $adminId);
@@ -145,5 +186,12 @@ final class AiConversationService
         $conversation = $this->store->conversation($id, $adminId);
         if (!$conversation) throw new RuntimeException('资源不存在', 404);
         return $conversation;
+    }
+
+    private function ownedGroup(int $id, int $adminId): array
+    {
+        $group = $this->store->conversationGroup($id, $adminId);
+        if (!$group) throw new RuntimeException('分组不存在', 404);
+        return $group;
     }
 }

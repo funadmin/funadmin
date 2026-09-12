@@ -5,6 +5,7 @@ import {
   type AiApprovalScope,
   type AiChangeSet,
   type AiConversation,
+  type AiConversationGroup,
   type AiEventSourceLike,
   type AiMessage,
   type AiTask,
@@ -46,6 +47,7 @@ interface RouteState {
 
 interface AiDevelopmentState {
   conversations: AiConversation[];
+  conversationGroups: AiConversationGroup[];
   selectedConversationId: number | null;
   messages: AiMessage[];
   activeTask: AiTask | null;
@@ -74,6 +76,7 @@ function readRouteState(): RouteState {
 export const useAiDevelopmentStore = defineStore('aiDevelopment', {
   state: (): AiDevelopmentState => ({
     conversations: [],
+    conversationGroups: [],
     selectedConversationId: null,
     messages: [],
     activeTask: null,
@@ -112,7 +115,10 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.toolCalls = [];
       this.changeSet = null;
       this.reconnectDelay = 0;
-      this.conversations = await aiDevelopmentApi.conversations();
+      [this.conversations, this.conversationGroups] = await Promise.all([
+        aiDevelopmentApi.conversations(),
+        aiDevelopmentApi.conversationGroups()
+      ]);
       if (this.selectedConversationId !== null) {
         const [conversation, messages] = await Promise.all([
           aiDevelopmentApi.conversation(this.selectedConversationId),

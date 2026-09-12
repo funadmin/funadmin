@@ -8,6 +8,14 @@ export type AiTaskStatus = 'pending' | 'running' | 'paused' | 'succeeded' | 'fai
 export type AiRiskLevel = 'low' | 'medium' | 'high' | 'critical';
 export type AiApprovalScope = 'once' | 'session_operation';
 
+export interface AiConversationGroup {
+  id: number;
+  admin_id: number;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AiConversation {
   id: number;
   admin_id: number;
@@ -18,6 +26,9 @@ export interface AiConversation {
   provider: string;
   model: string;
   context: Record<string, unknown>;
+  group_id: number | null;
+  is_archived: boolean;
+  is_unread: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -189,6 +200,11 @@ function eventUrl(taskId: number, ticket: string, cursor: number): string {
 
 export const aiDevelopmentApi = {
   conversations: () => http.get<AiConversation[]>('/development/ai/conversations'),
+  conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`),
+  createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }),
+  updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }),
+  deleteConversationGroup: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversation-groups/${id}`),
+  updateConversationState: (id: number, payload: Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload),
   createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context'>>) => http.post<AiConversation>('/development/ai/conversations', payload),
   conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`),
   updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload),

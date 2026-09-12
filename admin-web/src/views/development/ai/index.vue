@@ -13,7 +13,7 @@
 
     <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
       <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
-        <ConversationList :conversations="store.conversations" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" />
+        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup" />
       </section>
 
       <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
@@ -105,6 +105,30 @@ const ContextPanel = defineComponent({
     ]);
   }
 });
+
+async function createConversationGroup() {
+  const name = window.prompt('请输入分组名称');
+  if (!name?.trim()) return;
+  const group = await aiDevelopmentApi.createConversationGroup(name.trim());
+  store.conversationGroups.push(group);
+}
+
+async function renameConversationGroup(id: number) {
+  const current = store.conversationGroups.find((group) => group.id === id);
+  const name = window.prompt('请输入新的分组名称', current?.name || '');
+  if (!name?.trim()) return;
+  const group = await aiDevelopmentApi.updateConversationGroup(id, name.trim());
+  if (current) Object.assign(current, group);
+}
+
+async function deleteConversationGroup(id: number) {
+  if (!window.confirm('删除分组后，其中的会话将归档，是否继续？')) return;
+  await aiDevelopmentApi.deleteConversationGroup(id);
+  store.conversationGroups = store.conversationGroups.filter((group) => group.id !== id);
+  store.conversations.forEach((conversation) => {
+    if (conversation.group_id === id) Object.assign(conversation, { group_id: null, is_archived: true });
+  });
+}
 
 async function createConversation() {
   const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval' });
