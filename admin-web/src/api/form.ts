@@ -48,6 +48,7 @@ export interface FormSchemaNode {
 }
 
 export interface FormSchemaDocument {
+  list?: import('@/views/form/schema/types').FormListConfiguration;
   schemaVersion: 2;
   key: string;
   title: string;

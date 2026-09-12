@@ -130,6 +130,7 @@ final class FormCrudDefinitionFactory
             ],
             'permission' => ['enabled' => true, 'groupName' => (string) $config['menuName'], 'actions' => []],
             'layoutSchema' => $layoutSchema,
+            'list' => (array) ($formSchema->document()['list'] ?? []),
             'formSchemaVersion' => $formSchema->version(),
             'formSchemaHash' => $formSchema->hash(),
             'formSchema' => $formSchema->document(),
@@ -178,7 +179,7 @@ final class FormCrudDefinitionFactory
     private function options(array $field, string $name, array &$row, array &$sources): void
     {
         $source = (array) ($field['options_source'] ?? []);
-        $mode = (string) ($source['mode'] ?? '');
+        $mode = (string) ($source['kind'] ?? $source['mode'] ?? '');
         if ($mode === 'static' && is_array($source['options'] ?? null)) {
             $row['options'] = $source['options'];
             return;

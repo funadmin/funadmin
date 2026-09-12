@@ -140,6 +140,48 @@ final class FormSchemaValidator
         $this->validateTopLevelDataSourceReferences((array) ($schema['dataSources'] ?? []), '/dataSources', $fields);
         $this->validateGlobalActionReferences((array) ($schema['actions'] ?? []), '/actions', $fields);
         $this->validateConditionCycles($edges);
+        $this->validateListConfiguration((array) ($schema['list'] ?? []), $schema['nodes']);
+    }
+
+    /** 列表只能引用本表可读标量字段，分类源限定静态选项或字典。 */
+    public function validateListConfiguration(array $list, array $nodes): void
+    {
+        $fields = [];
+        $collect = function (array $items) use (&$collect, &$fields): void {
+            foreach ($items as $node) {
+                if (($node['kind'] ?? 'field') === 'field') $fields[$node['field'] ?? ''] = $node;
+                if (!in_array($node['type'] ?? '', ['repeatable', 'subform'], true)) $collect($node['children'] ?? []);
+            }
+        };
+        $collect($nodes);
+        foreach (['category' => 'field', 'tree' => 'parentField'] as $kind => $binding) {
+            if (!array_key_exists($kind, $list)) continue;
+            $config = $list[$kind];
+            if (!is_array($config) || ($config !== [] && array_is_list($config)) || array_diff(array_keys($config), ['enabled', $binding]) !== []) {
+                throw new FormSchemaException('列表配置不合法', '/list/' . $kind);
+            }
+            if (isset($config['enabled']) && !is_bool($config['enabled'])) throw new FormSchemaException('enabled 必须为布尔值', '/list/' . $kind . '/enabled');
+            if (($config['enabled'] ?? false) !== true) continue;
+            $name = $config[$binding] ?? '';
+            $node = is_string($name) ? ($fields[$name] ?? null) : null;
+            if (!$node || empty($node['database']['columnType']) || in_array($node['type'] ?? '', ['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
+                || in_array($node['valueType'] ?? '', ['array', 'object'], true)
+                || ($node['props']['multiple'] ?? false) || ($node['props']['sensitive'] ?? false) || ($node['props']['writeOnly'] ?? false)
+                || ($node['access'] ?? []) !== [] || ($node['database']['relation']['type'] ?? 'none') !== 'none') {
+                throw new FormSchemaException('必须选择当前表可读的非敏感标量字段', '/list/' . $kind . '/' . $binding);
+            }
+            if ($kind === 'category') {
+                $source = $node['dataSource'] ?? [];
+                $mode = $source['kind'] ?? $source['mode'] ?? '';
+                if (!in_array($mode, ['static', 'dictionary'], true)) throw new FormSchemaException('分类仅支持字段静态选项或字典', '/list/category/field');
+                if ($mode === 'dictionary' && !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', (string) ($source['dictionary'] ?? ''))) throw new FormSchemaException('分类字典标识不合法', '/list/category/field');
+                if ($mode === 'static') {
+                    foreach ($source['options'] ?? [] as $option) {
+                        if (!is_array($option) || !is_string($option['label'] ?? null) || (!is_string($option['value'] ?? null) && !is_int($option['value'] ?? null))) throw new FormSchemaException('分类选项必须具有文字标签和标量值', '/list/category/field');
+                    }
+                }
+            }
+        }
     }
 
     private function validateNodes(array $nodes, string $path, int $depth, array &$ids, array &$fields, int &$count, array &$edges, array $dataSourceIds, int &$dataSourceCount): void

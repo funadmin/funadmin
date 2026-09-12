@@ -404,11 +404,19 @@ export function useDesigner() {
     selectNode(null);
     return { ok: true, error: '' };
   };
+  const updateList = (patch: NonNullable<FormSchemaDocument['list']>) => {
+    pushHistory();
+    form.value = {
+      ...form.value,
+      schema_document: { ...schemaDocument.value, list: { ...schemaDocument.value.list, ...clone(patch) } }
+    };
+  };
   const schemaDocument = computed<FormSchemaDocument>(() => ({
     ...(form.value.schema_document ?? {}),
     schemaVersion: 2,
     key: String(form.value.form_key ?? ''),
     title: String(form.value.name ?? ''),
+    list: clone(form.value.schema_document?.list ?? {}),
     nodes: clone(nodes.value)
   }));
   const load = (definition: FormDefinition) => {
@@ -433,7 +441,7 @@ export function useDesigner() {
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
     dirty, saveStatus, beginSave, failSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
-    duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, replaceFields, replaceSchema, load, markSaved
+    duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, updateList, replaceFields, replaceSchema, load, markSaved
   };
 }
 

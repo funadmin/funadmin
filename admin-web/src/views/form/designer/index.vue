@@ -198,6 +198,8 @@
     </div>
 
 
+    <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" @update="store.updateList" />
+
     <el-dialog v-model="publishVisible" title="发布表单" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
         <el-step title="发布设置" />
@@ -317,6 +319,7 @@ import { buildDesignerDebugState, buildSchemaDebugSummary } from './schemaEditor
 import SchemaRenderer from '../components/SchemaRenderer.vue';
 import DesignerCanvas from './components/DesignerCanvas.vue';
 import PropsPanel from './components/PropsPanel.vue';
+import ListConfigurationPanel from './components/ListConfigurationPanel.vue';
 import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';

@@ -1,6 +1,8 @@
 <template>
   <PageWrapper :title="meta?.form.name ? `${meta.form.name} 数据` : '表单数据'" subtitle="元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉">
-    <DataTableShell :storage-key="`form-data-${formKey}`" :loading="loading" @refresh="loadData">
+    <div class="flex flex-col gap-4 md:flex-row">
+    <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
+    <DataTableShell class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label" :prop="field.field_name">
@@ -37,7 +39,7 @@
         <el-button type="primary" @click="openDialog()">新增</el-button>
         <el-button @click="onExport">导出</el-button>
       </template>
-      <el-table v-loading="loading" :data="rows" border :row-key="primaryKeyName" @sort-change="onSortChange">
+      <el-table v-loading="loading" :data="displayRows" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKeyName" @sort-change="onSortChange">
         <el-table-column :prop="primaryKeyName" label="ID" width="120" />
         <el-table-column
           v-for="field in listFields"
@@ -96,9 +98,10 @@
         </el-table-column>
       </el-table>
       <template #pagination>
-        <Pagination v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />
+        <Pagination v-if="!treeEnabled" v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />
       </template>
     </DataTableShell>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" :before-close="beforeDialogClose" destroy-on-close>
@@ -135,6 +138,8 @@ import dayjs from 'dayjs';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
+import ListCategoryPanel from './components/ListCategoryPanel.vue';
+import { buildListTree } from './runtime/listPresentation';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
@@ -166,6 +171,9 @@ let closeDialogAfterSave = false;
 
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const primaryKeyName = computed(() => meta.value?.primaryKey.name ?? 'id');
+const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
+const displayRows = computed(() => treeEnabled.value ? buildListTree(rows.value, primaryKeyName.value, meta.value?.schema.list?.tree?.parentField ?? '') : rows.value);
+const onCategory = (value: string | number | undefined) => { if (value === undefined) delete filters.__category; else filters.__category = String(value); onSearch(); };
 const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1 && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== '' && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 

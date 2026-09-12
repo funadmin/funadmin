@@ -258,6 +258,7 @@ final class ProductionTemplateContext
             }
             if (($field['sortable'] ?? false) === true) $sort[self::camel($field['name'])] = $field['name'];
         }
+        if (($data['list']['category']['enabled'] ?? false) === true) $exact['__category'] = $data['list']['category']['field'];
         $dto = [];
         foreach ($data['fields'] as $field) {
             if (($field['detail'] ?? true) === false) continue;
@@ -278,7 +279,11 @@ final class ProductionTemplateContext
         }
         $statusTraitAlias = ($enabled['status'] || !$data['_consoleController']) ? "        status as private crudStatus; status as private;\n" : '';
         $methods = [];
-        if ($enabled['list']) $methods[] = "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
+        if ($enabled['list']) {
+            $methods[] = ($data['list']['tree']['enabled'] ?? false)
+                ? "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }"
+                : "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
+        }
         if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
         if ($enabled['update']) $methods[] = "    #[Put(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
@@ -564,31 +569,52 @@ final class ProductionTemplateContext
         if ($enabled['detail']) array_push($crudBindings, 'drawerVisible', 'onOpenDrawer');
         $selectionColumn = $enabled['batchDelete'] ? "          <el-table-column type=\"selection\" width=\"48\" />\n" : '';
         $selectionChange = $enabled['batchDelete'] ? ' @selection-change="handleSelectionChange"' : '';
+        $tree = ($data['list']['tree']['enabled'] ?? false) === true;
+        $category = ($data['list']['category']['enabled'] ?? false) === true;
+        $listImports = '';
+        $listSetup = '';
+        $categoryPanel = '';
+        if ($tree) {
+            $parentName = self::camel($data['list']['tree']['parentField']);
+            $listImports .= "import { buildListTree } from '@/views/form/runtime/listPresentation';\n";
+            $listSetup .= "const displayRows = computed(() => buildListTree(list.value, '{$primaryName}', '{$parentName}'));\n";
+        }
+        if ($category) {
+            $categoryField = array_values(array_filter($data['fields'], static fn (array $field): bool => $field['name'] === $data['list']['category']['field']))[0];
+            $listImports .= "import ListCategoryPanel from '@/views/form/components/ListCategoryPanel.vue';\n";
+            $listSetup .= 'const categoryOptions = ref<Array<{ label: string; value: string | number }>>(' . self::json($categoryField['options'] ?? []) . ");\n";
+            if (isset($categoryField['optionsSource'])) $listSetup .= "onMounted(async () => { categoryOptions.value = await {$camel}Api.options('{$categoryField['optionsSource']}'); });\n";
+            $listSetup .= "function onCategory(value: string | number | undefined) { query.__category = value; query.page = 1; void loadData(); }\n";
+            $categoryPanel = '<ListCategoryPanel :options="categoryOptions" :model-value="query.__category" @change="onCategory" />';
+        }
         $vueImports = [];
-        if ($enabled['softDelete']) $vueImports[] = 'computed';
-        if ($enabled['import']) $vueImports[] = 'ref';
+        if ($enabled['softDelete'] || $tree) $vueImports[] = 'computed';
+        if ($enabled['import'] || $category) $vueImports[] = 'ref';
+        if ($category) $vueImports[] = 'onMounted';
         $vueImport = $vueImports === [] ? '' : "import { " . implode(', ', $vueImports) . " } from 'vue';\n";
         $csvImport = $enabled['import'] || $enabled['export']
             ? "import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';\n"
             : '';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
-            . "    <DataTableShell storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
+            . ($category ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
+            . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
             . $searchSlot
             . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
-            . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table :data=\"list\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
+            . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table :data=\"" . ($tree ? 'displayRows' : 'list') . "\" row-key=\"{$primaryName}\" :tree-props=\"{ children: '__listChildren' }\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
             . $selectionColumn . implode("\n", $columns) . "\n" . $statusColumn
             . $operationColumn
-            . "        </el-table><el-pagination v-model:current-page=\"query.page\" v-model:page-size=\"query.pageSize\" :total=\"total\" @change=\"loadData\" /></template>\n"
-            . "    </DataTableShell>{$formComponent}{$detailComponent}\n"
+            . '        </el-table>' . ($tree ? '' : '<el-pagination v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />') . "</template>\n"
+            . '    </DataTableShell>' . ($category ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
-            . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport
+            . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport . $listImports
             . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '{$data['_frontendApiImport']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
             . ($enabled['detail'] ? "import {$class}Detail from './components/{$class}Detail.vue';\n" : '')
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
-            . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0 }), rowKey: '{$primaryName}', pagination: true });\n"
+            . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
+            . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
             . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: Record<string, unknown>[]) => onSelectionChange(rows as unknown as {$type}[]);\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')

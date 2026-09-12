@@ -23,7 +23,7 @@ use think\Response;
 use Throwable;
 
 /** 统一业务开发 Admin API。 */
-#[Group('development/business')]
+#[Group('development/business', ['complete_match' => true])]
 final class Business extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];

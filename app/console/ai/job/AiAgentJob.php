@@ -106,8 +106,8 @@ final class AiAgentJob
                     if ($type === 'assistant.message') {
                         $this->store->appendMessage((int) $task['conversation_id'], [
                             'role' => 'assistant',
-                            'content' => ['text' => $payload['content'] ?? null, 'tool_calls' => $payload['tool_calls'] ?? []],
-                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0],
+                            'content' => [['type' => 'text', 'text' => $payload['content'] ?? '']],
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? []],
                         ]);
                     }
                     return $this->store->appendEvent($taskId, $type, $payload);

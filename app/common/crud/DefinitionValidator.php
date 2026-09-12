@@ -17,7 +17,7 @@ final class DefinitionValidator
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
         'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
-        'formSchemaVersion', 'formSchemaHash', 'formSchema',
+        'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
@@ -96,6 +96,19 @@ final class DefinitionValidator
         }
         $optionSources = $this->optionsSources($data['optionsSource'] ?? []);
         $this->relations($data['relations'] ?? null, $fieldNames, $optionSources);
+        if (!is_array($data['list']) || ($data['list'] !== [] && array_is_list($data['list']))) throw new InvalidArgumentException('list 必须是对象');
+        $listNodes = [];
+        foreach ($fieldNames as $name => $field) {
+            $source = isset($field['options']) ? ['kind' => 'static', 'options' => $field['options']] : [];
+            foreach ($data['optionsSource'] ?? [] as $option) {
+                if (($field['optionsSource'] ?? '') === $option['name']) $source = ['kind' => $option['type'], 'dictionary' => $option['dictionary'] ?? ''];
+            }
+            $listNodes[] = ['kind' => 'field', 'field' => $name, 'type' => $field['component'] ?? 'input',
+                'database' => ['columnType' => $field['dbType']], 'valueType' => $field['valueType'] ?? 'string',
+                'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['detail'] ?? true) === false]), 'dataSource' => $source];
+        }
+        (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
+        if (($data['list']['tree']['enabled'] ?? false) && $data['list']['tree']['parentField'] === $data['primaryKey']) throw new InvalidArgumentException('父级字段不能是主键');
         $this->capabilities($data['capabilities'] ?? null);
         $this->features($data['features'] ?? null, $fieldNames);
         $this->dataScope($data['dataScope'] ?? null, $fieldNames);

@@ -1,6 +1,8 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
-    <DataTableShell :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
+    <div class="flex flex-col gap-4 md:flex-row">
+    <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
+    <DataTableShell class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label">
@@ -15,7 +17,7 @@
         <el-button type="primary" @click="openDialog()">新增</el-button>
         <el-button @click="onExport">导出</el-button>
       </template>
-      <el-table :data="rows" border :row-key="primaryKey" @sort-change="onSortChange">
+      <el-table :data="displayRows" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKey" @sort-change="onSortChange">
         <el-table-column :prop="primaryKey" label="ID" width="100" sortable="custom" />
         <el-table-column v-for="field in listFields" :key="field.field_name" :prop="field.field_name" :label="field.label" :width="field.list_width || undefined" :sortable="field.list_sort === 1 ? 'custom' : false" show-overflow-tooltip>
           <template #default="{ row }">
@@ -39,8 +41,9 @@
           </template>
         </el-table-column>
       </el-table>
-      <template #pagination><Pagination v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" /></template>
+      <template #pagination><Pagination v-if="!treeEnabled" v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" /></template>
     </DataTableShell>
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" destroy-on-close>
       <SchemaRenderer
@@ -67,6 +70,8 @@ import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId 
 import type { FormFieldDef } from '@/api/form';
 import type { ActionHandlers, FormAction } from './runtime/actionExecutor';
 import SchemaRenderer from './components/SchemaRenderer.vue';
+import ListCategoryPanel from './components/ListCategoryPanel.vue';
+import { buildListTree } from './runtime/listPresentation';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
@@ -96,6 +101,9 @@ const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const listFields = computed(() => formFields.value.filter((field) => field.list_show === 1));
 const filterFields = computed(() => formFields.value.filter((field) => field.list_filter !== ''));
 const primaryKey = computed(() => meta.value?.primaryKey.name || 'id');
+const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
+const displayRows = computed(() => treeEnabled.value ? buildListTree(rows.value, primaryKey.value, meta.value?.schema.list?.tree?.parentField ?? '') : rows.value);
+const onCategory = (value: string | number | undefined) => { if (value === undefined) delete filters.__category; else filters.__category = String(value); onSearch(); };
 const requestKeys = computed(() => (meta.value?.schema.actions ?? []).flatMap((action) => {
   const record = action as { steps?: Array<{ type?: string; key?: string }> };
   return (record.steps ?? []).filter((step) => step.type === 'request' && step.key).map((step) => String(step.key));

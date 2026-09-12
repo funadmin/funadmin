@@ -50,7 +50,7 @@ export function setupRouterGuard(router: Router) {
         });
       }
       permissionStore.setMounted(true);
-      next({ path: to.fullPath, replace: true });
+      next({ path: to.path, query: to.query, hash: to.hash, replace: true });
     } catch (e: any) {
       ElMessage.error(e?.message || (i18n.global.t('common.fetchPermissionFailed') as string));
       userStore.resetState();

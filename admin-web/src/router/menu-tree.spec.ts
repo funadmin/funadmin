@@ -1,9 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router';
 import { generateRoutes } from './dynamic';
+import { setupRouterGuard } from './guard';
 import { staticRoutes } from './routes';
 import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
+
+const guardStores = vi.hoisted(() => ({
+  user: { isLoggedIn: true, userInfo: {}, fetchUserInfo: vi.fn(), resetState: vi.fn() },
+  permission: { mounted: false, fetchMenus: vi.fn(), setMounted: vi.fn(), reset: vi.fn() }
+}));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => guardStores.user }));
+vi.mock('@/store/modules/permission', () => ({ usePermissionStore: () => guardStores.permission }));
+vi.mock('@/router/pluginStartup', () => ({ loadPluginModulesSafely: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('nprogress', () => ({ default: { start: vi.fn(), done: vi.fn() } }));
 
 const menus: API.MenuItem[] = [
   {
@@ -45,6 +55,30 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 });
 
 describe('混合布局菜单全树路由', () => {
+  it.each([
+    '/development/business/designer?moduleId=42',
+    '/development/business/designer?moduleId=42&tag=a&tag=b&empty=&flag&keyword=%E4%B8%AD%E6%96%87#schema'
+  ])('首次动态路由加载后保留深链的 path、query 和 hash：%s', async (fullPath) => {
+    guardStores.permission.mounted = false;
+    guardStores.permission.fetchMenus.mockResolvedValue(generateRoutes(getAdminMenuTreeSeed()));
+    guardStores.permission.setMounted.mockImplementation((mounted: boolean) => {
+      guardStores.permission.mounted = mounted;
+    });
+    const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });
+    const expected = router.resolve(fullPath);
+    setupRouterGuard(router);
+
+    await router.push(fullPath);
+
+    expect(router.currentRoute.value.name).toBe('BusinessDesigner');
+    expect(router.currentRoute.value.path).toBe(expected.path);
+    expect(router.currentRoute.value.query).toEqual(expected.query);
+    expect(router.currentRoute.value.hash).toBe(expected.hash);
+    expect(router.currentRoute.value.fullPath).toBe(expected.fullPath);
+    expect(router.hasRoute('BootstrapNotFound')).toBe(false);
+    expect(guardStores.permission.mounted).toBe(true);
+  });
+
   it('首次深链启动前由 bootstrap catch-all 消除未匹配，并在动态路由加载后落到正式路由', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });

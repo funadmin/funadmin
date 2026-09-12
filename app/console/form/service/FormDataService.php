@@ -72,6 +72,8 @@ final class FormDataService
             'schema' => $published['schema'],
             'schemaHash' => $published['schemaHash'],
             'etag' => '"' . $published['schemaHash'] . '"',
+            'categoryOptions' => ($published['schema']['list']['category']['enabled'] ?? false)
+                ? $this->options($key, $published['schema']['list']['category']['field']) : [],
         ];
     }
 
@@ -106,7 +108,14 @@ final class FormDataService
         $form = $this->form($key);
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
         $primary = $this->primaryKey($schema);
+        $list = (array) ($this->publishedRuntime($form)['schema']['list'] ?? []);
+        $tree = ($list['tree']['enabled'] ?? false) === true;
+        if ($tree && (!isset($schema[$list['tree']['parentField']]) || $list['tree']['parentField'] === $primary['name'])) throw new InvalidArgumentException('树父级字段不存在或与主键相同');
         $query = $this->baseQuery($form, $fields);
+        if (($list['category']['enabled'] ?? false) && array_key_exists('__category', $filters) && $filters['__category'] !== '' && $filters['__category'] !== null) {
+            if (!is_string($filters['__category']) && !is_int($filters['__category'])) throw new InvalidArgumentException('分类值必须是字符串或整数');
+            $query->where($form->table_name . '.' . $list['category']['field'], '=', $filters['__category']);
+        }
         foreach ($fields as $field) {
             $filterType = (string) $field->list_filter;
             $name = (string) $field->field_name;
@@ -150,10 +159,19 @@ final class FormDataService
         $sortable = $this->sortableColumns($fields);
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
         $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
-        $total = (clone $query)->count();
-        $rows = $query->page($page, $pageSize)->select()->toArray();
-        $rows = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $rows);
-        return ['list' => $rows, 'total' => (int) $total];
+        $result = $this->readListQuery($query, $tree, $page, $pageSize);
+        $result['list'] = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $result['list']);
+        return $result;
+    }
+
+    /** 在行权限和软删除过滤之后读取；多取一条用于检测并发增加，绝不静默截断树。 */
+    private function readListQuery($query, bool $tree, int $page, int $pageSize): array
+    {
+        $total = (int) (clone $query)->count();
+        if ($tree && $total > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
+        $rows = ($tree ? $query->limit(1001) : $query->page($page, $pageSize))->select()->toArray();
+        if ($tree && count($rows) > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
+        return ['list' => $rows, 'total' => $tree ? count($rows) : $total];
     }
 
     /** 导出：上限 5000 行。 */

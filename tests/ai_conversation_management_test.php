@@ -61,5 +61,31 @@ foreach (['conversationGroupIndex'=>'conversationindex', 'conversationGroupCreat
     $resource = PermissionResource::fromParts('console', 'ai.Ai', $action);
     $check($resource['code'] === 'console/development.ai:' . $expected, '既有权限映射：' . $action);
 }
+// 模型选择仅限服务端当前供应商，任务创建时冻结，不保存连接凭据。
+\think\facade\Config::set(['provider' => ['name' => 'trusted', 'model' => 'default-model', 'api_key' => 'server-only-secret']], 'ai');
+$modelConversation = $service->createConversation(7, []);
+$check($modelConversation['provider'] === 'trusted' && $modelConversation['model'] === 'default-model', '会话默认模型来自可信配置');
+foreach ([null, [], true, 1, '', ' ', "bad\nmodel", str_repeat('x', 101)] as $model) {
+    $reject(fn () => $service->updateConversation($modelConversation['id'], 7, ['model' => $model]), 400, '模型严格校验');
+}
+$reject(fn () => $service->createConversation(7, ['provider' => 'other', 'model' => 'm']), 400, '创建拒绝伪跨供应商');
+$reject(fn () => $service->updateConversation($modelConversation['id'], 7, ['provider' => 'other', 'model' => 'm']), 400, '更新拒绝伪跨供应商');
+$reject(fn () => $service->updateConversation($modelConversation['id'], 8, ['model' => 'm']), 404, '模型更新所有权隔离');
+try {
+    $selected = $service->updateConversation($modelConversation['id'], 7, ['provider' => 'trusted', 'model' => ' chosen-model ']);
+    $check($selected['model'] === 'chosen-model', '会话更新并 trim 模型');
+    $frozen = $service->createTask($selected['id'], 7, ['idempotency_key' => 'model-freeze', 'model' => 'client-model', 'input' => ['model' => 'nested-model', 'provider' => 'other', 'api_key' => 'client-secret', 'base_url' => 'https://invalid.example', 'messages' => []]]);
+    $service->updateConversation($selected['id'], 7, ['model' => 'next-model']);
+    \think\facade\Config::set(['provider' => ['name' => 'trusted', 'model' => 'changed-global', 'api_key' => 'rotated-secret']], 'ai');
+    $check($service->getTask($frozen['id'], 7)['model'] === 'chosen-model', '任务不受会话或全局模型更新影响');
+    $check($service->createTask($selected['id'], 7, ['idempotency_key' => 'model-freeze'])['model'] === 'chosen-model', '幂等重建保留原任务模型');
+    $check($service->createTask($selected['id'], 7, ['idempotency_key' => 'model-next'])['model'] === 'next-model', '后续任务使用新会话模型');
+    $check(!array_intersect(['model', 'provider', 'api_key', 'base_url'], array_keys($frozen['input'])), '客户端连接设置不得进入任务 input');
+    $check(!str_contains(json_encode([$selected, $frozen]), 'secret'), '任务与会话响应不得包含凭据');
+} catch (InvalidArgumentException $e) {
+    $check(false, '会话必须支持 model 更新：' . $e->getMessage());
+}
+$store->updateConversation($modelConversation['id'], 7, ['provider' => 'other']);
+$reject(fn () => $service->createTask($modelConversation['id'], 7, ['idempotency_key' => 'wrong-provider']), 400, '历史会话不得伪跨供应商创建任务');
 if ($failures) { foreach ($failures as $failure) fwrite(STDERR, "FAIL: {$failure}\n"); exit(1); }
 echo "AI conversation management: PASS\n";

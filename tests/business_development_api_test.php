@@ -181,4 +181,31 @@ businessApiExpect(str_contains($controllerSource, "nodeAccess('development/busin
 businessApiExpect(substr_count($controllerSource, "nodeAccess('development/business/generate')") >= 2, 'managed execute 必须同时检查 generate 权限');
 businessApiExpect(str_contains($controllerSource, "nodeAccess('development/business/apply-resources')"), 'managed execute 必须额外检查 resource apply 权限');
 
+// 加载真实注解路由并仅检查调度目标，不执行控制器或访问业务数据库。
+$app = new \think\App($root);
+$app->http->name('console');
+$app->setAppPath($root . 'app/console/');
+$app->setNamespace('app\\console');
+$app->initialize();
+set_exception_handler(static function (Throwable $exception): void {
+    fwrite(STDERR, $exception->getMessage() . "\n");
+    exit(1);
+});
+$app->event->trigger(\think\event\RouteLoaded::class);
+(new ReflectionProperty(\think\Route::class, 'request'))->setValue($app->route, $app->request);
+foreach ($routes as $action => [$attribute, $path]) {
+    $httpMethod = strtoupper((new ReflectionClass($attribute))->getShortName());
+    $uri = 'development/business/' . str_replace([':id', ':version', ':table'], ['42', '3', 'fun_example'], $path);
+    $app->request->setMethod($httpMethod);
+    $dispatch = $app->route->check(str_replace('/', '|', $uri));
+    $actual = $dispatch === false ? null : $dispatch->getDispatch();
+    if (is_array($actual)) $actual = implode('/', $actual);
+    $expected = 'development.Business/' . $action;
+    businessApiExpect($actual === $expected, $httpMethod . ' ' . $uri . ' 应匹配 ' . $expected . '，实际为 ' . var_export($actual, true));
+}
+foreach (['modules/invalid', 'modules/42/unknown', 'generations/42/unknown', 'database/tables/fun_example/unknown'] as $path) {
+    $app->request->setMethod('GET');
+    businessApiExpect($app->route->check(str_replace('/', '|', 'development/business/' . $path)) === false, '无效路径不应被前缀路由截获：' . $path);
+}
+
 echo "business development API tests: PASS\n";

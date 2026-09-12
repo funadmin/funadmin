@@ -16,6 +16,7 @@ export interface FormDataMeta {
   schema: FormSchemaDocument;
   schemaHash: string;
   etag: string;
+  categoryOptions?: Array<{ label: string; value: string | number; disabled?: boolean }>;
 }
 
 export interface FormFieldError {

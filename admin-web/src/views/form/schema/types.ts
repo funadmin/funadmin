@@ -68,7 +68,14 @@ export interface FormSchemaNode {
   list?: Record<string, unknown>;
 }
 
+export interface FormListConfiguration {
+  category?: { enabled: boolean; field?: string };
+  tree?: { enabled: boolean; parentField?: string };
+  [key: string]: unknown;
+}
+
 export interface FormSchemaDocument {
+  list?: FormListConfiguration;
   schemaVersion: 2;
   key: string;
   title: string;

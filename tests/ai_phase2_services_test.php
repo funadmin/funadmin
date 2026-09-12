@@ -5,6 +5,9 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 require_once __DIR__ . '/fixtures/AiConversationGroupsFake.php';
 
+// 仅注册容器与内存配置，不加载宿主环境或连接数据库。
+new \think\App(dirname(__DIR__));
+
 use app\common\ai\provider\AiProviderException;
 use app\console\ai\contract\AiConversationStore;
 use app\console\ai\contract\AiToolExecutor;
