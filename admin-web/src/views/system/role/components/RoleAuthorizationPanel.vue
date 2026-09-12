@@ -18,6 +18,13 @@
               <el-table-column prop="name" label="资源" min-width="180" />
               <el-table-column label="动作" min-width="520">
                 <template #default="{ row: resource }">
+                  <div class="resource-actions__header">
+                    <span class="resource-actions__hint">{{ resource.actions.length }} 项动作</span>
+                    <div class="resource-actions__tools">
+                      <el-button link type="primary" size="small" :disabled="!hasDirectActions(resource as PermissionResourceRow)" @click="toggleResourceActions(resource as PermissionResourceRow, true)">全选</el-button>
+                      <el-button link type="primary" size="small" :disabled="!hasDirectActions(resource as PermissionResourceRow)" @click="toggleResourceActions(resource as PermissionResourceRow, false)">反选</el-button>
+                    </div>
+                  </div>
                   <div class="flex flex-wrap gap-x-6 gap-y-2">
                     <el-tooltip v-for="action in resource.actions" :key="action.id" :content="inheritanceText(action.inheritedFrom)" :disabled="!action.inherited">
                       <el-checkbox :model-value="action.direct || action.inherited" :disabled="action.inherited" @change="setPermission(action, $event)">
@@ -53,7 +60,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { roleApi, type AuthorizationSource, type AuthorizationTreeNode, type FieldPermission, type PermissionAction, type RoleAuthorization } from '@/api/system/role';
+import { roleApi, type AuthorizationSource, type AuthorizationTreeNode, type FieldPermission, type PermissionAction, type PermissionResourceRow, type RoleAuthorization } from '@/api/system/role';
 import { normalizeFieldGrant, toggleFieldEdit, toggleFieldView } from '../roleAuthorization';
 
 const props = defineProps<{ roleId?: number; section: 'permissions' | 'fields' | 'data'; authorization: RoleAuthorization }>();
@@ -75,6 +82,10 @@ watch(() => [props.roleId, props.authorization.departmentIds] as const, async ()
   departmentTreeRef.value?.setCheckedKeys(props.authorization.departmentIds);
 }, { immediate: true });
 function setPermission(action: PermissionAction, checked: unknown) { if (!action.inherited) action.direct = Boolean(checked); }
+function hasDirectActions(resource: PermissionResourceRow): boolean { return resource.actions.some((action) => !action.inherited); }
+function toggleResourceActions(resource: PermissionResourceRow, selectAll: boolean): void {
+  resource.actions.forEach((action) => { if (!action.inherited) action.direct = selectAll; });
+}
 function setFieldView(field: FieldPermission, checked: unknown) { Object.assign(field, toggleFieldView(field, Boolean(checked))); }
 function setFieldEdit(field: FieldPermission, checked: unknown) { Object.assign(field, toggleFieldEdit(field, Boolean(checked))); }
 function inheritanceText(sources: AuthorizationSource[]) { return sources.length ? `继承自：${sources.map((source) => source.roleName).join('、')}` : ''; }
@@ -100,6 +111,9 @@ async function copyAuthorization() {
 .role-authorization-panel__toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); color: var(--el-text-color-secondary); }
 .role-authorization-panel__toolbar .el-select { width: 220px; }
 .role-authorization-panel__footer { display: flex; justify-content: flex-end; padding-top: 16px; }
+.resource-actions__header { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 8px; }
+.resource-actions__hint { color: var(--el-text-color-secondary); font-size: 12px; }
+.resource-actions__tools { display: flex; gap: 8px; }
 .data-scopes { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
 .field-code { margin-left: 6px; color: var(--el-text-color-secondary); font-size: 12px; }
 </style>
