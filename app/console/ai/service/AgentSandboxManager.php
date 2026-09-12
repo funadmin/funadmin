@@ -17,6 +17,7 @@ final class AgentSandboxManager
 {
     private const LABEL = 'com.funadmin.ai-agent=true';
     private const EXCLUDED_ROOTS = ['.git', 'runtime', 'node_modules', 'vendor', 'dist', 'build', '.cache', 'coverage'];
+    private const EXCLUDED_PATHS = ['admin-web/node_modules'];
     private const MAX_BUNDLE_FILES = 100000;
     private const MAX_BUNDLE_BYTES = 67108864;
     private const MAX_BUNDLE_FILE_BYTES = 16777216;
@@ -411,6 +412,8 @@ final class AgentSandboxManager
         $segments = explode('/', $normalized);
         $first = strtolower((string) ($segments[0] ?? ''));
         return in_array($first, self::EXCLUDED_ROOTS, true)
+            || in_array($normalized, self::EXCLUDED_PATHS, true)
+            || preg_match('#^admin-web/node_modules/#i', $normalized) === 1
             || preg_match('#(^|/)\.env(?:\.|$)#i', $normalized) === 1
             || preg_match('#(^|/)(?:id_rsa|id_ed25519|credentials(?:\.json)?|known_hosts)(?:$|/)#i', $normalized) === 1
             || preg_match('#(?:secret|private[_-]?key|\.pem$|\.key$)#i', $normalized) === 1;
