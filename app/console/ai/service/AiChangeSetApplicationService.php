@@ -93,14 +93,27 @@ final class AiChangeSetApplicationService
         ], $adminId, ['recovery_version' => $expectedVersion]) !== true) {
             throw new RuntimeException('ChangeSet recovery CAS 冲突', 409);
         }
-        $result = $operation();
-        $status = $this->outcomeStatus((string) ($result['state'] ?? ''));
-        $recoveryStatus = in_array($status, ['applied', 'failed'], true) ? 'recovered' : 'recovery_required';
-        $this->persistOutcome($changeSetId, ['applying'], $status, $result, $adminId, [
-            'recovery_status' => $recoveryStatus,
-        ], ['recovery_version' => $nextVersion]);
-        ($this->audit)('ai.change_set.recovered', $this->auditPayload($record, $changeSetId, $adminId, $result));
-        return $result;
+        try {
+            $result = $operation();
+            $status = $this->outcomeStatus((string) ($result['state'] ?? ''));
+            $recoveryStatus = in_array($status, ['applied', 'failed'], true) ? 'recovered' : 'recovery_required';
+            $this->persistOutcome($changeSetId, ['applying'], $status, $result, $adminId, [
+                'recovery_status' => $recoveryStatus,
+            ], ['recovery_version' => $nextVersion]);
+            ($this->audit)('ai.change_set.recovered', $this->auditPayload($record, $changeSetId, $adminId, $result));
+            return $result;
+        } catch (Throwable $exception) {
+            try {
+                $failure = ['error' => $exception->getMessage(), 'exception' => $exception::class];
+                $this->persistOutcome($changeSetId, ['applying'], 'recovery_required', $failure, $adminId, [
+                    'recovery_status' => 'recovery_required',
+                ], ['recovery_version' => $nextVersion]);
+                ($this->audit)('ai.change_set.recovery_failed', $this->auditPayload($record, $changeSetId, $adminId, $failure));
+            } catch (Throwable) {
+                // 持久化失败不得覆盖恢复操作的原异常，避免丢失不可证明状态的根因。
+            }
+            throw $exception;
+        }
     }
 
     private function ownedRecord(int $changeSetId, int $adminId): array

@@ -31,6 +31,9 @@ final class Metadata
             'scopes_supported' => ['openid', 'profile', 'email', 'phone', 'organization', 'roles', 'permissions', 'offline_access'],
             'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'none'],
             'code_challenge_methods_supported' => ['S256'],
+            'claims_supported' => ['sub', 'name', 'preferred_username', 'picture', 'locale', 'email', 'email_verified', 'phone_number', 'phone_number_verified', 'tenant', 'departments', 'organization', 'roles', 'permissions'],
+            'request_parameter_supported' => false,
+            'request_uri_parameter_supported' => false,
         ]);
     }
 

@@ -1198,9 +1198,10 @@ html.dark .el-checkbox-button .el-checkbox-button__inner {
   border-top: 1px solid var(--app-border);
   border-bottom: 1px solid var(--app-border);
 }
-.el-collapse-item__header {
+.el-collapse > .el-collapse-item > .el-collapse-item__header {
+  box-sizing: border-box;
   height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   font-size: 14px;
   font-weight: 500;
   color: var(--app-text);
@@ -1222,8 +1223,8 @@ html.dark .el-checkbox-button .el-checkbox-button__inner {
 .el-collapse-item:last-child .el-collapse-item__wrap {
   border-bottom: none;
 }
-.el-collapse-item__content {
-  padding: 14px;
+.el-collapse .el-collapse-item__content {
+  padding: 16px;
   font-size: 13px;
   color: var(--app-text);
 }

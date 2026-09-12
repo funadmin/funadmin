@@ -115,6 +115,7 @@ try {
     identityMysqlExpect((int) $memberUser->password_version === 1, 'identity 必须初始化密码版本');
     identityMysqlExpect((int) $memberUser->session_version === 1, 'identity 必须初始化会话版本');
     identityMysqlExpect(IdentityUserDepartment::forTenant(1)->where('user_id', (int) $adminUser->id)->where('department_id', 1)->count() === 1, '管理员部门未回填');
+
     $legacyLogin = (new MemberAuthService())->authenticate('same-user', 'MemberPass!1');
     identityMysqlExpect(($legacyLogin['id'] ?? 0) === $memberId, '会员旧登录行为必须保持可用');
 

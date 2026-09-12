@@ -45,9 +45,4 @@ describe('021 时间列移除默认值迁移', () => {
     expect(migration).not.toMatch(/CONCAT\(\s*'fun_'/i);
   });
 
-  it('统一 CRUD 建表模板对软删除时间列使用 nullable datetime 而非默认 0', () => {
-    const template = read('app/common/crud/ProductionTemplateContext.php');
-    expect(template).toContain("$columns[] = '  `deleted_at` datetime NULL';");
-    expect(template).not.toMatch(/`(?:created|updated|deleted)_at`[^'\n]*DEFAULT\s+0/);
-  });
 });

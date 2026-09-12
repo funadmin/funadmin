@@ -296,6 +296,30 @@ phase4Expect(($multiWal['schema_version'] ?? 0) === 1 && ($multiWal['version'] ?
 phase4Expect(in_array('prepared', (array) ($multiWal['history'] ?? []), true) && in_array('staged', (array) ($multiWal['history'] ?? []), true) && in_array('writing', (array) ($multiWal['history'] ?? []), true), '验证失败前必须持久化 prepared/staged/writing checkpoint');
 phase4Expect(($multiWal['state'] ?? '') === 'rolled_back' && file_get_contents($root . '/src/A.php') === "first-before\n" && file_get_contents($root . '/src/B.php') === "second-before\n", '多文件失败必须完整逆序回滚');
 
+file_put_contents($root . '/src/A.php', "application-before\n");
+$applicationRecoveryPlan = ['blocked'=>false,'files'=>[['path'=>'src/A.php','status'=>'update','localHash'=>hash('sha256', "application-before\n"),'baseHash'=>null,'remoteHash'=>hash('sha256', "application-after\n"),'mergedHash'=>hash('sha256', "application-after\n"),'contentKind'=>'text','content'=>"application-after\n"]]];
+$applicationInterrupted = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_file_rename') throw new \app\console\ai\exception\AiChangeSetInterruptionException('application recovery 中断'); });
+$applicationWalBefore = glob($private . '/wal/*.json') ?: [];
+phase4Reject(fn () => $applicationInterrupted->execute(104, 7, 21, 31, $applicationRecoveryPlan, $approval), 'application recovery 中断');
+$applicationWalPath = array_values(array_diff(glob($private . '/wal/*.json') ?: [], $applicationWalBefore))[0];
+$applicationWal = json_decode((string)file_get_contents($applicationWalPath), true, 512, JSON_THROW_ON_ERROR);
+$applicationTransactionId = (string) $applicationWal['transaction_id'];
+$applicationRows[13] = ['id'=>13,'created_by'=>7,'conversation_id'=>21,'task_id'=>31,'status'=>'recovery_required','recovery_status'=>'recovery_required','recovery_version'=>0,'transaction_id'=>$applicationTransactionId];
+file_put_contents($root . '/src/A.php', "fourth-state\n");
+$recoveryException = null;
+try {
+    $application->recover(13, 7, 0, fn (): array => $applicationInterrupted->recover($applicationTransactionId));
+} catch (Throwable $exception) {
+    $recoveryException = $exception;
+}
+$applicationWalAfter = json_decode((string)file_get_contents($applicationWalPath), true, 512, JSON_THROW_ON_ERROR);
+phase4Expect($recoveryException instanceof RuntimeException && $recoveryException->getMessage() === '无法证明文件状态，事务需要人工恢复', 'application recovery 必须保留事务层原异常');
+phase4Expect(($applicationWalAfter['state'] ?? '') === 'recovery_required', '不可证明文件状态时 WAL 必须收敛 recovery_required');
+phase4Expect(($applicationRows[13]['status'] ?? '') === 'recovery_required' && ($applicationRows[13]['recovery_status'] ?? '') === 'recovery_required' && ($applicationRows[13]['recovery_version'] ?? 0) === 1, '不可证明文件状态时 ChangeSet 必须按 recovery version CAS 收敛 recovery_required');
+phase4Expect(file_get_contents($root . '/src/A.php') === "fourth-state\n", '不可证明文件状态时不得猜测覆盖第四种 Local 内容');
+$recoveryFailureAudit = array_values(array_filter($applicationAudits, static fn (array $audit): bool => ($audit[0] ?? '') === 'ai.change_set.recovery_failed' && ($audit[1]['change_set_id'] ?? 0) === 13));
+phase4Expect(count($recoveryFailureAudit) === 1 && ($recoveryFailureAudit[0][1]['error'] ?? '') === $recoveryException->getMessage(), 'application recovery 失败事件必须持久化原异常');
+
 file_put_contents($root . '/src/A.php', "unprovable\n");
 $unprovable = $interrupted->recover((string)$interruptWal['transaction_id']);
 phase4Expect(($unprovable['state'] ?? '') === 'rolled_back', '已完成恢复必须幂等且不得覆盖后续 Local');

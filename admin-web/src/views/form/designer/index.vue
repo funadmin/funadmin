@@ -293,7 +293,7 @@ import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
 import { businessDevelopmentApi, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
-import { controlIcon } from './controlPalette';
+import { controlIcon, paletteContainers } from './controlPalette';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
@@ -348,13 +348,14 @@ const publishConfig = ref<FormPublishConfig>({
 });
 const paletteRef = ref<HTMLElement>();
 const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
-watch(() => store.fields.value, (fields) => {
-  for (const field of fields) if (!(field.field_name in previewValues)) previewValues[field.field_name] = field.default_value;
-  for (const key of Object.keys(previewValues)) if (!fields.some((field) => field.field_name === key)) delete previewValues[key];
-}, { deep: true });
+watch(() => store.fields.value.map((field) => [field.field_name, field.default_value] as const), (fields) => {
+  const fieldNames = new Set(fields.map(([name]) => name));
+  for (const [name, defaultValue] of fields) if (!(name in previewValues)) previewValues[name] = defaultValue;
+  for (const key of Object.keys(previewValues)) if (!fieldNames.has(key)) delete previewValues[key];
+});
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
-let paletteSortable: Sortable | null = null;
+let paletteSortables: Sortable[] = [];
 const permissionEntries = (nodes: PermissionModel[]): Array<{ label: string; value: string }> => nodes.flatMap((node) => [
   ...(node.status === 1 && node.resourceType === 'route' && node.code ? [{ label: node.name || node.code, value: node.code }] : []),
   ...permissionEntries(node.children ?? [])
@@ -367,22 +368,31 @@ const loadPermissionOptions = async () => {
   }
 };
 const initializePalette = () => {
-  paletteSortable?.destroy();
+  paletteSortables.forEach((sortable) => sortable.destroy());
+  paletteSortables = [];
   if (!paletteRef.value) return;
-  paletteSortable = Sortable.create(paletteRef.value, {
+  paletteSortables = paletteContainers(paletteRef.value).map((container) => Sortable.create(container, {
     group: { name: 'form-designer', pull: 'clone', put: false },
     draggable: '.palette-item',
     sort: false,
     animation: 150
-  });
+  }));
 };
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let localDraftTimer: ReturnType<typeof setTimeout> | null = null;
 let saveRevision = 0;
 let saveQueued = false;
 const localDraftKey = computed(() => `form-designer-draft:${String(store.form.value.id ?? store.form.value.form_key ?? 'new')}`);
 const persistLocalDraft = () => {
   if (typeof localStorage === 'undefined') return;
   localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now() }));
+};
+const scheduleLocalDraft = () => {
+  if (localDraftTimer) clearTimeout(localDraftTimer);
+  localDraftTimer = setTimeout(() => {
+    localDraftTimer = null;
+    persistLocalDraft();
+  }, 500);
 };
 const clearLocalDraft = () => { if (typeof localStorage !== 'undefined') localStorage.removeItem(localDraftKey.value); };
 const restoreLocalDraft = () => {
@@ -562,9 +572,9 @@ async function onSave() {
     store.failSave();
     ElMessage.error(t('formDesigner.saveError', '保存失败，请重试'));
   } finally {
-    if (saveQueued || store.dirty.value) {
+    if (saveQueued && online.value) {
       saveQueued = false;
-      if (online.value) queueMicrotask(() => void onSave());
+      autoSaveTimer = setTimeout(() => void onSave(), 500);
     }
   }
 }
@@ -729,7 +739,7 @@ onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚�
 
 watch([() => store.form.value, () => store.nodes.value], () => {
   if (!store.dirty.value) return;
-  persistLocalDraft();
+  scheduleLocalDraft();
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => { if (online.value && store.dirty.value) void onSave(); }, 1200);
 }, { deep: true });
@@ -749,7 +759,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('online', onOnline);
   window.removeEventListener('offline', onOffline);
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  paletteSortable?.destroy();
+  if (localDraftTimer) clearTimeout(localDraftTimer);
+  paletteSortables.forEach((sortable) => sortable.destroy());
 });
 </script>
 

@@ -56,15 +56,20 @@ try {
     aiPhase2ContractExpect($exception->category() === 'not_configured', '未配置工具执行器必须返回明确 not_configured 分类');
 }
 
-if (!extension_loaded('pdo_mysql')) {
-    echo "AI phase 2 MySQL integration: SKIP (pdo_mysql unavailable)\n";
-} elseif (!getenv('AI_PHASE2_DB_HOST')) {
-    echo "AI phase 2 MySQL integration: SKIP (AI_PHASE2_DB_HOST not configured)\n";
+$host = getenv('AI_TEST_DB_HOST') ?: getenv('AI_PHASE2_DB_HOST');
+if ($host === false || $host === '') {
+    echo "AI phase 2 MySQL integration: SKIP (AI_TEST_DB_HOST not configured)\n";
 } else {
-    $host = (string) getenv('AI_PHASE2_DB_HOST');
-    $port = (string) (getenv('AI_PHASE2_DB_PORT') ?: '3306');
-    $user = (string) (getenv('AI_PHASE2_DB_USER') ?: 'root');
-    $pass = (string) (getenv('AI_PHASE2_DB_PASS') ?: '');
+    if (!extension_loaded('pdo_mysql')) {
+        throw new RuntimeException('AI phase 2 MySQL integration: FAIL (pdo_mysql unavailable)');
+    }
+    set_exception_handler(static function (Throwable $exception): never {
+        fwrite(STDERR, "AI phase 2 MySQL integration: FAIL ({$exception->getMessage()})\n");
+        exit(1);
+    });
+    $port = (string) (getenv('AI_TEST_DB_PORT') ?: getenv('AI_PHASE2_DB_PORT') ?: '3306');
+    $user = (string) (getenv('AI_TEST_DB_USER') ?: getenv('AI_PHASE2_DB_USER') ?: 'root');
+    $pass = (string) (getenv('AI_TEST_DB_PASS') ?: getenv('AI_PHASE2_DB_PASS') ?: '');
     $databaseName = 'funadmin_ai_phase2_' . bin2hex(random_bytes(5));
     $server = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     try {

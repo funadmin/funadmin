@@ -52,6 +52,22 @@ function m5RemoveTree(string $path): void
     rmdir($path);
 }
 
+/**
+ * 当前生成器面向带 array 类型的 Validate 基类；本仓库锁定的 think-validate 仍是无类型属性。
+ * 仅在运行时 fixture 中移除子类属性类型，保留生成规则和所有真实控制器验证行为。
+ */
+function m5PrepareValidatorFixture(string $path): void
+{
+    $parentRule = new ReflectionProperty(think\Validate::class, 'rule');
+    if ($parentRule->hasType()) {
+        return;
+    }
+    $source = (string) file_get_contents($path);
+    $output = preg_replace('/protected\\s+array\\s+\\$rule\\s*=/', 'protected $rule =', $source, 1, $count);
+    m5Expect($count === 1 && is_string($output), 'Validate 兼容 fixture 必须识别生成的 typed rule 属性');
+    file_put_contents($path, $output);
+}
+
 $projectRoot = dirname(__DIR__, 2);
 $fixtureRoot = sys_get_temp_dir() . '/funadmin-m5-fixture-' . bin2hex(random_bytes(5));
 $databaseName = 'funadmin_m5_test_' . bin2hex(random_bytes(5));
@@ -208,12 +224,13 @@ try {
     $app->config->set($databaseConfig, 'database');
     Db::connect('mysql')->execute('CREATE TABLE fun_department (id bigint unsigned NOT NULL AUTO_INCREMENT, name varchar(80) NOT NULL, status tinyint NOT NULL DEFAULT 1, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id)) ENGINE=InnoDB');
     Db::connect('mysql')->execute('CREATE TABLE fun_admin (id bigint unsigned NOT NULL AUTO_INCREMENT, username varchar(80) NOT NULL, dept_id bigint unsigned NOT NULL, status tinyint NOT NULL DEFAULT 1, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id)) ENGINE=InnoDB');
+    Db::connect('mysql')->execute('CREATE TABLE fun_admin_department (admin_id bigint unsigned NOT NULL, dept_id bigint unsigned NOT NULL, PRIMARY KEY(admin_id, dept_id)) ENGINE=InnoDB');
     Db::connect('mysql')->execute('CREATE TABLE fun_auth_group (id bigint unsigned NOT NULL AUTO_INCREMENT, pid bigint unsigned NOT NULL DEFAULT 0, data_scope varchar(30) NOT NULL, status tinyint NOT NULL DEFAULT 1, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id)) ENGINE=InnoDB');
     Db::connect('mysql')->execute('CREATE TABLE fun_casbin_rule (id bigint unsigned NOT NULL AUTO_INCREMENT, ptype varchar(10) NOT NULL, v0 varchar(190) NOT NULL DEFAULT \'\', v1 varchar(190) NOT NULL DEFAULT \'\', v2 varchar(190) NOT NULL DEFAULT \'\', v3 varchar(190) NOT NULL DEFAULT \'\', v4 varchar(190) NOT NULL DEFAULT \'\', v5 varchar(190) NOT NULL DEFAULT \'\', rule_hash char(64) NOT NULL, PRIMARY KEY(id), UNIQUE KEY uk_rule_hash(rule_hash)) ENGINE=InnoDB');
     Db::connect('mysql')->execute('CREATE TABLE fun_dict_type (id bigint unsigned NOT NULL AUTO_INCREMENT, code varchar(60) NOT NULL, name varchar(80) NOT NULL, status tinyint NOT NULL, sort_order int NOT NULL DEFAULT 0, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id), UNIQUE KEY uk_code(code)) ENGINE=InnoDB');
     Db::connect('mysql')->execute('CREATE TABLE fun_dict_item (id bigint unsigned NOT NULL AUTO_INCREMENT, type_id bigint unsigned NOT NULL, label varchar(80) NOT NULL, value varchar(80) NOT NULL, status tinyint NOT NULL, sort_order int NOT NULL DEFAULT 0, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id)) ENGINE=InnoDB');
-    Db::connect('mysql')->execute('CREATE TABLE fun_admin_menu (id bigint unsigned NOT NULL AUTO_INCREMENT, pid bigint unsigned NOT NULL DEFAULT 0, permission_id bigint unsigned NOT NULL DEFAULT 0, app_name varchar(50) NOT NULL DEFAULT \'console\', name varchar(100) NOT NULL, href varchar(255) NOT NULL, query varchar(250) NOT NULL, target varchar(20) NOT NULL, icon varchar(100) NOT NULL, status tinyint NOT NULL, sort_order int NOT NULL, source_type varchar(20) NOT NULL, source_name varchar(100) NOT NULL, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id), UNIQUE KEY uk_menu_location(app_name,href,query)) ENGINE=InnoDB');
-    Db::connect('mysql')->execute('CREATE TABLE fun_permission (id bigint unsigned NOT NULL AUTO_INCREMENT, pid bigint unsigned NOT NULL DEFAULT 0, app_name varchar(50) NOT NULL DEFAULT \'console\', code varchar(255) NULL, obj varchar(190) NOT NULL, act varchar(100) NOT NULL, name varchar(100) NOT NULL, resource_type varchar(20) NOT NULL, status tinyint NOT NULL, is_public tinyint NOT NULL, sort_order int NOT NULL, source_type varchar(20) NOT NULL, source_name varchar(100) NOT NULL, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id), UNIQUE KEY uk_permission_code(code)) ENGINE=InnoDB');
+    Db::connect('mysql')->execute('CREATE TABLE fun_admin_menu (id bigint unsigned NOT NULL AUTO_INCREMENT, pid bigint unsigned NOT NULL DEFAULT 0, permission_id bigint unsigned NOT NULL DEFAULT 0, app_name varchar(50) NOT NULL DEFAULT \'console\', name varchar(100) NOT NULL, href varchar(255) NOT NULL, query varchar(250) NOT NULL, target varchar(20) NOT NULL, icon varchar(100) NOT NULL, status tinyint NOT NULL, sort int NOT NULL DEFAULT 0, sort_order int NOT NULL, source_type varchar(20) NOT NULL, source_name varchar(100) NOT NULL, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id), UNIQUE KEY uk_menu_location(app_name,href,query)) ENGINE=InnoDB');
+    Db::connect('mysql')->execute('CREATE TABLE fun_permission (id bigint unsigned NOT NULL AUTO_INCREMENT, pid bigint unsigned NOT NULL DEFAULT 0, app_name varchar(50) NOT NULL DEFAULT \'console\', code varchar(255) NULL, obj varchar(190) NOT NULL, act varchar(100) NOT NULL, name varchar(100) NOT NULL, resource_type varchar(20) NOT NULL, status tinyint NOT NULL, is_public tinyint NOT NULL, sort int NOT NULL DEFAULT 0, sort_order int NOT NULL, source_type varchar(20) NOT NULL, source_name varchar(100) NOT NULL, created_at datetime NULL, updated_at datetime NULL, deleted_at datetime NULL, PRIMARY KEY(id), UNIQUE KEY uk_permission_code(code)) ENGINE=InnoDB');
 
     $migrationService = new MigrationService();
     $statements = new ReflectionMethod($migrationService, 'statements');
@@ -235,6 +252,12 @@ try {
     $dictTypeId = Db::name('dict_type')->insertGetId(['code' => 'm5_category', 'name' => '分类', 'status' => 1]);
     Db::name('dict_item')->insert(['type_id' => $dictTypeId, 'label' => '甲类', 'value' => 'a', 'status' => 1, 'sort_order' => 10]);
 
+    foreach (['M5RecordValidate.php', 'M5UuidRecordValidate.php', 'M5WithoutStatusValidate.php'] as $validatorFixture) {
+        m5PrepareValidatorFixture($fixtureRoot . '/app/console/validate/' . $validatorFixture);
+    }
+    if (!class_exists('app\\console\\service\\DataScopeService')) {
+        class_alias(\app\console\authorization\service\DataScopeService::class, 'app\\console\\service\\DataScopeService');
+    }
     foreach (['model/M5Record.php', 'validate/M5RecordValidate.php', 'service/M5RecordService.php', 'controller/generated/M5RecordController.php', 'model/M5UuidRecord.php', 'validate/M5UuidRecordValidate.php', 'service/M5UuidRecordService.php', 'controller/generated/M5UuidRecordController.php', 'model/M5WithoutStatus.php', 'validate/M5WithoutStatusValidate.php', 'service/M5WithoutStatusService.php', 'controller/generated/M5WithoutStatusController.php'] as $file) {
         require_once $fixtureRoot . '/app/console/' . $file;
     }

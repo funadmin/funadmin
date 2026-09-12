@@ -6,6 +6,7 @@ use RuntimeException;
 use app\console\authorization\model\AdminMenu;
 use app\console\authorization\model\CasbinRule;
 use app\console\authorization\model\Permission;
+use app\console\authorization\service\CasbinService;
 use app\common\service\AbstractService;
 use think\facade\Db;
 

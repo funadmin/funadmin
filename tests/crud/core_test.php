@@ -121,6 +121,12 @@ try {
     crudExpect($definition->fields()[0]['name'] === 'id', 'Definition 必须保留字段');
     $generatedContext = \app\common\crud\ProductionTemplateContext::build($definition);
     $generatedView = (string) ($generatedContext['viewContent'] ?? '');
+    $generatedMigration = (string) ($generatedContext['migrationContent'] ?? '');
+    $generatedPermissionMigration = (string) ($generatedContext['permissionMigrationContent'] ?? '');
+    crudExpect(str_contains($generatedMigration, '`deleted_at` datetime NULL'), '软删除建表制品必须生成 nullable datetime');
+    crudExpect(preg_match('/`(?:created|updated|deleted)_at`[^\'\n]*DEFAULT\s+0/', $generatedMigration) !== 1, '生成时间列不得使用 DEFAULT 0');
+    crudExpect(str_contains($generatedPermissionMigration, 'component=generated/audit-log/index'), '生成菜单必须指向独立 generated 源码');
+    crudExpect(str_contains($generatedPermissionMigration, 'permission=system:audit-log:list'), '生成菜单必须声明真实页面访问权限');
     crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: Record<string, unknown>[])'), 'audit-log index.vue selection 回调必须使用结构化通用行类型');
     crudExpect(str_contains($generatedView, 'onSelectionChange(rows as unknown as AuditLogModel[])'), 'selection 回调必须在 useCrud 边界安全转换为生成模型类型');
     crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');

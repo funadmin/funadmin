@@ -221,6 +221,10 @@ final class AgentSandboxManager
                     $this->checkedUnlessMissing(['docker', 'rm', '-f', $containerId], 30, '回滚 Docker sandbox 失败');
                 }
             }
+        } catch (\Throwable) {
+            // 容器回滚失败不应阻断 volume 的独立归属校验；标签无法证明归属时仍 fail-closed。
+        }
+        try {
             $this->assertVolumeLabels($volume, $taskId, $sessionId);
             $this->checkedUnlessMissing(['docker', 'volume', 'rm', $volume], 30, '回滚 sandbox volume 失败');
         } catch (\Throwable) {

@@ -209,16 +209,21 @@ aiPhase1Expect($engine->decideModeTransition('invalid', 'full_access') === 'deny
 aiPhase1Expect($engine->pendingApprovalMode('request_approval', 'full_access') === 'request_approval', '已有 pending approval 必须保持创建时模式快照');
 
 $dbSkipped = true;
-if (!extension_loaded('pdo_mysql')) {
-    echo "AI development phase 1 MySQL integration: SKIP (pdo_mysql unavailable)\n";
-} elseif (!getenv('AI_PHASE1_DB_HOST')) {
-    echo "AI development phase 1 MySQL integration: SKIP (AI_PHASE1_DB_HOST not configured)\n";
+$host = getenv('AI_TEST_DB_HOST') ?: getenv('AI_PHASE1_DB_HOST');
+if ($host === false || $host === '') {
+    echo "AI development phase 1 MySQL integration: SKIP (AI_TEST_DB_HOST not configured)\n";
 } else {
     $dbSkipped = false;
-    $host = (string) getenv('AI_PHASE1_DB_HOST');
-    $port = (string) (getenv('AI_PHASE1_DB_PORT') ?: '3306');
-    $user = (string) (getenv('AI_PHASE1_DB_USER') ?: 'root');
-    $pass = (string) (getenv('AI_PHASE1_DB_PASS') ?: '');
+    if (!extension_loaded('pdo_mysql')) {
+        throw new RuntimeException('AI development phase 1 MySQL integration: FAIL (pdo_mysql unavailable)');
+    }
+    set_exception_handler(static function (Throwable $exception): never {
+        fwrite(STDERR, "AI development phase 1 MySQL integration: FAIL ({$exception->getMessage()})\n");
+        exit(1);
+    });
+    $port = (string) (getenv('AI_TEST_DB_PORT') ?: getenv('AI_PHASE1_DB_PORT') ?: '3306');
+    $user = (string) (getenv('AI_TEST_DB_USER') ?: getenv('AI_PHASE1_DB_USER') ?: 'root');
+    $pass = (string) (getenv('AI_TEST_DB_PASS') ?: getenv('AI_PHASE1_DB_PASS') ?: '');
     $databaseName = 'funadmin_ai_phase1_' . bin2hex(random_bytes(5));
     $server = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     try {
@@ -254,5 +259,5 @@ if (!extension_loaded('pdo_mysql')) {
     }
 }
 
-aiPhase1Expect($dbSkipped || getenv('AI_PHASE1_DB_HOST') !== false, '数据库测试状态必须明确');
+aiPhase1Expect($dbSkipped || $host !== false, '数据库测试状态必须明确');
 echo "AI development phase 1 contract tests: PASS\n";

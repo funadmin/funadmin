@@ -44,7 +44,7 @@
     <template v-else>
       <div v-if="collapsed" class="collapsed-summary">已折叠 {{ descendantCount }} 个后代节点，仍可拖入此容器</div>
       <DesignerCanvas
-        :nodes="collapsed ? [] : node.children"
+        :nodes="collapsed ? EMPTY_NODES : node.children"
         :store="store"
         :parent-id="node.id"
         :depth="depth + 1"
@@ -63,6 +63,8 @@ import FormControlRenderer from '../../components/FormControlRenderer.vue';
 import DesignerCanvas from './DesignerCanvas.vue';
 
 defineOptions({ name: 'DesignerCanvasNode' });
+
+const EMPTY_NODES: FormSchemaNode[] = [];
 
 const props = defineProps<{
   node: FormSchemaNode;

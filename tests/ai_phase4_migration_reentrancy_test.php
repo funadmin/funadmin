@@ -77,14 +77,27 @@ function phase4MigrationAssertCanonical(string $scenario): void
 }
 
 $root = dirname(__DIR__);
+$host = getenv('AI_TEST_DB_HOST') ?: getenv('AI_PHASE4_DB_HOST');
+if ($host === false || $host === '') {
+    echo "AI phase 4 MySQL integration: SKIP (AI_TEST_DB_HOST not configured)\n";
+    return;
+}
+
 $app = new App($root);
 $app->initialize();
+set_exception_handler(static function (Throwable $exception): never {
+    fwrite(STDERR, "AI phase 4 MySQL integration: FAIL ({$exception->getMessage()})\n");
+    exit(1);
+});
+if (!extension_loaded('pdo_mysql')) {
+    throw new RuntimeException('AI phase 4 MySQL integration: FAIL (pdo_mysql unavailable)');
+}
 $original = (array) config('database');
 $mysql = $original['connections']['mysql'];
-$mysql['hostname'] = (string) (getenv('AI_PHASE4_DB_HOST') ?: $mysql['hostname']);
-$mysql['hostport'] = (string) (getenv('AI_PHASE4_DB_PORT') ?: $mysql['hostport']);
-$mysql['username'] = (string) (getenv('AI_PHASE4_DB_USER') ?: $mysql['username']);
-$mysql['password'] = (string) (getenv('AI_PHASE4_DB_PASS') ?: $mysql['password']);
+$mysql['hostname'] = $host;
+$mysql['hostport'] = (string) (getenv('AI_TEST_DB_PORT') ?: getenv('AI_PHASE4_DB_PORT') ?: '3306');
+$mysql['username'] = (string) (getenv('AI_TEST_DB_USER') ?: getenv('AI_PHASE4_DB_USER') ?: 'root');
+$mysql['password'] = (string) (getenv('AI_TEST_DB_PASS') ?: getenv('AI_PHASE4_DB_PASS') ?: '');
 $serverConfig = $original;
 $serverConfig['connections']['mysql'] = $mysql;
 $serverConfig['connections']['mysql']['database'] = '';

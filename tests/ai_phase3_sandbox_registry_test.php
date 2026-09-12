@@ -22,12 +22,23 @@ final class FakeDockerRunner implements DockerProcessRunner
     /** @var list<array{argv: array, timeout: int}> */
     public array $calls = [];
     public bool $available = true;
+    public bool $failInitialization = false;
+    public ?string $rollbackContainerFailure = null;
 
     public function run(array $argv, int $timeoutSeconds): ProcessResult
     {
         $this->calls[] = ['argv' => $argv, 'timeout' => $timeoutSeconds];
         if (!$this->available) {
             throw new RuntimeException('docker unavailable');
+        }
+        if ($this->failInitialization && ($argv[1] ?? '') === 'cp' && !str_contains((string) ($argv[2] ?? ''), ':/workspace/.')) {
+            return new ProcessResult(1, '', 'cp failed');
+        }
+        if ($this->rollbackContainerFailure === 'inspect' && ($argv[1] ?? '') === 'inspect') {
+            return new ProcessResult(1, '', 'inspect failed');
+        }
+        if ($this->rollbackContainerFailure === 'rm' && ($argv[1] ?? '') === 'rm') {
+            return new ProcessResult(1, '', 'rm failed');
         }
         if (($argv[1] ?? '') === 'create') {
             return new ProcessResult(0, "container-id\n", '');
@@ -174,6 +185,25 @@ $concurrentTask = [['id'=>101,'conversation_id'=>77,'status'=>'failed','sandbox_
 $firstClaimedCleanup = $manager->cleanupOrphans($concurrentTask, 86400, 300, static function (): void {}, null, strtotime('2020-01-03'), $claim, 'worker-a');
 $secondClaimedCleanup = $manager->cleanupOrphans($concurrentTask, 86400, 300, static function (): void {}, null, strtotime('2020-01-03'), $claim, 'worker-b');
 phase3SandboxExpect($firstClaimedCleanup === 1 && $secondClaimedCleanup === 0, '并发 cleanup 只有 CAS claim 成功方可执行，第二方必须跳过');
+
+foreach (['inspect', 'rm'] as $rollbackContainerFailure) {
+    $rollbackRunner = new FakeDockerRunner();
+    $rollbackRunner->failInitialization = true;
+    $rollbackRunner->rollbackContainerFailure = $rollbackContainerFailure;
+    try {
+        (new AgentSandboxManager($rollbackRunner, $root, $private, [
+            'image' => 'funadmin/ai-agent@sha256:' . str_repeat('a', 64),
+        ]))->create(101, 77);
+        throw new RuntimeException('docker cp 初始化失败未抛出');
+    } catch (RuntimeException) {
+    }
+    $rollbackCalls = array_column($rollbackRunner->calls, 'argv');
+    phase3SandboxExpect(
+        count(array_filter($rollbackCalls, static fn (array $argv): bool => ($argv[1] ?? '') === 'volume' && ($argv[2] ?? '') === 'rm')) === 1,
+        "容器 {$rollbackContainerFailure} 回滚失败时仍必须独立校验并删除标签匹配的 volume"
+    );
+}
+
 $outside = sys_get_temp_dir() . '/outside-' . bin2hex(random_bytes(3)); mkdir($outside); $blocked = false;
 try { $manager->cleanup('', $outside, 101, 77); } catch (RuntimeException) { $blocked = true; }
 phase3SandboxExpect($blocked && is_dir($outside), 'deleteTree 必须拒绝 sandbox root 外 canonical path'); rmdir($outside);

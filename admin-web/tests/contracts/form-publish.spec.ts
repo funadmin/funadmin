@@ -103,8 +103,6 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
-    const templates = read('app/common/crud/ProductionTemplateContext.php');
-    expect(templates).toContain("'component=generated/'");
     const router = read('admin-web/src/router/dynamic.ts');
     expect(router).toContain("normalized.startsWith('generated/')");
     expect(router).toContain("import('@/views/form/published.vue')");

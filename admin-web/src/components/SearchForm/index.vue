@@ -75,7 +75,7 @@ function onReset() {
 <style scoped>
 .search-form__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 360px));
   gap: 12px 20px;
   align-items: center;
   width: 100%;
@@ -98,11 +98,11 @@ function onReset() {
 }
 
 .search-form__actions {
-  justify-self: end;
+  justify-self: start;
 }
 
 .search-form__actions :deep(.el-form-item__content) {
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: nowrap;
 }
 
