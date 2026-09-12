@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace plugins\shop;
 
-use fun\Plugins;
+use app\common\plugin\sdk\Plugin as BasePlugin;
 
-final class Plugin extends Plugins
+final class Plugin extends BasePlugin
 {
     public function install(): bool { return true; }
     public function uninstall(): bool { return true; }

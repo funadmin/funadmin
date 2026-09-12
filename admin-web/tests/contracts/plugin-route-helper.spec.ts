@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), '..', p), 'utf8');
 
-const helper = read('extend/fun/plugins/PluginRoute.php');
+const helper = read('app/common/plugin/sdk/PluginRoute.php');
 const fixtureManifest = read('tests/fixtures/plugins/example/plugin.json');
 
 describe('插件路由鉴权约定 helper 契约', () => {

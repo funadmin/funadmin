@@ -7,7 +7,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\common\form\registry\FieldCapabilityRegistry;
 use app\common\form\registry\FormRegistryFactory;
 use app\common\form\schema\FormSchemaValidator;
-use app\console\service\FormCrudDefinitionFactory;
+use app\console\development\service\FormCrudDefinitionFactory;
 
 function fieldCapabilityExpect(bool $condition, string $message): void
 {

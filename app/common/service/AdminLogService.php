@@ -12,9 +12,9 @@
  */
 namespace app\common\service;
 
-use app\console\model\AdminLog;
-use app\console\model\Permission;
-use app\console\service\PermissionResource;
+use app\console\authentication\model\AdminLog;
+use app\console\authorization\model\Permission;
+use app\console\authorization\service\PermissionResource;
 use think\facade\Session;
 use think\Request;
 use think\Response;
@@ -85,7 +85,7 @@ class AdminLogService extends AbstractService
 
     private function sanitize(array $data): array
     {
-        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', '__token__'];
+        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', 'api_key', 'apikey', '__token__'];
         foreach ($data as $key => $value) {
             if (in_array(strtolower((string) $key), $sensitive, true)) {
                 $data[$key] = '[REDACTED]';

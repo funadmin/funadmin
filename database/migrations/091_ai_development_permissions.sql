@@ -12,15 +12,15 @@ INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,
 (@ai_group_id,'console','development:ai:apply','development/ai','apply',CONVERT(X'E5BA94E794A8E58F98E69BB4' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),150,NULL),
 (@ai_group_id,'console','development:ai:configure','development/ai','configure',CONVERT(X'E9858DE7BDAE' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),160,NULL),
 (@ai_group_id,'console','development:ai:audit','development/ai','audit',CONVERT(X'E5AEA1E8AEA1' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),170,NULL),
-(@ai_group_id,'console','console/development.ai:conversationIndex','console/development.ai','conversationIndex',CONVERT(X'E4BC9AE8AF9DE58897E8A1A8' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),10,NULL),
-(@ai_group_id,'console','console/development.ai:messageCreate','console/development.ai','messageCreate',CONVERT(X'E58F91E98081E6B688E681AF' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),20,NULL),
-(@ai_group_id,'console','console/development.ai:taskExecute','console/development.ai','taskExecute',CONVERT(X'E689A7E8A18CE4BBBBE58AA1' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),30,NULL),
-(@ai_group_id,'console','console/development.ai:approvalDecide','console/development.ai','approvalDecide',CONVERT(X'E586B3E7AD96E5AEA1E689B9' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),40,NULL),
-(@ai_group_id,'console','console/development.ai:changeSetApply','console/development.ai','changeSetApply',CONVERT(X'E5BA94E794A8E58F98E69BB4E99B86' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),50,NULL),
-(@ai_group_id,'console','console/development.ai:configurationUpdate','console/development.ai','configurationUpdate',CONVERT(X'E69BB4E696B0E9858DE7BDAE' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),60,NULL),
-(@ai_group_id,'console','console/development.ai:auditIndex','console/development.ai','auditIndex',CONVERT(X'E69FA5E79C8BE5AEA1E8AEA1' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),70,NULL);
+(@ai_group_id,'console','console/development.ai:conversationindex','console/development.ai','conversationindex',CONVERT(X'E4BC9AE8AF9DE58897E8A1A8' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),10,NULL),
+(@ai_group_id,'console','console/development.ai:messagecreate','console/development.ai','messagecreate',CONVERT(X'E58F91E98081E6B688E681AF' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),20,NULL),
+(@ai_group_id,'console','console/development.ai:taskexecute','console/development.ai','taskexecute',CONVERT(X'E689A7E8A18CE4BBBBE58AA1' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),30,NULL),
+(@ai_group_id,'console','console/development.ai:approvaldecide','console/development.ai','approvaldecide',CONVERT(X'E586B3E7AD96E5AEA1E689B9' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),40,NULL),
+(@ai_group_id,'console','console/development.ai:changesetapply','console/development.ai','changesetapply',CONVERT(X'E5BA94E794A8E58F98E69BB4E99B86' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),50,NULL),
+(@ai_group_id,'console','console/development.ai:configurationupdate','console/development.ai','configurationupdate',CONVERT(X'E69BB4E696B0E9858DE7BDAE' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),60,NULL),
+(@ai_group_id,'console','console/development.ai:auditindex','console/development.ai','auditindex',CONVERT(X'E69FA5E79C8BE5AEA1E8AEA1' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),70,NULL);
 SET @development_menu_id=(SELECT `id` FROM `fun_admin_menu` WHERE `source_type`='admin_web' AND `source_name`='development_tools' ORDER BY `id` LIMIT 1);
-SET @ai_view_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/development.ai:conversationIndex' ORDER BY `id` LIMIT 1);
+SET @ai_view_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/development.ai:conversationindex' ORDER BY `id` LIMIT 1);
 INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`app_name`,`name`,`href`,`query`,`target`,`icon`,`status`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
 SELECT COALESCE(@development_menu_id,0),@ai_view_id,'console',CONVERT(X'E699BAE883BDE5BC80E58F91E58AA9E6898B' USING utf8mb4),'/development/ai','component=development/ai/index&name=AiDevelopment&type=C&permission=development:ai:view','_self','i-ep-cpu',0,'admin_web','ai_development',NOW(),NOW(),30,NULL
 WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type`='admin_web' AND `source_name`='ai_development' AND `href`='/development/ai');
@@ -31,8 +31,8 @@ FROM `fun_casbin_rule` legacy
 INNER JOIN `fun_permission` old_permission ON old_permission.`obj`=legacy.`v2` AND old_permission.`act`=legacy.`v3` AND old_permission.`status`=1 AND old_permission.`deleted_at` IS NULL AND old_permission.`source_type`='admin_web' AND old_permission.`source_name`='business_development'
 INNER JOIN (
  SELECT 'development/business' `old_obj`,'view' `old_act`,'development/ai' `new_obj`,'view' `new_act` UNION ALL
- SELECT 'development/business','view','console/development.ai','messageCreate' UNION ALL
+ SELECT 'development/business','view','console/development.ai','messagecreate' UNION ALL
  SELECT 'development/business','generate','development/ai','execute' UNION ALL
- SELECT 'development/business','generate','console/development.ai','taskExecute'
+ SELECT 'development/business','generate','console/development.ai','taskexecute'
 ) mapping ON mapping.`old_obj`=legacy.`v2` AND mapping.`old_act`=legacy.`v3`
 WHERE legacy.`ptype`='p';

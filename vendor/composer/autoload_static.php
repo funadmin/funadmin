@@ -24,7 +24,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         '1cfd2761b63b0a29ed23657ea394cb2d' => __DIR__ . '/..' . '/topthink/think-captcha/src/helper.php',
         'cc56288302d9df745d97c934d6a6e5f0' => __DIR__ . '/..' . '/topthink/think-queue/src/common.php',
-        '8ab20330a5eba7351f0079e3f962caad' => __DIR__ . '/../..' . '/extend/fun/helper.php',
+        'a7766ffd5077324d9d36fe36440719f8' => __DIR__ . '/../..' . '/app/common/functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
@@ -450,10 +450,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         ),
     );
 
-    public static $fallbackDirsPsr0 = array (
-        0 => __DIR__ . '/../..' . '/extend',
-    );
-
     public static $classMap = array (
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
@@ -480,7 +476,6 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInitdce7718a77ece80cd103d961d3a0025f::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInitdce7718a77ece80cd103d961d3a0025f::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr0 = ComposerStaticInitdce7718a77ece80cd103d961d3a0025f::$fallbackDirsPsr0;
             $loader->classMap = ComposerStaticInitdce7718a77ece80cd103d961d3a0025f::$classMap;
 
         }, null, ClassLoader::class);

@@ -310,7 +310,7 @@ $badAdapter = new NativeMarketplaceAdapter(
 );
 remainingException(static fn () => $badAdapter->versions('demo'), 'manifest_schema');
 
-$systemPluginSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/system/SystemPlugin.php');
+$systemPluginSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/plugin/SystemPlugin.php');
 remainingExpect(str_contains($systemPluginSource, 'new UpdateCheckRequestDto($installed)'), 'SystemPlugin 必须在 Controller 边界构造严格更新请求 DTO');
 
 remainingExpect(!is_file(dirname(__DIR__) . '/app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php'), 'LegacyCloudMarketplaceAdapter 必须删除');

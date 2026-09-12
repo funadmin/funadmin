@@ -8,16 +8,15 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\model\Admin;
-use app\console\model\AdminDepartment;
-use app\console\model\AuthGroup;
+use app\console\authentication\model\Admin;
+use app\console\authorization\model\AdminDepartment;
+use app\console\authorization\model\AuthGroup;
 use app\console\model\Department;
-use app\console\service\RoleScopeService;
-use app\console\service\CasbinService;
-use app\console\service\DataScopeService;
-use app\console\service\RoleGuardService;
+use app\console\authorization\service\RoleScopeService;
+use app\console\authorization\service\CasbinService;
+use app\console\authorization\service\DataScopeService;
+use app\console\authorization\service\RoleGuardService;
 use app\common\service\identity\AdminIdentityAdapter;
-use fun\helper\SignHelper;
 use InvalidArgumentException;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
@@ -85,7 +84,7 @@ class SystemAdmin extends AdminApiController
             $admin = Db::transaction(function () use ($data): Admin {
                 $admin = Admin::create([
                     'username' => $data['username'],
-                    'password' => SignHelper::password($data['password']),
+                    'password' => password($data['password']),
                     'real_name' => $data['nickname'],
                     'email' => $data['email'],
                     'mobile' => $data['mobile'],
@@ -207,7 +206,7 @@ class SystemAdmin extends AdminApiController
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
             Db::transaction(function () use ($admin, $password): void {
-                $admin->save(['password' => SignHelper::password($password), 'token' => '']);
+                $admin->save(['password' => password($password), 'token' => '']);
                 (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
             });
             return $this->ok('密码已重置');

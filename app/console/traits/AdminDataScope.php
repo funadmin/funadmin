@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\traits;
 
-use app\console\service\DataScopeService;
+use app\console\authorization\service\DataScopeService;
 
 /**
  * 后台 CRUD 数据范围应用。

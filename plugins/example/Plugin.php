@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace plugins\example;
 
-use fun\Plugins;
+use app\common\plugin\sdk\Plugin as BasePlugin;
 
-final class Plugin extends Plugins
+final class Plugin extends BasePlugin
 {
     public function install(): bool
     {

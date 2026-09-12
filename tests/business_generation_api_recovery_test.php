@@ -7,9 +7,9 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 define('FUNADMIN_CRUD_HELPER_TESTING', true);
 
 use app\common\crud\ConfirmationToken;
-use app\console\service\BusinessOperationException;
-use app\console\service\GeneratedFileBaselineRepository;
-use app\console\service\GenerationTransactionService;
+use app\console\development\exception\BusinessOperationException;
+use app\console\development\repository\GeneratedFileBaselineRepository;
+use app\console\development\service\GenerationTransactionService;
 final class ApiRecoveryState
 {
     public array $record = [

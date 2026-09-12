@@ -24,6 +24,9 @@
 !/tests/ai_phase2_services_test.php
 !/tests/ai_phase2_contract_test.php
 !/tests/form_data_relation_mysql_test.php
+!/tests/form_builder_migration_contract_test.php
+!/tests/ai_phase4_migration_reentrancy_test.php
+!/tests/extend_fun_removal_contract_test.php
 !/tests/business_development_migration_test.php
 !/tests/business_development_api_test.php
 !/tests/business_development_permission_test.php
@@ -54,6 +57,7 @@
 !/tests/php_property_modernization_test.php
 !/tests/role_authorization_test.php
 !/tests/plugin_code_name_cutover_test.php
+!/tests/plugin_native_hard_cut_test.php
 !/tests/plugin_development_tools_test.php
 !/tests/plugin_manifest_schema_test.php
 !/tests/plugin_resource_publisher_test.php

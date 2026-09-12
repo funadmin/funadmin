@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * FunAdmin
  * ============================================================================
@@ -11,7 +14,6 @@
  * Date: 2021/8/2
  */
 
-use think\App;
 use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Lang;
@@ -32,10 +34,12 @@ if (!function_exists('getKeyVal')) {
 
         $data = [];
         foreach ($keys as $index => $key) {
-            if ((!is_string($key) && !is_int($key)) || $key === '' || !array_key_exists($index, $values)) {
+            if (!array_key_exists($index, $values)
+                || (!is_string($key) && !is_int($key))
+                || $key === '') {
                 continue;
             }
-            $data[$index][$key] = $values[$index];
+            $data[$index] = [$key => $values[$index]];
         }
         return $data;
     }
@@ -47,138 +51,78 @@ if (!function_exists('syscfg')) {
      */
     function syscfg(string $group, ?string $code = null): mixed
     {
-        $hasCode = $code !== null && $code !== '';
-        $cacheKey = 'syscfg:' . hash('sha256', serialize([$group, $hasCode ? $code : null]));
+        $group = trim($group);
+        if ($group === '') {
+            throw new InvalidArgumentException('配置分组不能为空');
+        }
+        if ($code !== null) {
+            $code = trim($code);
+            if ($code === '') {
+                throw new InvalidArgumentException('配置编码不能为空，读取整组配置请传入 null');
+            }
+        }
+
+        $cacheKey = 'syscfg:' . hash('sha256', $group . "\0" . ($code ?? ''));
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && ($cached['cached'] ?? false) === true && array_key_exists('value', $cached)) {
             return $cached['value'];
         }
 
-        $query = \app\common\model\Config::where(['group' => $group]);
-        $value = $hasCode
-            ? $query->where('code', $code)->value('value')
-            : $query->column('value', 'code');
+        $query = \app\common\model\Config::where('group', $group);
+        $value = $code === null
+            ? $query->column('value', 'code')
+            : $query->where('code', $code)->value('value');
         Cache::set($cacheKey, ['cached' => true, 'value' => $value], 3600);
         return $value;
     }
 }
 
-if (!function_exists('Mycfg')) {
-    function Mycfg(string $group, ?string $code = null): mixed
-    {
-        return syscfg($group, $code);
-    }
-}
-
 // 重写 URL 助手函数。
 if (!function_exists('__u')) {
-    function __u($url = '', array $vars = [], $suffix = true, $domain = false): string
+    function __u(string $url = '', array $vars = [], string|bool $suffix = true, string|bool $domain = false): string
     {
         return (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
     }
 }
 
-if (!function_exists('funadmin_common_translate_value')) {
+if (!function_exists('common_translate_value')) {
     /**
-     * 多语言函数的共享实现，并保留旧式可变参数调用。
+     * 多语言函数的共享实现。
      */
-    function funadmin_common_translate_value(mixed $str, mixed $vars, mixed $lang, array $arguments): mixed
+    function common_translate_value(mixed $str, array $vars = [], string $language = ''): mixed
     {
-        if (is_numeric($str) || empty($str)) {
+        if (is_numeric($str) || $str === '' || $str === null || $str === false) {
             return $str;
         }
-        if (!is_array($vars)) {
-            array_shift($arguments);
-            $vars = $arguments;
-            $lang = '';
-        }
-        return Lang::get((string) $str, $vars, (string) $lang);
+        return Lang::get((string) $str, $vars, $language);
     }
 }
 
 if (!function_exists('__')) {
-    function __(mixed $str, mixed $vars = [], mixed $lang = ''): mixed
+    function __(mixed $str, mixed ...$arguments): mixed
     {
-        return funadmin_common_translate_value($str, $vars, $lang, func_get_args());
+        $vars = isset($arguments[0]) && is_array($arguments[0]) ? $arguments[0] : $arguments;
+        $language = isset($arguments[0]) && is_array($arguments[0]) && isset($arguments[1])
+            ? (string) $arguments[1]
+            : '';
+        return common_translate_value($str, $vars, $language);
     }
 }
 
 if (!function_exists('lang')) {
-    function lang(mixed $str, mixed $vars = [], mixed $lang = ''): mixed
+    function lang(mixed $str, mixed ...$arguments): mixed
     {
-        return funadmin_common_translate_value($str, $vars, $lang, func_get_args());
-    }
-}
-
-if (!function_exists('getProvicesByPid')) {
-    function getProvicesByPid(int|string $pid = 0): mixed
-    {
-        return \app\common\model\Region::cache(true)->find($pid);
-    }
-}
-
-if (!function_exists('getMember')) {
-    function getMember(int|string $id): mixed
-    {
-        return \app\common\model\Member::cache(true)->find($id) ?: [];
-    }
-}
-
-if (!function_exists('p')) {
-    /**
-     * 打印变量，按需终止执行。
-     */
-    function p(mixed $var, bool|int $die = false): void
-    {
-        if (!(bool) config('app.app_debug', false)) {
-            throw new LogicException('p 仅允许在调试模式下使用');
-        }
-        print_r($var);
-        if ($die) {
-            die();
-        }
-    }
-}
-
-if (!function_exists('isMobile')) {
-    function isMobile(): bool
-    {
-        if (isset($_SERVER['HTTP_X_WAP_PROFILE'])) {
-            return true;
-        }
-        if (isset($_SERVER['HTTP_VIA']) && stripos((string) $_SERVER['HTTP_VIA'], 'wap') !== false) {
-            return true;
-        }
-
-        $clientKeywords = [
-            'nokia', 'sony', 'ericsson', 'mot', 'samsung', 'htc', 'sgh', 'lg', 'sharp', 'sie-',
-            'philips', 'panasonic', 'alcatel', 'lenovo', 'iphone', 'ipod', 'blackberry', 'meizu',
-            'android', 'netfront', 'symbian', 'ucweb', 'windowsce', 'palm', 'operamini',
-            'operamobi', 'openwave', 'nexusone', 'cldc', 'midp', 'wap', 'mobile',
-        ];
-        $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
-        if ($userAgent !== '' && preg_match('/(' . implode('|', $clientKeywords) . ')/i', $userAgent) === 1) {
-            return true;
-        }
-
-        $accept = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
-        $wapPosition = strpos($accept, 'vnd.wap.wml');
-        $htmlPosition = strpos($accept, 'text/html');
-        return $wapPosition !== false && ($htmlPosition === false || $wapPosition < $htmlPosition);
+        return __($str, ...$arguments);
     }
 }
 
 if (!function_exists('isHttps')) {
     function isHttps(): bool
     {
-        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
-        if ($https !== '' && $https !== 'off' && $https !== '0') {
-            return true;
-        }
-        if (strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https') {
-            return true;
-        }
-        return (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+        $https = strtolower(trim((string) ($_SERVER['HTTPS'] ?? '')));
+        return ($https !== '' && $https !== 'off' && $https !== '0')
+            || strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https'
+            || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
     }
 }
 
@@ -197,81 +141,53 @@ if (!function_exists('timeAgo')) {
     {
         $original = (string) $posttime;
         $timestamp = is_int($posttime) ? $posttime : strtotime($posttime);
-        if ($timestamp === false) {
+        if ($timestamp === false || $timestamp <= 0) {
             return $original;
         }
 
         $seconds = time() - $timestamp;
-        if ($seconds < 0) {
-            return $original;
-        }
-        if ($seconds <= 10) {
-            return '刚刚';
-        }
-        if ($seconds <= 30) {
-            return '刚才';
-        }
-        if ($seconds <= 60) {
-            return '刚一会';
-        }
-        if ($seconds <= 120) {
-            return '1分钟前';
-        }
-        if ($seconds <= 180) {
-            return '2分钟前';
-        }
-        if ($seconds < 3600) {
-            return intdiv($seconds, 60) . '分钟前';
-        }
-        if ($seconds < 86400) {
-            return intdiv($seconds, 3600) . '小时前';
-        }
-        if ($seconds < 172800) {
-            return '昨天';
-        }
-        if ($seconds < 259200) {
-            return '前天';
-        }
-        if ($seconds <= 1728000) {
-            return intdiv($seconds, 86400) . '天前';
-        }
-        return $original;
-    }
-}
-
-if (!function_exists('setConfig')) {
-    /**
-     * 任意配置文件写入已停用。
-     */
-    function setConfig(string $configFile, string $key, mixed $value): never
-    {
-        throw new LogicException('setConfig 已停用：禁止通过公共助手写入任意配置文件');
-    }
-}
-
-if (!function_exists('auth')) {
-    function auth(string $url): bool
-    {
-        return node($url);
+        return match (true) {
+            $seconds < 0 => $original,
+            $seconds <= 10 => '刚刚',
+            $seconds <= 30 => '刚才',
+            $seconds <= 60 => '刚一会',
+            $seconds <= 120 => '1分钟前',
+            $seconds <= 180 => '2分钟前',
+            $seconds < 3600 => intdiv($seconds, 60) . '分钟前',
+            $seconds < 86400 => intdiv($seconds, 3600) . '小时前',
+            $seconds < 172800 => '昨天',
+            $seconds < 259200 => '前天',
+            $seconds <= 1728000 => intdiv($seconds, 86400) . '天前',
+            default => $original,
+        };
     }
 }
 
 if (!function_exists('node')) {
     function node(string $url): bool
     {
-        return (new \app\console\service\AdminAuthorizationService())->nodeAccess($url);
+        static $service = null;
+        static $requestIdentity = null;
+
+        $request = request();
+        $currentRequestIdentity = spl_object_id($request) . ':' . $request->pathinfo();
+        if ($service === null || $requestIdentity !== $currentRequestIdentity) {
+            $requestIdentity = $currentRequestIdentity;
+            $service = new \app\console\authorization\service\AdminAuthorizationService($request);
+        }
+        return $service->nodeAccess($url);
     }
 }
 
 if (!function_exists('isLogin')) {
-    function isLogin(): mixed
+    function isLogin(): object|array|false
     {
         $member = Session::get('member');
-        if (!$member) {
+        if ($member === null || (!is_array($member) && !is_object($member)) || $member === []) {
             return false;
         }
 
-        $memberId = Session::get('member.id');
+        $memberId = is_array($member) ? ($member['id'] ?? null) : ($member->id ?? null);
         if ($memberId !== null) {
             Cookie::set('mid', $memberId);
         }
@@ -284,17 +200,7 @@ if (!function_exists('logout')) {
     {
         Session::delete('member');
         Cookie::delete('mid');
-        if (array_key_exists('mid', $_COOKIE)) {
-            $_COOKIE['mid'] = '';
-        }
         return true;
-    }
-}
-
-if (!function_exists('getTpVersion')) {
-    function getTpVersion(): string
-    {
-        return (string) App::VERSION;
     }
 }
 
@@ -304,21 +210,25 @@ if (!function_exists('format_bytes')) {
      */
     function format_bytes(int|float $size, string $delimiter = ''): string
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-        $size = max(0, $size);
-        $unitIndex = 0;
-        while ($size >= 1024 && $unitIndex < count($units) - 1) {
-            $size /= 1024;
-            $unitIndex++;
+        static $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        if (!is_finite((float) $size) || $size <= 0) {
+            return '0' . $delimiter . $units[0];
         }
-        return round($size, 2) . $delimiter . $units[$unitIndex];
+
+        $unitIndex = max(0, min((int) floor(log((float) $size, 1024)), 5));
+        $value = round($size / (1024 ** $unitIndex), 2);
+        return (string) $value . $delimiter . $units[$unitIndex];
     }
 }
 
 if (!function_exists('password')) {
-    function password(string $password, int|string $type = PASSWORD_DEFAULT): string
+    function password(string $password, int|string $algorithm = PASSWORD_DEFAULT, array $options = []): string
     {
-        return password_hash($password, $type);
+        $hash = password_hash($password, $algorithm, $options);
+        if ($hash === false) {
+            throw new RuntimeException('密码哈希生成失败');
+        }
+        return $hash;
     }
 }
 
@@ -328,7 +238,7 @@ if (!function_exists('getSystemTable')) {
      */
     function getSystemTable(array $table = [], array $shift = []): array
     {
-        $tableList = [
+        static $tableList = [
             'plugin',
             'admin',
             'admin_log',
@@ -357,6 +267,9 @@ if (!function_exists('getSystemTable')) {
             'region',
         ];
 
-        return array_values(array_unique(array_diff(array_merge($tableList, $table), $shift)));
+        $isValidTable = static fn (mixed $name): bool => is_string($name) && trim($name) !== '';
+        $additionalTables = array_filter($table, $isValidTable);
+        $excludedTables = array_filter($shift, $isValidTable);
+        return array_values(array_unique(array_diff(array_merge($tableList, $additionalTables), $excludedTables)));
     }
 }

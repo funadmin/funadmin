@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\identity\oauth\repository;
 
+use app\common\model\identity\IdentityUser;
 use app\common\model\identity\OAuthToken;
 use app\common\model\identity\OAuthTokenScope;
 use app\identity\oauth\entity\AccessTokenEntity;
@@ -31,7 +32,21 @@ final class AccessTokenRepository implements AccessTokenRepositoryInterface
         $client = $accessTokenEntity->getClient();
         Db::transaction(function () use ($accessTokenEntity, $client): void {
             $plain = (string) $accessTokenEntity->getIdentifier();
-            $token = OAuthToken::create(['tenant_id' => $client->tenantId, 'client_id' => $client->databaseId, 'user_id' => $accessTokenEntity->getUserIdentifier(), 'token_type' => 'access', 'token_prefix' => substr($plain, 0, 12), 'token_hash' => hash('sha256', $plain), 'subject_type' => $accessTokenEntity->getUserIdentifier() === null ? 'client' : 'user', 'expires_at' => $accessTokenEntity->getExpiryDateTime()->format('Y-m-d H:i:s')]);
+            $userId = $accessTokenEntity->getUserIdentifier();
+            $user = $userId !== null ? IdentityUser::forTenant($client->tenantId)->where('id', (int) $userId)->where('status', 1)->whereNull('deleted_at')->find() : null;
+            if ($userId !== null && !$user) throw new \DomainException('identity_user_unavailable');
+            $token = OAuthToken::create([
+                'tenant_id' => $client->tenantId,
+                'client_id' => $client->databaseId,
+                'user_id' => $userId,
+                'token_type' => 'access',
+                'token_prefix' => substr($plain, 0, 12),
+                'token_hash' => hash('sha256', $plain),
+                'subject_type' => $userId === null ? 'client' : 'user',
+                'password_version' => $user ? (int) $user->password_version : null,
+                'session_version' => $user ? (int) $user->session_version : null,
+                'expires_at' => $accessTokenEntity->getExpiryDateTime()->format('Y-m-d H:i:s'),
+            ]);
             foreach ($accessTokenEntity->getScopes() as $scope) if ($scope instanceof ScopeEntity) OAuthTokenScope::create(['tenant_id' => $client->tenantId, 'token_id' => $token->id, 'scope_id' => $scope->databaseId]);
         });
     }

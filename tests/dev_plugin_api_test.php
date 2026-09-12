@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\service\DevPluginService;
-use fun\plugins\PluginScaffolder;
+use app\console\plugin\service\DevPluginService;
+use app\common\plugin\sdk\PluginScaffolder;
 
 function devPluginExpect(bool $condition, string $message): void
 {
@@ -111,7 +111,7 @@ try {
     $serializedAudits = json_encode($audits, JSON_THROW_ON_ERROR);
     devPluginExpect(!str_contains($serializedAudits, 'confirmToken'), '普通审计不得包含确认 token');
 
-    $controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/development/DevPlugin.php');
+    $controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/plugin/DevPlugin.php');
     foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class', "#[Group('development/plugin')]", "#[Post('create/preview')]", "#[Post('create')]", "#[Post('validate')]", "#[Post('package')]", "#[Get('package/{code}/download')]", "#[Get('options')]"] as $marker) {
         devPluginExpect(str_contains($controller, $marker), 'DevPlugin 控制器契约缺少：' . $marker);
     }

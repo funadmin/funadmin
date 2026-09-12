@@ -1,0 +1,491 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\common\plugin\sdk;
+
+use JsonException;
+use RuntimeException;
+
+/**
+ * plugin.json 不可变契约。
+ */
+final class Manifest
+{
+    private const CORE_READ_ONLY_PERMISSIONS = [
+        'system:plugin:list',
+    ];
+
+    private function __construct(
+        private readonly string $directory,
+        private readonly array $data
+    ) {
+    }
+
+    public static function fromDirectory(string $directory): self
+    {
+        $directory = rtrim($directory, DIRECTORY_SEPARATOR);
+        $file = $directory . DIRECTORY_SEPARATOR . 'plugin.json';
+        if (!is_file($file)) {
+            throw new RuntimeException('插件缺少 plugin.json：' . $directory);
+        }
+        if (!is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php')) {
+            throw new RuntimeException('插件缺少 Plugin.php：' . $directory);
+        }
+        try {
+            $data = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('plugin.json 格式无效：' . $exception->getMessage(), 0, $exception);
+        }
+        if (!is_array($data)) {
+            throw new RuntimeException('plugin.json 根节点必须是对象');
+        }
+        self::validate($directory, $data);
+        return new self($directory, $data);
+    }
+
+    /** 从安装或启停阶段生成的可信运行时快照恢复，不重复执行磁盘和 Schema 校验。 */
+    public static function fromCompiled(string $directory, array $data): self
+    {
+        $directory = rtrim($directory, DIRECTORY_SEPARATOR);
+        if (($data['code'] ?? '') === '' || basename($directory) !== $data['code']) {
+            throw new RuntimeException('插件运行时快照与目录不一致');
+        }
+        return new self($directory, $data);
+    }
+
+    public function code(): string
+    {
+        return $this->data['code'];
+    }
+
+    public function name(): string
+    {
+        return $this->data['name'];
+    }
+
+    public function version(): string
+    {
+        return $this->data['version'];
+    }
+
+    public function dependencies(): array
+    {
+        return $this->data['requires']['plugins'] ?? [];
+    }
+
+    public function requirement(string $name): ?string
+    {
+        $value = $this->data['requires'][$name] ?? null;
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    public function directory(): string
+    {
+        return $this->directory;
+    }
+
+    public function toArray(): array
+    {
+        return $this->data;
+    }
+
+    private static function validate(string $directory, array $data): void
+    {
+        $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
+        JsonSchemaValidator::fromFile($schema)->validate($data);
+        self::assertNoSymlinks($directory);
+        if (basename($directory) !== $data['code']) {
+            throw new RuntimeException('插件目录名与 plugin.json code 不一致');
+        }
+        $expectedClass = 'plugins\\' . $data['code'] . '\\Plugin';
+        if (($data['entry']['class'] ?? '') !== $expectedClass) {
+            throw new RuntimeException('plugin.json entry namespace 必须是 ' . $expectedClass);
+        }
+        $entryFile = self::existingRelativeFile($directory, (string) $data['entry']['file'], 'entry.file');
+        $source = (string) file_get_contents($entryFile);
+        $namespaces = self::declaredNamespaces($source);
+        if ($namespaces !== ['plugins\\' . $data['code']]) {
+            throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['code']);
+        }
+        if (!in_array('Plugin', self::declaredClasses($source), true)) {
+            throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
+        }
+        self::validateApplications($directory, (string) $data['code']);
+        self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);
+        self::validateFormComponents($data);
+        self::validateResourceSources($directory, $data['resources'] ?? []);
+        if (isset($data['migrations']['path'])) {
+            $migrationDirectory = self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
+            self::validateMigrationNames($migrationDirectory);
+        }
+        if (isset($data['storage']['path'])) {
+            self::existingRelativeDirectory($directory, (string) $data['storage']['path'], 'storage.path');
+        }
+        self::validatePurgeContract($entryFile, $data);
+    }
+
+    private static function assertNoSymlinks(string $directory): void
+    {
+        if (is_link($directory)) {
+            throw new RuntimeException('插件目录禁止符号链接：' . $directory);
+        }
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('插件目录禁止符号链接：' . $item->getPathname());
+            }
+        }
+    }
+
+    private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
+    {
+        if ($adminWeb === null) {
+            return;
+        }
+        $source = (string) ($adminWeb['source'] ?? '');
+        $sourceRoot = self::existingRelativeDirectory($directory, $source, 'adminWeb.source');
+        $declaredComponents = [];
+        foreach ((array) ($adminWeb['components'] ?? []) as $component => $file) {
+            $resolved = self::existingRelativeFile($sourceRoot, (string) $file, 'adminWeb.components.' . $component);
+            if (is_link($resolved)) {
+                throw new RuntimeException('plugin.json adminWeb.components 禁止符号链接');
+            }
+            $declaredComponents[(string) $component] = true;
+        }
+        foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
+            $component = (string) ($route['component'] ?? '');
+            if (!isset($declaredComponents[$component])) {
+                throw new RuntimeException('plugin.json adminWeb.routes.component 必须在 adminWeb.components 中声明：' . $component);
+            }
+        }
+        $pluginCode = (string) $data['code'];
+        $declared = [];
+        foreach ((array) ($adminWeb['permissions'] ?? []) as $permission) {
+            $code = (string) ($permission['code'] ?? '');
+            if (preg_match('/^' . preg_quote($pluginCode, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
+                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须属于插件命名空间并使用 code:resource:action 格式：' . $code);
+            }
+            $declared[$code] = true;
+        }
+        foreach ((array) ($adminWeb['menu'] ?? []) as $menu) {
+            self::validatePermissionReference((string) ($menu['permission'] ?? ''), $declared, 'adminWeb.menu.permission');
+        }
+        foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
+            self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'adminWeb.routes.meta.permission');
+        }
+    }
+
+    private static function validateFormComponents(array $data): void
+    {
+        $pluginCode = (string) $data['code'];
+        $declaredComponents = array_fill_keys(array_keys((array) ($data['adminWeb']['components'] ?? [])), true);
+        $types = [];
+        foreach ((array) ($data['formComponents'] ?? []) as $index => $definition) {
+            $type = (string) ($definition['type'] ?? '');
+            if (!str_starts_with($type, $pluginCode . ':')) {
+                throw new RuntimeException('plugin.json formComponents.type 必须属于插件命名空间：' . $type);
+            }
+            if (isset($types[$type])) {
+                throw new RuntimeException('plugin.json formComponents.type 不得重复：' . $type);
+            }
+            $types[$type] = true;
+            $component = (string) ($definition['component'] ?? '');
+            if (!isset($declaredComponents[$component])) {
+                throw new RuntimeException('plugin.json formComponents.' . $index . '.component 必须在 adminWeb.components 中声明：' . $component);
+            }
+            foreach (['validator', 'codec'] as $capability) {
+                $reference = (string) ($definition[$capability] ?? '');
+                if (!str_starts_with($reference, $pluginCode . ':')) {
+                    throw new RuntimeException('plugin.json formComponents.' . $index . '.' . $capability . ' 必须属于插件命名空间');
+                }
+            }
+        }
+    }
+
+    private static function validatePermissionReference(string $code, array $declared, string $field): void
+    {
+        if ($code === '' || isset($declared[$code]) || in_array($code, self::CORE_READ_ONLY_PERMISSIONS, true)) {
+            return;
+        }
+        throw new RuntimeException('plugin.json ' . $field . ' 只能引用本插件权限或明确的核心只读权限：' . $code);
+    }
+
+    /** 校验插件原生多应用目录、命名空间和 Console 路由前缀。 */
+    private static function validateApplications(string $directory, string $code): void
+    {
+        $appRoot = $directory . DIRECTORY_SEPARATOR . 'app';
+        if (!is_dir($appRoot)) {
+            return;
+        }
+        $application = $appRoot . DIRECTORY_SEPARATOR . $code;
+        $console = $appRoot . DIRECTORY_SEPARATOR . 'console';
+        if (!is_dir($application) && !is_dir($console)) {
+            throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/console');
+        }
+        if (is_dir($application)) {
+            self::validatePhpNamespaces($application, 'app\\' . $code . '\\');
+        }
+        if (is_dir($console)) {
+            self::validateConsoleNamespaces($console, $code);
+            self::validateConsoleGroups($console, $code);
+        }
+    }
+
+    private static function validatePhpNamespaces(string $directory, string $expectedPrefix): void
+    {
+        foreach (self::phpFiles($directory) as $file) {
+            $source = (string) file_get_contents($file);
+            $namespaces = self::declaredNamespaces($source);
+            if ($namespaces === [] && self::isApplicationConfigurationFile($directory, $file, $source)) {
+                continue;
+            }
+            if (count($namespaces) !== 1 || !str_starts_with($namespaces[0], $expectedPrefix)) {
+                throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
+            }
+        }
+    }
+
+    private static function isApplicationConfigurationFile(string $root, string $file, string $source): bool
+    {
+        $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen($root) + 1));
+        $allowed = in_array($relative, ['event.php', 'provider.php'], true)
+            || preg_match('~^(?:config|route|lang)/[A-Za-z0-9._-]+\.php$~', $relative) === 1;
+        return $allowed && self::declaredClasses($source) === [];
+    }
+
+    private static function validateConsoleNamespaces(string $console, string $code): void
+    {
+        foreach (['controller', 'model', 'service', 'validate', 'middleware'] as $layer) {
+            $directory = $console . DIRECTORY_SEPARATOR . $layer;
+            if (is_dir($directory)) {
+                self::validatePhpNamespaces($directory, 'app\\console\\' . $layer . '\\plugin\\' . $code);
+            }
+        }
+    }
+
+    private static function validateConsoleGroups(string $console, string $code): void
+    {
+        $controllers = $console . DIRECTORY_SEPARATOR . 'controller';
+        if (!is_dir($controllers)) {
+            return;
+        }
+        foreach (self::phpFiles($controllers) as $file) {
+            $groups = array_values(array_filter(
+                self::attributeBlocks((string) file_get_contents($file)),
+                static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(/', $attribute) === 1
+            ));
+            if (count($groups) !== 1 || preg_match(
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(\s*[\'\"]plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                $groups[0]
+            ) !== 1) {
+                throw new RuntimeException('Console Attribute Group 必须使用 plugin/' . $code . ' 前缀：' . $file);
+            }
+        }
+    }
+
+    /** @return list<string> */
+    private static function declaredNamespaces(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $namespaces = [];
+        foreach ($tokens as $index => $token) {
+            if (!is_array($token) || $token[0] !== T_NAMESPACE) {
+                continue;
+            }
+            $name = '';
+            for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
+                $candidate = $tokens[$cursor];
+                if ($candidate === ';' || $candidate === '{') {
+                    break;
+                }
+                if (is_array($candidate) && in_array($candidate[0], [T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR], true)) {
+                    $name .= $candidate[1];
+                }
+            }
+            if ($name !== '') {
+                $namespaces[] = $name;
+            }
+        }
+        return $namespaces;
+    }
+
+    /** @return list<string> */
+    private static function declaredClasses(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $classes = [];
+        $previousSignificant = null;
+        foreach ($tokens as $index => $token) {
+            if (is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+            if (is_array($token) && $token[0] === T_CLASS && $previousSignificant !== T_NEW) {
+                for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
+                    $candidate = $tokens[$cursor];
+                    if (is_array($candidate) && $candidate[0] === T_STRING) {
+                        $classes[] = $candidate[1];
+                        break;
+                    }
+                    if (!is_array($candidate) || !in_array($candidate[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                        break;
+                    }
+                }
+            }
+            $previousSignificant = is_array($token) ? $token[0] : $token;
+        }
+        return $classes;
+    }
+
+    /** @return list<string> */
+    private static function attributeBlocks(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $attributes = [];
+        $count = count($tokens);
+        for ($index = 0; $index < $count; $index++) {
+            if (!is_array($tokens[$index]) || $tokens[$index][0] !== T_ATTRIBUTE) {
+                continue;
+            }
+            $block = '';
+            $depth = 1;
+            for ($cursor = $index + 1; $cursor < $count; $cursor++) {
+                $token = $tokens[$cursor];
+                if ($token === '[') {
+                    $depth++;
+                } elseif ($token === ']') {
+                    $depth--;
+                    if ($depth === 0) {
+                        $index = $cursor;
+                        break;
+                    }
+                }
+                if (!is_array($token) || !in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                    $block .= is_array($token) ? $token[1] : $token;
+                }
+            }
+            $attributes[] = trim($block);
+        }
+        return $attributes;
+    }
+
+    private static function validateMigrationNames(string $directory): void
+    {
+        foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
+            if (preg_match('/^\d{3}_[a-z][a-z0-9_]*\.sql$/', basename($file)) !== 1) {
+                throw new RuntimeException('migration 文件名必须使用 001_name.sql 格式：' . basename($file));
+            }
+        }
+    }
+
+    /** @return list<string> */
+    private static function phpFiles(string $directory): array
+    {
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $item) {
+            if ($item->isFile() && strtolower($item->getExtension()) === 'php') {
+                $files[] = $item->getPathname();
+            }
+        }
+        return $files;
+    }
+
+    private static function validatePurgeContract(string $entryFile, array $data): void
+    {
+        if (($data['purge']['supported'] ?? false) !== true) {
+            return;
+        }
+        $tokens = token_get_all((string) file_get_contents($entryFile));
+        if (self::classDeclaresMethod($tokens, 'Plugin', 'purgeData')) {
+            return;
+        }
+        throw new RuntimeException('plugin.json purge.supported=true 时 Plugin 必须 override purgeData');
+    }
+
+    private static function classDeclaresMethod(array $tokens, string $className, string $methodName): bool
+    {
+        $inTargetClass = false;
+        $classDepth = 0;
+        $awaitingClassName = false;
+        $awaitingMethodName = false;
+        foreach ($tokens as $token) {
+            if (is_array($token) && $token[0] === T_CLASS) {
+                $awaitingClassName = true;
+                continue;
+            }
+            if ($awaitingClassName && is_array($token) && $token[0] === T_STRING) {
+                $inTargetClass = strcasecmp($token[1], $className) === 0;
+                $awaitingClassName = false;
+                continue;
+            }
+            if (!$inTargetClass) {
+                continue;
+            }
+            if ($token === '{') {
+                $classDepth++;
+                continue;
+            }
+            if ($token === '}') {
+                $classDepth--;
+                if ($classDepth === 0) {
+                    $inTargetClass = false;
+                }
+                continue;
+            }
+            if (is_array($token) && $token[0] === T_FUNCTION && $classDepth === 1) {
+                $awaitingMethodName = true;
+                continue;
+            }
+            if ($awaitingMethodName && is_array($token) && $token[0] === T_STRING) {
+                if (strcasecmp($token[1], $methodName) === 0) {
+                    return true;
+                }
+                $awaitingMethodName = false;
+                continue;
+            }
+            if ($awaitingMethodName && $token === '(') {
+                $awaitingMethodName = false;
+            }
+        }
+        return false;
+    }
+
+    private static function validateResourceSources(string $directory, array $resources): void
+    {
+        foreach ($resources as $resource) {
+            self::existingRelativeDirectory($directory, (string) $resource['source'], 'resources.source');
+        }
+    }
+
+    private static function existingRelativeFile(string $directory, string $path, string $field): string
+    {
+        $resolved = self::resolveExistingPath($directory, $path, $field);
+        if (!is_file($resolved)) {
+            throw new RuntimeException('plugin.json ' . $field . ' 文件不存在：' . $path);
+        }
+        return $resolved;
+    }
+
+    private static function existingRelativeDirectory(string $directory, string $path, string $field): string
+    {
+        $resolved = self::resolveExistingPath($directory, $path, $field);
+        if (!is_dir($resolved)) {
+            throw new RuntimeException('plugin.json ' . $field . ' 目录不存在：' . $path);
+        }
+        return $resolved;
+    }
+
+    private static function resolveExistingPath(string $directory, string $path, string $field): string
+    {
+        $root = realpath($directory);
+        $resolved = realpath($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path));
+        if ($root === false || $resolved === false || ($resolved !== $root && !str_starts_with($resolved, $root . DIRECTORY_SEPARATOR))) {
+            throw new RuntimeException('plugin.json ' . $field . ' 路径不存在或越界：' . $path);
+        }
+        return $resolved;
+    }
+}

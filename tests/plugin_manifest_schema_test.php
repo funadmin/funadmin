@@ -5,7 +5,7 @@ declare(strict_types=1);
 // Admin Web 插件仅发布源码，并由 Vite 在构建时发现已声明组件。
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use fun\plugins\Manifest;
+use app\common\plugin\sdk\Manifest;
 use think\App;
 
 function schemaExpect(bool $condition, string $message): void
@@ -25,7 +25,7 @@ function schemaReject(string $directory, array $manifest, string $message): void
 }
 
 $root = dirname(__DIR__);
-$schemaFile = $root . '/extend/fun/plugins/schema/plugin.schema.json';
+$schemaFile = $root . '/app/common/plugin/sdk/schema/plugin.schema.json';
 schemaExpect(is_file($schemaFile), '必须存在权威 plugin.schema.json');
 $schema = json_decode((string) file_get_contents($schemaFile), true, 512, JSON_THROW_ON_ERROR);
 schemaExpect(($schema['additionalProperties'] ?? true) === false, '根对象必须拒绝未知字段');
@@ -37,7 +37,7 @@ $plugin = $temp . '/demo';
 foreach (['app/demo/controller', 'app/console/controller', 'resources/public', 'admin-web', 'database/migrations', 'storage'] as $directory) {
     mkdir($plugin . '/' . $directory, 0755, true);
 }
-file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\demo; final class Plugin extends \\fun\\Plugins { protected function initialize(): void {} public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; } public function purgeData(): bool { return true; } }');
+file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\demo; final class Plugin extends \\app\\common\\plugin\\sdk\\Plugin { protected function initialize(): void {} public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; } public function purgeData(): bool { return true; } }');
 file_put_contents($plugin . '/app/demo/controller/Index.php', '<?php namespace app\\demo\\controller; final class Index {}');
 file_put_contents($plugin . '/app/console/controller/Index.php', '<?php namespace app\\console\\controller\\plugin\\demo; use think\\annotation\\route\\Group; #[Group("plugin/demo")] final class Index {}');
 file_put_contents($plugin . '/resources/public/app.css', 'body{}');
@@ -104,7 +104,7 @@ file_put_contents($plugin . '/database/migrations/bad.sql', 'SELECT 1;');
 schemaReject($plugin, $valid, 'migration 文件名必须被校验');
 unlink($plugin . '/database/migrations/bad.sql');
 $case = $valid; $case['storage']['path'] = 'storage/missing'; schemaReject($plugin, $case, 'storage.path 必须存在');
-file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\demo; final class Plugin extends \\fun\\Plugins { protected function initialize(): void {} public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; } }');
+file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\demo; final class Plugin extends \\app\\common\\plugin\\sdk\\Plugin { protected function initialize(): void {} public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; } }');
 schemaReject($plugin, $valid, 'purge.supported=true 必须 override purgeData');
 file_put_contents($plugin . '/Plugin.php', '<?php namespace plugins\\other; final class Plugin {}');
 schemaReject($plugin, $valid, 'Plugin.php namespace 必须与 manifest 一致');

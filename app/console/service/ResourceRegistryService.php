@@ -3,9 +3,9 @@
 namespace app\console\service;
 
 use RuntimeException;
-use app\console\model\AdminMenu;
-use app\console\model\CasbinRule;
-use app\console\model\Permission;
+use app\console\authorization\model\AdminMenu;
+use app\console\authorization\model\CasbinRule;
+use app\console\authorization\model\Permission;
 use app\common\service\AbstractService;
 use think\facade\Db;
 

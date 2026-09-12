@@ -5,12 +5,12 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\ai\provider\AiProviderException;
-use app\console\service\AiAgentOrchestrator;
-use app\console\service\AiConversationService;
-use app\console\service\AiConversationStore;
-use app\console\service\AiEventStreamService;
-use app\console\job\AiAgentJob;
-use app\console\service\AiToolExecutor;
+use app\console\ai\contract\AiConversationStore;
+use app\console\ai\contract\AiToolExecutor;
+use app\console\ai\job\AiAgentJob;
+use app\console\ai\service\AiAgentOrchestrator;
+use app\console\ai\service\AiConversationService;
+use app\console\ai\service\AiEventStreamService;
 use think\queue\Job;
 
 function phase2Expect(bool $condition, string $message): void
@@ -38,6 +38,7 @@ final class MemoryAiStore implements AiConversationStore
     public function createTask(array $data): array { foreach ($this->tasks as $task) if ($task['conversation_id'] === $data['conversation_id'] && $task['idempotency_key'] === $data['idempotency_key']) return $task; $data['id'] = $this->id++; return $this->tasks[$data['id']] = $data; }
     public function task(int $id): ?array { return $this->tasks[$id] ?? null; }
     public function compareAndSetTask(int $id, array $from, array $data): bool { if ($this->raceTerminalStatus !== null && in_array($data['status'] ?? '', ['succeeded', 'failed'], true)) { $this->tasks[$id]['status'] = $this->raceTerminalStatus; $this->raceTerminalStatus = null; return false; } if (!isset($this->tasks[$id]) || !in_array($this->tasks[$id]['status'], $from, true)) return false; $this->tasks[$id] = array_replace($this->tasks[$id], $data); return true; }
+    public function compareAndSetTaskOperation(int $id, string $operationToken, array $from, array $data): bool { if (!isset($this->tasks[$id]) || !hash_equals((string)$this->tasks[$id]['operation_token'], $operationToken)) return false; return $this->compareAndSetTask($id, $from, $data); }
     public function updateTask(int $id, array $data): void { $this->tasks[$id] = array_replace($this->tasks[$id], $data); }
     public function appendEvent(int $taskId, string $type, array $payload): array { $event = ['id' => $this->id++, 'task_id' => $taskId, 'type' => $type, 'payload' => $payload]; $this->events[] = $event; return $event; }
     public function events(int $taskId, int $afterId, int $limit): array { return array_slice(array_values(array_filter($this->events, fn ($e) => $e['task_id'] === $taskId && $e['id'] > $afterId)), 0, $limit); }
@@ -80,7 +81,7 @@ $orchestrator = new AiAgentOrchestrator($provider, $executor);
 $result = $orchestrator->run([['role' => 'user', 'content' => 'go']], [], ['maxRounds' => 2, 'totalTokenBudget' => 10]);
 phase2Expect($result['status'] === 'succeeded' && $result['usage']['totalTokens'] === 5, '编排器应有限轮次完成工具循环');
 try { $orchestrator->run([], [], ['maxRounds' => 1, 'totalTokenBudget' => 1]); throw new RuntimeException('预算超限必须失败'); } catch (AiProviderException $e) { phase2Expect($e->category() === 'budget_exceeded', '预算错误分类错误'); }
-phase2Expect(!str_contains((string) file_get_contents(dirname(__DIR__) . '/app/console/service/AiAgentOrchestrator.php'), 'shell_exec'), '编排器不得调用宿主 Shell');
+phase2Expect(!str_contains((string) file_get_contents(dirname(__DIR__) . '/app/console/ai/service/AiAgentOrchestrator.php'), 'shell_exec'), '编排器不得调用宿主 Shell');
 
 $queueJob = new class extends Job {
     public bool $wasDeleted = false;
@@ -97,6 +98,15 @@ phase2Expect(count(array_filter($store->events, fn ($event) => $event['type'] ==
 $queueJob->wasDeleted = false;
 $jobRunner->fire($queueJob, ['taskId' => $running['id'], 'operationToken' => $running['operation_token']]);
 phase2Expect($queueJob->wasDeleted, '已终态任务重投必须幂等删除');
+$duplicateSideEffects = $provider->calls;
+$queueJob->wasDeleted = false;
+$jobRunner->fire($queueJob, ['taskId' => $running['id'], 'operationToken' => $running['operation_token']]);
+phase2Expect($queueJob->wasDeleted && $provider->calls === $duplicateSideEffects, 'push 成功但 outbox 未标记的重复消息必须由 Job 幂等拒绝且无副作用');
+$store->tasks[$running['id']]['status'] = 'paused';
+$queueJob->wasDeleted = false;
+$jobRunner->fire($queueJob, ['taskId' => $running['id'], 'operationToken' => $running['operation_token']]);
+phase2Expect($queueJob->wasDeleted && $provider->calls === $duplicateSideEffects && $store->tasks[$running['id']]['status'] === 'paused', '重复消息不得越过 resume_pending 重新执行 paused 任务副作用');
+$store->tasks[$running['id']]['status'] = 'succeeded';
 $tokenRejected = false;
 try { $jobRunner->fire($queueJob, ['taskId' => $running['id'], 'operationToken' => 'wrong']); } catch (RuntimeException) { $tokenRejected = true; }
 phase2Expect($tokenRejected, 'operation token 不匹配必须拒绝');

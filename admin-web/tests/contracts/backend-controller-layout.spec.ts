@@ -20,20 +20,18 @@ const systemControllers = [
   'SystemMember',
   'SystemMemberGroup',
   'SystemMemberLevel',
-  'SystemMenu',
-  'SystemOperationLog',
-  'SystemPermission',
-  'SystemRole'
+  'SystemOperationLog'
 ];
-const movedControllers = ['AdminApiController', ...authControllers, ...systemControllers];
+const authorizationControllers = ['SystemMenu', 'SystemPermission', 'SystemRole'];
+const movedControllers = ['AdminApiController', ...authControllers, ...systemControllers, ...authorizationControllers];
 
 const routeSource = readProjectFile('app/console/route/app.php');
-const authSource = readProjectFile('app/console/controller/auth/AdminAuth.php');
-const profileSource = readProjectFile('app/console/controller/auth/AdminProfile.php');
+const authSource = readProjectFile('app/console/controller/authentication/AdminAuth.php');
+const profileSource = readProjectFile('app/console/controller/authentication/AdminProfile.php');
 const uploadSource = readProjectFile('app/console/controller/system/AdminUpload.php');
-const roleSource = readProjectFile('app/console/controller/system/SystemRole.php');
+const roleSource = readProjectFile('app/console/controller/authorization/SystemRole.php');
 const dictSource = readProjectFile('app/console/controller/system/SystemDict.php');
-const permissionSource = readProjectFile('app/console/service/PermissionResource.php');
+const permissionSource = readProjectFile('app/console/authorization/service/PermissionResource.php');
 
 describe('后台控制器目录重组源码契约', () => {
   it('已移动控制器仅存在于对应子目录', () => {
@@ -43,10 +41,13 @@ describe('后台控制器目录重组源码契约', () => {
 
     expect(existsSync(resolve(controllerRoot, 'base/AdminApiController.php'))).toBe(true);
     for (const controller of authControllers) {
-      expect(existsSync(resolve(controllerRoot, `auth/${controller}.php`))).toBe(true);
+      expect(existsSync(resolve(controllerRoot, `authentication/${controller}.php`))).toBe(true);
     }
     for (const controller of systemControllers) {
       expect(existsSync(resolve(controllerRoot, `system/${controller}.php`))).toBe(true);
+    }
+    for (const controller of authorizationControllers) {
+      expect(existsSync(resolve(controllerRoot, `authorization/${controller}.php`))).toBe(true);
     }
   });
 

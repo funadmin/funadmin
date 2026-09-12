@@ -15,16 +15,16 @@ use app\common\service\PredisService;
 use app\common\service\UploadService;
 use app\common\model\UpgradeManifest;
 use app\common\validate\MemberValidate;
-use app\console\controller\system\SystemPlugin;
-use app\console\service\AdminAuthorizationService;
-use app\console\service\DevCrudService;
-use app\console\service\PluginCenterService;
-use app\console\service\PluginMarketplaceService;
-use app\console\service\PluginPackagePipeline;
-use app\console\service\PluginPackageService;
-use app\console\service\PluginService;
-use fun\helper\CtrHelper;
-use fun\Plugins;
+use app\console\controller\plugin\SystemPlugin;
+use app\console\authorization\service\AdminAuthorizationService;
+use app\console\development\service\DevCrudService;
+use app\console\plugin\service\PluginCenterService;
+use app\console\plugin\service\PluginMarketplaceService;
+use app\console\plugin\service\PluginPackagePipeline;
+use app\console\plugin\service\PluginPackageService;
+use app\console\plugin\service\PluginService;
+use app\common\helper\CtrHelper;
+use app\common\plugin\sdk\Plugin;
 use Mcp\Server;
 use Psr\Log\LoggerInterface;
 use think\App;
@@ -509,10 +509,10 @@ foreach ([['app', App::class], ['request', Request::class], ['batchValidate', 'b
 $baseController = new ReflectionClass(BaseController::class);
 modernizationCheck(!$baseController->hasProperty('noNeedLogin'), 'BaseController 必须删除 noNeedLogin');
 modernizationCheck(!$baseController->hasProperty('onlyNeedLogin'), 'BaseController 必须删除 onlyNeedLogin');
-modernizationTypedProperty(fun\plugins\Service::class, 'plugins_path', 'string', 'protected', false, false);
-modernizationMethod(fun\plugins\Service::class, 'getPluginsPath', [], 'string');
-modernizationMethod(fun\plugins\Service::class, 'getPluginCodePath', [['code', 'string', false]], 'string');
-modernizationCheck(!(new ReflectionClass(fun\plugins\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
+modernizationTypedProperty(app\common\plugin\sdk\Service::class, 'plugins_path', 'string', 'protected', false, false);
+modernizationMethod(app\common\plugin\sdk\Service::class, 'getPluginsPath', [], 'string');
+modernizationMethod(app\common\plugin\sdk\Service::class, 'getPluginCodePath', [['code', 'string', false]], 'string');
+modernizationCheck(!(new ReflectionClass(app\common\plugin\sdk\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
 
 // 第三批：插件基类的扩展面保持 protected，并以准确类型和生命周期签名约束子类。
 $pipelineReflection = new ReflectionClass(PluginPackagePipeline::class);
@@ -528,10 +528,10 @@ foreach ([
     ['plugin_path', 'string'], ['view', ThinkViewDriver::class], ['plugin_config', 'string'],
     ['info', 'array'], ['plugin_info', 'string'],
 ] as [$property, $type]) {
-    modernizationTypedProperty(Plugins::class, $property, $type, 'protected', false, false);
+    modernizationTypedProperty(Plugin::class, $property, $type, 'protected', false, false);
 }
-$pluginsReflection = new ReflectionClass(Plugins::class);
-modernizationCheck(!$pluginsReflection->hasProperty('config'), 'Plugins 必须删除零引用 config 属性');
+$pluginsReflection = new ReflectionClass(Plugin::class);
+modernizationCheck(!$pluginsReflection->hasProperty('config'), 'Plugin 必须删除零引用 config 属性');
 try {
     $app = new App(dirname(__DIR__));
     $app->initialize();
@@ -539,22 +539,22 @@ try {
     modernizationCheck($runtimeView instanceof ThinkViewDriver, 'View::engine(Think) 运行时类型必须为 think\\view\\driver\\Think');
     $viewProperty = $pluginsReflection->getProperty('view');
     $viewType = $viewProperty->getType();
-    modernizationCheck($viewType instanceof ReflectionNamedType && is_a($runtimeView, $viewType->getName()), 'Plugins::$view 声明必须接受实际运行时视图对象');
+    modernizationCheck($viewType instanceof ReflectionNamedType && is_a($runtimeView, $viewType->getName()), 'Plugin::$view 声明必须接受实际运行时视图对象');
 } catch (Throwable $exception) {
-    $failures[] = 'Plugins view 运行时类型验证异常：' . $exception->getMessage();
+    $failures[] = 'Plugin view 运行时类型验证异常：' . $exception->getMessage();
 }
 
-modernizationMethod(Plugins::class, 'getCode', [], 'string');
-modernizationMethod(Plugins::class, 'fetch', [['template', 'string', true], ['vars', 'array', true]], 'void');
-modernizationMethod(Plugins::class, 'display', [['content', 'string', true], ['vars', 'array', true]], 'void');
-modernizationMethod(Plugins::class, 'assign', [['name', 'mixed', false], ['value', 'mixed', true]], 'static');
-modernizationMethod(Plugins::class, 'engine', [['engine', 'array|string', false]], 'static');
-modernizationMethod(Plugins::class, 'getInfo', [], 'array');
-modernizationMethod(Plugins::class, 'getConfig', [['type', 'bool', true]], 'array');
-modernizationMethod(Plugins::class, 'setInfo', [['name', 'string', true], ['value', 'array', true]], 'never');
+modernizationMethod(Plugin::class, 'getCode', [], 'string');
+modernizationMethod(Plugin::class, 'fetch', [['template', 'string', true], ['vars', 'array', true]], 'void');
+modernizationMethod(Plugin::class, 'display', [['content', 'string', true], ['vars', 'array', true]], 'void');
+modernizationMethod(Plugin::class, 'assign', [['name', 'mixed', false], ['value', 'mixed', true]], 'static');
+modernizationMethod(Plugin::class, 'engine', [['engine', 'array|string', false]], 'static');
+modernizationMethod(Plugin::class, 'getInfo', [], 'array');
+modernizationMethod(Plugin::class, 'getConfig', [['type', 'bool', true]], 'array');
+modernizationMethod(Plugin::class, 'setInfo', [['name', 'string', true], ['value', 'array', true]], 'never');
 foreach (['install', 'uninstall', 'enabled', 'disabled'] as $method) {
-    modernizationMethod(Plugins::class, $method, [], 'bool');
-    modernizationCheck((new ReflectionMethod(Plugins::class, $method))->isAbstract(), "Plugins::{$method} 必须保持 abstract");
+    modernizationMethod(Plugin::class, $method, [], 'bool');
+    modernizationCheck((new ReflectionMethod(Plugin::class, $method))->isAbstract(), "Plugin::{$method} 必须保持 abstract");
 }
 
 // 第四批：收紧 Redis 与旧注解属性，同时锁定框架扩展点的无类型兼容契约。
@@ -645,37 +645,37 @@ $ormPropertyExemptions = [
     \app\common\model\MemberGroupRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
     \app\common\model\MemberTag::class => ['name'],
     \app\common\model\MemberTagRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\common\model\PluginOperation::class => ['name', 'autoWriteTimestamp'],
-    \app\common\model\PluginResource::class => ['name'],
-    \app\common\model\PluginVersionHistory::class => ['name', 'autoWriteTimestamp'],
+    \app\common\plugin\model\PluginOperation::class => ['name', 'autoWriteTimestamp'],
+    \app\common\plugin\model\PluginResource::class => ['name'],
+    \app\common\plugin\model\PluginVersionHistory::class => ['name', 'autoWriteTimestamp'],
     \app\common\model\Region::class => ['name'],
     \app\common\model\SystemMigration::class => ['name', 'autoWriteTimestamp'],
     UpgradeManifest::class => ['name', 'json', 'jsonAssoc'],
     \app\common\model\UpgradeTask::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AdminMenu::class => ['name'],
-    \app\console\model\AiApproval::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AiChangeSet::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AiConversation::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AiMessage::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AiStreamNonce::class => ['name', 'updateTime'],
-    \app\console\model\AiTask::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AiTaskEvent::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
-    \app\console\model\AiToolCall::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\AdminDepartment::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\console\model\AuthGroupDepartment::class => ['name', 'autoWriteTimestamp'],
-    \app\console\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
-    \app\console\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],
-    \app\console\model\BusinessModule::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\CrudGeneration::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\GeneratedFileBaseline::class => ['name'],
-    \app\console\model\FormSchemaVersion::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
+    \app\console\authorization\model\AdminMenu::class => ['name'],
+    \app\console\ai\model\AiApproval::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiChangeSet::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiConversation::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiMessage::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiStreamNonce::class => ['name', 'updateTime'],
+    \app\console\ai\model\AiTask::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\ai\model\AiTaskEvent::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
+    \app\console\ai\model\AiToolCall::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\authorization\model\AdminDepartment::class => ['name', 'pk', 'autoWriteTimestamp'],
+    \app\console\authorization\model\AuthGroupDepartment::class => ['name', 'autoWriteTimestamp'],
+    \app\console\authorization\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
+    \app\console\authorization\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],
+    \app\console\development\model\BusinessModule::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\development\model\CrudGeneration::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\development\model\GeneratedFileBaseline::class => ['name'],
+    \app\console\form\model\FormSchemaVersion::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
     \app\console\model\Department::class => ['name'],
     \app\console\model\MemberGroupRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
     \app\console\model\MemberTag::class => ['name'],
     \app\console\model\MemberTagRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\console\model\Permission::class => ['name'],
-    \app\console\model\Form::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\model\FormField::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\authorization\model\Permission::class => ['name'],
+    \app\console\form\model\Form::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\form\model\FormField::class => ['name', 'json', 'jsonAssoc'],
 ];
 $propertyExemptions = [
     ExceptionHandle::class . '::$ignoreReport' => '父类 think\\exception\\Handle::isIgnoreReport() 直接读取该无类型扩展点',
@@ -755,7 +755,7 @@ foreach ($scan['assignments'] as $assignment) {
 $deadProperties = [
     PluginPackagePipeline::class . '::$captureState',
     PredisService::class . '::$instance',
-    Plugins::class . '::$config',
+    Plugin::class . '::$config',
     McpService::class . '::$memoryLimit',
     McpService::class . '::$name',
     McpService::class . '::$version',

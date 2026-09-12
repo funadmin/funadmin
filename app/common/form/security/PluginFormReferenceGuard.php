@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\form\security;
 
-use app\console\model\Form;
-use app\console\model\FormSchemaVersion;
+use app\console\form\model\Form;
+use app\console\form\model\FormSchemaVersion;
 use RuntimeException;
 
 /** 阻止卸载仍被持久化 FormSchema 引用的插件。 */

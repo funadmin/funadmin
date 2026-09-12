@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use fun\plugins\Manifest;
+use app\common\plugin\sdk\Manifest;
 
 function cutoverExpect(bool $condition, string $message): void
 {
@@ -26,7 +26,7 @@ function cutoverPhpFiles(string $directory): array
 }
 
 $root = dirname(__DIR__);
-$schema = json_decode((string) file_get_contents($root . '/extend/fun/plugins/schema/plugin.schema.json'), true, 512, JSON_THROW_ON_ERROR);
+$schema = json_decode((string) file_get_contents($root . '/app/common/plugin/sdk/schema/plugin.schema.json'), true, 512, JSON_THROW_ON_ERROR);
 cutoverExpect(($schema['required'] ?? []) === ['schema_version', 'code', 'name', 'version', 'requires', 'entry'], 'manifest 根必填字段必须硬切为 code/name');
 cutoverExpect(($schema['properties']['code']['pattern'] ?? '') === '^[a-z][a-z0-9]*$', 'manifest code 正则不正确');
 cutoverExpect(isset($schema['properties']['name']) && !isset($schema['properties']['title']), 'manifest 显示字段必须为 name 且不得保留根 title');
@@ -48,7 +48,7 @@ $productionRoots = [
     $root . '/app/console/controller/system',
     $root . '/app/console/middleware/CheckPluginPermission.php',
     $root . '/app/console/service',
-    $root . '/extend/fun/plugins',
+    $root . '/app/common/plugin/sdk',
 ];
 $forbidden = [
     "/Plugin::where\\(['\"]name['\"]/" => "Plugin::where('name')",

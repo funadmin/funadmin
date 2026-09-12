@@ -83,6 +83,17 @@ final class ApplicationAssignmentService
         return false;
     }
 
+    public static function hasMatchingAssignment(array $assignments, int $userId, array $departmentIds, array $roleIds): bool
+    {
+        foreach ($assignments as $assignment) {
+            if ((int) ($assignment['status'] ?? 1) === 1
+                && self::matches($assignment, $userId, $departmentIds, $roleIds)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static function hasMatchingDeny(array $assignments, int $userId, array $departmentIds, array $roleIds): bool
     {
         foreach ($assignments as $assignment) {

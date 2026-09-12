@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\service\PluginModificationDetector;
-use app\console\service\PluginResourceRepository;
+use app\console\plugin\service\PluginModificationDetector;
+use app\console\plugin\contract\PluginResourceRepository;
 
 function detectorExpect(bool $condition, string $message): void
 {

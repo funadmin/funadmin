@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace app\common\middleware;
 
 use Closure;
-use fun\plugins\ActivationGate;
-use fun\plugins\ActivationUnavailableException;
-use fun\plugins\PluginActivationReader;
-use fun\plugins\PluginNotActiveException;
+use app\common\plugin\sdk\ActivationGate;
+use app\common\plugin\sdk\ActivationUnavailableException;
+use app\common\plugin\sdk\PluginActivationReader;
+use app\common\plugin\sdk\PluginNotActiveException;
 use think\exception\HttpException;
 
 /** 在 MultiApp 解析前阻断不可用插件应用。 */

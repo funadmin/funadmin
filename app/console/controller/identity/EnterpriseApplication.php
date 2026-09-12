@@ -12,8 +12,9 @@ use app\common\service\identity\ApplicationCatalogService;
 use app\common\service\identity\ApplicationDatabaseService;
 use app\common\service\identity\ApplicationDomainService;
 use app\common\service\identity\AdminIdentityAdapter;
+use app\common\service\identity\OidcClaimPolicyService;
 use app\console\controller\base\AdminApiController;
-use app\console\service\RoleScopeService;
+use app\console\authorization\service\RoleScopeService;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
@@ -38,6 +39,7 @@ final class EnterpriseApplication extends AdminApiController
     private readonly ApplicationAssignmentService $assignmentService;
     private readonly ApplicationDomainService $domainService;
     private readonly ApplicationDatabaseService $databaseService;
+    private readonly OidcClaimPolicyService $claimPolicyService;
 
     protected function initialize(): void
     {
@@ -46,12 +48,30 @@ final class EnterpriseApplication extends AdminApiController
         $this->assignmentService = new ApplicationAssignmentService();
         $this->domainService = new ApplicationDomainService();
         $this->databaseService = new ApplicationDatabaseService();
+        $this->claimPolicyService = new OidcClaimPolicyService();
     }
 
     #[Get('')]
     public function index(): Response
     {
         return $this->ok(data: $this->catalog->list($this->tenantId(), (int) $this->request->get('page', 1), (int) $this->request->get('pageSize', 20), trim((string) $this->request->get('keyword', ''))));
+    }
+
+    #[Get('portal')]
+    public function portal(): Response
+    {
+        try {
+            $actor = $this->launchActor();
+            return $this->ok(data: $this->catalog->portal(
+                $actor['tenantId'],
+                $actor['userId'],
+                $actor['departmentIds'],
+                $actor['roleIds'],
+                trim((string) $this->request->get('keyword', ''))
+            ));
+        } catch (DomainException $exception) {
+            return $this->fail(data: null, msg: $exception->getMessage(), code: 403);
+        }
     }
 
     #[Get(':id')]
@@ -135,6 +155,22 @@ final class EnterpriseApplication extends AdminApiController
     #[Post(':id/health')]
     #[Pattern('id', '\d+')]
     public function health(int $id): Response { return $this->ok(data: $this->databaseService->health($this->tenantId(), $id, $this->isDevelopment())); }
+
+    #[Put(':id/claim-policy')]
+    #[Pattern('id', '\d+')]
+    public function saveClaimPolicy(int $id): Response
+    {
+        return $this->ok(data: $this->claimPolicyService->saveApplicationPolicy($this->tenantId(), $id, (array) $this->request->put('allowedClaims', [])), msg: 'Claim 策略已保存');
+    }
+
+    #[Put(':id/oauth-clients/:clientId/claim-policy')]
+    #[Pattern(['id' => '\d+', 'clientId' => '\d+'])]
+    public function saveClientClaimPolicy(int $id, int $clientId): Response
+    {
+        $client = (new \app\common\service\identity\OAuthClientService())->detail($this->tenantId(), $clientId);
+        if ((int) $client['application_id'] !== $id) throw new DomainException('OAuth client 不属于当前应用');
+        return $this->ok(data: $this->claimPolicyService->saveClientPolicy($this->tenantId(), $clientId, $this->request->put()), msg: 'Client Claim 策略已保存');
+    }
 
     /** @return array{tenantId:int,userId:int,departmentIds:array<int>,roleIds:array<int>} */
     private function launchActor(): array

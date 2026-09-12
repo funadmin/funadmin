@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use fun\plugins\PluginActivationCompiler;
-use fun\plugins\PluginActivationReader;
-use fun\plugins\PluginExecutionGate;
-use fun\plugins\PluginNotActiveException;
+use app\common\plugin\sdk\PluginActivationCompiler;
+use app\common\plugin\sdk\PluginActivationReader;
+use app\common\plugin\sdk\PluginExecutionGate;
+use app\common\plugin\sdk\PluginNotActiveException;
 
 function executionGateExpect(bool $condition, string $message): void
 {

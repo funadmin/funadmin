@@ -6,13 +6,13 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\model\concern\LaravelSoftDelete;
 use app\common\service\MigrationService;
-use app\console\model\AiApproval;
-use app\console\model\AiChangeSet;
-use app\console\model\AiConversation;
-use app\console\model\AiMessage;
-use app\console\model\AiTask;
-use app\console\model\AiToolCall;
-use app\console\service\ApprovalPolicyEngine;
+use app\console\ai\model\AiApproval;
+use app\console\ai\model\AiChangeSet;
+use app\console\ai\model\AiConversation;
+use app\console\ai\model\AiMessage;
+use app\console\ai\model\AiTask;
+use app\console\ai\model\AiToolCall;
+use app\console\ai\service\ApprovalPolicyEngine;
 use think\App;
 
 function aiPhase1Expect(bool $condition, string $message): void
@@ -49,7 +49,7 @@ foreach ($tables as $table) {
 foreach (['fun_ai_session', 'fun_ai_execution', 'fun_ai_artifact', 'fun_ai_audit_log'] as $wrongTable) {
     aiPhase1Expect(!str_contains($schemaSql, $wrongTable), '090 不得保留错误契约：' . $wrongTable);
 }
-aiPhase1Expect((bool) preg_match('/`admin_id` int NOT NULL/', $schemaSql), '管理员 ID 必须与 fun_admin.id 的 int 有符号类型一致');
+aiPhase1Expect((bool) preg_match('/`admin_id` bigint unsigned NOT NULL/', $schemaSql), '管理员 ID 必须与当前 fun_admin.id 的 bigint unsigned 类型一致');
 foreach (['fk_ai_conversation_admin', 'fk_ai_message_conversation', 'fk_ai_task_conversation', 'fk_ai_tool_call_task', 'fk_ai_approval_tool_call', 'fk_ai_change_set_approval'] as $foreignKey) {
     aiPhase1Expect(str_contains($schemaSql, $foreignKey), '090 缺少关系完整性约束：' . $foreignKey);
 }
@@ -167,7 +167,8 @@ foreach (['development:ai:view', 'development:ai:chat', 'development:ai:execute'
     aiPhase1Expect(str_contains($permissionSql, "'{$permission}'"), '091 缺少能力权限：' . $permission);
 }
 foreach (['conversationIndex', 'messageCreate', 'taskExecute', 'approvalDecide', 'changeSetApply', 'configurationUpdate', 'auditIndex'] as $action) {
-    aiPhase1Expect(str_contains($permissionSql, "'console/development.ai:{$action}'"), '091 控制器 action 权限名不明确：' . $action);
+    $runtimeAction = strtolower($action);
+    aiPhase1Expect(str_contains($permissionSql, "'console/development.ai:{$runtimeAction}'"), '091 控制器 action 权限名不明确：' . $runtimeAction);
 }
 aiPhase1Expect(str_contains($permissionSql, "component=development/ai/index") && (bool) preg_match("/component=development\\/ai\\/index[^\n]*,'_self','[^']*',0,/", $permissionSql), '组件尚不存在时 AI 菜单 status 必须为 0');
 $mappingBlock = substr($permissionSql, (int) strpos($permissionSql, 'INNER JOIN ('));
@@ -223,7 +224,7 @@ if (!extension_loaded('pdo_mysql')) {
     try {
         $server->exec("CREATE DATABASE `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $database = new PDO("mysql:host={$host};port={$port};dbname={$databaseName};charset=utf8mb4", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-        $database->exec("CREATE TABLE fun_admin (id int NOT NULL AUTO_INCREMENT, PRIMARY KEY(id)) ENGINE=InnoDB; CREATE TABLE fun_permission (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,app_name varchar(50) NOT NULL DEFAULT 'console',code varchar(255) NULL,obj varchar(190) NOT NULL DEFAULT '',act varchar(100) NOT NULL DEFAULT '',name varchar(100) NOT NULL DEFAULT '',resource_type enum('group','route') NOT NULL DEFAULT 'route',status tinyint NOT NULL DEFAULT 1,is_public tinyint NOT NULL DEFAULT 0,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_permission_code(code)); CREATE TABLE fun_admin_menu (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,permission_id int unsigned NULL,app_name varchar(50) NOT NULL DEFAULT 'console',name varchar(100) NOT NULL DEFAULT '',href varchar(255) NOT NULL DEFAULT '',query varchar(250) NOT NULL DEFAULT '',target varchar(20) NOT NULL DEFAULT '_self',icon varchar(100) NOT NULL DEFAULT '',status tinyint NOT NULL DEFAULT 1,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_menu_location(app_name,href,query)); CREATE TABLE fun_casbin_rule (id bigint unsigned NOT NULL AUTO_INCREMENT,ptype varchar(10) NOT NULL,v0 varchar(190) NOT NULL DEFAULT '',v1 varchar(190) NOT NULL DEFAULT '',v2 varchar(190) NOT NULL DEFAULT '',v3 varchar(190) NOT NULL DEFAULT '',v4 varchar(190) NOT NULL DEFAULT '',v5 varchar(190) NOT NULL DEFAULT '',rule_hash char(64) NOT NULL,PRIMARY KEY(id),UNIQUE KEY uk_rule_hash(rule_hash)); INSERT INTO fun_admin (id) VALUES (1); INSERT INTO fun_permission (id,pid,code,obj,act,name,resource_type,status,source_type,source_name) VALUES (1,0,NULL,'','','Development','group',1,'admin_web','development_tools'),(2,1,'development:business:view','development/business','view','View','route',1,'admin_web','business_development'),(3,1,'development:business:generate','development/business','generate','Generate','route',1,'admin_web','business_development'); INSERT INTO fun_admin_menu (id,pid,name,href,query,status,source_type,source_name) VALUES (1,0,'Development','development','component=Layout',1,'admin_web','development_tools'); INSERT INTO fun_casbin_rule (ptype,v0,v1,v2,v3,rule_hash) VALUES ('p','role-view','console','development/business','view',SHA2(CONCAT_WS(CHAR(31),'p','role-view','console','development/business','view'),256)),('p','role-generate','console','development/business','generate',SHA2(CONCAT_WS(CHAR(31),'p','role-generate','console','development/business','generate'),256));");
+        $database->exec("CREATE TABLE fun_admin (id bigint unsigned NOT NULL AUTO_INCREMENT, PRIMARY KEY(id)) ENGINE=InnoDB; CREATE TABLE fun_permission (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,app_name varchar(50) NOT NULL DEFAULT 'console',code varchar(255) NULL,obj varchar(190) NOT NULL DEFAULT '',act varchar(100) NOT NULL DEFAULT '',name varchar(100) NOT NULL DEFAULT '',resource_type enum('group','route') NOT NULL DEFAULT 'route',status tinyint NOT NULL DEFAULT 1,is_public tinyint NOT NULL DEFAULT 0,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_permission_code(code)); CREATE TABLE fun_admin_menu (id int unsigned NOT NULL AUTO_INCREMENT,pid int unsigned NOT NULL DEFAULT 0,permission_id int unsigned NULL,app_name varchar(50) NOT NULL DEFAULT 'console',name varchar(100) NOT NULL DEFAULT '',href varchar(255) NOT NULL DEFAULT '',query varchar(250) NOT NULL DEFAULT '',target varchar(20) NOT NULL DEFAULT '_self',icon varchar(100) NOT NULL DEFAULT '',status tinyint NOT NULL DEFAULT 1,source_type varchar(20) NOT NULL DEFAULT 'system',source_name varchar(100) NOT NULL DEFAULT '',created_at datetime NULL,updated_at datetime NULL,sort_order int NOT NULL DEFAULT 999,deleted_at datetime NULL,PRIMARY KEY(id),UNIQUE KEY uk_menu_location(app_name,href,query)); CREATE TABLE fun_casbin_rule (id bigint unsigned NOT NULL AUTO_INCREMENT,ptype varchar(10) NOT NULL,v0 varchar(190) NOT NULL DEFAULT '',v1 varchar(190) NOT NULL DEFAULT '',v2 varchar(190) NOT NULL DEFAULT '',v3 varchar(190) NOT NULL DEFAULT '',v4 varchar(190) NOT NULL DEFAULT '',v5 varchar(190) NOT NULL DEFAULT '',rule_hash char(64) NOT NULL,PRIMARY KEY(id),UNIQUE KEY uk_rule_hash(rule_hash)); INSERT INTO fun_admin (id) VALUES (1); INSERT INTO fun_permission (id,pid,code,obj,act,name,resource_type,status,source_type,source_name) VALUES (1,0,NULL,'','','Development','group',1,'admin_web','development_tools'),(2,1,'development:business:view','development/business','view','View','route',1,'admin_web','business_development'),(3,1,'development:business:generate','development/business','generate','Generate','route',1,'admin_web','business_development'); INSERT INTO fun_admin_menu (id,pid,name,href,query,status,source_type,source_name) VALUES (1,0,'Development','development','component=Layout',1,'admin_web','development_tools'); INSERT INTO fun_casbin_rule (ptype,v0,v1,v2,v3,rule_hash) VALUES ('p','role-view','console','development/business','view',SHA2(CONCAT_WS(CHAR(31),'p','role-view','console','development/business','view'),256)),('p','role-generate','console','development/business','generate',SHA2(CONCAT_WS(CHAR(31),'p','role-generate','console','development/business','generate'),256));");
         $statements = new ReflectionMethod(MigrationService::class, 'statements');
         $statements->setAccessible(true);
         $migrationService = new MigrationService();
@@ -245,9 +246,9 @@ if (!extension_loaded('pdo_mysql')) {
         aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='{$databaseName}' AND TABLE_NAME='fun_ai_tool_call' AND COLUMN_NAME='arguments'")->fetchColumn() === 0, '真实 migration 不得创建原始 arguments 字段');
         aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='{$databaseName}' AND TABLE_NAME LIKE 'fun_ai_%'")->fetchColumn() >= 14, '真实 migration 关系完整性不足');
         aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_admin_menu WHERE source_name='ai_development' AND status=0")->fetchColumn() === 1, '091 必须创建唯一禁用菜单');
-        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-view' AND ((v2='development/ai' AND v3='view') OR (v2='console/development.ai' AND v3='messageCreate'))")->fetchColumn() === 2, 'view 只能等价映射 view/chat');
-        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-generate' AND ((v2='development/ai' AND v3='execute') OR (v2='console/development.ai' AND v3='taskExecute'))")->fetchColumn() === 2, 'generate 只能等价映射 execute');
-        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v3 IN ('approve','apply','configure','audit','approvalDecide','changeSetApply','configurationUpdate','auditIndex')")->fetchColumn() === 0, '091 不得自动授予高权限');
+        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-view' AND ((v2='development/ai' AND v3='view') OR (v2='console/development.ai' AND v3='messagecreate'))")->fetchColumn() === 2, 'view 只能等价映射 view/chat');
+        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v0='role-generate' AND ((v2='development/ai' AND v3='execute') OR (v2='console/development.ai' AND v3='taskexecute'))")->fetchColumn() === 2, 'generate 只能等价映射 execute');
+        aiPhase1Expect((int) $database->query("SELECT COUNT(*) FROM fun_casbin_rule WHERE v3 IN ('approve','apply','configure','audit','approvaldecide','changesetapply','configurationupdate','auditindex')")->fetchColumn() === 0, '091 不得自动授予高权限');
     } finally {
         $server->exec("DROP DATABASE IF EXISTS `{$databaseName}`");
     }

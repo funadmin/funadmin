@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use fun\plugins\ActivationGate;
-use fun\plugins\ActivationUnavailableException;
-use fun\plugins\PluginActivationCompiler;
-use fun\plugins\PluginActivationReader;
-use fun\plugins\PluginNotActiveException;
+use app\common\plugin\sdk\ActivationGate;
+use app\common\plugin\sdk\ActivationUnavailableException;
+use app\common\plugin\sdk\PluginActivationCompiler;
+use app\common\plugin\sdk\PluginActivationReader;
+use app\common\plugin\sdk\PluginNotActiveException;
 
 function activationExpect(bool $condition, string $message): void
 {
@@ -194,7 +194,7 @@ activationExpect(!$reader->read()->isTrusted(), '非法 active 指针必须返�
 unlink($runtime . '/active');
 activationExpect(!$reader->read()->isTrusted(), 'active 指针缺失必须返回不可信状态');
 
-$readerSource = (string) file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/PluginActivationReader.php');
+$readerSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/sdk/PluginActivationReader.php');
 foreach (['app\\common\\model\\Plugin', 'Registry', 'Manifest', 'glob(', 'scandir(', 'FilesystemIterator', 'require ', 'eval('] as $forbidden) {
     activationExpect(!str_contains($readerSource, $forbidden), 'Reader 热路径禁止 DB/Registry/Manifest/目录扫描/执行数据：' . $forbidden);
 }

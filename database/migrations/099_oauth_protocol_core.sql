@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `fun_oauth_token` (
   KEY `idx_oauth_token_user` (`tenant_id`,`user_id`,`revoked_at`), KEY `idx_oauth_token_family` (`tenant_id`,`family_id`,`generation`,`revoked_at`), KEY `idx_oauth_token_parent` (`parent_id`),
   CONSTRAINT `fk_oauth_token_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `fun_identity_tenant` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_oauth_token_client` FOREIGN KEY (`tenant_id`,`client_id`) REFERENCES `fun_oauth_client` (`tenant_id`,`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_oauth_token_user` FOREIGN KEY (`user_id`) REFERENCES `fun_identity_user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_oauth_token_user` FOREIGN KEY (`user_id`) REFERENCES `fun_identity_user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_oauth_token_authorization` FOREIGN KEY (`tenant_id`,`authorization_id`) REFERENCES `fun_oauth_authorization` (`tenant_id`,`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_oauth_token_parent` FOREIGN KEY (`parent_id`) REFERENCES `fun_oauth_token` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `ck_oauth_token_subject` CHECK ((`subject_type`='user' AND `user_id` IS NOT NULL) OR (`subject_type`='client' AND `user_id` IS NULL))

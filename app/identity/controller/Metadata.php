@@ -17,15 +17,18 @@ final class Metadata
             'issuer' => $issuer,
             'authorization_endpoint' => $issuer . '/authorize',
             'token_endpoint' => $issuer . '/token',
-            'jwks_uri' => $issuer . '/jwks',
+            'jwks_uri' => $issuer . '/.well-known/jwks.json',
             'userinfo_endpoint' => $issuer . '/userinfo',
+            'end_session_endpoint' => $issuer . '/logout',
+            'backchannel_logout_supported' => true,
+            'backchannel_logout_session_supported' => true,
             'revocation_endpoint' => $issuer . '/revoke',
             'introspection_endpoint' => $issuer . '/introspect',
             'response_types_supported' => ['code'],
             'grant_types_supported' => ['authorization_code', 'refresh_token', 'client_credentials'],
-            'subject_types_supported' => ['public'],
+            'subject_types_supported' => ['public', 'pairwise'],
             'id_token_signing_alg_values_supported' => ['RS256'],
-            'scopes_supported' => ['openid', 'profile', 'email', 'phone', 'offline_access'],
+            'scopes_supported' => ['openid', 'profile', 'email', 'phone', 'organization', 'roles', 'permissions', 'offline_access'],
             'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'none'],
             'code_challenge_methods_supported' => ['S256'],
         ]);
@@ -52,7 +55,8 @@ final class Metadata
         $rows = (new SigningKeyService())->listPublishable(1);
         $keys = [];
         foreach ($rows as $row) {
-            $jwk = json_decode((string) $row['public_jwk'], true);
+            $jwk = $row['public_jwk'] ?? null;
+            if (is_string($jwk)) $jwk = json_decode($jwk, true);
             if (is_array($jwk)) $keys[] = $jwk;
         }
         return $this->secureJson(['keys' => $keys]);

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use app\identity\service\NativeIdentitySessionResolver;
+
 return [
     // Phase 4 协议核心使用短期 code、opaque token 与全客户端 PKCE S256。
     'authorization_code_ttl' => 'PT5M',
@@ -14,5 +16,7 @@ return [
     ],
     'private_key_path' => env('oauth.private_key_path', ''),
     'encryption_key' => env('oauth.encryption_key', ''),
-    'identity_session_resolver' => env('oauth.identity_session_resolver', ''),
+    // pairwise subject pepper 只能通过环境变量或 secret provider 注入，禁止持久化或记录。
+    'subject_pepper' => env('oidc.subject_pepper', ''),
+    'identity_session_resolver' => env('oauth.identity_session_resolver', NativeIdentitySessionResolver::class),
 ];

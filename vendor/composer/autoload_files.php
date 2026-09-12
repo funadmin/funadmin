@@ -23,5 +23,5 @@ return array(
     '667aeda72477189d0494fecd327c3641' => $vendorDir . '/symfony/var-dumper/Resources/functions/dump.php',
     '1cfd2761b63b0a29ed23657ea394cb2d' => $vendorDir . '/topthink/think-captcha/src/helper.php',
     'cc56288302d9df745d97c934d6a6e5f0' => $vendorDir . '/topthink/think-queue/src/common.php',
-    '8ab20330a5eba7351f0079e3f962caad' => $baseDir . '/extend/fun/helper.php',
+    'a7766ffd5077324d9d36fe36440719f8' => $baseDir . '/app/common/functions.php',
 );

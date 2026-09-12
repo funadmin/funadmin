@@ -5,11 +5,11 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__);
-$service = (string) file_get_contents($root . '/app/console/service/PluginService.php');
-$support = (string) file_get_contents($root . '/app/console/service/concern/PluginServiceSupport.php');
-$infrastructure = (string) file_get_contents($root . '/app/console/service/PluginInfrastructureService.php');
-$resourcePublisher = (string) file_get_contents($root . '/app/console/service/PluginResourcePublisher.php');
-$databaseRepository = (string) file_get_contents($root . '/app/console/service/DatabasePluginResourceRepository.php');
+$service = (string) file_get_contents($root . '/app/console/plugin/service/PluginService.php');
+$support = (string) file_get_contents($root . '/app/console/plugin/service/concern/PluginServiceSupport.php');
+$infrastructure = (string) file_get_contents($root . '/app/console/plugin/service/PluginInfrastructureService.php');
+$resourcePublisher = (string) file_get_contents($root . '/app/console/plugin/service/PluginResourcePublisher.php');
+$databaseRepository = (string) file_get_contents($root . '/app/console/plugin/repository/DatabasePluginResourceRepository.php');
 $migration = $root . '/database/migrations/065_plugin_app_publication.sql';
 $registryNamingMigration = $root . '/database/migrations/068_plugin_publication_registry_naming.sql';
 
@@ -86,7 +86,7 @@ $recoverMethod = substr($infrastructure, (int) strpos($infrastructure, 'function
 $recoverMethod = substr($recoverMethod, 0, (int) strpos($recoverMethod, 'public function recoverPublicationContext'));
 $expect(str_contains($recoverMethod, 'withPublicationLock'), '恢复命令的统一补偿必须持有同一 publication lock');
 $expect(!str_contains($recoverMethod, '->recover('), '恢复命令不得由 native recover 抢先恢复或清理共享材料');
-$recoveryInfrastructure = new \app\console\service\PluginInfrastructureService();
+$recoveryInfrastructure = new \app\console\plugin\service\PluginInfrastructureService();
 $recoveryInfrastructure->recoverPublicationContext(['plugin_code' => 'demo', 'file_snapshot' => []]);
 $recoveryInfrastructure->recoverPublicationContext(['plugin_code' => 'demo', 'file_snapshot' => ['plugin_code' => 'demo']]);
 $recoveryInfrastructure->recoverPublicationContext([
@@ -112,7 +112,7 @@ foreach (['resource_type', 'publication_unit', 'operation_token', 'tree_hash'] a
 $expect(str_contains($sql, 'information_schema.COLUMNS'), '065 migration 必须可幂等执行');
 $expect(str_contains($sql, 'information_schema.STATISTICS'), '065 migration 索引创建必须可幂等执行');
 $expect(str_contains($databaseRepository, "where('resource_type', 'file')"), 'file Repository 只能替换 file 记录');
-$databaseAppRepository = (string) file_get_contents($root . '/app/console/service/DatabasePluginAppPublicationRepository.php');
+$databaseAppRepository = (string) file_get_contents($root . '/app/console/plugin/repository/DatabasePluginAppPublicationRepository.php');
 $expect(str_contains($databaseAppRepository, "where('resource_type', 'native_app')"), 'native Repository 只能替换 native_app 记录');
 $expect(is_file($registryNamingMigration), '必须新增 068 forward migration 收敛 registry 命名');
 $registryNamingSql = is_file($registryNamingMigration) ? (string) file_get_contents($registryNamingMigration) : '';

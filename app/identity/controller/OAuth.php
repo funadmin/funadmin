@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace app\identity\controller;
 
-use app\common\model\identity\IdentityUser;
+use app\common\service\BearerTokenExtractor;
 use app\common\service\identity\OAuthScopeService;
 use app\identity\oauth\AuthorizationRequestValidator;
 use app\identity\oauth\entity\ClientEntity;
 use app\identity\oauth\repository\ClientRepository;
 use app\identity\service\AuthorizationTransactionService;
-use app\identity\service\IdentitySessionResolverInterface;
+use app\identity\service\IdentitySessionResolverFactory;
 use app\identity\service\IdTokenService;
+use app\identity\service\OidcClaimService;
 use app\identity\service\OpaqueTokenService;
 use DomainException;
 use InvalidArgumentException;
@@ -32,7 +33,9 @@ final class OAuth
             if (array_diff($protocol['scopes'], $client->allowedScopes) !== []) return $this->redirectError($redirect, 'invalid_scope', $protocol['state']);
             $scopeIds = (new OAuthScopeService())->resolveIds($client->tenantId, $protocol['scopes']);
             $transactionId = (new AuthorizationTransactionService())->create($client->tenantId, $client->databaseId, $redirect, $protocol, $scopeIds);
-            return $this->secureJson(['transaction_id' => $transactionId, 'interaction_url' => '/identity/authorize/placeholder?transaction_id=' . rawurlencode($transactionId)]);
+            $interactionUrl = '/identity/interaction?transaction_id=' . rawurlencode($transactionId);
+            if (str_contains(strtolower((string) $request->header('accept', '')), 'text/html')) return redirect($interactionUrl)->header($this->securityHeaders());
+            return $this->secureJson(['transaction_id' => $transactionId, 'interaction_url' => $interactionUrl]);
         } catch (InvalidArgumentException $exception) {
             return $this->error($exception->getMessage(), 400);
         }
@@ -40,7 +43,7 @@ final class OAuth
 
     public function decision(Request $request): Response
     {
-        $identity = $this->resolveIdentity($request);
+        $identity = IdentitySessionResolverFactory::make()->resolve($request);
         if ($identity === null) return $this->error('login_required', 401);
         try {
             $result = (new AuthorizationTransactionService())->decide((string) $request->post('transaction_id', ''), $identity, filter_var($request->post('approved', false), FILTER_VALIDATE_BOOL));
@@ -72,8 +75,8 @@ final class OAuth
 
     public function revoke(Request $request): Json
     {
-        try { $this->authenticateClient($request, false); } catch (DomainException) { return $this->error('invalid_client', 401); }
-        (new OpaqueTokenService())->revoke((string) $request->post('token', ''));
+        try { [$client] = $this->authenticateClient($request, false); } catch (DomainException) { return $this->error('invalid_client', 401); }
+        (new OpaqueTokenService())->revoke((string) $request->post('token', ''), $client->databaseId);
         return $this->secureJson([]);
     }
 
@@ -83,6 +86,7 @@ final class OAuth
             [$client] = $this->authenticateClient($request, false);
             if (!$client->isConfidential()) throw new DomainException('invalid_client');
             $result = (new OpaqueTokenService())->inspect((string) $request->post('token', ''));
+            if (($result['active'] ?? false) && (int) ($result['_record']['client_id'] ?? 0) !== $client->databaseId) $result = ['active' => false];
             unset($result['_record']);
             return $this->secureJson(array_filter($result, static fn ($value): bool => $value !== null));
         } catch (DomainException) {
@@ -92,18 +96,13 @@ final class OAuth
 
     public function userinfo(Request $request): Json
     {
-        $plain = preg_replace('/^Bearer\s+/i', '', (string) $request->header('authorization', '')) ?? '';
+        $plain = (new BearerTokenExtractor())->extract($request);
+        if ($plain === null) return $this->error('invalid_token', 401);
         $token = (new OpaqueTokenService())->inspect($plain);
-        $scopes = explode(' ', (string) ($token['scope'] ?? ''));
+        $scopes = array_values(array_filter(explode(' ', (string) ($token['scope'] ?? ''))));
         if (!($token['active'] ?? false) || !in_array('openid', $scopes, true) || empty($token['_record']['user_id'])) return $this->error('invalid_token', 401);
         $record = $token['_record'];
-        $user = IdentityUser::forTenant((int) $record['tenant_id'])->where('id', (int) $record['user_id'])->where('status', 1)->find();
-        if (!$user) return $this->error('invalid_token', 401);
-        $claims = ['sub' => (string) $user->public_id];
-        if (in_array('profile', $scopes, true)) $claims += ['name' => (string) $user->display_name, 'preferred_username' => (string) $user->username, 'locale' => (string) $user->locale];
-        if (in_array('email', $scopes, true) && $user->email) $claims['email'] = (string) $user->email;
-        if (in_array('phone', $scopes, true) && $user->mobile) $claims['phone_number'] = (string) $user->mobile;
-        return $this->secureJson($claims);
+        return $this->secureJson((new OidcClaimService())->claims((int) $record['tenant_id'], (int) $record['user_id'], (int) $record['client_id'], $scopes));
     }
 
     private function authorizationCode(Request $request, ClientEntity $client, array $scopeIds): array
@@ -112,11 +111,11 @@ final class OAuth
         $original = (new \app\common\model\identity\OAuthAuthorizationScope())->where('authorization_id', $code['authorization_id'])->column('scope_id');
         if ($scopeIds !== [] && array_diff($scopeIds, $original) !== []) throw new DomainException('invalid_scope');
         $granted = $scopeIds ?: $original;
-        $tokens = (new OpaqueTokenService())->issue($client->tenantId, $client->databaseId, (int) $code['user_id'], $granted, (int) $code['authorization_id']);
+        $authorization = \app\common\model\identity\OAuthAuthorization::forTenant($client->tenantId)->where('id', $code['authorization_id'])->find();
+        if (!$authorization) throw new DomainException('invalid_grant');
+        $tokens = (new OpaqueTokenService())->issue($client->tenantId, $client->databaseId, (int) $code['user_id'], $granted, (int) $code['authorization_id'], sessionId: (string) $authorization->session_id);
         if (in_array('openid', $this->scopeNames($granted), true)) {
-            $authorization = \app\common\model\identity\OAuthAuthorization::forTenant($client->tenantId)->where('id', $code['authorization_id'])->find();
-            if (!$authorization) throw new DomainException('invalid_grant');
-            $tokens['id_token'] = (new IdTokenService())->issue($client->tenantId, (int) $code['user_id'], $client->getIdentifier(), strtotime((string) $authorization->auth_time), $code['nonce'] ?: null, (string) $authorization->session_id);
+            $tokens['id_token'] = (new IdTokenService())->issue($client->tenantId, (int) $code['user_id'], $client->databaseId, $client->getIdentifier(), $this->scopeNames($granted), strtotime((string) $authorization->auth_time), $code['nonce'] ?: null, (string) $authorization->session_id);
         }
         return $tokens;
     }
@@ -132,13 +131,14 @@ final class OAuth
     {
         $grant = (string) $request->post('grant_type', ''); $clientId = (string) $request->post('client_id', ''); $secret = null;
         $authorization = (string) $request->header('authorization', '');
-        if (str_starts_with($authorization, 'Basic ')) {
+        $usedBasic = str_starts_with(strtolower($authorization), 'basic ');
+        if ($usedBasic) {
             $decoded = base64_decode(substr($authorization, 6), true);
             if (!is_string($decoded) || !str_contains($decoded, ':')) throw new DomainException('invalid_client');
             [$clientId, $secret] = explode(':', $decoded, 2);
         }
         $repository = new ClientRepository(); $client = $repository->getClientEntity($clientId);
-        if (!$client || !$repository->validateClient($clientId, $secret, $requireGrant ? $grant : null)) throw new DomainException('invalid_client');
+        if (!$client || ($usedBasic && !$client->isConfidential()) || (!$usedBasic && $client->isConfidential()) || !$repository->validateClient($clientId, $secret, $requireGrant ? $grant : null)) throw new DomainException('invalid_client');
         return [$client, $grant];
     }
 
@@ -150,17 +150,16 @@ final class OAuth
         return (new OAuthScopeService())->resolveIds($client->tenantId, $names);
     }
 
-    private function resolveIdentity(Request $request): ?array
-    {
-        $class = (string) config('oauth.identity_session_resolver', '');
-        if ($class === '' || !class_exists($class)) return null;
-        $resolver = app()->make($class);
-        return $resolver instanceof IdentitySessionResolverInterface ? $resolver->resolve($request) : null;
-    }
-
     private function scopeNames(array $ids): array { return $ids === [] ? [] : (new \app\common\model\identity\OAuthScope())->whereIn('id', $ids)->column('name'); }
     private function appendQuery(string $uri, array $parameters): string { return $uri . (str_contains($uri, '?') ? '&' : '?') . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986); }
     private function redirectError(string $uri, string $error, ?string $state): Response { $params = ['error' => $error]; if ($state !== null) $params['state'] = $state; return redirect($this->appendQuery($uri, $params)); }
-    private function error(string $error, int $status): Json { return $this->secureJson(['error' => $error], $status); }
-    private function secureJson(array $data, int $status = 200): Json { return json($data, $status)->header(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'DENY']); }
+    private function error(string $error, int $status): Json
+    {
+        $response = $this->secureJson(['error' => $error], $status);
+        if ($error === 'invalid_client') $response->header(['WWW-Authenticate' => 'Basic realm="identity"']);
+        if ($error === 'invalid_token') $response->header(['WWW-Authenticate' => 'Bearer realm="identity", error="invalid_token"']);
+        return $response;
+    }
+    private function securityHeaders(): array { return ['Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'", 'Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'Referrer-Policy' => 'no-referrer', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'DENY']; }
+    private function secureJson(array $data, int $status = 200): Json { return json($data, $status)->header($this->securityHeaders()); }
 }

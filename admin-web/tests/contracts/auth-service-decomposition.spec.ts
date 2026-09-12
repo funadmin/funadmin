@@ -20,14 +20,14 @@ const phpFilesUnder = (relativePath: string): string[] => {
 const productionPhpFiles = ['app', 'extend', 'config'].flatMap(phpFilesUnder);
 const productionPhp = productionPhpFiles.map((file) => `${file}\n${readProjectFile(file)}`).join('\n');
 const consoleRoute = readProjectFile('app/console/route/app.php');
-const adminAuthController = readProjectFile('app/console/controller/auth/AdminAuth.php');
+const adminAuthController = readProjectFile('app/console/controller/authentication/AdminAuth.php');
 const uploadController = readProjectFile('app/console/controller/system/AdminUpload.php');
-const roleController = readProjectFile('app/console/controller/system/SystemRole.php');
+const roleController = readProjectFile('app/console/controller/authorization/SystemRole.php');
 const adminController = readProjectFile('app/console/controller/system/SystemAdmin.php');
-const menuControllerRoutes = readProjectFile('app/console/controller/system/SystemMenu.php');
+const menuControllerRoutes = readProjectFile('app/console/controller/authorization/SystemMenu.php');
 const funadminConfig = readProjectFile('config/funadmin.php');
 const crudConfig = readProjectFile('config/crud.php');
-const menuController = readProjectFile('app/console/controller/system/SystemMenu.php');
+const menuController = readProjectFile('app/console/controller/authorization/SystemMenu.php');
 const apiRoleMiddleware = readProjectFile('app/console/middleware/CheckAdminApiRole.php');
 
 const expectFileMissing = (relativePath: string) => {
@@ -71,16 +71,16 @@ describe('管理员认证最终架构契约', () => {
   });
 
   it('调用方直接使用会话、授权和角色范围服务', () => {
-    const adminAuth = readRequiredFile('app/console/controller/auth/AdminAuth.php');
-    const profile = readRequiredFile('app/console/controller/auth/AdminProfile.php');
+    const adminAuth = readRequiredFile('app/console/controller/authentication/AdminAuth.php');
+    const profile = readRequiredFile('app/console/controller/authentication/AdminProfile.php');
     const business = readRequiredFile('app/console/controller/development/Business.php');
-    const roleGuard = readRequiredFile('app/console/service/RoleGuardService.php');
+    const roleGuard = readRequiredFile('app/console/authorization/service/RoleGuardService.php');
     const systemCallers = [
       'app/console/controller/system/SystemAdmin.php',
       'app/console/controller/system/SystemDepartment.php',
-      'app/console/controller/system/SystemMenu.php',
-      'app/console/controller/system/SystemPermission.php',
-      'app/console/controller/system/SystemRole.php',
+      'app/console/controller/authorization/SystemMenu.php',
+      'app/console/controller/authorization/SystemPermission.php',
+      'app/console/controller/authorization/SystemRole.php',
     ].map(readRequiredFile).join('\n');
 
     expect(adminAuth).toContain('AdminSessionService');
@@ -124,11 +124,11 @@ describe('管理员认证最终架构契约', () => {
 
   it('新 auth、upload、system API 文件与 Attribute 路由继续存在', () => {
     for (const file of [
-      'app/console/controller/auth/AdminAuth.php',
-      'app/console/controller/auth/AdminProfile.php',
+      'app/console/controller/authentication/AdminAuth.php',
+      'app/console/controller/authentication/AdminProfile.php',
       'app/console/controller/system/AdminUpload.php',
-      'app/console/controller/system/SystemMenu.php',
-      'app/console/controller/system/SystemRole.php',
+      'app/console/controller/authorization/SystemMenu.php',
+      'app/console/controller/authorization/SystemRole.php',
       'app/console/controller/system/SystemAdmin.php',
     ]) {
       readRequiredFile(file);

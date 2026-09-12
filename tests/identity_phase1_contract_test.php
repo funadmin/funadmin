@@ -56,11 +56,11 @@ foreach (['IdentityUserService', 'IdentityCredentialService', 'LegacyIdentityLin
 }
 
 $integrationSources = [
-    $root . '/app/console/service/AdminSessionService.php' => 'AdminIdentityAdapter',
+    $root . '/app/console/authentication/service/AdminSessionService.php' => 'AdminIdentityAdapter',
     $root . '/app/common/service/MemberAuthService.php' => 'MemberIdentityAdapter',
     $root . '/app/console/controller/system/SystemAdmin.php' => 'AdminIdentityAdapter',
     $root . '/app/console/controller/system/SystemMember.php' => 'MemberIdentityAdapter',
-    $root . '/app/console/controller/auth/AdminProfile.php' => 'AdminIdentityAdapter',
+    $root . '/app/console/controller/authentication/AdminProfile.php' => 'AdminIdentityAdapter',
 ];
 foreach ($integrationSources as $file => $adapter) {
     identityPhase1Expect(str_contains((string) file_get_contents($file), $adapter), basename($file) . ' 尚未接入 ' . $adapter);
@@ -76,8 +76,6 @@ $importSource = $importStart !== false && $importEnd !== false ? substr($memberC
 identityPhase1Expect(str_contains($importSource, 'MemberIdentityAdapter'), '会员导入创建必须接入 identity dual-write');
 
 $route = (string) file_get_contents($root . '/app/identity/route/app.php');
-foreach (["Route::get('authorize'", "Route::post('token'", "Route::get('.well-known/openid-configuration'", "Route::get('jwks'"] as $routePattern) {
-    identityPhase1Expect(!str_contains($route, $routePattern), 'Phase 1 仍不得暴露 OIDC session 端点');
-}
+identityPhase1Expect(str_contains($route, "Route::get('logout'"), 'Phase7 完成后 identity 必须声明 OIDC logout');
 
 echo "identity phase1 contract tests passed\n";

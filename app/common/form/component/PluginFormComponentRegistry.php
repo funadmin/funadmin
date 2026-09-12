@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace app\common\form\component;
 
 use Closure;
-use fun\plugins\Manifest;
-use fun\plugins\PluginActivationReader;
-use fun\plugins\PluginEntryFactory;
+use app\common\plugin\sdk\Manifest;
+use app\common\plugin\sdk\PluginActivationReader;
+use app\common\plugin\sdk\PluginEntryFactory;
 use RuntimeException;
 
 /** 仅暴露可信激活清单中启用插件声明的表单组件。 */

@@ -6,10 +6,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\service\MigrationService;
 use app\console\model\BackendModel;
-use app\console\model\BusinessModule;
-use app\console\model\CrudGeneration;
-use app\console\model\Form;
-use app\console\model\GeneratedFileBaseline;
+use app\console\development\model\BusinessModule;
+use app\console\development\model\CrudGeneration;
+use app\console\form\model\Form;
+use app\console\development\model\GeneratedFileBaseline;
 use think\App;
 
 function businessDevelopmentExpect(bool $condition, string $message): void
@@ -46,8 +46,8 @@ businessDevelopmentExpect(in_array($migrationName, $migrations, true), '缺少�
 $numbered077 = array_values(array_filter($migrations, static fn (string $name): bool => str_starts_with($name, '077_')));
 businessDevelopmentExpect($numbered077 === [$migrationName], '077 migration 编号冲突');
 businessDevelopmentExpect(is_file($migrationPath), '缺少业务开发中心 migration');
-businessDevelopmentExpect(is_file($root . '/app/console/model/BusinessModule.php'), '缺少 BusinessModule 模型');
-businessDevelopmentExpect(is_file($root . '/app/console/model/GeneratedFileBaseline.php'), '缺少 GeneratedFileBaseline 模型');
+businessDevelopmentExpect(is_file($root . '/app/console/development/model/BusinessModule.php'), '缺少 BusinessModule 模型');
+businessDevelopmentExpect(is_file($root . '/app/console/development/model/GeneratedFileBaseline.php'), '缺少 GeneratedFileBaseline 模型');
 
 $businessModule = (new ReflectionClass(BusinessModule::class))->newInstanceWithoutConstructor();
 $baseline = (new ReflectionClass(GeneratedFileBaseline::class))->newInstanceWithoutConstructor();

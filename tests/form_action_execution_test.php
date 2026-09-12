@@ -5,7 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\form\action\FormActionRegistry;
-use app\console\service\FormDataService;
+use app\console\form\service\FormDataService;
 
 function actionExpect(bool $condition, string $message): void
 {

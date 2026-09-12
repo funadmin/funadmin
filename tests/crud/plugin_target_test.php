@@ -11,11 +11,11 @@ use app\common\crud\CrudGenerator;
 use app\common\crud\DefinitionValidator;
 use app\common\crud\PluginCrudDefinitionFactory;
 use app\common\crud\TemplateRenderer;
-use fun\command\PluginCrudGenerate;
-use fun\command\PluginCrudPreview;
-use fun\command\PluginMakeCrud;
-use fun\plugins\Manifest;
-use fun\plugins\PluginScaffolder;
+use app\console\command\PluginCrudGenerate;
+use app\console\command\PluginCrudPreview;
+use app\console\command\PluginMakeCrud;
+use app\common\plugin\sdk\Manifest;
+use app\common\plugin\sdk\PluginScaffolder;
 
 function pluginCrudExpect(bool $condition, string $message): void
 {
@@ -303,7 +303,7 @@ try {
     foreach (['plugin:make-crud', 'plugin:crud-preview', 'plugin:crud-generate'] as $command) {
         pluginCrudExpect(isset($console['commands'][$command]), '缺少命令注册：' . $command);
     }
-    $makeCommand = (string) file_get_contents($repository . '/extend/fun/command/PluginMakeCrud.php');
+    $makeCommand = (string) file_get_contents($repository . '/app/console/command/PluginMakeCrud.php');
     pluginCrudExpect(str_contains($makeCommand, "addOption('table'") && str_contains($makeCommand, '->infer('), 'plugin:make-crud 必须支持 table inspect/infer');
     $commandContracts = [
         new PluginMakeCrud(),
@@ -318,8 +318,8 @@ try {
     pluginCrudExpect($commandContracts[1]->getName() === 'plugin:crud-preview' && $commandContracts[1]->getDefinition()->getArgument('definition')->isRequired(), 'plugin:crud-preview contract 错误');
     pluginCrudExpect($commandContracts[1]->getDefinition()->getOption('token-output')->acceptValue(), 'plugin:crud-preview 必须提供 0600 token 输出文件');
     pluginCrudExpect($commandContracts[2]->getName() === 'plugin:crud-generate' && $commandContracts[2]->getDefinition()->getOption('confirm-token-file')->acceptValue(), 'plugin:crud-generate contract 错误');
-    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/extend/fun/command/PluginMakeCrud.php'), 'confirmToken'), 'plugin:make-crud 不得生成或输出 token');
-    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/extend/fun/command/PluginCrudPreview.php'), "'sensitive'"), 'plugin:crud-preview stdout 不得包含 token');
+    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/console/command/PluginMakeCrud.php'), 'confirmToken'), 'plugin:make-crud 不得生成或输出 token');
+    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/console/command/PluginCrudPreview.php'), "'sensitive'"), 'plugin:crud-preview stdout 不得包含 token');
 
     $schema = json_decode((string) file_get_contents($repository . '/app/common/crud/schema/crud-definition-v1.schema.json'), true, 512, JSON_THROW_ON_ERROR);
     pluginCrudExpect(isset($schema['properties']['target']) && in_array('target', $schema['required'], true), 'Schema 未同步 plugin target');

@@ -11,6 +11,12 @@ let nextKeyId = 2;
 const oauthClients: any[] = [{ id: 1, application_id: 1, client_id: 'mock-crm-client', name: 'CRM Web', client_type: 'confidential', token_endpoint_auth_method: 'client_secret_basic', require_pkce: 0, status: 'active', grants: ['authorization_code', 'refresh_token'], scopes: ['openid', 'profile'], redirect_uris: [{ id: 1, uri_type: 'authorization_callback', redirect_uri: 'https://crm.example.com/callback' }] }];
 const clientSecrets = new Map<number, any[]>();
 const signingKeys: any[] = [{ id: 1, kid: 'mock-active-key', algorithm: 'RS256', status: 'active', activated_at: '2026-09-01 00:00:00', publish_until: null }];
+const identityUsers: any[] = [{ id: 1, public_id: 'mock-user-1', username: 'admin', display_name: '系统管理员', email: 'a***@example.com', mobile: '138****0000', realm: 'admin', status: 1, last_login_at: '2026-09-12 09:00:00' }];
+const scopes: any[] = [{ id: 1, name: 'openid', description: 'OIDC 身份', claims: ['sub'], is_builtin: 1, status: 1 }];
+const sessions: any[] = [{ id: 1, sid: 'mock-session', user_id: 1, status: 'active', expires_at: '2026-09-13 09:00:00' }];
+const authorizations: any[] = [{ id: 1, client_id: 1, user_id: 1, status: 'approved' }];
+const audits: any[] = [{ id: 1, event_type: 'login.success', outcome: 'success', user_id: 1, created_at: '2026-09-12 09:00:00' }];
+let ssoConfig = { enabled: 0, provider_mode: 'native', issuer: 'https://identity.example.com', external_identity_enabled: 0, backchannel_logout_enabled: 1 };
 const settings = new Map<number, Record<string, any>>([
   [1, {
     database: { mode: 'shared', health_path: '/health', credential_configured: false },
@@ -25,6 +31,7 @@ const settings = new Map<number, Record<string, any>>([
 
 export const enterpriseApplicationMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/identity/applications', handler: ({ params }) => { const keyword = String(params.keyword || ''); const list = applications.filter((item) => !keyword || item.name.includes(keyword) || item.code.includes(keyword)); return ok(page(list, list.length, Number(params.page || 1), Number(params.pageSize || 20))); } },
+  { method: 'GET', url: '/identity/applications/portal', handler: ({ params }) => { const keyword = String(params.keyword || ''); const list = applications.filter((item) => (!keyword || item.name.includes(keyword) || item.code.includes(keyword))).map((item) => ({ ...item, available: item.status === 'published' && item.id === 1, availability_reason: item.status === 'draft' ? '应用尚未发布' : item.id === 1 ? null : '当前身份被拒绝访问' })); return ok({ list, total: list.length }); } },
   { method: 'GET', url: /^\/identity\/applications\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => ok(applications.find((item) => item.id === Number(pathParams.id))) },
   { method: 'POST', url: '/identity/applications', handler: ({ body }) => { const app = { id: nextId++, code: body.code, name: body.name, description: body.description, runtime_type: body.runtimeType, launch_url: body.launchUrl, logo_url: body.logoUrl, brand_config: body.brandConfig, database_mode: body.databaseMode, status: 'draft' }; applications.push(app as any); return ok(app); } },
   { method: 'PUT', url: /^\/identity\/applications\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams, body }) => { const app = applications.find((item) => item.id === Number(pathParams.id))!; Object.assign(app, { code: body.code, name: body.name, description: body.description, runtime_type: body.runtimeType, launch_url: body.launchUrl, logo_url: body.logoUrl, brand_config: body.brandConfig, database_mode: body.databaseMode }); return ok(app); } },
@@ -56,5 +63,23 @@ export const enterpriseApplicationMockHandlers: MockRoute[] = [
   { method: 'PUT', url: /^\/identity\/oauth-clients\/(\d+)\/redirect-uris$/, paramNames: ['id'], handler: ({ pathParams, body }) => { const item = oauthClients.find((row) => row.id === Number(pathParams.id))!; item.redirect_uris = body.redirectUris.map((uri: any, index: number) => ({ id: index + 1, uri_type: uri.type, redirect_uri: uri.uri })); return ok(item.redirect_uris); } },
   ...['scopes', 'grants'].map((section) => ({ method: 'PUT', url: new RegExp(`^/identity/oauth-clients/(\\d+)/${section}$`), paramNames: ['id'], handler: ({ pathParams, body }: any) => { const item = oauthClients.find((row) => row.id === Number(pathParams.id))!; item[section] = body[section]; return ok(item); } } as MockRoute)),
   { method: 'GET', url: '/identity/signing-keys', handler: () => ok(signingKeys) },
-  { method: 'POST', url: '/identity/signing-keys/rotate', handler: () => { const now = new Date(); const active = signingKeys.find((item) => item.status === 'active'); if (active) { active.status = 'retiring'; active.publish_until = new Date(now.getTime() + 86400000).toISOString(); } const key = { id: nextKeyId++, kid: `mock-key-${nextKeyId}`, algorithm: 'RS256', status: 'active', activated_at: now.toISOString(), publish_until: null }; signingKeys.unshift(key); return ok(key); } }
+  { method: 'POST', url: '/identity/signing-keys/rotate', handler: () => { const now = new Date(); const active = signingKeys.find((item) => item.status === 'active'); if (active) { active.status = 'retiring'; active.publish_until = new Date(now.getTime() + 86400000).toISOString(); } const key = { id: nextKeyId++, kid: `mock-key-${nextKeyId}`, algorithm: 'RS256', status: 'active', activated_at: now.toISOString(), publish_until: null }; signingKeys.unshift(key); return ok(key); } },
+  { method: 'GET', url: '/identity/sso/config', handler: () => ok(ssoConfig) },
+  { method: 'PUT', url: '/identity/sso/config', handler: ({ body }) => { ssoConfig = { enabled: Number(Boolean(body.enabled)), provider_mode: body.providerMode, issuer: body.issuer, external_identity_enabled: 0, backchannel_logout_enabled: Number(Boolean(body.backchannelLogoutEnabled)) }; return ok(ssoConfig); } },
+  { method: 'GET', url: '/identity/sso/check', handler: () => ok({ issuer: ssoConfig.issuer, passed: true, checks: ['issuer','https','domain','redirect','pkce','scope','key','backchannel'].map((key) => ({ key, passed: true, message: '配置有效' })) }) },
+  { method: 'GET', url: '/identity/oidc-sessions/deliveries', handler: ({ params }) => ok(page([{ id: 1, client_id: 1, status: 'delivered', attempts: 1, response_status: 200 }], 1, Number(params.page || 1), Number(params.pageSize || 20))) },
+  { method: 'POST', url: /^\/identity\/oidc-sessions\/deliveries\/(\d+)\/retry$/, paramNames: ['id'], handler: () => ok({ delivered: true }) },
+  { method: 'GET', url: '/identity/scopes', handler: ({ params }) => ok(page(scopes, scopes.length, Number(params.page || 1), Number(params.pageSize || 20))) },
+  { method: 'POST', url: '/identity/scopes', handler: ({ body }) => { const row = { id: scopes.length + 1, ...body, is_builtin: 0 }; scopes.push(row); return ok(row); } },
+  { method: 'PUT', url: /^\/identity\/scopes\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams, body }) => { const row = scopes.find((item) => item.id === Number(pathParams.id)); Object.assign(row!, body); return ok(row); } },
+  { method: 'DELETE', url: /^\/identity\/scopes\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const index = scopes.findIndex((item) => item.id === Number(pathParams.id)); if (index >= 0) scopes.splice(index, 1); return ok(null); } },
+  { method: 'GET', url: '/identity/users', handler: ({ params }) => ok(page(identityUsers, identityUsers.length, Number(params.page || 1), Number(params.pageSize || 20))) },
+  { method: 'GET', url: /^\/identity\/users\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => ok({ ...identityUsers.find((item) => item.id === Number(pathParams.id)), links: { admin: [{ id: 1, admin_id: 1 }], member: [] }, sessions, authorizations: [] }) },
+  { method: 'GET', url: /^\/identity\/users\/(\d+)\/links$/, paramNames: ['id'], handler: () => ok({ admin: [{ id: 1, admin_id: 1 }], member: [] }) },
+  { method: 'GET', url: /^\/identity\/users\/(\d+)\/sessions$/, paramNames: ['id'], handler: ({ pathParams }) => ok(sessions.filter((item) => item.user_id === Number(pathParams.id))) },
+  { method: 'GET', url: /^\/identity\/users\/(\d+)\/authorizations$/, paramNames: ['id'], handler: () => ok(authorizations) },
+  { method: 'POST', url: /^\/identity\/users\/(\d+)\/(sessions|authorizations)\/revoke$/, paramNames: ['id', 'section'], handler: () => ok(null) },
+  { method: 'GET', url: '/identity/oidc-sessions', handler: ({ params }) => ok(page(sessions, sessions.length, Number(params.page || 1), Number(params.pageSize || 20))) },
+  { method: 'POST', url: /^\/identity\/oidc-sessions\/(\d+)\/revoke$/, paramNames: ['id'], handler: ({ pathParams }) => { const row = sessions.find((item) => item.id === Number(pathParams.id)); if (row) row.status = 'ended'; return ok(null); } },
+  { method: 'GET', url: '/identity/audit', handler: ({ params }) => ok(page(audits, audits.length, Number(params.page || 1), Number(params.pageSize || 20))) }
 ];

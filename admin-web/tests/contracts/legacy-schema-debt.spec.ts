@@ -42,10 +42,10 @@ describe('017 历史命名与会员标签治理', () => {
 
   it('应用代码切换到规范管理员字段', () => {
     for (const path of [
-      'app/console/service/AdminSessionService.php',
-      'app/console/service/AdminAuthorizationService.php',
-      'app/console/controller/auth/AdminAuth.php',
-      'app/console/controller/auth/AdminProfile.php',
+      'app/console/authentication/service/AdminSessionService.php',
+      'app/console/authorization/service/AdminAuthorizationService.php',
+      'app/console/controller/authentication/AdminAuth.php',
+      'app/console/controller/authentication/AdminProfile.php',
       'app/console/controller/system/SystemAdmin.php',
       'app/common/traits/Crud.php'
     ]) {

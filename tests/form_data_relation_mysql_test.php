@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\service\FormDataService;
-use app\console\service\FormSchemaRepository;
+use app\console\form\repository\FormSchemaRepository;
+use app\console\form\service\FormDataService;
 use think\App;
 use think\facade\Db;
 

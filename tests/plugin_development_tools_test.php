@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use fun\plugins\Manifest;
-use fun\plugins\PluginArchiveService;
-use fun\plugins\PluginScaffolder;
+use app\common\plugin\sdk\Manifest;
+use app\common\plugin\sdk\PluginArchiveService;
+use app\common\plugin\sdk\PluginScaffolder;
 
 function developmentExpect(bool $condition, string $message): void
 {

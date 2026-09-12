@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace plugins\example;
 
-use fun\Plugins;
+use app\common\plugin\sdk\Plugin as BasePlugin;
 use plugins\example\vendor\Probe;
 
-final class Plugin extends Plugins
+final class Plugin extends BasePlugin
 {
     public static array $initializedState = [];
 

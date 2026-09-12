@@ -32,10 +32,8 @@ function phase4Rejects(callable $callback, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrations = glob($root . '/database/migrations/*.sql') ?: [];
-$numbers = array_map(static fn (string $file): int => (int) substr(basename($file), 0, 3), $migrations);
-sort($numbers);
-phase4Expect(end($numbers) === 99, 'Phase 4 必须使用下一个空闲 migration 099');
+$migrations = glob($root . '/database/migrations/099_*.sql') ?: [];
+phase4Expect(count($migrations) === 1 && basename($migrations[0]) === '099_oauth_protocol_core.sql', 'Phase 4 必须唯一占用 migration 099');
 $migration = $root . '/database/migrations/099_oauth_protocol_core.sql';
 phase4Expect(is_file($migration), '缺少 099 OAuth 协议核心 migration');
 $sql = (string) file_get_contents($migration);
@@ -91,9 +89,10 @@ $issuer = new IssuerService('https://identity.example.test');
 phase4Expect($issuer->getIssuer() === 'https://identity.example.test', 'issuer 必须来自固定配置');
 
 $route = (string) file_get_contents($root . '/app/identity/route/app.php');
-foreach (['.well-known/openid-configuration', '.well-known/oauth-authorization-server', 'jwks', 'authorize', 'decision', 'token', 'revoke', 'introspect', 'userinfo'] as $endpoint) {
+foreach (['.well-known/openid-configuration', '.well-known/oauth-authorization-server', '.well-known/jwks.json', 'authorize', 'decision', 'token', 'revoke', 'introspect', 'userinfo'] as $endpoint) {
     phase4Expect(str_contains($route, $endpoint), '缺少 Identity 协议路由：' . $endpoint);
 }
+phase4Expect(str_contains($route, 'use think\\middleware\\Throttle;'), 'Identity 协议路由必须声明 Throttle 中间件');
 $oauthConfig = (string) file_get_contents($root . '/config/oauth.php');
 phase4Expect(str_contains($oauthConfig, "'authorization_code_ttl' => 'PT5M'"), 'authorization code TTL 必须为 5 分钟');
 phase4Expect(str_contains($oauthConfig, "'required_for_all_clients' => true"), 'PKCE S256 必须对所有 client 强制');

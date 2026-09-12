@@ -29,6 +29,7 @@ import { configMockHandlers } from './modules/config';
 import { pluginMockHandlers } from './modules/plugin';
 import { upgradeMockHandlers } from './modules/upgrade';
 import { developmentBusinessMockHandlers } from './modules/developmentBusiness';
+import { developmentAiMockHandlers } from './modules/developmentAi';
 import { developmentPluginMockHandlers } from './modules/developmentPlugin';
 import { enterpriseApplicationMockHandlers } from './modules/applications';
 import type { MockHandler, MockRoute, MockMethod } from './types';
@@ -52,6 +53,7 @@ const routes: MockRoute[] = [
   ...pluginMockHandlers,
   ...upgradeMockHandlers,
   ...developmentBusinessMockHandlers,
+  ...developmentAiMockHandlers,
   ...developmentPluginMockHandlers,
   ...enterpriseApplicationMockHandlers
 ];

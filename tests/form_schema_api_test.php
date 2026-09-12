@@ -7,7 +7,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaException;
 use app\common\form\schema\FormSchemaValidator;
-use app\console\service\FormSchemaRepository;
+use app\console\form\repository\FormSchemaRepository;
 
 function schemaApiExpect(bool $condition, string $message): void
 {
@@ -109,7 +109,7 @@ $repositoryMethods = get_class_methods(FormSchemaRepository::class);
 foreach (['versions', 'findVersion', 'diff', 'rollback'] as $method) {
     schemaApiExpect(in_array($method, $repositoryMethods, true), '版本仓库缺少方法：' . $method);
 }
-$repositorySource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/FormSchemaRepository.php');
+$repositorySource = (string) file_get_contents(dirname(__DIR__) . '/app/console/form/repository/FormSchemaRepository.php');
 schemaApiExpect(str_contains($repositorySource, "'rollback'"), 'rollback 新版本必须记录 rollback origin');
 schemaApiExpect(str_contains($repositorySource, "'rolledBackFromVersion'"), 'rollback 文档必须记录来源版本以产生新的不可变 hash');
 schemaApiExpect(str_contains($repositorySource, 'saveVersion($formId'), 'rollback 必须通过 saveVersion 创建新版本');
@@ -118,7 +118,7 @@ $controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/
 foreach (['schema/compile', 'schema/export', 'schema/versions', 'schema/diff', 'rollback'] as $route) {
     schemaApiExpect(str_contains($controllerSource, $route), 'Business 缺少 Schema API 路由：' . $route);
 }
-$errorMapperSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/BusinessApiErrorMapper.php');
+$errorMapperSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/development/http/BusinessApiErrorMapper.php');
 schemaApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), 'Business Schema API 必须委托统一错误映射器');
 schemaApiExpect(str_contains($errorMapperSource, 'FormSchemaException') && str_contains($errorMapperSource, 'InvalidArgumentException'), 'Business 错误映射器必须统一处理 Schema 错误');
 

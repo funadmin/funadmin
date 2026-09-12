@@ -10,9 +10,9 @@ use app\common\crud\ConfirmationToken;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaMigrator;
 use app\common\form\schema\FormSchemaValidator;
-use app\console\service\FormCrudDefinitionFactory;
-use app\console\service\GeneratedFileBaselineRepository;
-use app\console\service\ManagedGenerationService;
+use app\console\development\repository\GeneratedFileBaselineRepository;
+use app\console\development\service\FormCrudDefinitionFactory;
+use app\console\development\service\ManagedGenerationService;
 
 final class IdempotencyGenerationStateRepository
 {
@@ -159,6 +159,21 @@ try {
     $state = new IdempotencyGenerationStateRepository();
     [$service, $tokens, $schema, $form] = idempotencyFixture($root, $state);
 
+    $proposalDocument = $schema->document();
+    $proposalDocument['title'] = 'AI 结构化提案';
+    $proposalPreview = $service->previewProposal(7, $proposalDocument, 'form_schema', true, 'stable-proposal-nonce');
+    $proposalRow = $state->generations[$proposalPreview['generationId']];
+    idempotencyExpect(($proposalRow['definition']['title'] ?? '') === 'AI 结构化提案', 'managed preview 必须由结构化提案快照构建可信 Definition');
+    idempotencyExpect(($proposalRow['manifest']['proposal']['type'] ?? '') === 'form_schema'
+        && ($proposalRow['manifest']['proposal']['digest'] ?? '') === hash('sha256', \app\common\crud\CrudDefinition::canonicalJson($proposalDocument)),
+        'generation 必须持久化提案类型与规范化摘要以供 apply 重建');
+    $state->allowClaim = false;
+    idempotencyReject(
+        static fn () => $service->execute(7, $proposalPreview['generationId'], (string) $proposalPreview['sensitive']['confirmToken']),
+        '其他执行者'
+    );
+    $state->allowClaim = true;
+
     $first = $service->preview(7, true, 'stable-idempotency-nonce');
     $second = $service->preview(7, true, 'stable-idempotency-nonce');
     idempotencyExpect($first['generationId'] === $second['generationId'], '相同可信 planned preview 必须复用 generation');
@@ -210,8 +225,8 @@ try {
     idempotencyReject(static fn () => $service->execute(7, $plannedId, $plannedToken), '其他执行者');
     $manifest = $state->generations[$plannedId]['manifest'];
     $tokens->verify($plannedToken, (string) $manifest['bundleDigest']);
-    idempotencyExpect(count(array_filter($state->events, static fn (array $event): bool => $event[0] === 'claim')) === 1,
-        'execute 必须通过 planned CAS 竞争唯一执行权');
+    idempotencyExpect(count(array_filter($state->events, static fn (array $event): bool => $event[0] === 'claim')) === 2,
+        '普通 generation 与 proposal generation execute 都必须通过 planned CAS 竞争唯一执行权');
 
     $state->allowClaim = true;
     $claims = $tokens->verify($plannedToken, (string) $manifest['bundleDigest']);

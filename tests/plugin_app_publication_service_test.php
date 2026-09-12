@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\service\PluginAppPublicationRepository;
-use app\console\service\PluginAppPublicationService;
-use fun\plugins\Manifest;
+use app\console\plugin\contract\PluginAppPublicationRepository;
+use app\console\plugin\service\PluginAppPublicationService;
+use app\common\plugin\sdk\Manifest;
 
 final class MemoryPluginAppPublicationRepository implements PluginAppPublicationRepository
 {

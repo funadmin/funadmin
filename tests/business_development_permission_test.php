@@ -47,7 +47,7 @@ foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 's
 }
 businessPermissionExpect(str_contains($remainingSql, "source_name` IN ('form_management','development_crud')"), '086 旧授权映射必须严格限定来源');
 
-$auth = (string) file_get_contents($root . '/app/console/controller/auth/AdminAuth.php');
+$auth = (string) file_get_contents($root . '/app/console/controller/authentication/AdminAuth.php');
 businessPermissionExpect(str_contains($auth, "'console/development.business:modules'") && str_contains($auth, "'console/development.business:fieldcapabilities'"), 'AdminAuth aliases 必须包含全部 Business actions');
 foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 'schemadiff', 'rollbackschema', 'databasetables', 'databasetableschema'] as $action) {
     businessPermissionExpect(str_contains($auth, "'console/development.business:{$action}'"), 'AdminAuth aliases 缺少：' . $action);

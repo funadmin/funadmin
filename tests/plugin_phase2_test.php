@@ -8,11 +8,11 @@ use app\common\plugin\marketplace\CloudAccountSession;
 use app\common\plugin\marketplace\NativeMarketplaceAdapter;
 use app\common\plugin\package\GuzzlePackageStreamDownloader;
 use app\common\plugin\package\PluginPackageDownloader;
-use app\console\service\PluginMarketplaceService;
-use app\console\service\PluginService;
-use fun\plugins\Manifest;
+use app\console\plugin\service\PluginMarketplaceService;
+use app\console\plugin\service\PluginService;
+use app\common\plugin\sdk\Manifest;
 use GuzzleHttp\Psr7\Response;
-use app\console\service\PluginPackagePipeline;
+use app\console\plugin\service\PluginPackagePipeline;
 use app\common\plugin\marketplace\PluginMarketplaceGateway;
 use app\common\plugin\marketplace\SessionStore;
 use app\common\plugin\marketplace\dto\AuthorizationDto;
@@ -131,8 +131,8 @@ phase2Expect($cloudSession->account() === null && $cloudSession->token() === '',
 
 $root = dirname(__DIR__);
 phase2Expect(!is_file($root . '/app/common/service/AuthCloudService.php'), '无引用 AuthCloudService 旧旁路必须删除');
-phase2Expect(!is_file($root . '/extend/fun/plugins/command/Config.php'), 'plugins:config 旧命令必须删除');
-phase2Expect(!is_file($root . '/extend/fun/plugins/config.php'), '插件旧配置副本必须删除');
+phase2Expect(!is_file($root . '/app/common/plugin/sdk/command/Config.php'), 'plugins:config 旧命令必须删除');
+phase2Expect(!is_file($root . '/app/common/plugin/sdk/config.php'), '插件旧配置副本必须删除');
 
 $productionSources = [
     $root . '/app',
@@ -224,7 +224,7 @@ phase2Expect(str_contains($envExample, 'Base64') && str_contains($envExample, '3
 
 $downloadSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/package/PluginPackageDownloader.php');
 phase2Expect(!str_contains($downloadSource, 'public_path'), '云下载临时包不得进入 public 中转');
-$pipelineSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/PluginPackagePipeline.php');
+$pipelineSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/plugin/service/PluginPackagePipeline.php');
 $fixtureManifest = Manifest::fromDirectory(dirname(__DIR__) . '/tests/fixtures/plugins/example');
 $pluginServiceReflection = new ReflectionClass(PluginService::class);
 $pluginService = $pluginServiceReflection->newInstanceWithoutConstructor();
@@ -611,7 +611,7 @@ phase2Expect(
 phase2Expect(($originalFailureHistory[0]['recovery_path'] ?? '') === '/backup', '不可回滚失败历史必须保留 recovery_path');
 unlink($localArchive);
 
-$packageSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/PluginPackageService.php');
+$packageSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/plugin/service/PluginPackageService.php');
 phase2Expect(!str_contains($packageSource, "'plugin.ini'") && str_contains($packageSource, "'plugin.json'"), 'PluginPackageService 必须只认 plugin.json');
 phase2Expect(str_contains($packageSource, "'version' => \$manifest->version()"), 'stage 结果必须携带已校验的 manifest version');
 phase2Expect(str_contains($packageSource, 'expectedVersion') && str_contains($packageSource, '版本与请求版本不一致'), 'stage 必须严格校验 expectedVersion');
@@ -626,12 +626,12 @@ $migrationFile = dirname(__DIR__) . '/database/migrations/009_plugin_package_his
 phase2Expect(is_file($migrationFile), '阶段二必须使用新的 009 migration，不得覆盖现有 008');
 $migration = (string) file_get_contents($migrationFile);
 phase2Expect(str_contains($migration, 'plugin_version_history') && str_contains($migration, 'plugin_operation'), '必须建立版本与操作历史表');
-$historySource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/PluginPackageService.php');
+$historySource = (string) file_get_contents(dirname(__DIR__) . '/app/console/plugin/service/PluginPackageService.php');
 phase2Expect(str_contains($historySource, 'Db::transaction'), '历史两表必须在同一事务内保存');
 foreach (['from_version', 'signature_algorithm', 'signature_verified', 'source', 'package_hash'] as $historyField) {
     phase2Expect(str_contains($historySource, $historyField), '历史缺少字段：' . $historyField);
 }
-$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/system/SystemPlugin.php');
+$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/plugin/SystemPlugin.php');
 foreach (['AuthCloudService', 'setApiUrl', 'downloadCloudArchive', 'doInstall', 'getCloudData', 'public_path'] as $forbidden) {
     phase2Expect(!str_contains($controllerSource, $forbidden), 'SystemPlugin Controller 仍存在旁路：' . $forbidden);
 }

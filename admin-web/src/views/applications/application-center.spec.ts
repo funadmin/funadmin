@@ -79,7 +79,7 @@ describe('企业应用中心', () => {
 
   it('以独立一级菜单接入且保留统一业务开发结构', () => {
     const seed = getAdminMenuTreeSeed();
-    expect(seed.find((item) => item.routeName === 'EnterpriseApplications')?.children?.[0].routeName).toBe('EnterpriseApplicationCenter');
+    expect(seed.find((item) => item.routeName === 'EnterpriseApplications')?.children?.[0].routeName).toBe('ApplicationList');
     expect(seed.find((item) => item.routeName === 'Development')?.children?.find((item) => item.routeName === 'BusinessDevelopment')).toBeTruthy();
   });
 

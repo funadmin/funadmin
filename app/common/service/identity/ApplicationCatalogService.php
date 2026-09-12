@@ -27,6 +27,57 @@ final class ApplicationCatalogService
         return ['list' => $query->page(max(1, $page), min(100, max(1, $pageSize)))->select()->toArray(), 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
     }
 
+    /**
+     * 返回当前身份可见的门户目录。显式 deny 的应用仍返回不可用原因，避免用户误以为应用故障。
+     */
+    public function portal(int $tenantId, int $userId, array $departmentIds, array $roleIds, string $keyword = ''): array
+    {
+        $query = EnterpriseApplication::forTenant($tenantId)
+            ->withoutField('oauth_config')
+            ->order('sort_order', 'desc')
+            ->order('id', 'desc');
+        if ($keyword !== '') {
+            $query->whereLike('name|code', '%' . addcslashes($keyword, '%_') . '%');
+        }
+
+        $result = [];
+        foreach ($query->select() as $application) {
+            $assignments = ApplicationAssignment::forTenant($tenantId)
+                ->where('application_id', (int) $application->id)
+                ->where('status', 1)
+                ->select()
+                ->toArray();
+            $accessible = ApplicationAssignmentService::canLaunch(
+                (string) $application->visibility,
+                $application->owner_identity_user_id === null ? null : (int) $application->owner_identity_user_id,
+                $assignments,
+                $userId,
+                $departmentIds,
+                $roleIds
+            );
+            $hasMatchingAssignment = ApplicationAssignmentService::hasMatchingAssignment(
+                $assignments,
+                $userId,
+                $departmentIds,
+                $roleIds
+            );
+            if (!$accessible && !$hasMatchingAssignment && (string) $application->visibility === 'private') {
+                continue;
+            }
+
+            $row = $application->toArray();
+            $row['available'] = $accessible && (string) $application->status === 'published';
+            $row['availability_reason'] = match (true) {
+                !$accessible => '当前身份被拒绝访问',
+                (string) $application->status === 'draft' => '应用尚未发布',
+                (string) $application->status === 'disabled' => '应用已停用',
+                default => null,
+            };
+            $result[] = $row;
+        }
+        return ['list' => $result, 'total' => count($result)];
+    }
+
     public function detail(int $tenantId, int $applicationId): array
     {
         return $this->application($tenantId, $applicationId)->hidden(['oauth_config'])->toArray();

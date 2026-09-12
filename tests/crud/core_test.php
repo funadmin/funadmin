@@ -16,7 +16,7 @@ use app\common\crud\GenerationPlanner;
 use app\common\crud\SafeCommit;
 use app\common\crud\SchemaInspector;
 use app\common\crud\TemplateRenderer;
-use app\console\service\PermissionResource;
+use app\console\authorization\service\PermissionResource;
 
 function crudExpect(bool $condition, string $message): void
 {
@@ -880,8 +880,8 @@ TS
     crudRun([dirname(__DIR__, 2) . '/admin-web/node_modules/.bin/vitest', 'run', '--root', $temporaryWeb, 'tests/generated.spec.ts'], $temporaryWeb);
     crudExpect(!is_file(dirname(__DIR__, 2) . '/app/common/service/AdminWebCrudGenerator.php'), '旧 AdminWebCrudGenerator 兼容适配器不得恢复');
     crudExpect(!is_file(dirname(__DIR__, 2) . '/extend/fun/crud/AdminWebCrud.php'), '旧 CRUD CLI 兼容入口不得恢复');
-    $generateSource = (string) file_get_contents(dirname(__DIR__, 2) . '/extend/fun/command/CrudGenerate.php');
-    $supportSource = (string) file_get_contents(dirname(__DIR__, 2) . '/extend/fun/command/CrudCommandSupport.php');
+    $generateSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/console/command/CrudGenerate.php');
+    $supportSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/console/command/CrudCommandSupport.php');
     crudExpect(!str_contains($generateSource, "getOption('confirm-token')"), 'crud:generate 不得接受 argv confirm token');
     crudExpect(str_contains($supportSource, 'stream_get_contents(STDIN)') && str_contains($supportSource, '0600'), 'crud:generate token 必须从 stdin 或 0600 文件读取');
     $mcpSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/common/service/McpService.php');

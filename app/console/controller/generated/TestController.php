@@ -9,7 +9,7 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\model\Test;
-use app\console\service\DataScopeService;
+use app\console\authorization\service\DataScopeService;
 use app\console\service\TestService;
 use app\console\validate\TestValidate;
 use app\common\traits\Crud;

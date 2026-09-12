@@ -12,7 +12,7 @@ const phpFiles = (directory: string): string[] => readdirSync(resolve(root, dire
 describe('M7 Laravel 字段与旧入口收缩契约', () => {
   it('管理应用从 backend 完整硬切为 console', () => {
     expect(existsSync(resolve(root, 'app/backend'))).toBe(false);
-    expect(existsSync(resolve(root, 'app/console/controller/auth/AdminAuth.php'))).toBe(true);
+    expect(existsSync(resolve(root, 'app/console/controller/authentication/AdminAuth.php'))).toBe(true);
     const rootRoute = read('route/app.php');
     expect(rootRoute).toContain("root_path('app/console/controller')");
     expect(rootRoute).toContain("'namespace' => 'app\\\\console\\\\controller'");
@@ -36,7 +36,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/common/crud/FieldInference.php',
       'app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php',
       'app/common/service/MaintenanceContractService.php',
-      'app/console/service/FormCrudDefinitionFactory.php',
+      'app/console/development/service/FormCrudDefinitionFactory.php',
     ]);
     for (const file of ['app', 'config', 'extend', 'plugins'].flatMap(phpFiles).filter((path) => !allowed.has(path))) {
       expect(read(file), file).not.toMatch(/\b(create_time|update_time|delete_time)\b/);
@@ -60,12 +60,12 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/console/middleware/CheckRole.php',
       'app/console/service/AuthService.php',
     ]) expect(existsSync(resolve(root, file)), file).toBe(false);
-    expect(read('app/console/controller/auth/AdminAuth.php')).not.toContain('AdminAuthorizationService');
+    expect(read('app/console/controller/authentication/AdminAuth.php')).not.toContain('AdminAuthorizationService');
   });
 
   it('插件菜单与权限仅从 adminWeb 契约注册', () => {
-    const pluginService = read('app/console/service/PluginService.php');
-    const infrastructure = read('app/console/service/PluginInfrastructureService.php');
+    const pluginService = read('app/console/plugin/service/PluginService.php');
+    const infrastructure = read('app/console/plugin/service/PluginInfrastructureService.php');
     expect(pluginService).toContain("$manifestData['adminWeb']['permissions']");
     expect(pluginService).toContain("$manifestData['adminWeb']['menu']");
     expect(pluginService).not.toContain("$manifestData['permissions']");

@@ -64,11 +64,8 @@
       "app\\": "app",
       "plugins\\": "plugins"
     },
-    "psr-0": {
-      "": "extend/"
-    },
     "files": [
-      "extend/fun/helper.php"
+      "app/common/functions.php"
     ]
   },
   "extra": {

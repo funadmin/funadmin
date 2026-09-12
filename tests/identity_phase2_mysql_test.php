@@ -15,7 +15,7 @@ use app\common\service\identity\ApplicationCatalogService;
 use app\common\service\identity\ApplicationDomainService;
 use app\common\service\identity\EnterpriseApplicationUrlPolicy;
 use app\console\controller\identity\EnterpriseApplication as EnterpriseApplicationController;
-use app\console\service\RoleScopeService;
+use app\console\authorization\service\RoleScopeService;
 use think\App;
 use think\facade\Db;
 use think\facade\Session;
@@ -34,16 +34,27 @@ function phase2LaunchData(Response $response): array
     return is_string($payload) ? json_decode($payload, true, 512, JSON_THROW_ON_ERROR) : (array) $payload;
 }
 
+function phase2MigrationDirectoryThrough096(string $source): string
+{
+    $target = sys_get_temp_dir() . '/funadmin_phase2_migrations_' . bin2hex(random_bytes(5));
+    phase2MysqlExpect(mkdir($target, 0700), '无法创建 096 migration 目录');
+    foreach (glob($source . '/*.sql') ?: [] as $file) {
+        if ((int) substr(basename($file), 0, 3) <= 96) phase2MysqlExpect(copy($file, $target . '/' . basename($file)), '无法复制 096 migration 链');
+    }
+    return $target;
+}
+
 $root = dirname(__DIR__); $app = new App($root); $app->initialize();
+$phase2Migrations = phase2MigrationDirectoryThrough096($root . '/database/migrations');
 $original = (array) config('database'); $database = 'funadmin_identity_phase2_' . bin2hex(random_bytes(5));
 $serverConfig = $original; $serverConfig['connections']['mysql']['database'] = ''; $app->config->set($serverConfig, 'database');
 $server = Db::connect('mysql', true);
 try {
     $server->execute('CREATE DATABASE ' . phase2MysqlQuote($database) . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
     $isolated = $original; $isolated['connections']['mysql']['database'] = $database; $app->config->set($isolated, 'database'); Db::connect('mysql', true);
-    $migration = new MigrationService(); $executed = $migration->runDirectory($root . '/database/migrations', 'core');
+    $migration = new MigrationService(); $executed = $migration->runDirectory($phase2Migrations, 'core');
     phase2MysqlExpect(in_array('096_enterprise_application_center', $executed, true), '隔离 MySQL 必须执行 096');
-    phase2MysqlExpect($migration->runDirectory($root . '/database/migrations', 'core') === [], '096 重复执行必须幂等跳过');
+    phase2MysqlExpect($migration->runDirectory($phase2Migrations, 'core') === [], '096 重复执行必须幂等跳过');
     Db::execute("INSERT INTO fun_identity_tenant (public_id,code,name,status,created_at,updated_at) VALUES (UUID(),'other','Other',1,NOW(),NOW())");
     $tenant2 = (int) Db::query("SELECT id FROM fun_identity_tenant WHERE code='other'")[0]['id'];
     $policy = new EnterpriseApplicationUrlPolicy(static fn (string $host): array => ['93.184.216.34']);
@@ -163,5 +174,7 @@ try {
     echo "identity phase2 mysql tests passed; temporary database cleaned\n";
 } finally {
     $app->config->set($serverConfig, 'database'); $cleanup = Db::connect('mysql', true); $cleanup->execute('DROP DATABASE IF EXISTS ' . phase2MysqlQuote($database));
+    foreach (glob($phase2Migrations . '/*') ?: [] as $file) if (is_file($file)) unlink($file);
+    if (is_dir($phase2Migrations)) rmdir($phase2Migrations);
     $app->config->set($original, 'database'); Db::connect('mysql', true);
 }

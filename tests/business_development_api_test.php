@@ -10,14 +10,14 @@ use app\console\controller\development\Business;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\service\BusinessDevelopmentService;
-use app\console\service\BusinessModuleService;
-use app\console\service\DevCrudService;
-use app\console\service\FormDataService;
-use app\console\service\FormDesignerService;
-use app\console\service\FormPublishService;
-use app\console\service\FormSchemaRepository;
-use app\console\service\ManagedGenerationService;
+use app\console\development\service\BusinessDevelopmentService;
+use app\console\development\service\BusinessModuleService;
+use app\console\development\service\DevCrudService;
+use app\console\form\repository\FormSchemaRepository;
+use app\console\form\service\FormDataService;
+use app\console\form\service\FormDesignerService;
+use app\console\form\service\FormPublishService;
+use app\console\development\service\ManagedGenerationService;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
@@ -30,8 +30,8 @@ function businessApiExpect(bool $condition, string $message): void
 
 $root = dirname(__DIR__) . '/';
 $controllerFile = $root . 'app/console/controller/development/Business.php';
-$developmentFile = $root . 'app/console/service/BusinessDevelopmentService.php';
-$moduleFile = $root . 'app/console/service/BusinessModuleService.php';
+$developmentFile = $root . 'app/console/development/service/BusinessDevelopmentService.php';
+$moduleFile = $root . 'app/console/development/service/BusinessModuleService.php';
 
 businessApiExpect(is_file($controllerFile), '缺少 Business 控制器');
 businessApiExpect(is_file($developmentFile), '缺少 BusinessDevelopmentService');
@@ -150,8 +150,8 @@ foreach ([
     }
 }
 
-$managedSource = (string) file_get_contents($root . 'app/console/service/ManagedGenerationService.php');
-$stateRepositorySource = (string) file_get_contents($root . 'app/console/service/DatabaseGenerationStateRepository.php');
+$managedSource = (string) file_get_contents($root . 'app/console/development/service/ManagedGenerationService.php');
+$stateRepositorySource = (string) file_get_contents($root . 'app/console/development/repository/DatabaseGenerationStateRepository.php');
 businessApiExpect(str_contains($managedSource, 'public function adoptResolvedBaseline('), 'ManagedGenerationService 缺少严格 adopt-resolved');
 businessApiExpect(str_contains($managedSource, "'conflict-no-base'") && str_contains($managedSource, 'remoteHash') && str_contains($managedSource, 'localHash'), 'adopt-resolved 必须严格校验最近 conflict-no-base 的 Local/Remote hash');
 businessApiExpect(str_contains($managedSource, 'PathGuard::resolve(') && str_contains($managedSource, 'is_link('), 'adopt-resolved 必须拒绝路径逃逸与符号链接');
@@ -163,17 +163,17 @@ businessApiExpect(
 );
 businessApiExpect(str_contains($stateRepositorySource, "(string) \$generation->status !== 'conflict'"), 'baseline 仓储必须二次确认 generation 为 conflict');
 businessApiExpect(str_contains($stateRepositorySource, 'array_intersect_key($record, array_flip('), 'baseline 仓储必须对白名单字段持久化');
-$moduleServiceSource = (string) file_get_contents($root . 'app/console/service/BusinessModuleService.php');
+$moduleServiceSource = (string) file_get_contents($root . 'app/console/development/service/BusinessModuleService.php');
 businessApiExpect(str_contains($moduleServiceSource, "'availableActions'") && str_contains($moduleServiceSource, "'recover'"), 'generation DTO 必须根据恢复状态返回可用操作');
 businessApiExpect(str_contains($moduleServiceSource, "'recoveryStatus'") && str_contains($moduleServiceSource, "'generationMode'"), 'generation DTO 必须提供前端统一 camelCase 字段');
-$schemaRepositorySource = (string) file_get_contents($root . 'app/console/service/FormSchemaRepository.php');
+$schemaRepositorySource = (string) file_get_contents($root . 'app/console/form/repository/FormSchemaRepository.php');
 businessApiExpect(str_contains($schemaRepositorySource, 'public function saveCompiledVersionIfCurrentHash(') && str_contains($schemaRepositorySource, 'Form::lock(true)') && str_contains($schemaRepositorySource, "InvalidArgumentException('FORM_SCHEMA_CONFLICT')"), 'Schema CAS 必须锁定 Form 后比较当前 hash');
 
 $controllerMethods = implode("\n", array_map(static function (ReflectionMethod $method) use ($controllerFile): string {
     $lines = file($controllerFile);
     return is_array($lines) ? implode('', array_slice($lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1)) : '';
 }, $controller->getMethods(ReflectionMethod::IS_PUBLIC)));
-$errorMapperSource = (string) file_get_contents($root . 'app/console/service/BusinessApiErrorMapper.php');
+$errorMapperSource = (string) file_get_contents($root . 'app/console/development/http/BusinessApiErrorMapper.php');
 businessApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), '控制器必须委托专用错误映射器');
 businessApiExpect(str_contains($errorMapperSource, 'FORM_SCHEMA_CONFLICT') && str_contains($errorMapperSource, '409'), '错误映射器缺少 409 映射');
 businessApiExpect(str_contains($errorMapperSource, '410') && str_contains($errorMapperSource, '422') && str_contains($errorMapperSource, '500'), '错误映射器缺少 410/422/500 映射');

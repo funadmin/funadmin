@@ -8,11 +8,11 @@ const readProject = (relativePath: string) => readFileSync(resolve(projectRoot, 
 const consoleConfig = readProject('config/console.php');
 
 const commands: Record<string, string> = {
-  'crud:inspect': 'extend/fun/command/CrudInspect.php',
-  'crud:validate': 'extend/fun/command/CrudValidate.php',
-  'crud:preview': 'extend/fun/command/CrudPreview.php',
-  'crud:generate': 'extend/fun/command/CrudGenerate.php',
-  mcp: 'extend/fun/mcp/McpServer.php'
+  'crud:inspect': 'app/console/command/CrudInspect.php',
+  'crud:validate': 'app/console/command/CrudValidate.php',
+  'crud:preview': 'app/console/command/CrudPreview.php',
+  'crud:generate': 'app/console/command/CrudGenerate.php',
+  mcp: 'app/console/command/McpServer.php'
 };
 
 describe('console 命令注册契约', () => {
@@ -25,7 +25,7 @@ describe('console 命令注册契约', () => {
   });
 
   it('mcp 命令帮助文案使用真实命令名', () => {
-    expect(readProject('extend/fun/mcp/McpServer.php')).not.toContain('mcp:server');
+    expect(readProject('app/console/command/McpServer.php')).not.toContain('mcp:server');
   });
 
   it('旧工具链命令不再注册', () => {

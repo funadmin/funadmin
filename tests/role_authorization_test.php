@@ -14,11 +14,11 @@ function roleAuthorizationExpect(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $migrationPath = $root . '/database/migrations/081_role_authorization.sql';
 $followupMigrationPath = $root . '/database/migrations/082_role_authorization_compatibility.sql';
-$servicePath = $root . '/app/console/service/RoleAuthorizationService.php';
-$fieldPath = $root . '/app/console/model/PermissionField.php';
-$grantPath = $root . '/app/console/model/AuthGroupFieldPermission.php';
-$controllerPath = $root . '/app/console/controller/system/SystemRole.php';
-$adminAuthPath = $root . '/app/console/controller/auth/AdminAuth.php';
+$servicePath = $root . '/app/console/authorization/service/RoleAuthorizationService.php';
+$fieldPath = $root . '/app/console/authorization/model/PermissionField.php';
+$grantPath = $root . '/app/console/authorization/model/AuthGroupFieldPermission.php';
+$controllerPath = $root . '/app/console/controller/authorization/SystemRole.php';
+$adminAuthPath = $root . '/app/console/controller/authentication/AdminAuth.php';
 
 roleAuthorizationExpect(is_file($migrationPath), '必须新增 081 forward-only 角色授权迁移');
 roleAuthorizationExpect(is_file($servicePath), '必须新增 RoleAuthorizationService');
@@ -50,7 +50,7 @@ roleAuthorizationExpect(str_contains($service, 'inheritedFrom'), '授权详情�
 roleAuthorizationExpect(str_contains($controller, "#[Get(':id/authorization')]"), '必须提供授权详情新接口');
 roleAuthorizationExpect(str_contains($controller, "#[Put(':id/authorization')]"), '必须提供整套授权保存新接口');
 roleAuthorizationExpect(str_contains($controller, "#[Post(':id/authorization/copy')]"), '必须提供整套授权复制新接口');
-$roleController = 'app\\console\\controller\\system\\SystemRole';
+$roleController = 'app\\console\\controller\\authorization\\SystemRole';
 $detailLine = (new ReflectionMethod($roleController, 'detail'))->getStartLine();
 foreach (['authorization', 'saveAuthorization', 'copyAuthorization'] as $method) {
     roleAuthorizationExpect(
@@ -60,7 +60,7 @@ foreach (['authorization', 'saveAuthorization', 'copyAuthorization'] as $method)
 }
 roleAuthorizationExpect(str_contains($controller, "#[Post(':id/permissions')]"), '必须保留旧 permissions 兼容接口');
 
-$serviceInstance = (new ReflectionClass('app\\console\\service\\RoleAuthorizationService'))->newInstanceWithoutConstructor();
+$serviceInstance = (new ReflectionClass('app\\console\\authorization\\service\\RoleAuthorizationService'))->newInstanceWithoutConstructor();
 $operatorFieldGuard = new ReflectionMethod($serviceInstance, 'assertOperatorFieldGrantsWithinScope');
 $operatorFieldGuard->setAccessible(true);
 $operatorFieldGuard->invoke($serviceInstance, [

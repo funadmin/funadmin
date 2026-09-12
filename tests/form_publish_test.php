@@ -36,7 +36,7 @@ publishExpect(
 );
 publishExpect($compiled->key() === 'activity_form', '动态运行时路由必须由 canonical key 派生');
 
-$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/FormPublishService.php');
+$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/form/service/FormPublishService.php');
 publishExpect(str_contains($serviceSource, 'previewDynamic(') && str_contains($serviceSource, 'publishDynamic('), '必须保留纯动态 API');
 publishExpect(str_contains($serviceSource, 'FormSchemaRepository'), '动态发布必须接入 FormSchema v2 仓库');
 publishExpect(str_contains($serviceSource, "'formSchemaHash'"), '动态发布预览必须返回 canonical FormSchema hash');
@@ -49,7 +49,7 @@ publishExpect(str_contains($serviceSource, 'return $this->publishDynamic($payloa
 publishExpect(str_contains($serviceSource, 'applyDynamicDdl($payload)'), '动态发布必须使用 forward-only DDL API');
 publishExpect(!str_contains($serviceSource, 'applyMigration($payload)'), '动态发布不得登记历史 migration 文件');
 
-$businessSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/service/BusinessDevelopmentService.php');
+$businessSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/development/service/BusinessDevelopmentService.php');
 publishExpect(str_contains($businessSource, 'ManagedGenerationService'), 'Business 正式生成必须编排 ManagedGenerationService');
 publishExpect(str_contains($businessSource, 'previewFormalGeneration(') && str_contains($businessSource, 'formalGeneration('), 'Business API 必须提供正式生成预览与执行');
 publishExpect(str_contains($businessSource, 'formalGeneration('), 'Business 正式生成必须使用统一编排入口');
@@ -84,7 +84,7 @@ $dependencySchema = [
     'actions' => [['type' => 'request', 'key' => 'member.refresh', 'permission' => 'member:delete', 'parameters' => ['admin' => true], 'capabilityVersion' => '3']],
 ];
 $dependencyReport = $checker->check($dependencySchema);
-$enabledManifest = \fun\plugins\Manifest::fromCompiled('/tmp/demo', [
+$enabledManifest = \app\common\plugin\sdk\Manifest::fromCompiled('/tmp/demo', [
     'code' => 'demo', 'version' => '1.0.0',
     'formComponents' => [[
         'type' => 'demo:rating', 'component' => 'Rating', 'propertySchema' => ['type' => 'object'],
@@ -105,7 +105,7 @@ $enabledSchema['nodes'][0]['validation'] = [];
 $enabledSchema['dataSources'] = [];
 $enabledSchema['actions'] = [];
 $enabledReport = $enabledChecker->check($enabledSchema);
-$versionChangedManifest = \fun\plugins\Manifest::fromCompiled('/tmp/demo', array_replace(
+$versionChangedManifest = \app\common\plugin\sdk\Manifest::fromCompiled('/tmp/demo', array_replace(
     $enabledManifest->toArray(),
     ['formComponents' => [array_replace($enabledManifest->toArray()['formComponents'][0], ['capabilityVersion' => 3])]]
 ));

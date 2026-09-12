@@ -44,7 +44,7 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 });
 
 describe('混合布局菜单全树路由', () => {
-  it('Mock 菜单只暴露统一业务开发四入口', () => {
+  it('Mock 菜单暴露业务开发四入口与 AI 开发助手', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
     const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
@@ -55,9 +55,10 @@ describe('混合布局菜单全树路由', () => {
     const router = createRouter({ history: createMemoryHistory(), routes });
     expect(router.resolve('/development/business/mine').name).toBe('BusinessMine');
     const developmentRoute = routes.find((route) => route.name === 'Development');
-    expect(getVisibleMenuChildren(developmentRoute!).map((route) => route.name)).toEqual(['BusinessDevelopment']);
+    expect(getVisibleMenuChildren(developmentRoute!).map((route) => route.name)).toEqual(['BusinessDevelopment', 'AiDevelopment']);
+    expect(router.resolve('/development/ai').name).toBe('AiDevelopment');
     expect(router.resolve('/development/business/designer?moduleId=1').name).toBe('BusinessDesigner');
-    expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203]));
+    expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203, 207]));
   });
 
   it('TopMenu 首叶跳转与 Sidebar 路径解析一致', () => {

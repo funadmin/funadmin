@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\console\middleware;
 
-use app\console\service\AdminSessionService;
-use app\console\service\PluginPermissionAuthorizationService;
+use app\console\authentication\service\AdminSessionService;
+use app\console\plugin\service\PluginPermissionAuthorizationService;
 use Closure;
 
 /**

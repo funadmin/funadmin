@@ -10,7 +10,7 @@ use app\console\traits\AdminCrudRequest;
 use app\console\traits\AdminPagination;
 use app\common\traits\JsonResponse;
 use app\shop\model\Product;
-use app\console\service\DataScopeService;
+use app\console\authorization\service\DataScopeService;
 use app\shop\service\ProductService;
 use app\shop\validate\ProductValidate;
 use app\common\traits\Crud;

@@ -95,8 +95,8 @@ describe('插件中心页面契约', () => {
   it('生产源码不再保留插件旧旁路和旧配置', () => {
     for (const path of [
       'app/common/service/AuthCloudService.php',
-      'extend/fun/plugins/command/Config.php',
-      'extend/fun/plugins/config.php'
+      'app/common/plugin/sdk/command/Config.php',
+      'app/common/plugin/sdk/config.php'
     ]) {
       expect(existsSync(resolve(projectRoot, path))).toBe(false);
     }

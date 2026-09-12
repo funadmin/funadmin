@@ -5,8 +5,8 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\middleware\PluginApplicationGuard;
-use fun\plugins\PluginActivationCompiler;
-use fun\plugins\PluginActivationReader;
+use app\common\plugin\sdk\PluginActivationCompiler;
+use app\common\plugin\sdk\PluginActivationReader;
 use think\exception\HttpException;
 use think\Request;
 use think\Response;

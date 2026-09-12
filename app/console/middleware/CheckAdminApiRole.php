@@ -2,8 +2,8 @@
 
 namespace app\console\middleware;
 
-use app\console\service\AdminAuthorizationService;
-use app\console\service\AdminSessionService;
+use app\console\authorization\service\AdminAuthorizationService;
+use app\console\authentication\service\AdminSessionService;
 use think\exception\HttpResponseException;
 
 /**

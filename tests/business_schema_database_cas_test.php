@@ -7,14 +7,14 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\common\crud\CrudDefinition;
 use app\common\crud\SchemaInspector;
 use app\common\form\registry\FieldCapabilityRegistry;
-use app\console\service\BusinessDevelopmentService;
-use app\console\service\BusinessModuleService;
-use app\console\service\DevCrudService;
-use app\console\service\FormDataService;
-use app\console\service\FormDesignerService;
-use app\console\service\FormPublishService;
-use app\console\service\FormSchemaRepository;
-use app\console\service\ManagedGenerationService;
+use app\console\development\service\BusinessDevelopmentService;
+use app\console\development\service\BusinessModuleService;
+use app\console\development\service\DevCrudService;
+use app\console\form\repository\FormSchemaRepository;
+use app\console\form\service\FormDataService;
+use app\console\form\service\FormDesignerService;
+use app\console\form\service\FormPublishService;
+use app\console\development\service\ManagedGenerationService;
 
 function businessCasExpect(bool $condition, string $message): void
 {
@@ -134,8 +134,8 @@ try {
     businessCasExpect($exception->getMessage() === 'DATABASE_INSPECTION_STALE', '结构变化必须返回稳定 DATABASE_INSPECTION_STALE');
 }
 
-$repositorySource = (string) file_get_contents($root . 'app/console/service/FormSchemaRepository.php');
-$developmentSource = (string) file_get_contents($root . 'app/console/service/BusinessDevelopmentService.php');
+$repositorySource = (string) file_get_contents($root . 'app/console/form/repository/FormSchemaRepository.php');
+$developmentSource = (string) file_get_contents($root . 'app/console/development/service/BusinessDevelopmentService.php');
 businessCasExpect(str_contains($repositorySource, 'public function rollbackIfCurrentHash('), '版本仓库必须提供 rollbackIfCurrentHash');
 businessCasExpect(str_contains($repositorySource, 'Form::lock(true)') && str_contains($repositorySource, "InvalidArgumentException('FORM_SCHEMA_CONFLICT')"), '回滚 CAS 必须在事务行锁内比较当前 canonical hash');
 businessCasExpect(str_contains($developmentSource, 'rollbackIfCurrentHash('), '业务回滚必须接入仓储 CAS');

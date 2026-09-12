@@ -62,6 +62,20 @@ final class ConfirmationToken
         return $encoded . '.' . self::base64UrlEncode(hash_hmac('sha256', $encoded, $this->secret, true));
     }
 
+    /** 仅提取未信任 digest；调用方随后必须使用 verify 完成签名、时效与重放校验。 */
+    public function planDigestFromToken(string $token): string
+    {
+        $parts = explode('.', $token);
+        if (count($parts) !== 2 || $parts[0] === '') {
+            throw new RuntimeException('确认 token 格式不合法');
+        }
+        $decoded = json_decode(self::base64UrlDecode($parts[0], '确认 token payload 编码不合法'), true);
+        if (!is_array($decoded) || !is_string($decoded['planDigest'] ?? null)) {
+            throw new RuntimeException('确认 token payload 不合法');
+        }
+        return $decoded['planDigest'];
+    }
+
     public function verify(string $token, string $planDigest): array
     {
         $parts = explode('.', $token);

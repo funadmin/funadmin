@@ -8,11 +8,11 @@ define('FUNADMIN_CRUD_HELPER_TESTING', true);
 
 use app\common\crud\ConfirmationToken;
 use app\common\crud\CrudDefinition;
-use app\console\service\DatabaseGenerationStateRepository;
-use app\console\service\GeneratedFileBaselineRepository;
-use app\console\service\GenerationInterruptionException;
-use app\console\service\GenerationResourceTransaction;
-use app\console\service\GenerationTransactionService;
+use app\console\development\repository\DatabaseGenerationStateRepository;
+use app\console\development\repository\GeneratedFileBaselineRepository;
+use app\console\development\exception\GenerationInterruptionException;
+use app\console\development\service\GenerationResourceTransaction;
+use app\console\development\service\GenerationTransactionService;
 use think\App;
 
 final class RecoveryStateRepository
@@ -361,7 +361,7 @@ try {
     flock($lock, LOCK_UN);
     fclose($lock);
 
-    $command = (string) file_get_contents(dirname(__DIR__) . '/extend/fun/command/BusinessGenerationRecover.php');
+    $command = (string) file_get_contents(dirname(__DIR__) . '/app/console/command/BusinessGenerationRecover.php');
     $console = (string) file_get_contents(dirname(__DIR__) . '/config/console.php');
     recoveryExpect(str_contains($command, 'all-stale') && str_contains($command, 'recovery_required'), '恢复命令必须支持 transaction/--all-stale 且拒绝自动猜测');
     recoveryExpect(substr_count($console, "'business:generation-recover'") === 1, '恢复命令必须且只能注册一次');

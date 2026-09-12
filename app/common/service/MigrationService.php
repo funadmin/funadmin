@@ -45,6 +45,7 @@ class MigrationService extends AbstractService
 
             $this->preflightSchemaIntegrity006($scope, $version);
             $this->preflightBusinessDevelopment077($scope, $version);
+            $this->preflightAiPhase4Migrations($scope, $version);
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
                 throw new RuntimeException('无法读取 migration：' . $file);
@@ -52,6 +53,8 @@ class MigrationService extends AbstractService
             $this->assertForwardOnly($sql, $file);
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
             $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
+            $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
+            $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
             $sql = str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'), $sql);
             $statements = $this->statements($sql);
             if (!$statements) {
@@ -176,6 +179,43 @@ class MigrationService extends AbstractService
             . ' ADD COLUMN `published_schema_hash` char(64) NULL AFTER `published_definition_hash`');
     }
 
+    /** 109/110 依赖阶段一结构；同名错误索引无法安全猜测用途，必须在登记 migration 前拒绝。 */
+    private function preflightAiPhase4Migrations(string $scope, string $version): void
+    {
+        if ($scope !== 'core' || !in_array($version, [
+            '109_ai_phase4_change_sets',
+            '110_ai_phase4_preview_permission',
+        ], true)) {
+            return;
+        }
+
+        $prefix = (string) config('database.connections.mysql.prefix');
+        foreach (['ai_change_set', 'permission'] as $tableName) {
+            if (!in_array($prefix . $tableName, Db::connect()->getTables(), true)) {
+                throw new RuntimeException("AI Phase 4 migration 缺少基础表：{$prefix}{$tableName}");
+            }
+        }
+        $groups = Db::query(
+            'SELECT id FROM ' . $this->quoteIdentifier($prefix . 'permission')
+            . " WHERE source_type='admin_web' AND source_name='ai_development' AND resource_type='group' ORDER BY id"
+        );
+        if (count($groups) !== 1) {
+            throw new RuntimeException('AI Phase 4 migration 要求唯一 ai_development 权限组');
+        }
+        if ($version !== '109_ai_phase4_change_sets') {
+            return;
+        }
+
+        $indexes = array_column(Db::query(
+            'SELECT COLUMN_NAME FROM information_schema.STATISTICS '
+            . 'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=? ORDER BY SEQ_IN_INDEX',
+            [$prefix . 'ai_change_set', 'idx_ai_change_set_owner_status']
+        ), 'COLUMN_NAME');
+        if ($indexes !== [] && $indexes !== ['created_by', 'conversation_id', 'status', 'id']) {
+            throw new RuntimeException('AI Phase 4 migration 检测到同名错误索引：idx_ai_change_set_owner_status');
+        }
+    }
+
     /**
      * 兼容迁移乱序升级：旧库可能已执行 054，但遗漏 052；空库则在 054 执行安全的 expand/backfill/contract。
      */
@@ -242,6 +282,16 @@ class MigrationService extends AbstractService
             '`created_by` bigint unsigned NOT NULL',
             '`applied_by` bigint unsigned NULL',
         ], $sql);
+    }
+
+    /** 101 历史 capability 标签含奇数长度 hex；仅在执行时修正，不改变历史文件 checksum。 */
+    private function prepareAiPermissionHexCompatibility(string $scope, string $version, string $sql): string
+    {
+        if ($scope !== 'core' || $version !== '101_ai_phase3_access_and_permission_compensation') {
+            return $sql;
+        }
+
+        return str_replace("X'E585A8E9809AE8AEFE5968E'", "X'E585A8E9809AE69D83E99990'", $sql);
     }
 
     private function expandAndBackfillAppName(string $tableName, array $columns): void

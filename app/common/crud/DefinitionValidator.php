@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
-use fun\plugins\Manifest;
-use fun\plugins\PluginScaffolder;
+use app\common\plugin\sdk\Manifest;
+use app\common\plugin\sdk\PluginScaffolder;
 use InvalidArgumentException;
 
 /**

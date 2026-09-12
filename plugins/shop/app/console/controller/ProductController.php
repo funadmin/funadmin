@@ -9,7 +9,7 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
 use app\console\model\plugin\shop\Product;
-use app\console\service\DataScopeService;
+use app\console\authorization\service\DataScopeService;
 use app\console\service\plugin\shop\ProductService;
 use app\console\validate\plugin\shop\ProductValidate;
 use app\common\traits\Crud;

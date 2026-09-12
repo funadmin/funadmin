@@ -16,7 +16,7 @@ use app\common\model\MemberGroupRelation;
 use app\common\service\MemberInput;
 use app\common\service\identity\MemberIdentityAdapter;
 use app\common\validate\MemberValidate;
-use fun\helper\StringHelper;
+use app\common\helper\StringHelper;
 use think\exception\ValidateException;
 use think\facade\Db;
 use think\facade\Event;

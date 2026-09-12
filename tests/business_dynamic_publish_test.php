@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\model\BusinessModule;
-use app\console\model\Form;
-use app\console\model\FormSchemaVersion;
-use app\console\service\FormDesignerService;
-use app\console\service\FormMigrationException;
-use app\console\service\FormPublishService;
-use app\console\service\FormSchemaRepository;
+use app\console\development\model\BusinessModule;
+use app\console\form\exception\FormMigrationException;
+use app\console\form\model\Form;
+use app\console\form\model\FormSchemaVersion;
+use app\console\form\repository\FormSchemaRepository;
+use app\console\form\service\FormDesignerService;
+use app\console\form\service\FormPublishService;
 use think\App;
 use think\facade\Db;
 
@@ -41,9 +41,9 @@ function dynamicPublishSchema(string $source = 'created'): array
 }
 
 $root = dirname(__DIR__) . '/';
-$serviceSource = (string) file_get_contents($root . 'app/console/service/FormPublishService.php');
-$designerSource = (string) file_get_contents($root . 'app/console/service/FormDesignerService.php');
-$dataSource = (string) file_get_contents($root . 'app/console/service/FormDataService.php');
+$serviceSource = (string) file_get_contents($root . 'app/console/form/service/FormPublishService.php');
+$designerSource = (string) file_get_contents($root . 'app/console/form/service/FormDesignerService.php');
+$dataSource = (string) file_get_contents($root . 'app/console/form/service/FormDataService.php');
 $businessController = (string) file_get_contents($root . 'app/console/controller/development/Business.php');
 
 preg_match('/public function previewDynamic\([^}]+\n    }/s', $serviceSource, $previewDynamicMatch);

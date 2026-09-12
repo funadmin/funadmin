@@ -63,7 +63,7 @@ describe('M6 系统升级契约', () => {
   });
 
   it('将后端升级 action 映射为前端业务权限', () => {
-    const auth = readFileSync(resolve(projectRoot, 'app/console/controller/auth/AdminAuth.php'), 'utf8');
+    const auth = readFileSync(resolve(projectRoot, 'app/console/controller/authentication/AdminAuth.php'), 'utf8');
     const mappings = {
       status: 'system:upgrade:list',
       check: 'system:upgrade:check',

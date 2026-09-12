@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\service\PluginAppPublicationRepository;
-use app\console\service\PluginAppPublicationService;
-use app\console\service\PluginInfrastructureService;
-use app\console\service\PluginResourcePublisher;
-use app\console\service\PluginResourceRepository;
-use fun\plugins\Manifest;
+use app\console\plugin\contract\PluginAppPublicationRepository;
+use app\console\plugin\contract\PluginResourceRepository;
+use app\console\plugin\service\PluginAppPublicationService;
+use app\console\plugin\service\PluginInfrastructureService;
+use app\console\plugin\service\PluginResourcePublisher;
+use app\common\plugin\sdk\Manifest;
 
 $resourceTestRuntimeRoot = '';
 if (!function_exists('runtime_path')) {

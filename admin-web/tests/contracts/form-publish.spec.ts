@@ -13,11 +13,11 @@ describe('统一表单发布引擎契约', () => {
     for (const column of ['publish_config', 'publish_status', 'published_at', 'crud_generation_id', 'published_definition_hash']) {
       expect(migration).toContain(column);
     }
-    expect(read('app/console/model/Form.php')).toContain("'publish_config'");
+    expect(read('app/console/form/model/Form.php')).toContain("'publish_config'");
   });
 
   it('通过独立工厂把表单元数据转换为 CRUD Definition', () => {
-    const factoryPath = resolve(root, 'app/console/service/FormCrudDefinitionFactory.php');
+    const factoryPath = resolve(root, 'app/console/development/service/FormCrudDefinitionFactory.php');
     expect(existsSync(factoryPath)).toBe(true);
     const factory = readFileSync(factoryPath, 'utf8');
     expect(factory).toContain('final class FormCrudDefinitionFactory');
@@ -32,9 +32,9 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('动态发布与正式生成统一由 Business API 暴露', () => {
-    const dynamic = read('app/console/service/FormPublishService.php');
+    const dynamic = read('app/console/form/service/FormPublishService.php');
     const business = read('app/console/controller/development/Business.php');
-    const orchestration = read('app/console/service/BusinessDevelopmentService.php');
+    const orchestration = read('app/console/development/service/BusinessDevelopmentService.php');
     expect(dynamic).toContain('public function previewDynamic(');
     expect(dynamic).toContain('public function publishDynamic(');
     expect(dynamic).toContain('applyDynamicDdl($payload)');
@@ -47,7 +47,7 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
-    const authorization = read('app/console/service/AdminAuthorizationService.php');
+    const authorization = read('app/console/authorization/service/AdminAuthorizationService.php');
     expect(authorization).toContain("preg_match('/^[a-z][a-z0-9_.-]*$/', $object)");
     const migration = read('database/migrations/066_form_publish_engine.sql');
     for (const code of ['console/form.designer:previewpublish', 'console/form.designer:publish', 'console/form.designer:publishstatus', 'console/form.designer:retryresources', 'form:publish:overwrite', 'form:publish:apply-resources']) {

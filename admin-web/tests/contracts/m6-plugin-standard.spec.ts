@@ -30,11 +30,11 @@ describe('M6 插件标准 Admin Web 契约', () => {
   });
 
   it('Admin Web 源码与公开资源分别发布并要求重新构建', () => {
-    const publisher = readFileSync(resolve(root, 'app/console/service/PluginResourcePublisher.php'), 'utf8');
-    const center = readFileSync(resolve(root, 'app/console/service/PluginCenterService.php'), 'utf8');
-    const pipeline = readFileSync(resolve(root, 'app/console/service/PluginPackagePipeline.php'), 'utf8');
-    const pluginService = readFileSync(resolve(root, 'app/console/service/PluginService.php'), 'utf8')
-      + readFileSync(resolve(root, 'app/console/service/concern/PluginServiceSupport.php'), 'utf8');
+    const publisher = readFileSync(resolve(root, 'app/console/plugin/service/PluginResourcePublisher.php'), 'utf8');
+    const center = readFileSync(resolve(root, 'app/console/plugin/service/PluginCenterService.php'), 'utf8');
+    const pipeline = readFileSync(resolve(root, 'app/console/plugin/service/PluginPackagePipeline.php'), 'utf8');
+    const pluginService = readFileSync(resolve(root, 'app/console/plugin/service/PluginService.php'), 'utf8')
+      + readFileSync(resolve(root, 'app/console/plugin/service/concern/PluginServiceSupport.php'), 'utf8');
 
     expect(publisher).toContain("['resources']");
     expect(publisher).toContain('plugin-assets');
@@ -62,8 +62,8 @@ describe('M6 插件标准 Admin Web 契约', () => {
   });
 
   it('Manifest 与 Schema 只读取 adminWeb 并保留安全静态校验', () => {
-    const manifest = readFileSync(resolve(root, 'extend/fun/plugins/Manifest.php'), 'utf8');
-    const schema = readFileSync(resolve(root, 'extend/fun/plugins/schema/plugin.schema.json'), 'utf8');
+    const manifest = readFileSync(resolve(root, 'app/common/plugin/sdk/Manifest.php'), 'utf8');
+    const schema = readFileSync(resolve(root, 'app/common/plugin/sdk/schema/plugin.schema.json'), 'utf8');
     expect(schema).toContain('"adminWeb"');
     expect(schema).not.toContain('"admin_web"');
     expect(manifest).toContain("$data['adminWeb']");
@@ -75,7 +75,7 @@ describe('M6 插件标准 Admin Web 契约', () => {
   });
 
   it('插件 API 的未知异常不向客户端泄露内部消息', () => {
-    const controller = readFileSync(resolve(root, 'app/console/controller/system/SystemPlugin.php'), 'utf8');
+    const controller = readFileSync(resolve(root, 'app/console/controller/plugin/SystemPlugin.php'), 'utf8');
     const fallback = controller.match(/catch \(\\Throwable \$exception\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
     expect(fallback).toContain("return $this->fail(msg: '插件操作失败', code: 500)");
     expect(fallback).not.toContain('return $this->fail(msg: $exception->getMessage()');
