@@ -1,16 +1,18 @@
 <template>
   <section class="file-diff-viewer">
     <header><strong>{{ file.path }}</strong><el-tag size="small">{{ file.status }}</el-tag></header>
-    <el-alert v-if="file.contentKind === 'binary'" title="二进制文件无法显示文本 Diff" type="warning" :closable="false" />
-    <el-alert v-if="file.contentOmitted" title="内容已省略：文件为二进制或超过展示上限" type="info" :closable="false" />
-    <pre v-if="file.contentKind !== 'binary' && !file.contentOmitted"><code>{{ diff || 'Diff 正文未由后端返回，仅展示文件状态与哈希。' }}</code></pre>
+    <el-alert v-if="file.contentKind === 'binary'" :title="t('aiDevelopment.diff.binary')" type="warning" :closable="false" />
+    <el-alert v-if="file.contentOmitted" :title="t('aiDevelopment.diff.omitted')" type="info" :closable="false" />
+    <pre v-if="file.contentKind !== 'binary' && !file.contentOmitted"><code>{{ diff || t('aiDevelopment.diff.missing') }}</code></pre>
     <dl><dt>Base</dt><dd>{{ file.baseHash || '-' }}</dd><dt>Local</dt><dd>{{ file.localHash || '-' }}</dd><dt>Remote</dt><dd>{{ file.remoteHash || '-' }}</dd></dl>
   </section>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { AiChangeSetFile } from '@/api/development/ai';
 defineProps<{ file: AiChangeSetFile; diff?: string }>();
+const { t } = useI18n();
 </script>
 
 <style scoped>

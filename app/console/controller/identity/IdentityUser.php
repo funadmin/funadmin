@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace app\console\controller\identity;
 
 use app\common\model\identity\IdentityAdminLink;
-use app\common\model\identity\IdentityConsent;
 use app\common\model\identity\IdentityMemberLink;
 use app\common\model\identity\IdentityUser as IdentityUserModel;
 use app\common\model\identity\OAuthAuthorization;
@@ -15,6 +14,7 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
+use app\identity\service\AuthorizationRevocationService;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
@@ -101,8 +101,8 @@ final class IdentityUser extends AdminApiController
     public function revokeAuthorizations(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityConsent::forTenant($tenantId)->where('user_id', $id)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
-        OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->whereIn('status', ['pending', 'approved'])->update(['status' => 'denied', 'decided_at' => date('Y-m-d H:i:s')]);
+        IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
+        (new AuthorizationRevocationService())->revokeUser($tenantId, $id);
         return $this->ok(data: null, msg: '用户授权已撤销');
     }
 

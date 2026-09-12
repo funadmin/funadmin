@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import { describe, expect, it } from 'vitest';
+import zhCN from '@/locales/zh-CN';
 import ApprovalCard from './ApprovalCard.vue';
 import ApprovalModeSelector from './ApprovalModeSelector.vue';
 import ChangeSetDrawer from './ChangeSetDrawer.vue';
@@ -41,7 +43,8 @@ const stubs = {
   ElEmpty: { template: '<div />' }
 };
 
-const mountWithStubs = (component: Parameters<typeof mount>[0], props: Record<string, unknown>) => mount(component, { props, global: { stubs } });
+const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } });
+const mountWithStubs = (component: Parameters<typeof mount>[0], props: Record<string, unknown>) => mount(component, { props, global: { plugins: [i18n], stubs } });
 
 describe('AI Development components', () => {
   it('消息仅以文本和 code 节点渲染，不解释恶意 HTML', () => {
@@ -91,12 +94,19 @@ describe('AI Development components', () => {
     expect(binary.text()).toContain('内容已省略');
   });
 
-  it('Provider API key 只在提交事件中发送且关闭即清空', async () => {
-    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings: { provider: { name: 'openai-compatible', base_url: '', model: '', connect_timeout: 5, request_timeout: 60, max_retries: 2, configured: true, masked: 'sk-••••' }, limits: {} } });
+  it('Provider API key 仅在用户实际输入临时 key 时发送且关闭即清空', async () => {
+    const settings = { provider: { name: 'openai-compatible', base_url: '', model: '', connect_timeout: 5, request_timeout: 60, max_retries: 2, configured: true, masked: 'sk-••••' }, limits: {} };
+    const emptyWrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings });
+    await emptyWrapper.find('form').trigger('submit');
+    expect(emptyWrapper.emitted('test')?.[0]?.[0]).not.toHaveProperty('api_key');
+
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings });
     const keyInput = wrapper.find('input[data-testid="provider-api-key"]');
     await keyInput.setValue('sk-secret');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('test')?.[0]?.[0]).toMatchObject({ api_key: 'sk-secret' });
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('test')?.[1]?.[0]).not.toHaveProperty('api_key');
     await wrapper.setProps({ modelValue: false } as never);
     expect((keyInput.element as HTMLInputElement).value).toBe('');
     expect(JSON.stringify(wrapper.vm.$data)).not.toContain('localStorage');

@@ -1,20 +1,19 @@
 <template>
   <PageWrapper class="ai-page">
-    <template #header><div><h2>AI 开发助手</h2><small>会话、工具审批与工作区变更</small></div></template>
+    <template #header><div><h2>{{ t('aiDevelopment.title') }}</h2><small>{{ t('aiDevelopment.subtitle') }}</small></div></template>
     <template #extra>
-      <el-button @click="openProviderSettings"><i class="i-ep-setting" />Provider</el-button>
-      <el-button class="mobile-only" @click="contextDrawerOpen = true"><i class="i-ep-document" />任务</el-button>
+      <el-button @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
     </template>
 
     <div class="ai-layout">
-      <section class="ai-conversations-pane">
+      <section v-show="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
         <ConversationList :conversations="store.conversations" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" />
       </section>
 
-      <main class="ai-workspace-pane">
+      <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
         <header class="workspace-header">
-          <div><strong>{{ selectedConversation?.title || '选择或新建会话' }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ store.activeTask.status }}</small></div>
-          <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />停止</el-button>
+          <div><strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ statusLabel(store.activeTask.status) }}</small></div>
+          <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
         </header>
         <div class="workspace-scroll">
           <MessageTimeline :messages="store.messages" />
@@ -22,24 +21,24 @@
           <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
         </div>
         <form class="composer" @submit.prevent="sendMessage">
-          <el-input v-model="prompt" type="textarea" :rows="3" resize="none" placeholder="描述你要分析或修改的内容。高风险操作会按审批模式暂停。" />
-          <el-button type="primary" native-type="submit" :disabled="!selectedConversation || !prompt.trim() || running">发送</el-button>
+          <el-input v-model="prompt" type="textarea" :rows="3" resize="none" :placeholder="t('aiDevelopment.promptPlaceholder')" />
+          <el-button type="primary" native-type="submit" :disabled="!selectedConversation || !prompt.trim() || running">{{ t('aiDevelopment.send') }}</el-button>
         </form>
       </main>
 
-      <aside class="ai-context-pane"><ContextPanel /></aside>
+      <aside v-show="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
     </div>
 
-    <ElDrawer v-model="contextDrawerOpen" title="任务上下文" size="min(440px, 94vw)"><ContextPanel /></ElDrawer>
-    <ElTabs v-model="mobileTab" class="mobile-tabs"><el-tab-pane label="会话" name="conversations" /><el-tab-pane label="工作区" name="workspace" /><el-tab-pane label="任务" name="context" /></ElTabs>
+    <ElTabs v-model="mobileTab" class="mobile-tabs"><el-tab-pane :label="t('aiDevelopment.conversations')" name="conversations" /><el-tab-pane :label="t('aiDevelopment.workspace')" name="workspace" /><el-tab-pane :label="t('aiDevelopment.task')" name="context" /></ElTabs>
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
     <ProviderSettingsDrawer v-if="providerSettings" v-model="providerOpen" :settings="providerSettings" @test="testProvider" />
-    <el-dialog v-model="logOpen" title="工具日志" width="min(760px, 94vw)"><pre class="tool-log">{{ toolLog }}</pre></el-dialog>
+    <el-dialog v-model="logOpen" :title="t('aiDevelopment.toolLog')" width="min(760px, 94vw)"><pre class="tool-log">{{ toolLog }}</pre></el-dialog>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import { aiDevelopmentApi, type AiApprovalMode, type AiChangeSetPreview, type AiProviderSettings } from '@/api/development/ai';
@@ -53,10 +52,12 @@ import ToolCallTimeline from './components/ToolCallTimeline.vue';
 import ChangeSetDrawer from './components/ChangeSetDrawer.vue';
 import ProviderSettingsDrawer from './components/ProviderSettingsDrawer.vue';
 
+const { t } = useI18n();
 const store = useAiDevelopmentStore();
 const userStore = useUserStore();
 const prompt = ref('');
-const contextDrawerOpen = ref(false);
+const mobileQuery = typeof window === 'undefined' ? null : window.matchMedia('(max-width: 1024px)');
+const isMobile = ref(mobileQuery?.matches ?? false);
 const changeSetOpen = ref(false);
 const providerOpen = ref(false);
 const logOpen = ref(false);
@@ -68,6 +69,13 @@ const selectedConversation = computed(() => store.conversations.find((item) => i
 const pendingApprovals = computed(() => store.approvals.filter((item) => item.status === 'pending'));
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
+const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
+const statusLabel = (status: string) => {
+  const key = `aiDevelopment.statuses.${status}`;
+  const translated = t(key);
+  return translated === key ? status : translated;
+};
+const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobile.value = event.matches; };
 
 const ContextPanel = defineComponent({
   name: 'AiContextPanel',
@@ -77,22 +85,22 @@ const ContextPanel = defineComponent({
       set: (value: AiApprovalMode) => updateApprovalMode(value)
     });
     return () => h('div', { class: 'context-panel' }, [
-      h('h3', '任务与权限'),
+      h('h3', t('aiDevelopment.taskAndPermissions')),
       h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } }),
       store.activeTask ? h(ElDescriptions, { column: 1, border: true, size: 'small' }, () => [
-        h(ElDescriptionsItem, { label: '任务' }, () => `#${store.activeTask?.id} ${store.activeTask?.type}`),
-        h(ElDescriptionsItem, { label: '阶段' }, () => store.activeTask?.stage || '-'),
-        h(ElDescriptionsItem, { label: '状态' }, () => h(ElTag, {}, () => store.activeTask?.status)),
-        h(ElDescriptionsItem, { label: '测试' }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-'),
-        h(ElDescriptionsItem, { label: '风险' }, () => pendingApprovals.value.map((item) => item.risk_reason).join('；') || '暂无待审批风险')
-      ]) : h('p', { class: 'empty-context' }, '暂无活动任务'),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.task') }, () => `#${store.activeTask?.id} ${store.activeTask?.type}`),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.stage') }, () => store.activeTask?.stage || '-'),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.status') }, () => h(ElTag, {}, () => statusLabel(store.activeTask?.status || 'unknown'))),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.test') }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-'),
+        h(ElDescriptionsItem, { label: t('aiDevelopment.risk') }, () => pendingApprovals.value.map((item) => item.risk_reason).join('；') || t('aiDevelopment.noPendingRisk'))
+      ]) : h('p', { class: 'empty-context' }, t('aiDevelopment.noActiveTask')),
       store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `ChangeSet #${store.changeSet.id} · ${store.changeSet.status}`) : null
     ]);
   }
 });
 
 async function createConversation() {
-  const conversation = await aiDevelopmentApi.createConversation({ title: '新 AI 会话', approval_mode: 'request_approval' });
+  const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval' });
   store.conversations.unshift(conversation);
   await selectConversation(conversation.id);
 }
@@ -106,8 +114,8 @@ async function updateApprovalMode(mode: AiApprovalMode) {
   try {
     const updated = await aiDevelopmentApi.updateConversation(selectedConversation.value.id, { approval_mode: mode });
     Object.assign(selectedConversation.value, updated);
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '审批模式更新失败（403 capability）');
+  } catch {
+    ElMessage.error(t('aiDevelopment.errors.approvalModeUpdate'));
   }
 }
 
@@ -130,21 +138,26 @@ async function ensurePreview() {
 async function previewChangeSet(selection: string[]) { if (store.changeSet) preview.value = await aiDevelopmentApi.previewChangeSet(store.changeSet.id, selection); }
 async function applyChangeSet(confirmToken: string, selection: string[]) {
   if (!store.changeSet || preview.value?.blocked) return;
-  await ElMessageBox.confirm('将把选中的文件应用到工作区。请再次确认。', '最终应用二次确认', { type: 'warning', confirmButtonText: '确认应用' });
+  await ElMessageBox.confirm(t('aiDevelopment.changeSet.applyConfirm'), t('aiDevelopment.changeSet.applyConfirmTitle'), { type: 'warning', confirmButtonText: t('aiDevelopment.changeSet.applyConfirmButton') });
   try {
     await store.applyChangeSet(confirmToken, selection);
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '最终 apply 审批不存在或尚未批准');
+  } catch {
+    ElMessage.error(t('aiDevelopment.errors.applyUnavailable'));
     return;
   }
   changeSetOpen.value = false;
-  ElMessage.success('ChangeSet 已应用');
+  ElMessage.success(t('aiDevelopment.changeSet.applied'));
 }
 async function openToolLog(id: number, stream: 'stdout' | 'stderr') { toolLog.value = (await aiDevelopmentApi.toolLog(id, stream)).content; logOpen.value = true; }
 async function openProviderSettings() { providerSettings.value = await aiDevelopmentApi.settings(); providerOpen.value = true; }
-async function testProvider(payload: Record<string, unknown>) { await aiDevelopmentApi.testSettings(payload); ElMessage.success('Provider 连接测试成功'); }
+async function testProvider(payload: Record<string, unknown>) { await aiDevelopmentApi.testSettings(payload); ElMessage.success(t('aiDevelopment.providerSettings.testSuccess')); }
 
-onMounted(async () => { await store.restoreRouteState(); if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); } });
+onMounted(async () => {
+  mobileQuery?.addEventListener('change', updateViewport);
+  await store.restoreRouteState();
+  if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); }
+});
+onUnmounted(() => mobileQuery?.removeEventListener('change', updateViewport));
 onBeforeUnmount(() => store.closeEvents());
 </script>
 
@@ -158,7 +171,7 @@ h2 { margin: 0; font-size: 18px; } header small { color: var(--el-text-color-sec
 .ai-workspace-pane { display: grid; min-width: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
 .workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .workspace-header div { display: grid; gap: 2px; }.workspace-scroll { overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
-.context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-only, .mobile-tabs { display: none; }
-@media (max-width: 1024px) { .ai-page { height: auto; }.ai-layout { grid-template-columns: minmax(210px, 30%) 1fr; min-height: 70vh; }.ai-context-pane { display: none; }.mobile-only { display: inline-flex; }.mobile-tabs { display: block; } }
-@media (max-width: 680px) { .ai-layout { display: block; }.ai-conversations-pane { max-height: 230px; border-right: 0; border-bottom: 1px solid var(--el-border-color-lighter); }.ai-workspace-pane { min-height: 65vh; }.composer { grid-template-columns: 1fr; } }
+.context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-tabs { display: none; }
+@media (max-width: 1024px) { .ai-page { height: auto; }.ai-layout { display: block; min-height: 70vh; }.ai-conversations-pane { border-right: 0; }.ai-context-pane { border-left: 0; }.mobile-tabs { display: block; } }
+@media (max-width: 680px) { .ai-workspace-pane { min-height: 65vh; }.composer { grid-template-columns: 1fr; } }
 </style>

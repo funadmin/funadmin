@@ -30,8 +30,59 @@ export default {
     AiDevelopment: 'AI Development Assistant',
   },
   aiDevelopment: {
-    approvalModes: { request: 'Request approval', agent: 'Approve for me', fullAccess: 'Full access' },
-    changeSet: { confirmApply: 'Confirm and apply' },
+    title: 'AI Development Assistant',
+    subtitle: 'Conversations, tool approvals, and workspace changes',
+    provider: 'Provider',
+    task: 'Task',
+    workspace: 'Workspace',
+    conversations: 'Conversations',
+    newConversation: 'New',
+    unnamedConversation: 'Untitled conversation',
+    noConversations: 'No conversations',
+    selectConversation: 'Select or create a conversation',
+    stop: 'Stop',
+    send: 'Send',
+    promptPlaceholder: 'Describe what to analyze or change. High-risk operations pause according to the approval mode.',
+    newConversationTitle: 'New AI conversation',
+    taskContext: 'Task context',
+    taskAndPermissions: 'Task and permissions',
+    stage: 'Stage',
+    status: 'Status',
+    test: 'Tests',
+    risk: 'Risk',
+    noPendingRisk: 'No risks awaiting approval',
+    noActiveTask: 'No active task',
+    toolLog: 'Tool log',
+    messages: { empty: 'Start a new AI conversation', roles: { system: 'System', user: 'You', assistant: 'AI Assistant', tool: 'Tool' } },
+    approvalModes: {
+      request: 'Request approval', agent: 'Approve for me', fullAccess: 'Full access',
+      requestBoundary: 'Ask for approval before each dangerous tool execution.',
+      agentBoundary: 'Allow the agent to approve only within granted capabilities.',
+      fullAccessBoundary: 'Allow high-risk operations, while final ChangeSet application still requires confirmation.',
+      missingCapability: '403: missing development:ai:full-access capability',
+      unavailable: '403: full access is unavailable'
+    },
+    approval: {
+      required: 'Approval required', defaultRisk: 'This operation requires manual confirmation', details: 'Risk details and impact',
+      feedbackPlaceholder: 'Optional feedback when rejecting', allowOnce: 'Allow once', allowSession: 'Allow for session operation', reject: 'Reject'
+    },
+    changeSet: {
+      title: 'ChangeSet / Diff', test: 'Tests: {status}', security: 'Security: {status}', fileSelectionOnly: 'Select whole files; hunk selection is unavailable',
+      conflictBlocked: 'Blocked by conflicts. Deselect conflicting files or regenerate the ChangeSet.', previewRequired: 'Preview before applying. Final application always requires confirmation.',
+      close: 'Close', preview: 'Preview', confirmApply: 'Confirm and apply', applyConfirm: 'The selected files will be applied to the workspace. Confirm again.',
+      applyConfirmTitle: 'Final application confirmation', applyConfirmButton: 'Apply', applied: 'ChangeSet applied'
+    },
+    diff: { binary: 'Binary files cannot display a text diff', omitted: 'Content omitted because the file is binary or exceeds the display limit', missing: 'The backend did not return diff content; only file status and hashes are shown.' },
+    providerSettings: {
+      title: 'Provider settings', securityNotice: 'The API key is sent only for this connection test. It is never displayed or stored in the browser.', apiKeyPlaceholder: 'Send only; never display',
+      configured: 'Configured: {masked}', connectTimeout: 'Connection timeout', requestTimeout: 'Request timeout', testConnection: 'Test connection', testSuccess: 'Provider connection test succeeded'
+    },
+    toolCalls: { viewStdout: 'View stdout', viewStderr: 'View stderr' },
+    statuses: {
+      running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending',
+      approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed'
+    },
+    errors: { approvalModeUpdate: 'Could not update the approval mode. Check your permissions and try again.', applyUnavailable: 'Final application approval is missing or has not been granted', generic: 'The operation failed. Please try again later.' }
   },
   layout: {
     menuSearch: 'Menu search',

@@ -12,6 +12,7 @@ use app\common\model\identity\OAuthScope;
 use app\identity\service\AuthorizationTransactionService;
 use app\identity\service\IdentityCredentialService;
 use app\identity\service\IdentitySessionResolverFactory;
+use app\identity\service\IdentitySsoConfigService;
 use DomainException;
 use think\captcha\facade\Captcha;
 use think\facade\Session;
@@ -44,6 +45,7 @@ final class Identity
         }
         try {
             $authorization = $this->authorization($transactionId);
+            (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             (new IdentityCredentialService())->login((int) $authorization->tenant_id, trim((string) $request->post('username', '')), (string) $request->post('password', ''), (string) $request->post('captcha', ''), (string) $request->ip());
             return redirect('/identity/interaction?transaction_id=' . rawurlencode($transactionId))->header($this->securityHeaders());
         } catch (DomainException $exception) {
@@ -61,6 +63,8 @@ final class Identity
             return $this->render((string) $request->post('transaction_id', ''), '登录状态已失效', 401);
         }
         try {
+            $authorization = $this->authorization((string) $request->post('transaction_id', ''));
+            (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             $result = (new AuthorizationTransactionService())->decide((string) $request->post('transaction_id', ''), $identity, (string) $request->post('approved', '') === '1');
             $parameters = $result['approved'] ? ['code' => $result['code']] : ['error' => 'access_denied'];
             if ($result['state'] !== null) $parameters['state'] = $result['state'];
@@ -74,6 +78,7 @@ final class Identity
     {
         try {
             $authorization = $this->authorization($transactionId);
+            (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
         } catch (DomainException) {
             return response('授权请求无效或已过期', 400, $this->securityHeaders());
         }

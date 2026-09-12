@@ -7,18 +7,17 @@
         <p v-else class="message-text">{{ part.text || '' }}</p>
       </template>
     </article>
-    <el-empty v-if="messages.length === 0" description="开始一个新的 AI 会话" />
+    <el-empty v-if="messages.length === 0" :description="t('aiDevelopment.messages.empty')" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { AiMessage } from '@/api/development/ai';
 
 defineProps<{ messages: AiMessage[] }>();
-
-function roleLabel(role: AiMessage['role']): string {
-  return { system: '系统', user: '你', assistant: 'AI 助手', tool: '工具' }[role];
-}
+const { t } = useI18n();
+function roleLabel(role: AiMessage['role']): string { return t(`aiDevelopment.messages.roles.${role}`); }
 </script>
 
 <style scoped>

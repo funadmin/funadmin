@@ -1,17 +1,24 @@
 <template>
   <aside class="conversation-list">
-    <div class="conversation-list__header"><strong>AI 会话</strong><el-button size="small" type="primary" @click="$emit('create')">新建</el-button></div>
+    <div class="conversation-list__header"><strong>{{ t('aiDevelopment.conversations') }}</strong><el-button size="small" type="primary" @click="$emit('create')">{{ t('aiDevelopment.newConversation') }}</el-button></div>
     <button v-for="conversation in conversations" :key="conversation.id" class="conversation-item" :class="{ active: conversation.id === selectedId }" @click="$emit('select', conversation.id)">
-      <span>{{ conversation.title || '未命名会话' }}</span><small>{{ conversation.status }}</small>
+      <span>{{ conversation.title || t('aiDevelopment.unnamedConversation') }}</span><small>{{ statusLabel(conversation.status) }}</small>
     </button>
-    <el-empty v-if="conversations.length === 0" description="暂无会话" />
+    <el-empty v-if="conversations.length === 0" :description="t('aiDevelopment.noConversations')" />
   </aside>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { AiConversation } from '@/api/development/ai';
 defineProps<{ conversations: AiConversation[]; selectedId: number | null }>();
 defineEmits<{ create: []; select: [id: number] }>();
+const { t } = useI18n();
+const statusLabel = (status: string) => {
+  const key = `aiDevelopment.statuses.${status}`;
+  const translated = t(key);
+  return translated === key ? status : translated;
+};
 </script>
 
 <style scoped>

@@ -27,6 +27,7 @@ final class OAuth
         try {
             $client = (new ClientRepository())->getClientEntity((string) $request->get('client_id', ''));
             if (!$client) return $this->error('invalid_request', 400);
+            (new \app\identity\service\IdentitySsoConfigService())->requireIdentityProvider($client->tenantId);
             $protocol = (new AuthorizationRequestValidator())->validateProtocol($request->get());
             $redirect = (string) $request->get('redirect_uri', '');
             if (!in_array($redirect, $client->getRedirectUri(), true) || !in_array('authorization_code', $client->grants, true)) return $this->error('invalid_request', 400);
@@ -60,6 +61,7 @@ final class OAuth
         if (!str_starts_with(strtolower((string) $request->header('content-type', '')), 'application/x-www-form-urlencoded')) return $this->error('invalid_request', 400);
         try {
             [$client, $grant] = $this->authenticateClient($request);
+            (new \app\identity\service\IdentitySsoConfigService())->requireIdentityProvider($client->tenantId);
             $scopeIds = $this->requestedScopeIds($client, (string) $request->post('scope', ''));
             $tokens = match ($grant) {
                 'client_credentials' => $this->clientCredentials($client, $scopeIds),

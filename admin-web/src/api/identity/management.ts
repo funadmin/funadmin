@@ -2,13 +2,13 @@ import http from '@/utils/http';
 
 const success = { requestOptions: { showSuccessMsg: true } };
 type Row = Record<string, any>;
-export interface SsoConfig { enabled: boolean; providerMode: 'native'|'external'; issuer: string; externalIdentityEnabled: boolean; backchannelLogoutEnabled: boolean }
+export interface SsoConfig { enabled: boolean; providerMode: 'identity_provider'|'external'; issuer: string; externalIdentityEnabled: boolean; backchannelLogoutEnabled: boolean }
 export interface SelfCheck { issuer: string; passed: boolean; checks: Array<{ key: string; passed: boolean; message: string }> }
 export interface ScopeClaim { id: number; name: string; description: string; claims: string[]; isBuiltin: boolean; status: boolean }
 export interface IdentityLinks { admin: Array<{ id: number; admin_id: number }>; member: Array<{ id: number; member_id: number }> }
 export interface IdentityUser { id: number; publicId: string; username: string; displayName: string; email?: string; mobile?: string; realm: string; status: number; lastLoginAt?: string; links?: IdentityLinks; sessions?: Row[]; authorizations?: Row[] }
 
-const mapSso = (row: Row): SsoConfig => ({ enabled: Boolean(row.enabled), providerMode: row.provider_mode, issuer: row.issuer, externalIdentityEnabled: Boolean(row.external_identity_enabled), backchannelLogoutEnabled: Boolean(row.backchannel_logout_enabled) });
+const mapSso = (row: Row): SsoConfig => ({ enabled: Boolean(row.enabled), providerMode: row.provider_mode === 'identity_provider' ? 'identity_provider' : 'external', issuer: row.issuer, externalIdentityEnabled: Boolean(row.external_identity_enabled), backchannelLogoutEnabled: Boolean(row.backchannel_logout_enabled) });
 const mapScope = (row: Row): ScopeClaim => ({ id: row.id, name: row.name, description: row.description, claims: typeof row.claims === 'string' ? JSON.parse(row.claims || '[]') : row.claims || [], isBuiltin: Boolean(row.is_builtin), status: Boolean(row.status) });
 const mapUser = (row: Row): IdentityUser => ({ id: row.id, publicId: row.public_id, username: row.username, displayName: row.display_name, email: row.email, mobile: row.mobile, realm: row.realm, status: row.status, lastLoginAt: row.last_login_at, links: row.links, sessions: row.sessions, authorizations: row.authorizations });
 export const ssoApi = { config: async () => mapSso(await http.get<Row>('/identity/sso/config')), save: async (input: SsoConfig) => mapSso(await http.put<Row>('/identity/sso/config', input, success)), check: () => http.get<SelfCheck>('/identity/sso/check') };

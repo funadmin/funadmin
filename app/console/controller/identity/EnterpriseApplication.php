@@ -164,7 +164,8 @@ final class EnterpriseApplication extends AdminApiController
     }
 
     #[Put(':id/oauth-clients/:clientId/claim-policy')]
-    #[Pattern(['id' => '\d+', 'clientId' => '\d+'])]
+    #[Pattern('id', '\d+')]
+    #[Pattern('clientId', '\d+')]
     public function saveClientClaimPolicy(int $id, int $clientId): Response
     {
         $client = (new \app\common\service\identity\OAuthClientService())->detail($this->tenantId(), $clientId);

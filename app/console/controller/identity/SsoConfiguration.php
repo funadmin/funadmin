@@ -30,15 +30,15 @@ final class SsoConfiguration extends AdminApiController
     public function config(): Response
     {
         $row = IdentitySsoConfig::forTenant(AdminIdentityAdapter::TENANT_ID)->find();
-        return $this->ok(data: $row?->toArray() ?? ['enabled' => 0, 'provider_mode' => 'native', 'issuer' => (string) config('identity.issuer'), 'external_identity_enabled' => 0, 'backchannel_logout_enabled' => 1]);
+        return $this->ok(data: $row?->toArray() ?? ['enabled' => 0, 'provider_mode' => 'identity_provider', 'issuer' => (string) config('identity.issuer'), 'external_identity_enabled' => 0, 'backchannel_logout_enabled' => 1]);
     }
 
     #[Put('config')]
     public function save(): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        $mode = (string) $this->request->put('providerMode', 'native');
-        if ($mode !== 'native') throw new \InvalidArgumentException('外部身份接入首期暂未启用');
+        $mode = (string) $this->request->put('providerMode', 'identity_provider');
+        if ($mode !== 'identity_provider') throw new \InvalidArgumentException('仅支持 identity_provider 模式');
         $configuredIssuer = (new IssuerService((string) config('identity.issuer')))->getIssuer();
         $requestedIssuer = rtrim(trim((string) $this->request->put('issuer', $configuredIssuer)), '/');
         if ($requestedIssuer !== $configuredIssuer) throw new \InvalidArgumentException('issuer 由部署配置固定，不能在管理端修改');

@@ -22,6 +22,10 @@ final class BackchannelLogoutWorker
         foreach ($claimed as $row) {
             $lockToken = (string) $row['lock_token'];
             try {
+                if (!(new IdentitySsoConfigService())->allowsBackchannelLogout((int) $row['tenant_id'])) {
+                    $completed += $this->cancel((int) $row['id'], $workerId, $lockToken);
+                    continue;
+                }
                 $responseStatus = (new BackchannelLogoutDispatcher())->send($row);
                 $completed += $this->complete((int) $row['id'], $workerId, $lockToken, $responseStatus);
             } catch (Throwable $exception) {
@@ -43,6 +47,9 @@ final class BackchannelLogoutWorker
         if ($row === null) return false;
         $lockToken = (string) $row['lock_token'];
         try {
+            if (!(new IdentitySsoConfigService())->allowsBackchannelLogout((int) $row['tenant_id'])) {
+                return $this->cancel($deliveryId, $workerId, $lockToken) === 1;
+            }
             $status = (new BackchannelLogoutDispatcher())->send($row);
             return $this->complete($deliveryId, $workerId, $lockToken, $status) === 1;
         } catch (Throwable $exception) {
@@ -90,6 +97,14 @@ final class BackchannelLogoutWorker
             'lease_expires_at' => date('Y-m-d H:i:s', time() + $this->leaseSeconds),
             'updated_at' => date('Y-m-d H:i:s'),
         ]) === 1;
+    }
+
+    private function cancel(int $id, string $workerId, string $lockToken): int
+    {
+        return BackchannelLogoutDelivery::where('id', $id)->where('status', 'processing')->where('worker_id', $workerId)->where('lock_token', $lockToken)->update([
+            'status' => 'dead', 'dead_at' => date('Y-m-d H:i:s'), 'last_error_code' => 'backchannel_disabled',
+            'worker_id' => null, 'lock_token' => null, 'lease_expires_at' => null, 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     private function complete(int $id, string $workerId, string $lockToken, int $status): int

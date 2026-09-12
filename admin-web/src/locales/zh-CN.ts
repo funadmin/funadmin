@@ -31,8 +31,59 @@ export default {
     AiDevelopment: 'AI 开发助手',
   },
   aiDevelopment: {
-    approvalModes: { request: '请求批准', agent: '替我审批', fullAccess: '完全访问权限' },
-    changeSet: { confirmApply: '二次确认并应用' },
+    title: 'AI 开发助手',
+    subtitle: '会话、工具审批与工作区变更',
+    provider: 'Provider',
+    task: '任务',
+    workspace: '工作区',
+    conversations: '会话',
+    newConversation: '新建',
+    unnamedConversation: '未命名会话',
+    noConversations: '暂无会话',
+    selectConversation: '选择或新建会话',
+    stop: '停止',
+    send: '发送',
+    promptPlaceholder: '描述你要分析或修改的内容。高风险操作会按审批模式暂停。',
+    newConversationTitle: '新 AI 会话',
+    taskContext: '任务上下文',
+    taskAndPermissions: '任务与权限',
+    stage: '阶段',
+    status: '状态',
+    test: '测试',
+    risk: '风险',
+    noPendingRisk: '暂无待审批风险',
+    noActiveTask: '暂无活动任务',
+    toolLog: '工具日志',
+    messages: { empty: '开始一个新的 AI 会话', roles: { system: '系统', user: '你', assistant: 'AI 助手', tool: '工具' } },
+    approvalModes: {
+      request: '请求批准', agent: '替我审批', fullAccess: '完全访问权限',
+      requestBoundary: '危险工具执行前逐次请求批准。',
+      agentBoundary: '仅在已授权 capability 范围内由代理审批。',
+      fullAccessBoundary: '允许高风险操作，但最终应用 ChangeSet 仍须二次确认。',
+      missingCapability: '403：缺少 development:ai:full-access capability',
+      unavailable: '403：完全访问权限不可用'
+    },
+    approval: {
+      required: '需要审批', defaultRisk: '该操作需要人工确认', details: '危险详情与影响范围',
+      feedbackPlaceholder: '拒绝时可填写反馈', allowOnce: '仅本次允许', allowSession: '允许会话操作', reject: '拒绝'
+    },
+    changeSet: {
+      title: 'ChangeSet / Diff', test: '测试：{status}', security: '安全：{status}', fileSelectionOnly: '按文件选择，不支持逐块选择',
+      conflictBlocked: '冲突阻断：请取消冲突文件或重新生成 ChangeSet', previewRequired: '预览后才能应用；最终应用总是需要二次确认',
+      close: '关闭', preview: '预览', confirmApply: '二次确认并应用', applyConfirm: '将把选中的文件应用到工作区。请再次确认。',
+      applyConfirmTitle: '最终应用二次确认', applyConfirmButton: '确认应用', applied: 'ChangeSet 已应用'
+    },
+    diff: { binary: '二进制文件无法显示文本 Diff', omitted: '内容已省略：文件为二进制或超过展示上限', missing: 'Diff 正文未由后端返回，仅展示文件状态与哈希。' },
+    providerSettings: {
+      title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
+      configured: '已配置：{masked}', connectTimeout: '连接超时', requestTimeout: '请求超时', testConnection: '测试连接', testSuccess: 'Provider 连接测试成功'
+    },
+    toolCalls: { viewStdout: '查看 stdout', viewStderr: '查看 stderr' },
+    statuses: {
+      running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理',
+      approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过'
+    },
+    errors: { approvalModeUpdate: '审批模式更新失败，请检查权限后重试', applyUnavailable: '最终应用审批不存在或尚未批准', generic: '操作失败，请稍后重试' }
   },
   layout: {
     menuSearch: '菜单搜索',

@@ -16,7 +16,7 @@ const scopes: any[] = [{ id: 1, name: 'openid', description: 'OIDC 身份', clai
 const sessions: any[] = [{ id: 1, sid: 'mock-session', user_id: 1, status: 'active', expires_at: '2026-09-13 09:00:00' }];
 const authorizations: any[] = [{ id: 1, client_id: 1, user_id: 1, status: 'approved' }];
 const audits: any[] = [{ id: 1, event_type: 'login.success', outcome: 'success', user_id: 1, created_at: '2026-09-12 09:00:00' }];
-let ssoConfig = { enabled: 0, provider_mode: 'native', issuer: 'https://identity.example.com', external_identity_enabled: 0, backchannel_logout_enabled: 1 };
+let ssoConfig = { enabled: 0, provider_mode: 'identity_provider', issuer: 'https://identity.example.com', external_identity_enabled: 0, backchannel_logout_enabled: 1 };
 const settings = new Map<number, Record<string, any>>([
   [1, {
     database: { mode: 'shared', health_path: '/health', credential_configured: false },

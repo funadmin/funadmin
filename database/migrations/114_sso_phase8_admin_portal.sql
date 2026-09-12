@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `fun_identity_sso_config` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
   `enabled` tinyint NOT NULL DEFAULT 0,
-  `provider_mode` enum('native','external') NOT NULL DEFAULT 'native',
+  `provider_mode` varchar(32) NOT NULL DEFAULT 'identity_provider',
   `issuer` varchar(2048) NOT NULL DEFAULT '',
   `external_identity_enabled` tinyint NOT NULL DEFAULT 0,
   `backchannel_logout_enabled` tinyint NOT NULL DEFAULT 1,
