@@ -1,0 +1,5 @@
+-- 110 AI phase four ChangeSet preview permission compensation; forward-only and idempotent.
+SET @ai_group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='ai_development' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
+INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`) VALUES
+(@ai_group_id,'console','console/development.ai:changesetpreview','console/development.ai','changesetpreview',CONVERT(X'E9A284E8A788E58F98E69BB4E99B86' USING utf8mb4),'route',1,0,'admin_web','ai_development',NOW(),NOW(),50,NULL);
+UPDATE `fun_permission` SET `pid`=@ai_group_id,`app_name`='console',`obj`='console/development.ai',`act`='changesetpreview',`name`=CONVERT(X'E9A284E8A788E58F98E69BB4E99B86' USING utf8mb4),`resource_type`='route',`status`=1,`is_public`=0,`source_type`='admin_web',`source_name`='ai_development',`updated_at`=NOW(),`sort_order`=50,`deleted_at`=NULL WHERE `code`='console/development.ai:changesetpreview';

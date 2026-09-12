@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * FunAdmin
+ * ============================================================================
+ * 版权所有 2017-2028 FunAdmin，并保留所有权利。
+ * 网站地址: http://www.FunAdmin.com
+ * ----------------------------------------------------------------------------
+ * 采用最新Thinkphp8实现
+ * ============================================================================
+ * Author: yuege
+ * Date: 2020/8/2
+ */
+namespace app\console\authentication\model;
+
+use app\common\model\concern\LaravelSoftDelete;
+use app\console\model\BackendModel;
+
+class Admin extends BackendModel {
+
+    /**
+     * @var bool
+     */
+    use LaravelSoftDelete;
+
+
+    
+
+
+
+    public function __construct(array $data = [])
+    {
+        parent::__construct($data);
+    }
+
+}

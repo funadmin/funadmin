@@ -1,0 +1,5 @@
+-- 103 AI sandbox cleanup lease fields; forward-only and idempotent.
+SET @schema_name=DATABASE();
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_ai_task' AND COLUMN_NAME='heartbeat_at'),'ALTER TABLE `fun_ai_task` ADD COLUMN `heartbeat_at` datetime NULL AFTER `started_at`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_ai_task' AND COLUMN_NAME='sandbox_retained'),'ALTER TABLE `fun_ai_task` ADD COLUMN `sandbox_retained` tinyint(1) NOT NULL DEFAULT 0 AFTER `sandbox_status`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_ai_task' AND INDEX_NAME='idx_ai_task_cleanup_candidate'),'ALTER TABLE `fun_ai_task` ADD KEY `idx_ai_task_cleanup_candidate` (`status`,`sandbox_status`,`completed_at`,`sandbox_retained`)','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
