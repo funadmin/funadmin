@@ -12,7 +12,7 @@
  */
 namespace app\common\service;
 
-use app\console\authentication\model\AdminLog;
+use app\console\model\AdminLog;
 use app\console\authorization\model\Permission;
 use app\console\authorization\service\PermissionResource;
 use think\facade\Session;

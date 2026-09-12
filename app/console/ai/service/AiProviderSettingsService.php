@@ -39,6 +39,7 @@ final class AiProviderSettingsService
 
     public function test(array $input): array
     {
+        $this->validateInput($input);
         $config = $this->serverConfig;
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $input)) {
@@ -56,6 +57,30 @@ final class AiProviderSettingsService
             'model' => (string) ($config['model'] ?? ''),
             'finishReason' => (string) ($result['finishReason'] ?? ''),
         ];
+    }
+
+    private function validateInput(array $input): void
+    {
+        foreach (['name', 'base_url', 'model', 'api_key'] as $field) {
+            if (array_key_exists($field, $input) && !is_string($input[$field])) {
+                throw new \InvalidArgumentException('Provider 字段类型无效');
+            }
+        }
+
+        $ranges = [
+            'connect_timeout' => [OpenAiCompatibleGateway::MIN_CONNECT_TIMEOUT, OpenAiCompatibleGateway::MAX_CONNECT_TIMEOUT],
+            'request_timeout' => [OpenAiCompatibleGateway::MIN_REQUEST_TIMEOUT, OpenAiCompatibleGateway::MAX_REQUEST_TIMEOUT],
+            'max_retries' => [OpenAiCompatibleGateway::MIN_RETRIES, OpenAiCompatibleGateway::MAX_RETRIES],
+        ];
+        foreach ($ranges as $field => [$minimum, $maximum]) {
+            if (!array_key_exists($field, $input)) {
+                continue;
+            }
+            $value = $input[$field];
+            if (!is_int($value) || $value < $minimum || $value > $maximum) {
+                throw new \InvalidArgumentException('Provider 数值字段范围无效');
+            }
+        }
     }
 
     private function mask(string $apiKey): string

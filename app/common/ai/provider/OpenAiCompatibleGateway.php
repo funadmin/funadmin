@@ -13,6 +13,13 @@ use Throwable;
 /** OpenAI Chat Completions 兼容网关。 */
 final class OpenAiCompatibleGateway
 {
+    public const MIN_CONNECT_TIMEOUT = 1;
+    public const MAX_CONNECT_TIMEOUT = 30;
+    public const MIN_REQUEST_TIMEOUT = 1;
+    public const MAX_REQUEST_TIMEOUT = 300;
+    public const MIN_RETRIES = 0;
+    public const MAX_RETRIES = 3;
+
     private readonly string $baseUrl;
     private readonly string $apiKey;
     private readonly string $model;
@@ -31,9 +38,9 @@ final class OpenAiCompatibleGateway
         $this->baseUrl = rtrim(trim((string) ($config['base_url'] ?? '')), '/');
         $this->apiKey = (string) ($config['api_key'] ?? '');
         $this->model = (string) ($config['model'] ?? '');
-        $this->connectTimeout = max(1, (int) ($config['connect_timeout'] ?? 5));
-        $this->requestTimeout = max(1, (int) ($config['request_timeout'] ?? 60));
-        $this->maxRetries = max(0, min(3, (int) ($config['max_retries'] ?? 2)));
+        $this->connectTimeout = max(self::MIN_CONNECT_TIMEOUT, min(self::MAX_CONNECT_TIMEOUT, (int) ($config['connect_timeout'] ?? 5)));
+        $this->requestTimeout = max(self::MIN_REQUEST_TIMEOUT, min(self::MAX_REQUEST_TIMEOUT, (int) ($config['request_timeout'] ?? 60)));
+        $this->maxRetries = max(self::MIN_RETRIES, min(self::MAX_RETRIES, (int) ($config['max_retries'] ?? 2)));
         $this->resolver = $resolver ?? static fn (string $host): array => self::resolveHost($host);
         $this->sleeper = $sleeper ?? static fn (int $milliseconds) => usleep($milliseconds * 1000);
         $this->validateUrl(false);
