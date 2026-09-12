@@ -427,14 +427,14 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
       children: [
         { id: 301, parentId: 300, routeName: 'ApplicationList', path: 'center', component: 'applications/index', type: 'C', name: '应用列表', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' },
         { id: 302, parentId: 300, routeName: 'DomainManagement', path: 'domains', component: 'applications/identity-management', type: 'C', name: '域名管理', sort: 20, hidden: false, keepAlive: false, affix: false, permission: 'identity:application:manage' },
-        { id: 303, parentId: 300, routeName: 'SsoConfiguration', path: 'sso', component: 'applications/sso/index', type: 'C', name: '单点登录', sort: 30, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.sso:config' },
-        { id: 304, parentId: 300, routeName: 'OAuthClientManagement', path: 'oauth-client', component: 'applications/oauth/index', type: 'C', name: 'OAuth 客户端', sort: 40, hidden: false, keepAlive: false, affix: false, permission: 'identity:oauth-client:view' },
+        { id: 303, parentId: 300, routeName: 'SsoConfiguration', path: 'sso', component: 'applications/sso/index', type: 'C', name: '单点登录', sort: 30, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.ssoconfiguration:config' },
+        { id: 304, parentId: 300, routeName: 'OAuthClientManagement', path: 'oauth-client', component: 'applications/oauth/index', type: 'C', name: 'OAuth 客户端', sort: 40, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.oauthclient:index' },
         { id: 305, parentId: 300, routeName: 'ScopeClaimManagement', path: 'scopes', component: 'applications/identity-management', type: 'C', name: 'Scope 与 Claim', sort: 50, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.scopeclaim:index' },
         { id: 306, parentId: 300, routeName: 'IdentityUsers', path: 'users', component: 'applications/identity-management', type: 'C', name: '身份用户', sort: 60, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.identityuser:index' },
         { id: 307, parentId: 300, routeName: 'IdentitySessions', path: 'sessions', component: 'applications/identity-management', type: 'C', name: '会话与授权', sort: 70, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.oidcsession:index' },
         { id: 308, parentId: 300, routeName: 'SigningKeys', path: 'signing-keys', component: 'applications/identity-management', type: 'C', name: '签名密钥', sort: 80, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.oidcsigningkey:index' },
-        { id: 309, parentId: 300, routeName: 'IdentityAudit', path: 'audit', component: 'applications/identity-management', type: 'C', name: '登录审计', sort: 90, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.audit:index' },
-        { id: 310, parentId: 300, routeName: 'ApplicationPortal', path: 'portal', component: 'applications/portal', type: 'C', name: '应用门户', sort: 100, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' }
+        { id: 309, parentId: 300, routeName: 'IdentityAudit', path: 'audit', component: 'applications/identity-management', type: 'C', name: '登录审计', sort: 90, hidden: false, keepAlive: false, affix: false, permission: 'console/identity.identityaudit:index' },
+        { id: 310, parentId: 300, routeName: 'ApplicationPortal', path: 'portal', component: 'applications/portal', type: 'C', name: '应用门户', sort: 100, hidden: false, keepAlive: true, affix: false, permission: 'console/identity.enterpriseapplication:portal' }
       ]
     },
     {

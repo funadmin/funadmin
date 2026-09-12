@@ -15,11 +15,8 @@ CREATE TABLE IF NOT EXISTS `fun_identity_sso_config` (
   CONSTRAINT `fk_identity_sso_config_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `fun_identity_tenant` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tenant SSO configuration';
 
-SET @console_root_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='console_root' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
-INSERT INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
-SELECT COALESCE(@console_root_id,0),'console',NULL,'','',CONVERT(X'E5BA94E794A8E4B8ADE5BF83' USING utf8mb4),'group',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),75,NULL
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='sso_phase8_application_center' AND `resource_type`='group');
-SET @group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='sso_phase8_application_center' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
+-- 复用 Phase 2 应用中心权限组，避免创建第二个同名目录。
+SET @group_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='enterprise_application_center' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
 INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`) VALUES
 (@group_id,'console','console/identity.ssoconfiguration:config','console/identity.ssoconfiguration','config',CONVERT(X'53534F20E9858DE7BDAE' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),10,NULL),
 (@group_id,'console','console/identity.ssoconfiguration:save','console/identity.ssoconfiguration','save',CONVERT(X'E4BF9DE5AD982053534F20E9858DE7BDAE' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),11,NULL),
@@ -35,7 +32,8 @@ INSERT IGNORE INTO `fun_permission` (`pid`,`app_name`,`code`,`obj`,`act`,`name`,
 (@group_id,'console','console/identity.identityuser:authorizations','console/identity.identityuser','authorizations',CONVERT(X'E8BAABE4BBBDE794A8E688B7E68E88E69D83' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),34,NULL),
 (@group_id,'console','console/identity.identityuser:revokesessions','console/identity.identityuser','revokesessions',CONVERT(X'E692A4E99480E794A8E688B7E4BC9AE8AF9D' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),35,NULL),
 (@group_id,'console','console/identity.identityuser:revokeauthorizations','console/identity.identityuser','revokeauthorizations',CONVERT(X'E692A4E99480E794A8E688B7E68E88E69D83' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),36,NULL),
-(@group_id,'console','console/identity.identityaudit:index','console/identity.identityaudit','index',CONVERT(X'E799BBE5BD95E5AEA1E8AEA1' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),40,NULL);
+(@group_id,'console','console/identity.identityaudit:index','console/identity.identityaudit','index',CONVERT(X'E799BBE5BD95E5AEA1E8AEA1' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),40,NULL),
+(@group_id,'console','console/identity.enterpriseapplication:portal','console/identity.enterpriseapplication','portal',CONVERT(X'E5BA94E794A8E997A8E688B7' USING utf8mb4),'route',1,0,'admin_web','sso_phase8_application_center',NOW(),NOW(),41,NULL);
 
 SET @menu_id=(SELECT `id` FROM `fun_admin_menu` WHERE `source_type`='admin_web' AND `source_name`='enterprise_application_center' AND `href`='/applications' ORDER BY `id` LIMIT 1);
 SET @application_view_id=(SELECT `id` FROM `fun_permission` WHERE `code`='identity:application:view' ORDER BY `id` LIMIT 1);
@@ -47,6 +45,7 @@ SET @identity_user_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/i
 SET @session_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/identity.oidcsession:index' ORDER BY `id` LIMIT 1);
 SET @signing_key_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/identity.oidcsigningkey:index' ORDER BY `id` LIMIT 1);
 SET @audit_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/identity.identityaudit:index' ORDER BY `id` LIMIT 1);
+SET @portal_id=(SELECT `id` FROM `fun_permission` WHERE `code`='console/identity.enterpriseapplication:portal' ORDER BY `id` LIMIT 1);
 UPDATE `fun_admin_menu` SET `name`=CONVERT(X'E5BA94E794A8E58897E8A1A8' USING utf8mb4),`query`='component=applications/index&name=ApplicationList&type=C&permission=identity:application:view' WHERE `source_type`='admin_web' AND `source_name`='enterprise_application_center' AND `href`='center';
 -- Existing Phase 2 application list route: component=applications/index&name=ApplicationList
 -- Existing Phase 3 OAuth route is updated below: component=applications/oauth/index&name=OAuthClientManagement
@@ -65,3 +64,5 @@ INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`app_name`,`name`,`href`,`qu
 SELECT @menu_id,@signing_key_id,'console',CONVERT(X'E7ADBEE5908DE5AF86E992A5' USING utf8mb4),'signing-keys','component=applications/identity-management&name=SigningKeys&type=C&permission=console/identity.oidcsigningkey:index','_self','i-ep-key',1,'admin_web','sso_phase8_application_center',NOW(),NOW(),80,NULL WHERE @menu_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `pid`=@menu_id AND `href`='signing-keys');
 INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`app_name`,`name`,`href`,`query`,`target`,`icon`,`status`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
 SELECT @menu_id,@audit_id,'console',CONVERT(X'E799BBE5BD95E5AEA1E8AEA1' USING utf8mb4),'audit','component=applications/identity-management&name=IdentityAudit&type=C&permission=console/identity.identityaudit:index','_self','i-ep-document',1,'admin_web','sso_phase8_application_center',NOW(),NOW(),90,NULL WHERE @menu_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `pid`=@menu_id AND `href`='audit');
+INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`app_name`,`name`,`href`,`query`,`target`,`icon`,`status`,`source_type`,`source_name`,`created_at`,`updated_at`,`sort_order`,`deleted_at`)
+SELECT @menu_id,@portal_id,'console',CONVERT(X'E5BA94E794A8E997A8E688B7' USING utf8mb4),'portal','component=applications/portal&name=ApplicationPortal&type=C&permission=console/identity.enterpriseapplication:portal','_self','i-ep-grid',1,'admin_web','sso_phase8_application_center',NOW(),NOW(),100,NULL WHERE @menu_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `pid`=@menu_id AND `href`='portal');

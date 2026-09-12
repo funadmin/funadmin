@@ -50,6 +50,8 @@ describe('SSO Phase 8 管理控制台与应用门户', () => {
     for (const routeName of ['ApplicationList', 'DomainManagement', 'SsoConfiguration', 'OAuthClientManagement', 'ScopeClaimManagement', 'IdentityUsers', 'IdentitySessions', 'SigningKeys', 'IdentityAudit']) expect(migration).toContain(`name=${routeName}`);
     expect(migration).toContain('console/identity.ssoconfiguration:config');
     expect(migration).toContain('console/identity.identityaudit:index');
+    expect(migration).toContain('console/identity.enterpriseapplication:portal');
+    expect(migration).toContain("source_name`='enterprise_application_center'");
     expect(migration).not.toContain("'console/identity.sso'");
     expect(migration).not.toContain("'console/identity.signingkey'");
   });
