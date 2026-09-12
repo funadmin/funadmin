@@ -40,6 +40,8 @@
 !/tests/identity_phase2_enterprise_application_test.php
 !/tests/identity_phase2_mysql_test.php
 !/tests/identity_phase4_contract_test.php
+!/tests/identity_phase9_cross_origin_journey.php
+!/tests/identity_phase9_cross_origin_contract_test.php
 !/tests/field_capability_registry_test.php
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php

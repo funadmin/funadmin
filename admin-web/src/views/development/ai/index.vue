@@ -5,19 +5,25 @@
       <el-button @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
     </template>
 
-    <ElTabs v-model="mobileTab" class="mobile-tabs"><el-tab-pane :label="t('aiDevelopment.conversations')" name="conversations" /><el-tab-pane :label="t('aiDevelopment.workspace')" name="workspace" /><el-tab-pane :label="t('aiDevelopment.task')" name="context" /></ElTabs>
+    <nav class="mobile-actions" :aria-label="t('aiDevelopment.workspace')">
+      <el-button data-testid="mobile-conversations" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
+      <el-button data-testid="mobile-context" @click="mobileTab = 'context'"><i class="i-ep-document" />{{ t('aiDevelopment.task') }}</el-button>
+    </nav>
 
-    <div class="ai-layout">
-      <section v-show="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
+    <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
+      <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
         <ConversationList :conversations="store.conversations" :selected-id="store.selectedConversationId" @create="createConversation" @select="selectConversation" />
       </section>
 
       <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
         <header class="workspace-header">
           <div><strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ statusLabel(store.activeTask.status) }}</small></div>
-          <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+          <div class="workspace-actions">
+            <el-button data-testid="toggle-inspector" @click="toggleInspector"><i class="i-ep-document" />{{ inspectorOpen ? t('aiDevelopment.changeSet.close') : t('aiDevelopment.task') }}</el-button>
+            <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+          </div>
         </header>
-        <div class="workspace-scroll">
+        <div class="workspace-scroll" data-scroll-container="primary">
           <MessageTimeline :messages="store.messages" />
           <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
           <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
@@ -28,7 +34,7 @@
         </form>
       </main>
 
-      <aside v-show="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
+      <aside v-if="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
     </div>
 
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
@@ -61,6 +67,7 @@ const prompt = ref('');
 const mobileQuery = typeof window === 'undefined' ? null : window.matchMedia('(max-width: 1024px)');
 const isMobile = ref(mobileQuery?.matches ?? false);
 const changeSetOpen = ref(false);
+const inspectorOpen = ref(false);
 const providerOpen = ref(false);
 const logOpen = ref(false);
 const toolLog = ref('');
@@ -71,8 +78,9 @@ const selectedConversation = computed(() => store.conversations.find((item) => i
 const pendingApprovals = computed(() => store.approvals.filter((item) => item.status === 'pending'));
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
-const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
+const regionVisible = (region: string) => isMobile.value ? mobileTab.value === region : region !== 'context' || inspectorOpen.value;
 const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
+const toggleInspector = () => { inspectorOpen.value = !inspectorOpen.value; };
 const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobile.value = event.matches; };
 
 const ContextPanel = defineComponent({
@@ -105,6 +113,7 @@ async function createConversation() {
 
 async function selectConversation(id: number) {
   await store.selectConversation(id);
+  if (isMobile.value) mobileTab.value = 'workspace';
 }
 
 async function updateApprovalMode(mode: AiApprovalMode) {
@@ -160,16 +169,18 @@ onBeforeUnmount(() => store.closeEvents());
 </script>
 
 <style scoped>
-.ai-page { height: calc(100vh - 132px); }
+.ai-page { height: 100%; min-height: 0; }
+.ai-page :deep(> main > div:last-child) { overflow: hidden; }
 h2 { margin: 0; font-size: 18px; } header small { color: var(--el-text-color-secondary); }
-.ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(380px, 1fr) minmax(270px, 330px); height: 100%; min-height: 620px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
-.ai-conversations-pane, .ai-context-pane { min-width: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
+.ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
+.ai-layout--inspector { grid-template-columns: minmax(220px, 260px) minmax(380px, 1fr) minmax(270px, 330px); }
+.ai-conversations-pane, .ai-context-pane { min-width: 0; overflow: hidden; background: var(--el-fill-color-extra-light); }
 .ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
 .ai-context-pane { border-left: 1px solid var(--el-border-color-lighter); }
-.ai-workspace-pane { display: grid; min-width: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
+.ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
 .workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
-.workspace-header div { display: grid; gap: 2px; }.workspace-scroll { overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
-.context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-tabs { display: none; }
-@media (max-width: 1024px) { .ai-page { height: auto; }.ai-layout { display: block; min-height: 70vh; }.ai-conversations-pane { border-right: 0; }.ai-context-pane { border-left: 0; }.mobile-tabs { display: block; } }
-@media (max-width: 680px) { .ai-workspace-pane { min-height: 65vh; }.composer { grid-template-columns: 1fr; } }
+.workspace-header > div:first-child { display: grid; gap: 2px; }.workspace-actions { display: flex; gap: 8px; }.workspace-scroll { min-height: 0; overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
+.context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-actions { display: none; }
+@media (max-width: 1024px) { .mobile-actions { display: flex; gap: 8px; padding-bottom: 10px; }.ai-layout { display: block; min-height: 0; }.ai-conversations-pane { height: 100%; border-right: 0; }.ai-context-pane { height: 100%; border-left: 0; }.ai-workspace-pane { height: 100%; }.workspace-actions [data-testid="toggle-inspector"] { display: none; } }
+@media (max-width: 680px) { .composer { grid-template-columns: 1fr; } }
 </style>

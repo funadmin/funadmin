@@ -21,7 +21,7 @@ function roleLabel(role: AiMessage['role']): string { return t(`aiDevelopment.me
 </script>
 
 <style scoped>
-.message-timeline { display: flex; flex-direction: column; gap: 16px; padding: 18px; }
+.message-timeline { display: flex; width: min(100%, 860px); max-width: 860px; margin-inline: auto; flex-direction: column; gap: 16px; padding: 18px; }
 .message { max-width: 86%; padding: 12px 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); }
 .message--user { align-self: flex-end; background: var(--el-color-primary-light-9); }
 .message header { margin-bottom: 8px; color: var(--el-text-color-secondary); font-size: 12px; font-weight: 600; }
