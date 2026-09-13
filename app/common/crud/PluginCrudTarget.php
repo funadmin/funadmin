@@ -13,7 +13,7 @@ final class PluginCrudTarget
     {
     }
 
-    public function files(CrudDefinition $definition, TemplateRenderer $renderer): array
+    public function files(CrudDefinition $definition, TemplateRenderer $renderer, array $manifestBase = [], bool $managed = false): array
     {
         $target = (array) $definition->get('target', []);
         $plugin = (string) ($target['plugin'] ?? '');
@@ -37,10 +37,14 @@ final class PluginCrudTarget
         }
 
         $context = PluginTemplateContext::build($definition, $plugin, $scope !== 'application');
-        $migration = $this->migration($definition, $plugin, $entity, $this->render($renderer, $templates, 'migration', $context));
-        $files[$migration['path']] = $migration['content'];
+        if (($definition->get('formSchema', [])['database']['source'] ?? 'created') !== 'adopted') {
+            $migration = $this->migration($definition, $plugin, $entity, $this->render($renderer, $templates, 'migration', $context));
+            $files[$migration['path']] = $migration['content'];
+        }
         $manifest = new ManifestMerger($this->projectRoot);
-        $files["plugins/{$plugin}/plugin.json"] = $manifest->merge($definition, $scope !== 'application');
+        $files["plugins/{$plugin}/plugin.json"] = $managed
+                    ? $manifest->plan($definition, $manifestBase)['content']
+                    : $manifest->merge($definition, $scope !== 'application', $manifestBase);
         return $files;
     }
 
@@ -209,11 +213,16 @@ final class PluginCrudTarget
     {
         $directory = PathGuard::resolve($this->projectRoot, $relative, '插件目录');
         $state = [];
+        $versions = [];
         foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
             $name = basename($file);
             if (is_link($file) || !is_file($file)) {
                 throw new InvalidArgumentException('插件 migration 禁止符号链接或非文件对象：' . $name);
             }
+            if (preg_match('/^(\d{3})_/', $name, $match) !== 1 || isset($versions[$match[1]])) {
+                throw new InvalidArgumentException('插件 migration 版本重复或无效：' . $name);
+            }
+            $versions[$match[1]] = true;
             $state[$name] = hash_file('sha256', $file);
         }
         ksort($state, SORT_STRING);

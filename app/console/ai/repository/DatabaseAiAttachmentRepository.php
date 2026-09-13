@@ -28,6 +28,20 @@ final class DatabaseAiAttachmentRepository
         return $row;
     }
 
+    /** 逐文件按唯一索引查含软删除记录，锁内再次检查；不删除数据库记录。 */
+    public function removeExpiredFile(string $path, int $now, callable $remove): bool
+    {
+        return $this->transaction(function () use ($path, $now, $remove): bool {
+            $row = AiAttachment::withTrashed()->where('storage_path', $path)->lock(true)->find();
+            if ($row !== null) {
+                if ($row->getAttr('message_id') !== null) return false;
+                $expiry = strtotime((string) $row->getAttr('expires_at'));
+                if ($expiry === false || $expiry > $now) return false;
+            }
+            return $remove();
+        });
+    }
+
     public function bind(int $id, int $messageId): void
     {
         if (AiAttachment::where('id', $id)->whereNull('message_id')->update(['message_id'=>$messageId]) !== 1) throw new RuntimeException('附件已绑定', 409);

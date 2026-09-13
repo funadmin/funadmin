@@ -2,7 +2,7 @@
   <aside class="conversation-list">
     <div class="conversation-list__header">
       <strong>{{ t('aiDevelopment.conversations') }}</strong>
-      <div><el-button size="small" @click="$emit('create-group')">{{ t('aiDevelopment.management.createGroup') }}</el-button><el-button size="small" type="primary" @click="$emit('create')">{{ t('aiDevelopment.newConversation') }}</el-button></div>
+      <div><el-button size="small" @click="$emit('create-group')">{{ t('aiDevelopment.management.createGroup') }}</el-button><el-button size="small" type="primary" @click="$emit('create')">{{ t('aiDevelopment.newConversation') }}</el-button><slot name="actions" /></div>
     </div>
     <el-button data-testid="archived-conversations" :aria-pressed="archived" @click="$emit('toggle-archived')">{{ t(archived ? 'aiDevelopment.management.active' : 'aiDevelopment.management.archived') }}</el-button>
     <div v-for="section in sections" :key="section.id ?? 'ungrouped'" class="conversation-group">
@@ -53,7 +53,8 @@ const sections = computed(() => {
 <style scoped>
 .conversation-list { display: flex; min-height: 0; flex-direction: column; gap: 10px; padding: 12px; }
 .conversation-list__header, .conversation-group__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.conversation-list__header { padding: 4px; }.conversation-list__header > div { display: flex; gap: 6px; }
+.conversation-list__header { padding: 4px; flex-wrap: wrap; }.conversation-list__header > div { display: flex; min-width: 0; flex-wrap: wrap; gap: 6px; }
+.conversation-list__header :deep(.el-button) { margin-left: 0; }
 .conversation-group { display: grid; gap: 6px; }.conversation-group__header { padding: 4px 6px; color: var(--el-text-color-secondary); font-size: 12px; }
 .conversation-row { display: flex; align-items: center; min-width: 0; }.conversation-row > .conversation-item { flex: 1; min-width: 0; }.conversation-row > :last-child { flex-shrink: 0; }
 .conversation-item { display: flex; justify-content: space-between; gap: 8px; border: 0; border-radius: 8px; padding: 10px 11px; background: transparent; color: var(--el-text-color-primary); text-align: left; cursor: pointer; }

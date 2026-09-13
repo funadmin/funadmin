@@ -14,7 +14,41 @@ final class ManifestMerger
     {
     }
 
-    public function merge(CrudDefinition $definition, bool $adminWeb): string
+    private array $conflictPaths = [];
+    private bool $planning = false;
+
+    public function plan(CrudDefinition $definition, array $base = []): array
+    {
+        $this->planning = true;
+        $this->conflictPaths = [];
+        try {
+            $content = $this->merge($definition, true, $base);
+            $remote = $this->projection($definition);
+            $path = 'plugins/' . $definition->get('target')['plugin'] . '/plugin.json';
+            $local = json_decode((string) file_get_contents(PathGuard::resolve($this->projectRoot, $path, '插件目录')), true, 512, JSON_THROW_ON_ERROR);
+            return ['content' => $content, 'conflictPaths' => $this->conflictPaths,
+                'baseContent' => $this->encode($base),
+                'localContent' => $this->encode($this->ownedProjection($local, $base, $remote)),
+                'remoteContent' => $this->encode($remote)];
+        } finally { $this->planning = false; }
+    }
+
+    public function ownedProjection(array $local, array $base, array $remote): array
+    {
+        $result = [];
+        foreach (['components' => null, 'permissions' => 'code', 'routes' => 'path', 'menu' => 'path', 'externalTables' => 'module'] as $section => $key) {
+            $a = $section === 'externalTables' ? ($base[$section] ?? []) : ($base['adminWeb'][$section] ?? []);
+            $b = $section === 'externalTables' ? ($remote[$section] ?? []) : ($remote['adminWeb'][$section] ?? []);
+            $items = $section === 'externalTables' ? ($local[$section] ?? []) : ($local['adminWeb'][$section] ?? []);
+            $ids = $key === null ? array_unique(array_merge(array_keys($a), array_keys($b))) : array_unique(array_merge(array_column($a, $key), array_column($b, $key)));
+            $selected = $key === null ? array_intersect_key($items, array_flip($ids)) : array_values(array_filter($items, static fn (array $item): bool => in_array($item[$key] ?? null, $ids, true)));
+            if ($section === 'externalTables') { if ($ids !== []) $result[$section] = $selected; }
+            else $result['adminWeb'][$section] = $selected;
+        }
+        return $result;
+    }
+
+    public function merge(CrudDefinition $definition, bool $adminWeb, array $base = []): string
     {
         $target = (array) $definition->get('target', []);
         $plugin = (string) ($target['plugin'] ?? '');
@@ -28,6 +62,27 @@ final class ManifestMerger
             return $this->encode($data);
         }
 
+        $remote = $this->projection($definition);
+        $this->assertProjectionScope($definition, $base);
+        foreach (['components' => null, 'permissions' => 'code', 'routes' => 'path', 'menu' => 'path'] as $section => $key) {
+            $data['adminWeb'][$section] = $this->mergeOwned(
+                (array) ($data['adminWeb'][$section] ?? []),
+                (array) ($base['adminWeb'][$section] ?? []),
+                (array) ($remote['adminWeb'][$section] ?? []), $key, 'adminWeb.' . $section
+            );
+        }
+        if (isset($remote['externalTables']) || isset($base['externalTables'])) {
+            $data['externalTables'] = $this->mergeOwned((array) ($data['externalTables'] ?? []),
+                (array) ($base['externalTables'] ?? []), (array) ($remote['externalTables'] ?? []), 'module', 'externalTables');
+        }
+        return $this->encode($data);
+    }
+
+    /** 仅返回该业务受管键，不保存整个插件 Manifest 的所有权。 */
+    public function projection(CrudDefinition $definition): array
+    {
+        $data = [];
+        $plugin = (string) $definition->get('target')['plugin'];
         $entity = (string) $definition->get('entity', '');
         $class = self::studly($entity);
         $permission = $this->listPermission($definition);
@@ -56,7 +111,67 @@ final class ManifestMerger
             $admin['menu'] = $this->mergeList((array) ($admin['menu'] ?? []), $menuItem, 'path', 'menu');
         }
         $data['adminWeb'] = $admin;
-        return $this->encode($data);
+        if (($definition->get('formSchema', [])['database']['source'] ?? '') === 'adopted') {
+            $data['externalTables'] = $this->mergeList((array) ($data['externalTables'] ?? []),
+                \app\common\plugin\sdk\ExternalTableRequirements::fromDefinition($definition), 'module', 'externalTable');
+        }
+        return $data;
+    }
+
+    private function assertProjectionScope(CrudDefinition $definition, array $base): void
+    {
+        $entity = (string) $definition->get('entity');
+        $plugin = (string) $definition->get('target')['plugin'];
+        if (array_diff(array_keys($base), ['adminWeb', 'externalTables']) !== []
+            || array_diff(array_keys($base['adminWeb'] ?? []), ['components', 'permissions', 'routes', 'menu']) !== []) {
+            throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+        }
+        foreach ($base['adminWeb']['components'] ?? [] as $name => $value) {
+            if ($name !== self::studly($entity) || $value !== $entity . '/index.vue') throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+        }
+        foreach (['routes', 'menu'] as $section) {
+            foreach ($base['adminWeb'][$section] ?? [] as $item) {
+                if (($item['path'] ?? '') !== '/plugin/' . $plugin . '/' . $entity) throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+            }
+        }
+        foreach ($base['adminWeb']['permissions'] ?? [] as $item) {
+            if (!str_starts_with((string) ($item['code'] ?? ''), $plugin . ':' . $entity . ':')) throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+        }
+        foreach ($base['externalTables'] ?? [] as $item) {
+            if (($item['module'] ?? '') !== $entity) throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+        }
+    }
+
+    /** 对受管键做三方比较；未受管键原样保留，同键人工修改拒绝覆盖。 */
+    private function mergeOwned(array $local, array $base, array $remote, ?string $key, string $section): array
+    {
+        $index = static function (array $items) use ($key): array {
+            if ($key === null) return $items;
+            $result = [];
+            foreach ($items as $item) {
+                $id = $item[$key] ?? null;
+                if (!is_string($id) || isset($result[$id])) throw new InvalidArgumentException('Manifest 重复或无效键');
+                $result[$id] = $item;
+            }
+            return $result;
+        };
+        $local = $index($local);
+        $base = $index($base);
+        $remote = $index($remote);
+        foreach (array_unique(array_merge(array_keys($base), array_keys($remote))) as $id) {
+            $current = $local[$id] ?? null;
+            $before = $base[$id] ?? null;
+            $next = $remote[$id] ?? null;
+            if (CrudDefinition::canonicalJson([$current]) !== CrudDefinition::canonicalJson([$before])
+                && CrudDefinition::canonicalJson([$current]) !== CrudDefinition::canonicalJson([$next])) {
+                if (!$this->planning) throw new InvalidArgumentException('Manifest 受管键冲突：' . $id);
+                $this->conflictPaths[] = $section . '[' . $id . ']';
+                continue;
+            }
+            if ($next === null) unset($local[$id]);
+            else $local[$id] = $next;
+        }
+        return $key === null ? $local : array_values($local);
     }
 
     private function mergeMap(array $items, string $key, string $value, string $label): array

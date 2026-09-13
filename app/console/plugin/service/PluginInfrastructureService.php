@@ -65,9 +65,22 @@ final class PluginInfrastructureService
         );
     }
 
-    public function withPublicationLock(callable $operation): mixed
+    public static function lockDirectory(?string $projectRoot = null): string
     {
-        $file = rtrim(runtime_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'publication.lock';
+        $runtime = $projectRoot === null || (function_exists('root_path') && realpath($projectRoot) === realpath(root_path()))
+            ? runtime_path()
+            : rtrim($projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'runtime';
+        return rtrim($runtime, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'plugins';
+    }
+
+    public static function lifecycleLock(?string $projectRoot = null): \app\common\plugin\sdk\LifecycleLock
+    {
+        return new \app\common\plugin\sdk\LifecycleLock(self::lockDirectory($projectRoot) . DIRECTORY_SEPARATOR . 'locks');
+    }
+
+    public function withPublicationLock(callable $operation, ?string $projectRoot = null): mixed
+    {
+        $file = self::lockDirectory($projectRoot) . DIRECTORY_SEPARATOR . 'publication.lock';
         $directory = dirname($file);
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new RuntimeException('无法创建插件发布锁目录');
@@ -328,6 +341,107 @@ final class PluginInfrastructureService
             }
         });
         \app\console\authorization\service\CasbinService::instance()->reload();
+    }
+
+    public function assertPurgeAllowed(Manifest $manifest): void
+    {
+        if (!empty($manifest->toArray()['externalTables'])) {
+            throw new \InvalidArgumentException('EXTERNAL_TABLE_PURGE_FORBIDDEN');
+        }
+    }
+
+    public function assertExternalTables(Manifest $manifest, bool $migration = true): void
+    {
+        $data = $manifest->toArray();
+        if (!empty($data['externalTables']) && ($data['purge']['supported'] ?? false) === true) {
+            throw new \InvalidArgumentException('EXTERNAL_TABLE_PURGE_FORBIDDEN');
+        }
+        $requirements = (array) ($data['externalTables'] ?? []);
+        if ($migration && $requirements !== []) {
+            $relative = (string) ($data['migrations']['path'] ?? 'database/migrations');
+            $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), $relative, '插件迁移');
+            foreach (glob($directory . '/*.sql') ?: [] as $file) {
+                if (is_link($file)) throw new \InvalidArgumentException('EXTERNAL_TABLE_DDL_FORBIDDEN');
+                $sql = (string) file_get_contents($file);
+                // 首期保守阻断动态 SQL 和任何外部表引用，不尝试推断任意 SQL 的副作用。
+                if (preg_match('/\b(?:PREPARE|EXECUTE|CALL)\b/i', $sql)) throw new \InvalidArgumentException('EXTERNAL_TABLE_DDL_FORBIDDEN');
+                foreach ($requirements as $requirement) {
+                    if (preg_match('/(?<![a-z0-9_])' . preg_quote((string) $requirement['table'], '/') . '(?![a-z0-9_])/i', $sql)) {
+                        throw new \InvalidArgumentException('EXTERNAL_TABLE_DDL_FORBIDDEN');
+                    }
+                }
+            }
+        }
+        (new \app\common\plugin\sdk\ExternalTableRequirements((string) config('database.default', 'mysql')))
+            ->assertCompatible($requirements);
+        if ($migration) $this->assertPendingCreateTables($manifest);
+    }
+
+    /** 只检查尚未登记的生成器 CREATE；已应用基线不阻断后续 forward 迁移。 */
+    private function assertPendingCreateTables(Manifest $manifest): void
+    {
+        $data = $manifest->toArray();
+        $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移');
+        $tables = Db::connect()->getTables();
+        $repository = (string) config('database.connections.mysql.prefix') . 'system_migration';
+        $applied = in_array($repository, $tables, true)
+            ? Db::name('system_migration')->where('scope', 'plugin:' . $manifest->code())->column('checksum', 'version') : [];
+        foreach (glob($directory . '/*.sql') ?: [] as $file) {
+            if (is_link($file) || !is_file($file)) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: migration 路径不安全');
+            }
+            $sql = file_get_contents($file);
+            if (!is_string($sql)) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 无法读取 migration');
+            }
+            $version = pathinfo($file, PATHINFO_FILENAME);
+            if (isset($applied[$version])) {
+                if (!hash_equals((string) $applied[$version], hash('sha256', $sql))) {
+                    throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 已执行 migration 指纹变化');
+                }
+                continue;
+            }
+            if (!preg_match('/^-- funadmin-crud-schema: ([A-Za-z0-9+\/=]+)$/m', $sql, $match)) {
+                continue;
+            }
+            $snapshot = json_decode((string) base64_decode($match[1], true), true);
+            $table = (string) ($snapshot['table'] ?? '');
+            if (!preg_match('/^[a-z_][a-z0-9_]*$/D', $table)) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 无效结构快照');
+            }
+            if (!preg_match('/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`' . preg_quote($table, '/') . '`/i', $sql)
+                || !in_array($table, $tables, true)) {
+                continue;
+            }
+            $actual = (new \app\common\crud\SchemaInspector())->inspect($table);
+            $columns = array_column($actual['columns'], null, 'name');
+            foreach ((array) ($snapshot['fields'] ?? []) as $name => $field) {
+                $definition = (string) ($field['definition'] ?? '');
+                if (!preg_match('/^(.+?)\s+(NOT NULL|NULL)(.*)$/i', $definition, $parts)
+                    || !isset($columns[$name])
+                    || strtolower(trim($parts[1])) !== strtolower($columns[$name]['type'])
+                    || (strtoupper($parts[2]) === 'NULL') !== $columns[$name]['nullable']
+                    || str_contains(strtoupper($parts[3]), 'AUTO_INCREMENT') !== str_contains(strtolower($columns[$name]['extra']), 'auto_increment')) {
+                    throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: ' . $table . '.' . $name);
+                }
+                $expectedDefault = null;
+                if (preg_match("/\\bDEFAULT\\s+('(?:[^']|'')*'|[^\\s]+)/i", $parts[3], $default)) {
+                    $expectedDefault = str_starts_with($default[1], "'")
+                        ? str_replace("''", "'", substr($default[1], 1, -1)) : $default[1];
+                }
+                if ($columns[$name]['default'] !== $expectedDefault) {
+                    throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 默认值不同 ' . $name);
+                }
+            }
+            if (count($columns) !== count((array) ($snapshot['fields'] ?? []))) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 字段集合不同');
+            }
+            preg_match('/PRIMARY\s+KEY\s*\(([^)]+)\)/i', $sql, $primary);
+            preg_match_all('/`([^`]+)`/', $primary[1] ?? '', $names);
+            if ($actual['primaryKey'] !== $names[1]) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 主键不同');
+            }
+        }
     }
 
     public function migrate(Manifest $manifest): array

@@ -123,6 +123,15 @@ try {
     $downloadMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/071_plugin_admin_web_registry_naming.sql');
     devPluginExpect(str_contains($downloadMigration, "'console/development.devplugin','packagedownload'"), '插件包下载权限必须通过新 migration 向前补充');
 
+    // 普通角色仅持有旧种子授予的 options；使用真实 Casbin 模型，无数据库适配器。
+    $enforcer = new \Casbin\Enforcer(dirname(__DIR__) . '/config/casbin/rbac_model.conf');
+    $enforcer->addPolicy('role:42', 'default', 'console/development.devplugin', 'options');
+    $enforcer->addGroupingPolicy('admin:42', 'role:42', 'default');
+    $resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'plugin.DevPlugin', 'options');
+    devPluginExpect($enforcer->enforce('admin:42', 'default', $resource['obj'], $resource['act']), '普通角色旧 options 授权必须继续匹配当前控制器');
+    devPluginExpect(!$enforcer->enforce('admin:43', 'default', $resource['obj'], $resource['act']), '无授权普通角色必须拒绝');
+    devPluginExpect(!$enforcer->enforce('admin:42', 'default', $resource['obj'], 'create'), 'options 不得扩大为 create');
+
     $retirementMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/087_legacy_form_crud_retirement.sql');
     devPluginExpect(str_contains($retirementMigration, "'development:plugin:options'") && str_contains($retirementMigration, "`source_name`='plugin_center'"), '插件 options 权限必须迁回插件中心');
 } finally {

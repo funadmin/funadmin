@@ -3,7 +3,8 @@
     <article v-for="message in messages" :key="message.id" class="message" :class="`message--${message.role}`">
       <header>{{ roleLabel(message.role) }}</header>
       <template v-for="(part, index) in message.content" :key="index">
-        <pre v-if="part.type === 'code'" class="code-block"><code :data-language="part.language || 'text'">{{ part.text || '' }}</code></pre>
+        <PrivateAttachment v-if="part.type === 'attachment' && part.attachment_id" :conversation-id="message.conversation_id" :attachment-id="part.attachment_id" />
+        <pre v-else-if="part.type === 'code'" class="code-block"><code :data-language="part.language || 'text'">{{ part.text || '' }}</code></pre>
         <p v-else class="message-text">{{ part.text || '' }}</p>
       </template>
     </article>
@@ -14,6 +15,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { AiMessage } from '@/api/development/ai';
+import PrivateAttachment from './PrivateAttachment.vue';
 
 defineProps<{ messages: AiMessage[] }>();
 const { t } = useI18n();

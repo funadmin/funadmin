@@ -33,7 +33,7 @@ final class AiAgentJob
     private readonly ?AgentSandboxManager $sandboxManager;
     private readonly ?AiSecurityStore $securityStore;
 
-    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null, private readonly ?\app\console\ai\service\AiConfigurationProfileService $profiles = null)
+    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null, private readonly ?\app\console\ai\service\AiConfigurationProfileService $profiles = null, private readonly ?\app\console\ai\service\AiAttachmentService $attachments = null)
     {
         $this->store = $store ?? new DatabaseAiConversationStore();
         if ($orchestrator !== null) {
@@ -120,6 +120,7 @@ final class AiAgentJob
                 }
                 $providerConfig['model'] = $model;
                 }
+                $providerConfig['_image_resolver'] = fn (array $reference): array => ($this->attachments ?? \app\console\ai\service\AiAttachmentService::production())->resolveImage((int) $task['conversation_id'], (int) ($task['input']['admin_id'] ?? 0), $reference);
                 $providerConfig['_runtime_state'] = (array) ($task['output']['provider_state'] ?? []);
                 $orchestrator = ($this->orchestratorFactory)($providerConfig);
             }

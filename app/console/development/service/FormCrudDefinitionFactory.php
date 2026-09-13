@@ -137,6 +137,22 @@ final class FormCrudDefinitionFactory
         ]);
     }
 
+    /** 在表单定义完成后适配目标，保留布局、规则和选项源，不重新推断字段。 */
+    public function forBusinessTarget(CrudDefinition $definition, array $target): CrudDefinition
+    {
+        if (($target['type'] ?? 'core') !== 'plugin') return $definition;
+        $data = $definition->toArray();
+        $plugin = (string) $target['pluginCode'];
+        $entity = (string) $data['entity'];
+        $data['target'] = ['type' => 'plugin', 'plugin' => $plugin, 'scope' => 'console'];
+        $data['module'] = $plugin;
+        $data['apiPrefix'] = '/' . $entity;
+        $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
+        $data['permissionPrefix'] = $plugin . ':' . $entity;
+        unset($data['generationTargets'], $data['templates']['permissionMigration'], $data['templates']['phpTest'], $data['templates']['vitestTest']);
+        return CrudDefinition::fromArray($data);
+    }
+
     public function defaultPublishConfig(array $form): array
     {
         $key = str_replace('_', '-', (string) ($form['form_key'] ?? 'form'));

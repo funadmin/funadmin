@@ -21,6 +21,8 @@ interface AiConversationStore
     public function archiveGroupConversations(int $groupId, int $adminId): void;
     /** assistant 消息与会话未读标记必须在同一事务内落库。 */
     public function appendMessage(int $conversationId, array $data): array;
+    /** 在所有权行锁内去重；创建回调及幂等标记与附件绑定同事务提交。 */
+    public function idempotentMessage(int $conversationId, int $adminId, string $key, string $digest, callable $create): array;
     public function messages(int $conversationId): array;
     public function createTask(array $data): array;
     public function task(int $id): ?array;

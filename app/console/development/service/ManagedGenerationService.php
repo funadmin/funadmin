@@ -8,6 +8,7 @@ use app\common\crud\ConfirmationToken;
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
 use app\common\crud\PathGuard;
+use app\common\crud\SchemaInspector;
 use app\common\form\schema\FormSchema;
 use app\console\development\exception\BusinessOperationException;
 use app\console\development\model\BusinessModule;
@@ -20,6 +21,7 @@ use Closure;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
+use think\facade\Db;
 
 /** 为 business-managed 正式发布构造可信 bundle 并执行 WAL 事务。 */
 final class ManagedGenerationService
@@ -48,6 +50,9 @@ final class ManagedGenerationService
     private readonly ConfirmationToken $tokens;
     private readonly FormCrudDefinitionFactory $definitions;
     private readonly FormSchemaRepository $schemas;
+    private readonly Closure $databaseSchemaReader;
+    private readonly Closure $draftSchemaReader;
+    private readonly BusinessTargetService $targetService;
 
     public function __construct(
         private readonly string $projectRoot,
@@ -62,7 +67,10 @@ final class ManagedGenerationService
         ?callable $schemaReader = null,
         ?callable $generationWriter = null,
         ?callable $generationReader = null,
-        ?callable $latestConflictReader = null
+        ?callable $latestConflictReader = null,
+        ?callable $databaseSchemaReader = null,
+        ?callable $draftSchemaReader = null,
+        ?BusinessTargetService $targetService = null
     ) {
         $this->stateRepository = $stateRepository ?? new DatabaseGenerationStateRepository();
         $this->baselines = $baselines ?? new GeneratedFileBaselineRepository($projectRoot, $this->stateRepository);
@@ -70,6 +78,11 @@ final class ManagedGenerationService
         $this->tokens = $tokens ?? new ConfirmationToken($projectRoot);
         $this->definitions = $definitions ?? new FormCrudDefinitionFactory();
         $this->schemas = $schemas ?? new FormSchemaRepository();
+        $this->draftSchemaReader = Closure::fromCallable($draftSchemaReader ?? fn (int $id): FormSchema => $this->schemas->draft($id));
+        $this->targetService = $targetService ?? new BusinessTargetService($projectRoot, function_exists('config') ? (string) config('database.default', 'mysql') : 'mysql');
+        $this->databaseSchemaReader = Closure::fromCallable($databaseSchemaReader ?? static fn (string $connection, string $table): array =>
+            (new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)))->inspect($table)
+        );
         $this->moduleReader = Closure::fromCallable($moduleReader ?? static function (int $id): array {
             $module = BusinessModule::find($id);
             if (!$module) throw new InvalidArgumentException('业务模块不存在');
@@ -118,9 +131,17 @@ final class ManagedGenerationService
         $formId = (int) ($module['form_id'] ?? 0);
         if ($moduleId < 1 || $formId < 1) throw new InvalidArgumentException('业务模块未绑定表单');
         $form = ($this->formReader)($formId);
+        $plugin = ($module['metadata']['target']['type'] ?? 'core') === 'plugin';
+        if ($plugin && $proposalType === 'form_schema') {
+            $resolved = $this->resolveDefinition($moduleId);
+            if (!hash_equals($resolved['schemaHash'], $this->schemas->compile($document)->hash())) {
+                throw new InvalidArgumentException('BUSINESS_SAVED_SCHEMA_REQUIRED');
+            }
+            return $this->preview($moduleId, $includeSensitive, $nonce);
+        }
         if ($proposalType === 'form_schema') {
             $schema = $this->schemas->compile($document);
-            $definition = $this->definitions->createFromSchema($schema, $form, (array) ($form['publish_config'] ?? []));
+            $definition = $this->definitions->createFromSchema($schema, $form, (array) ($form['publish_config'] ?? []), $this->adoptedDatabaseSchema($schema, $form));
             $definition = $this->withDependencyHash($definition, $this->registryHash($schema));
         } elseif ($proposalType === 'crud_definition') {
             $definition = CrudDefinition::fromArray($document);
@@ -142,6 +163,7 @@ final class ManagedGenerationService
     private function previewBundle(int $moduleId, array $bundle, bool $includeSensitive, string $nonce): array
     {
         $publicPlan = $this->publicPlan($bundle['plan']);
+        $previewPlan = $includeSensitive ? $this->previewTextPlan($bundle) : $publicPlan;
         $module = ($this->moduleReader)($moduleId);
         $formId = (int) ($module['form_id'] ?? 0);
         $blocked = ($publicPlan['blocked'] ?? true) === true;
@@ -154,6 +176,11 @@ final class ManagedGenerationService
         if (isset($bundle['proposal'])) $manifest['proposal'] = $bundle['proposal'];
         if ($blocked) {
             $manifest['plan'] = $publicPlan;
+            foreach ($bundle['plan']['files'] as $index => $file) {
+                if (($file['artifactType'] ?? '') === 'manifest' && !empty($file['conflictPaths'])) {
+                    $manifest['plan']['files'][$index] = $this->previewTextPlan($bundle)['files'][$index];
+                }
+            }
         }
         $row = [
             'business_module_id' => $moduleId,
@@ -177,8 +204,9 @@ final class ManagedGenerationService
         if ($blocked) {
             return [
                 'generationId' => $generationId,
-                'plan' => $publicPlan,
-                'conflicts' => $this->conflicts($includeSensitive ? $bundle['plan'] : $publicPlan, $includeSensitive),
+                'bundleDigest' => $manifest['bundleDigest'],
+                'plan' => $previewPlan,
+                'conflicts' => $this->conflicts($previewPlan, $includeSensitive),
             ];
         }
         $result = [
@@ -186,7 +214,8 @@ final class ManagedGenerationService
             'definitionHash' => $bundle['definitionHash'],
             'schemaHash' => $bundle['schemaHash'],
             'routePath' => (string) $bundle['definition']->get('routePath'),
-            'plan' => $publicPlan,
+            'bundleDigest' => $manifest['bundleDigest'],
+            'plan' => $previewPlan,
             'conflicts' => [],
         ];
         if ($includeSensitive) {
@@ -295,6 +324,14 @@ final class ManagedGenerationService
         }
         $latest = ($this->latestConflictReader)($moduleId);
         if ($latest !== $generationId) throw new InvalidArgumentException('仅可采纳最近冲突计划');
+        $module = ($this->moduleReader)($moduleId);
+        if (($module['metadata']['target']['type'] ?? 'core') === 'plugin') {
+            $resolved = $this->resolveDefinition($moduleId);
+            $files = (new CrudGenerator($this->projectRoot))->renderManagedBundle($resolved['definition'], $this->baselineInputs($moduleId));
+            if (!isset($files[$path]) || str_ends_with($path, '/plugin.json') || str_ends_with($path, '.sql')) {
+                throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+            }
+        }
         $manifest = (array) ($record['manifest'] ?? []);
         $files = (array) (($manifest['plan']['files'] ?? null) ?? ($manifest['files'] ?? []));
         $planned = null;
@@ -331,19 +368,37 @@ final class ManagedGenerationService
         ]);
     }
 
-    /** @return array<string, mixed> */
-    private function buildBundle(int $moduleId, string $nonce): array
+    /** Phase3 消费的可信定义边界：仅服务端保存版本，调用时重新校验目标与表身份。 */
+    public function resolveDefinition(int $moduleId): array
     {
         $module = ($this->moduleReader)($moduleId);
         $formId = (int) ($module['form_id'] ?? 0);
         if ($moduleId < 1 || $formId < 1) throw new InvalidArgumentException('业务模块未绑定表单');
         $form = ($this->formReader)($formId);
-        $schema = ($this->schemaReader)($formId);
+        $target = (array) ($module['metadata']['target'] ?? ['type' => 'core']);
+        $plugin = ($target['type'] ?? 'core') === 'plugin';
+        $schema = $plugin ? ($this->draftSchemaReader)($formId) : ($this->schemaReader)($formId);
+        if ($plugin) {
+            $database = $schema->document()['database'];
+            if ($schema->key() !== $module['code'] || $database['table'] !== $module['table_name']
+                || $database['connection'] !== $module['connection_name']
+                || (($database['source'] === 'adopted' ? 'external' : 'owned') !== $target['tableStrategy'])) {
+                throw new InvalidArgumentException('BUSINESS_SCHEMA_IDENTITY_CONFLICT');
+            }
+            $this->targetService->assertSelection($target, $database['connection'], $database['table'], (bool) ($target['locked'] ?? false));
+        }
         $registryHash = $this->registryHash($schema);
-        $definition = $this->definitions->createFromSchema($schema, $form, (array) ($form['publish_config'] ?? []));
-        $definition = $this->withDependencyHash($definition, $registryHash);
-        $definition = $this->withManagedMigrationPaths($definition, $nonce);
-        return $this->buildDefinitionBundle($moduleId, $definition, $schema->hash(), $registryHash);
+        $definition = $this->definitions->createFromSchema($schema, $form, (array) ($form['publish_config'] ?? []), $this->adoptedDatabaseSchema($schema, $form));
+        $definition = $this->definitions->forBusinessTarget($definition, $target);
+        return ['definition' => $this->withDependencyHash($definition, $registryHash), 'schemaHash' => $schema->hash(), 'registryHash' => $registryHash, 'target' => $target];
+    }
+
+    /** @return array<string, mixed> */
+    private function buildBundle(int $moduleId, string $nonce): array
+    {
+        $resolved = $this->resolveDefinition($moduleId);
+        $definition = $this->withManagedMigrationPaths($resolved['definition'], $nonce);
+        return $this->buildDefinitionBundle($moduleId, $definition, $resolved['schemaHash'], $resolved['registryHash']) + ['managedNonce' => $nonce];
     }
 
     private function buildDefinitionBundle(
@@ -353,8 +408,35 @@ final class ManagedGenerationService
         string $registryHash = ''
     ): array {
         $generator = new CrudGenerator($this->projectRoot);
-        $remote = $generator->renderManagedBundle($definition);
-        $plan = $generator->planManaged($definition, $this->baselineInputs($moduleId));
+        $baselines = $this->baselineInputs($moduleId);
+        $remote = $generator->renderManagedBundle($definition, $baselines);
+        $plan = $generator->planManaged($definition, $baselines);
+        $manifestBaselines = [];
+        if (($definition->get('target')['type'] ?? 'core') === 'plugin') {
+            $manifestPath = 'plugins/' . $definition->get('target')['plugin'] . '/plugin.json';
+            $manifestBaselines[$manifestPath] = CrudDefinition::canonicalJson(
+                (new \app\common\crud\ManifestMerger($this->projectRoot))->projection($definition)
+            );
+        }
+        $previewContents = [];
+        $baselineByPath = array_column($baselines, null, 'path');
+        foreach ($plan['files'] as $file) {
+            $path = $file['path'];
+            if (($file['contentKind'] ?? 'text') === 'binary') continue;
+            if (($file['artifactType'] ?? '') === 'manifest') {
+                $base = json_decode((string) ($baselineByPath[$path]['baseContent'] ?? '{}'), true, 512, JSON_THROW_ON_ERROR);
+                $projection = (new \app\common\crud\ManifestMerger($this->projectRoot))->plan($definition, $base);
+                $previewContents[$path] = array_intersect_key($projection, array_flip(['baseContent', 'localContent', 'remoteContent']));
+            } else {
+                $absolute = PathGuard::resolve($this->projectRoot, $path, '项目目录');
+                $local = is_file($absolute) && !is_link($absolute) ? (string) file_get_contents($absolute) : '';
+                if (($file['localHash'] ?? null) !== ($local === '' && !is_file($absolute) ? null : hash('sha256', $local))) {
+                    throw new BusinessOperationException('GENERATION_TARGET_DRIFT');
+                }
+                $previewContents[$path] = ['baseContent' => $baselineByPath[$path]['baseContent'] ?? '',
+                    'localContent' => $local, 'remoteContent' => $remote[$path] ?? ''];
+            }
+        }
         $merged = [];
         foreach ((array) $plan['files'] as $file) {
             if (($file['contentKind'] ?? 'text') !== 'binary' && is_string($file['content'] ?? null)) {
@@ -364,7 +446,12 @@ final class ManagedGenerationService
         $resources = $this->resourcesFromDefinition($definition);
         $migration = (string) ($definition->get('generationTargets')['migration'] ?? '');
         return [
+            'target' => (array) $definition->get('target', ['type' => 'core']),
+            'moduleId' => $moduleId,
+            'actor' => function_exists('session') ? (string) (session('admin.id') ?: 'system') : 'system',
             'definition' => $definition, 'plan' => $plan, 'remoteContents' => $remote,
+            'manifestBaselines' => $manifestBaselines,
+            'previewContents' => $previewContents,
             'mergedTextContents' => $merged, 'definitionHash' => $definition->hash(),
             'schemaHash' => $schemaHash !== '' ? $schemaHash : (string) $definition->get('formSchemaHash', ''),
             'registryHash' => $registryHash,
@@ -376,6 +463,23 @@ final class ManagedGenerationService
 
     private function assertProposalIdentity(array $module, CrudDefinition $definition): void
     {
+        $target = (array) ($module['metadata']['target'] ?? ['type' => 'core']);
+        $expectedTarget = ($target['type'] ?? 'core') === 'plugin'
+            ? ['type' => 'plugin', 'plugin' => $target['pluginCode'], 'scope' => 'console']
+            : ['type' => 'core'];
+        if ($definition->get('target') !== $expectedTarget) {
+            throw new InvalidArgumentException('BUSINESS_TARGET_IDENTITY_CONFLICT');
+        }
+        if ($expectedTarget['type'] === 'plugin') {
+            $resolved = $this->resolveDefinition((int) $module['id']);
+            if (!hash_equals($resolved['definition']->hash(), $definition->hash())) {
+                throw new InvalidArgumentException('BUSINESS_SAVED_SCHEMA_REQUIRED');
+            }
+        }
+        $expectedConnection = (string) ($module['connection_name'] ?? '');
+        if ($expectedConnection !== '' && $definition->get('connection') !== $expectedConnection) {
+            throw new InvalidArgumentException('BUSINESS_SCHEMA_IDENTITY_CONFLICT');
+        }
         $expectedCode = str_replace('_', '-', (string) ($module['code'] ?? ''));
         if ($expectedCode !== '' && !hash_equals($expectedCode, (string) $definition->get('entity', ''))) {
             throw new InvalidArgumentException('CRUD proposal 模块名与业务模块不一致');
@@ -442,6 +546,7 @@ final class ManagedGenerationService
     private function withManagedMigrationPaths(CrudDefinition $definition, string $nonce): CrudDefinition
     {
         $data = $definition->toArray();
+        if (($data['target']['type'] ?? 'core') === 'plugin') return $definition;
         $entity = (string) $data['entity'];
         $data['generationTargets']['migration'] = "database/generated/{$entity}_{$nonce}.sql";
         $data['generationTargets']['permissionMigration'] = "database/generated/{$entity}_permissions_{$nonce}.sql";
@@ -453,6 +558,7 @@ final class ManagedGenerationService
     {
         $data = $definition->toArray();
         $source = (string) $data['entity'];
+        if (($data['target']['type'] ?? 'core') === 'plugin') return [];
         $resources = [];
         if (($data['permission']['enabled'] ?? false) === true) {
             foreach ((array) $data['permission']['actions'] as $action) {
@@ -475,6 +581,19 @@ final class ManagedGenerationService
         }
         usort($resources, static fn (array $left, array $right): int => $left['resourceKey'] <=> $right['resourceKey']);
         return $resources;
+    }
+
+    /** 只从可信表单身份读取采纳表结构，不接受调用方提供数据库快照。 */
+    private function adoptedDatabaseSchema(FormSchema $schema, array $form): array
+    {
+        $database = (array) ($schema->document()['database'] ?? []);
+        if (($database['source'] ?? $form['source_type'] ?? 'created') !== 'adopted') return [];
+        $connection = (string) ($form['connection'] ?? 'mysql');
+        $table = (string) ($form['table_name'] ?? '');
+        if (($database['connection'] ?? $connection) !== $connection || ($database['table'] ?? $table) !== $table) {
+            throw new InvalidArgumentException('采纳表身份不匹配');
+        }
+        return ($this->databaseSchemaReader)($connection, $table);
     }
 
     private function registryHash(FormSchema $schema): string
@@ -504,6 +623,7 @@ final class ManagedGenerationService
     {
         $identity = ['moduleId' => $moduleId] + $this->stateHashes($bundle) + [
             'planDigest' => (string) $bundle['plan']['planDigest'],
+            'managedNonce' => $bundle['managedNonce'] ?? '',
         ];
         return 'managed:' . hash('sha256', CrudDefinition::canonicalJson($identity));
     }
@@ -552,6 +672,23 @@ final class ManagedGenerationService
         if ($outcome === 'running' && method_exists($this->stateRepository, 'markFailed')) {
             $this->stateRepository->markFailed($generationId, 'GENERATION_EXECUTION_FAILED', $error, 'system');
         }
+    }
+
+    /** 只从绑定摘要的可信 bundle 返回文本，Manifest 仅返回当前模块投影。 */
+    private function previewTextPlan(array $bundle): array
+    {
+        $plan = $this->publicPlan($bundle['plan']);
+        foreach ($plan['files'] as $index => &$file) {
+            if (($file['contentKind'] ?? 'text') === 'binary') continue;
+            $source = $bundle['plan']['files'][$index];
+            foreach (['baseContent', 'localContent', 'remoteContent'] as $side) {
+                $value = $source[$side] ?? ($bundle['previewContents'][$file['path']][$side] ?? null);
+                if (!is_string($value) || strlen($value) > 524288 || str_contains($value, "\0") || preg_match('//u', $value) !== 1) continue;
+                $file[$side] = $value;
+            }
+        }
+        unset($file);
+        return $plan;
     }
 
     private function publicPlan(array $plan): array

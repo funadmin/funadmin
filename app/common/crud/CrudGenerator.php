@@ -56,7 +56,7 @@ final class CrudGenerator
         $this->validator->validate($definition, $this->projectRoot);
         $target = (array) $definition->get('target', ['type' => 'core']);
         if (($target['type'] ?? 'core') === 'plugin') {
-            throw new InvalidArgumentException('business managed 三方规划暂不支持插件目标');
+            return $this->planManagedPlugin($definition, $baselines);
         }
         $artifactByPath = [];
         foreach ((array) $definition->get('generationTargets', []) as $artifactType => $path) {
@@ -86,14 +86,14 @@ final class CrudGenerator
      * 返回仅供受信应用服务组装事务 bundle 的确定性 Remote 内容。
      * 此入口不规划、不签发 token，也不写入文件。
      */
-    public function renderManagedBundle(CrudDefinition $definition): array
+    public function renderManagedBundle(CrudDefinition $definition, array $baselines = []): array
     {
         $this->validator->validate($definition, $this->projectRoot);
         $target = (array) $definition->get('target', ['type' => 'core']);
-        if (($target['type'] ?? 'core') === 'plugin') {
-            throw new InvalidArgumentException('business managed 渲染暂不支持插件目标');
+        if (($target['type'] ?? 'core') === 'plugin' && ($target['scope'] ?? '') !== 'console') {
+            throw new InvalidArgumentException('managed 插件仅支持 console');
         }
-        return $this->renderFiles($definition);
+        return $this->renderFiles($definition, $this->manifestBase($definition, $baselines), true);
     }
 
     public function generate(
@@ -147,11 +147,77 @@ final class CrudGenerator
         }
     }
 
-    private function renderFiles(CrudDefinition $definition): array
+    private function planManagedPlugin(CrudDefinition $definition, array $baselines): array
+    {
+        $target = $definition->get('target');
+        if (($target['scope'] ?? '') !== 'console') throw new InvalidArgumentException('managed 插件仅支持 console');
+        $precondition = (new PluginCrudTarget($this->projectRoot))->migrationPrecondition($definition);
+        $remote = $this->renderManagedBundle($definition, $baselines);
+        $manifest = 'plugins/' . $target['plugin'] . '/plugin.json';
+        $inputs = [];
+        $byPath = [];
+        foreach ($baselines as $baseline) {
+            $path = (string) ($baseline['path'] ?? '');
+            if (!array_key_exists($path, $remote) || str_ends_with($path, '.sql')) {
+                throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+            }
+            $byPath[$path] = $baseline;
+        }
+        foreach ($remote as $path => $content) {
+            $artifact = $path === $manifest ? 'manifest' : (str_ends_with($path, '.sql') ? 'migration' : 'source');
+            $input = $byPath[$path] ?? ['path' => $path];
+            if ($artifact === 'manifest') {
+                // ManifestMerger 已按受管键检查冲突；提交仍执行整文件 Local CAS。
+                $input = ['path' => $path, 'baseContent' => (string) file_get_contents(PathGuard::resolve($this->projectRoot, $path, '插件目录'))];
+            }
+            if ($artifact === 'migration' && is_file(PathGuard::resolve($this->projectRoot, $path, '插件目录'))) {
+                $local = (string) file_get_contents(PathGuard::resolve($this->projectRoot, $path, '插件目录'));
+                if ($local !== $content) throw new InvalidArgumentException('插件 migration 不可覆盖');
+                $input['baseContent'] = $local;
+                $input['artifactType'] = 'immutableMigration';
+            } else {
+                $input['artifactType'] = $artifact;
+            }
+            $input['remoteContent'] = $content;
+            $inputs[] = $input;
+        }
+        $plan = (new ThreeWayMergePlanner($this->projectRoot))->plan($inputs);
+        $manifestPlan = (new ManifestMerger($this->projectRoot))->plan($definition, $this->manifestBase($definition, $baselines));
+        foreach ($plan['files'] as &$file) {
+            if ($file['artifactType'] === 'immutableMigration') $file['artifactType'] = 'migration';
+            if ($file['path'] === $manifest && $manifestPlan['conflictPaths'] !== []) {
+                $file = array_replace($file, array_intersect_key($manifestPlan, array_flip(['conflictPaths', 'baseContent', 'localContent', 'remoteContent'])),
+                    ['status' => 'conflict', 'content' => null, 'mergedHash' => null, 'nextBaseHash' => null]);
+                $plan['blocked'] = true;
+            }
+        }
+        unset($file);
+        $plan['definitionHash'] = $definition->hash();
+        $plan['preconditions'] = [$precondition];
+        $plan['allowedPaths'] = array_keys($remote);
+        $plan['planDigest'] = hash('sha256', CrudDefinition::canonicalJson($plan));
+        return $plan;
+    }
+
+    private function manifestBase(CrudDefinition $definition, array $baselines): array
+    {
+        if (($definition->get('target')['type'] ?? 'core') !== 'plugin') return [];
+        $path = 'plugins/' . $definition->get('target')['plugin'] . '/plugin.json';
+        foreach ($baselines as $baseline) {
+            if (($baseline['path'] ?? '') !== $path) continue;
+            if (($baseline['artifactType'] ?? '') !== 'manifest') throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+            $base = json_decode((string) ($baseline['baseContent'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($base)) throw new InvalidArgumentException('Manifest 模块基线无效');
+            return $base;
+        }
+        return [];
+    }
+
+    private function renderFiles(CrudDefinition $definition, array $manifestBase = [], bool $managed = false): array
     {
         $target = (array) $definition->get('target', ['type' => 'core']);
         if (($target['type'] ?? 'core') === 'plugin') {
-            return (new PluginCrudTarget($this->projectRoot))->files($definition, $this->renderer);
+            return (new PluginCrudTarget($this->projectRoot))->files($definition, $this->renderer, $manifestBase, $managed);
         }
         $paths = $definition->get('generationTargets', []);
         $templates = $definition->get('templates', []);

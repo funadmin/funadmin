@@ -22,6 +22,21 @@
       </ul>
     </section>
 
+    <p v-if="plan.files.some((file) => !file.status.includes('conflict') && !diffFiles.includes(file))" data-diff-unavailable role="status" class="mb-4">
+      部分文件仅有路径和决策，服务端未提供内容，无法核对其源码差异、Manifest 变化或迁移内容；这不表示内容没有变化。
+    </p>
+    <section v-if="diffFiles.length" data-section="diffs" class="mb-4">
+      <details v-for="file in diffFiles" :key="file.path" :data-file-diff="file.path">
+        <summary>{{ file.path.endsWith('/plugin.json') ? 'Manifest 变化（含外部依赖声明）' : file.path.endsWith('.sql') ? '数据库迁移' : '源码差异' }} · {{ file.path }}</summary>
+        <div class="grid gap-3 md:grid-cols-3">
+          <div v-for="side in conflictSides" :key="side.key" class="min-w-0">
+            <h5>{{ t(side.labelKey) }}</h5>
+            <pre class="overflow-auto max-h-96">{{ file[side.key] ?? '未提供内容' }}</pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
     <section v-if="conflicts.length" data-section="conflicts" class="mb-4">
       <h4>{{ t('business.conflicts') }}</h4>
       <article v-for="file in conflicts" :key="file.path" :data-conflict-path="file.path" class="mb-3">
@@ -63,6 +78,7 @@ const conflictSides = [
 const conflicts = computed(() => props.conflicts.length
   ? props.conflicts
   : props.plan.files.filter((file) => file.status.includes('conflict')));
+const diffFiles = computed(() => props.plan.files.filter((file) => !file.status.includes('conflict') && [file.baseContent, file.localContent, file.remoteContent].some((content) => typeof content === 'string')));
 const summaryItems = computed(() => {
   const summary = props.plan.summary || props.plan.files.reduce<Partial<Record<BusinessGenerationFile['status'], number>>>((counts, file) => {
     counts[file.status] = (counts[file.status] || 0) + 1;

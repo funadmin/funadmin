@@ -29,7 +29,30 @@ function createProfile(body: Record<string, any>) {
   return ok(publicProfile(profile));
 }
 
+// 仅保留固定安全文本样例，不读取上传内容、不持久化、不连接后端。
+let attachmentId = 0;
+let messageId = 602;
+const mockAttachments = new Map<number, { conversationId: number; bound: boolean }>();
+const mockMessages = new Map<string, { digest: string; message: Record<string, unknown> }>();
 export const developmentAiMockHandlers: MockRoute[] = [
+  { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/attachments$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
+    const id = Number(pathParams.id);
+    if (!conversations.some(c => c.id === id)) return fail('会话不存在', 404);
+    const file = body instanceof FormData ? body.get('file') : null;
+    if (!(file instanceof File) || file.name !== 'fixture.txt' || file.type !== 'text/plain' || file.size > 131072) return fail('Mock 仅支持 fixture.txt 安全文本样例', 400);
+    const created = ++attachmentId; mockAttachments.set(created, { conversationId: id, bound: false });
+    return ok({ id: created, kind: 'text', name: 'fixture.txt', mime: 'text/plain', size: 12, width: null, height: null, sha256: '360df9a51746a044a35eab66d3e4ccacec62dec411973d565801e7032a1307b0' });
+  } },
+  { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/attachments\/(\d+)\/content$/, paramNames: ['id', 'attachmentId'], handler: ({ pathParams }) => {
+    const item = mockAttachments.get(Number(pathParams.attachmentId));
+    return item?.conversationId === Number(pathParams.id) ? new Blob(['mock fixture'], { type: 'text/plain' }) : fail('Mock 私有附件不存在', 404);
+  } },
+  { method: 'DELETE', url: /^\/development\/ai\/conversations\/(\d+)\/attachments\/(\d+)$/, paramNames: ['id', 'attachmentId'], handler: ({ pathParams }) => {
+    const id = Number(pathParams.attachmentId); const item = mockAttachments.get(id);
+    if (item?.conversationId !== Number(pathParams.id)) return fail('Mock 私有附件不存在', 404);
+    if (item.bound) return fail('附件已绑定', 409);
+    mockAttachments.delete(id); return ok({ deleted: true });
+  } },
   { method: 'GET', url: '/development/ai/profiles', handler: () => ok(profiles.map(publicProfile)) },
   { method: 'GET', url: '/development/ai/profiles/default', handler: () => ok(profiles.find((item) => item.is_default) ? publicProfile(profiles.find((item) => item.is_default)!) : null) },
   { method: 'POST', url: '/development/ai/profiles', handler: ({ body }) => createProfile(body) },
@@ -124,7 +147,20 @@ export const developmentAiMockHandlers: MockRoute[] = [
   } },
   { method: 'DELETE', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const index = conversations.findIndex((item) => item.id === Number(pathParams.id)); if (index < 0) return fail('会话不存在', 404); conversations.splice(index, 1); return ok({ deleted: true }); } },
   { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: () => ok([message]) },
-  { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ body }) => ok({ ...message, id: 602, sequence: 2, ...body }) },
+  { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
+    const id = Number(pathParams.id);
+    if (!conversations.some(c => c.id === id)) return fail('会话不存在', 404);
+    const key = `${id}:${body.idempotency_key}`; const digest = JSON.stringify(body.content);
+    const existing = body.idempotency_key ? mockMessages.get(key) : null;
+    if (existing) return existing.digest === digest ? ok(existing.message) : fail('幂等内容不一致', 409);
+    const ids = (body.content || []).filter((b: any) => b.type === 'attachment').map((b: any) => b.attachment_id);
+    if (ids.some((aid: number) => mockAttachments.get(aid)?.conversationId !== id)) return fail('附件不存在', 404);
+    if (ids.some((aid: number) => mockAttachments.get(aid)!.bound)) return fail('附件已绑定', 409);
+    const created = { ...message, ...body, conversation_id: id, id: ++messageId, sequence: messageId - 600 };
+    ids.forEach((aid: number) => { mockAttachments.get(aid)!.bound = true; });
+    if (body.idempotency_key) mockMessages.set(key, { digest, message: created });
+    return ok(created);
+  } },
   { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/tasks$/, paramNames: ['id'], handler: () => ok({ ...task, status: 'running' }) },
   { method: 'GET', url: /^\/development\/ai\/tasks\/(\d+)$/, paramNames: ['id'], handler: () => ok(task) },
   { method: 'POST', url: /^\/development\/ai\/tasks\/(\d+)\/cancel$/, paramNames: ['id'], handler: () => ok({ cancelled: true }) },

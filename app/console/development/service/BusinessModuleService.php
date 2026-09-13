@@ -15,6 +15,40 @@ use think\facade\Db;
 /** 业务开发模块与生成记录的数据访问边界。 */
 final class BusinessModuleService
 {
+    public function __construct(private readonly ?BusinessTargetService $targets = null)
+    {
+    }
+
+    /** 仅规范化目标选择；授权及插件状态必须由调用入口另行校验。 */
+    public static function normalizeTarget(array $input, string $source): array
+    {
+        if (array_diff(array_keys($input), ['type', 'pluginCode']) !== []) {
+            throw new InvalidArgumentException('目标配置包含非受控字段');
+        }
+        if (!in_array($source, ['created', 'adopted'], true)) {
+            throw new InvalidArgumentException('表来源不合法');
+        }
+        $type = $input['type'] ?? 'core';
+        if (!in_array($type, ['core', 'plugin'], true)) {
+            throw new InvalidArgumentException('目标类型必须为 core 或 plugin');
+        }
+        $code = $input['pluginCode'] ?? null;
+        if ($type === 'plugin') {
+            if (!is_string($code) || preg_match('/^[a-z][a-z0-9]*$/D', $code) !== 1) {
+                throw new InvalidArgumentException('插件标识不合法');
+            }
+        } elseif ($code !== null) {
+            throw new InvalidArgumentException('核心目标不能指定插件');
+        }
+        return [
+            'type' => $type,
+            'pluginCode' => $code,
+            'scope' => 'console',
+            'tableStrategy' => $source === 'adopted' ? 'external' : 'owned',
+            'locked' => false,
+        ];
+    }
+
     public function listing(int $page, int $pageSize, string $keyword, string $status, string $origin): array
     {
         $query = BusinessModule::order('updated_at', 'desc')->order('id', 'desc');
@@ -39,7 +73,11 @@ final class BusinessModuleService
 
     public function createWithForm(array $formPayload, string $origin, string $actor, FormDesignerService $forms): array
     {
-        return Db::transaction(function () use ($formPayload, $origin, $actor, $forms): array {
+        $target = $formPayload['business_target'] ?? self::normalizeTarget([], (string) $formPayload['source_type']);
+        ($this->targets ?? new BusinessTargetService(root_path(), (string) config('database.default', 'mysql')))
+            ->assertSelection($target, (string) $formPayload['connection'], (string) $formPayload['table_name']);
+        unset($formPayload['business_target']);
+        return Db::transaction(function () use ($formPayload, $origin, $actor, $forms, $target): array {
             $saved = $forms->save($formPayload);
             $form = $saved['form'];
             $formId = (int) (is_object($form) ? $form->id : $form['id']);
@@ -56,7 +94,7 @@ final class BusinessModuleService
                 'module_route' => '/development/business/' . $code,
                 'lifecycle_status' => 'draft',
                 'generation_status' => 'idle',
-                'metadata' => ['createdBy' => $actor],
+                'metadata' => ['createdBy' => $actor, 'target' => $target],
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
@@ -95,6 +133,12 @@ final class BusinessModuleService
         $row['availableActions'] = (string) ($row['status'] ?? '') === 'failed' && $recoveryStatus === 'recovery_required'
             ? ['recover']
             : [];
+        // 历史记录不继承预览的专用授权，持久化三方内容仅用于受控冲突处理。
+        foreach ($row['manifest']['plan']['files'] ?? [] as $index => $file) {
+            unset($row['manifest']['plan']['files'][$index]['baseContent'],
+                $row['manifest']['plan']['files'][$index]['localContent'],
+                $row['manifest']['plan']['files'][$index]['remoteContent']);
+        }
         return BusinessResponseSanitizer::sanitize($row);
     }
 }

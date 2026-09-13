@@ -299,6 +299,7 @@ try {
         baselines: new GeneratedFileBaselineRepository($managedRoot, $adoptionState),
         stateRepository: $adoptionState,
         tokens: new ConfirmationToken($managedRoot, 'adoption-secret'),
+        moduleReader: static fn (int $id): array => ['id' => $id, 'metadata' => ['target' => ['type' => 'core']]],
         generationReader: static fn (int $id): ?array => $conflictRecords[$id] ?? null,
         latestConflictReader: static function (int $moduleId) use (&$latestConflict): ?int {
             return $latestConflict;

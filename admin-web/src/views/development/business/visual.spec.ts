@@ -1,21 +1,24 @@
 import { defineComponent, nextTick } from 'vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   createVisual: vi.fn(),
+  targets: vi.fn(),
+  query: {} as Record<string, string>,
   push: vi.fn(),
   onBeforeRouteLeave: vi.fn()
 }));
 
 vi.mock('@/api/development/business', () => ({
-  businessDevelopmentApi: { createVisual: mocks.createVisual }
+  businessDevelopmentApi: { createVisual: mocks.createVisual, targets: mocks.targets }
 }));
 vi.mock('vue-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-router')>();
   return {
     ...actual,
     useRouter: () => ({ push: mocks.push }),
+    useRoute: () => ({ query: mocks.query }),
     onBeforeRouteLeave: mocks.onBeforeRouteLeave
   };
 });
@@ -80,7 +83,31 @@ async function fillRequired(wrapper: ReturnType<typeof render>['wrapper']) {
 describe('BusinessVisual', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.query = {};
+    mocks.targets.mockResolvedValue({ list: [{ type: 'core', pluginCode: null, name: '核心后台', scope: 'console' }, { type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console' }], defaultConnection: 'mysql', migrationPath: 'database/migrations' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
+  });
+
+  it('query 预选插件，使用默认连接与插件表前缀且只发送受控目标', async () => {
+    mocks.query = { plugin: 'demo' };
+    mocks.createVisual.mockResolvedValue({ module: { id: 7, form_id: 11 }, fields: [] });
+    const { wrapper } = render();
+    await flushPromises();
+    await fillRequired(wrapper);
+    await wrapper.findAll('button')[0]!.trigger('click');
+    expect(mocks.createVisual).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'plugin', pluginCode: 'demo' }, table: 'fun_demo_customer_order', connection: 'mysql' }));
+    wrapper.unmount();
+  });
+
+  it('不可用的 query 插件不能静默回退核心，加载失败可见且阻止创建', async () => {
+    mocks.query = { plugin: 'missing' };
+    const { wrapper } = render();
+    await flushPromises();
+    await fillRequired(wrapper);
+    expect(wrapper.text()).toContain('不可用或无权限');
+    expect(wrapper.findAll('button')[0]!.attributes('disabled')).toBeDefined();
+    expect(mocks.createVisual).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('初始空表单不 dirty，首次变化后由同一 guard 保护路由离开和 beforeunload', async () => {

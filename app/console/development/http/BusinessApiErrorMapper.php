@@ -14,6 +14,18 @@ use Throwable;
 final class BusinessApiErrorMapper
 {
     private const ERRORS = [
+        'BUSINESS_TARGET_FORBIDDEN' => [403, '没有插件开发权限', false],
+        'BUSINESS_TABLE_FORBIDDEN' => [403, '不允许访问该业务表', false],
+        'BUSINESS_TARGET_UNAVAILABLE' => [409, '插件目标不可用，请刷新后重试', true],
+        'BUSINESS_TARGET_IDENTITY_CONFLICT' => [409, '提案与业务所属目标不一致', false],
+        'BUSINESS_SCHEMA_IDENTITY_CONFLICT' => [409, '保存结构与业务表身份不一致', false],
+        'BUSINESS_SAVED_SCHEMA_REQUIRED' => [409, '插件生成必须使用当前已保存结构', false],
+        'BUSINESS_PLUGIN_DYNAMIC_PUBLISH_FORBIDDEN' => [422, '插件业务不支持动态发布，请生成源码后安装或更新插件', false],
+        'BUSINESS_DEFAULT_CONNECTION_ONLY' => [422, '插件业务仅支持默认数据库连接', false],
+        'BUSINESS_TABLE_PREFIX_REQUIRED' => [422, '新表名称必须使用所属插件前缀', false],
+        'BUSINESS_TABLE_ALREADY_EXISTS' => [409, '新建业务表已存在', false],
+        'BUSINESS_EXTERNAL_TABLE_MISSING' => [409, '外部依赖表不存在', false],
+        'BUSINESS_TABLE_STRATEGY_INVALID' => [422, '业务表策略无效', false],
         'FORM_SCHEMA_CONFLICT' => [409, '表单结构已被修改，请刷新后重试', false],
         'DATABASE_INSPECTION_STALE' => [409, '数据库结构已变化，请重新检查', true],
         'GENERATION_PLAN_CONFLICT' => [409, '生成计划存在冲突', false],

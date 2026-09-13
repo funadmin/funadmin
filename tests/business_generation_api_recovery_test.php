@@ -152,6 +152,37 @@ try {
     $state->record['transaction_id'] = str_repeat('d', 32);
     apiRecoveryReject(static fn () => $transactions->recoverGeneration(41, 'recovery_required', 'tester'), 'GENERATION_BINDING_CONFLICT');
 
+    $state->record['transaction_id'] = $transactionId;
+    $state->record['definition'] = ['target' => ['type' => 'plugin', 'plugin' => 'closeout', 'scope' => 'console']];
+    $state->transitions = [];
+    $authorization = new \app\console\development\service\BusinessTargetService($root, authorized: fn (): bool => false);
+    $denied = new GenerationTransactionService($root, $tokens, new GeneratedFileBaselineRepository($root, $state), $state,
+        new ApiRecoveryResources(), fn (): array => [], targetService: $authorization);
+    try {
+        $denied->recoverGeneration(41, 'recovery_required', 'tester');
+        throw new RuntimeException('插件恢复必须拒绝没有插件开发权限的调用者');
+    } catch (InvalidArgumentException $error) {
+        apiRecoveryExpect($error->getMessage() === 'BUSINESS_TARGET_FORBIDDEN', '必须按 DB 目标授权');
+    }
+    apiRecoveryExpect($state->transitions === [], '未授权恢复不得 claim');
+    $allowed = new \app\console\development\service\BusinessTargetService($root, authorized: fn (): bool => true,
+        states: fn (): array => ['closeout' => ['lifecycle_state' => 'failed', 'recovery_token' => 'stale']]);
+    $authorizedTransactions = new GenerationTransactionService($root, $tokens, new GeneratedFileBaselineRepository($root, $state), $state,
+        new ApiRecoveryResources(), fn (): array => throw new RuntimeException('恢复不得执行新生成状态校验'), targetService: $allowed);
+    apiRecoveryReject(fn () => $authorizedTransactions->recoverGeneration(41, 'recovery_required', 'tester'), 'GENERATION_BINDING_CONFLICT');
+    apiRecoveryExpect($state->transitions === [], 'DB/WAL 目标不一致不得 claim');
+    $journal = $transactions->inspect($transactionId);
+    $journal['target'] = $state->record['definition']['target'];
+    $journal['state'] = 'prepared';
+    $journalFactory->invoke($transactions, $journal);
+    $held = \app\console\plugin\service\PluginInfrastructureService::lifecycleLock($root)->acquire('closeout');
+    try {
+        try { $authorizedTransactions->recoverGeneration(41, 'recovery_required', 'tester'); throw new LogicException('恢复必须取生命周期锁'); }
+        catch (RuntimeException $error) { apiRecoveryExpect(str_contains($error->getMessage(), '生命周期'), '恢复必须被生命周期锁阻断'); }
+    } finally { $held->release(); }
+    apiRecoveryExpect($state->transitions === [], '取锁失败不得 claim');
+    $result = $authorizedTransactions->recoverGeneration(41, 'recovery_required', 'tester');
+    apiRecoveryExpect($result['state'] === 'rolled_back', '失败插件应能授权恢复，不受新生成可用状态阻塞');
     echo "business generation API recovery tests: PASS\n";
 } finally {
     apiRecoveryRemoveTree($root);

@@ -108,6 +108,12 @@ const descriptionsStub = defineComponent({ template: '<dl><slot /></dl>' });
 const descriptionsItemStub = defineComponent({ props: ['label'], template: '<dt>{{ label }}</dt><dd><slot /></dd>' });
 
 const stubs = {
+  ElForm: passthrough,
+  ElFormItem: passthrough,
+  ElTooltip: passthrough,
+  ElSwitch: true,
+  ElInputNumber: true,
+  ElCheckboxGroup: passthrough,
   PageWrapper: passthrough,
   ElButton: buttonStub,
   ElInput: inputStub,
@@ -177,6 +183,31 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.toolCalls = [];
     aiStore.changeSet = null;
     vi.clearAllMocks();
+  });
+
+  it.each([false, true])('Provider 位于会话栏新建工具区并保持打开行为，移动端=%s', async (mobile) => {
+    const { wrapper } = mountPage('zh-CN', mobile);
+    await flushPromises();
+    if (mobile) await wrapper.get('[data-testid="mobile-conversations"]').trigger('click');
+    const actions = wrapper.get('.conversation-list__header > div');
+    expect(actions.findAll('button').map((button) => button.text())).toEqual(['新建分组', '新建', 'Provider']);
+    const provider = actions.findAll('button').find((button) => button.text() === 'Provider')!;
+    expect(provider.attributes('disabled')).toBeUndefined();
+    expect(wrapper.findComponent(ProviderSettingsDrawer).props('modelValue')).toBe(false);
+    vi.mocked(aiDevelopmentApi.profiles).mockClear();
+    await provider.trigger('click');
+    await flushPromises();
+    expect(aiDevelopmentApi.profiles).toHaveBeenCalledTimes(1);
+    expect(aiDevelopmentApi.settings).not.toHaveBeenCalled();
+    expect(wrapper.findComponent(ProviderSettingsDrawer).props('modelValue')).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('会话栏标题和工具区允许换行，按钮间距不叠加', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/development/ai/components/ConversationList.vue'), 'utf8');
+    expect(source).toMatch(/\.conversation-list__header\s*\{[^}]*flex-wrap:\s*wrap/s);
+    expect(source).toMatch(/\.conversation-list__header > div\s*\{[^}]*flex-wrap:\s*wrap/s);
+    expect(source).toMatch(/\.conversation-list__header :deep\(\.el-button\)\s*\{[^}]*margin-left:\s*0/s);
   });
 
   it('保存档案途中关闭再打开，不把旧响应切回当前编辑档案', async () => {
@@ -440,14 +471,21 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     wrapper.unmount();
   });
 
+  it('审批升级取消时不更新真实会话', async () => {
+    aiStore.conversations = [{ id: 1, approval_mode: 'request_approval' }]; aiStore.selectedConversationId = 1;
+    const { wrapper } = mountPage('zh-CN'); await flushPromises();
+    vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel');
+    wrapper.findComponent({ name: 'ApprovalModeSelector' }).vm.$emit('update:modelValue', 'full_access');
+    await flushPromises(); expect(aiDevelopmentApi.updateConversation).not.toHaveBeenCalled(); wrapper.unmount();
+  });
   it('发送中切换会话不把旧消息或任务写入新工作区', async () => {
     aiStore.conversations = [{ id: 1, title: '旧会话' }, { id: 2, title: '新会话' }];
     aiStore.selectedConversationId = 1;
     let finish!: (value: unknown) => void;
     vi.mocked(aiDevelopmentApi.createMessage).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve as never; }));
     const { wrapper } = mountPage('zh-CN');
-    await wrapper.find('.composer textarea').setValue('旧请求');
-    await wrapper.find('.composer').trigger('submit');
+    await wrapper.find('.ai-composer textarea').setValue('旧请求');
+    await wrapper.find('.ai-composer textarea').trigger('keydown', { key: 'Enter' });
     aiStore.selectedConversationId = 2;
     aiStore.selectionGeneration += 1;
     finish({ id: 7, conversation_id: 1 });
@@ -460,8 +498,8 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
   it('切换语言会更新页面、Tabs、按钮与真实空状态文案', async () => {
     const { wrapper, locale } = mountPage('zh-CN', true);
-    expect(wrapper.text()).toContain('AI 开发助手');
-    expect(wrapper.text()).toContain('会话、工具审批与工作区变更');
+    expect(wrapper.text()).not.toContain('AI 开发助手');
+    expect(wrapper.text()).not.toContain('会话、工具审批与工作区变更');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('会话');
     expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('任务');
     expect(wrapper.text()).toContain('发送');
@@ -470,8 +508,8 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     locale.value = 'en-US';
     await nextTick();
 
-    expect(wrapper.text()).toContain('AI Development Assistant');
-    expect(wrapper.text()).toContain('Conversations, tool approvals, and workspace changes');
+    expect(wrapper.text()).not.toContain('AI Development Assistant');
+    expect(wrapper.text()).not.toContain('Conversations, tool approvals, and workspace changes');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('Conversations');
     expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('Task');
     expect(wrapper.text()).toContain('Send');

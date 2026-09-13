@@ -118,5 +118,7 @@ namespace {
     $public = (new \ReflectionMethod($service, 'publicRecord'))->invoke($service, $row);
     catalogExpect(($public['capabilities']['source'] ?? null) === 'administrator' && ($public['runtime_capabilities']['fallback'] ?? false) === true, '档案读写响应提供能力选择与来源');
     catalogExpect(!str_contains(json_encode($public), 'rotated-key'), '能力响应不包含凭据');
+    catalogExpect($public['capabilities']['image_input'] === false && $public['capabilities']['image_tokens'] === 32768, '真实模型能力响应默认拒绝图片');
+    catalogExpect(($public['runtime_capabilities']['max_http_body_bytes'] ?? null) === 20971520, '真实响应暴露 HTTP 体积上限');
     echo "AI saved profile catalog: PASS\n";
 }

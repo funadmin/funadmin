@@ -10,6 +10,20 @@ export interface BusinessDatabaseTable {
 
 export type BusinessModuleOrigin = 'visual' | 'database';
 
+export type BusinessTargetSelection = { type: 'core' } | { type: 'plugin'; pluginCode: string };
+export interface BusinessTarget {
+  type: 'core' | 'plugin';
+  pluginCode: string | null;
+  scope: 'console';
+  tableStrategy?: 'owned' | 'external';
+  locked?: boolean;
+}
+export interface BusinessTargetCandidates {
+  list: Array<BusinessTarget & { name: string }>;
+  defaultConnection: string;
+  migrationPath: string;
+}
+
 export interface BusinessModule {
   id: number;
   code: string;
@@ -17,6 +31,7 @@ export interface BusinessModule {
   origin: BusinessModuleOrigin;
   lifecycle_status: 'draft' | 'published' | 'dynamic_published' | 'disabled' | string;
   generation_status?: string;
+  metadata?: { target?: BusinessTarget; [key: string]: unknown };
   table_name?: string;
   connection_name?: string;
   runtime_route?: string;
@@ -165,6 +180,7 @@ export function isBusinessApiError(value: unknown): value is BusinessApiErrorRes
 }
 
 export const businessDevelopmentApi = {
+  targets: () => http.get<BusinessTargetCandidates>(`${PREFIX}/targets`),
   modules: (params: { page?: number; pageSize?: number; keyword?: string; status?: string; origin?: string } = {}) =>
     http.get<BusinessPageResult<BusinessModule>>(`${PREFIX}/modules`, params),
   module: (id: number) => http.get<BusinessModuleDetail>(`${PREFIX}/modules/${id}`),

@@ -324,6 +324,18 @@ final class DatabaseGenerationStateRepository
                 throw new RuntimeException('生成记录与业务模块不匹配');
             }
             $definition = is_array($generation->definition) ? $generation->definition : [];
+            $plugin = ($definition['target']['type'] ?? 'core') === 'plugin';
+            $metadata = (array) ($module->metadata ?? []);
+            if ($plugin) {
+                $target = (array) ($metadata['target'] ?? []);
+                if (($target['type'] ?? '') !== 'plugin' || ($target['pluginCode'] ?? '') !== ($definition['target']['plugin'] ?? '')
+                    || ($target['scope'] ?? '') !== 'console' || $module->table_name !== $definition['table']
+                    || $module->connection_name !== $definition['connection']) {
+                    throw new RuntimeException('BUSINESS_TARGET_IDENTITY_CONFLICT');
+                }
+                $metadata['target']['locked'] = true;
+                $metadata['target']['generationId'] = $generationId;
+            }
             $routePath = (string) ($definition['routePath'] ?? '');
             if (preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', $routePath) !== 1) {
                 throw new RuntimeException('生成记录缺少可信 routePath');
@@ -333,7 +345,7 @@ final class DatabaseGenerationStateRepository
             $result = [
                 'generationId' => $generationId,
                 'state' => 'completed',
-                'resourceApplyStatus' => 'applied',
+                'resourceApplyStatus' => $plugin ? 'pending_publication' : 'applied',
                 'resourceApplyError' => null,
                 'routePath' => $routePath,
                 'definitionHash' => (string) $generation->definition_hash,
@@ -355,8 +367,8 @@ final class DatabaseGenerationStateRepository
                 'failed_at' => null,
                 'recovered_at' => $isRecovery ? $now : null,
             ]);
-            $module->save([
-                'lifecycle_status' => 'published',
+            $module->save(($plugin ? ['metadata' => $metadata] : []) + [
+                'lifecycle_status' => $plugin ? 'generated' : 'published',
                 'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
                 'published_schema_version' => isset($definition['formSchemaVersion']) ? (int) $definition['formSchemaVersion'] : null,
                 'module_route' => $routePath,
@@ -371,7 +383,7 @@ final class DatabaseGenerationStateRepository
                 }
                 $form->save([
                     'publish_mode' => 'generated',
-                    'publish_status' => 'published',
+                    'publish_status' => $plugin ? 'generated' : 'published',
                     'published_at' => $now,
                     'crud_generation_id' => $generationId,
                     'published_definition_hash' => (string) $generation->definition_hash,

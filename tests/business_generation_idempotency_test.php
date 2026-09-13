@@ -235,6 +235,78 @@ try {
     idempotencyExpect(($state->generations[$plannedId]['status'] ?? '') === 'planned',
         'token 校验或消费失败不得错误终结计划');
 
+    // 使用真实编译器和生成工厂，只替换数据库读取边界。
+    $adoptedDocument = $schema->document();
+    $adoptedDocument['database']['source'] = 'adopted';
+    $adoptedSchema = (new FormSchemaCompiler(new FormSchemaValidator()))->compile($adoptedDocument);
+    $inspections = 0;
+    $adoptedService = new ManagedGenerationService(
+        $root,
+        stateRepository: $state,
+        tokens: $tokens,
+        moduleReader: static fn (int $id): array => ['id' => $id, 'form_id' => 31, 'code' => 'idempotent_sample'],
+        formReader: static fn (int $id): array => $form,
+        schemaReader: static fn (int $id) => $adoptedSchema,
+        databaseSchemaReader: static function (string $connection, string $table) use (&$inspections): array {
+            idempotencyExpect($connection === 'mysql' && $table === 'fun_idempotent_sample', '必须从可信表单派生采纳表身份');
+            $inspections++;
+            return ['primaryKey' => ['record_id'], 'columns' => [
+                ['name' => 'record_id', 'type' => 'bigint unsigned', 'nullable' => false],
+                ['name' => 'title', 'type' => 'varchar(255)', 'nullable' => false],
+            ]];
+        }
+    );
+    foreach (['preview', 'proposal'] as $entry) {
+        $result = $entry === 'preview'
+            ? $adoptedService->preview(7, false, 'adopted-preview-nonce')
+            : $adoptedService->previewProposal(7, $adoptedDocument, 'form_schema', false, 'adopted-proposal-nonce');
+        $definition = $state->generations[$result['generationId']]['definition'];
+        idempotencyExpect($definition['primaryKey'] === 'record_id', '采纳表主键必须传入工厂');
+        idempotencyExpect($definition['timestamps'] === false && $definition['softDeletes'] === false, '不得虚构采纳表时间字段');
+    }
+    idempotencyExpect($inspections === 2, '普通预览与提案都必须读取可信数据库结构');
+    $foreignDocument = $adoptedDocument;
+    $foreignDocument['database']['table'] = 'fun_other';
+    idempotencyReject(static fn () => $adoptedService->previewProposal(7, $foreignDocument, 'form_schema', false, 'foreign-proposal-nonce'), '采纳表身份不匹配');
+    idempotencyExpect($inspections === 2, '提案不能触发读取其他表');
+
+    $draftReads = 0;
+    $pluginPolicy = new \app\console\development\service\BusinessTargetService($root, 'mysql',
+        static fn (): bool => true, static fn (): array => [],
+        static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true]],
+        static fn (): array => [], static fn (): bool => false);
+    $pluginForm = array_replace($form, ['table_name' => 'fun_sample_item']);
+    $pluginDocument = $schema->document();
+    $pluginDocument['database']['table'] = 'fun_sample_item';
+    $pluginSchema = (new FormSchemaCompiler(new FormSchemaValidator()))->compile($pluginDocument);
+    $pluginService = new ManagedGenerationService($root, stateRepository: $state, tokens: $tokens,
+        moduleReader: static fn (): array => ['id' => 7, 'form_id' => 31, 'code' => 'idempotent_sample', 'table_name' => 'fun_sample_item', 'connection_name' => 'mysql',
+            'metadata' => ['target' => \app\console\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
+        formReader: static fn (): array => $pluginForm,
+        schemaReader: static function (): never { throw new RuntimeException('不得读取插件已发布 Schema'); },
+        draftSchemaReader: static function () use (&$draftReads, $pluginSchema) { $draftReads++; return $pluginSchema; },
+        targetService: $pluginPolicy);
+    $resolved = $pluginService->resolveDefinition(7);
+    idempotencyExpect($draftReads === 1 && $resolved['definition']->get('target')['plugin'] === 'sample', '正式生成必须消费草稿插件定义适配');
+    idempotencyExpect($resolved['definition']->get('formSchemaHash') === $pluginSchema->hash(), '保留保存草稿 hash');
+    idempotencyReject(fn () => $pluginService->preview(7, false, 'plugin-preview-nonce'), '插件');
+    idempotencyExpect($draftReads === 2, '预览入口必须使用同一可信定义解析边界');
+
+    $foreignCoreDefinition = (new FormCrudDefinitionFactory())->createFromSchema($pluginSchema, $pluginForm)->toArray();
+    idempotencyReject(fn () => $pluginService->previewProposal(7, $foreignCoreDefinition, 'crud_definition', false, 'target-bypass-nonce'), 'BUSINESS_TARGET_IDENTITY_CONFLICT');
+    $unsaved = $pluginDocument;
+    $unsaved['title'] = '未保存提案';
+    idempotencyReject(fn () => $pluginService->previewProposal(7, $unsaved, 'form_schema', false, 'unsaved-plugin-nonce'), 'BUSINESS_SAVED_SCHEMA_REQUIRED');
+    $replayed = ['id' => 999, 'business_module_id' => 7, 'status' => 'planned', 'definition' => $foreignCoreDefinition,
+        'manifest' => ['proposal' => ['type' => 'crud_definition'], 'managedNonce' => 'target-bypass-nonce']];
+    $replayService = new ManagedGenerationService($root, stateRepository: $state, tokens: $tokens,
+        moduleReader: static fn (): array => ['id' => 7, 'form_id' => 31, 'code' => 'idempotent_sample', 'table_name' => 'fun_sample_item', 'connection_name' => 'mysql',
+            'metadata' => ['target' => \app\console\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
+        formReader: static fn (): array => $pluginForm,
+        draftSchemaReader: static fn () => $pluginSchema,
+        generationReader: static fn (): array => $replayed, targetService: $pluginPolicy);
+    idempotencyReject(fn () => $replayService->execute(7, 999, 'unused'), 'BUSINESS_TARGET_IDENTITY_CONFLICT');
+
     echo "Business generation idempotency tests: PASS\n";
 } finally {
     idempotencyRemoveTree($root);

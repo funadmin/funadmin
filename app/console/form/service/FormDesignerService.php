@@ -208,10 +208,11 @@ final class FormDesignerService
             'schema_hash' => $compiled->hash(),
         ]);
         return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled): array {
-            $form = $id > 0 ? Form::find($id) : new Form();
+            $form = $id > 0 ? Form::lock(true)->find($id) : new Form();
             if ($id > 0 && !$form) {
                 throw new InvalidArgumentException('表单不存在');
             }
+            if ($id > 0) $this->schemas->assertIdentity($form, $compiled);
             if ($id > 0 && $expectedSchemaHash !== '' && (string) ($form->schema_hash ?? '') !== ''
                 && !hash_equals((string) $form->schema_hash, $expectedSchemaHash)) {
                 throw new InvalidArgumentException('表单 Schema 已被他人修改，请刷新后重试');

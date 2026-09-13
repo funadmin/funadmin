@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { service } from '@/utils/http';
-import { aiDevelopmentApi as api } from './ai';
+import { aiDevelopmentApi as api, profileModelCapability, profileCapabilityError } from './ai';
 import { developmentAiMockHandlers } from '@/mock/modules/developmentAi';
 import type { MockMethod } from '@/mock/types';
 
@@ -13,6 +13,39 @@ function respond(data: unknown) {
 const conversation = { id: '2', admin_id: '1', group_id: null, title: '新 AI 会话', status: 'draft', model: '', context: [], is_archived: false, is_unread: false };
 
 describe('AI 真实 HTTP 响应边界', () => {
+  it('未知图片能力默认关闭，图片预算固定且 MIME 必须在白名单内', () => {
+    expect(profileModelCapability({}, 'unknown')).toMatchObject({ image_input: false, image_tokens: 32768, max_images: 4, image_mime_types: ['image/png', 'image/jpeg', 'image/webp'] });
+    const base = { name: 'p', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com', model: 'm', model_capabilities: [{ model: 'm', reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, image_input: true, image_tokens: 1, max_images: 4, image_mime_types: ['image/svg+xml'] }] };
+    expect(profileCapabilityError(base as never)).not.toBe('');
+  });
+  it('安全成功 mock 经真实 API 上传、下载、绑定；未知请求绝不回退网络', async () => {
+    service.defaults.adapter = async config => {
+      const url = config.url!; const method = config.method!.toUpperCase() as MockMethod;
+      const route = developmentAiMockHandlers.find(r => r.method === method && (typeof r.url === 'string' ? r.url === url : r.url.test(url)));
+      if (!route) throw new Error(`禁止网络 fallback: ${url}`);
+      const match = route.url instanceof RegExp ? url.match(route.url) : null;
+      const pathParams = Object.fromEntries((route.paramNames || []).map((key, i) => [key, match![i+1]]));
+      const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+      const data = await route.handler({ url, method, pathParams, body, params: {}, headers: {} });
+      return { config, status: 200, statusText: 'OK', headers: {}, data };
+    };
+    const attachment = await api.uploadAttachment(501, new File(['mock fixture'], 'fixture.txt', { type: 'text/plain' }));
+    expect(attachment).toMatchObject({ kind: 'text', name: 'fixture.txt' });
+    expect(attachment).not.toHaveProperty('storage_path');
+    const blob = await api.attachmentContent(501, attachment.id);
+    expect(blob).toBeInstanceOf(Blob); expect(blob.type).toBe('text/plain');
+    const payload = { role: 'user' as const, content: [{ type: 'attachment', attachment_id: attachment.id }], idempotency_key: 'mock-stable-key' };
+    const first = await api.createMessage(501, payload);
+    expect(await api.createMessage(501, payload)).toEqual(first);
+    await expect(api.createMessage(501, { ...payload, content: [{ type: 'text', text: 'changed' }] })).rejects.toThrow();
+    await expect(api.deleteAttachment(501, attachment.id)).rejects.toThrow();
+    await expect(api.attachmentContent(999, attachment.id)).rejects.toThrow();
+  });
+  it('附件使用 multipart 单文件与私有鉴权 blob，不走公开 URL', async () => {
+    expect(api).toHaveProperty('uploadAttachment');
+    expect(api).toHaveProperty('attachmentContent');
+    expect(api).toHaveProperty('deleteAttachment');
+  });
   it('档案 mock 保留/清空密钥语义，复制不含密钥，删除默认不另选', async () => {
     const request = async (method: MockMethod, suffix = '', body = {}) => {
       const url = `/development/ai/profiles${suffix}`;

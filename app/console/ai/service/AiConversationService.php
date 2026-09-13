@@ -136,11 +136,19 @@ final class AiConversationService
     public function appendUserMessage(int $conversationId, int $adminId, array $input): array
     {
         $this->ownedConversation($conversationId, $adminId);
-        $this->validateFields($input, ['role', 'content']);
+        $this->validateFields($input, ['role', 'content', 'idempotency_key']);
+        $key = $input['idempotency_key'] ?? null;
+        if (array_key_exists('idempotency_key', $input) && (!is_string($key) || preg_match('/^[A-Za-z0-9_-]{1,128}$/D', $key) !== 1)) throw new InvalidArgumentException('idempotency_key 无效', 400);
         if (($input['role'] ?? 'user') !== 'user') throw new InvalidArgumentException('只允许 user 消息', 400);
         $content = $this->userTextBlocks($input['content'] ?? null, true);
-        if (in_array('attachment', array_column($content, 'type'), true)) return ($this->attachments ?? AiAttachmentService::production())->append($conversationId, $adminId, $content, $this->store);
-        return $this->store->appendMessage($conversationId, ['role'=>'user', 'content'=>$content, 'metadata'=>[], 'parent_id'=>null]);
+        $create = function () use ($conversationId, $adminId, $content): array {
+            if (in_array('attachment', array_column($content, 'type'), true)) return ($this->attachments ?? AiAttachmentService::production())->append($conversationId, $adminId, $content, $this->store);
+            return $this->store->appendMessage($conversationId, ['role'=>'user', 'content'=>$content, 'metadata'=>[], 'parent_id'=>null]);
+        };
+        // 兼容旧客户端；新客户端为每条逻辑消息传入稳定键。
+        if ($key === null) return $create();
+        $canonical = array_map(static fn (array $block): array => $block['type'] === 'text' ? ['type'=>'text','text'=>$block['text']] : ['type'=>'attachment','attachment_id'=>$block['attachment_id']], $content);
+        return $this->store->idempotentMessage($conversationId, $adminId, $key, hash('sha256', json_encode(['role'=>'user','content'=>$canonical], JSON_THROW_ON_ERROR)), $create);
     }
 
     /** 任务入口不接受客户端历史、工具、系统提示或配置快照。 */
@@ -169,9 +177,9 @@ final class AiConversationService
             if (is_array($blocks) && array_keys($blocks) === ['text']) $blocks = [['type'=>'text', 'text'=>$blocks['text']]];
             $blocks = $this->userTextBlocks($blocks, $role === 'user');
             $text = in_array('attachment', array_column($blocks, 'type'), true)
-                ? ($this->attachments ?? AiAttachmentService::production())->textHistory($conversationId, $adminId, $row)
+                ? ($this->attachments ?? AiAttachmentService::production())->modelHistory($conversationId, $adminId, $row)
                 : implode("\n", array_column($blocks, 'text'));
-            $bytes += strlen($text);
+            $bytes += is_string($text) ? strlen($text) : strlen(json_encode($text, JSON_THROW_ON_ERROR));
             if ($bytes > 1024 * 1024) throw new InvalidArgumentException('历史文本超过请求上限', 413);
             $messages[] = ['role'=>$role, 'content'=>$text];
         }

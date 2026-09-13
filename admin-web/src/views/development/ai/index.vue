@@ -1,10 +1,5 @@
 <template>
   <PageWrapper class="ai-page">
-    <template #header><div><h2>{{ t('aiDevelopment.title') }}</h2><small>{{ t('aiDevelopment.subtitle') }}</small></div></template>
-    <template #extra>
-      <el-button @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
-    </template>
-
     <nav class="mobile-actions" :aria-label="t('aiDevelopment.workspace')">
       <el-button data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
       <el-button data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
@@ -13,7 +8,11 @@
 
     <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
       <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
-        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup" />
+        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
+          <template #actions>
+            <el-button size="small" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
+          </template>
+        </ConversationList>
       </section>
 
       <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
@@ -23,6 +22,15 @@
             <el-button data-testid="toggle-inspector" @click="toggleInspector"><i class="i-ep-document" />{{ inspectorOpen ? t('aiDevelopment.changeSet.close') : t('aiDevelopment.task') }}</el-button>
             <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
+        </header>
+        <div class="workspace-scroll" data-scroll-container="primary">
+          <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
+          <MessageTimeline :messages="store.messages" />
+          <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
+          <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
+        </div>
+        <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="store.cancelActiveTask()">
+          <template #models>
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
@@ -45,17 +53,9 @@
             <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }}</small>
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
-        </header>
-        <div class="workspace-scroll" data-scroll-container="primary">
-          <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
-          <MessageTimeline :messages="store.messages" />
-          <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
-          <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
-        </div>
-        <form class="composer" @submit.prevent="sendMessage">
-          <el-input v-model="prompt" type="textarea" :rows="3" resize="none" :placeholder="t('aiDevelopment.promptPlaceholder')" />
-          <el-button type="primary" native-type="submit" :disabled="!selectedConversation || !prompt.trim() || running">{{ t('aiDevelopment.send') }}</el-button>
-        </form>
+          </template>
+          <template #approval><ApprovalModeSelector :model-value="selectedConversation?.approval_mode || 'request_approval'" :can-agent-approve="hasCapability('development:ai:approve')" :can-full-access="hasCapability('development:ai:full-access')" @update:model-value="updateApprovalMode" /></template>
+        </AiComposer>
       </main>
 
       <aside v-if="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
@@ -83,6 +83,8 @@ import { aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiA
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
 import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
+import AiComposer from './components/AiComposer.vue';
+import type { AiTask, AiMessage } from '@/api/development/ai';
 import MessageTimeline from './components/MessageTimeline.vue';
 import ApprovalCard from './components/ApprovalCard.vue';
 import ApprovalModeSelector from './components/ApprovalModeSelector.vue';
@@ -94,7 +96,6 @@ import { aiEnumLabel } from './i18n';
 const { t } = useI18n();
 const store = useAiDevelopmentStore();
 const userStore = useUserStore();
-const prompt = ref('');
 const showArchived = ref(false);
 const moveOpen = ref(false);
 const moveConversationId = ref<number | null>(null);
@@ -357,7 +358,6 @@ async function confirmMove() {
 }
 
 watch(() => store.selectedConversationId, () => {
-  prompt.value = '';
   preview.value = null;
   changeSetOpen.value = false;
   logOpen.value = false;
@@ -381,31 +381,32 @@ async function selectConversation(id: number) {
   });
 }
 
+const approvalSaving = ref(false);
 async function updateApprovalMode(mode: AiApprovalMode) {
-  if (!selectedConversation.value) return;
+  const conversation = selectedConversation.value;
+  if (!conversation || approvalSaving.value || mode === conversation.approval_mode) return;
+  if ((mode === 'agent_approval' && !hasCapability('development:ai:approve')) || (mode === 'full_access' && !hasCapability('development:ai:full-access'))) return;
+  const generation = store.selectionGeneration;
+  approvalSaving.value = true;
   try {
-    const updated = await aiDevelopmentApi.updateConversation(selectedConversation.value.id, { approval_mode: mode });
-    Object.assign(selectedConversation.value, updated);
-  } catch {
-    ElMessage.error(t('aiDevelopment.errors.approvalModeUpdate'));
-  }
+    const levels = { request_approval: 0, agent_approval: 1, full_access: 2 };
+    if (levels[mode] > levels[conversation.approval_mode]) await ElMessageBox.confirm(t(mode === 'full_access' ? 'aiDevelopment.approvalModes.fullAccessBoundary' : 'aiDevelopment.approvalModes.agentBoundary'), t('aiComposer.approval'), { type: 'warning' });
+    if (store.selectedConversationId !== conversation.id || store.selectionGeneration !== generation) return;
+    const updated = await aiDevelopmentApi.updateConversation(conversation.id, { approval_mode: mode });
+    if (store.selectedConversationId === conversation.id && store.selectionGeneration === generation) Object.assign(conversation, updated);
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error(t('aiDevelopment.errors.approvalModeUpdate'));
+  } finally { approvalSaving.value = false; }
 }
 
-async function sendMessage() {
-  if (!store.selectedConversationId || !prompt.value.trim()) return;
-  const id = store.selectedConversationId;
+async function messageSent(task: AiTask, message: AiMessage, id: number) {
+  if (store.selectedConversationId !== id) return;
   const generation = store.selectionGeneration;
-  const current = () => store.selectedConversationId === id && store.selectionGeneration === generation;
+  if (!store.messages.some(item => item.id === message.id)) store.messages.push(message);
+  store.activateTask(task);
   await manage(async () => {
-    const message = await aiDevelopmentApi.createMessage(id, { role: 'user', content: [{ type: 'text', text: prompt.value.trim() }] });
-    if (!current()) return;
-    store.messages.push(message);
-    const task = await aiDevelopmentApi.executeTask(id, { idempotency_key: crypto.randomUUID(), type: 'chat', message_id: message.id });
-    if (!current()) return;
-    store.activateTask(task);
-    prompt.value = '';
     await store.refreshTaskContext();
-    if (!current()) return;
+    if (store.selectedConversationId !== id || generation !== store.selectionGeneration) return;
     await store.connectEvents();
     store.saveRouteState();
   });
@@ -454,7 +455,7 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 <style scoped>
 .ai-page { height: 100%; min-height: 0; }
 .ai-page :deep(> main > div:last-child) { overflow: hidden; }
-h2 { margin: 0; font-size: 18px; } header small { color: var(--el-text-color-secondary); }
+header small { color: var(--el-text-color-secondary); }
 .ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
 .ai-layout--inspector { grid-template-columns: minmax(220px, 260px) minmax(380px, 1fr) minmax(270px, 330px); }
 .ai-conversations-pane, .ai-context-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }

@@ -5,6 +5,8 @@ import DatabasePage from './database.vue';
 
 const mocks = vi.hoisted(() => ({
   inspectDatabase: vi.fn(),
+  targets: vi.fn(),
+  query: {} as Record<string, string>,
   createFromDatabase: vi.fn(),
   push: vi.fn(),
   confirm: vi.fn(),
@@ -15,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/api/development/business', () => ({
   businessDevelopmentApi: {
+    targets: mocks.targets,
     inspectDatabase: mocks.inspectDatabase,
     createFromDatabase: mocks.createFromDatabase
   },
@@ -29,6 +32,7 @@ vi.mock('vue-router', async (importOriginal) => {
   return {
     ...actual,
     useRouter: () => ({ push: mocks.push }),
+    useRoute: () => ({ query: mocks.query }),
     onBeforeRouteLeave: (guard: () => boolean) => { mocks.routeGuard = guard; }
   };
 });
@@ -91,7 +95,7 @@ const BusinessPageState = defineComponent({
 function render(): VueWrapper {
   return mount(DatabasePage, {
     global: {
-      stubs: { PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTable, ElTableColumn, BusinessPageState }
+      stubs: { ElSelect: true, ElOption: true, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTable, ElTableColumn, BusinessPageState }
     }
   });
 }
@@ -120,9 +124,38 @@ function staleError() {
 describe('数据库采纳页', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.query = {};
+    mocks.targets.mockResolvedValue({ list: [{ type: 'core', pluginCode: null, name: '核心后台', scope: 'console' }, { type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console' }], defaultConnection: 'mysql', migrationPath: 'database/migrations' });
     mocks.routeGuard = undefined;
     mocks.confirm.mockResolvedValue('confirm');
     mocks.push.mockResolvedValue(undefined);
+  });
+
+  it('插件采纳保留外部表边界，发送目标且成功导航不再确认离开', async () => {
+    mocks.query = { plugin: 'demo' };
+    const wrapper = render();
+    await fillRequired(wrapper);
+    await inspectSuccessfully(wrapper);
+    expect(wrapper.text()).toContain('外部依赖');
+    mocks.createFromDatabase.mockResolvedValueOnce({ module: { id: 8, form_id: 9 } });
+    mocks.push.mockImplementationOnce(async () => { expect(mocks.routeGuard?.()).toBe(true); });
+    await wrapper.get('[data-action="create"]').trigger('click');
+    await flushPromises();
+    expect(mocks.createFromDatabase).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'plugin', pluginCode: 'demo' }, expectedInspectionHash: inspection.snapshotHash }));
+    wrapper.unmount();
+  });
+
+  it('目标变化使检查失效，不可用插件不能采纳', async () => {
+    const wrapper = render();
+    await fillRequired(wrapper);
+    await inspectSuccessfully(wrapper);
+    const state = (wrapper.vm as any).$.setupState;
+    state.selected = 'missing';
+    await nextTick();
+    expect(wrapper.get('[data-action="create"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.text()).toContain('不可用或无权限');
+    expect(wrapper.find('.field-table').exists()).toBe(false);
+    wrapper.unmount();
   });
 
   it('为 name、code、connection、table 配置 Element Plus rules', () => {
@@ -210,7 +243,7 @@ describe('数据库采纳页', () => {
     const confirmation = String(mocks.confirm.mock.calls[0][0]);
     for (const text of ['mysql', 'fun_orders', 'id', '2', '不可变']) expect(confirmation).toContain(text);
     expect(mocks.createFromDatabase).toHaveBeenCalledWith({
-      connection: 'mysql', table: 'fun_orders', name: '订单', code: 'orders', remark: '', expectedInspectionHash: inspection.snapshotHash
+      connection: 'mysql', table: 'fun_orders', name: '订单', code: 'orders', remark: '', target: { type: 'core' }, expectedInspectionHash: inspection.snapshotHash
     });
     expect(mocks.createFromDatabase.mock.calls[0][0]).not.toHaveProperty('fields');
   });

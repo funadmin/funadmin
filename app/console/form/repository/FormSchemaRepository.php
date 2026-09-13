@@ -125,6 +125,7 @@ final class FormSchemaRepository
     {
         $form = Form::lock(true)->find($formId);
         if (!$form) throw new InvalidArgumentException('表单不存在');
+        $this->assertIdentity($form, $compiled);
         $existing = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $compiled->hash())->find();
         if ($existing) {
             $this->persistCurrent($form, $compiled, $origin);
@@ -281,6 +282,18 @@ final class FormSchemaRepository
     public function fieldCapabilities(): FieldCapabilityRegistry
     {
         return $this->fieldCapabilities;
+    }
+
+    /** 保存和历史回滚均以服务端表单身份为准，不能通过 Schema 转移归属。 */
+    public function assertIdentity(Form $form, FormSchema $compiled): void
+    {
+        $database = $compiled->document()['database'];
+        if ($compiled->key() !== (string) $form->form_key
+            || $database['table'] !== (string) $form->table_name
+            || $database['connection'] !== (string) $form->connection
+            || $database['source'] !== (string) $form->source_type) {
+            throw new InvalidArgumentException('BUSINESS_SCHEMA_IDENTITY_CONFLICT');
+        }
     }
 
     private function persistCurrent(Form $form, FormSchema $compiled, string $origin): void

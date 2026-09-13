@@ -58,7 +58,7 @@ class PluginService extends AbstractService
         try {
             $this->assertCode($code);
             $this->assertLifecycleSchema();
-            $lock = (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($code);
+            $lock = PluginInfrastructureService::lifecycleLock()->acquire($code);
             $this->assertNoStalePublication($code);
             $this->captureResourceState($code);
             $result = $operation($token);
@@ -229,6 +229,7 @@ class PluginService extends AbstractService
         return $this->operate($code, function (string $token) use ($code): bool {
             $this->deploymentRollbackAllowed = true;
             $manifest = $this->validatedManifest($code);
+            $this->infrastructure()->assertExternalTables($manifest);
             $pluginInfo = array_merge($this->manifestInfo($manifest), $this->packageContext($code));
             $record = $this->isInstall($code);
             if ($record && $record->deleted_at === null && (int) ($record->needs_reinstall ?? 0) === 0
@@ -296,6 +297,7 @@ class PluginService extends AbstractService
                 $this->assertDisabled($record, $code);
             }
             $manifest = $this->validatedManifest($code);
+            $this->infrastructure()->assertExternalTables($manifest);
             $fromVersion = (string) $record->version;
             $toVersion = $manifest->version();
             if (!$allowCodeDowngrade && $fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
@@ -348,7 +350,8 @@ class PluginService extends AbstractService
             $record = $this->installedRecord($code);
             $this->assertRunnableRecord($record);
             $this->assertDisabled($record, $code);
-            $this->validatedManifest($code);
+            $manifest = $this->validatedManifest($code);
+            $this->infrastructure()->assertExternalTables($manifest);
             $this->beginOperation($record, $token, 'updating');
             $this->recordStage($code, 'migrate', 'migration');
             $this->deploymentRollbackAllowed = false;
@@ -442,8 +445,12 @@ class PluginService extends AbstractService
         $coordinator = new PluginPurgeCoordinator(
             fn (string $pluginCode): object => $this->plugin($pluginCode),
             fn (array $audit): mixed => $this->audit()->purge($audit),
-            new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')),
-            fn (string $pluginCode): bool => ($this->validatedManifest($pluginCode)->toArray()['purge']['supported'] ?? false) === true
+            PluginInfrastructureService::lifecycleLock(),
+            function (string $pluginCode): bool {
+                $manifest = $this->validatedManifest($pluginCode);
+                $this->infrastructure()->assertPurgeAllowed($manifest);
+                return ($manifest->toArray()['purge']['supported'] ?? false) === true;
+            }
         );
         try {
             $coordinator->purge($code, $confirmation, fn () => $this->storage()->remove($code));
@@ -479,6 +486,7 @@ class PluginService extends AbstractService
                     throw new RuntimeException('插件最近一次生命周期操作失败，请先修复或重新更新');
                 }
                 $manifest = $this->validatedManifest($code);
+                $this->infrastructure()->assertExternalTables($manifest, false);
             } else {
                 $this->assertNoEnabledDependents($code);
             }

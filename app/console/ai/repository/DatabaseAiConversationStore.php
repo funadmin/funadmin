@@ -86,6 +86,21 @@ final class DatabaseAiConversationStore implements AiConversationStore
         });
     }
 
+    public function idempotentMessage(int $conversationId, int $adminId, string $key, string $digest, callable $create): array
+    {
+        return Db::transaction(function () use ($conversationId, $adminId, $key, $digest, $create): array {
+            if (!AiConversation::where('id', $conversationId)->where('admin_id', $adminId)->lock(true)->find()) throw new \RuntimeException('资源不存在', 404);
+            $existing = AiMessage::withTrashed()->where('conversation_id', $conversationId)->where('idempotency_key', $key)->lock(true)->find();
+            if ($existing) {
+                if (!hash_equals((string) $existing->payload_digest, $digest)) throw new \RuntimeException('幂等键对应的消息内容不一致', 409);
+                return $existing->toArray();
+            }
+            $message = $create();
+            AiMessage::where('id', $message['id'])->update(['idempotency_key'=>$key, 'payload_digest'=>$digest]);
+            return AiMessage::findOrFail($message['id'])->toArray();
+        });
+    }
+
     public function messages(int $conversationId): array { return AiMessage::where('conversation_id', $conversationId)->order('sequence')->select()->toArray(); }
 
     public function createTask(array $data): array

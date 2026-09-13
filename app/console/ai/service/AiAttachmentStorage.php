@@ -80,6 +80,97 @@ final class AiAttachmentStorage
         return $bytes;
     }
 
+    /** 上传登记与清理共用目录锁，避免未提交上传被当作孤儿。 */
+    public function synchronized(callable $operation): mixed
+    {
+        $this->secureRoot();
+        $path = $this->root . '/.attachment-lock';
+        $handle = $this->controlFile($path);
+        try {
+            if (!flock($handle, LOCK_EX)) throw new RuntimeException('附件锁失败', 503);
+            return $operation();
+        } finally { flock($handle, LOCK_UN); fclose($handle); }
+    }
+
+    /**
+     * 非递归、文件名持久游标；绑定或不安全的候选也推进进度，避免前缀饥饿。
+     * 每轮处理 B=max(1,min(1000,limit)) 项，候选内存 O(B)，目录选取 O(N log B)。
+     * 选取必须完整读取 N 个目录项，不使用目录 offset/seek，也不承诺扫描时间上限。
+     * 全目录遍历和回调均持有原目录锁；大目录或慢回调会延长上传等待时间。
+     */
+    public function cleanupExpired(int $now, callable $removeIfUnbound, int $limit = 100): int
+    {
+        return $this->synchronized(function () use ($now, $removeIfUnbound, $limit): int {
+            $removed = 0;
+            $cursor = $this->controlFile($this->root . '/.attachment-cursor');
+            $directory = null;
+            try {
+                $rootStat = stat($this->root);
+                $identity = $rootStat['dev'] . ':' . $rootStat['ino'];
+                $state = json_decode((string) stream_get_contents($cursor, 1024), true);
+                $after = is_array($state) && ($state['identity'] ?? null) === $identity
+                    && is_string($state['after'] ?? null) && preg_match('/^[a-f0-9]{64}$/D', $state['after']) === 1
+                    ? $state['after'] : '';
+                $budget = max(1, min(1000, $limit));
+                $directory = @opendir($this->root);
+                if ($directory === false) throw new RuntimeException('附件目录不可用', 503);
+                $candidates = new \SplMaxHeap();
+                while (($name = readdir($directory)) !== false) {
+                    if (preg_match('/^[a-f0-9]{64}$/D', $name) !== 1 || strcmp($name, $after) <= 0) continue;
+                    // 非数字前缀强制堆按字符串比较，避免纯数字文件名的浮点精度问题。
+                    $candidate = 'n' . $name;
+                    if ($candidates->count() < $budget) $candidates->insert($candidate);
+                    elseif (strcmp($candidate, $candidates->top()) < 0) {
+                        $candidates->extract();
+                        $candidates->insert($candidate);
+                    }
+                }
+                $names = iterator_to_array($candidates, false);
+                sort($names, SORT_STRING);
+                // 空批次回绕；已删除的游标文件不影响比较，新建的较小名称下一轮巡回处理。
+                if (!$names) $after = '';
+                foreach ($names as $candidate) {
+                    $name = substr($candidate, 1);
+                    $after = $name;
+                    $path = $this->root . '/' . $name;
+                    clearstatcache(true, $path);
+                    $before = @lstat($path);
+                    if (!$before || ($before['mode'] & 0170000) !== 0100000 || ($before['mode'] & 0777) !== 0600 || $before['nlink'] !== 1 || $before['mtime'] > $now - 86400) continue;
+                    $removed += (int) $removeIfUnbound($name, function () use ($path, $before): bool {
+                        clearstatcache(true, $path);
+                        $after = @lstat($path);
+                        return $after === $before && unlink($path);
+                    });
+                }
+                $bytes = json_encode(['identity'=>$identity, 'after'=>$after], JSON_THROW_ON_ERROR);
+                rewind($cursor);
+                if (fwrite($cursor, $bytes) !== strlen($bytes) || !ftruncate($cursor, strlen($bytes)) || !fflush($cursor)) throw new RuntimeException('附件游标保存失败', 503);
+                return $removed;
+            } finally {
+                if (is_resource($directory)) closedir($directory);
+                fclose($cursor);
+            }
+        });
+    }
+
+    private function controlFile(string $path)
+    {
+        clearstatcache(true, $path);
+        $before = @lstat($path);
+        if ($before && (($before['mode'] & 0170000) !== 0100000 || ($before['mode'] & 0777) !== 0600 || $before['nlink'] !== 1)) throw new RuntimeException('附件控制文件不安全', 503);
+        $mask = umask(0077);
+        try { $handle = @fopen($path, $before ? 'r+b' : 'x+b'); } finally { umask($mask); }
+        if (!$handle) throw new RuntimeException('附件控制文件不可用', 503);
+        clearstatcache(true, $path);
+        $after = @lstat($path); $opened = fstat($handle);
+        if (!$after || !$opened || ($after['mode'] & 0170000) !== 0100000 || $after['nlink'] !== 1 || ($after['mode'] & 0777) !== 0600
+            || $after['ino'] !== $opened['ino'] || $after['dev'] !== $opened['dev']
+            || ($before && ($before['ino'] !== $opened['ino'] || $before['dev'] !== $opened['dev']))) {
+            fclose($handle); throw new RuntimeException('附件控制文件已变更', 503);
+        }
+        return $handle;
+    }
+
     public function headers(array $record): array
     {
         $this->validateName($record['name']);

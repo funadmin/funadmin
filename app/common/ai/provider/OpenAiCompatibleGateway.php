@@ -108,6 +108,8 @@ final class OpenAiCompatibleGateway
         } catch (JsonException $exception) {
             throw new AiProviderException('invalid_response', 'Provider 返回了无效 JSON', previous: $exception);
         }
+        // 供应商回显的图片不得进入任务输出、审批参数或事件。
+        if (preg_match('/data:[^,\s]*;base64,/i', json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES))) throw new AiProviderException('invalid_response', '供应商响应包含内联二进制数据');
         $choice = $body['choices'][0] ?? [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
 
@@ -237,7 +239,20 @@ final class OpenAiCompatibleGateway
         }
         // 无可靠 tokenizer：按 UTF-8 JSON 每字节一个 token，加每消息 64 和固定 1024 余量。
         // 这是保守准入估算，不是模型精确计数；不截断任何系统、用户或工具消息。
-        $estimate = strlen(json_encode(['messages'=>$messages, 'tools'=>$tools], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)) + count($messages) * 64 + 1024;
+        $textMessages = $messages;
+        $images = [];
+        foreach ($messages as $mi => $message) {
+            if (!is_array($message['content'] ?? null)) continue;
+            foreach ($message['content'] as $bi => $block) {
+                if (($block['type'] ?? '') === 'text') continue;
+                if (($block['type'] ?? '') !== 'private_image' || ($message['role'] ?? '') !== 'user') throw new InvalidArgumentException('只允许可信私有图片引用，禁止供应商展开数组');
+                if (!$cap['image_input'] || !in_array($block['mime'] ?? null, $cap['image_mime_types'], true)) throw new InvalidArgumentException('候选模型未声明图片能力或 MIME 不兼容');
+                $images[] = [$mi, $bi, $block];
+                $textMessages[$mi]['content'][$bi] = ['type'=>'text', 'text'=>''];
+            }
+        }
+        if (count($images) > $cap['max_images']) throw new AiProviderException('budget_exceeded', '候选模型图片数量超限');
+        $estimate = strlen(json_encode(['messages'=>$textMessages, 'tools'=>$tools], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)) + count($messages) * 64 + 1024 + count($images) * $cap['image_tokens'];
         $inputLimit = $this->config['max_input_tokens'] ?? null;
         $window = $this->config['context_window'] ?? null;
         if (($inputLimit !== null && $estimate > $inputLimit) || ($window !== null && ($output === null || $estimate + $output > $window))) {
@@ -252,6 +267,14 @@ final class OpenAiCompatibleGateway
         if ($tools !== []) {
             $payload['tools'] = $tools;
         }
+        foreach ($images as [$mi, $bi, $reference]) {
+            $resolver = $this->config['_image_resolver'] ?? null;
+            if (!is_callable($resolver)) throw new InvalidArgumentException('缺少私有图片鉴权读取器');
+            $image = $resolver($reference);
+            if (!is_string($image['bytes'] ?? null) || strlen($image['bytes']) > 5242880 || ($image['mime'] ?? null) !== $reference['mime'] || !hash_equals((string) ($reference['sha256'] ?? ''), hash('sha256', $image['bytes']))) throw new InvalidArgumentException('图片内容校验失败');
+            $payload['messages'][$mi]['content'][$bi] = ['type'=>'image_url', 'image_url'=>['url'=>'data:' . $image['mime'] . ';base64,' . base64_encode($image['bytes'])]];
+        }
+        if (strlen(json_encode($payload, JSON_THROW_ON_ERROR)) > AiModelCapabilities::MAX_HTTP_BODY_BYTES) throw new AiProviderException('request_body_exceeded', 'HTTP 请求体超过 20MiB');
         return $payload;
     }
 

@@ -27,6 +27,7 @@ final class FormPublishService
     private readonly Closure $statusUpdater;
     private readonly Closure $publishedBaselineReader;
     private readonly Closure $formReader;
+    private readonly Closure $moduleTargetReader;
 
     public function __construct(
         private readonly FormDesignerService $forms,
@@ -38,7 +39,8 @@ final class FormPublishService
         ?callable $publishMetadata = null,
         ?callable $statusUpdater = null,
         ?callable $publishedBaselineReader = null,
-        ?callable $formReader = null
+        ?callable $formReader = null,
+        ?callable $moduleTargetReader = null
     ) {
         $this->saveForm = Closure::fromCallable($saveForm ?? fn (array $payload): array => $this->forms->save($payload));
         $this->previewDdl = Closure::fromCallable($previewDdl ?? fn (array $payload): array => $this->previewForwardDdl($payload));
@@ -50,11 +52,17 @@ final class FormPublishService
         $this->statusUpdater = Closure::fromCallable($statusUpdater ?? fn (int $formId, string $status, array $extra = [], ?array $baseline = null): int => $this->persistStatus($formId, $status, $extra, $baseline));
         $this->publishedBaselineReader = Closure::fromCallable($publishedBaselineReader ?? fn (int $formId, string $code): array => $this->publishedBaseline($formId, $code));
         $this->formReader = Closure::fromCallable($formReader ?? fn (int $formId): array => $this->forms->detail($formId));
+        $this->moduleTargetReader = Closure::fromCallable($moduleTargetReader ?? static function (int $formId): array {
+            if ($formId < 1) return [];
+            $module = BusinessModule::where('form_id', $formId)->find();
+            return (array) ($module?->metadata['target'] ?? []);
+        });
     }
 
     /** 动态发布预览：只做依赖、定义校验和 DDL 预览，无任何写入。 */
     public function previewDynamic(array $payload): array
     {
+        $this->assertDynamicTarget($payload);
         $compiled = $this->compileForPublish($payload);
         $compatible = $this->compatiblePayload($payload, $compiled);
         $this->forms->validateDefinition($compatible);
@@ -82,6 +90,7 @@ final class FormPublishService
     /** 动态发布：DDL 成功后只推进不可变 Schema 快照与 BusinessModule。 */
     public function publishDynamic(array $payload, string $operator): array
     {
+        $this->assertDynamicTarget($payload);
         $formId = (int) ($payload['id'] ?? 0);
         $baseline = null;
         $attemptCode = trim((string) (($payload['schema_document']['key'] ?? null) ?? ($payload['form_key'] ?? '')));
@@ -161,6 +170,14 @@ final class FormPublishService
             'definitionHash' => null,
             'publishConfig' => $form->publish_config ?? [],
         ];
+    }
+
+    private function assertDynamicTarget(array $payload): void
+    {
+        $target = ($this->moduleTargetReader)((int) ($payload['id'] ?? 0));
+        if (($target['type'] ?? 'core') === 'plugin') {
+            throw new InvalidArgumentException('BUSINESS_PLUGIN_DYNAMIC_PUBLISH_FORBIDDEN');
+        }
     }
 
     private function compileForPublish(array $payload): FormSchema

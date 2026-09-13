@@ -41,7 +41,8 @@ final class GenerationTransactionService
         private readonly mixed $stateRepository,
         private readonly mixed $resources,
         callable $currentState,
-        ?callable $faultHook = null
+        ?callable $faultHook = null,
+        private readonly ?BusinessTargetService $targetService = null
     ) {
         $this->currentState = Closure::fromCallable($currentState);
         $this->faultHook = $faultHook === null ? null : Closure::fromCallable($faultHook);
@@ -89,6 +90,13 @@ final class GenerationTransactionService
             $digest = self::bundleDigest($bundle);
             $claims = $this->tokens->verify($confirmToken, $digest);
             $this->assertCurrentState($bundle);
+            if (($bundle['target']['type'] ?? 'core') === 'plugin') {
+                $definition = CrudDefinition::fromArray(['target' => $bundle['target']]);
+                $actual = (new \app\common\crud\PluginCrudTarget($this->projectRoot))->migrationPrecondition($definition);
+                if (($bundle['plan']['preconditions'] ?? []) !== [$actual]) {
+                    throw new BusinessOperationException('GENERATION_PLAN_CONFLICT', [], '插件迁移目录指纹已漂移');
+                }
+            }
             $this->assertTargetsCurrent($bundle['plan']['files']);
             if ($claim !== null && $claim() !== true) {
                 throw new BusinessOperationException('GENERATION_IN_PROGRESS', [], 'managed generation 已由其他执行者获取');
@@ -116,10 +124,11 @@ final class GenerationTransactionService
                 $this->fault('after_files_written', -1, '');
 
                 $journal = $this->checkpoint($journal, 'resources_applying');
-                $this->resourceCall('begin');
-                $resourcesBegun = true;
+                $plugin = ($bundle['target']['type'] ?? 'core') === 'plugin';
+                if (!$plugin) $this->resourceCall('begin');
+                $resourcesBegun = !$plugin;
                 $this->fault('before_resources', -1, '');
-                $this->resourceCall('apply', [(array) $bundle['resources']]);
+                if (!$plugin) $this->resourceCall('apply', [(array) $bundle['resources']]);
                 $this->fault('after_resources', -1, '');
                 $journal = $this->checkpoint($journal, 'resources_applied');
 
@@ -138,7 +147,7 @@ final class GenerationTransactionService
                     );
                     $this->fault('before_db_commit', -1, '');
                 });
-                $this->resourceCall('commit');
+                if (!$plugin) $this->resourceCall('commit');
                 $resourcesBegun = false;
                 $this->fault('after_resource_commit', -1, '');
                 $journal = $this->checkpoint($journal, 'completed');
@@ -161,7 +170,7 @@ final class GenerationTransactionService
                 $this->executionOutcome = 'rolled_back';
                 throw $exception;
             }
-        });
+        }, (array) ($bundle['target'] ?? []));
     }
 
     public function executionOutcome(): string
@@ -180,13 +189,23 @@ final class GenerationTransactionService
         if ((string) ($record['recovery_status'] ?? '') !== $expectedRecoveryStatus) {
             throw new BusinessOperationException('GENERATION_RECOVERY_STATUS_CONFLICT');
         }
+        $target = (array) ($record['definition']['target'] ?? ['type' => 'core']);
+        $authorization = $this->targetService ?? new BusinessTargetService($this->projectRoot);
+        $authorization->assertRecovery($target);
+        return $this->locked(function () use ($generationId, $expectedRecoveryStatus, $actor, $target, $authorization): array {
+        $record = $this->stateRepository->generationForRecovery($generationId);
+        if (!is_array($record) || (array) ($record['definition']['target'] ?? ['type' => 'core']) !== $target) {
+            throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+        }
+        $authorization->assertRecovery($target);
         $transactionId = (string) ($record['transaction_id'] ?? '');
         try {
             $journal = $this->inspect($transactionId);
         } catch (Throwable $exception) {
             throw new BusinessOperationException('GENERATION_BINDING_CONFLICT', [], previous: $exception);
         }
-        if ((int) ($journal['generation_id'] ?? 0) !== $generationId
+        if ((array) ($journal['target'] ?? ['type' => 'core']) !== $target
+            || (int) ($journal['generation_id'] ?? 0) !== $generationId
             || (int) ($journal['module_id'] ?? 0) !== (int) ($record['business_module_id'] ?? 0)
             || !hash_equals((string) ($journal['transaction_id'] ?? ''), $transactionId)) {
             throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
@@ -195,7 +214,7 @@ final class GenerationTransactionService
             throw new BusinessOperationException('GENERATION_RECOVERY_STATUS_CONFLICT');
         }
         try {
-            $result = $this->recover($transactionId);
+            $result = $this->recoverLocked($transactionId, $target);
             if (($result['state'] ?? '') === 'completed') {
                 $this->stateRepository->markRecoveredCompleted($generationId, $actor);
             } elseif (($result['state'] ?? '') === 'rolled_back') {
@@ -206,6 +225,7 @@ final class GenerationTransactionService
             $this->syncRecoveryFailure($generationId, $actor, $exception);
             throw $exception;
         }
+        }, $target);
     }
 
     public function inspect(string $transactionId): array
@@ -252,8 +272,17 @@ final class GenerationTransactionService
 
     public function recover(string $transactionId): array
     {
-        return $this->locked(function () use ($transactionId): array {
+        $target = (array) ($this->inspect($transactionId)['target'] ?? []);
+        return $this->locked(fn (): array => $this->recoverLocked($transactionId, $target), $target);
+    }
+
+    private function recoverLocked(string $transactionId, array $target): array
+    {
             $journal = $this->inspect($transactionId);
+            if (($journal['target'] ?? ['type' => 'core']) !== ($target ?: ['type' => 'core'])) {
+                throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+            }
+            $this->assertPluginPaths((array) ($journal['target'] ?? []), (array) ($journal['files'] ?? []), (array) ($journal['allowed_paths'] ?? []));
             if ($journal['state'] === 'recovery_required') {
                 throw new RuntimeException('事务需要人工恢复，拒绝自动猜测');
             }
@@ -284,7 +313,6 @@ final class GenerationTransactionService
                 throw new RuntimeException('自动恢复失败，事务需要人工恢复：' . implode('；', $errors));
             }
             return $this->inspect($transactionId);
-        });
     }
 
     private function assertTrustedBundle(array $bundle): void
@@ -309,6 +337,7 @@ final class GenerationTransactionService
         if (!hash_equals((string) $bundle['resourcesHash'], $resourcesHash)) {
             throw new RuntimeException('bundle resources hash 不匹配');
         }
+        $this->assertPluginPaths((array) ($bundle['target'] ?? []), $bundle['plan']['files'], (array) ($bundle['plan']['allowedPaths'] ?? []));
         foreach ($bundle['plan']['files'] as $file) {
             if (!is_array($file) || !is_string($file['path'] ?? null)) {
                 throw new RuntimeException('managed plan 文件无效');
@@ -335,6 +364,26 @@ final class GenerationTransactionService
                 if (!is_string($content) || !hash_equals((string) ($file['mergedHash'] ?? ''), hash('sha256', $content))) {
                     throw new RuntimeException('trusted Merged 内容 hash 不匹配：' . $file['path']);
                 }
+            }
+        }
+    }
+
+    private function assertPluginPaths(array $target, array $files, array $allowed): void
+    {
+        if (($target['type'] ?? 'core') !== 'plugin') return;
+        $code = (string) ($target['plugin'] ?? '');
+        if (preg_match('/^[a-z][a-z0-9]*$/D', $code) !== 1 || ($target['scope'] ?? '') !== 'console') {
+            throw new \InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+        }
+        foreach ($files as $file) {
+            $path = (string) ($file['path'] ?? '');
+            if (!in_array($path, $allowed, true) || !str_starts_with($path, 'plugins/' . $code . '/')
+                || preg_match('#^plugins/' . preg_quote($code, '#') . '/(?:plugin\\.json|app/console/(?:model|validate|service|controller)/[A-Za-z0-9]+\\.php|admin-web/[a-z0-9-]+/(?:api\\.ts|index\\.vue|components/[A-Za-z0-9]+\\.vue)|database/migrations/[0-9]{3}_[a-z0-9_]+\\.sql)$#D', $path) !== 1) {
+                throw new \InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+            }
+            PathGuard::resolve($this->projectRoot, $path, '插件目录');
+            if (str_ends_with($path, '.sql') && !in_array($file['status'] ?? '', ['create', 'keep-local'], true)) {
+                throw new \InvalidArgumentException('插件 migration 不可覆盖或删除');
             }
         }
     }
@@ -377,12 +426,17 @@ final class GenerationTransactionService
                 'content_kind' => $file['contentKind'] ?? 'text',
                 'local_hash' => $file['localHash'] ?? null, 'remote_hash' => $file['remoteHash'] ?? null,
                 'target_hash' => $file['mergedHash'] ?? null, 'next_base_hash' => $file['nextBaseHash'] ?? null,
+                'baseline_hash' => $artifactType === 'manifest'
+                    ? hash('sha256', (string) ($bundle['manifestBaselines'][$file['path']] ?? throw new RuntimeException('缺少 Manifest 模块基线')))
+                    : ($file['remoteHash'] ?? null),
                 'stage_path' => null, 'backup_path' => null, 'write_state' => 'planned',
             ];
         }
         return [
             'schema_version' => 1, 'transaction_id' => $id, 'module_id' => $moduleId,
             'generation_id' => $generationId, 'state' => 'prepared', 'history' => ['prepared'],
+            'target' => $bundle['target'] ?? ['type' => 'core'],
+            'allowed_paths' => $bundle['plan']['allowedPaths'] ?? [],
             'bundle_digest' => $digest, 'plan_digest' => $bundle['plan']['planDigest'],
             'files' => $files, 'applied' => [], 'prepared_blobs' => [], 'updated_at' => gmdate(DATE_ATOM),
         ];
@@ -460,7 +514,7 @@ final class GenerationTransactionService
             static fn (array $file): bool => $file['remote_hash'] !== null
         ));
         $journal['prepared_blobs'] = array_map(function (array $file): array {
-            $expected = $this->baselines->inspectExpected((string) $file['remote_hash']);
+            $expected = $this->baselines->inspectExpected((string) $file['baseline_hash']);
             return [
                 'path' => $expected['path'], 'hash' => $expected['hash'], 'created' => null,
                 'preexisting' => null, 'materialization' => 'planned',
@@ -470,11 +524,13 @@ final class GenerationTransactionService
 
         $records = [];
         foreach ($baselineFiles as $index => $file) {
-            $expected = $this->baselines->inspectExpected((string) $file['remote_hash']);
+            $expected = $this->baselines->inspectExpected((string) $file['baseline_hash']);
             $journal['prepared_blobs'][$index]['preexisting'] = $expected['existing'];
             $this->writeJournal($journal);
 
-            $remote = (string) $bundle['remoteContents'][$file['path']];
+            $remote = (string) ($file['artifact_type'] === 'manifest'
+                ? $bundle['manifestBaselines'][$file['path']]
+                : $bundle['remoteContents'][$file['path']]);
             $blob = $this->baselines->prepare($remote);
             $this->fault('after_blob_materialized', $index, $file['path']);
             $this->fault('before_blob_checkpoint', $index, $file['path']);
@@ -484,7 +540,7 @@ final class GenerationTransactionService
             $records[] = [
                 'business_module_id' => $moduleId, 'relative_path' => $file['path'],
                 'artifact_type' => $file['artifact_type'],
-                'base_hash' => $file['remote_hash'], 'base_storage_path' => $blob['path'],
+                'base_hash' => $file['baseline_hash'], 'base_storage_path' => $blob['path'],
                 'target_hash' => $file['target_hash'], 'template_version' => $bundle['templateVersion'],
                 'definition_hash' => $bundle['definitionHash'], 'generation_id' => $generationId,
                 'content_kind' => $file['content_kind'], 'status' => 'active',
@@ -507,7 +563,7 @@ final class GenerationTransactionService
         } catch (Throwable $exception) {
             $errors[] = $exception->getMessage();
         }
-        if ($rollbackResources) {
+        if ($rollbackResources && ($journal['target']['type'] ?? 'core') !== 'plugin') {
             try {
                 $this->resourceCall('rollback');
             } catch (Throwable $exception) {
@@ -750,8 +806,18 @@ final class GenerationTransactionService
         );
     }
 
-    private function locked(callable $operation): mixed
+    private function locked(callable $operation, array $target = []): mixed
     {
+        if (($target['type'] ?? 'core') === 'plugin') {
+            $infrastructure = new \app\console\plugin\service\PluginInfrastructureService();
+            $lock = $infrastructure::lifecycleLock($this->projectRoot)->acquire((string) ($target['plugin'] ?? ''));
+            try {
+                // 与生命周期操作保持相同顺序：单插件锁、全局发布锁、生成写锁。
+                return $infrastructure->withPublicationLock(fn () => $this->locked($operation), $this->projectRoot);
+            } finally {
+                $lock->release();
+            }
+        }
         $directory = rtrim($this->projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'cache';
         $this->secureDirectory($directory);
         $handle = @fopen($directory . DIRECTORY_SEPARATOR . 'business-development-write.lock', 'c+');

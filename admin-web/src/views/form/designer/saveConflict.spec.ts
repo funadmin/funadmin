@@ -5,7 +5,7 @@ import designerSource from './index.vue?raw';
 import zhCN from '@/locales/zh-CN';
 import enUS from '@/locales/en-US';
 
-const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn() }));
+const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
@@ -57,6 +57,91 @@ beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+describe('插件业务生成闭环', () => {
+  const pluginRemote = () => ({ ...remote(), module: { id: 12, metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', tableStrategy: 'owned', locked: true } } } });
+  const plan = () => ({ generationId: 42, schemaHash: hash('a'), plan: { blocked: false, files: [] }, conflicts: [], sensitive: { confirmToken: 'token' } });
+  it('展示所属插件和锁定，隐藏动态发布且方法也拒绝调用', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    await start();
+    expect(wrapper.text()).toContain('demo');
+    expect(wrapper.text()).toContain('已锁定');
+    expect(wrapper.findAll('button').some((button) => button.text() === '动态发布')).toBe(false);
+    await state.onDynamicPublish();
+    expect(api.previewPublish).not.toHaveBeenCalled();
+  });
+  it('保存草稿后直接预览生成，完成提示待发布而不是打开运行时', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    api.previewFormalGeneration.mockResolvedValue(plan());
+    api.formalGeneration.mockResolvedValue({ generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugin/demo/orders' });
+    await start();
+    state.store.updateForm({ name: '新草稿' });
+    await state.onSave();
+    await state.openFormalGeneration();
+    expect(api.previewFormalGeneration).toHaveBeenCalledWith(12, expect.any(String));
+    expect(api.publish).not.toHaveBeenCalled();
+    await state.onPublish();
+    await nextTick();
+    expect(state.generationResultTitle).toContain('待安装／更新发布');
+    expect(wrapper.findAll('button').some((button) => button.text() === '打开独立页面')).toBe(false);
+  });
+  it('Schema 变化立即清除计划和令牌，迟到预览不能恢复旧计划', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    await start();
+    let finish!: (value: unknown) => void;
+    api.previewFormalGeneration.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = state.openFormalGeneration();
+    state.store.updateForm({ name: '预览期间编辑' });
+    finish(plan());
+    await pending; await nextTick();
+    expect(state.publishPreview).toBeNull();
+    await state.onPublish();
+    expect(api.formalGeneration).not.toHaveBeenCalled();
+  });
+  it('旧预览入口也丢弃 Schema 变化后的迟到响应', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    await start();
+    Object.assign(state.publishConfig, { module: 'generated', apiPrefix: '/generated/orders', routePath: '/generated/orders', menuName: '订单' });
+    let finish!: (value: unknown) => void;
+    api.previewFormalGeneration.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = state.onPreviewPublish();
+    state.store.updateForm({ name: '预览中编辑' });
+    finish(plan());
+    await pending;
+    expect(state.publishPreview).toBeNull();
+  });
+  it('执行期间 Schema 变化后网络失败仍查询原生成记录', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    api.previewFormalGeneration.mockResolvedValue(plan());
+    api.generation.mockResolvedValue({ id: 42, status: 'completed', result: { state: 'completed', resourceApplyStatus: 'pending_publication' } });
+    await start(); await state.openFormalGeneration();
+    let fail!: (error: Error) => void;
+    api.formalGeneration.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+    const pending = state.onPublish();
+    state.store.updateForm({ name: '执行中编辑' });
+    fail(new Error('连接中断'));
+    await pending;
+    expect(api.generation).toHaveBeenCalledWith(42);
+    expect(state.generationResultTitle).toContain('待安装／更新发布');
+  });
+  it('无确认令牌不得执行', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    api.previewFormalGeneration.mockResolvedValue({ ...plan(), sensitive: undefined });
+    await start(); await state.openFormalGeneration(); await state.onPublish();
+    expect(api.formalGeneration).not.toHaveBeenCalled();
+  });
+  it('目标变化使已有计划失效，blocked 不得确认生成', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    api.previewFormalGeneration.mockResolvedValue(plan());
+    await start(); await state.openFormalGeneration();
+    state.businessModule.metadata.target.pluginCode = 'other';
+    await nextTick();
+    expect(state.publishPreview).toBeNull();
+    api.previewFormalGeneration.mockResolvedValue({ ...plan(), plan: { blocked: true, files: [] } });
+    await state.openFormalGeneration(); await state.onPublish();
+    expect(api.formalGeneration).not.toHaveBeenCalled();
+  });
+});
 
 describe('保存冲突的明确恢复', () => {
   it('核对弹窗提供双卡片、完整只读 JSON、次级完整 hash 和分组操作', async () => {

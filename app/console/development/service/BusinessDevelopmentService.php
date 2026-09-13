@@ -25,7 +25,8 @@ final class BusinessDevelopmentService
         private readonly ManagedGenerationService $managed,
         private readonly FormDataService $data,
         private readonly DevCrudService $crud,
-        private readonly FieldCapabilityRegistry $fieldCapabilities
+        private readonly FieldCapabilityRegistry $fieldCapabilities,
+        private readonly ?BusinessTargetService $targetService = null
     ) {
     }
 
@@ -34,15 +35,21 @@ final class BusinessDevelopmentService
         $schemas = new FormSchemaRepository();
         $forms = new FormDesignerService($root, $schemas);
         return new self(
-            new BusinessModuleService(),
+            new BusinessModuleService(new BusinessTargetService($root, (string) config('database.default', 'mysql'))),
             $forms,
             $schemas,
             new FormPublishService($forms, $schemas),
             new ManagedGenerationService($root, schemas: $schemas),
             new FormDataService(),
             new DevCrudService($root, $connections),
-            new FieldCapabilityRegistry()
+            new FieldCapabilityRegistry(),
+            new BusinessTargetService($root, (string) config('database.default', 'mysql'))
         );
+    }
+
+    public function targets(): array
+    {
+        return ($this->targetService ?? new BusinessTargetService(root_path(), (string) config('database.default', 'mysql')))->candidates();
     }
 
     public function modules(int $page, int $pageSize, string $keyword, string $status, string $origin): array
@@ -296,7 +303,10 @@ final class BusinessDevelopmentService
         self::assertCode($code);
         $name = trim((string) ($allowed['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 100) throw new InvalidArgumentException('name 不合法');
-        $table = trim((string) ($allowed['table'] ?? ('fun_' . $code)));
+        $selection = $input['target'] ?? [];
+        if (!is_array($selection)) throw new InvalidArgumentException('target 必须为对象');
+        $target = BusinessModuleService::normalizeTarget($selection, $source);
+        $table = trim((string) ($allowed['table'] ?? ('fun_' . ($target['type'] === 'plugin' ? $target['pluginCode'] . '_' : '') . $code)));
         self::assertIdentifier($table, 'table');
         $connection = trim((string) ($allowed['connection'] ?? 'mysql'));
         self::assertIdentifier($connection, 'connection');
@@ -307,7 +317,25 @@ final class BusinessDevelopmentService
         if (!is_array($listConfig) || !is_array($formConfig)) throw new InvalidArgumentException('配置必须为对象或数组');
         $remark = (string) ($allowed['remark'] ?? '');
         if (mb_strlen($remark) > 1000) throw new InvalidArgumentException('remark 过长');
-        return ['form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection, 'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark, 'fields' => $fields];
+        if ($source === 'adopted') {
+            $fields = array_values(array_map(static function (array $field): array {
+                $component = (string) ($field['component'] ?? 'input');
+                return [
+                    'field_name' => (string) $field['name'],
+                    'label' => (string) ($field['label'] ?? $field['name']),
+                    'type' => $component === 'inputNumber' ? 'number' : $component,
+                    'column_type' => (string) $field['dbType'],
+                    'nullable' => (int) $field['nullable'],
+                    'list_show' => (int) ($field['list'] ?? true),
+                    'form_show' => (int) ($field['form'] ?? true),
+                    'form_readonly' => (int) !($field['writable'] ?? true),
+                    'list_sort' => (int) ($field['sortable'] ?? false),
+                    'validate_rules' => (array) ($field['rules'] ?? []),
+                    'options_source' => isset($field['options']) ? ['mode' => 'static', 'options' => $field['options']] : null,
+                ];
+            }, array_filter($fields, static fn (array $field): bool => !($field['primary'] ?? false) && !($field['managed'] ?? false))));
+        }
+        return ['business_target' => $target, 'form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection, 'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark, 'fields' => $fields];
     }
 
     private function modulePayload(int $moduleId, array $payload): array

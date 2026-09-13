@@ -22,12 +22,12 @@ final class PluginPurgeCoordinator
         if ($confirmation !== $code) {
             throw new RuntimeException('彻底清理数据时必须输入插件标识二次确认');
         }
-        if (is_callable($this->supported) && ($this->supported)($code) !== true) {
-            throw new RuntimeException('插件 manifest 未声明支持彻底清理数据');
-        }
         $lock = null;
         try {
             $lock = $this->lock?->acquire($code);
+            if (is_callable($this->supported) && ($this->supported)($code) !== true) {
+                throw new RuntimeException('插件 manifest 未声明支持彻底清理数据');
+            }
             $plugin = ($this->loadPlugin)($code);
             if (!method_exists($plugin, 'purgeData') || $plugin->purgeData() === false) {
                 throw new RuntimeException('插件拒绝或无法清理业务数据');

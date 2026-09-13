@@ -2,8 +2,16 @@
   <PageWrapper title="数据库采纳" subtitle="先只读检查表结构，再创建绑定已有数据表的业务模块">
     <el-card shadow="never">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px" class="max-w-3xl">
+        <el-form-item label="业务目标">
+          <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
+            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="item.type === 'plugin' ? `${item.name} (${item.pluginCode})` : item.name" :value="item.pluginCode || ''" />
+          </el-select>
+          <span v-if="targetNotice" role="alert">{{ targetNotice }}</span>
+          <a v-if="!targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
+          <p>{{ selected ? '已有表仅作为外部依赖，不生成 CREATE／ALTER，不取得表所有权，卸载或清除插件不会删除该表。核心敏感表及其他插件所属表不可采纳。' : '采纳已有表并保存 Schema 基线。' }}</p>
+        </el-form-item>
         <el-form-item label="数据库连接" prop="connection">
-          <el-input v-model="form.connection" name="connection" autocomplete="off" />
+          <el-input v-model="form.connection" :disabled="Boolean(selected)" name="connection" autocomplete="off" />
         </el-form-item>
         <el-form-item label="数据表" prop="table">
           <el-input v-model="form.table" name="table" autocomplete="off">
@@ -44,16 +52,16 @@
             <el-table class="field-table" :data="inspection.fields" border max-height="360">
               <el-table-column prop="name" label="字段" min-width="140" />
               <el-table-column prop="label" label="名称" min-width="140" />
-              <el-table-column prop="columnType" label="列类型" min-width="140" />
-              <el-table-column prop="type" label="控件" min-width="120" />
+              <el-table-column prop="dbType" label="列类型" min-width="140" />
+              <el-table-column prop="component" label="控件" min-width="120" />
             </el-table>
           </div>
           <div class="field-cards" aria-label="检查字段卡片">
             <article v-for="(field, index) in inspection.fields" :key="String(field.name || index)" class="field-card">
               <strong>{{ field.name || field.field_name || `字段 ${index + 1}` }}</strong>
               <span>{{ field.label || '—' }}</span>
-              <span>{{ field.columnType || field.column_type || '—' }}</span>
-              <span>{{ field.type || '—' }}</span>
+              <span>{{ field.dbType || field.columnType || field.column_type || '—' }}</span>
+              <span>{{ field.component || field.type || '—' }}</span>
             </article>
           </div>
         </template>
@@ -79,6 +87,7 @@ import {
 import BusinessPageState from './components/BusinessPageState.vue';
 import { useDirtyGuard } from './composables/useDirtyGuard';
 import { useLatestRequest } from './composables/useLatestRequest';
+import { useBusinessTarget } from './composables/useBusinessTarget';
 
 defineOptions({ name: 'BusinessDatabase' });
 
@@ -91,6 +100,7 @@ interface DatabaseAdoptionForm {
 }
 
 const router = useRouter();
+const { selected, candidates, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
 const formRef = ref<FormInstance>();
 const form = reactive<DatabaseAdoptionForm>({ connection: 'mysql', table: '', name: '', code: '', remark: '' });
 const initialForm = JSON.stringify(form);
@@ -131,7 +141,7 @@ const inspectionBlockReason = computed(() => {
   if (inspection.value.primaryKey.length === 0) return '缺少主键，无法采纳';
   return '';
 });
-const canCreate = computed(() => Boolean(inspection.value && !inspectionBlockReason.value && !submitting.value));
+const canCreate = computed(() => Boolean(targetAvailable.value && inspection.value && !inspectionBlockReason.value && !submitting.value));
 const canRetryInspection = computed(() => Boolean(form.connection.trim() && form.table.trim()));
 const inspectionSummary = computed(() => inspectionBlockReason.value || `已识别 ${inspection.value?.fields.length || 0} 个字段，确认后将保存不可变 Schema 基线。`);
 const announcement = computed(() => {
@@ -143,6 +153,10 @@ const announcement = computed(() => {
   return '';
 });
 
+watch([selected, defaultConnection], () => {
+  if (selected.value) form.connection = defaultConnection.value;
+  invalidateInspection('目标已变化，请重新检查');
+});
 watch(
   () => [form.connection, form.table],
   ([connection, table], [previousConnection, previousTable]) => {
@@ -177,7 +191,7 @@ async function inspect(): Promise<void> {
 }
 
 async function create(): Promise<void> {
-  if (submitLocked || inspectLocked || !inspection.value || inspectionBlockReason.value) return;
+  if (submitLocked || inspectLocked || !canCreate.value) return;
   submitLocked = true;
   try {
     await formRef.value?.validate();
@@ -186,6 +200,7 @@ async function create(): Promise<void> {
       invalidateInspection('连接或数据表与检查结果不一致，请重新检查');
       return;
     }
+    const selectedTarget = JSON.stringify(target.value);
     try {
       await ElMessageBox.confirm(
         `确认采纳连接 ${inspected.connection} 的表 ${inspected.table}？主键：${inspected.primaryKey.join(', ')}；字段数：${inspected.fields.length}。采纳后将保存不可变 Schema 基线。`,
@@ -196,6 +211,7 @@ async function create(): Promise<void> {
       return;
     }
 
+    if (!targetAvailable.value || selectedTarget !== JSON.stringify(target.value) || inspection.value !== inspected) return;
     submitting.value = true;
     const result = await businessDevelopmentApi.createFromDatabase({
       connection: form.connection.trim(),
@@ -203,9 +219,11 @@ async function create(): Promise<void> {
       name: form.name.trim(),
       code: form.code.trim(),
       remark: form.remark,
+      target: target.value,
       expectedInspectionHash: inspected.snapshotHash
     });
     if (!active) return;
+    allowLeave.value = true;
     await router.push({ path: '/development/business/designer', query: { id: String(result.module.form_id), moduleId: String(result.module.id) } });
   } catch (error) {
     if (isBusinessApiError(error) && error.data.error.code === 'DATABASE_INSPECTION_STALE') {

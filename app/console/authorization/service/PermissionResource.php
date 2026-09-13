@@ -65,6 +65,9 @@ class PermissionResource
         $appName = self::normalizeSegment($appName);
         $controller = self::normalizeController($controller);
         $action = self::normalizeSegment($action ?: 'index');
+        if ($appName === 'console' && $controller === 'development.business' && $action === 'targets') {
+            $action = 'modules';
+        }
         if ($appName === 'console' && $controller === 'form.data' && in_array($action, ['lefttree', 'mutatelefttree', 'lefttreeform'], true)) {
             $action = 'index';
         }
@@ -99,6 +102,7 @@ class PermissionResource
             'auth.adminprofile' => 'adminprofile',
             'ai.ai' => 'development.ai',
             'development.devcrud' => 'devcrud',
+            'plugin.devplugin' => 'development.devplugin',
             'system.adminupload' => 'adminupload',
             default => preg_replace('/^system\.(system[a-z0-9_]+)$/', '$1', $normalized) ?? $normalized,
         };

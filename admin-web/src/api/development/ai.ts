@@ -18,6 +18,10 @@ export interface AiConversationGroup {
 
 export type AiReasoningEffort = 'low' | 'medium' | 'high';
 export interface AiModelDeclaration {
+  image_input?: boolean;
+  image_tokens?: number;
+  max_images?: number;
+  image_mime_types?: string[];
   model: string;
   reasoning_efforts: AiReasoningEffort[];
   output_token_parameter: 'max_tokens' | 'max_completion_tokens';
@@ -78,7 +82,7 @@ export interface AiProfile extends Omit<Required<AiProfileInput>, 'api_key' | 'f
 // 与后端逐模型声明一致；目录和模型名称不用于推断能力。
 export function profileModelCapability(profile: Pick<AiProfileInput, 'model_capabilities'>, model: string): AiModelCapability {
   const declared = profile.model_capabilities?.find(item => item.model === model);
-  return { model, reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, ...declared, source: declared ? 'administrator' : 'unknown', unknown_policy: 'reject' };
+  return { image_input: false, image_tokens: 32768, max_images: 4, image_mime_types: ['image/png', 'image/jpeg', 'image/webp'], model, reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, ...declared, source: declared ? 'administrator' : 'unknown', unknown_policy: 'reject' };
 }
 
 export function profileCapabilityError(profile: AiProfileInput): string {
@@ -86,6 +90,7 @@ export function profileCapabilityError(profile: AiProfileInput): string {
   const validLimit = (n: number | null) => n === null || (Number.isInteger(n) && n >= 1 && n <= 10000000);
   const declarations = profile.model_capabilities || [];
   if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !['low', 'medium', 'high'].includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return '模型能力声明无效、重复或预算超出范围';
+  if (declarations.some(c => (c.image_input !== undefined && typeof c.image_input !== 'boolean') || (c.image_tokens !== undefined && c.image_tokens !== 32768) || (c.max_images !== undefined && (!Number.isInteger(c.max_images) || c.max_images < 1 || c.max_images > 4)) || (c.image_mime_types !== undefined && (!Array.isArray(c.image_mime_types) || !c.image_mime_types.length || new Set(c.image_mime_types).size !== c.image_mime_types.length || c.image_mime_types.some(m => !['image/png', 'image/jpeg', 'image/webp'].includes(m)))))) return '图片能力声明无效，图片预算固定为 32768';
   const fallback = profile.fallback_models || [];
   if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选';
   for (const model of [profile.model, ...(profile.fallback_enabled ? fallback : [])]) {
@@ -117,7 +122,19 @@ export interface AiConversation {
   updated_at?: string;
 }
 
+export interface AiAttachment {
+  id: number;
+  kind: 'image' | 'text';
+  name: string;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  sha256: string;
+}
+
 export interface AiContentPart {
+  attachment_id?: number;
   type?: 'text' | 'code' | string;
   text?: string;
   language?: string;
@@ -303,6 +320,16 @@ function aiRecords<T>(value: T[]): T[] {
 }
 
 export const aiDevelopmentApi = {
+  uploadAttachment: (id: number, file: File, signal?: AbortSignal) => {
+    const data = new FormData();
+    data.append('file', file);
+    return http.upload<AiAttachment>(`${PREFIX}/conversations/${id}/attachments`, data, { signal }).then(aiRecord);
+  },
+  attachmentContent: (id: number, attachmentId: number, signal?: AbortSignal) => http.download(`${PREFIX}/conversations/${id}/attachments/${attachmentId}/content`, undefined, { signal }).then(value => {
+      if (!(value instanceof Blob)) throw new Error('私有附件响应无效');
+      return value;
+    }),
+  deleteAttachment: (id: number, attachmentId: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}/attachments/${attachmentId}`),
   profiles: () => http.get<AiProfile[]>(`${PREFIX}/profiles`).then(aiRecords),
   profile: (id: number) => http.get<AiProfile>(`${PREFIX}/profiles/${id}`).then(aiRecord),
   createProfile: (payload: AiProfileInput) => http.post<AiProfile>(`${PREFIX}/profiles`, payload).then(aiRecord),
@@ -323,7 +350,7 @@ export const aiDevelopmentApi = {
   updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model' | 'profile_id' | 'reasoning_effort'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
   deleteConversation: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}`),
   messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`).then(aiRecords),
-  createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),
+  createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & { idempotency_key?: string } & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),
   executeTask: (id: number, payload: { idempotency_key: string; type?: AiTask['type']; message_id?: number; input?: Record<string, unknown> }) => http.post<AiTask>(`${PREFIX}/conversations/${id}/tasks`, payload).then(aiRecord),
   task: (id: number) => http.get<AiTask>(`${PREFIX}/tasks/${id}`).then(aiRecord),
   cancelTask: (id: number) => http.post<{ cancelled: boolean }>(`/development/ai/tasks/${id}/cancel`),

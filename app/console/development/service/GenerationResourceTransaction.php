@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\development\service;
 
+use app\console\service\ResourceRegistryService;
 use RuntimeException;
 use think\facade\Db;
 

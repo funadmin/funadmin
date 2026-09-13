@@ -1,6 +1,9 @@
-import { mount } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import ElementPlus, { ElSwitch, ElInput, ElInputNumber, ElForm } from 'element-plus';
+import { readFileSync } from 'node:fs';
 import { createI18n } from 'vue-i18n';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('@/api/development/ai', async importOriginal => ({ ...await importOriginal<object>(), aiDevelopmentApi: { attachmentContent: vi.fn().mockResolvedValue(new Blob(['safe'], { type: 'text/plain' })) } }));
 import zhCN from '@/locales/zh-CN';
 import ApprovalCard from './ApprovalCard.vue';
 import ApprovalModeSelector from './ApprovalModeSelector.vue';
@@ -47,9 +50,58 @@ const stubs = {
 };
 
 const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } });
-const mountWithStubs = (component: Parameters<typeof mount>[0], props: Record<string, unknown>) => mount(component, { props, global: { plugins: [i18n], stubs } });
+const mountWithStubs = (component: Parameters<typeof mount>[0], props: Record<string, unknown>) => mount(component, { props, global: component === ProviderSettingsDrawer ? { plugins: [i18n, ElementPlus], stubs: { ElDrawer: stubs.ElDrawer } } : { plugins: [i18n], stubs } });
+const control = (wrapper: ReturnType<typeof mount>, selector: string) => wrapper.getComponent(selector) as VueWrapper;
+const chooseProfile = async (wrapper: ReturnType<typeof mount>) => {
+  control(wrapper, '[data-testid="profile-select"]').vm.$emit('update:modelValue', 3);
+  await wrapper.vm.$nextTick();
+};
 
 describe('AI Development components', () => {
+  it('档案使用单列限宽布局、真实 EP 表单与独立底栏，能力默认折叠', () => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
+    expect(wrapper.find('nav').exists()).toBe(false);
+    expect(wrapper.find('fieldset').exists()).toBe(false);
+    expect(wrapper.findComponent(ElForm).exists()).toBe(true);
+    expect(wrapper.findComponent(ElSwitch).exists()).toBe(true);
+    expect(wrapper.findComponent(ElInputNumber).exists()).toBe(true);
+    expect(wrapper.get('[data-testid="provider-api-key"]').attributes('type')).toBe('password');
+    expect(wrapper.get('[data-testid="profile-footer"]').find('[data-testid="profile-save"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="profile-content"]').find('[data-testid="profile-save"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="profile-advanced"]').attributes('open')).toBeUndefined();
+    const source = readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
+    expect(source).toMatch(/max-width:\s*1000px/);
+    expect(source).toMatch(/grid-template-columns:\s*repeat\(3,/);
+    expect(source).toContain('overflow-y: auto');
+    expect(source).not.toMatch(/(?:^|\n)\s*(?:input|label|fieldset|select)\s*[:{,]/);
+  });
+  it('真实开关清空密钥，档案操作和模型获取仍使用已保存 ID，忙碌时禁用', async () => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [{ id: 3, name: '生产', model: 'm', base_url: 'https://example.com/v1', has_api_key: true }] });
+    await chooseProfile(wrapper);
+    await wrapper.get('[data-testid="provider-clear-key"] input').setValue(true);
+    await wrapper.get('form').trigger('submit');
+    expect(wrapper.emitted('save')?.[0]?.[0]).toHaveProperty('api_key', '');
+    for (const [text, event] of [['复制', 'copy'], ['删除', 'remove'], ['设为默认', 'default'], ['获取模型', 'models']]) {
+      await wrapper.findAll('button').find(button => button.text() === text)!.trigger('click');
+      expect(wrapper.emitted(event)?.[0]).toEqual([3]);
+    }
+    await wrapper.setProps({ busy: true } as never);
+    expect(wrapper.get('[data-testid="profile-test"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-testid="fallback-enabled"] input').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('input[data-testid="provider-api-key"]').attributes('disabled')).toBeDefined();
+  });
+  it('附件引用提供私有下载入口，不静默渲染为空白', () => {
+    const wrapper = mountWithStubs(MessageTimeline, { messages: [{ id: 1, conversation_id: 1, role: 'user', content: [{ type: 'attachment', attachment_id: 7 }], metadata: {} }] });
+    expect(wrapper.find('[data-testid="private-attachment"]').exists()).toBe(true);
+    expect(wrapper.find('a[href^="http"]').exists()).toBe(false);
+  });
+  it('新增模型能力声明包含默认关闭的图片能力', async () => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
+    const add = wrapper.findAll('button').find(b => b.text() === '添加模型能力声明')!;
+    await add.trigger('click');
+    expect(wrapper.find('[data-testid="cap-image-0"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="cap-image-0"] input').attributes('aria-checked')).toBe('false');
+  });
   it('消息仅以文本和 code 节点渲染，不解释恶意 HTML', () => {
     const wrapper = mountWithStubs(MessageTimeline, { messages: [{ id: 1, conversation_id: 1, parent_id: null, sequence: 1, role: 'assistant', content: [{ type: 'text', text: '<img src=x onerror=alert(1)>' }, { type: 'code', language: 'ts', text: 'const safe = true;' }], metadata: {} }] });
     expect(wrapper.find('img').exists()).toBe(false);
@@ -121,7 +173,7 @@ describe('AI Development components', () => {
 
   it('Provider 字段使用翻译标签', () => {
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings: { provider: { name: 'openai-compatible', base_url: '', model: '', connect_timeout: 5, request_timeout: 60, max_retries: 2 }, limits: {} } });
-    expect(wrapper.text()).toContain('Provider');
+    expect(wrapper.text()).toContain('供应商标识');
     expect(wrapper.text()).toContain('Base URL');
     expect(wrapper.text()).toContain('Model');
     expect(wrapper.text()).toContain('API key');
@@ -130,7 +182,7 @@ describe('AI Development components', () => {
   it('预算超出上下文或模型为空时阻止提交并显示校验提示', async () => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', has_api_key: true, is_default: false, enabled: true, favorite_models: [], context_window: 100, max_input_tokens: 80, max_output_tokens: 30, max_iterations: 10, connect_timeout: 5, request_timeout: 60, max_retries: 2 };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
-    await wrapper.findAll('nav button')[1].trigger('click');
+    await chooseProfile(wrapper);
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')).toBeUndefined();
     expect(wrapper.find('[role="alert"]').text()).toContain('预算');
@@ -142,18 +194,19 @@ describe('AI Development components', () => {
     expect(wrapper.find('[data-testid="profile-save"]').exists()).toBe(true);
     await wrapper.find('input[maxlength="100"]').setValue('测试');
     await wrapper.find('input[type="url"]').setValue('https://example.com/v1');
-    wrapper.findAllComponents({ name: 'ElSelect' })[0]?.vm.$emit('update:modelValue', 'm');
+    control(wrapper, '[data-testid="profile-model"]').vm.$emit('update:modelValue', 'm');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')?.[0]?.[0]).not.toHaveProperty('api_key');
     expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ fallback_enabled: false, reasoning_effort: null });
     await wrapper.find('[data-testid="profile-test"]').trigger('click');
     expect(wrapper.emitted('test')?.[0]?.[0]).toMatchObject({ api_key: '', protocol: 'openai-chat' });
     expect(wrapper.find('[data-testid="fallback-enabled"]').attributes('disabled')).toBeUndefined();
-    await wrapper.find('[data-testid="provider-api-key"]').setValue('sk-secret');
+    await wrapper.getComponent(ElInput).vm.$nextTick();
+    await wrapper.get('input[data-testid="provider-api-key"]').setValue('sk-secret');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')?.[1]?.[0]).toHaveProperty('api_key', 'sk-secret');
     await wrapper.setProps({ modelValue: false } as never);
-    expect((wrapper.find('[data-testid="provider-api-key"]').element as HTMLInputElement).value).toBe('');
+    expect((wrapper.get('input[data-testid="provider-api-key"]').element as HTMLInputElement).value).toBe('');
   });
 
   it.each([
@@ -168,7 +221,7 @@ describe('AI Development components', () => {
   ])('能力或备用不合法时阻止保存：%j', async (invalid) => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }], ...invalid };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
-    await wrapper.findAll('nav button')[1].trigger('click');
+    await chooseProfile(wrapper);
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')).toBeUndefined();
     expect(wrapper.find('[role="alert"]').exists()).toBe(true);
@@ -177,12 +230,12 @@ describe('AI Development components', () => {
   it('管理员编辑能力、选择合法档位并调整备用顺序，不修改原档案', async () => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_models: ['b', 'c'], model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
-    await wrapper.findAll('nav button')[1].trigger('click');
+    await chooseProfile(wrapper);
     expect(wrapper.text()).toContain('管理员声明');
-    expect(wrapper.find('[data-testid="reasoning-effort"]').findAll('option').map(o => o.element.value)).toEqual(['', 'low']);
-    await wrapper.find('[data-testid="reasoning-effort"]').setValue('low');
+    expect(control(wrapper, '[data-testid="reasoning-effort"]').findAllComponents({ name: 'ElOption' }).map(o => o.props('value'))).toEqual(['', 'low']);
+    control(wrapper, '[data-testid="reasoning-effort"]').vm.$emit('update:modelValue', 'low');
     await wrapper.find('[data-testid="fallback-up-1"]').trigger('click');
-    await wrapper.find('[data-testid="cap-output-0"]').setValue('max_completion_tokens');
+    control(wrapper, '[data-testid="cap-output-0"]').vm.$emit('update:modelValue', 'max_completion_tokens');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ reasoning_effort: 'low', fallback_models: ['c', 'b'], model_capabilities: [{ output_token_parameter: 'max_completion_tokens' }] });
     expect(profile.model_capabilities[0].output_token_parameter).toBe('max_tokens');
@@ -191,7 +244,7 @@ describe('AI Development components', () => {
   it('已保存档案编辑不提交只读字段，切换档案清空密钥及模型目录', async () => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', has_api_key: true, is_default: true, favorite_models: ['m'], fallback_enabled: true, fallback_models: ['b'], reasoning_effort: 'high', max_output_tokens: 100, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: ['high'], output_token_parameter: 'max_completion_tokens', context_window: 1000, max_output_tokens: 200 })) };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
-    await wrapper.findAll('nav button')[1].trigger('click');
+    await chooseProfile(wrapper);
     expect(wrapper.text()).toContain('已保存密钥');
     await wrapper.find('form').trigger('submit');
     const payload = wrapper.emitted('save')?.[0]?.[0];
@@ -199,9 +252,10 @@ describe('AI Development components', () => {
     expect(payload).not.toHaveProperty('id');
     expect(payload).not.toHaveProperty('has_api_key');
     expect(payload).not.toHaveProperty('api_key');
-    await wrapper.find('[data-testid="provider-api-key"]').setValue('sk-private');
-    await wrapper.findAll('nav button')[0].trigger('click');
-    expect((wrapper.find('[data-testid="provider-api-key"]').element as HTMLInputElement).value).toBe('');
+    await wrapper.getComponent(ElInput).vm.$nextTick();
+    await wrapper.get('input[data-testid="provider-api-key"]').setValue('sk-private');
+    await wrapper.get('[data-testid="profile-create"]').trigger('click');
+    expect((wrapper.get('input[data-testid="provider-api-key"]').element as HTMLInputElement).value).toBe('');
     expect(wrapper.emitted('select')).toHaveLength(2);
   });
 });

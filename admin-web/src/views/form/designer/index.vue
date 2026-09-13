@@ -28,8 +28,10 @@
           :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
           @click="onSave"
         >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
-        <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
+        <el-tag v-if="businessModule" data-business-target>{{ isPluginTarget ? `所属插件：${businessTarget?.pluginCode}` : '核心后台' }} · {{ businessTarget?.locked ? '目标已锁定' : '首次成功生成后锁定' }}</el-tag>
+        <span v-if="isPluginTarget">使用已保存草稿生成源码，不动态发布；安装／更新后生效。</span>
+        <el-button v-if="businessModule && !isPluginTarget" type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
+        <el-button v-perm="'development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">生成正式模块</el-button>
       <div v-if="saveBlocked" data-testid="save-conflict-alert" role="alert" class="w-full">
         <strong>保存已暂停。</strong>本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。
         <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">核对版本</el-button>
@@ -233,7 +235,7 @@
 
     <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" @update="store.updateList" />
 
-    <el-dialog v-model="publishVisible" title="发布表单" width="900px" :close-on-click-modal="false">
+    <el-dialog v-model="publishVisible" title="正式生成" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
         <el-step title="发布设置" />
         <el-step title="变更预览" />
@@ -258,6 +260,8 @@
 
       <template v-else-if="publishStep === 1">
         <el-alert :title="publishPreview?.plan.blocked ? '存在冲突，正式生成已阻断' : '正式生成计划已就绪'" :type="publishPreview?.plan.blocked ? 'warning' : 'success'" :closable="false" class="mb-3" />
+        <p v-if="isPluginTarget">{{ businessTarget?.tableStrategy === 'external' ? '外部依赖：不生成该表 CREATE／ALTER，安装／更新时校验兼容性。' : '插件拥有新表：这里只生成迁移，安装／更新时才执行。' }}</p>
+        <GenerationPlanView v-if="publishPreview" :plan="publishPreview.plan" :conflicts="publishPreview.conflicts" />
         <el-collapse>
           <el-collapse-item title="正式生成基线" name="schema">
             <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.schemaHash }}</el-descriptions-item><el-descriptions-item label="Definition Hash">{{ publishPreview?.definitionHash }}</el-descriptions-item></el-descriptions>
@@ -284,19 +288,19 @@
         </div>
       </template>
 
-      <el-result v-else :icon="publishResult?.state === 'completed' ? 'success' : 'warning'" :title="publishResult?.state === 'completed' ? '正式模块生成成功' : '正式模块生成未完成'" :sub-title="publishResult?.resourceApplyError || publishResult?.routePath || ''">
+      <el-result v-else :icon="publishResult?.state === 'completed' ? 'success' : 'warning'" :title="generationResultTitle" :sub-title="publishResult?.resourceApplyError || publishResult?.routePath || ''">
         <template #extra>
           <el-button v-if="generationQueryPending" :loading="publishing" @click="retryGenerationQuery">查询生成结果</el-button>
-          <el-button v-if="publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
+          <el-button v-if="!isPluginTarget && publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
         </template>
       </el-result>
 
       <template #footer>
         <el-button @click="publishVisible = false">关闭</el-button>
-        <el-button v-if="publishStep > 0 && publishStep < 3" @click="publishStep--">上一步</el-button>
+        <el-button v-if="publishStep === 2" @click="publishStep = 1">上一步</el-button>
         <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
-        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="conflictFiles.length > 0" @click="onPublish">确认生成</el-button>
+        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">确认生成</el-button>
       </template>
     </el-dialog>
 
@@ -341,7 +345,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
-import { businessDevelopmentApi, isBusinessApiError, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
+import { businessDevelopmentApi, isBusinessApiError, type BusinessModule, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { controlIcon, paletteContainers } from './controlPalette';
@@ -358,6 +362,7 @@ import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
 import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
 import { useBusinessMenuRefresh } from '../../development/business/composables/useBusinessMenuRefresh';
+import GenerationPlanView from '../../development/business/components/GenerationPlanView.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -365,6 +370,9 @@ const router = useRouter();
 const moduleId = computed(() => Number(route.query.moduleId ?? 0));
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const store = useDesigner();
+const businessModule = ref<BusinessModule | null>(null);
+const businessTarget = computed(() => businessModule.value?.metadata?.target);
+const isPluginTarget = computed(() => businessTarget.value?.type === 'plugin');
 const designerMode = ref<'basic' | 'advanced'>('basic');
 const basicInfoCollapsed = ref(false);
 const controlsCollapsed = ref(false);
@@ -392,8 +400,19 @@ const publishing = ref(false);
 const publishPreview = ref<BusinessFormalGenerationPreview | null>(null);
 const publishResult = ref<BusinessFormalGenerationResult | null>(null);
 const generationQueryPending = ref(false);
+const executingGenerationId = ref<number | null>(null);
 const formalGenerationNonce = ref(crypto.randomUUID());
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
+const generationResultTitle = computed(() => publishResult.value?.state !== 'completed' ? '正式模块生成未完成' : isPluginTarget.value ? '源码已生成，待安装／更新发布' : '正式模块生成成功');
+const canConfirmGeneration = computed(() => Boolean(publishPreview.value?.sensitive?.confirmToken && !publishPreview.value.plan.blocked && !conflictFiles.value.length && !store.dirty.value && !saveBlocked.value && !publishing.value));
+let previewRevision = 0;
+const invalidateGenerationPreview = () => {
+  previewRevision++;
+  publishPreview.value = null;
+  formalGenerationNonce.value = crypto.randomUUID();
+  if (!publishing.value) { publishVisible.value = false; publishResult.value = null; }
+};
+watch([() => store.schemaDocument.value, () => store.form.value.schema_hash, businessTarget, moduleId], invalidateGenerationPreview, { deep: true, flush: 'sync' });
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
 const parentMenus = ref<Array<Record<string, unknown>>>([]);
 const databaseTables = ref<BusinessDatabaseTable[]>([]);
@@ -564,7 +583,9 @@ const suggestedTableName = computed(() => {
   const key = normalizeIdentifier(String(store.form.value.form_key ?? ''));
   return key ? `fun_${key}` : '';
 });
-const tableHelp = computed(() => store.form.value.source_type === 'created'
+const tableHelp = computed(() => isPluginTarget.value
+  ? (businessTarget.value?.tableStrategy === 'external' ? '外部依赖表：不生成 CREATE／ALTER，不取得表所有权。' : '保存只更新草稿；生成只写源码与迁移，安装／更新时建表。')
+  : store.form.value.source_type === 'created'
   ? `新表将在保存或发布时按画布字段创建；建议表名：${suggestedTableName.value || 'fun_业务标识'}`
   : '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。');
 const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
@@ -626,6 +647,7 @@ async function load() {
   }
   const data = await businessDevelopmentApi.module(moduleId.value);
   if (!data.form) throw new Error('业务模块没有可设计表单');
+  businessModule.value = data.module;
   store.load({ ...data.form, fields: data.fields });
 }
 
@@ -769,7 +791,7 @@ async function saveDefinition(automatic: boolean) {
 }
 
 const onDynamicPublish = async () => {
-  if (!validateDefinitionBasics() || store.dirty.value) return;
+  if (!businessModule.value || isPluginTarget.value || saveBlocked.value || !validateDefinitionBasics() || store.dirty.value) return;
   const moduleId = Number(route.query.moduleId ?? 0);
   const schemaHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId || !schemaHash) throw new Error('业务模块或 Schema hash 缺失');
@@ -780,14 +802,20 @@ const onDynamicPublish = async () => {
 };
 const openFormalGeneration = async () => {
   const moduleId = Number(route.query.moduleId ?? 0);
-  if (!moduleId || store.dirty.value) { ElMessage.warning('请先保存业务 Schema'); return; }
+  if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning('请先保存业务 Schema'); return; }
+  invalidateGenerationPreview();
+  const revision = previewRevision;
   previewingPublish.value = true;
   generationQueryPending.value = false;
   publishResult.value = null;
   try {
-    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, formalGenerationNonce.value);
+    const preview = await businessDevelopmentApi.previewFormalGeneration(moduleId, formalGenerationNonce.value);
+    if (!designerActive || revision !== previewRevision || store.dirty.value) return;
+    publishPreview.value = preview;
     publishStep.value = 1;
     publishVisible.value = true;
+  } catch (error) {
+    ElMessage.error(isBusinessApiError(error) ? error.msg : error instanceof Error ? error.message : '生成预览失败');
   } finally { previewingPublish.value = false; }
 };
 const openPublish = async () => {
@@ -832,30 +860,20 @@ const validatePublishConfig = () => {
   }
   return true;
 };
-const onPreviewPublish = async () => {
-  if (!validatePublishConfig()) return;
-  const formId = Number(store.form.value.id || 0);
-  if (!formId || store.dirty.value) {
-    ElMessage.warning('请先保存表单，并发布服务端可信 Schema 后再执行完整发布');
-    return;
-  }
-  previewingPublish.value = true;
-  generationQueryPending.value = false;
-  publishResult.value = null;
-  try {
-    const moduleId = Number(route.query.moduleId ?? 0);
-    publishPreview.value = await businessDevelopmentApi.previewFormalGeneration(moduleId, formalGenerationNonce.value);
-    publishStep.value = 1;
-  } finally {
-    previewingPublish.value = false;
-  }
-};
+const onPreviewPublish = () => openFormalGeneration();
 const completeFormalGeneration = async (result: BusinessFormalGenerationResult) => {
   publishResult.value = result;
   generationQueryPending.value = false;
   publishStep.value = 3;
   if (result.state !== 'completed') {
     ElMessage.warning('正式模块生成未完成');
+    return;
+  }
+  if (isPluginTarget.value) {
+    if (businessTarget.value) businessTarget.value.locked = true;
+    publishResult.value = result;
+    publishVisible.value = true;
+    ElMessage.success('源码已生成，待安装／更新发布');
     return;
   }
   try {
@@ -875,7 +893,7 @@ const generationResult = (generation: BusinessGeneration): BusinessFormalGenerat
   schemaHash: generation.result?.schemaHash ?? generation.schemaHash
 });
 const retryGenerationQuery = async () => {
-  const generationId = Number(publishPreview.value?.generationId || 0);
+  const generationId = executingGenerationId.value;
   if (!generationId) return;
   publishing.value = true;
   try {
@@ -896,9 +914,11 @@ const retryGenerationQuery = async () => {
   }
 };
 const onPublish = async () => {
+  if (!canConfirmGeneration.value) return;
   publishing.value = true;
   const formId = Number(store.form.value.id || 0);
   const generationId = Number(publishPreview.value?.generationId || 0);
+  executingGenerationId.value = generationId || null;
   try {
     if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
     const moduleId = Number(route.query.moduleId ?? 0);
@@ -908,15 +928,18 @@ const onPublish = async () => {
       publishPreview.value?.sensitive?.confirmToken || ''
     );
     await completeFormalGeneration(result);
-  } catch {
-    if (generationId) await retryGenerationQuery();
+  } catch (error) {
+    if (isBusinessApiError(error)) {
+      ElMessage.error(`${error.msg}（请求 ID：${error.data.error.requestId}）`);
+      invalidateGenerationPreview();
+    } else if (generationId) await retryGenerationQuery();
     else throw new Error('完整发布缺少 formId 或 generationId');
   } finally {
     publishing.value = false;
   }
 };
 const openGeneratedRoute = () => {
-  if (publishResult.value?.routePath) router.push(publishResult.value.routePath);
+  if (!isPluginTarget.value && publishResult.value?.routePath) router.push(publishResult.value.routePath);
 };
 
 const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -946,6 +969,7 @@ const onOffline = () => { online.value = false; persistLocalDraft(); };
 const deactivateDesigner = () => {
   if (store.dirty.value) persistLocalDraft();
   designerActive = false;
+  invalidateGenerationPreview();
   saveQueued = false;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   if (localDraftTimer) clearTimeout(localDraftTimer);

@@ -8,17 +8,28 @@ use InvalidArgumentException;
 /** 能力仅来自管理员逐模型声明，不使用名称、供应商标签或目录元数据推断。 */
 final class AiModelCapabilities
 {
+    public const IMAGE_TOKENS = 32768;
+    public const MAX_HTTP_BODY_BYTES = 20 * 1024 * 1024;
+    public const IMAGE_DEFAULTS = ['image_input'=>false, 'image_tokens'=>self::IMAGE_TOKENS, 'max_images'=>4, 'image_mime_types'=>['image/png','image/jpeg','image/webp']];
+
     public static function normalize(mixed $entries): array
     {
         if (!is_array($entries) || !array_is_list($entries) || count($entries) > 100) throw new InvalidArgumentException('model_capabilities 必须是有序声明列表', 400);
         $seen = [];
         foreach ($entries as &$entry) {
             if ($entry instanceof \stdClass) $entry = get_object_vars($entry);
-            if (!is_array($entry) || array_diff(array_keys($entry), ['model','reasoning_efforts','output_token_parameter','context_window','max_output_tokens'])) throw new InvalidArgumentException('模型能力声明字段无效', 400);
+            if (!is_array($entry) || array_diff(array_keys($entry), ['model','reasoning_efforts','output_token_parameter','context_window','max_output_tokens','image_input','image_tokens','max_images','image_mime_types'])) throw new InvalidArgumentException('模型能力声明字段无效', 400);
             $model = $entry['model'] ?? null;
             if (!is_string($model) || trim($model) !== $model || $model === '' || strlen($model) > 200 || preg_match('/[\x00-\x1f\x7f]/', $model) || isset($seen[$model])) throw new InvalidArgumentException('模型能力标识无效或重复', 400);
             $seen[$model] = true;
             $entry += ['reasoning_efforts'=>[], 'output_token_parameter'=>'max_tokens', 'context_window'=>null, 'max_output_tokens'=>null];
+            $entry += self::IMAGE_DEFAULTS;
+            if (!is_bool($entry['image_input']) || $entry['image_tokens'] !== self::IMAGE_TOKENS) throw new InvalidArgumentException('图片能力必须显式布尔声明，图片预算固定为 32768', 400);
+            if (!is_int($entry['max_images']) || $entry['max_images'] < 1 || $entry['max_images'] > 4) throw new InvalidArgumentException('图片数量上限必须为 1 至 4', 400);
+            $mimes = $entry['image_mime_types'];
+            if (!is_array($mimes) || !array_is_list($mimes) || !$mimes || count($mimes) > 3) throw new InvalidArgumentException('图片 MIME 声明无效', 400);
+            foreach ($mimes as $mime) if (!in_array($mime, self::IMAGE_DEFAULTS['image_mime_types'], true)) throw new InvalidArgumentException('图片 MIME 不支持', 400);
+            if (count(array_unique($mimes)) !== count($mimes)) throw new InvalidArgumentException('图片 MIME 重复', 400);
             $efforts = $entry['reasoning_efforts'];
             if (!is_array($efforts) || !array_is_list($efforts) || count($efforts) > 3) throw new InvalidArgumentException('推理能力必须是档位列表', 400);
             foreach ($efforts as $effort) if (!in_array($effort, ['low','medium','high'], true)) throw new InvalidArgumentException('推理档位无效', 400);
@@ -35,7 +46,7 @@ final class AiModelCapabilities
         foreach (self::normalize($config['model_capabilities'] ?? []) as $entry) {
             if ($entry['model'] === $model) return $entry + ['source'=>'administrator', 'unknown_policy'=>'reject'];
         }
-        return ['model'=>$model, 'reasoning_efforts'=>[], 'output_token_parameter'=>'max_tokens', 'context_window'=>null, 'max_output_tokens'=>null, 'source'=>'unknown', 'unknown_policy'=>'reject'];
+        return ['model'=>$model, 'reasoning_efforts'=>[], 'output_token_parameter'=>'max_tokens', 'context_window'=>null, 'max_output_tokens'=>null, 'source'=>'unknown', 'unknown_policy'=>'reject'] + self::IMAGE_DEFAULTS;
     }
 
     /** 冻结与恢复都执行；不允许跳过不兼容备选或降低 effort、截断消息。 */

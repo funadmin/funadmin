@@ -40,6 +40,12 @@ final class Business extends AdminApiController
         );
     }
 
+    #[Get('targets')]
+    public function targets(): Response
+    {
+        return $this->execute(fn (): array => $this->business->targets());
+    }
+
     #[Get('modules')]
     public function modules(): Response
     {

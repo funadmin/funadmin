@@ -65,7 +65,7 @@ final class AiConfigurationProfileService
     {
         return array_merge($row->configuration, [
             'capabilities'=>self::capabilities($row->configuration, (string) ($row->configuration['model'] ?? '')),
-            'runtime_capabilities'=>['reasoning_efforts'=>['low','medium','high'], 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300],
+            'runtime_capabilities'=>['reasoning_efforts'=>['low','medium','high'], 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
             'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttr('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
         ]);
     }

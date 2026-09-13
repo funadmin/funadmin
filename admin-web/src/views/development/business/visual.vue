@@ -2,6 +2,15 @@
   <PageWrapper title="可视化创建" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
     <el-card shadow="never">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-3xl">
+        <el-form-item label="业务目标">
+          <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
+            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="item.type === 'plugin' ? `${item.name} (${item.pluginCode})` : item.name" :value="item.pluginCode || ''" />
+          </el-select>
+          <span v-if="targetNotice" role="alert">{{ targetNotice }}</span>
+          <a v-if="!targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
+          <span class="field-help">{{ selected ? '插件拥有新表；生成仅写源码和迁移，不建表、不安装启用，需安装／更新发布。' : '核心后台保持原有动态发布流程。' }}</span>
+          <a href="#" @click.prevent="router.push({ path: '/development/business/database', query: selected ? { plugin: selected } : {} })">改为采纳已有表</a>
+        </el-form-item>
         <el-form-item label="业务名称" prop="name">
           <el-input v-model="form.name" maxlength="100" aria-describedby="business-name-help" />
           <span id="business-name-help" class="field-help">用于展示业务模块，最多 100 个字符。</span>
@@ -15,7 +24,7 @@
           <span id="business-table-help" class="field-help">留空时根据业务标识自动生成。</span>
         </el-form-item>
         <el-form-item label="数据库连接" prop="connection">
-          <el-input v-model="form.connection" aria-describedby="business-connection-help" />
+          <el-input v-model="form.connection" :disabled="Boolean(selected)" aria-describedby="business-connection-help" />
           <span id="business-connection-help" class="field-help">填写已配置的数据库连接标识。</span>
         </el-form-item>
         <el-form-item label="备注">
@@ -24,7 +33,7 @@
         </el-form-item>
         <el-form-item>
           <div class="form-actions">
-            <el-button type="primary" :loading="submitting" :disabled="submitting" @click="submit">创建并开始设计</el-button>
+            <el-button type="primary" :loading="submitting" :disabled="submitting || !targetAvailable" @click="submit">创建并开始设计</el-button>
             <el-button :disabled="submitting" @click="cancel">取消</el-button>
           </div>
         </el-form-item>
@@ -39,9 +48,11 @@ import { useRouter } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
 import { businessDevelopmentApi } from '@/api/development/business';
 import { useDirtyGuard } from './composables/useDirtyGuard';
+import { useBusinessTarget } from './composables/useBusinessTarget';
 
 defineOptions({ name: 'BusinessVisual' });
 const router = useRouter();
+const { selected, candidates, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
 const submitting = ref(false);
 const dirty = ref(false);
 const formRef = ref<FormInstance>();
@@ -54,12 +65,16 @@ const rules: FormRules = {
   connection: [{ required: true, pattern: identifier, message: '连接标识不合法', trigger: 'blur' }]
 };
 
+watch([selected, defaultConnection], () => {
+  if (selected.value) form.connection = defaultConnection.value;
+  form.table = '';
+});
 useDirtyGuard(dirty);
 watch(form, () => { dirty.value = true; }, { deep: true, flush: 'sync' });
 
 function normalize() {
   form.code = form.code.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  if (!form.table && form.code) form.table = `fun_${form.code}`;
+  if (!form.table && form.code) form.table = `fun_${selected.value ? `${selected.value}_` : ''}${form.code}`;
 }
 
 function fieldErrorMessage(value: unknown): string | undefined {
@@ -127,12 +142,12 @@ function cancel() {
 }
 
 async function submit() {
-  if (submitting.value) return;
+  if (submitting.value || !targetAvailable.value) return;
   submitting.value = true;
   try {
     normalize();
     if (!await formRef.value?.validate()) return;
-    const result = await businessDevelopmentApi.createVisual(form);
+    const result = await businessDevelopmentApi.createVisual({ ...form, target: target.value });
     dirty.value = false;
     await router.push({ path: '/development/business/designer', query: { id: String(result.module.form_id), moduleId: String(result.module.id) } });
   } catch (reason) {

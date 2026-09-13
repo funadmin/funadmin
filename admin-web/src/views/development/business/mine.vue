@@ -31,11 +31,12 @@
           <el-table :data="list" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle">
             <el-table-column prop="name" label="业务模块" min-width="180"><template #default="{ row }"><div>{{ row.name }}</div><small>{{ row.code }}</small></template></el-table-column>
             <el-table-column prop="origin" label="来源" width="110"><template #default="{ row }"><el-tag effect="plain">{{ originLabel(row.origin) }}</el-tag></template></el-table-column>
+            <el-table-column label="所属插件" min-width="160"><template #default="{ row }">{{ row.metadata?.target?.type === 'plugin' ? row.metadata.target.pluginCode : '核心后台' }}<small v-if="row.metadata?.target?.locked"> · 已锁定</small></template></el-table-column>
             <el-table-column prop="table_name" label="数据表" min-width="160" />
             <el-table-column prop="lifecycle_status" label="发布状态" width="130">
-              <template #default="{ row }"><el-tag :type="lifecycleType(row.lifecycle_status)" :title="lifecycleDescription(row.lifecycle_status)">{{ lifecycleLabel(row.lifecycle_status) }}</el-tag></template>
+              <template #default="{ row }"><el-tag :type="lifecycleType(row.lifecycle_status)" :title="lifecycleDescription(row.lifecycle_status)">{{ row.metadata?.target?.type === 'plugin' && ['generated', 'completed'].includes(row.generation_status) ? '源码已生成，待安装／更新发布' : lifecycleLabel(row.lifecycle_status) }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="generation_status" label="生成状态" width="120"><template #default="{ row }"><GenerationStatusTag :status="row.generation_status" /></template></el-table-column>
+            <el-table-column prop="generation_status" label="生成状态" width="120"><template #default="{ row }"><span v-if="['recovering', 'recovery_required'].includes(row.generation_status)">{{ row.generation_status === 'recovering' ? '恢复中' : '需要恢复' }}</span><GenerationStatusTag v-else :status="row.generation_status" /></template></el-table-column>
             <el-table-column prop="updated_at" label="更新时间" width="170" />
             <el-table-column label="操作" min-width="250" fixed="right">
               <template #default="{ row }">
@@ -49,7 +50,7 @@
                     :title="row.form_id ? '设计业务模块' : '缺少表单定义，无法进入设计器'"
                     @click="design(row as BusinessModule)"
                   >设计</el-button>
-                  <el-button v-if="row.runtime_route" link :data-runtime="row.id" @click="openRuntime(row as BusinessModule)">运行时</el-button>
+                  <el-button v-if="row.runtime_route && row.metadata?.target?.type !== 'plugin'" link :data-runtime="row.id" @click="openRuntime(row as BusinessModule)">运行时</el-button>
                   <el-button
                     link
                     v-perm="'development:business:generate'"
@@ -94,7 +95,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import type { TagProps } from 'element-plus';
-import { businessDevelopmentApi, type BusinessFormalGenerationPreview, type BusinessModule } from '@/api/development/business';
+import { businessDevelopmentApi, isBusinessApiError, type BusinessFormalGenerationPreview, type BusinessModule } from '@/api/development/business';
 import BusinessPageState from './components/BusinessPageState.vue';
 import GenerationPlanView from './components/GenerationPlanView.vue';
 import GenerationStatusTag from './components/GenerationStatusTag.vue';
@@ -158,7 +159,7 @@ function design(row: BusinessModule) {
 }
 
 async function openRuntime(row: BusinessModule) {
-  if (!row.runtime_route) return;
+  if (!row.runtime_route || row.metadata?.target?.type === 'plugin') return;
   await refreshBusinessMenu();
   await router.push(row.runtime_route);
 }
@@ -206,6 +207,7 @@ function lifecycleType(value: string): TagProps['type'] {
 
 function errorMessage(error: unknown) {
   if (!error) return '';
+  if (isBusinessApiError(error)) return error.msg;
   return error instanceof Error ? error.message : String(error);
 }
 

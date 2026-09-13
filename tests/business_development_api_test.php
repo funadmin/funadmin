@@ -45,6 +45,7 @@ $middleware = $controller->getDefaultProperties()['middleware'] ?? [];
 businessApiExpect($middleware === [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class], 'Business 中间件顺序不正确');
 
 $routes = [
+    'targets' => [Get::class, 'targets'],
     'modules' => [Get::class, 'modules'],
     'module' => [Get::class, 'modules/:id'],
     'createVisual' => [Post::class, 'modules/visual'],
@@ -133,9 +134,48 @@ foreach (['', 'ABC', str_repeat('a', 63)] as $invalidHash) {
 }
 businessApiExpect(BusinessDevelopmentService::pagination(0, 500) === [1, 100], '分页必须限制在 page>=1/pageSize<=100');
 
+// 目标配置只接受业务选择，不接受客户端控制的路径、scope、表所有权或锁定状态。
+businessApiExpect(method_exists(BusinessModuleService::class, 'normalizeTarget'), '业务目标缺少服务端规范化边界');
+$coreTarget = BusinessModuleService::normalizeTarget([], 'created');
+businessApiExpect($coreTarget === ['type' => 'core', 'pluginCode' => null, 'scope' => 'console', 'tableStrategy' => 'owned', 'locked' => false], '默认核心目标必须由服务端派生');
+foreach (['created' => 'owned', 'adopted' => 'external'] as $source => $strategy) {
+    $target = BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], $source);
+    businessApiExpect($target === ['type' => 'plugin', 'pluginCode' => 'sample', 'scope' => 'console', 'tableStrategy' => $strategy, 'locked' => false], '插件目标必须根据表来源派生策略');
+}
+foreach ([
+    ['type' => 'application'],
+    ['type' => 'plugin'],
+    ['type' => 'plugin', 'pluginCode' => '../sample'],
+    ['type' => 'plugin', 'pluginCode' => 'Sample'],
+    ['type' => 'core', 'pluginCode' => 'sample'],
+    ['type' => 'plugin', 'pluginCode' => 'sample', 'scope' => 'application'],
+    ['type' => 'plugin', 'pluginCode' => 'sample', 'path' => '/tmp/other'],
+    ['type' => 'plugin', 'pluginCode' => 'sample', 'namespace' => 'other'],
+    ['type' => 'plugin', 'pluginCode' => 'sample', 'locked' => true],
+    ['type' => 'plugin', 'pluginCode' => 'sample', 'tableStrategy' => 'owned'],
+    ['type' => ['plugin']],
+    ['type' => 'plugin', 'pluginCode' => ['sample']],
+] as $invalidTarget) {
+    try {
+        BusinessModuleService::normalizeTarget($invalidTarget, 'adopted');
+        businessApiExpect(false, '非法或越权目标配置必须拒绝');
+    } catch (InvalidArgumentException) {
+    }
+}
+try {
+    BusinessModuleService::normalizeTarget([], 'unknown');
+    businessApiExpect(false, '未知表来源必须拒绝');
+} catch (InvalidArgumentException) {
+}
+
 $serviceReflection = new ReflectionClass(BusinessDevelopmentService::class);
 $serviceWithoutDependencies = $serviceReflection->newInstanceWithoutConstructor();
 $creationPayload = $serviceReflection->getMethod('creationPayload');
+$targetPayload = $creationPayload->invoke($serviceWithoutDependencies, ['code' => 'sample', 'name' => '示例', 'target' => ['type' => 'plugin', 'pluginCode' => 'sample']], 'created', []);
+businessApiExpect(($targetPayload['business_target']['pluginCode'] ?? '') === 'sample', '创建不能丢弃业务目标');
+businessApiExpect($targetPayload['table_name'] === 'fun_sample_sample', '插件新表默认名称须使用插件前缀');
+$modulePersistence = (string) file_get_contents($moduleFile);
+businessApiExpect(str_contains($modulePersistence, "'target' => \$target"), '创建事务必须持久化受控目标');
 foreach ([
     ['code' => 'sample', 'name' => '示例', 'status' => 2],
     ['code' => 'sample', 'name' => '示例', 'listConfig' => 'not-an-array'],
@@ -149,6 +189,26 @@ foreach ([
     } catch (InvalidArgumentException) {
     }
 }
+
+// 真实推断结果必须先适配字段投影，不能把 CRUD 字段直接交给设计器。
+$inferred = (new \app\common\crud\FieldInference())->infer([
+    'primaryKey' => ['record_id'],
+    'columns' => [
+        ['name' => 'record_id', 'type' => 'bigint unsigned', 'nullable' => false],
+        ['name' => 'quantity', 'type' => 'int', 'nullable' => false],
+        ['name' => 'status', 'type' => 'tinyint', 'nullable' => false, 'comment' => '状态:0=禁用,1=启用'],
+        ['name' => 'password', 'type' => 'varchar(255)', 'nullable' => false],
+        ['name' => 'created_at', 'type' => 'datetime', 'nullable' => true],
+    ],
+]);
+$adoptedPayload = $creationPayload->invoke($serviceWithoutDependencies, ['code' => 'sample', 'name' => '示例'], 'adopted', $inferred);
+(new FormDesignerService($root))->validateDefinition($adoptedPayload);
+$adoptedFields = array_column($adoptedPayload['fields'], null, 'field_name');
+businessApiExpect(array_keys($adoptedFields) === ['quantity', 'status', 'password'], '采纳字段必须排除主键和托管时间字段');
+businessApiExpect($adoptedFields['quantity']['type'] === 'number' && $adoptedFields['quantity']['column_type'] === 'int', '数字控件与数据库类型必须映射');
+businessApiExpect($adoptedFields['status']['options_source']['options'] === $inferred[2]['options'], '注释枚举选项必须保留');
+businessApiExpect($adoptedFields['password']['list_show'] === 0, '敏感字段列表隐藏语义必须保留');
+(new FormSchemaRepository())->compile($adoptedPayload);
 
 $managedSource = (string) file_get_contents($root . 'app/console/development/service/ManagedGenerationService.php');
 $stateRepositorySource = (string) file_get_contents($root . 'app/console/development/repository/DatabaseGenerationStateRepository.php');
@@ -208,4 +268,16 @@ foreach (['modules/invalid', 'modules/42/unknown', 'generations/42/unknown', 'da
     businessApiExpect($app->route->check(str_replace('/', '|', 'development/business/' . $path)) === false, '无效路径不应被前缀路由截获：' . $path);
 }
 
+foreach ([
+    'BUSINESS_TARGET_FORBIDDEN' => 403, 'BUSINESS_TABLE_FORBIDDEN' => 403,
+    'BUSINESS_TARGET_UNAVAILABLE' => 409, 'BUSINESS_TARGET_IDENTITY_CONFLICT' => 409,
+    'BUSINESS_SCHEMA_IDENTITY_CONFLICT' => 409, 'BUSINESS_SAVED_SCHEMA_REQUIRED' => 409,
+    'BUSINESS_PLUGIN_DYNAMIC_PUBLISH_FORBIDDEN' => 422,
+    'BUSINESS_DEFAULT_CONNECTION_ONLY' => 422, 'BUSINESS_TABLE_PREFIX_REQUIRED' => 422,
+    'BUSINESS_TABLE_ALREADY_EXISTS' => 409, 'BUSINESS_EXTERNAL_TABLE_MISSING' => 409,
+    'BUSINESS_TABLE_STRATEGY_INVALID' => 422,
+] as $code => $status) {
+    $mapped = \app\console\development\http\BusinessApiErrorMapper::map(new InvalidArgumentException($code), 'boundary-test');
+    businessApiExpect($mapped['httpStatus'] === $status && $mapped['error']['code'] === $code, '业务目标错误契约必须保留：' . $code);
+}
 echo "business development API tests: PASS\n";

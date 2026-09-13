@@ -8,6 +8,13 @@ import { businessDevelopmentApi, isBusinessApiError } from './business';
 describe('businessDevelopmentApi', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('读取服务端目标候选与默认连接，不使用插件中心列表替代', async () => {
+    const response = { list: [{ type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console' }], defaultConnection: 'mysql', migrationPath: 'database/migrations' };
+    httpMocks.get.mockResolvedValue(response);
+    expect(await businessDevelopmentApi.targets()).toEqual(response);
+    expect(httpMocks.get).toHaveBeenCalledWith('/development/business/targets');
+  });
+
   it('recoverGeneration 发送 generation id 与 CAS recovery 状态', async () => {
     httpMocks.post.mockResolvedValue({ state: 'rolled_back' });
     await businessDevelopmentApi.recoverGeneration(41, 'recovery_required');
