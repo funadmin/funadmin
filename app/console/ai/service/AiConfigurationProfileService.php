@@ -37,6 +37,7 @@ final class AiConfigurationProfileService
         if (($row->configuration['enabled'] ?? true) !== true) throw new \RuntimeException('档案已停用', 409);
         if (array_key_exists('api_key', $snapshot['configuration'])) throw new InvalidArgumentException('快照不得包含密钥', 400);
         $config = self::validate($snapshot['configuration']);
+        if ($config['reasoning_effort'] !== null || $config['fallback_enabled']) throw new InvalidArgumentException('推理能力未验证或备用尚未实现', 400);
         if (($snapshot['model'] ?? null) !== $config['model']) throw new InvalidArgumentException('模型快照不一致', 400);
         $cipher = (string) $row->getAttr('secret_ciphertext');
         $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
@@ -48,6 +49,7 @@ final class AiConfigurationProfileService
     {
         $row = $this->repository->find($adminId, $id);
         $config = self::validate(array_merge($row->configuration, ['name'=>$row->name]));
+        if (!$config['enabled']) throw new \RuntimeException('档案已停用', 409);
         $cipher = (string) $row->getAttr('secret_ciphertext');
         $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
         $gateway = $this->gatewayFactory !== null
