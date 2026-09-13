@@ -39,6 +39,9 @@ final class AiProviderSettingsService
 
     public function test(array $input): array
     {
+        if (($input['protocol'] ?? $this->serverConfig['protocol'] ?? 'openai-chat') !== 'openai-chat') {
+            throw new \InvalidArgumentException('连接测试仅支持 openai-chat');
+        }
         $this->validateInput($input);
         $config = $this->serverConfig;
         foreach (self::FIELDS as $field) {

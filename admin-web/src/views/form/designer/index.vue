@@ -409,14 +409,15 @@ const initializePalette = () => {
 };
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let localDraftTimer: ReturnType<typeof setTimeout> | null = null;
-let saveRevision = 0;
+let saveInFlight = false;
+let saveBlocked = false;
 let saveQueued = false;
 let designerActive = true;
 let localDraftRestorePending = false;
 const localDraftKey = computed(() => `form-designer-draft:${String(store.form.value.id ?? store.form.value.form_key ?? 'new')}`);
 const persistLocalDraft = () => {
   if (!designerActive || typeof localStorage === 'undefined') return;
-  localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now() }));
+  localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now(), saveBlocked }));
 };
 const scheduleLocalDraft = () => {
   if (localDraftTimer) clearTimeout(localDraftTimer);
@@ -433,10 +434,17 @@ const restoreLocalDraft = () => {
   const raw = localStorage.getItem(localDraftKey.value);
   if (!raw) return;
   try {
-    const draft = JSON.parse(raw) as { definition?: import('@/api/form').FormDefinition };
+    const draft = JSON.parse(raw) as { definition?: import('@/api/form').FormDefinition; saveBlocked?: boolean };
     if (draft.definition?.schema_document?.schemaVersion === 2 && window.confirm('检测到未同步的本地表单草稿，是否恢复？')) {
-      store.load(draft.definition);
+      const loadedHash = store.form.value.schema_hash;
+      // 历史草稿不是服务端基线；版本不明时保留内容并暂停，禁止换 hash 盲目覆盖。
+      saveBlocked = draft.saveBlocked === true || !loadedHash || draft.definition.schema_hash !== loadedHash;
+      store.load({ ...draft.definition, schema_hash: loadedHash });
       store.updateForm({ schema_origin: 'designer' });
+      if (saveBlocked) {
+        store.failSave();
+        ElMessage.warning('本地草稿与服务端版本不一致，已暂停保存，请先导出草稿并核对版本');
+      }
     }
   } catch { clearLocalDraft(); }
 };
@@ -588,31 +596,40 @@ async function onSave() {
 }
 
 async function saveDefinition(automatic: boolean) {
-  if (!designerActive || !store.dirty.value || (automatic && !online.value)) return;
+  if (!designerActive || saveBlocked || !store.dirty.value || (automatic && !online.value)) return;
+  if (saveInFlight) { saveQueued = true; return; }
   if (!validateDefinitionBasics(automatic)) return;
-  if (store.saveStatus.value === 'saving') { saveQueued = true; return; }
   const expectedHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId.value || !expectedHash) {
     store.failSave();
     if (!automatic) ElMessage.warning('当前表单版本信息缺失，请刷新页面后重试');
     return;
   }
-  const revision = ++saveRevision;
+  saveInFlight = true;
   const payload = definition();
   const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
     const saved = await businessDevelopmentApi.saveSchema(moduleId.value, store.schemaDocument.value, expectedHash, '业务设计器保存');
-    const unchanged = revision === saveRevision && JSON.stringify(definition()) === payloadHash;
+    const unchanged = JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
       store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
       clearLocalDraft();
       if (designerActive) ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
     } else {
-      store.failSave();
+      // 请求成功必须推进版本，但不能用旧请求内容覆盖其间的新编辑。
+      store.acknowledgeSave(saved.schemaHash);
+      saveQueued = true;
     }
   } catch (error) {
     store.failSave();
+    if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
+      saveBlocked = true;
+      saveQueued = false;
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+      persistLocalDraft();
+    }
     if (!designerActive) return;
     if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
       ElMessage.warning('Schema 版本已变化，请刷新页面后重试');
@@ -622,7 +639,8 @@ async function saveDefinition(automatic: boolean) {
       ElMessage.error(error instanceof Error ? error.message : t('formDesigner.saveError', '保存失败，请重试'));
     }
   } finally {
-    if (saveQueued && designerActive && online.value) scheduleAutoSave(500);
+    saveInFlight = false;
+    if (saveQueued && !saveBlocked && designerActive && online.value) scheduleAutoSave(500);
     saveQueued = false;
   }
 }
@@ -786,7 +804,7 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
 onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
 
 const scheduleAutoSave = (delay = 1200) => {
-  if (!designerActive || !store.dirty.value) return;
+  if (!designerActive || saveBlocked || !store.dirty.value) return;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     autoSaveTimer = null;

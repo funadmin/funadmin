@@ -182,7 +182,7 @@ export function useDesigner() {
     // 快照从历史栈弹出后即转移为当前状态，无需再次深拷贝大型 AST。
     fields.value = snapshotValue.fields;
     nodes.value = snapshotValue.nodes;
-    form.value = snapshotValue.form;
+    form.value = { ...snapshotValue.form, schema_hash: form.value.schema_hash };
     if (selectedKey.value && !fields.value.some((field) => field.field_name === selectedKey.value)) selectedKey.value = null;
     if (selectedNodeId.value && !findLocation(nodes.value, selectedNodeId.value)) selectedNodeId.value = null;
   };
@@ -436,11 +436,15 @@ export function useDesigner() {
   };
   const beginSave = () => { saveStatus.value = 'saving'; };
   const failSave = () => { saveStatus.value = 'failed'; };
+  const acknowledgeSave = (schemaHash: string) => {
+    form.value = { ...form.value, schema_hash: schemaHash };
+    saveStatus.value = 'unsaved';
+  };
   const markSaved = (definition: FormDefinition) => load(definition);
 
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
-    dirty, saveStatus, beginSave, failSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
+    dirty, saveStatus, beginSave, failSave, acknowledgeSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
     duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, updateList, replaceFields, replaceSchema, load, markSaved
   };
 }

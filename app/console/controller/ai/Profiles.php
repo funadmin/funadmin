@@ -61,6 +61,11 @@ final class Profiles extends AdminApiController
         });
     }
 
+    /** @profile 以保存档案查询真实模型 ID；不返回密钥或推测能力。 */
+    #[Post(':id/models')]
+    #[Pattern('id', '\d+')]
+    public function models(int $id): Response { return $this->run(fn ($service, $admin) => $service->models($admin, $id)); }
+
     private function input(): array
     {
         // 直接解析 JSON，避免框架过滤把 boolean/int 隐式转换；不接受表单或查询注入。

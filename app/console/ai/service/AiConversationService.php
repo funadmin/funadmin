@@ -15,21 +15,22 @@ final class AiConversationService
     public function __construct(
         private readonly AiConversationStore $store,
         private readonly array $limits = [],
-        private readonly ?\Closure $audit = null
+        private readonly ?\Closure $audit = null,
+        private readonly ?AiConfigurationProfileService $profiles = null
     ) {
     }
 
     public function createConversation(int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         if ($adminId <= 0) throw new InvalidArgumentException('管理员无效');
-        $this->validateFields($input, ['title', 'approval_mode', 'provider', 'model', 'context', 'group_id'], false);
+        $this->validateFields($input, ['title', 'approval_mode', 'provider', 'model', 'context', 'group_id', 'profile_id'], false);
         $groupId = $this->validateGroupId($input['group_id'] ?? null, $adminId);
         $title = array_key_exists('title', $input) ? $this->validateName($input['title'], 255) : '';
         foreach (['approval_mode', 'provider', 'model'] as $field) {
             if (array_key_exists($field, $input) && (!is_string($input[$field]) || mb_strlen($input[$field]) > 100)) throw new InvalidArgumentException($field . ' 必须为不超过 100 字符的字符串');
         }
         if (array_key_exists('context', $input) && !is_array($input['context'])) throw new InvalidArgumentException('context 必须为对象或数组');
-        $selection = $this->modelSelection($input);
+        $selection = $this->profileSelection($input, $adminId);
         $approvalMode = $input['approval_mode'] ?? 'request_approval';
         $this->assertModeAuthorized($approvalMode, $fullAccessAuthorized, $approveAuthorized);
         return $this->store->createConversation([
@@ -40,6 +41,7 @@ final class AiConversationService
             'approval_mode' => $approvalMode,
             'provider' => $selection['provider'],
             'model' => $selection['model'],
+            'profile_id' => $selection['profile_id'] ?? null,
             'context' => (array) ($input['context'] ?? []),
             'group_id' => $groupId,
             'is_archived' => false,
@@ -101,11 +103,13 @@ final class AiConversationService
     public function updateConversation(int $id, int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         $conversation = $this->ownedConversation($id, $adminId);
-        $this->validateFields($input, ['title', 'context', 'approval_mode', 'provider', 'model']);
+        $this->validateFields($input, ['title', 'context', 'approval_mode', 'provider', 'model', 'profile_id']);
         $allowed = $input;
-        if (array_key_exists('provider', $input) || array_key_exists('model', $input)) {
+        if (array_key_exists('provider', $input) || array_key_exists('model', $input) || array_key_exists('profile_id', $input)) {
             if (array_key_exists('model', $input)) $input['model'] = $this->validateName($input['model'], 100);
-            $allowed = array_replace($allowed, $this->modelSelection(array_replace($conversation, $input)));
+            $selection = $this->profileSelection(array_replace($conversation, $input), $adminId);
+            unset($selection['snapshot']);
+            $allowed = array_replace($allowed, $selection);
         }
         if (array_key_exists('title', $allowed)) $allowed['title'] = $this->validateName($allowed['title'], 255);
         if (array_key_exists('context', $allowed) && !is_array($allowed['context'])) throw new InvalidArgumentException('context 必须为对象或数组');
@@ -150,9 +154,15 @@ final class AiConversationService
         $conversation = $this->ownedConversation($conversationId, $adminId);
         $key = trim((string) ($input['idempotency_key'] ?? ''));
         if ($key === '') throw new InvalidArgumentException('idempotency_key 必填');
-        $selection = $this->modelSelection($conversation);
+        $selection = $this->profileSelection($conversation, $adminId);
+        $snapshot = $selection['snapshot'] ?? null;
+        $limits = $this->limits;
+        if ($snapshot !== null) {
+            $config = $snapshot['configuration'];
+            $limits = array_replace($limits, ['max_rounds'=>$config['max_iterations'], 'max_input_tokens'=>$config['max_input_tokens'] ?? 0, 'max_output_tokens'=>$config['max_output_tokens'] ?? 0]);
+        }
         // 模型与连接配置不接受 task input 覆盖，凭据只在执行时从服务端读取。
-        $taskInput = array_diff_key((array) ($input['input'] ?? []), array_flip(['model', 'provider', 'api_key', 'base_url']));
+        $taskInput = array_diff_key((array) ($input['input'] ?? []), array_flip(['model', 'provider', 'api_key', 'base_url', 'profile_id', 'profile_snapshot']));
         return $this->store->createTask([
             'conversation_id' => $conversationId,
             'message_id' => isset($input['message_id']) ? (int) $input['message_id'] : null,
@@ -163,12 +173,12 @@ final class AiConversationService
             'approval_mode' => $conversation['approval_mode'],
             'provider' => $selection['provider'],
             'model' => $selection['model'],
-            'max_rounds' => max(1, (int) ($this->limits['max_rounds'] ?? 1)),
+            'max_rounds' => max(1, (int) ($limits['max_rounds'] ?? 1)),
             'max_cost' => max(0.0, (float) ($this->limits['max_total_cost'] ?? 0)),
-            'input_token_budget' => max(0, (int) ($this->limits['max_input_tokens'] ?? 0)),
-            'output_token_budget' => max(0, (int) ($this->limits['max_output_tokens'] ?? 0)),
-            'total_token_budget' => max(0, (int) ($this->limits['max_input_tokens'] ?? 0) + (int) ($this->limits['max_output_tokens'] ?? 0)),
-            'input' => array_replace($taskInput, ['admin_id' => $adminId]),
+            'input_token_budget' => max(0, (int) ($limits['max_input_tokens'] ?? 0)),
+            'output_token_budget' => max(0, (int) ($limits['max_output_tokens'] ?? 0)),
+            'total_token_budget' => max(0, (int) ($limits['max_input_tokens'] ?? 0) + (int) ($limits['max_output_tokens'] ?? 0)),
+            'input' => array_replace($taskInput, ['admin_id' => $adminId], $snapshot === null ? [] : ['profile_snapshot'=>$snapshot]),
         ]);
     }
 
@@ -183,6 +193,15 @@ final class AiConversationService
     {
         $this->getTask($taskId, $adminId);
         return $this->store->compareAndSetTask($taskId, ['pending', 'running', 'paused'], ['status' => 'cancelled', 'completed_at' => date('Y-m-d H:i:s')]);
+    }
+
+    private function profileSelection(array $input, int $adminId): array
+    {
+        $id = $input['profile_id'] ?? null;
+        if ($id === null) return $this->modelSelection($input);
+        if (!is_int($id) || $id <= 0) throw new InvalidArgumentException('profile_id 必须为正整数或 null');
+        $snapshot = ($this->profiles ?? AiConfigurationProfileService::production())->snapshot($adminId, $id, $input['model'] ?? null);
+        return ['profile_id'=>$id, 'provider'=>$snapshot['configuration']['provider'], 'model'=>$snapshot['model'], 'snapshot'=>$snapshot];
     }
 
     /** 单供应商基线：只选择当前可信配置下的模型，不解析任意供应商标识。 */

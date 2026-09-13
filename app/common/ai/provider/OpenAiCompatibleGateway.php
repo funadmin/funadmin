@@ -31,7 +31,7 @@ final class OpenAiCompatibleGateway
 
     public function __construct(
         private readonly ClientInterface $client,
-        array $config,
+        private readonly array $config,
         ?callable $resolver = null,
         ?callable $sleeper = null
     ) {
@@ -148,7 +148,32 @@ final class OpenAiCompatibleGateway
 
     private function payload(array $messages, array $tools, bool $stream): array
     {
+        if (($this->config['protocol'] ?? 'openai-chat') !== 'openai-chat') {
+            throw new InvalidArgumentException('仅支持 openai-chat 协议');
+        }
+        if (($this->config['fallback_enabled'] ?? false) !== false) {
+            throw new InvalidArgumentException('自动备用尚未实现，请关闭 fallback_enabled');
+        }
+        // 兼容协议没有可信的推理能力发现标准，未验证能力不得伪发送参数。
+        if (($this->config['reasoning_effort'] ?? null) !== null) {
+            throw new InvalidArgumentException('当前模型的 reasoning_effort 能力未验证');
+        }
+        $output = $this->config['max_output_tokens'] ?? null;
+        foreach (['max_output_tokens', 'max_input_tokens', 'context_window'] as $field) {
+            $value = $this->config[$field] ?? null;
+            if ($value !== null && (!is_int($value) || $value < 1)) throw new InvalidArgumentException($field . ' 必须为正整数');
+        }
+        // 无可靠 tokenizer：按 UTF-8 JSON 每字节一个 token，加每消息 64 和固定 1024 余量。
+        // 这是保守准入估算，不是模型精确计数；不截断任何系统、用户或工具消息。
+        $estimate = strlen(json_encode(['messages'=>$messages, 'tools'=>$tools], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)) + count($messages) * 64 + 1024;
+        $inputLimit = $this->config['max_input_tokens'] ?? null;
+        $window = $this->config['context_window'] ?? null;
+        if (($inputLimit !== null && $estimate > $inputLimit) || ($window !== null && ($output === null || $estimate + $output > $window))) {
+            throw new AiProviderException('budget_exceeded', '保守输入估算超过预算，或上下文预算缺少明确输出预留');
+        }
         $payload = ['model' => $this->model, 'messages' => $messages, 'stream' => $stream];
+        if ($output !== null) $payload['max_tokens'] = $output;
+        if ($stream && ($this->config['stream_usage'] ?? false) === true) $payload['stream_options'] = ['include_usage'=>true];
         if ($tools !== []) {
             $payload['tools'] = $tools;
         }
@@ -195,6 +220,9 @@ final class OpenAiCompatibleGateway
                 $decoded = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
             } catch (JsonException $exception) {
                 throw new AiProviderException('invalid_response', 'Provider SSE chunk 不是有效 JSON', previous: $exception);
+            }
+            if (is_array($decoded['usage'] ?? null)) {
+                $output[] = ['type'=>'usage', 'usage'=>$this->normalizeUsage($decoded['usage'])];
             }
             $delta = (array) ($decoded['choices'][0]['delta'] ?? []);
             if (($delta['content'] ?? '') !== '') {

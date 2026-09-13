@@ -10,8 +10,51 @@ final class AiConfigurationProfileService
 {
     public function __construct(
         private readonly \app\console\ai\repository\DatabaseAiProfileRepository $repository,
-        private readonly AiProfileSecret $secrets
+        private readonly AiProfileSecret $secrets,
+        private readonly ?\Closure $gatewayFactory = null
     ) {}
+
+    public static function production(): self
+    {
+        return new self(new \app\console\ai\repository\DatabaseAiProfileRepository(), new AiProfileSecret((string) config('oauth.encryption_key', '')));
+    }
+
+    /** 冻结经校验的配置，不读取密钥。 */
+    public function snapshot(int $adminId, int $id, ?string $model = null): array
+    {
+        $row = $this->repository->find($adminId, $id);
+        $config = self::validate(array_merge($row->configuration, ['name'=>$row->name], $model === null ? [] : ['model'=>$model]));
+        if (!$config['enabled']) throw new \RuntimeException('档案已停用', 409);
+        unset($config['api_key']);
+        return ['profile_id'=>$id, 'configuration'=>$config, 'model'=>$config['model']];
+    }
+
+    /** 恢复只按引用读取当前凭据；当前档案配置不得覆盖冻结参数。 */
+    public function resolveSnapshot(int $adminId, array $snapshot): array
+    {
+        if (!is_int($snapshot['profile_id'] ?? null) || $snapshot['profile_id'] <= 0 || !is_array($snapshot['configuration'] ?? null)) throw new InvalidArgumentException('档案快照无效', 400);
+        $row = $this->repository->find($adminId, $snapshot['profile_id']);
+        if (($row->configuration['enabled'] ?? true) !== true) throw new \RuntimeException('档案已停用', 409);
+        if (array_key_exists('api_key', $snapshot['configuration'])) throw new InvalidArgumentException('快照不得包含密钥', 400);
+        $config = self::validate($snapshot['configuration']);
+        if (($snapshot['model'] ?? null) !== $config['model']) throw new InvalidArgumentException('模型快照不一致', 400);
+        $cipher = (string) $row->getAttr('secret_ciphertext');
+        $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
+        return $config;
+    }
+
+    /** 使用保存配置和当前凭据；越权、已删除或历史未实现协议在请求前拒绝。 */
+    public function models(int $adminId, int $id): array
+    {
+        $row = $this->repository->find($adminId, $id);
+        $config = self::validate(array_merge($row->configuration, ['name'=>$row->name]));
+        $cipher = (string) $row->getAttr('secret_ciphertext');
+        $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
+        $gateway = $this->gatewayFactory !== null
+            ? ($this->gatewayFactory)($config)
+            : new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), $config);
+        return $gateway->models();
+    }
 
     private function publicRecord(\app\console\ai\model\AiConfigurationProfile $row): array
     {
@@ -71,7 +114,7 @@ final class AiConfigurationProfileService
 
     public static function validate(array $input): array
     {
-        $defaults = ['favorite_models'=>[], 'fallback_enabled'=>false, 'fallback_models'=>[], 'context_window'=>null, 'max_input_tokens'=>null, 'max_output_tokens'=>null, 'max_iterations'=>10, 'reasoning_effort'=>null, 'stream_usage'=>false, 'connect_timeout'=>5, 'request_timeout'=>60, 'max_retries'=>2];
+        $defaults = ['enabled'=>true, 'favorite_models'=>[], 'fallback_enabled'=>false, 'fallback_models'=>[], 'context_window'=>null, 'max_input_tokens'=>null, 'max_output_tokens'=>null, 'max_iterations'=>10, 'reasoning_effort'=>null, 'stream_usage'=>false, 'connect_timeout'=>5, 'request_timeout'=>60, 'max_retries'=>2];
         $allowed = array_merge(array_keys($defaults), ['name','provider','protocol','base_url','model','api_key']);
         if (array_diff(array_keys($input), $allowed)) throw new InvalidArgumentException('包含未知或只读字段', 400);
         $data = array_replace($defaults, $input);
@@ -85,7 +128,7 @@ final class AiConfigurationProfileService
         new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), ['base_url'=>$data['base_url']]);
         $url = parse_url($data['base_url']);
         if (!filter_var($data['base_url'], FILTER_VALIDATE_URL) || !in_array($url['scheme'] ?? '', ['https','http'], true) || empty($url['host']) || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])) throw new InvalidArgumentException('base_url 必须是不含认证、查询和片段的 HTTP(S) 地址', 400);
-        foreach (['fallback_enabled','stream_usage'] as $field) if (!is_bool($data[$field])) throw new InvalidArgumentException($field . ' 必须是布尔值', 400);
+        foreach (['enabled','fallback_enabled','stream_usage'] as $field) if (!is_bool($data[$field])) throw new InvalidArgumentException($field . ' 必须是布尔值', 400);
         foreach (['context_window'=>[1,10000000], 'max_input_tokens'=>[1,10000000], 'max_output_tokens'=>[1,10000000], 'max_iterations'=>[1,100], 'connect_timeout'=>[1,30], 'request_timeout'=>[1,300], 'max_retries'=>[0,3]] as $field=>[$min,$max]) {
             if ($data[$field] === null && in_array($field, ['context_window','max_input_tokens','max_output_tokens'], true)) continue;
             if (!is_int($data[$field]) || $data[$field] < $min || $data[$field] > $max) throw new InvalidArgumentException($field . ' 范围无效', 400);

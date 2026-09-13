@@ -33,7 +33,7 @@ final class AiAgentJob
     private readonly ?AgentSandboxManager $sandboxManager;
     private readonly ?AiSecurityStore $securityStore;
 
-    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null)
+    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null, private readonly ?\app\console\ai\service\AiConfigurationProfileService $profiles = null)
     {
         $this->store = $store ?? new DatabaseAiConversationStore();
         if ($orchestrator !== null) {
@@ -88,6 +88,12 @@ final class AiAgentJob
             }
             $orchestrator = $this->orchestrator;
             if ($this->orchestratorFactory !== null) {
+                if (array_key_exists('profile_snapshot', (array) ($task['input'] ?? []))) {
+                    $adminId = (int) ($task['input']['admin_id'] ?? 0);
+                    if (!$this->store->conversation((int) $task['conversation_id'], $adminId)) throw new RuntimeException('任务管理员无效', 404);
+                    $providerConfig = ($this->profiles ?? \app\console\ai\service\AiConfigurationProfileService::production())->resolveSnapshot($adminId, $task['input']['profile_snapshot']);
+                    if ($task['model'] !== $providerConfig['model'] || $task['provider'] !== $providerConfig['provider']) throw new RuntimeException('任务档案快照不一致', 409);
+                } else {
                 // 首次与审批恢复共用任务模型；凭据每次从服务端读取，不写入快照。
                 $providerConfig = (array) \think\facade\Config::get('ai.provider', []);
                 $provider = trim((string) ($providerConfig['name'] ?? ''));
@@ -113,6 +119,7 @@ final class AiAgentJob
                     return;
                 }
                 $providerConfig['model'] = $model;
+                }
                 $orchestrator = ($this->orchestratorFactory)($providerConfig);
             }
             if ($this->sandboxManager !== null && !$retainedSandbox) {
