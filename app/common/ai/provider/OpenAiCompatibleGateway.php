@@ -46,6 +46,29 @@ final class OpenAiCompatibleGateway
         $this->validateUrl(false);
     }
 
+    /** 目录只证明端点返回了模型 ID，不推断窗口或推理能力。 */
+    public function models(): array
+    {
+        $response = $this->request([], false, '/models', 'GET');
+        try {
+            $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new AiProviderException('invalid_response', '模型目录不是有效 JSON');
+        }
+        if (!is_array($body['data'] ?? null) || !array_is_list($body['data'])) {
+            throw new AiProviderException('invalid_response', '模型目录格式无效');
+        }
+        $models = [];
+        foreach ($body['data'] as $item) {
+            $id = is_array($item) ? ($item['id'] ?? null) : null;
+            if (!is_string($id) || trim($id) !== $id || $id === '' || strlen($id) > 200 || preg_match('/[\x00-\x1f\x7f]/', $id)) {
+                throw new AiProviderException('invalid_response', '模型目录 ID 无效');
+            }
+            $models[$id] = ['id'=>$id];
+        }
+        return array_values($models);
+    }
+
     public function chat(array $messages, array $tools = []): array
     {
         $response = $this->request($this->payload($messages, $tools, false));
@@ -88,19 +111,19 @@ final class OpenAiCompatibleGateway
         yield ['type' => 'done'];
     }
 
-    private function request(array $json, bool $stream = false): ResponseInterface
+    private function request(array $json, bool $stream = false, string $path = '/chat/completions', string $method = 'POST'): ResponseInterface
     {
         $addresses = $this->validatedAddresses();
         $host = (string) parse_url($this->baseUrl, PHP_URL_HOST);
         $port = (int) (parse_url($this->baseUrl, PHP_URL_PORT) ?: 443);
         for ($attempt = 0; ; $attempt++) {
             try {
-                $response = $this->client->request('POST', $this->baseUrl . '/chat/completions', [
+                $response = $this->client->request($method, $this->baseUrl . $path, [
                     'headers' => array_filter([
                         'Accept' => $stream ? 'text/event-stream' : 'application/json',
                         'Authorization' => $this->apiKey === '' ? null : 'Bearer ' . $this->apiKey,
                     ]),
-                    'json' => $json,
+                    'json' => $method === 'GET' ? null : $json,
                     'connect_timeout' => $this->connectTimeout,
                     'timeout' => $this->requestTimeout,
                     'stream' => $stream,
