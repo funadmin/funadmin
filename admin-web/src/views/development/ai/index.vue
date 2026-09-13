@@ -26,11 +26,15 @@
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
+              <el-select data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
+                <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="profile.name" :disabled="!profile.enabled || profile.fallback_enabled || profile.reasoning_effort !== null" />
+              </el-select>
+              <el-button :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
               <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
               <el-input id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" aria-describedby="ai-model-hint" :disabled="modelSaving || !selectedConversation" />
               <el-button data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
             </div>
-            <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }}</small>
+            <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }}</small>
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
         </header>
@@ -50,7 +54,7 @@
     </div>
 
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
-    <ProviderSettingsDrawer v-if="providerSettings" v-model="providerOpen" :settings="providerSettings" @test="testProvider" />
+    <ProviderSettingsDrawer v-model="providerOpen" :profiles="profiles" :busy="profileBusy" :models="profileModels" :saved-profile="savedProfile" :error="profileError" :notice="profileNotice" @select="resetProfileFeedback" @save="saveProfile" @copy="copyProfile" @remove="removeProfile" @default="defaultProfile" @models="fetchProfileModels" @test="testProvider" />
     <el-dialog v-model="moveOpen" :title="t('aiDevelopment.management.move')" width="min(440px, 94vw)">
       <el-select v-model="moveGroupId" :aria-label="t('aiDevelopment.management.groupName')">
         <el-option :value="0" :label="t('aiDevelopment.management.ungrouped')" />
@@ -67,7 +71,7 @@ import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, 
 import { useI18n } from 'vue-i18n';
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
-import { aiDevelopmentApi, type AiApprovalMode, type AiChangeSetPreview, type AiProviderSettings } from '@/api/development/ai';
+import { aiDevelopmentApi, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput } from '@/api/development/ai';
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
 import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
@@ -97,7 +101,90 @@ const logOpen = ref(false);
 const toolLog = ref('');
 const mobileTab = ref('workspace');
 const preview = ref<AiChangeSetPreview | null>(null);
-const providerSettings = ref<AiProviderSettings | null>(null);
+const profiles = ref<AiProfile[]>([]);
+const profileBusy = ref(false);
+const profileError = ref('');
+const profileNotice = ref('');
+const profileModels = ref<Array<{ id: string }>>([]);
+const savedProfile = ref<AiProfile | null>(null);
+let profileGeneration = 0;
+function resetProfileFeedback() { profileGeneration++; profileModels.value = []; profileError.value = ''; profileNotice.value = ''; }
+watch(providerOpen, () => resetProfileFeedback());
+async function loadProfiles() { await manage(async () => { profiles.value = await aiDevelopmentApi.profiles(); }); }
+async function selectProfile(id: number) {
+  const profile = profiles.value.find((item) => item.id === id);
+  const conversationId = store.selectedConversationId;
+  const generation = store.selectionGeneration;
+  if (!profile || !conversationId || modelSaving.value) return;
+  modelSaving.value = true;
+  modelError.value = null;
+  try { await store.updateConversationProfile(conversationId, id, profile.model); }
+  catch (error) { if (store.selectedConversationId === conversationId && store.selectionGeneration === generation) modelError.value = error instanceof Error ? error.message : ''; }
+  finally { modelSaving.value = false; }
+}
+async function inheritProfile() {
+  const id = store.selectedConversationId;
+  const generation = store.selectionGeneration;
+  await manage(async () => {
+    const profile = await aiDevelopmentApi.defaultProfile();
+    if (id !== store.selectedConversationId || generation !== store.selectionGeneration) return;
+    if (!profile) throw new Error('没有默认档案');
+    profiles.value = [...profiles.value.filter((item) => item.id !== profile.id), profile];
+    await selectProfile(profile.id);
+  });
+}
+async function profileOperation(operation: () => Promise<void>) {
+  if (profileBusy.value) return;
+  profileBusy.value = true;
+  profileError.value = ''; profileNotice.value = '';
+  const generation = profileGeneration;
+  try { await operation(); }
+  catch (error) { if (generation === profileGeneration && error !== 'cancel' && error !== 'close') profileError.value = t('aiDevelopment.errors.generic'); }
+  finally { profileBusy.value = false; }
+}
+async function saveProfile(payload: AiProfileInput, id: number | null) {
+  const generation = profileGeneration;
+  await profileOperation(async () => {
+    const result = id === null ? await aiDevelopmentApi.createProfile(payload) : await aiDevelopmentApi.updateProfile(id, payload);
+    profiles.value = [...profiles.value.filter((item) => item.id !== result.id), result];
+    if (generation === profileGeneration && providerOpen.value) {
+      savedProfile.value = result;
+      profileNotice.value = t('aiDevelopment.profiles.saved');
+    }
+  });
+}
+async function copyProfile(id: number) {
+  const generation = profileGeneration;
+  await profileOperation(async () => {
+    const name = await askName('title');
+    const result = await aiDevelopmentApi.copyProfile(id, name);
+    profiles.value.push(result);
+    if (generation === profileGeneration && providerOpen.value) savedProfile.value = result;
+  });
+}
+async function removeProfile(id: number) {
+  await profileOperation(async () => {
+    await confirmRemoval('deleteConfirm');
+    await aiDevelopmentApi.deleteProfile(id);
+    profiles.value = profiles.value.filter((item) => item.id !== id);
+    providerOpen.value = false; savedProfile.value = null;
+  });
+}
+async function defaultProfile(id: number) {
+  await profileOperation(async () => {
+    await aiDevelopmentApi.makeDefaultProfile(id);
+    profiles.value = profiles.value.map((item) => ({ ...item, is_default: item.id === id }));
+  });
+}
+async function fetchProfileModels(id: number) {
+  const generation = profileGeneration;
+  await profileOperation(async () => {
+    const result = await aiDevelopmentApi.profileModels(id);
+    if (generation !== profileGeneration) return;
+    profileModels.value = result;
+    if (!result.length) profileNotice.value = t('aiDevelopment.profiles.emptyModels');
+  });
+}
 const selectedConversation = computed(() => store.conversations.find((item) => item.id === store.selectedConversationId));
 const modelDraft = ref('');
 const modelSaving = ref(false);
@@ -245,7 +332,8 @@ watch(() => store.selectedConversationId, () => {
 
 async function createConversation() {
   await manage(async () => {
-    const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval' });
+    const profile = await aiDevelopmentApi.defaultProfile();
+    const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval', ...(profile ? { profile_id: profile.id } : {}) });
     store.conversations.unshift(conversation);
     showArchived.value = false;
     await selectConversation(conversation.id);
@@ -307,8 +395,15 @@ async function applyChangeSet(confirmToken: string, selection: string[]) {
   ElMessage.success(t('aiDevelopment.changeSet.applied'));
 }
 async function openToolLog(id: number, stream: 'stdout' | 'stderr') { toolLog.value = (await aiDevelopmentApi.toolLog(id, stream)).content; logOpen.value = true; }
-async function openProviderSettings() { providerSettings.value = await aiDevelopmentApi.settings(); providerOpen.value = true; }
-async function testProvider(payload: Record<string, unknown>) { await aiDevelopmentApi.testSettings(payload); ElMessage.success(t('aiDevelopment.providerSettings.testSuccess')); }
+async function openProviderSettings() { await loadProfiles(); providerOpen.value = true; }
+async function testProvider(payload: Record<string, unknown>) {
+  const generation = profileGeneration;
+  await profileOperation(async () => {
+    const result = await aiDevelopmentApi.testSettings(payload);
+    if (!result.reachable) throw new Error('连接失败');
+    if (generation === profileGeneration) profileNotice.value = t('aiDevelopment.providerSettings.testSuccess');
+  });
+}
 
 onMounted(async () => {
   mobileQuery?.addEventListener('change', updateViewport);

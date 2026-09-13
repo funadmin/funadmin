@@ -60,6 +60,29 @@ afterEach(() => {
 });
 
 describe('AI Development store', () => {
+  it('档案切换与模型保存共用锁，仅回写原会话选择，不污染任务及 SSE', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, profile_id: 2 }, { ...conversation, id: 2, model: 'other' }];
+    store.selectedConversationId = 1;
+    store.activeTask = { ...task, model: 'frozen' };
+    const source = new FakeEventSource('/events');
+    store.eventSource = source;
+    let resolve!: (value: unknown) => void;
+    mocks.updateConversation.mockReturnValue(new Promise((done) => { resolve = done; }));
+    expect(typeof store.updateConversationProfile).toBe('function');
+    const pending = store.updateConversationProfile(1, 3, 'profile-model');
+    await expect(store.updateConversationModel(1, 'duplicate')).rejects.toThrow();
+    store.selectedConversationId = 2;
+    store.conversations[0].title = '并发改名';
+    resolve({ ...conversation, profile_id: 3, model: 'profile-model', provider: 'openai-compatible' });
+    await pending;
+    expect(mocks.updateConversation).toHaveBeenCalledWith(1, { profile_id: 3, model: 'profile-model' });
+    expect(store.conversations[0]).toMatchObject({ profile_id: 3, title: '并发改名' });
+    expect(store.conversations[1].model).toBe('other');
+    expect(store.activeTask?.model).toBe('frozen');
+    expect(source.close).not.toHaveBeenCalled();
+    expect(store.modelGenerations[1]).toBe(1);
+  });
   it('模型保存使用现有 PUT，仅合并模型字段且保持任务和 SSE', async () => {
     const store = useAiDevelopmentStore();
     store.conversations = [{ ...conversation, model: 'old', title: '并发改名' }];

@@ -88,6 +88,13 @@ export default {
       applyConfirmTitle: '最终应用二次确认', applyConfirmButton: '确认应用', applied: 'ChangeSet 已应用'
     },
     diff: { binary: '二进制文件无法显示文本 Diff', omitted: '内容已省略：文件为二进制或超过展示上限', missing: 'Diff 正文未由后端返回，仅展示文件状态与哈希。' },
+    profiles: {
+      title: '配置档案', create: '创建档案', general: '档案设置', name: '档案名称（修改后保存即改名）', enabled: '启用', copy: '复制', default: '设为默认', copyHint: '复制不包含 API key，也不继承默认状态。删除默认档案不会自动选择其他档案。',
+      protocolHint: '当前仅支持 openai-chat（OpenAI Chat Completions 兼容协议）。Provider 为标识，不代表支持其他协议。', keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
+      models: '模型设置', fetchModels: '获取已保存档案的模型', modelsHint: '查询仅使用已保存的 URL 和密钥，不使用当前未保存修改。模型可搜索、选择或手动输入，不推断能力。', favorites: '常用模型', limits: '上下文与运行限制', context_window: '上下文窗口（留空不指定）', max_input_tokens: '最大输入 token（留空不指定）', max_output_tokens: '最大输出 token（留空不指定）', max_iterations: '最大迭代次数', connect_timeout: '连接超时（秒）', request_timeout: '请求超时（秒）', max_retries: '最大重试次数', stream_usage: '流式 usage',
+      unsupported: '尚未支持的能力', disabled: '未启用', unsupportedHint: 'Fallback 尚未实现，Reasoning 能力尚未验证，后端拒绝非默认执行。保存时固定关闭 Fallback 并清空 Reasoning，不能作为可执行配置。',
+      save: '保存档案', saved: '档案已保存', testHint: '测试仅调用临时连接接口，不测试已保存的密钥，也不验证 token / stream 等运行参数。请重新输入本次测试密钥；留空按无密钥测试，不使用全局密钥。密钥不写入浏览器存储。', inherit: '使用当前默认档案', selectionHint: '新会话继承创建时的默认档案；更改默认不会修改已有会话和已冻结任务。', invalid: '请检查模型、URL、预算和超时范围', emptyModels: '模型目录为空，仍可手动输入模型 ID'
+    },
     providerSettings: {
       title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
       configured: '已配置：{masked}', connectTimeout: '连接超时', requestTimeout: '请求超时', testConnection: '测试连接', testSuccess: 'Provider 连接测试成功'

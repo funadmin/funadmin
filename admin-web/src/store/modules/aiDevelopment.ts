@@ -210,17 +210,21 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       try { await request; } finally { if (queue.get(id) === request) queue.delete(id); }
     },
 
-    async updateConversationModel(id: number, model: string) {
+    async updateConversationProfile(id: number, profileId: number, model: string) {
+      return this.updateConversationModel(id, model, profileId);
+    },
+
+    async updateConversationModel(id: number, model: string, profileId?: number) {
       model = model.trim();
       if (!model || !this.conversations.some((item) => item.id === id)) return;
       if (this.modelSaving[id]) throw new Error('模型正在保存，请稍后重试');
       this.modelSaving[id] = true;
       try {
-        const updated = await aiDevelopmentApi.updateConversation(id, { model });
+        const updated = await aiDevelopmentApi.updateConversation(id, { model, ...(profileId === undefined ? {} : { profile_id: profileId }) });
         const conversation = this.conversations.find((item) => item.id === id);
         // 只更新原会话的模型选择，不覆盖并发状态，也不触碰已冻结任务及事件连接。
         if (conversation) {
-          Object.assign(conversation, { model: updated.model, provider: updated.provider });
+          Object.assign(conversation, { model: updated.model, provider: updated.provider, ...(updated.profile_id === undefined ? {} : { profile_id: updated.profile_id }) });
           // 成功回写时递增，使保存前或保存中发起的旧详情都能识别更新。
           this.modelGenerations[id] = (this.modelGenerations[id] ?? 0) + 1;
         }
@@ -278,7 +282,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         // 旧 GET 仍更新其他详情字段，但不得覆盖期间已保存的模型配置。
         this.conversations[index] = modelGeneration === (this.modelGenerations[id] ?? 0)
           ? conversation
-          : { ...conversation, model: current.model, provider: current.provider };
+          : { ...conversation, model: current.model, provider: current.provider, profile_id: current.profile_id };
       }
       this.messages = messages;
       this.saveRouteState();

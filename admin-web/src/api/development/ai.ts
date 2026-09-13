@@ -16,7 +16,39 @@ export interface AiConversationGroup {
   updated_at?: string;
 }
 
+export interface AiProfileInput {
+  name: string;
+  provider: string;
+  protocol: 'openai-chat';
+  base_url: string;
+  model: string;
+  api_key?: string;
+  enabled?: boolean;
+  favorite_models?: string[];
+  fallback_enabled?: false;
+  fallback_models?: string[];
+  reasoning_effort?: null;
+  context_window?: number | null;
+  max_input_tokens?: number | null;
+  max_output_tokens?: number | null;
+  max_iterations?: number;
+  stream_usage?: boolean;
+  connect_timeout?: number;
+  request_timeout?: number;
+  max_retries?: number;
+}
+export interface AiProfile extends Omit<Required<AiProfileInput>, 'api_key' | 'fallback_enabled' | 'reasoning_effort'> {
+  id: number;
+  is_default: boolean;
+  has_api_key: boolean;
+  fallback_enabled: boolean;
+  reasoning_effort: 'low' | 'medium' | 'high' | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AiConversation {
+  profile_id?: number | null;
   id: number;
   admin_id: number;
   uuid: string;
@@ -199,7 +231,7 @@ function eventUrl(taskId: number, ticket: string, cursor: number): string {
 }
 
 // HTTP 已解包 data；这里只校验 AI 实体形状并规范化 ORM bigint，不递归改写业务 JSON。
-const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id'] as const;
+const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id', 'profile_id'] as const;
 function aiRecord<T>(value: T): T {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !('id' in value)) throw new Error('AI 接口未返回有效实体');
   const record = { ...value } as Record<string, unknown>;
@@ -219,15 +251,24 @@ function aiRecords<T>(value: T[]): T[] {
 }
 
 export const aiDevelopmentApi = {
+  profiles: () => http.get<AiProfile[]>(`${PREFIX}/profiles`).then(aiRecords),
+  profile: (id: number) => http.get<AiProfile>(`${PREFIX}/profiles/${id}`).then(aiRecord),
+  createProfile: (payload: AiProfileInput) => http.post<AiProfile>(`${PREFIX}/profiles`, payload).then(aiRecord),
+  updateProfile: (id: number, payload: Partial<AiProfileInput>) => http.patch<AiProfile>(`${PREFIX}/profiles/${id}`, payload).then(aiRecord),
+  deleteProfile: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/profiles/${id}`),
+  defaultProfile: () => http.get<AiProfile | null>(`${PREFIX}/profiles/default`).then((value) => value === null ? null : aiRecord(value)),
+  makeDefaultProfile: (id: number) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/default`).then(aiRecord),
+  copyProfile: (id: number, name: string) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/copy`, { name }).then(aiRecord),
+  profileModels: (id: number) => http.post<Array<{ id: string }>>(`${PREFIX}/profiles/${id}/models`),
   conversations: () => http.get<AiConversation[]>('/development/ai/conversations').then(aiRecords),
   conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`).then(aiRecords),
   createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }).then(aiRecord),
   updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }).then(aiRecord),
   deleteConversationGroup: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversation-groups/${id}`),
   updateConversationState: (id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload).then(aiRecord),
-  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context'>>) => http.post<AiConversation>('/development/ai/conversations', payload).then(aiRecord),
+  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context' | 'profile_id'>>) => http.post<AiConversation>('/development/ai/conversations', payload).then(aiRecord),
   conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`).then(aiRecord),
-  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
+  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model' | 'profile_id'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
   deleteConversation: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}`),
   messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`).then(aiRecords),
   createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),

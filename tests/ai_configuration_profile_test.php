@@ -17,7 +17,16 @@ $input = ['name'=>'工作', 'provider'=>'custom', 'protocol'=>'openai-chat', 'ba
 $value = Profiles::validate($input);
 profileExpect($value['reasoning_effort'] === null && $value['fallback_enabled'] === false, '默认不启用推理和备用');
 profileExpect($value['context_window'] === null, '未知能力不得猜测上下文');
-profileExpect(Profiles::validate($input + ['fallback_enabled'=>true, 'fallback_models'=>['b','a']])['fallback_models'] === ['b','a'], '备用顺序');
+$capabilities = array_map(static fn ($model) => ['model'=>$model, 'reasoning_efforts'=>['low','medium','high'], 'output_token_parameter'=>'max_completion_tokens', 'context_window'=>8000, 'max_output_tokens'=>1000], ['unknown-model','b','a']);
+$declared = $input + ['model_capabilities'=>$capabilities, 'max_output_tokens'=>500];
+profileExpect(Profiles::validate($declared + ['fallback_enabled'=>true, 'fallback_models'=>['b','a']])['fallback_models'] === ['b','a'], '备用顺序');
+foreach (['low','medium','high'] as $effort) profileExpect(Profiles::validate($declared + ['reasoning_effort'=>$effort])['reasoning_effort'] === $effort, '接受管理员明确声明的推理档位');
+profileExpect(Profiles::validate($input + ['reasoning_effort'=>'default'])['reasoning_effort'] === null, 'default 规范为不发送');
+foreach ([['reasoning_effort'=>'high'], ['fallback_enabled'=>true,'fallback_models'=>['b']], ['model_capabilities'=>[['model'=>'unknown-model','reasoning_efforts'=>['guess']]]], ['model_capabilities'=>array_merge($capabilities, [$capabilities[0]])], ['model_capabilities'=>[['model'=>'unknown-model','source'=>'official','reasoning_efforts'=>['high']]]]] as $patch) profileReject(fn () => Profiles::validate(array_replace($input, $patch)));
+$unknown = Profiles::capabilities($input, 'unknown-model');
+profileExpect($unknown['source'] === 'unknown' && $unknown['reasoning_efforts'] === [] && $unknown['unknown_policy'] === 'reject', '未知能力默认拒绝');
+$known = Profiles::capabilities($declared, 'b');
+profileExpect($known['source'] === 'administrator' && $known['reasoning_efforts'] === ['low','medium','high'], '响应说明声明来源，不冒充官方验证');
 foreach ([['name'=>''], ['provider'=>[]], ['protocol'=>'bogus'], ['base_url'=>'https://user:pass@example.com'], ['base_url'=>'https://example.com?api_key=secret'], ['model'=>false], ['max_iterations'=>'3'], ['max_retries'=>-1], ['stream_usage'=>1], ['fallback_enabled'=>true], ['fallback_models'=>['a','a']], ['favorite_models'=>['x'=> 'a']], ['reasoning_effort'=>'guess'], ['context_window'=>100,'max_input_tokens'=>90,'max_output_tokens'=>20], ['connect_timeout'=>61,'request_timeout'=>60], ['admin_id'=>9], ['api_key'=>[]]] as $patch) {
     profileReject(fn () => Profiles::validate(array_replace($input, $patch)));
 }

@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessageBox } from 'element-plus';
 import { aiDevelopmentApi } from '@/api/development/ai';
 import ConversationList from './components/ConversationList.vue';
+import ProviderSettingsDrawer from './components/ProviderSettingsDrawer.vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import { readFileSync } from 'node:fs';
@@ -45,6 +46,9 @@ vi.mock('@/api/development/ai', async (importOriginal) => {
   return {
     ...actual,
     aiDevelopmentApi: {
+      profiles: vi.fn().mockResolvedValue([]),
+      defaultProfile: vi.fn().mockResolvedValue(null),
+      createProfile: vi.fn(), updateProfile: vi.fn(), copyProfile: vi.fn(), deleteProfile: vi.fn(), makeDefaultProfile: vi.fn(), profileModels: vi.fn(),
       conversations: vi.fn().mockResolvedValue([]),
       conversationGroups: vi.fn().mockResolvedValue([]),
       createConversationGroup: vi.fn(),
@@ -172,6 +176,43 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.toolCalls = [];
     aiStore.changeSet = null;
     vi.clearAllMocks();
+  });
+
+  it('保存档案途中关闭再打开，不把旧响应切回当前编辑档案', async () => {
+    const { wrapper } = mountPage('zh-CN');
+    await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
+    await flushPromises();
+    const drawer = wrapper.findComponent(ProviderSettingsDrawer);
+    let resolveSave!: (value: unknown) => void;
+    vi.mocked(aiDevelopmentApi.createProfile).mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }) as never);
+    drawer.vm.$emit('save', { name: '旧草稿' }, null);
+    await nextTick();
+    drawer.vm.$emit('update:modelValue', false);
+    await nextTick();
+    drawer.vm.$emit('update:modelValue', true);
+    await nextTick();
+    resolveSave({ id: 9, name: '旧草稿' });
+    await flushPromises();
+    expect(drawer.props('savedProfile')).toBeNull();
+  });
+
+  it('新会话显式继承服务端默认档案，不复制配置或密钥到请求', async () => {
+    vi.mocked(aiDevelopmentApi.defaultProfile).mockResolvedValueOnce({ id: 7 } as never);
+    vi.mocked(aiDevelopmentApi.createConversation).mockResolvedValueOnce({ id: 8 } as never);
+    const { wrapper } = mountPage('zh-CN');
+    wrapper.findComponent(ConversationList).vm.$emit('create');
+    await flushPromises();
+    expect(aiDevelopmentApi.createConversation).toHaveBeenCalledWith({ title: '新 AI 会话', approval_mode: 'request_approval', profile_id: 7 });
+  });
+
+  it('显示档案选择与默认继承入口，档案设置不再读取临时全局设置', async () => {
+    const { wrapper } = mountPage('zh-CN');
+    expect(wrapper.find('[data-testid="conversation-profile"]').exists()).toBe(true);
+    await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
+    await flushPromises();
+    expect(aiDevelopmentApi.profiles).toHaveBeenCalled();
+    expect(aiDevelopmentApi.settings).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="profile-save"]').exists()).toBe(true);
   });
 
   it('工作区显示模型 ID 输入、当前模型和真实边界，空值及无会话禁用', async () => {
@@ -325,7 +366,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     const { wrapper } = mountPage('zh-CN');
     wrapper.findComponent(ConversationList).vm.$emit('action', 'move', 1);
     await flushPromises();
-    const select = wrapper.findComponent({ name: 'ElSelect' });
+    const select = wrapper.findAllComponents({ name: 'ElSelect' }).find((item) => item.attributes('aria-label') === '分组名称')!;
     select.vm.$emit('update:modelValue', 0);
     await nextTick();
     const confirm = wrapper.findAll('button').find((button) => button.text() === '确定')!;

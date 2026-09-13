@@ -1,5 +1,5 @@
 import { fail, ok, type MockRoute } from '../types';
-import type { AiConversation, AiConversationGroup } from '@/api/development/ai';
+import type { AiConversation, AiConversationGroup, AiProfile } from '@/api/development/ai';
 
 const now = '2026-09-12 10:00:00';
 let mode: 'request_approval' | 'agent_approval' | 'full_access' = 'request_approval';
@@ -14,7 +14,46 @@ let groupId = 0;
 const conversations: AiConversation[] = [conversation];
 const groups: AiConversationGroup[] = [];
 
+let profileId = 0;
+const profiles: AiProfile[] = [];
+function createProfile(body: Record<string, any>) {
+  const { api_key, ...configuration } = body;
+  if (!body.name || !body.model || !body.base_url || body.protocol !== 'openai-chat') return fail('档案字段无效');
+  if (profiles.some((item) => item.name === body.name)) return fail('档案名称重复', 409);
+  const profile: AiProfile = { name: body.name, model: body.model, provider: body.provider, protocol: 'openai-chat', base_url: body.base_url, enabled: true, favorite_models: [], fallback_enabled: false, fallback_models: [], reasoning_effort: null, context_window: null, max_input_tokens: null, max_output_tokens: null, max_iterations: 10, stream_usage: false, connect_timeout: 5, request_timeout: 60, max_retries: 2, ...configuration, id: ++profileId, has_api_key: Boolean(api_key), is_default: false };
+  profiles.push(profile);
+  return ok({ ...profile });
+}
+
 export const developmentAiMockHandlers: MockRoute[] = [
+  { method: 'GET', url: '/development/ai/profiles', handler: () => ok(profiles.map((item) => ({ ...item }))) },
+  { method: 'GET', url: '/development/ai/profiles/default', handler: () => ok(profiles.find((item) => item.is_default) || null) },
+  { method: 'POST', url: '/development/ai/profiles', handler: ({ body }) => createProfile(body) },
+  { method: 'GET', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const item = profiles.find((p) => p.id === Number(pathParams.id)); return item ? ok({ ...item }) : fail('档案不存在', 404); } },
+  { method: 'PATCH', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
+    const item = profiles.find((p) => p.id === Number(pathParams.id));
+    if (!item) return fail('档案不存在', 404);
+    const { api_key, ...configuration } = body;
+    if (body.name && profiles.some((p) => p.id !== item.id && p.name === body.name)) return fail('档案名称重复', 409);
+    Object.assign(item, configuration, 'api_key' in body ? { has_api_key: Boolean(api_key) } : {});
+    return ok({ ...item });
+  } },
+  { method: 'DELETE', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => {
+    const index = profiles.findIndex((p) => p.id === Number(pathParams.id));
+    if (index < 0) return fail('档案不存在', 404);
+    profiles.splice(index, 1); return ok({ deleted: true });
+  } },
+  { method: 'POST', url: /^\/development\/ai\/profiles\/(\d+)\/(copy|default|models)$/, paramNames: ['id', 'action'], handler: ({ body, pathParams }) => {
+    const item = profiles.find((p) => p.id === Number(pathParams.id));
+    if (!item) return fail('档案不存在', 404);
+    if (pathParams.action === 'copy') {
+      const { id, is_default, has_api_key, ...configuration } = item;
+      return createProfile({ ...configuration, name: body.name });
+    }
+    if (pathParams.action === 'models') return item.enabled ? ok([{ id: 'mock-model' }, { id: item.model }]) : fail('档案已停用', 409);
+    profiles.forEach((p) => { p.is_default = p.id === item.id; }); return ok({ ...item });
+  } },
+
   { method: 'GET', url: '/development/ai/conversation-groups', handler: () => ok(groups.map((group) => ({ ...group }))) },
   { method: 'POST', url: '/development/ai/conversation-groups', handler: ({ body }) => {
     const name = String(body.name || '').trim();
@@ -49,12 +88,15 @@ export const developmentAiMockHandlers: MockRoute[] = [
   } },
   { method: 'GET', url: '/development/ai/conversations', handler: () => ok(conversations.map((item) => ({ ...item }))) },
   { method: 'POST', url: '/development/ai/conversations', handler: ({ body }) => {
-    const created = { ...conversation, ...body, id: ++conversationId, group_id: null, is_archived: false, is_unread: false, approval_mode: body.approval_mode || mode };
+    const profile = body.profile_id ? profiles.find((p) => p.id === body.profile_id) : null;
+    if (body.profile_id && !profile) return fail('档案不存在', 404);
+    if (profile && !profile.enabled) return fail('档案已停用', 409);
+    const created = { ...conversation, ...body, ...(profile ? { provider: profile.provider, model: body.model ?? profile.model } : {}), id: ++conversationId, group_id: null, is_archived: false, is_unread: false, approval_mode: body.approval_mode || mode };
     conversations.push(created);
     return ok({ ...created });
   } },
   { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const current = conversations.find((item) => item.id === Number(pathParams.id)); return current ? ok({ ...current }) : fail('会话不存在', 404); } },
-  { method: 'PUT', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => { const current = conversations.find((item) => item.id === Number(pathParams.id)); if (!current) return fail('会话不存在', 404); Object.assign(current, body); return ok({ ...current }); } },
+  { method: 'PUT', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => { const current = conversations.find((item) => item.id === Number(pathParams.id)); if (!current) return fail('会话不存在', 404); const profile = profiles.find((p) => p.id === (body.profile_id ?? current.profile_id)); if (body.profile_id && !profile) return fail('档案不存在', 404); if (profile && !profile.enabled) return fail('档案已停用', 409); Object.assign(current, body, profile ? { provider: profile.provider, model: body.model ?? current.model } : {}); return ok({ ...current }); } },
   { method: 'DELETE', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const index = conversations.findIndex((item) => item.id === Number(pathParams.id)); if (index < 0) return fail('会话不存在', 404); conversations.splice(index, 1); return ok({ deleted: true }); } },
   { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: () => ok([message]) },
   { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ body }) => ok({ ...message, id: 602, sequence: 2, ...body }) },

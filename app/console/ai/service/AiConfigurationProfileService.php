@@ -114,9 +114,14 @@ final class AiConfigurationProfileService
         });
     }
 
+    public static function capabilities(array $config, string $model): array
+    {
+        return \app\common\ai\provider\AiModelCapabilities::forModel($config, $model);
+    }
+
     public static function validate(array $input): array
     {
-        $defaults = ['enabled'=>true, 'favorite_models'=>[], 'fallback_enabled'=>false, 'fallback_models'=>[], 'context_window'=>null, 'max_input_tokens'=>null, 'max_output_tokens'=>null, 'max_iterations'=>10, 'reasoning_effort'=>null, 'stream_usage'=>false, 'connect_timeout'=>5, 'request_timeout'=>60, 'max_retries'=>2];
+        $defaults = ['model_capabilities'=>[], 'enabled'=>true, 'favorite_models'=>[], 'fallback_enabled'=>false, 'fallback_models'=>[], 'context_window'=>null, 'max_input_tokens'=>null, 'max_output_tokens'=>null, 'max_iterations'=>10, 'reasoning_effort'=>null, 'stream_usage'=>false, 'connect_timeout'=>5, 'request_timeout'=>60, 'max_retries'=>2];
         $allowed = array_merge(array_keys($defaults), ['name','provider','protocol','base_url','model','api_key']);
         if (array_diff(array_keys($input), $allowed)) throw new InvalidArgumentException('包含未知或只读字段', 400);
         $data = array_replace($defaults, $input);
@@ -142,6 +147,9 @@ final class AiConfigurationProfileService
         }
         if ($data['fallback_enabled'] && !$data['fallback_models']) throw new InvalidArgumentException('启用备用时必须配置模型', 400);
         if (in_array($data['model'], $data['fallback_models'], true)) throw new InvalidArgumentException('备用模型不得包含主模型', 400);
+        if ($data['reasoning_effort'] === 'default') $data['reasoning_effort'] = null;
+        $data['model_capabilities'] = \app\common\ai\provider\AiModelCapabilities::normalize($data['model_capabilities']);
+        \app\common\ai\provider\AiModelCapabilities::validateSelection($data);
         if (!in_array($data['reasoning_effort'], [null,'low','medium','high'], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
         if ($data['context_window'] !== null && ($data['max_input_tokens'] ?? 0) + ($data['max_output_tokens'] ?? 0) > $data['context_window']) throw new InvalidArgumentException('输入与输出预算超过上下文窗口', 400);
         if ($data['connect_timeout'] > $data['request_timeout']) throw new InvalidArgumentException('连接超时不得超过请求超时', 400);
