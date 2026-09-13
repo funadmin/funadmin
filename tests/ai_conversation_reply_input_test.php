@@ -60,7 +60,12 @@ $assertMessageContract = static function (array $message, string $text, array $m
     if (!is_array($json->content) || $message['content'] !== [['type' => 'text', 'text' => $text]]) {
         $failures[] = '跨端 content 必须是文本块 JSON 数组：' . json_encode($message['content'], JSON_UNESCAPED_UNICODE);
     }
-    if ($message['metadata'] !== $metadata) $failures[] = '工具调用必须完整存入 metadata，并保留 task_id/round';
+    $actual = $message['metadata'];
+    if (array_key_exists('model', $actual)) {
+        if ($actual['model'] !== null) $failures[] = '未返回模型的 Provider 审计字段必须为 null';
+        unset($actual['model']);
+    }
+    if ($actual !== $metadata) $failures[] = '工具调用必须完整存入 metadata，并保留 task_id/round';
 };
 $messages = $service->listMessages($conversation['id'], 7);
 $toolCalls = [['id' => 'tool-1', 'name' => 'stub', 'arguments' => []]];
@@ -87,7 +92,12 @@ foreach ([3, 4] as $index) {
     $assertMessageContract($messages[$index], '', ['task_id' => $emptyTask['id'], 'round' => $index - 2, 'tool_calls' => $index === 3 ? [['id' => 'tool-only', 'name' => 'stub', 'arguments' => []]] : []]);
 }
 $events = array_values(array_filter($store->events($emptyTask['id'], 0, 100), fn (array $event): bool => $event['type'] === 'assistant.message'));
-if (($events[0]['payload'] ?? []) !== ['content' => null, 'tool_calls' => [['id' => 'tool-only', 'name' => 'stub', 'arguments' => []]], 'round' => 1]) {
+$payload = $events[0]['payload'] ?? [];
+if (array_key_exists('model', $payload)) {
+    if ($payload['model'] !== null) $failures[] = '未返回模型的 SSE 审计字段必须为 null';
+    unset($payload['model']);
+}
+if ($payload !== ['content' => null, 'tool_calls' => [['id' => 'tool-only', 'name' => 'stub', 'arguments' => []]], 'round' => 1]) {
     $failures[] = '持久化转换不得改变 orchestrator 事件协议';
 }
 if ($failures) { fwrite(STDERR, implode("\n", $failures) . "\n"); exit(1); }

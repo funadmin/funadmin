@@ -1,5 +1,5 @@
 import { fail, ok, type MockRoute } from '../types';
-import type { AiConversation, AiConversationGroup, AiProfile } from '@/api/development/ai';
+import { profileCapabilityError, profileModelCapability, type AiConversation, type AiConversationGroup, type AiProfile } from '@/api/development/ai';
 
 const now = '2026-09-12 10:00:00';
 let mode: 'request_approval' | 'agent_approval' | 'full_access' = 'request_approval';
@@ -16,27 +16,33 @@ const groups: AiConversationGroup[] = [];
 
 let profileId = 0;
 const profiles: AiProfile[] = [];
+const runtimeCapabilities = { reasoning_efforts: ['low', 'medium', 'high'] as const, default_omits_parameter: true, capability_source: 'administrator', unknown_policy: 'reject', fallback: true, stream_fallback: false, max_fallback_models: 3, max_requests: 12, max_reserved_seconds: 300 };
+function publicProfile(item: AiProfile) { return { ...item, capabilities: profileModelCapability(item, item.model), runtime_capabilities: runtimeCapabilities }; }
 function createProfile(body: Record<string, any>) {
   const { api_key, ...configuration } = body;
   if (!body.name || !body.model || !body.base_url || body.protocol !== 'openai-chat') return fail('档案字段无效');
   if (profiles.some((item) => item.name === body.name)) return fail('档案名称重复', 409);
-  const profile: AiProfile = { name: body.name, model: body.model, provider: body.provider, protocol: 'openai-chat', base_url: body.base_url, enabled: true, favorite_models: [], fallback_enabled: false, fallback_models: [], reasoning_effort: null, context_window: null, max_input_tokens: null, max_output_tokens: null, max_iterations: 10, stream_usage: false, connect_timeout: 5, request_timeout: 60, max_retries: 2, ...configuration, id: ++profileId, has_api_key: Boolean(api_key), is_default: false };
+  const profile: AiProfile = { name: body.name, model: body.model, provider: body.provider, protocol: 'openai-chat', base_url: body.base_url, enabled: true, favorite_models: [], model_capabilities: [], fallback_enabled: false, fallback_models: [], reasoning_effort: null, context_window: null, max_input_tokens: null, max_output_tokens: null, max_iterations: 10, stream_usage: false, connect_timeout: 5, request_timeout: 60, max_retries: 2, ...configuration, id: ++profileId, has_api_key: Boolean(api_key), is_default: false };
+  const error = profileCapabilityError(profile);
+  if (error) return fail(error);
   profiles.push(profile);
-  return ok({ ...profile });
+  return ok(publicProfile(profile));
 }
 
 export const developmentAiMockHandlers: MockRoute[] = [
-  { method: 'GET', url: '/development/ai/profiles', handler: () => ok(profiles.map((item) => ({ ...item }))) },
-  { method: 'GET', url: '/development/ai/profiles/default', handler: () => ok(profiles.find((item) => item.is_default) || null) },
+  { method: 'GET', url: '/development/ai/profiles', handler: () => ok(profiles.map(publicProfile)) },
+  { method: 'GET', url: '/development/ai/profiles/default', handler: () => ok(profiles.find((item) => item.is_default) ? publicProfile(profiles.find((item) => item.is_default)!) : null) },
   { method: 'POST', url: '/development/ai/profiles', handler: ({ body }) => createProfile(body) },
-  { method: 'GET', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const item = profiles.find((p) => p.id === Number(pathParams.id)); return item ? ok({ ...item }) : fail('档案不存在', 404); } },
+  { method: 'GET', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const item = profiles.find((p) => p.id === Number(pathParams.id)); return item ? ok(publicProfile(item)) : fail('档案不存在', 404); } },
   { method: 'PATCH', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
     const item = profiles.find((p) => p.id === Number(pathParams.id));
     if (!item) return fail('档案不存在', 404);
     const { api_key, ...configuration } = body;
     if (body.name && profiles.some((p) => p.id !== item.id && p.name === body.name)) return fail('档案名称重复', 409);
+    const error = profileCapabilityError({ ...item, ...configuration });
+    if (error) return fail(error);
     Object.assign(item, configuration, 'api_key' in body ? { has_api_key: Boolean(api_key) } : {});
-    return ok({ ...item });
+    return ok(publicProfile(item));
   } },
   { method: 'DELETE', url: /^\/development\/ai\/profiles\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => {
     const index = profiles.findIndex((p) => p.id === Number(pathParams.id));
@@ -50,8 +56,8 @@ export const developmentAiMockHandlers: MockRoute[] = [
       const { id, is_default, has_api_key, ...configuration } = item;
       return createProfile({ ...configuration, name: body.name });
     }
-    if (pathParams.action === 'models') return item.enabled ? ok([{ id: 'mock-model' }, { id: item.model }]) : fail('档案已停用', 409);
-    profiles.forEach((p) => { p.is_default = p.id === item.id; }); return ok({ ...item });
+    if (pathParams.action === 'models') return item.enabled ? ok([...new Set(['mock-model', item.model])].map(id => ({ id, capabilities: profileModelCapability(item, id) }))) : fail('档案已停用', 409);
+    profiles.forEach((p) => { p.is_default = p.id === item.id; }); return ok(publicProfile(item));
   } },
 
   { method: 'GET', url: '/development/ai/conversation-groups', handler: () => ok(groups.map((group) => ({ ...group }))) },
@@ -91,12 +97,31 @@ export const developmentAiMockHandlers: MockRoute[] = [
     const profile = body.profile_id ? profiles.find((p) => p.id === body.profile_id) : null;
     if (body.profile_id && !profile) return fail('档案不存在', 404);
     if (profile && !profile.enabled) return fail('档案已停用', 409);
-    const created = { ...conversation, ...body, ...(profile ? { provider: profile.provider, model: body.model ?? profile.model } : {}), id: ++conversationId, group_id: null, is_archived: false, is_unread: false, approval_mode: body.approval_mode || mode };
+    const effort = body.reasoning_effort ?? null;
+    if (effort !== null && !['low', 'medium', 'high'].includes(effort)) return fail('推理档位无效');
+    if (!profile && effort !== null) return fail('推理覆盖需要档案');
+    const error = profile ? profileCapabilityError({ ...profile, model: body.model ?? profile.model, reasoning_effort: effort ?? profile.reasoning_effort }) : '';
+    if (error) return fail(error);
+    const created = { ...conversation, reasoning_effort: null, ...body, ...(profile ? { provider: profile.provider, model: body.model ?? profile.model } : {}), id: ++conversationId, group_id: null, is_archived: false, is_unread: false, approval_mode: body.approval_mode || mode };
     conversations.push(created);
     return ok({ ...created });
   } },
   { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const current = conversations.find((item) => item.id === Number(pathParams.id)); return current ? ok({ ...current }) : fail('会话不存在', 404); } },
-  { method: 'PUT', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => { const current = conversations.find((item) => item.id === Number(pathParams.id)); if (!current) return fail('会话不存在', 404); const profile = profiles.find((p) => p.id === (body.profile_id ?? current.profile_id)); if (body.profile_id && !profile) return fail('档案不存在', 404); if (profile && !profile.enabled) return fail('档案已停用', 409); Object.assign(current, body, profile ? { provider: profile.provider, model: body.model ?? current.model } : {}); return ok({ ...current }); } },
+  { method: 'PUT', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
+    const current = conversations.find((item) => item.id === Number(pathParams.id));
+    if (!current) return fail('会话不存在', 404);
+    const candidate = { ...current, ...body };
+    const profile = profiles.find(p => p.id === candidate.profile_id);
+    if (candidate.profile_id && !profile) return fail('档案不存在', 404);
+    if (profile && !profile.enabled) return fail('档案已停用', 409);
+    const effort = candidate.reasoning_effort ?? null;
+    if (effort !== null && !['low', 'medium', 'high'].includes(effort)) return fail('推理档位无效');
+    if (!profile && effort !== null) return fail('推理覆盖需要档案');
+    const error = profile ? profileCapabilityError({ ...profile, model: candidate.model, reasoning_effort: effort ?? profile.reasoning_effort }) : '';
+    if (error) return fail(error);
+    Object.assign(current, body, profile ? { provider: profile.provider, model: candidate.model } : {});
+    return ok({ ...current });
+  } },
   { method: 'DELETE', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const index = conversations.findIndex((item) => item.id === Number(pathParams.id)); if (index < 0) return fail('会话不存在', 404); conversations.splice(index, 1); return ok({ deleted: true }); } },
   { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: () => ok([message]) },
   { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ body }) => ok({ ...message, id: 602, sequence: 2, ...body }) },

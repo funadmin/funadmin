@@ -20,10 +20,10 @@ final class AiConfigurationProfileService
     }
 
     /** 冻结经校验的配置，不读取密钥。 */
-    public function snapshot(int $adminId, int $id, ?string $model = null): array
+    public function snapshot(int $adminId, int $id, ?string $model = null, ?string $reasoningEffort = null): array
     {
         $row = $this->repository->find($adminId, $id);
-        $config = self::validate(array_merge($row->configuration, ['name'=>$row->name], $model === null ? [] : ['model'=>$model]));
+        $config = self::validate(array_merge($row->configuration, ['name'=>$row->name], $model === null ? [] : ['model'=>$model], $reasoningEffort === null ? [] : ['reasoning_effort'=>$reasoningEffort]));
         if (!$config['enabled']) throw new \RuntimeException('档案已停用', 409);
         unset($config['api_key']);
         return ['profile_id'=>$id, 'configuration'=>$config, 'model'=>$config['model']];
@@ -37,8 +37,11 @@ final class AiConfigurationProfileService
         if (($row->configuration['enabled'] ?? true) !== true) throw new \RuntimeException('档案已停用', 409);
         if (array_key_exists('api_key', $snapshot['configuration'])) throw new InvalidArgumentException('快照不得包含密钥', 400);
         $config = self::validate($snapshot['configuration']);
-        if ($config['reasoning_effort'] !== null || $config['fallback_enabled']) throw new InvalidArgumentException('推理能力未验证或备用尚未实现', 400);
         if (($snapshot['model'] ?? null) !== $config['model']) throw new InvalidArgumentException('模型快照不一致', 400);
+        // 当前凭据仅可用于完全相同的可信目标，目标变更必须在读取密文和解密前停止。
+        foreach (['base_url', 'protocol', 'provider'] as $field) {
+            if (($row->configuration[$field] ?? null) !== $config[$field]) throw new \RuntimeException('档案可信目标已变更，请创建新任务', 409);
+        }
         $cipher = (string) $row->getAttr('secret_ciphertext');
         $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
         return $config;
@@ -55,12 +58,16 @@ final class AiConfigurationProfileService
         $gateway = $this->gatewayFactory !== null
             ? ($this->gatewayFactory)($config)
             : new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), $config);
-        return $gateway->models();
+        return array_map(static fn ($model) => $model + ['capabilities'=>self::capabilities($config, $model['id'])], $gateway->models());
     }
 
     private function publicRecord(\app\console\ai\model\AiConfigurationProfile $row): array
     {
-        return array_merge($row->configuration, ['id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttr('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at]);
+        return array_merge($row->configuration, [
+            'capabilities'=>self::capabilities($row->configuration, (string) ($row->configuration['model'] ?? '')),
+            'runtime_capabilities'=>['reasoning_efforts'=>['low','medium','high'], 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300],
+            'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttr('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
+        ]);
     }
 
     public function list(int $adminId): array { return array_map(fn ($row) => $this->publicRecord($row), $this->repository->all($adminId)); }

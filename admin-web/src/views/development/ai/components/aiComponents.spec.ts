@@ -136,7 +136,7 @@ describe('AI Development components', () => {
     expect(wrapper.find('[role="alert"]').text()).toContain('预算');
   });
 
-  it('档案保存保留密钥，测试显式空密钥，未支持功能不可启用', async () => {
+  it('档案保存保留密钥，测试显式空密钥，备用可配置', async () => {
     const settings = { provider: { name: 'openai-compatible', base_url: '', model: '', connect_timeout: 5, request_timeout: 60, max_retries: 2 }, limits: {} };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, settings, profiles: [], busy: false });
     expect(wrapper.find('[data-testid="profile-save"]').exists()).toBe(true);
@@ -148,7 +148,7 @@ describe('AI Development components', () => {
     expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ fallback_enabled: false, reasoning_effort: null });
     await wrapper.find('[data-testid="profile-test"]').trigger('click');
     expect(wrapper.emitted('test')?.[0]?.[0]).toMatchObject({ api_key: '', protocol: 'openai-chat' });
-    expect(wrapper.find('[data-testid="fallback-disabled"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('[data-testid="fallback-enabled"]').attributes('disabled')).toBeUndefined();
     await wrapper.find('[data-testid="provider-api-key"]').setValue('sk-secret');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('save')?.[1]?.[0]).toHaveProperty('api_key', 'sk-secret');
@@ -156,14 +156,46 @@ describe('AI Development components', () => {
     expect((wrapper.find('[data-testid="provider-api-key"]').element as HTMLInputElement).value).toBe('');
   });
 
+  it.each([
+    { fallback_enabled: true, fallback_models: [] },
+    { fallback_enabled: true, fallback_models: ['a', 'b', 'c', 'd'] },
+    { fallback_models: ['m'] },
+    { fallback_models: ['b', 'b'] },
+    { reasoning_effort: 'high' },
+    { max_output_tokens: 201 },
+    { max_input_tokens: 950, max_output_tokens: 100 },
+    { fallback_enabled: true, fallback_models: ['unknown'] }
+  ])('能力或备用不合法时阻止保存：%j', async (invalid) => {
+    const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }], ...invalid };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await wrapper.findAll('nav button')[1].trigger('click');
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+  });
+
+  it('管理员编辑能力、选择合法档位并调整备用顺序，不修改原档案', async () => {
+    const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_models: ['b', 'c'], model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await wrapper.findAll('nav button')[1].trigger('click');
+    expect(wrapper.text()).toContain('管理员声明');
+    expect(wrapper.find('[data-testid="reasoning-effort"]').findAll('option').map(o => o.element.value)).toEqual(['', 'low']);
+    await wrapper.find('[data-testid="reasoning-effort"]').setValue('low');
+    await wrapper.find('[data-testid="fallback-up-1"]').trigger('click');
+    await wrapper.find('[data-testid="cap-output-0"]').setValue('max_completion_tokens');
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ reasoning_effort: 'low', fallback_models: ['c', 'b'], model_capabilities: [{ output_token_parameter: 'max_completion_tokens' }] });
+    expect(profile.model_capabilities[0].output_token_parameter).toBe('max_tokens');
+  });
+
   it('已保存档案编辑不提交只读字段，切换档案清空密钥及模型目录', async () => {
-    const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', has_api_key: true, is_default: true, favorite_models: ['m'], fallback_enabled: true, reasoning_effort: 'high' };
+    const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', has_api_key: true, is_default: true, favorite_models: ['m'], fallback_enabled: true, fallback_models: ['b'], reasoning_effort: 'high', max_output_tokens: 100, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: ['high'], output_token_parameter: 'max_completion_tokens', context_window: 1000, max_output_tokens: 200 })) };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
     await wrapper.findAll('nav button')[1].trigger('click');
     expect(wrapper.text()).toContain('已保存密钥');
     await wrapper.find('form').trigger('submit');
     const payload = wrapper.emitted('save')?.[0]?.[0];
-    expect(payload).toMatchObject({ name: '生产', fallback_enabled: false, reasoning_effort: null });
+    expect(payload).toMatchObject({ name: '生产', fallback_enabled: true, fallback_models: ['b'], reasoning_effort: 'high', model_capabilities: profile.model_capabilities });
     expect(payload).not.toHaveProperty('id');
     expect(payload).not.toHaveProperty('has_api_key');
     expect(payload).not.toHaveProperty('api_key');

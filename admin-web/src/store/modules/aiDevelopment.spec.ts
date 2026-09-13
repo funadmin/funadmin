@@ -60,6 +60,36 @@ afterEach(() => {
 });
 
 describe('AI Development store', () => {
+  it('思考覆盖与模型共用锁，保留并发状态、旧详情保护及任务 SSE，null 显式继承', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, model: 'm', profile_id: 2 }];
+    store.activeTask = { ...task };
+    await store.connectEvents(FakeEventSource as never);
+    const source = store.eventSource;
+    let resolveSave!: (value: unknown) => void;
+    let resolveDetail!: (value: unknown) => void;
+    mocks.conversation.mockReturnValueOnce(new Promise(resolve => { resolveDetail = resolve; }));
+    const selecting = store.selectConversation(1);
+    store.activeTask = { ...task };
+    store.eventSource = source;
+    mocks.updateConversation.mockReturnValueOnce(new Promise(resolve => { resolveSave = resolve; }));
+    const saving = store.updateConversationReasoning(1, 'low');
+    expect(mocks.updateConversation).toHaveBeenCalledWith(1, { reasoning_effort: 'low' });
+    await expect(store.updateConversationModel(1, 'other')).rejects.toThrow('正在保存');
+    store.conversations[0].title = '并发改名';
+    resolveSave({ ...conversation, model: 'm', profile_id: 2, reasoning_effort: 'low' });
+    await saving;
+    expect(store.conversations[0].title).toBe('并发改名');
+    resolveDetail({ ...conversation, model: 'm', profile_id: 2, reasoning_effort: null });
+    await selecting;
+    expect(store.conversations[0].reasoning_effort).toBe('low');
+    expect(store.activeTask).toEqual(task);
+    expect(store.eventSource).toBe(source);
+    mocks.updateConversation.mockResolvedValueOnce({ ...conversation, reasoning_effort: null });
+    await store.updateConversationReasoning(1, null);
+    expect(mocks.updateConversation).toHaveBeenLastCalledWith(1, { reasoning_effort: null });
+    expect(store.conversations[0].reasoning_effort).toBeNull();
+  });
   it('档案切换与模型保存共用锁，仅回写原会话选择，不污染任务及 SSE', async () => {
     const store = useAiDevelopmentStore();
     store.conversations = [{ ...conversation, profile_id: 2 }, { ...conversation, id: 2, model: 'other' }];

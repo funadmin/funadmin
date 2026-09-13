@@ -26,9 +26,24 @@ describe('AI 真实 HTTP 响应边界', () => {
     expect(created.data.has_api_key).toBe(true);
     expect(created.data).not.toHaveProperty('api_key');
     const id = created.data.id;
+    const declaration = { model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_completion_tokens', context_window: 1000, max_output_tokens: 200 };
+    const configured = await request('PATCH', `/${id}`, { model_capabilities: [declaration], reasoning_effort: 'high' });
+    expect(configured.data.capabilities).toMatchObject({ ...declaration, source: 'administrator', unknown_policy: 'reject' });
+    expect(configured.data.runtime_capabilities).toMatchObject({ fallback: true, stream_fallback: false, max_fallback_models: 3 });
+    const catalog = await request('POST', `/${id}/models`);
+    expect(catalog.data.find((m: any) => m.id === 'm').capabilities.source).toBe('administrator');
+    expect(catalog.data.find((m: any) => m.id === 'mock-model').capabilities.source).toBe('unknown');
+    expect((await request('PATCH', `/${id}`, { fallback_enabled: true, fallback_models: [] })).code).not.toBe(200);
+    expect((await request('GET', `/${id}`)).data.fallback_enabled).toBe(false);
     const createConversation = developmentAiMockHandlers.find((item) => item.method === 'POST' && item.url === '/development/ai/conversations')!;
     const selected = await createConversation.handler({ method: 'POST', url: '/development/ai/conversations', body: { title: '继承', profile_id: id }, params: {}, pathParams: {}, headers: {} });
-    expect(selected.data).toMatchObject({ profile_id: id, model: 'm', provider: 'openai-compatible' });
+    expect(selected.data).toMatchObject({ profile_id: id, model: 'm', provider: 'openai-compatible', reasoning_effort: null });
+    const updateConversation = developmentAiMockHandlers.find(item => item.method === 'PUT' && item.paramNames?.[0] === 'id' && item.url instanceof RegExp && item.url.test(`/development/ai/conversations/${selected.data.id}`))!;
+    const update = (body: object) => updateConversation.handler({ method: 'PUT', url: `/development/ai/conversations/${selected.data.id}`, body, params: {}, pathParams: { id: String(selected.data.id) }, headers: {} });
+    expect((await update({ reasoning_effort: 'low' })).code).not.toBe(200);
+    expect((await update({ reasoning_effort: 'high' })).data.reasoning_effort).toBe('high');
+    expect((await update({ title: '保留' })).data.reasoning_effort).toBe('high');
+    expect((await update({ reasoning_effort: null })).data.reasoning_effort).toBeNull();
     expect((await request('PATCH', `/${id}`, { name: '改名' })).data.has_api_key).toBe(true);
     const copy = await request('POST', `/${id}/copy`, { name: '副本' });
     expect(copy.data).toMatchObject({ has_api_key: false, is_default: false });
@@ -60,6 +75,17 @@ describe('AI 真实 HTTP 响应边界', () => {
       ['post', '/development/ai/profiles/3/models', undefined],
       ['delete', '/development/ai/profiles/3', undefined]
     ]);
+  });
+  it('真实会话 PUT 保留覆盖及 null，不改写为 default 或省略', async () => {
+    const calls: unknown[] = [];
+    service.defaults.adapter = async config => {
+      const body = JSON.parse(config.data);
+      calls.push([config.method, config.url, body]);
+      return { config, status: 200, statusText: 'OK', headers: {}, data: { code: 200, data: { ...conversation, ...body } } };
+    };
+    expect((await api.updateConversation(2, { reasoning_effort: 'low' })).reasoning_effort).toBe('low');
+    expect((await api.updateConversation(2, { reasoning_effort: null })).reasoning_effort).toBeNull();
+    expect(calls).toEqual([['put', '/development/ai/conversations/2', { reasoning_effort: 'low' }], ['put', '/development/ai/conversations/2', { reasoning_effort: null }]]);
   });
   it('列表数组不能被当成详情：拒绝实测错误路由响应，不能写入 undefined ID', async () => {
     respond([conversation]);

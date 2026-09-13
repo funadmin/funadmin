@@ -36,23 +36,32 @@
       </div>
     </div>
 
-    <el-dialog v-model="conflictReviewVisible" title="核对保存冲突" width="90%" :close-on-click-modal="false" :close-on-press-escape="!conflictResolving" :show-close="!conflictResolving">
-      <p>以下为完整只读 JSON。取消会保留本地编辑并继续暂停保存；核对后继续编辑需要重新核对。</p>
-      <p v-if="conflictReviewError" role="alert">{{ conflictReviewError }}</p>
+    <el-dialog v-model="conflictReviewVisible" class="save-conflict-dialog" :title="t('formDesigner.saveConflict.title', '核对保存冲突')" width="calc(100% - 32px)" top="16px" :close-on-click-modal="false" :close-on-press-escape="!conflictResolving" :show-close="!conflictResolving">
+      <p class="save-conflict-notice">{{ t('formDesigner.saveConflict.notice', '保存已暂停。以下为完整只读 JSON；取消保留本地编辑并继续暂停保存。继续编辑后需重新核对。') }}</p>
+      <p v-if="conflictReviewError" class="save-conflict-error" role="alert">{{ conflictReviewError }}</p>
       <template v-if="conflictReview">
-        <p class="break-all">核对的服务端版本 hash：{{ conflictReview.server.schema_hash }}</p>
-        <label class="block">本地草稿（核对快照）
-          <textarea readonly :value="formatDebug(conflictReview.local)" rows="12" class="w-full" aria-label="本地草稿完整 JSON" />
-        </label>
-        <label class="block">服务端版本
-          <textarea readonly :value="formatDebug(conflictReview.server)" rows="12" class="w-full" aria-label="服务端完整 JSON" />
-        </label>
+        <p class="save-conflict-hash">{{ t('formDesigner.saveConflict.hash', '核对的服务端版本 hash：') }}<code>{{ conflictReview.server.schema_hash }}</code></p>
+        <div class="save-conflict-comparison">
+          <label class="save-conflict-card">
+            <span class="save-conflict-card-title">{{ t('formDesigner.saveConflict.local', '本地草稿（核对快照）') }}</span>
+            <textarea readonly :value="formatDebug(conflictReview.local)" rows="12" :aria-label="t('formDesigner.saveConflict.localJson', '本地草稿完整 JSON')" spellcheck="false" />
+          </label>
+          <label class="save-conflict-card">
+            <span class="save-conflict-card-title">{{ t('formDesigner.saveConflict.server', '服务端版本') }}</span>
+            <textarea readonly :value="formatDebug(conflictReview.server)" rows="12" :aria-label="t('formDesigner.saveConflict.serverJson', '服务端完整 JSON')" spellcheck="false" />
+          </label>
+        </div>
       </template>
+      <p class="save-conflict-risk">{{ t('formDesigner.saveConflict.risk', '采用服务端将放弃本地未保存编辑；本地覆盖将替换已核对的服务端版本。两种操作均需再次确认，服务端再次变化时拒绝覆盖。') }}</p>
       <template #footer>
-        <el-button :disabled="conflictResolving" @click="cancelConflictReview">取消，保留本地</el-button>
-        <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">重新核对版本</el-button>
-        <el-button :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('server')">放弃本地，采用服务端</el-button>
-        <el-button type="primary" :loading="conflictResolving" :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('local')">以核对后的本地覆盖</el-button>
+        <div class="save-conflict-footer">
+          <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">{{ t('formDesigner.saveConflict.review', '重新核对版本') }}</el-button>
+          <div class="save-conflict-actions">
+            <el-button :disabled="conflictResolving" @click="cancelConflictReview">{{ t('formDesigner.saveConflict.cancel', '取消，保留本地') }}</el-button>
+            <el-button :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('server')">{{ t('formDesigner.saveConflict.useServer', '放弃本地，采用服务端') }}</el-button>
+            <el-button type="primary" :loading="conflictResolving" :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('local')">{{ t('formDesigner.saveConflict.useLocal', '以核对后的本地覆盖') }}</el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
 
@@ -976,6 +985,118 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+:global(.save-conflict-dialog) {
+  max-width: 1280px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+:global(.save-conflict-dialog .el-dialog__header),
+:global(.save-conflict-dialog .el-dialog__footer) {
+  flex-shrink: 0;
+}
+:global(.save-conflict-dialog .el-dialog__body) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.save-conflict-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--el-color-warning-light-9);
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+}
+.save-conflict-hash {
+  margin: 0 0 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.save-conflict-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.save-conflict-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.save-conflict-card-title {
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-light);
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+.save-conflict-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: clamp(220px, 45vh, 520px);
+  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  overflow: auto;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  tab-size: 2;
+}
+.save-conflict-card textarea:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+.save-conflict-risk {
+  margin: 12px 0 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.save-conflict-error {
+  color: var(--el-color-danger);
+  overflow-wrap: anywhere;
+}
+.save-conflict-footer,
+.save-conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.save-conflict-footer {
+  justify-content: space-between;
+}
+.save-conflict-actions {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.save-conflict-footer :deep(.el-button) {
+  margin-left: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 32px;
+  white-space: normal;
+}
+.save-conflict-footer :deep(.el-button > span) {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 899px) {
+  .save-conflict-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .save-conflict-card textarea {
+    height: 240px;
+  }
+}
 :deep(.designer-toolbar .el-radio-button__inner),
 :deep(.designer-toolbar .el-select__wrapper),
 :deep(.designer-toolbar .el-tag) {

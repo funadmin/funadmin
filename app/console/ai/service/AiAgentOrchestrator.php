@@ -18,24 +18,27 @@ final class AiAgentOrchestrator
     {
         $maxRounds = max(1, (int) ($limits['maxRounds'] ?? 1));
         $budget = max(0, (int) ($limits['totalTokenBudget'] ?? 0));
-        $usage = 0;
-        for ($round = 1; $round <= $maxRounds; $round++) {
+        $usage = max(0, (int) ($limits['usedTokens'] ?? 0));
+        $usedRounds = max(0, (int) ($limits['usedRounds'] ?? 0));
+        $actualModel = null;
+        for ($round = $usedRounds + 1; $round <= $maxRounds; $round++) {
             if ($cancelled && $cancelled()) return ['status' => 'cancelled', 'usage' => ['totalTokens' => $usage]];
             $event && $event('round.started', ['round' => $round]);
-            $response = $this->provider->chat($messages, $definitions);
+            $response = $this->provider->chat($messages, $definitions, $event);
+            $actualModel = $response['model'] ?? null;
             $usage += (int) ($response['usage']['totalTokens'] ?? 0);
             if ($budget > 0 && $usage > $budget) throw new AiProviderException('budget_exceeded', 'AI 任务 token 预算已耗尽');
             $calls = (array) ($response['toolCalls'] ?? []);
-            $event && $event('assistant.message', ['content' => $response['content'] ?? null, 'tool_calls' => $calls, 'round' => $round]);
+            $event && $event('assistant.message', ['content' => $response['content'] ?? null, 'tool_calls' => $calls, 'round' => $round, 'model'=>$actualModel]);
             if ($calls === []) {
-                return ['status' => 'succeeded', 'content' => $response['content'] ?? null, 'usage' => ['totalTokens' => $usage], 'rounds' => $round];
+                return ['status' => 'succeeded', 'content' => $response['content'] ?? null, 'usage' => ['totalTokens' => $usage], 'rounds' => $round, 'model'=>$actualModel];
             }
             $messages[] = ['role' => 'assistant', 'content' => $response['content'] ?? null, 'tool_calls' => $calls];
             foreach ($calls as $call) {
                 $result = $this->tools->execute(array_merge($call, ['context' => $toolContext]));
                 $event && $event('tool.completed', ['id' => $call['id'] ?? '', 'name' => $call['name'] ?? '', 'status' => $result['status'] ?? 'unknown']);
                 if (($result['status'] ?? '') === 'awaiting_approval') {
-                    return ['status' => 'awaiting_approval', 'approvalId' => $result['approvalId'], 'usage' => ['totalTokens' => $usage], 'rounds' => $round, 'resume' => ['messages' => $messages, 'toolCallId' => (string)($call['id'] ?? '')]];
+                    return ['status' => 'awaiting_approval', 'approvalId' => $result['approvalId'], 'model'=>$actualModel, 'usage' => ['totalTokens' => $usage], 'rounds' => $round, 'resume' => ['messages' => $messages, 'toolCallId' => (string)($call['id'] ?? '')]];
                 }
                 $messages[] = ['role' => 'tool', 'tool_call_id' => $call['id'] ?? '', 'content' => json_encode($result, JSON_THROW_ON_ERROR)];
             }

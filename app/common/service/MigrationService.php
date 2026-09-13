@@ -17,7 +17,17 @@ class MigrationService extends AbstractService
             throw new RuntimeException('Migration 目录不存在：' . $directory);
         }
         $files = glob(rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-        if (!$files) {
+        if (str_starts_with($scope, 'plugin:')) {
+            if (!$this->repositoryExists()) {
+                throw new RuntimeException('安装插件前必须先完成核心 migration');
+            }
+            // 空骨架合法，但必须在执行任何 SQL 前确认已登记文件没有丢失。
+            $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
+            $missing = array_diff(SystemMigration::where('scope', $scope)->column('version'), $versions);
+            if ($missing !== []) {
+                throw new RuntimeException('已登记的 migration 文件缺失：' . $scope . '/' . implode('、', $missing));
+            }
+        } elseif (!$files) {
             throw new RuntimeException('Migration 目录没有 SQL 文件：' . $directory);
         }
         $this->assertVersionSequence($files, $scope);

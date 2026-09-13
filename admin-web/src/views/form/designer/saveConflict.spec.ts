@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import designerSource from './index.vue?raw';
+import zhCN from '@/locales/zh-CN';
+import enUS from '@/locales/en-US';
 
 const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
@@ -25,6 +28,7 @@ let state: any;
 const start = async () => {
   wrapper = shallowMount(Designer, { global: { renderStubDefaultSlot: true, directives: { perm: {} }, stubs: {
     ...Object.fromEntries(['ElTag', 'ElRadioButton', 'ElRadioGroup', 'ElButton', 'ElOption', 'ElSelect', 'ElAlert', 'ElCard', 'ElFormItem', 'ElForm', 'ElInput', 'ElDivider', 'ElEmpty', 'ElSteps', 'ElStep', 'ElTreeSelect', 'ElCheckbox', 'ElSwitch', 'ElDescriptionsItem', 'ElDescriptions', 'ElTableColumn', 'ElTable', 'ElCollapseItem', 'ElCollapse', 'ElTabPane', 'ElTabs', 'ElResult'].map((name) => [name, true])),
+    ElButton: { props: ['disabled', 'loading'], template: '<button :disabled="disabled || loading"><slot /></button>' },
     PageWrapper: { template: '<main><slot /></main>' },
     ElDialog: { props: ['modelValue'], template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>' }
   } } });
@@ -55,6 +59,73 @@ beforeEach(() => {
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('保存冲突的明确恢复', () => {
+  it('核对弹窗提供双卡片、完整只读 JSON、次级完整 hash 和分组操作', async () => {
+    await start(); await pause(); await review();
+    const dialog = wrapper.get('.save-conflict-dialog');
+    const cards = dialog.findAll('.save-conflict-card');
+    expect(cards).toHaveLength(2);
+    expect(cards.map((card) => JSON.parse((card.get('textarea').element as HTMLTextAreaElement).value)))
+      .toEqual([state.conflictReview.local, state.conflictReview.server]);
+    expect(dialog.findAll('textarea[readonly]')).toHaveLength(2);
+    expect(dialog.get('.save-conflict-hash').text()).toContain(hash('b'));
+    expect(dialog.get('.save-conflict-notice').text()).toContain('保存已暂停');
+    expect(dialog.get('.save-conflict-risk').text()).toContain('放弃本地');
+    expect(dialog.get('.save-conflict-footer > button').text()).toBe('重新核对版本');
+    expect(dialog.findAll('.save-conflict-actions button').map((button) => button.text()))
+      .toEqual(['取消，保留本地', '放弃本地，采用服务端', '以核对后的本地覆盖']);
+  });
+
+  it('布局约束包含安全间距、等宽卡片、内部滚动和窄屏堆叠', () => {
+    expect(designerSource).toContain('max-width: 1280px');
+    expect(designerSource).toContain('calc(100% - 32px)');
+    expect(designerSource).toContain('max-height: calc(100dvh - 32px)');
+    expect(designerSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(designerSource).toContain('@media (max-width: 899px)');
+    expect(designerSource).toContain(':global(.save-conflict-dialog)');
+    expect(designerSource).toMatch(/:global\(\.save-conflict-dialog \.el-dialog__body\)[\s\S]*?overflow-y: auto/);
+    expect(designerSource).toMatch(/:global\(\.save-conflict-dialog \.el-dialog__footer\)[\s\S]*?flex-shrink: 0/);
+    expect(designerSource).toContain('overflow-wrap: anywhere');
+    expect(designerSource).toContain('flex-wrap: wrap');
+  });
+
+  it('弹窗文案中英键一致且包含风险说明', () => {
+    const zh = (zhCN.formDesigner as any).saveConflict;
+    const en = (enUS.formDesigner as any).saveConflict;
+    expect(zh).toBeDefined();
+    expect(en).toBeDefined();
+    expect(Object.keys(zh).sort()).toEqual(Object.keys(en).sort());
+    for (const value of Object.values(en)) expect(value).toEqual(expect.any(String));
+    expect(zh.risk).toContain('放弃本地');
+  });
+
+  it('按钮取消保留草稿，读取和处理期间阻止危险操作并保留二次确认', async () => {
+    await start(); await pause(); await review();
+    const actions = () => wrapper.get('.save-conflict-actions').findAll('button');
+    vi.mocked(window.confirm).mockReturnValue(false);
+    await actions()[1].trigger('click');
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('放弃本地'));
+    await actions()[2].trigger('click');
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('覆盖'));
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
+    state.conflictReviewLoading = true;
+    await nextTick();
+    expect(actions().slice(1).every((button) => (button.element as HTMLButtonElement).disabled)).toBe(true);
+    state.conflictReviewLoading = false;
+    state.conflictResolving = true;
+    await nextTick();
+    expect(wrapper.get('.save-conflict-footer').findAll('button').every((button) => (button.element as HTMLButtonElement).disabled)).toBe(true);
+    const dialog = wrapper.getComponent('.save-conflict-dialog');
+    expect(dialog.attributes('close-on-click-modal')).toBe('false');
+    expect(dialog.attributes('close-on-press-escape')).toBe('false');
+    expect(dialog.attributes('show-close')).toBe('false');
+    state.conflictResolving = false;
+    await nextTick();
+    await actions()[0].trigger('click');
+    expect(state.conflictReviewVisible).toBe(false);
+    expect(state.saveBlocked).toBe(true);
+    expect(draft().definition.name).toBe('本地编辑');
+  });
+
   it('冲突持久提示、暂停自动保存，保存按钮进入核对而非静默返回', async () => {
     await start(); await pause();
     expect(draft().saveBlocked).toBe(true);
@@ -193,6 +264,22 @@ describe('保存冲突的明确恢复', () => {
     expect(state.conflictReview).toBeNull();
     expect(state.conflictReviewError).toContain('hash 缺失');
     expect(state.saveBlocked).toBe(true);
+  });
+
+  it('停用设计器阻止迟到核对结果、恢复操作和自动保存，保留草稿', async () => {
+    await start(); await pause();
+    let finish!: (value: unknown) => void;
+    api.module.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = state.reviewSaveConflict();
+    state.deactivateDesigner();
+    finish(remote('b'));
+    await pending;
+    await state.resolveSaveConflict('local');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(state.conflictReview).toBeNull();
+    expect(state.saveBlocked).toBe(true);
+    expect(draft().definition.name).toBe('本地编辑');
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
   });
 
   it('获取版本失败不清暂停且保留本地', async () => {

@@ -16,6 +16,31 @@ export interface AiConversationGroup {
   updated_at?: string;
 }
 
+export type AiReasoningEffort = 'low' | 'medium' | 'high';
+export interface AiModelDeclaration {
+  model: string;
+  reasoning_efforts: AiReasoningEffort[];
+  output_token_parameter: 'max_tokens' | 'max_completion_tokens';
+  context_window: number | null;
+  max_output_tokens: number | null;
+}
+export interface AiModelCapability extends AiModelDeclaration {
+  source: 'administrator' | 'unknown';
+  unknown_policy: 'reject';
+}
+export interface AiCatalogModel { id: string; capabilities?: AiModelCapability }
+export interface AiRuntimeCapabilities {
+  reasoning_efforts: AiReasoningEffort[];
+  default_omits_parameter: boolean;
+  capability_source: 'administrator';
+  unknown_policy: 'reject';
+  fallback: boolean;
+  stream_fallback: boolean;
+  max_fallback_models: number;
+  max_requests: number;
+  max_reserved_seconds: number;
+}
+
 export interface AiProfileInput {
   name: string;
   provider: string;
@@ -25,9 +50,10 @@ export interface AiProfileInput {
   api_key?: string;
   enabled?: boolean;
   favorite_models?: string[];
-  fallback_enabled?: false;
+  model_capabilities?: AiModelDeclaration[];
+  fallback_enabled?: boolean;
   fallback_models?: string[];
-  reasoning_effort?: null;
+  reasoning_effort?: AiReasoningEffort | null;
   context_window?: number | null;
   max_input_tokens?: number | null;
   max_output_tokens?: number | null;
@@ -43,11 +69,37 @@ export interface AiProfile extends Omit<Required<AiProfileInput>, 'api_key' | 'f
   has_api_key: boolean;
   fallback_enabled: boolean;
   reasoning_effort: 'low' | 'medium' | 'high' | null;
+  capabilities?: AiModelCapability;
+  runtime_capabilities?: AiRuntimeCapabilities;
   created_at?: string;
   updated_at?: string;
 }
 
+// 与后端逐模型声明一致；目录和模型名称不用于推断能力。
+export function profileModelCapability(profile: Pick<AiProfileInput, 'model_capabilities'>, model: string): AiModelCapability {
+  const declared = profile.model_capabilities?.find(item => item.model === model);
+  return { model, reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, ...declared, source: declared ? 'administrator' : 'unknown', unknown_policy: 'reject' };
+}
+
+export function profileCapabilityError(profile: AiProfileInput): string {
+  const validModel = (model: string) => typeof model === 'string' && model.trim() === model && !!model && new TextEncoder().encode(model).length <= 200 && !/[\x00-\x1f\x7f]/.test(model);
+  const validLimit = (n: number | null) => n === null || (Number.isInteger(n) && n >= 1 && n <= 10000000);
+  const declarations = profile.model_capabilities || [];
+  if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !['low', 'medium', 'high'].includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return '模型能力声明无效、重复或预算超出范围';
+  const fallback = profile.fallback_models || [];
+  if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选';
+  for (const model of [profile.model, ...(profile.fallback_enabled ? fallback : [])]) {
+    const cap = profileModelCapability(profile, model);
+    if (profile.reasoning_effort != null && !cap.reasoning_efforts.includes(profile.reasoning_effort)) return `${model} 未声明支持所选推理档位，请选择默认或合法档位`;
+    if (profile.fallback_enabled && (cap.context_window === null || cap.max_output_tokens === null || profile.max_output_tokens == null)) return '备用要求主模型及全部候选声明上下文、输出能力，并设置明确输出预算';
+    if (profile.max_output_tokens != null && ((cap.max_output_tokens !== null && profile.max_output_tokens > cap.max_output_tokens) || (cap.context_window !== null && profile.max_output_tokens + (profile.max_input_tokens || 0) > cap.context_window))) return `${model} 的 Token 预算超过模型能力上限`;
+  }
+  return '';
+}
+
 export interface AiConversation {
+  // null 继承档案；更新时省略保留原覆盖。
+  reasoning_effort?: AiReasoningEffort | null;
   profile_id?: number | null;
   id: number;
   admin_id: number;
@@ -259,16 +311,16 @@ export const aiDevelopmentApi = {
   defaultProfile: () => http.get<AiProfile | null>(`${PREFIX}/profiles/default`).then((value) => value === null ? null : aiRecord(value)),
   makeDefaultProfile: (id: number) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/default`).then(aiRecord),
   copyProfile: (id: number, name: string) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/copy`, { name }).then(aiRecord),
-  profileModels: (id: number) => http.post<Array<{ id: string }>>(`${PREFIX}/profiles/${id}/models`),
+  profileModels: (id: number) => http.post<AiCatalogModel[]>(`${PREFIX}/profiles/${id}/models`),
   conversations: () => http.get<AiConversation[]>('/development/ai/conversations').then(aiRecords),
   conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`).then(aiRecords),
   createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }).then(aiRecord),
   updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }).then(aiRecord),
   deleteConversationGroup: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversation-groups/${id}`),
   updateConversationState: (id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload).then(aiRecord),
-  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context' | 'profile_id'>>) => http.post<AiConversation>('/development/ai/conversations', payload).then(aiRecord),
+  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context' | 'profile_id' | 'reasoning_effort'>>) => http.post<AiConversation>('/development/ai/conversations', payload).then(aiRecord),
   conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`).then(aiRecord),
-  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model' | 'profile_id'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
+  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model' | 'profile_id' | 'reasoning_effort'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
   deleteConversation: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}`),
   messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`).then(aiRecords),
   createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),

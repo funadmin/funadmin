@@ -135,4 +135,29 @@ publishExpect(strpos($serviceSource, 'checkDependencies(') < strpos($serviceSour
 publishExpect(str_contains($serviceSource, "'diagnostics'"), '动态 preview 必须返回 diagnostics');
 publishExpect(str_contains($serviceSource, "'formDependencyHash'"), '动态发布预览必须返回依赖版本哈希');
 
+// 动态发布保存的空配置不能覆盖正式生成的派生默认值；全程只在内存中渲染。
+$factory = new \app\console\development\service\FormCrudDefinitionFactory();
+$emptyConfig = ['apiPrefix' => '', 'routePath' => '', 'menuName' => ''];
+$storedForm = array_replace($form, ['publish_config' => $emptyConfig]);
+$definition = $factory->createFromSchema($compiled, $storedForm, $emptyConfig);
+(new \app\common\crud\DefinitionValidator())->validate($definition, dirname(__DIR__));
+publishExpect($definition->get('apiPrefix') === '/generated/activity-form', '空 API 前缀必须回退到派生路径');
+publishExpect($definition->get('routePath') === '/generated/activity-form', '空页面路由必须回退到派生路径');
+publishExpect($definition->get('menu')['name'] === '活动报名', '空菜单名称必须回退到表单名称');
+publishExpect($definition->get('formSchemaHash') === $compiled->hash(), '配置回退不得改变 schema hash');
+$rendered = (new \app\common\crud\CrudGenerator(dirname(__DIR__)))->renderManagedBundle($definition);
+publishExpect(count($rendered) === 12, '默认配置必须能纯内存渲染全部制品');
+$custom = ['apiPrefix' => '/custom/api', 'routePath' => '/custom/page', 'menuName' => '自定义菜单'];
+$customDefinition = $factory->createFromSchema($compiled, $storedForm, $custom);
+publishExpect($customDefinition->get('apiPrefix') === $custom['apiPrefix'] && $customDefinition->get('routePath') === $custom['routePath'] && $customDefinition->get('menu')['name'] === $custom['menuName'], '非空配置必须保持原有优先级');
+foreach (['apiPrefix', 'routePath'] as $key) {
+    $invalid = $factory->createFromSchema($compiled, $storedForm, [$key => 'invalid/path']);
+    try {
+        (new \app\common\crud\DefinitionValidator())->validate($invalid, dirname(__DIR__));
+        throw new RuntimeException('非空非法路径必须拒绝');
+    } catch (InvalidArgumentException $exception) {
+        publishExpect(str_contains($exception->getMessage(), $key), '不得掩盖非法路径错误');
+    }
+}
+
 echo "form publish conversion tests: PASS\n";

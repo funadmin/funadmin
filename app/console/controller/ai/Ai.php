@@ -97,14 +97,53 @@ final class Ai extends AdminApiController
     public function messageIndex(int $id): Response { return $this->run(fn () => $this->ai->listMessages($id, $this->adminId())); }
     #[Post('conversations/:id/messages')]
     #[Pattern('id', '\d+')]
-    public function messageCreate(int $id): Response { return $this->run(fn () => $this->ai->appendMessage($id, $this->adminId(), $this->input())); }
+    public function messageCreate(int $id): Response { return $this->run(fn () => $this->ai->appendUserMessage($id, $this->adminId(), $this->input())); }
+
+    #[Post('conversations/:id/attachments')]
+    #[Pattern('id', '\d+')]
+    public function attachmentCreate(int $id): Response
+    {
+        return $this->run(function () use ($id): array {
+            $adminId = $this->adminId();
+            $this->ai->getConversation($id, $adminId);
+            $files = $this->request->file();
+            $file = $files['file'] ?? null;
+            if (count($files) !== 1 || !$file instanceof \think\file\UploadedFile || !$file->isValid()) throw new \InvalidArgumentException('必须上传单个 multipart file', 400);
+            if ($file->getSize() > \app\console\ai\service\AiAttachmentStorage::IMAGE_BYTES) throw new \InvalidArgumentException('附件超过 5MiB', 413);
+            $bytes = file_get_contents($file->getPathname(), false, null, 0, \app\console\ai\service\AiAttachmentStorage::IMAGE_BYTES + 1);
+            if (!is_string($bytes)) throw new RuntimeException('无法读取上传文件', 400);
+            return \app\console\ai\service\AiAttachmentService::production()->upload($id, $adminId, $file->getOriginalName(), $bytes);
+        });
+    }
+
+    #[Get('conversations/:id/attachments/:attachmentId/content')]
+    #[Pattern('id', '\d+')]
+    #[Pattern('attachmentId', '\d+')]
+    public function attachmentContent(int $id, int $attachmentId): Response
+    {
+        try {
+            $result = \app\console\ai\service\AiAttachmentService::production()->content($id, $this->adminId(), $attachmentId);
+            return response($result['body'], 200)->header($result['headers']);
+        } catch (Throwable $exception) {
+            $code = in_array($exception->getCode(), [401,403,404,409], true) ? $exception->getCode() : 400;
+            return $this->fail(msg: '附件不可用', code: $code)->header(['Cache-Control'=>'no-store', 'X-Content-Type-Options'=>'nosniff']);
+        }
+    }
+
+    #[Delete('conversations/:id/attachments/:attachmentId')]
+    #[Pattern('id', '\d+')]
+    #[Pattern('attachmentId', '\d+')]
+    public function attachmentDelete(int $id, int $attachmentId): Response
+    {
+        return $this->run(fn () => ['deleted'=>\app\console\ai\service\AiAttachmentService::production()->delete($id, $this->adminId(), $attachmentId)]);
+    }
 
     #[Post('conversations/:id/tasks')]
     #[Pattern('id', '\d+')]
     public function taskExecute(int $id): Response
     {
         return $this->run(function () use ($id): array {
-            $task = $this->ai->createTask($id, $this->adminId(), $this->input());
+            $task = $this->ai->createPublicTask($id, $this->adminId(), $this->input());
             Queue::connection('ai-agent')->push(AiAgentJob::class . '@fire', ['taskId' => $task['id'], 'operationToken' => $task['operation_token']], 'ai-agent');
             return $task;
         });
@@ -395,6 +434,6 @@ final class Ai extends AdminApiController
     private function adminId(): int { $id = (int) Session::get('admin.id', 0); if ($id <= 0) throw new RuntimeException('未登录', 401); return $id; }
     private function run(callable $operation): Response
     {
-        try { return $this->ok(data: $operation()); } catch (Throwable $exception) { $code = in_array($exception->getCode(), [400, 401, 403, 404, 409], true) ? $exception->getCode() : 400; return $this->fail(msg: $exception->getMessage(), code: $code); }
+        try { return $this->ok(data: $operation()); } catch (Throwable $exception) { $code = in_array($exception->getCode(), [400, 401, 403, 404, 409, 413, 503], true) ? $exception->getCode() : 400; return $this->fail(msg: $exception->getMessage(), code: $code); }
     }
 }

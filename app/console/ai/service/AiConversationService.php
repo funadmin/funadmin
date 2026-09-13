@@ -16,14 +16,15 @@ final class AiConversationService
         private readonly AiConversationStore $store,
         private readonly array $limits = [],
         private readonly ?\Closure $audit = null,
-        private readonly ?AiConfigurationProfileService $profiles = null
+        private readonly ?AiConfigurationProfileService $profiles = null,
+        private readonly ?AiAttachmentService $attachments = null
     ) {
     }
 
     public function createConversation(int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         if ($adminId <= 0) throw new InvalidArgumentException('管理员无效');
-        $this->validateFields($input, ['title', 'approval_mode', 'provider', 'model', 'context', 'group_id', 'profile_id'], false);
+        $this->validateFields($input, ['title', 'approval_mode', 'provider', 'model', 'context', 'group_id', 'profile_id', 'reasoning_effort'], false);
         $groupId = $this->validateGroupId($input['group_id'] ?? null, $adminId);
         $title = array_key_exists('title', $input) ? $this->validateName($input['title'], 255) : '';
         foreach (['approval_mode', 'provider', 'model'] as $field) {
@@ -42,6 +43,7 @@ final class AiConversationService
             'provider' => $selection['provider'],
             'model' => $selection['model'],
             'profile_id' => $selection['profile_id'] ?? null,
+            'reasoning_effort' => $input['reasoning_effort'] ?? null,
             'context' => (array) ($input['context'] ?? []),
             'group_id' => $groupId,
             'is_archived' => false,
@@ -103,9 +105,9 @@ final class AiConversationService
     public function updateConversation(int $id, int $adminId, array $input, bool $fullAccessAuthorized = false, bool $approveAuthorized = false): array
     {
         $conversation = $this->ownedConversation($id, $adminId);
-        $this->validateFields($input, ['title', 'context', 'approval_mode', 'provider', 'model', 'profile_id']);
+        $this->validateFields($input, ['title', 'context', 'approval_mode', 'provider', 'model', 'profile_id', 'reasoning_effort']);
         $allowed = $input;
-        if (array_key_exists('provider', $input) || array_key_exists('model', $input) || array_key_exists('profile_id', $input)) {
+        if (array_key_exists('provider', $input) || array_key_exists('model', $input) || array_key_exists('profile_id', $input) || array_key_exists('reasoning_effort', $input)) {
             if (array_key_exists('model', $input)) $input['model'] = $this->validateName($input['model'], 100);
             $selection = $this->profileSelection(array_replace($conversation, $input), $adminId);
             unset($selection['snapshot']);
@@ -128,6 +130,72 @@ final class AiConversationService
     {
         $this->ownedConversation($id, $adminId);
         return $this->store->deleteConversation($id, $adminId);
+    }
+
+    /** 公开写入只允许用户数据，内部 assistant/tool 写入仍经可信存储端口。 */
+    public function appendUserMessage(int $conversationId, int $adminId, array $input): array
+    {
+        $this->ownedConversation($conversationId, $adminId);
+        $this->validateFields($input, ['role', 'content']);
+        if (($input['role'] ?? 'user') !== 'user') throw new InvalidArgumentException('只允许 user 消息', 400);
+        $content = $this->userTextBlocks($input['content'] ?? null, true);
+        if (in_array('attachment', array_column($content, 'type'), true)) return ($this->attachments ?? AiAttachmentService::production())->append($conversationId, $adminId, $content, $this->store);
+        return $this->store->appendMessage($conversationId, ['role'=>'user', 'content'=>$content, 'metadata'=>[], 'parent_id'=>null]);
+    }
+
+    /** 任务入口不接受客户端历史、工具、系统提示或配置快照。 */
+    public function createPublicTask(int $conversationId, int $adminId, array $input): array
+    {
+        $this->ownedConversation($conversationId, $adminId);
+        $this->validateFields($input, ['message_id', 'idempotency_key', 'type']);
+        $messageId = $input['message_id'] ?? null;
+        if (!is_int($messageId) || $messageId <= 0) throw new InvalidArgumentException('message_id 必须为正整数', 400);
+        if (!is_string($input['idempotency_key'] ?? null) || trim($input['idempotency_key']) === '' || strlen($input['idempotency_key']) > 128) throw new InvalidArgumentException('idempotency_key 无效', 400);
+        if (($input['type'] ?? 'chat') !== 'chat') throw new InvalidArgumentException('公开任务只支持 chat', 400);
+        $rows = $this->store->messages($conversationId);
+        $target = null;
+        foreach ($rows as $row) if ((int) $row['id'] === $messageId && ($row['role'] ?? '') === 'user') $target = $row;
+        if ($target === null) throw new RuntimeException('资源不存在', 404);
+        usort($rows, static fn (array $a, array $b): int => (int) $a['sequence'] <=> (int) $b['sequence']);
+        $messages = [];
+        $bytes = 0;
+        foreach ($rows as $row) {
+            if ((int) $row['sequence'] > (int) $target['sequence']) break;
+            $role = $row['role'] ?? '';
+            if (!in_array($role, ['user', 'assistant'], true)) continue;
+            if ($role === 'assistant' && !empty($row['metadata']['tool_calls'])) continue;
+            $blocks = $row['content'] ?? [];
+            // 兼容旧版数据库文本对象，但绝不把旧消息元数据转成模型指令。
+            if (is_array($blocks) && array_keys($blocks) === ['text']) $blocks = [['type'=>'text', 'text'=>$blocks['text']]];
+            $blocks = $this->userTextBlocks($blocks, $role === 'user');
+            $text = in_array('attachment', array_column($blocks, 'type'), true)
+                ? ($this->attachments ?? AiAttachmentService::production())->textHistory($conversationId, $adminId, $row)
+                : implode("\n", array_column($blocks, 'text'));
+            $bytes += strlen($text);
+            if ($bytes > 1024 * 1024) throw new InvalidArgumentException('历史文本超过请求上限', 413);
+            $messages[] = ['role'=>$role, 'content'=>$text];
+        }
+        return $this->createTask($conversationId, $adminId, array_replace($input, ['input'=>[
+            'messages'=>$messages, 'tools'=>[], 'history_sequence'=>(int) $target['sequence'],
+        ]]));
+    }
+
+    /** 文本以 UTF-8 用户数据保存，不解析或执行源码。 */
+    private function userTextBlocks(mixed $content, bool $allowAttachments = false): array
+    {
+        if (!is_array($content) || !array_is_list($content) || $content === [] || count($content) > 64) throw new InvalidArgumentException('content 必须为非空块数组', 400);
+        $bytes = 0;
+        foreach ($content as $block) {
+            if ($allowAttachments && is_array($block) && ($block['type'] ?? null) === 'attachment') {
+                if (array_diff(array_keys($block), ['type','attachment_id']) || !is_int($block['attachment_id'] ?? null) || $block['attachment_id'] <= 0) throw new InvalidArgumentException('附件引用无效', 400);
+                continue;
+            }
+            if (!is_array($block) || array_diff(array_keys($block), ['type', 'text']) || ($block['type'] ?? null) !== 'text'
+                || !is_string($block['text'] ?? null) || !mb_check_encoding($block['text'], 'UTF-8') || str_contains($block['text'], "\0")) throw new InvalidArgumentException('只支持合法 UTF-8 text 块', 400);
+            $bytes += strlen($block['text']);
+        }
+        if ($bytes > 128 * 1024) throw new InvalidArgumentException('消息文本超过 128KiB', 413);
+        return $content;
     }
 
     public function appendMessage(int $conversationId, int $adminId, array $input): array
@@ -162,7 +230,7 @@ final class AiConversationService
             $limits = array_replace($limits, ['max_rounds'=>$config['max_iterations'], 'max_input_tokens'=>$config['max_input_tokens'] ?? 0, 'max_output_tokens'=>$config['max_output_tokens'] ?? 0]);
         }
         // 模型与连接配置不接受 task input 覆盖，凭据只在执行时从服务端读取。
-        $taskInput = array_diff_key((array) ($input['input'] ?? []), array_flip(['model', 'provider', 'api_key', 'base_url', 'profile_id', 'profile_snapshot']));
+        $taskInput = array_diff_key((array) ($input['input'] ?? []), array_flip(['model', 'provider', 'api_key', 'base_url', 'profile_id', 'profile_snapshot', 'reasoning_effort']));
         return $this->store->createTask([
             'conversation_id' => $conversationId,
             'message_id' => isset($input['message_id']) ? (int) $input['message_id'] : null,
@@ -198,9 +266,15 @@ final class AiConversationService
     private function profileSelection(array $input, int $adminId): array
     {
         $id = $input['profile_id'] ?? null;
-        if ($id === null) return $this->modelSelection($input);
+        // null 继承档案；省略由会话合并保留。禁止以 default 混淆档案的不发送参数语义。
+        $effort = $input['reasoning_effort'] ?? null;
+        if (!in_array($effort, [null, 'low', 'medium', 'high'], true)) throw new InvalidArgumentException('reasoning_effort 必须为 null、low、medium 或 high', 400);
+        if ($id === null) {
+            if ($effort !== null) throw new InvalidArgumentException('会话推理覆盖需要选择能力已声明的档案', 400);
+            return $this->modelSelection($input);
+        }
         if (!is_int($id) || $id <= 0) throw new InvalidArgumentException('profile_id 必须为正整数或 null');
-        $snapshot = ($this->profiles ?? AiConfigurationProfileService::production())->snapshot($adminId, $id, $input['model'] ?? null);
+        $snapshot = ($this->profiles ?? AiConfigurationProfileService::production())->snapshot($adminId, $id, $input['model'] ?? null, $effort);
         return ['profile_id'=>$id, 'provider'=>$snapshot['configuration']['provider'], 'model'=>$snapshot['model'], 'snapshot'=>$snapshot];
     }
 

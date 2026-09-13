@@ -334,11 +334,18 @@ final class PluginInfrastructureService
     {
         try {
             $code = $manifest->code();
-            $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
+            $declaredPath = $manifest->toArray()['migrations']['path'] ?? null;
+            $relative = (string) ($declaredPath ?? 'migrations');
             $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
             $scope = 'plugin:' . strtolower($code);
-            $versions = is_dir($directory) ? MigrationService::instance()->runDirectory($directory, $scope) : [];
-            return ['executed' => $versions, 'version' => MigrationService::instance()->latestAppliedVersion($scope)];
+            $migrations = MigrationService::instance();
+            // 仅未声明迁移且无历史的插件允许目录不存在；声明目录丢失必须报错。
+            if ($declaredPath === null && !file_exists($directory) && !is_link($directory)
+                && $migrations->latestAppliedVersion($scope) === '') {
+                return ['executed' => [], 'version' => ''];
+            }
+            $versions = $migrations->runDirectory($directory, $scope);
+            return ['executed' => $versions, 'version' => $migrations->latestAppliedVersion($scope)];
         } catch (\Throwable $exception) {
             throw new \RuntimeException('migration: ' . $exception->getMessage(), 0, $exception);
         }

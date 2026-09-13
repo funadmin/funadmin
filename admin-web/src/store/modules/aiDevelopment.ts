@@ -217,14 +217,25 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
     async updateConversationModel(id: number, model: string, profileId?: number) {
       model = model.trim();
       if (!model || !this.conversations.some((item) => item.id === id)) return;
+      return this.updateConversationSelection(id, { model, ...(profileId === undefined ? {} : { profile_id: profileId }) });
+    },
+
+    async updateConversationReasoning(id: number, effort: AiConversation['reasoning_effort']) {
+      if (effort === undefined) return;
+      return this.updateConversationSelection(id, { reasoning_effort: effort });
+    },
+
+    async updateConversationSelection(id: number, payload: Partial<Pick<AiConversation, 'model' | 'profile_id' | 'reasoning_effort'>>) {
+      if (!this.conversations.some((item) => item.id === id)) return;
       if (this.modelSaving[id]) throw new Error('模型正在保存，请稍后重试');
       this.modelSaving[id] = true;
       try {
-        const updated = await aiDevelopmentApi.updateConversation(id, { model, ...(profileId === undefined ? {} : { profile_id: profileId }) });
+        const updated = await aiDevelopmentApi.updateConversation(id, payload);
         const conversation = this.conversations.find((item) => item.id === id);
         // 只更新原会话的模型选择，不覆盖并发状态，也不触碰已冻结任务及事件连接。
         if (conversation) {
-          Object.assign(conversation, { model: updated.model, provider: updated.provider, ...(updated.profile_id === undefined ? {} : { profile_id: updated.profile_id }) });
+          if ('model' in payload || 'profile_id' in payload) Object.assign(conversation, { model: updated.model, provider: updated.provider, ...(updated.profile_id === undefined ? {} : { profile_id: updated.profile_id }) });
+          if ('reasoning_effort' in payload) conversation.reasoning_effort = updated.reasoning_effort;
           // 成功回写时递增，使保存前或保存中发起的旧详情都能识别更新。
           this.modelGenerations[id] = (this.modelGenerations[id] ?? 0) + 1;
         }
@@ -282,7 +293,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         // 旧 GET 仍更新其他详情字段，但不得覆盖期间已保存的模型配置。
         this.conversations[index] = modelGeneration === (this.modelGenerations[id] ?? 0)
           ? conversation
-          : { ...conversation, model: current.model, provider: current.provider, profile_id: current.profile_id };
+          : { ...conversation, model: current.model, provider: current.provider, profile_id: current.profile_id, reasoning_effort: current.reasoning_effort };
       }
       this.messages = messages;
       this.saveRouteState();

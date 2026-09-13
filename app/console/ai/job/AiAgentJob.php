@@ -120,6 +120,7 @@ final class AiAgentJob
                 }
                 $providerConfig['model'] = $model;
                 }
+                $providerConfig['_runtime_state'] = (array) ($task['output']['provider_state'] ?? []);
                 $orchestrator = ($this->orchestratorFactory)($providerConfig);
             }
             if ($this->sandboxManager !== null && !$retainedSandbox) {
@@ -139,20 +140,28 @@ final class AiAgentJob
             $result = $orchestrator->run(
                 $messages,
                 (array) (($task['input']['tools'] ?? [])),
-                ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget']],
+                ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget'], 'usedTokens'=>(int) ($task['output']['usage']['totalTokens'] ?? 0), 'usedRounds'=>(int) ($task['output']['rounds'] ?? 0)],
                 fn (): bool => ($this->store->task($taskId)['status'] ?? '') === 'cancelled',
                 function (string $type, array $payload) use ($taskId, $task): array {
+                    if ($type === 'provider.request') {
+                        $latest = $this->store->task($taskId);
+                        if (($latest['status'] ?? '') !== 'running') throw new \app\common\ai\provider\AiProviderException('cancelled', '任务已取消');
+                        $output = (array) ($latest['output'] ?? []);
+                        $output['provider_state'] = array_intersect_key($payload, array_flip(['requests','reserved_seconds','candidate']));
+                        $this->store->updateTask($taskId, ['output'=>$output]);
+                    }
                     if ($type === 'assistant.message') {
                         $this->store->appendMessage((int) $task['conversation_id'], [
                             'role' => 'assistant',
                             'content' => [['type' => 'text', 'text' => $payload['content'] ?? '']],
-                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? []],
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null],
                         ]);
                     }
                     return $this->store->appendEvent($taskId, $type, $payload);
                 },
                 $context
             );
+            $result['provider_state'] = (array) ($this->store->task($taskId)['output']['provider_state'] ?? []);
             if ($result['status'] === 'awaiting_approval') {
                 $this->store->compareAndSetTask($taskId, ['running'], ['status'=>'paused','output'=>$result,'sandbox_retained'=>1,'heartbeat_at'=>date('Y-m-d H:i:s')]);
             } elseif ($result['status'] === 'cancelled') {

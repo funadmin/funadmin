@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\controller\legacy\LegacyWriteApi;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
+use think\App;
+use think\event\RouteLoaded;
 
 function legacyGoneExpect(bool $condition, string $message): void
 {
@@ -23,26 +22,46 @@ foreach ([
     legacyGoneExpect(!is_file($root . $retired), '旧实现不得恢复：' . $retired);
 }
 
-legacyGoneExpect(class_exists(LegacyWriteApi::class), '必须提供不含旧业务逻辑的 410 tombstone 控制器');
-$controller = new ReflectionClass(LegacyWriteApi::class);
-$groups = $controller->getAttributes(Group::class);
-legacyGoneExpect(count($groups) === 1 && $groups[0]->newInstance()->name === '', 'tombstone 必须位于 console 根路径');
+// 加载真实注解路由，不执行控制器或访问业务数据库。
+$app = new App($root . '/');
+$app->http->name('console');
+$app->setAppPath($root . '/app/console/');
+$app->setNamespace('app\\console');
+$app->initialize();
+set_exception_handler(static function (Throwable $exception): void {
+    fwrite(STDERR, $exception->getMessage() . "\n");
+    exit(1);
+});
+$app->event->trigger(RouteLoaded::class);
 
-$expected = [
-    'formDesignerWrite' => 'form/designer/:action',
-    'formFullPublishWrite' => 'form/full-publish/:action',
-    'developmentCrudWrite' => 'development/crud/:action',
-];
-foreach ($expected as $method => $route) {
-    legacyGoneExpect($controller->hasMethod($method), '缺少 tombstone：' . $method);
-    $attributes = $controller->getMethod($method)->getAttributes(Post::class);
-    legacyGoneExpect(count($attributes) === 1 && $attributes[0]->newInstance()->rule === $route, 'tombstone 路由不匹配：' . $method);
+$routes = [];
+$retiredRoutes = [];
+foreach ($app->route->getRuleList() as $route) {
+    $rule = trim((string) ($route['rule'] ?? ''), '/');
+    $rule = preg_replace('/<([a-zA-Z_][a-zA-Z0-9_]*)>/', ':$1', $rule);
+    $method = strtolower((string) ($route['method'] ?? ''));
+    $target = $route['route'] ?? '';
+    $routes[$method . ' ' . $rule] = $target;
+    foreach (['form/designer', 'form/full-publish', 'development/crud'] as $prefix) {
+        if ($rule === $prefix || str_starts_with($rule, $prefix . '/')) {
+            $retiredRoutes[] = $method . ' ' . $rule;
+        }
+    }
+    legacyGoneExpect(!is_string($target) || !str_contains($target, 'LegacyWriteApi'), '旧控制器不得注册路由：' . $rule);
 }
+legacyGoneExpect($retiredRoutes === [], '旧写入口不得注册：' . implode(', ', $retiredRoutes));
+legacyGoneExpect(!is_file($root . '/app/console/controller/legacy/LegacyWriteApi.php'), '旧控制器文件必须删除');
+legacyGoneExpect(!class_exists('app\\console\\controller\\legacy\\LegacyWriteApi'), '旧控制器不得再自动加载');
 
-$source = (string) file_get_contents($controller->getFileName());
-legacyGoneExpect(str_contains($source, "code: 410") && str_contains($source, "'/development/business'"), '旧写 API 必须统一返回 410 与新入口');
-foreach (['DevCrudService', 'FormDesignerService', 'FormFullPublishService', 'allowOverwrite', 'definition(', 'generate('] as $forbidden) {
-    legacyGoneExpect(!str_contains($source, $forbidden), 'tombstone 禁止恢复旧功能：' . $forbidden);
+foreach ([
+    'get development/business/modules' => 'development.Business/modules',
+    'post development/business/modules/visual' => 'development.Business/createVisual',
+    'post development/business/modules/:id/schema/save' => 'development.Business/saveSchema',
+    'post development/business/modules/:id/publish' => 'development.Business/publish',
+    'post development/business/modules/:id/formal-generation' => 'development.Business/formalGeneration',
+    'post development/business/generations/:id/recover' => 'development.Business/recoverGeneration',
+] as $route => $target) {
+    legacyGoneExpect(($routes[$route] ?? null) === $target, '新业务路由必须存在且目标正确：' . $route);
 }
 
 echo "legacy write API gone tests: PASS\n";

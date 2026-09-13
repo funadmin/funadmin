@@ -223,13 +223,18 @@ final class FormCrudDefinitionFactory
     private function config(array $form, array $config, string $entity): array
     {
         $stored = is_array($form['publish_config'] ?? null) ? $form['publish_config'] : [];
-        return array_replace([
+        $resolved = array_replace([
             'module' => 'generated', 'apiPrefix' => '/generated/' . $entity, 'routePath' => '/generated/' . $entity,
             'menuEnabled' => true, 'parentId' => null, 'parentSourceName' => '',
             'menuName' => (string) ($form['name'] ?? $entity), 'icon' => 'i-ep-document', 'sortOrder' => 999,
             'softDeletes' => true, 'batchDelete' => true, 'import' => true, 'export' => true, 'formMode' => 'dialog',
             'dataScopeEnabled' => false, 'dataScopeField' => '',
         ], $stored, $config);
+        // 动态发布允许保留空配置；正式生成须恢复派生默认值，不放宽非空值校验。
+        foreach (['apiPrefix' => '/generated/' . $entity, 'routePath' => '/generated/' . $entity, 'menuName' => (string) ($form['name'] ?? $entity)] as $key => $default) {
+            if ($resolved[$key] === '') $resolved[$key] = $default;
+        }
+        return $resolved;
     }
 
     private function targets(string $entity, string $class): array

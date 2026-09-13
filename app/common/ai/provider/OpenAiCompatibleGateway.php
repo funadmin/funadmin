@@ -28,6 +28,11 @@ final class OpenAiCompatibleGateway
     private readonly int $maxRetries;
     private readonly mixed $resolver;
     private readonly mixed $sleeper;
+    private int $candidate = 0;
+    private bool $exhausted = false;
+    private int $requestCount = 0;
+    private float $reservedSeconds = 0;
+    private mixed $event = null;
 
     public function __construct(
         private readonly ClientInterface $client,
@@ -44,6 +49,12 @@ final class OpenAiCompatibleGateway
         $this->resolver = $resolver ?? static fn (string $host): array => self::resolveHost($host);
         $this->sleeper = $sleeper ?? static fn (int $milliseconds) => usleep($milliseconds * 1000);
         $this->validateUrl(false);
+        $state = $config['_runtime_state'] ?? [];
+        $this->requestCount = (int) ($state['requests'] ?? 0);
+        $this->reservedSeconds = (float) ($state['reserved_seconds'] ?? 0);
+        $this->candidate = (int) ($state['candidate'] ?? 0);
+        if ($this->requestCount < 0 || $this->reservedSeconds < 0 || $this->candidate < 0 || $this->candidate > count($config['fallback_models'] ?? [])) throw new InvalidArgumentException('运行额度状态无效');
+        if ($this->requestCount >= 12 || $this->reservedSeconds + $this->requestTimeout > 300) throw new AiProviderException('request_budget_exceeded', '累计请求额度耗尽');
     }
 
     /** 目录只证明端点返回了模型 ID，不推断窗口或推理能力。 */
@@ -69,9 +80,29 @@ final class OpenAiCompatibleGateway
         return array_values($models);
     }
 
-    public function chat(array $messages, array $tools = []): array
+    public function chat(array $messages, array $tools = [], ?callable $event = null): array
     {
-        $response = $this->request($this->payload($messages, $tools, false));
+        $this->event = $event;
+        AiModelCapabilities::validateSelection($this->config);
+        $models = array_merge([$this->model], ($this->config['fallback_enabled'] ?? false) ? $this->config['fallback_models'] : []);
+        // 在任何请求前检查全部候选，不能通过跳过不兼容模型悄悄降级。
+        $payloads = [];
+        foreach ($models as $model) $payloads[] = $this->payload($messages, $tools, false, $model);
+        if ($this->exhausted) throw new AiProviderException('fallback_exhausted', '候选模型已耗尽');
+        while (true) {
+            try {
+                $response = $this->request($payloads[$this->candidate], retries: $this->candidate === 0 ? $this->maxRetries : 0);
+                break;
+            } catch (AiProviderException $exception) {
+                if (!in_array($exception->category(), ['rate_limited','provider_unavailable','transient_transport'], true)) throw $exception;
+                if (!isset($models[$this->candidate + 1])) {
+                    $this->exhausted = true;
+                    throw $exception;
+                }
+                $from = $models[$this->candidate++];
+                $event && $event('provider.fallback', ['from_model'=>$from,'to_model'=>$models[$this->candidate],'category'=>$exception->category(),'candidate'=>$this->candidate]);
+            }
+        }
         try {
             $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
@@ -80,7 +111,13 @@ final class OpenAiCompatibleGateway
         $choice = $body['choices'][0] ?? [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
 
+        if (!empty($message['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('safety_refusal', '模型安全拒绝');
+        $actual = $body['model'] ?? $models[$this->candidate];
+        if (!is_string($actual) || $actual === '' || strlen($actual) > 200 || preg_match('/[\x00-\x1f\x7f]/', $actual)) throw new AiProviderException('invalid_response', '返回模型标识无效');
+        $event && $event('provider.completed', ['model'=>$actual,'requested_model'=>$models[$this->candidate],'requests'=>$this->requestCount]);
         return [
+            'model' => $actual,
+            'requestedModel' => $models[$this->candidate],
             'id' => (string) ($body['id'] ?? ''),
             'content' => $message['content'] ?? null,
             'toolCalls' => $this->normalizeToolCalls((array) ($message['tool_calls'] ?? [])),
@@ -111,12 +148,19 @@ final class OpenAiCompatibleGateway
         yield ['type' => 'done'];
     }
 
-    private function request(array $json, bool $stream = false, string $path = '/chat/completions', string $method = 'POST'): ResponseInterface
+    private function request(array $json, bool $stream = false, string $path = '/chat/completions', string $method = 'POST', ?int $retries = null): ResponseInterface
     {
         $addresses = $this->validatedAddresses();
         $host = (string) parse_url($this->baseUrl, PHP_URL_HOST);
         $port = (int) (parse_url($this->baseUrl, PHP_URL_PORT) ?: 443);
+        $retries ??= $this->maxRetries;
         for ($attempt = 0; ; $attempt++) {
+            if ($path === '/chat/completions') {
+                if ($this->requestCount >= 12 || $this->reservedSeconds + $this->requestTimeout > 300) throw new AiProviderException('request_budget_exceeded', '累计请求次数或超时额度耗尽');
+                $this->requestCount++;
+                $this->reservedSeconds += $this->requestTimeout;
+                $this->event && ($this->event)('provider.request', ['model'=>$json['model'],'attempt'=>$attempt + 1,'requests'=>$this->requestCount,'reserved_seconds'=>$this->reservedSeconds,'candidate'=>$this->candidate]);
+            }
             try {
                 $response = $this->client->request($method, $this->baseUrl . $path, [
                     'headers' => array_filter([
@@ -132,13 +176,24 @@ final class OpenAiCompatibleGateway
                     'curl' => [CURLOPT_RESOLVE => array_map(static fn (string $address): string => "{$host}:{$port}:{$address}", $addresses)],
                 ]);
             } catch (Throwable $exception) {
-                throw new AiProviderException($this->isTimeout($exception) ? 'timeout' : 'transport', $this->isTimeout($exception) ? 'Provider 请求超时' : 'Provider 网络请求失败', previous: $exception);
+                // 仅明确连接层故障可重试；无 errno、TLS/证书错误及一般运行错误均拒绝猜测。
+                // errno 28 可能发生在发送请求或接收部分响应后，必须停止，不能重试或备用。
+                $transient = $exception instanceof \GuzzleHttp\Exception\ConnectException && in_array($exception->getHandlerContext()['errno'] ?? null, [6,7], true);
+                if ($transient && $attempt < $retries) { ($this->sleeper)(min(2000, 100 * (2 ** $attempt))); continue; }
+                throw new AiProviderException($transient ? 'transient_transport' : ($this->isTimeout($exception) ? 'timeout' : 'transport'), 'Provider 网络请求失败');
             }
             $status = $response->getStatusCode();
             if ($status >= 200 && $status < 300) {
                 return $response;
             }
-            if (($status === 429 || $status >= 500) && $attempt < $this->maxRetries) {
+            // 非成功响应若携带内容、工具调用或安全拒绝，不能视为无输出暂时故障。
+            $errorBody = json_decode((string) $response->getBody(), true);
+            $errorCode = $errorBody['error']['code'] ?? null;
+            if (in_array($errorCode, ['content_policy_violation','content_filter','safety_refusal','context_length_exceeded','unsupported_parameter','invalid_parameter','invalid_api_key','insufficient_quota'], true)) throw new AiProviderException('invalid_request', 'Provider 明确拒绝请求，禁止降级');
+            foreach ($errorBody['choices'] ?? [] as $choice) {
+                if ((isset($choice['message']['content']) && $choice['message']['content'] !== '') || !empty($choice['message']['tool_calls']) || isset($choice['message']['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('response_started', '非成功响应已包含模型输出');
+            }
+            if (($status === 429 || ($status >= 500 && $status <= 599)) && $attempt < $retries) {
                 ($this->sleeper)($this->retryDelay($response, $attempt));
                 continue;
             }
@@ -146,18 +201,15 @@ final class OpenAiCompatibleGateway
         }
     }
 
-    private function payload(array $messages, array $tools, bool $stream): array
+    private function payload(array $messages, array $tools, bool $stream, ?string $model = null): array
     {
         if (($this->config['protocol'] ?? 'openai-chat') !== 'openai-chat') {
             throw new InvalidArgumentException('仅支持 openai-chat 协议');
         }
-        if (($this->config['fallback_enabled'] ?? false) !== false) {
-            throw new InvalidArgumentException('自动备用尚未实现，请关闭 fallback_enabled');
-        }
-        // 兼容协议没有可信的推理能力发现标准，未验证能力不得伪发送参数。
-        if (($this->config['reasoning_effort'] ?? null) !== null) {
-            throw new InvalidArgumentException('当前模型的 reasoning_effort 能力未验证');
-        }
+        if ($stream && ($this->config['fallback_enabled'] ?? false)) throw new InvalidArgumentException('流式请求暂不支持备用');
+        AiModelCapabilities::validateSelection($this->config);
+        $model ??= $this->model;
+        $cap = AiModelCapabilities::forModel($this->config, $model);
         $pending = [];
         foreach ($messages as &$message) {
             if (($message['role'] ?? '') === 'tool') {
@@ -191,8 +243,11 @@ final class OpenAiCompatibleGateway
         if (($inputLimit !== null && $estimate > $inputLimit) || ($window !== null && ($output === null || $estimate + $output > $window))) {
             throw new AiProviderException('budget_exceeded', '保守输入估算超过预算，或上下文预算缺少明确输出预留');
         }
-        $payload = ['model' => $this->model, 'messages' => $messages, 'stream' => $stream];
-        if ($output !== null) $payload['max_tokens'] = $output;
+        if ($cap['context_window'] !== null && ($output === null || $estimate + $output > $cap['context_window'])) throw new AiProviderException('budget_exceeded', '候选模型上下文预算不匹配');
+        $payload = ['model' => $model, 'messages' => $messages, 'stream' => $stream];
+        if ($output !== null) $payload[$cap['output_token_parameter']] = $output;
+        $effort = $this->config['reasoning_effort'] ?? null;
+        if ($effort !== null && $effort !== 'default') $payload['reasoning_effort'] = $effort;
         if ($stream && ($this->config['stream_usage'] ?? false) === true) $payload['stream_options'] = ['include_usage'=>true];
         if ($tools !== []) {
             $payload['tools'] = $tools;
@@ -326,13 +381,16 @@ final class OpenAiCompatibleGateway
         return match (true) {
             $status === 401 || $status === 403 => 'authentication',
             $status === 429 => 'rate_limited',
-            $status >= 500 => 'provider_unavailable',
+            $status >= 500 && $status <= 599 => 'provider_unavailable',
             default => 'invalid_request',
         };
     }
 
     private function isTimeout(Throwable $exception): bool
     {
+        if ($exception instanceof \GuzzleHttp\Exception\RequestException || $exception instanceof \GuzzleHttp\Exception\ConnectException) {
+            if (($exception->getHandlerContext()['errno'] ?? null) === 28) return true;
+        }
         return str_contains(strtolower($exception->getMessage()), 'timed out') || str_contains(strtolower($exception->getMessage()), 'timeout');
     }
 }

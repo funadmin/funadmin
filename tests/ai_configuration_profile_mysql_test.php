@@ -9,6 +9,9 @@ use app\console\ai\service\AiProfileSecret;
 use Defuse\Crypto\Key;
 use think\facade\Db;
 
+$fallbackUpdate = ['name'=>'修改','fallback_models'=>['b','a'],'fallback_enabled'=>true,'max_output_tokens'=>100,'model_capabilities'=>array_map(static fn ($model) => ['model'=>$model,'reasoning_efforts'=>[],'output_token_parameter'=>'max_tokens','context_window'=>8000,'max_output_tokens'=>500], ['unknown','b','a'])];
+$fixture = AiConfigurationProfileService::validate($fallbackUpdate + ['provider'=>'custom','protocol'=>'openai-chat','base_url'=>'https://example.com/v1','model'=>'unknown']);
+profileExpect($fixture['fallback_models'] === ['b','a'], '隔离库 fallback fixture 必须通过真实能力校验');
 profileExpect(class_exists(DatabaseAiProfileRepository::class), '缺少档案持久化仓储');
 if (getenv('AI_PROFILE_MYSQL') !== '1') { echo "MySQL SKIP: AI_PROFILE_MYSQL=1 required\n"; return; }
 $app = new think\App(dirname(__DIR__));
@@ -51,7 +54,7 @@ try {
     profileReject(fn () => $service->update(8, $id, ['name'=>'越权']));
     profileReject(fn () => $service->copy(8, $id, '越权'));
     profileReject(fn () => $service->create(0, $base));
-    $service->update(7, $id, ['name'=>'修改','fallback_models'=>['b','a'],'fallback_enabled'=>true]);
+    $service->update(7, $id, $fallbackUpdate);
     $read = (new AiConfigurationProfileService(new DatabaseAiProfileRepository(), new AiProfileSecret($key)))->read(7, $id);
     profileExpect($read['name'] === '修改' && $read['fallback_models'] === ['b','a'] && $read['has_api_key'], '重建服务后持久化和保留密钥');
     $copy = $service->copy(7, $id, '副本');

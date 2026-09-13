@@ -29,6 +29,7 @@ const aiStore = reactive({
   selectionGeneration: 0,
   updateConversationState: vi.fn().mockResolvedValue(undefined),
   updateConversationModel: vi.fn().mockResolvedValue(undefined),
+  updateConversationReasoning: vi.fn().mockResolvedValue(undefined),
   deleteConversation: vi.fn().mockResolvedValue(undefined),
   deleteConversationGroup: vi.fn().mockResolvedValue(undefined),
   selectConversation: vi.fn().mockResolvedValue(undefined),
@@ -215,6 +216,33 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.find('[data-testid="profile-save"]').exists()).toBe(true);
   });
 
+  it('思考模式继承档案，展示默认模型和常用模型，阻止不兼容模型切换', async () => {
+    aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7 }];
+    aiStore.selectedConversationId = 1;
+    vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '能力档案', enabled: true, is_default: true, model: 'm', favorite_models: ['m', 'b'], reasoning_effort: 'high', model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }], max_output_tokens: 100 }] as never);
+    const { wrapper } = mountPage('zh-CN');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="inherited-reasoning"]').text()).toContain('high');
+    expect(wrapper.find('[data-testid="inherited-reasoning"]').text()).toContain('继承档案');
+    const reasoning = wrapper.get('[data-testid="conversation-reasoning"]');
+    expect(reasoning.findAll('option').map(option => option.element.value)).toEqual(['', 'high']);
+    await reasoning.setValue('high');
+    expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, 'high');
+    await flushPromises();
+    aiStore.conversations[0].reasoning_effort = 'high';
+    await nextTick();
+    await reasoning.setValue('');
+    expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, null);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="profile-model-summary"]').text()).toContain('m');
+    expect(wrapper.find('[data-testid="favorite-models"]').text()).toContain('b');
+    await wrapper.get('[data-testid="model-id"]').setValue('unknown');
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    expect(aiStore.updateConversationModel).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="model-error"]').text()).toContain('推理档位');
+    expect(pageSource).not.toContain('!profile.enabled || profile.fallback_enabled');
+  });
+
   it('工作区显示模型 ID 输入、当前模型和真实边界，空值及无会话禁用', async () => {
     const { wrapper, locale } = mountPage('zh-CN');
     expect(wrapper.find('[data-testid="save-model"]').exists()).toBe(true);
@@ -255,6 +283,36 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     finish();
     await flushPromises();
     expect(wrapper.get('[data-testid="current-model"]').text()).toContain('new');
+    expect(aiStore.activeTask.model).toBe('frozen');
+    expect(aiStore.activateTask).not.toHaveBeenCalled();
+    expect(aiStore.closeEvents).not.toHaveBeenCalled();
+    expect(aiStore.connectEvents).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('思考保存期间禁用模型与档案入口，切走后忽略旧错误且不重建任务 SSE', async () => {
+    aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7 }, { id: 2, model: 'm', profile_id: 7 }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 8, status: 'running', model: 'frozen' };
+    vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '档案', enabled: true, model: 'm', reasoning_effort: null, model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] }] as never);
+    const { wrapper } = mountPage('zh-CN');
+    await flushPromises();
+    aiStore.connectEvents.mockClear();
+    let reject!: (error: Error) => void;
+    aiStore.updateConversationReasoning.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+    await wrapper.get('[data-testid="conversation-reasoning"]').setValue('low');
+    expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    expect(aiStore.updateConversationModel).not.toHaveBeenCalled();
+    aiStore.selectedConversationId = 2;
+    aiStore.selectionGeneration++;
+    await nextTick();
+    reject(new Error('旧思考保存失败'));
+    await flushPromises();
+    expect(wrapper.find('[data-testid="model-error"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('disabled')).toBeUndefined();
+    expect((wrapper.get('[data-testid="conversation-reasoning"]').element as HTMLSelectElement).value).toBe('');
     expect(aiStore.activeTask.model).toBe('frozen');
     expect(aiStore.activateTask).not.toHaveBeenCalled();
     expect(aiStore.closeEvents).not.toHaveBeenCalled();

@@ -27,13 +27,21 @@
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
               <el-select data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
-                <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="profile.name" :disabled="!profile.enabled || profile.fallback_enabled || profile.reasoning_effort !== null" />
+                <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="`${profile.name}${profile.is_default ? '（默认）' : ''} · ${profile.model}`" :disabled="!profile.enabled" />
               </el-select>
               <el-button :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
               <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
               <el-input id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" aria-describedby="ai-model-hint" :disabled="modelSaving || !selectedConversation" />
               <el-button data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
             </div>
+            <small data-testid="profile-model-summary">档案默认模型：{{ selectedProfile?.model || '未选择档案' }}；Token 输入 {{ selectedProfile?.max_input_tokens ?? '未指定' }} / 输出 {{ selectedProfile?.max_output_tokens ?? '未指定' }} / 上下文 {{ selectedProfile?.context_window ?? '未指定' }}</small>
+            <div v-if="selectedProfile" data-testid="favorite-models">常用模型：<button v-for="model in selectedProfile.favorite_models" :key="model" type="button" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</button></div>
+            <label for="ai-conversation-reasoning">会话思考档位</label>
+            <select id="ai-conversation-reasoning" data-testid="conversation-reasoning" :value="selectedConversation?.reasoning_effort ?? ''" :disabled="modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
+              <option value="">继承档案（default）</option>
+              <option v-for="effort in legalReasoningEfforts" :key="effort" :value="effort">{{ effort }}</option>
+            </select>
+            <small data-testid="inherited-reasoning">思考模式：{{ selectedProfile ? (effectiveReasoning || '默认（不发送参数）') : '未选择档案，使用服务端配置' }}。{{ selectedConversation?.reasoning_effort == null ? '继承档案' : '会话覆盖' }}；仅影响新建任务，运行任务保留快照。</small>
             <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }}</small>
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
@@ -71,7 +79,7 @@ import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, 
 import { useI18n } from 'vue-i18n';
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
-import { aiDevelopmentApi, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput } from '@/api/development/ai';
+import { aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
 import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
@@ -105,7 +113,7 @@ const profiles = ref<AiProfile[]>([]);
 const profileBusy = ref(false);
 const profileError = ref('');
 const profileNotice = ref('');
-const profileModels = ref<Array<{ id: string }>>([]);
+const profileModels = ref<AiCatalogModel[]>([]);
 const savedProfile = ref<AiProfile | null>(null);
 let profileGeneration = 0;
 function resetProfileFeedback() { profileGeneration++; profileModels.value = []; profileError.value = ''; profileNotice.value = ''; }
@@ -116,6 +124,8 @@ async function selectProfile(id: number) {
   const conversationId = store.selectedConversationId;
   const generation = store.selectionGeneration;
   if (!profile || !conversationId || modelSaving.value) return;
+  const error = profileCapabilityError({ ...profile, reasoning_effort: selectedConversation.value?.reasoning_effort ?? profile.reasoning_effort });
+  if (!profile.enabled || error) { modelError.value = error || '档案已停用'; return; }
   modelSaving.value = true;
   modelError.value = null;
   try { await store.updateConversationProfile(conversationId, id, profile.model); }
@@ -186,6 +196,26 @@ async function fetchProfileModels(id: number) {
   });
 }
 const selectedConversation = computed(() => store.conversations.find((item) => item.id === store.selectedConversationId));
+const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedConversation.value?.profile_id));
+const effectiveReasoning = computed(() => selectedConversation.value?.reasoning_effort ?? selectedProfile.value?.reasoning_effort ?? null);
+const legalReasoningEfforts = computed(() => (['low', 'medium', 'high'] as AiReasoningEffort[]).filter(reasoning_effort => selectedProfile.value && !profileCapabilityError({ ...selectedProfile.value, model: selectedConversation.value?.model || selectedProfile.value.model, reasoning_effort })));
+async function selectReasoning(event: Event) {
+  const control = event.target as HTMLSelectElement;
+  const value = control.value;
+  control.value = selectedConversation.value?.reasoning_effort ?? '';
+  const id = selectedConversation.value?.id;
+  const profile = selectedProfile.value;
+  if (!id || !profile || !profile.enabled || modelSaving.value) return;
+  const effort = value === '' ? null : value as AiReasoningEffort;
+  const error = profileCapabilityError({ ...profile, model: selectedConversation.value!.model, reasoning_effort: effort ?? profile.reasoning_effort });
+  if (error) { modelError.value = error; return; }
+  const generation = store.selectionGeneration;
+  modelSaving.value = true;
+  modelError.value = null;
+  try { await store.updateConversationReasoning(id, effort); }
+  catch (error) { if (store.selectedConversationId === id && store.selectionGeneration === generation) modelError.value = error instanceof Error ? error.message : ''; }
+  finally { modelSaving.value = false; }
+}
 const modelDraft = ref('');
 const modelSaving = ref(false);
 const modelError = ref<string | null>(null);
@@ -198,6 +228,10 @@ async function saveModel() {
   const id = selectedConversation.value?.id;
   const model = modelDraft.value.trim();
   if (id === undefined || !model || modelSaving.value) return;
+  if (selectedProfile.value) {
+    const error = profileCapabilityError({ ...selectedProfile.value, model, reasoning_effort: effectiveReasoning.value });
+    if (error) { modelError.value = error; return; }
+  }
   const generation = store.selectionGeneration;
   modelSaving.value = true;
   modelError.value = null;
@@ -407,6 +441,7 @@ async function testProvider(payload: Record<string, unknown>) {
 
 onMounted(async () => {
   mobileQuery?.addEventListener('change', updateViewport);
+  void loadProfiles();
   await manage(async () => {
     await store.restoreRouteState();
     if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); }

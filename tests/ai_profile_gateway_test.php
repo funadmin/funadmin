@@ -87,6 +87,35 @@ foreach ([new RuntimeException('timeout'), new \GuzzleHttp\Exception\ConnectExce
     try { providerGateway([$error,$ok], $history, $policy)->chat([]); throw new LogicException('未知异常不得备用'); } catch (\app\common\ai\provider\AiProviderException) {}
     providerExpect(count($history) === 1, '不根据错误文本猜测暂时故障');
 }
+// 通过真实 Client 的 handler 模拟已发送请求及收到部分响应后的 errno 28。
+foreach ([0, 128] as $downloaded) {
+    foreach ([0, 2] as $retries) {
+        $wire = [];
+        $timeoutEvents = [];
+        $sleeps = [];
+        $client = new \GuzzleHttp\Client(['handler'=>static function ($request) use (&$wire, $downloaded) {
+            $wire[] = json_decode((string) $request->getBody(), true);
+            return \GuzzleHttp\Promise\Create::rejectionFor(new \GuzzleHttp\Exception\ConnectException(
+                'cURL error 28', $request, null,
+                ['errno'=>28, 'request_size'=>strlen((string) $request->getBody()), 'size_download'=>$downloaded]
+            ));
+        }]);
+        $gateway = new \app\common\ai\provider\OpenAiCompatibleGateway($client, array_replace($policy, [
+            'base_url'=>'https://api.example.com/v1', 'model'=>'test-model', 'max_retries'=>$retries, 'request_timeout'=>2,
+        ]), static fn () => ['93.184.216.34'], static function ($delay) use (&$sleeps) { $sleeps[] = $delay; });
+        $category = null;
+        try {
+            $gateway->chat($messages, [], static function ($type, $payload) use (&$timeoutEvents) { $timeoutEvents[] = [$type, $payload]; });
+        } catch (\app\common\ai\provider\AiProviderException $e) {
+            $category = $e->category();
+        }
+        providerExpect(count($wire) === 1, 'errno 28 可能已发送或收到部分响应，必须仅请求一次');
+        providerExpect($category === 'timeout', 'errno 28 无需依赖异常文案，必须明确分类为 timeout');
+        providerExpect($sleeps === [], 'timeout 不得等待重试');
+        providerExpect(array_column($wire, 'model') === ['test-model'], 'timeout 不得请求备用模型');
+        providerExpect(count(array_filter($timeoutEvents, static fn ($e) => $e[0] === 'provider.fallback')) === 0, 'timeout 不得产生 fallback 事件');
+    }
+}
 $history = [];
 try { iterator_to_array(providerGateway([], $history, $policy)->stream([])); throw new LogicException('流式备用不在本期范围'); } catch (InvalidArgumentException) {}
 providerExpect($history === [], '流式启用备用明确拒绝');
@@ -95,4 +124,28 @@ $gateway = providerGateway([new Response(500),new Response(500),new Response(500
 try { $gateway->chat([]); } catch (\app\common\ai\provider\AiProviderException) {}
 try { $gateway->chat([]); } catch (\app\common\ai\provider\AiProviderException) {}
 providerExpect(count($history) === 5, '耗尽候选后跨轮不得重复主模型或备用');
+foreach (['content'=>'0','refusal'=>'no','tool_calls'=>[['id'=>'x']]] as $field=>$value) {
+    $history = [];
+    $body = json_encode(['choices'=>[['message'=>[$field=>$value]]]]);
+    try { providerGateway([new Response(503, [], $body),$ok], $history, $policy)->chat([]); throw new LogicException('已返回输出不得重试'); } catch (\app\common\ai\provider\AiProviderException) {}
+    providerExpect(count($history) === 1, '即使 503 有内容也不得重复请求');
+}
+$history = [];
+$gateway = providerGateway(array_fill(0, 13, $ok), $history);
+for ($i = 0; $i < 12; $i++) $gateway->chat([]);
+try { $gateway->chat([]); throw new LogicException('累计请求上限必须生效'); } catch (\app\common\ai\provider\AiProviderException $e) { providerExpect($e->category() === 'request_budget_exceeded', '请求额度分类'); }
+providerExpect(count($history) === 12, '跨轮最多十二请求');
+$history = [];
+$gateway = providerGateway([new Response(503),$ok], $history, array_replace($policy, ['request_timeout'=>200]));
+try { $gateway->chat([]); throw new LogicException('累计超时额度必须生效'); } catch (\app\common\ai\provider\AiProviderException $e) { providerExpect($e->category() === 'request_budget_exceeded', '超时额度不得触发备用'); }
+providerExpect(count($history) === 1, '累计预留超时不超过 300 秒');
+$history = [];
+$gateway = providerGateway([new Response(503),$ok], $history, array_replace($policy, ['fallback_enabled'=>false,'max_retries'=>0]));
+try { $gateway->chat([]); } catch (\app\common\ai\provider\AiProviderException) {}
+providerExpect(count($history) === 1, '关闭备用即使配置候选也不启用');
+foreach (['content_policy_violation','context_length_exceeded','unsupported_parameter'] as $code) {
+    $history = [];
+    try { providerGateway([new Response(503, [], json_encode(['error'=>['code'=>$code]])),$ok], $history, $policy)->chat([]); throw new LogicException('明确永久错误不得因 503 降级'); } catch (\app\common\ai\provider\AiProviderException) {}
+    providerExpect(count($history) === 1, '错误语义优先于暂时 HTTP 状态');
+}
 echo "AI profile gateway: PASS\n";
