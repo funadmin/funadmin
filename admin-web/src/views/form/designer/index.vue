@@ -30,7 +30,31 @@
         >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
         <el-button type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
         <el-button v-perm="'development:business:generate'" @click="openFormalGeneration">生成正式模块</el-button>
+      <div v-if="saveBlocked" data-testid="save-conflict-alert" role="alert" class="w-full">
+        <strong>保存已暂停。</strong>本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。
+        <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">核对版本</el-button>
+      </div>
     </div>
+
+    <el-dialog v-model="conflictReviewVisible" title="核对保存冲突" width="90%" :close-on-click-modal="false" :close-on-press-escape="!conflictResolving" :show-close="!conflictResolving">
+      <p>以下为完整只读 JSON。取消会保留本地编辑并继续暂停保存；核对后继续编辑需要重新核对。</p>
+      <p v-if="conflictReviewError" role="alert">{{ conflictReviewError }}</p>
+      <template v-if="conflictReview">
+        <p class="break-all">核对的服务端版本 hash：{{ conflictReview.server.schema_hash }}</p>
+        <label class="block">本地草稿（核对快照）
+          <textarea readonly :value="formatDebug(conflictReview.local)" rows="12" class="w-full" aria-label="本地草稿完整 JSON" />
+        </label>
+        <label class="block">服务端版本
+          <textarea readonly :value="formatDebug(conflictReview.server)" rows="12" class="w-full" aria-label="服务端完整 JSON" />
+        </label>
+      </template>
+      <template #footer>
+        <el-button :disabled="conflictResolving" @click="cancelConflictReview">取消，保留本地</el-button>
+        <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">重新核对版本</el-button>
+        <el-button :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('server')">放弃本地，采用服务端</el-button>
+        <el-button type="primary" :loading="conflictResolving" :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('local')">以核对后的本地覆盖</el-button>
+      </template>
+    </el-dialog>
 
     <div v-if="workspaceMode === 'edit'" class="designer-edit-only">
     <el-alert
@@ -410,14 +434,19 @@ const initializePalette = () => {
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let localDraftTimer: ReturnType<typeof setTimeout> | null = null;
 let saveInFlight = false;
-let saveBlocked = false;
+const saveBlocked = ref(false);
+const conflictReviewVisible = ref(false);
+const conflictReviewLoading = ref(false);
+const conflictResolving = ref(false);
+const conflictReviewError = ref('');
+const conflictReview = ref<{ local: ReturnType<typeof definition>; server: import('@/api/form').FormDefinition; moduleId: number } | null>(null);
 let saveQueued = false;
 let designerActive = true;
 let localDraftRestorePending = false;
 const localDraftKey = computed(() => `form-designer-draft:${String(store.form.value.id ?? store.form.value.form_key ?? 'new')}`);
 const persistLocalDraft = () => {
   if (!designerActive || typeof localStorage === 'undefined') return;
-  localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now(), saveBlocked }));
+  localStorage.setItem(localDraftKey.value, JSON.stringify({ definition: definition(), savedAt: Date.now(), saveBlocked: saveBlocked.value }));
 };
 const scheduleLocalDraft = () => {
   if (localDraftTimer) clearTimeout(localDraftTimer);
@@ -438,12 +467,12 @@ const restoreLocalDraft = () => {
     if (draft.definition?.schema_document?.schemaVersion === 2 && window.confirm('检测到未同步的本地表单草稿，是否恢复？')) {
       const loadedHash = store.form.value.schema_hash;
       // 历史草稿不是服务端基线；版本不明时保留内容并暂停，禁止换 hash 盲目覆盖。
-      saveBlocked = draft.saveBlocked === true || !loadedHash || draft.definition.schema_hash !== loadedHash;
+      saveBlocked.value = draft.saveBlocked === true || !loadedHash || draft.definition.schema_hash !== loadedHash;
       store.load({ ...draft.definition, schema_hash: loadedHash });
       store.updateForm({ schema_origin: 'designer' });
-      if (saveBlocked) {
+      if (saveBlocked.value) {
         store.failSave();
-        ElMessage.warning('本地草稿与服务端版本不一致，已暂停保存，请先导出草稿并核对版本');
+        ElMessage.warning('本地草稿已恢复，保存仍暂停，请点击“核对版本”选择恢复方式');
       }
     }
   } catch { clearLocalDraft(); }
@@ -592,11 +621,96 @@ async function load() {
 }
 
 async function onSave() {
+  if (saveBlocked.value) return reviewSaveConflict();
   return saveDefinition(false);
 }
 
+// 核对只读取服务端，不替换本地；提交只使用此处冻结的快照和版本。
+async function reviewSaveConflict() {
+  if (!designerActive || !saveBlocked.value || saveInFlight || conflictReviewLoading.value || conflictResolving.value) return;
+  conflictReviewVisible.value = true;
+  conflictReview.value = null;
+  conflictReviewError.value = '';
+  conflictReviewLoading.value = true;
+  const reviewedModuleId = moduleId.value;
+  const local = JSON.parse(JSON.stringify(definition())) as ReturnType<typeof definition>;
+  persistLocalDraft();
+  try {
+    const data = await businessDevelopmentApi.module(reviewedModuleId);
+    if (!designerActive || !conflictReviewVisible.value || moduleId.value !== reviewedModuleId) return;
+    if (!data.form?.schema_hash || data.form.schema_document?.schemaVersion !== 2 || !Array.isArray(data.form.schema_document.nodes)) {
+      throw new Error('服务端文档或版本 hash 缺失，无法安全恢复，请重新核对');
+    }
+    conflictReview.value = { local, server: JSON.parse(JSON.stringify({ ...data.form, fields: data.fields })), moduleId: reviewedModuleId };
+  } catch (error) {
+    conflictReviewError.value = error instanceof Error ? error.message : '版本读取失败，请重新核对';
+  } finally {
+    conflictReviewLoading.value = false;
+  }
+}
+
+function cancelConflictReview() {
+  if (conflictResolving.value) return;
+  conflictReviewVisible.value = false;
+  conflictReview.value = null;
+  persistLocalDraft();
+}
+
+async function resolveSaveConflict(choice: 'local' | 'server') {
+  const reviewed = conflictReview.value;
+  if (!designerActive || !saveBlocked.value || !reviewed || conflictReviewLoading.value || conflictResolving.value || saveInFlight) return;
+  const unchanged = () => moduleId.value === reviewed.moduleId && JSON.stringify(definition()) === JSON.stringify(reviewed.local);
+  if (!unchanged()) {
+    conflictReview.value = null;
+    conflictReviewError.value = '本地内容已变化，请重新核对版本后再选择';
+    persistLocalDraft();
+    return;
+  }
+  const prompt = choice === 'local'
+    ? '确认以已核对的本地快照覆盖此服务端版本？服务端再次变化时将拒绝保存。'
+    : '确认放弃本地全部未保存编辑，采用已核对的服务端版本？';
+  if (!window.confirm(prompt) || !unchanged()) return;
+  conflictResolving.value = true;
+  saveInFlight = true;
+  conflictReviewError.value = '';
+  try {
+    if (choice === 'local') {
+      store.beginSave();
+      const saved = await businessDevelopmentApi.saveSchema(reviewed.moduleId, reviewed.local.schema_document, String(reviewed.server.schema_hash), '核对冲突后采用本地');
+      if (!unchanged()) {
+        // 只推进已成功的版本；请求期间的新编辑必须重新核对，不能排队自动覆盖。
+        store.acknowledgeSave(saved.schemaHash);
+        store.failSave();
+        conflictReviewError.value = '核对快照已保存，但本地又有编辑，保存仍暂停，请重新核对版本';
+        return;
+      }
+      store.markSaved({ ...reviewed.local, schema_document: saved.document, schema_hash: saved.schemaHash } as import('@/api/form').FormDefinition);
+    } else {
+      store.load(reviewed.server);
+      publishConfig.value = { ...publishConfig.value, ...reviewed.server.publish_config };
+    }
+    saveBlocked.value = false;
+    if (localDraftTimer) clearTimeout(localDraftTimer);
+    localDraftTimer = null;
+    clearLocalDraft();
+    conflictReviewVisible.value = false;
+    ElMessage.success('冲突已处理，后续编辑将继续自动保存');
+  } catch (error) {
+    store.failSave();
+    conflictReviewError.value = isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT'
+      ? '服务端版本再次变化，保存仍暂停，请重新核对版本；本地编辑已保留'
+      : error instanceof Error ? error.message : '恢复失败，保存仍暂停，请重新核对版本';
+  } finally {
+    conflictReview.value = null;
+    conflictResolving.value = false;
+    saveInFlight = false;
+    saveQueued = false;
+    if (saveBlocked.value) persistLocalDraft();
+  }
+}
+
 async function saveDefinition(automatic: boolean) {
-  if (!designerActive || saveBlocked || !store.dirty.value || (automatic && !online.value)) return;
+  if (!designerActive || saveBlocked.value || !store.dirty.value || (automatic && !online.value)) return;
   if (saveInFlight) { saveQueued = true; return; }
   if (!validateDefinitionBasics(automatic)) return;
   const expectedHash = String(store.form.value.schema_hash ?? '');
@@ -624,7 +738,7 @@ async function saveDefinition(automatic: boolean) {
   } catch (error) {
     store.failSave();
     if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
-      saveBlocked = true;
+      saveBlocked.value = true;
       saveQueued = false;
       if (autoSaveTimer) clearTimeout(autoSaveTimer);
       autoSaveTimer = null;
@@ -632,7 +746,7 @@ async function saveDefinition(automatic: boolean) {
     }
     if (!designerActive) return;
     if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
-      ElMessage.warning('Schema 版本已变化，请刷新页面后重试');
+      ElMessage.warning('Schema 版本已变化，保存已暂停，请点击“核对版本”选择恢复方式');
     } else if (isBusinessApiError(error)) {
       ElMessage.error(`${error.msg}（请求 ID：${error.data.error.requestId}）`);
     } else {
@@ -640,7 +754,7 @@ async function saveDefinition(automatic: boolean) {
     }
   } finally {
     saveInFlight = false;
-    if (saveQueued && !saveBlocked && designerActive && online.value) scheduleAutoSave(500);
+    if (saveQueued && !saveBlocked.value && designerActive && online.value) scheduleAutoSave(500);
     saveQueued = false;
   }
 }
@@ -798,13 +912,14 @@ const openGeneratedRoute = () => {
 
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!designerActive || !store.dirty.value) return;
+  persistLocalDraft();
   event.preventDefault();
   event.returnValue = '';
 };
 onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
 
 const scheduleAutoSave = (delay = 1200) => {
-  if (!designerActive || saveBlocked || !store.dirty.value) return;
+  if (!designerActive || saveBlocked.value || !store.dirty.value) return;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     autoSaveTimer = null;
@@ -820,6 +935,7 @@ const onOnline = () => { online.value = true; if (designerActive) void saveDefin
 const onOffline = () => { online.value = false; persistLocalDraft(); };
 // KeepAlive 停用不卸载组件，必须同时停止定时器、监听器和异步保存的后续排队。
 const deactivateDesigner = () => {
+  if (store.dirty.value) persistLocalDraft();
   designerActive = false;
   saveQueued = false;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);

@@ -161,7 +161,7 @@ $modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' =>
 phase2Expect(($requests[0]['body']['model'] ?? null) === 'task-model', 'Job 首次请求必须使用任务模型而不是全局模型');
 $modelService->updateConversation($modelConversation['id'], 7, ['model' => 'next-model']);
 \think\facade\Config::set(['provider' => array_replace($config, ['model' => 'new-global', 'api_key' => 'rotated-key'])], 'ai');
-$modelStore->updateTask($modelTask['id'], ['status' => 'resume_pending', 'input' => ['admin_id' => 7, 'model' => 'untrusted-model', 'api_key' => 'untrusted-key'], 'output' => ['resume' => ['messages' => [['role' => 'assistant', 'content' => 'resume']]]]]);
+$modelStore->updateTask($modelTask['id'], ['status' => 'resume_pending', 'input' => ['admin_id' => 7, 'model' => 'untrusted-model', 'api_key' => 'untrusted-key'], 'output' => ['resume' => ['messages' => [['role' => 'assistant', 'content' => 'resume', 'tool_calls' => [['id'=>'resume-model', 'name'=>'stub', 'arguments'=>[]]]]]]]]);
 $modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' => $modelTask['operation_token']]);
 phase2Expect(($requests[1]['body']['model'] ?? null) === 'task-model', '审批恢复必须保留任务模型，拒绝全局和 input 覆盖');
 phase2Expect($requests[0]['authorization'] === 'Bearer server-key' && $requests[1]['authorization'] === 'Bearer rotated-key', '凭据仅从当前服务端配置读取，不冻结凭据');

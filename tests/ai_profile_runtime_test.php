@@ -14,16 +14,27 @@ phase2Expect($task['input']['profile_snapshot']['configuration']['max_output_tok
 phase2Expect(!str_contains(json_encode($task), 'injected') && !str_contains(json_encode($task), 'rotated-key'), '不允许注入快照，不落密钥');
 $repository->rows[2]->configuration['model'] = 'changed-model';
 $captured = null;
-$factory = static function (array $config) use (&$captured, $executor) {
+$httpRequests = [];
+$factory = static function (array $config) use (&$captured, &$httpRequests, $executor) {
     $captured = $config;
-    return new \app\console\ai\service\AiAgentOrchestrator(new class {
-        public function chat(array $messages, array $tools): array { return ['content'=>'ok','toolCalls'=>[],'usage'=>['totalTokens'=>1]]; }
-    }, $executor);
+    $client = new \GuzzleHttp\Client(['handler'=>static function ($request) use (&$httpRequests) {
+        $httpRequests[] = ['body'=>json_decode((string) $request->getBody(), true), 'authorization'=>$request->getHeaderLine('Authorization')];
+        return \GuzzleHttp\Promise\Create::promiseFor(new \GuzzleHttp\Psr7\Response(200, [], '{"choices":[{"message":{"content":"ok"}}],"usage":{"total_tokens":1}}'));
+    }]);
+    return new \app\console\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $config, static fn () => ['93.184.216.34']), $executor);
 };
 $runner = new \app\console\ai\job\AiAgentJob($store, $orchestrator, null, null, $factory, $profiles);
 $runner->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
 phase2Expect($captured['model'] === 'profile-model' && $captured['api_key'] === 'rotated-key', 'Job 使用冻结模型与当前凭据');
 phase2Expect($store->tasks[$task['id']]['status'] === 'succeeded', '档案 Job 接通');
+phase2Expect($httpRequests[0]['body']['max_tokens'] === 42 && $httpRequests[0]['body']['model'] === 'profile-model', '真实网关冻结输出参数');
+$security = new MemorySecurityStore();
+$security->createToolCall(['task_id'=>$task['id'], 'conversation_id'=>$conversation['id'], 'status'=>'awaiting_approval', 'idempotency_key'=>'profile-resume']);
+$store->updateTask($task['id'], ['status'=>'resume_pending', 'output'=>['resume'=>['messages'=>[['role'=>'assistant','content'=>null,'tool_calls'=>[['id'=>'profile-resume','name'=>'stub','arguments'=>[]]]]]]]]);
+$repository->rows[2]->cipher = $secret->seal('resume-key', 7);
+$resumeRunner = new \app\console\ai\job\AiAgentJob($store, $orchestrator, null, $security, $factory, $profiles);
+$resumeRunner->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
+phase2Expect($httpRequests[1]['authorization'] === 'Bearer resume-key' && $httpRequests[1]['body']['model'] === 'profile-model', '审批恢复保持冻结参数，读取当前凭据');
 $task = $service->createTask($conversation['id'], 7, ['idempotency_key'=>'disabled']);
 $repository->rows[2]->configuration['enabled'] = false;
 $captured = null;
@@ -38,4 +49,8 @@ phase2Expect($next['max_rounds'] === 10 && $next['output_token_budget'] === 42 &
 phase2Expect(is_file(dirname(__DIR__) . '/database/migrations/120_ai_conversation_profile.sql'), '会话引用需要新增迁移');
 $model = new ReflectionClass(\app\console\ai\model\AiConversation::class);
 phase2Expect(($model->getDefaultProperties()['type']['profile_id'] ?? '') === 'integer', 'ORM 档案引用整数转换');
+unset($repository->rows[2]);
+$captured = null;
+try { $runner->fire($queueJob, ['taskId'=>$next['id'], 'operationToken'=>$next['operation_token']]); } catch (RuntimeException) {}
+phase2Expect($captured === null && $store->tasks[$next['id']]['status'] === 'failed', '删除档案不得回退全局凭据');
 echo "AI profile runtime: PASS\n";

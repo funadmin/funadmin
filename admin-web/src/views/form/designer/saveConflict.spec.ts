@@ -24,11 +24,12 @@ let wrapper: ReturnType<typeof shallowMount>;
 let state: any;
 const start = async () => {
   wrapper = shallowMount(Designer, { global: { renderStubDefaultSlot: true, directives: { perm: {} }, stubs: {
+    ...Object.fromEntries(['ElTag', 'ElRadioButton', 'ElRadioGroup', 'ElButton', 'ElOption', 'ElSelect', 'ElAlert', 'ElCard', 'ElFormItem', 'ElForm', 'ElInput', 'ElDivider', 'ElEmpty', 'ElSteps', 'ElStep', 'ElTreeSelect', 'ElCheckbox', 'ElSwitch', 'ElDescriptionsItem', 'ElDescriptions', 'ElTableColumn', 'ElTable', 'ElCollapseItem', 'ElCollapse', 'ElTabPane', 'ElTabs', 'ElResult'].map((name) => [name, true])),
     PageWrapper: { template: '<main><slot /></main>' },
     ElDialog: { props: ['modelValue'], template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>' }
   } } });
   await flushPromises();
-  state = (wrapper.vm as any).$ .setupState;
+  state = (wrapper.vm as any).$.setupState;
 };
 const pause = async () => {
   state.store.updateForm({ name: '本地编辑' });
@@ -45,12 +46,13 @@ const review = async () => {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
-  localStorage.clear();
+  const storage = new Map<string, string>();
+  vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   api.module.mockResolvedValue(remote());
   api.saveSchema.mockImplementation(async (_id, document) => ({ document, schemaHash: hash('c') }));
   vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
-afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('保存冲突的明确恢复', () => {
   it('冲突持久提示、暂停自动保存，保存按钮进入核对而非静默返回', async () => {
@@ -101,6 +103,9 @@ describe('保存冲突的明确恢复', () => {
     expect(state.saveBlocked).toBe(false);
     expect(state.store.dirty.value).toBe(false);
     expect(api.saveSchema).toHaveBeenCalledTimes(1);
+    state.store.updateForm({ name: '采用服务端后编辑' });
+    await nextTick(); await vi.advanceTimersByTimeAsync(1500);
+    expect(api.saveSchema).toHaveBeenLastCalledWith(12, expect.objectContaining({ title: '采用服务端后编辑' }), hash('b'), expect.any(String));
   });
 
   it.each(['local', 'server'])('取消 %s 确认不丢编辑、不清除暂停和草稿', async (choice) => {
@@ -150,6 +155,44 @@ describe('保存冲突的明确恢复', () => {
     expect(draft().definition.name).toBe('请求期间编辑');
     await vi.advanceTimersByTimeAsync(5000);
     expect(api.saveSchema).toHaveBeenCalledTimes(2);
+  });
+
+  it('核对请求期间继续编辑后必须重新核对', async () => {
+    await start(); await pause();
+    let finish!: (value: unknown) => void;
+    api.module.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = state.reviewSaveConflict();
+    state.store.updateForm({ name: '读取期间编辑' });
+    finish(remote('b'));
+    await pending;
+    await state.resolveSaveConflict('local');
+    expect(state.conflictReview).toBeNull();
+    expect(state.saveBlocked).toBe(true);
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
+    expect(draft().definition.name).toBe('读取期间编辑');
+  });
+
+  it('取消核对弹窗不丢编辑，迟到的读取结果不能重新开放选择', async () => {
+    await start(); await pause();
+    let finish!: (value: unknown) => void;
+    api.module.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = state.reviewSaveConflict();
+    state.cancelConflictReview();
+    finish(remote('b'));
+    await pending;
+    expect(state.conflictReviewVisible).toBe(false);
+    expect(state.conflictReview).toBeNull();
+    expect(state.saveBlocked).toBe(true);
+    expect(draft().definition.name).toBe('本地编辑');
+  });
+
+  it('缺失服务端 hash 时不能恢复或覆盖', async () => {
+    await start(); await pause();
+    api.module.mockResolvedValueOnce(remote(''));
+    await state.reviewSaveConflict();
+    expect(state.conflictReview).toBeNull();
+    expect(state.conflictReviewError).toContain('hash 缺失');
+    expect(state.saveBlocked).toBe(true);
   });
 
   it('获取版本失败不清暂停且保留本地', async () => {

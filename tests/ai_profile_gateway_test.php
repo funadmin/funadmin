@@ -34,4 +34,12 @@ try { providerGateway([], $history, ['fallback_enabled'=>true, 'fallback_models'
 catch (InvalidArgumentException) {}
 $settings = new \app\console\ai\service\AiProviderSettingsService([], static fn () => throw new LogicException('unsupported 不得进入连接测试'));
 try { $settings->test(['protocol'=>'anthropic-messages']); throw new LogicException('不支持协议应拒绝'); } catch (InvalidArgumentException) {}
+$history = [];
+$messages = [['role'=>'assistant','content'=>null,'tool_calls'=>[['id'=>'c1','name'=>'read','arguments'=>['path'=>'x']]]], ['role'=>'tool','tool_call_id'=>'c1','content'=>'ok'], ['role'=>'user','content'=>'继续']];
+$gateway = providerGateway([new Response(200, [], '{"choices":[{"message":{"content":"ok"}}]}')], $history);
+$gateway->chat($messages);
+$sent = json_decode((string) $history[0]['request']->getBody(), true)['messages'];
+providerExpect(($sent[0]['tool_calls'][0]['function']['name'] ?? '') === 'read' && count($sent) === 3, '规范化内部工具调用，保留消息配对');
+$history = [];
+try { providerGateway([], $history)->chat([['role'=>'tool','tool_call_id'=>'orphan','content'=>'x']]); throw new LogicException('孤立工具消息必须请求前拒绝'); } catch (InvalidArgumentException) {}
 echo "AI profile gateway: PASS\n";

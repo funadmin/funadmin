@@ -158,6 +158,26 @@ final class OpenAiCompatibleGateway
         if (($this->config['reasoning_effort'] ?? null) !== null) {
             throw new InvalidArgumentException('当前模型的 reasoning_effort 能力未验证');
         }
+        $pending = [];
+        foreach ($messages as &$message) {
+            if (($message['role'] ?? '') === 'tool') {
+                $id = $message['tool_call_id'] ?? '';
+                if (!isset($pending[$id])) throw new InvalidArgumentException('工具结果缺少配对调用');
+                unset($pending[$id]);
+                continue;
+            }
+            if ($pending !== []) throw new InvalidArgumentException('工具调用缺少结果，禁止静默丢弃');
+            foreach ($message['tool_calls'] ?? [] as $index => $call) {
+                $id = $call['id'] ?? '';
+                if ($id === '' || isset($pending[$id]) || ($message['role'] ?? '') !== 'assistant') throw new InvalidArgumentException('工具调用配对无效');
+                $pending[$id] = true;
+                if (isset($call['name'])) {
+                    $message['tool_calls'][$index] = ['id'=>$id, 'type'=>'function', 'function'=>['name'=>$call['name'], 'arguments'=>json_encode($call['arguments'] ?? new \stdClass(), JSON_THROW_ON_ERROR)]];
+                }
+            }
+        }
+        unset($message);
+        if ($pending !== []) throw new InvalidArgumentException('工具调用缺少结果，禁止静默丢弃');
         $output = $this->config['max_output_tokens'] ?? null;
         foreach (['max_output_tokens', 'max_input_tokens', 'context_window'] as $field) {
             $value = $this->config[$field] ?? null;
