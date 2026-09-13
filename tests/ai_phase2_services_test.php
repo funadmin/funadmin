@@ -137,4 +137,121 @@ $queueJob->wasDeleted = false;
 $jobRunner->fire($queueJob, ['taskId' => $cancelled['id'], 'operationToken' => $cancelled['operation_token']]);
 phase2Expect($queueJob->wasDeleted && $store->tasks[$cancelled['id']]['status'] === 'cancelled', 'Job 启动前必须检查取消状态');
 
+// Job 通过真实网关与内存 HTTP handler 验证最终请求，不访问外网。
+$config = ['name' => 'trusted', 'model' => 'global-model', 'base_url' => 'https://93.184.216.34/v1', 'api_key' => 'server-key'];
+\think\facade\Config::set(['provider' => $config], 'ai');
+$modelStore = new MemoryAiStore();
+$modelService = new AiConversationService($modelStore);
+$modelConversation = $modelService->createConversation(7, ['model' => 'task-model']);
+$modelTask = $modelService->createTask($modelConversation['id'], 7, ['idempotency_key' => 'request-model', 'input' => ['messages' => [['role' => 'user', 'content' => 'test']]]]);
+$requests = [];
+$factory = static function (array $resolved) use (&$requests, $executor): AiAgentOrchestrator {
+    $client = new \GuzzleHttp\Client(['handler' => static function ($request, $options) use (&$requests) {
+        $requests[] = ['body' => json_decode((string) $request->getBody(), true), 'authorization' => $request->getHeaderLine('Authorization')];
+        return \GuzzleHttp\Promise\Create::promiseFor(new \GuzzleHttp\Psr7\Response(200, [], '{"choices":[{"message":{"content":"ok"}}]}'));
+    }]);
+    return new AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $resolved, static fn () => ['93.184.216.34']), $executor);
+};
+// 使用现有安全存储 fake 的可信 awaitingToolCall 契约。
+(static function (): void { require_once __DIR__ . '/ai_phase3_executor_approval_test.php'; })();
+$modelSecurity = new MemorySecurityStore();
+$modelSecurity->createToolCall(['task_id' => $modelTask['id'], 'conversation_id' => $modelConversation['id'], 'status' => 'awaiting_approval', 'idempotency_key' => 'resume-model']);
+$modelRunner = new AiAgentJob($modelStore, $orchestrator, null, $modelSecurity, $factory);
+$modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' => $modelTask['operation_token']]);
+phase2Expect(($requests[0]['body']['model'] ?? null) === 'task-model', 'Job 首次请求必须使用任务模型而不是全局模型');
+$modelService->updateConversation($modelConversation['id'], 7, ['model' => 'next-model']);
+\think\facade\Config::set(['provider' => array_replace($config, ['model' => 'new-global', 'api_key' => 'rotated-key'])], 'ai');
+$modelStore->updateTask($modelTask['id'], ['status' => 'resume_pending', 'input' => ['admin_id' => 7, 'model' => 'untrusted-model', 'api_key' => 'untrusted-key'], 'output' => ['resume' => ['messages' => [['role' => 'assistant', 'content' => 'resume']]]]]);
+$modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' => $modelTask['operation_token']]);
+phase2Expect(($requests[1]['body']['model'] ?? null) === 'task-model', '审批恢复必须保留任务模型，拒绝全局和 input 覆盖');
+phase2Expect($requests[0]['authorization'] === 'Bearer server-key' && $requests[1]['authorization'] === 'Bearer rotated-key', '凭据仅从当前服务端配置读取，不冻结凭据');
+phase2Expect(($requests[1]['body']['messages'][1]['role'] ?? '') === 'tool', '审批恢复必须仍追加可信工具执行结果');
+phase2Expect(array_keys($requests[1]['body']) === ['model', 'messages', 'stream'], '请求仅使用网关已验证的模型协议');
+foreach ([
+    [['provider' => '', 'model' => ''], 'model_snapshot_missing'],
+    [['provider' => null, 'model' => null], 'model_snapshot_missing'],
+    [['provider' => 'other'], 'provider_snapshot_mismatch'],
+    [['model' => ''], 'model_snapshot_missing'],
+    [['model' => null], 'model_snapshot_missing'],
+    [['model' => "bad\nmodel"], 'model_snapshot_invalid'],
+] as [$invalid, $code]) {
+    foreach (['pending', 'resume_pending'] as $status) {
+        $checkpoint = ['resume' => ['messages' => [['role' => 'assistant', 'content' => '保留恢复上下文']]], 'usage' => ['totalTokens' => 9]];
+        $modelStore->updateTask($modelTask['id'], array_replace(['status' => $status, 'provider' => 'trusted', 'model' => 'task-model', 'output' => $checkpoint, 'completed_at' => null], $invalid));
+        $before = $modelStore->task($modelTask['id']);
+        $queueJob->wasDeleted = false;
+        $failure = null;
+        try { $modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' => $modelTask['operation_token']]); } catch (RuntimeException $e) { $failure = $e; }
+        $blocked = $modelStore->task($modelTask['id']);
+        phase2Expect($blocked['status'] === 'paused', $code . ': 配置阻塞必须暂停而非永久 failed');
+        phase2Expect($failure === null && $queueJob->wasDeleted && count($requests) === 2, '配置阻塞必须确认队列消息且禁止模型请求');
+        phase2Expect(($blocked['error']['code'] ?? '') === $code && ($blocked['output']['configuration_block']['code'] ?? '') === $code, '必须输出可辨识错误代码');
+        phase2Expect(!empty($blocked['error']['message']) && ($blocked['output']['configuration_block']['from_status'] ?? '') === $status, '必须说明配置确认原因并保存原始执行阶段');
+        phase2Expect($blocked['output']['resume'] === $checkpoint['resume'] && $blocked['output']['usage'] === $checkpoint['usage'], '禁止覆盖已有恢复数据');
+        foreach (['provider', 'model', 'input', 'operation_token', 'completed_at'] as $field) phase2Expect($blocked[$field] === $before[$field], '配置阻塞不得改写 ' . $field);
+        $modelRunner->fire($queueJob, ['taskId' => $modelTask['id'], 'operationToken' => $modelTask['operation_token']]);
+        phase2Expect(count($requests) === 2, '暂停后重复投递不得绕过配置确认');
+    }
+}
+// 使用真实导出器和内存 SQLite 变更集持久化，仅替换 Docker 进程边界。
+$snapshotDb = new \think\DbManager();
+$snapshotDb->setConfig(['default' => 'snapshot_test', 'connections' => ['snapshot_test' => ['type' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'fields_strict' => true]]]);
+$snapshotDb->execute('CREATE TABLE ai_change_set (id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id INTEGER, task_id INTEGER, created_by INTEGER, idempotency_key TEXT, digest TEXT, base_digest TEXT, patch_path TEXT, patch_sha256 TEXT, base_file_hashes JSON, manifest JSON, summary JSON, status TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT)');
+$sandboxProcess = new class implements \app\console\ai\contract\DockerProcessRunner {
+    public array $calls = [];
+    public array $task = [];
+    public bool $failExport = false;
+    public function run(array $argv, int $timeoutSeconds): \app\console\ai\infrastructure\ProcessResult {
+        $this->calls[] = $argv;
+        if (($argv[1] ?? '') === 'exec' && in_array('diff', $argv, true)) {
+            return new \app\console\ai\infrastructure\ProcessResult($this->failExport ? 1 : 0, 'retained patch', $this->failExport ? 'export unavailable' : '');
+        }
+        if (($argv[1] ?? '') === 'cp') file_put_contents(end($argv) . '/retained.txt', '已有改动');
+        $labels = ['com.funadmin.ai-agent' => 'true', 'com.funadmin.ai-task' => (string) $this->task['id'], 'com.funadmin.ai-session' => (string) $this->task['conversation_id'], 'com.funadmin.ai-volume' => 'retained-volume'];
+        return new \app\console\ai\infrastructure\ProcessResult(0, json_encode($labels), '');
+    }
+};
+$privateRoot = sys_get_temp_dir() . '/ai-job-snapshot-' . bin2hex(random_bytes(5));
+$sandboxManager = new \app\console\ai\service\AgentSandboxManager($sandboxProcess, dirname(__DIR__), $privateRoot, []);
+$factoryCalls = 0;
+$factoryFailure = new RuntimeException('gateway factory unavailable');
+$brokenFactory = static function (array $resolved) use (&$factoryCalls, $factoryFailure): AiAgentOrchestrator { $factoryCalls++; throw $factoryFailure; };
+$retainedRunner = new AiAgentJob($modelStore, $orchestrator, $sandboxManager, $modelSecurity, $brokenFactory);
+foreach (['missing', 'cross-provider', 'factory', 'export-failure'] as $scenario) {
+    $workspace = $privateRoot . '/sandboxes/' . $scenario;
+    mkdir($workspace, 0700, true);
+    file_put_contents($workspace . '/checkpoint', '保留恢复数据');
+    $task = $modelService->createTask($modelConversation['id'], 7, ['idempotency_key' => 'retained-' . $scenario]);
+    $modelStore->updateTask($task['id'], ['status' => 'resume_pending', 'provider' => $scenario === 'missing' ? '' : ($scenario === 'cross-provider' ? 'other' : 'trusted'), 'model' => $scenario === 'missing' ? '' : 'task-model', 'container_task_id' => 'retained-container', 'sandbox_volume' => 'retained-volume', 'workspace_path' => $workspace, 'sandbox_status' => 'running', 'sandbox_retained' => 1, 'output' => $checkpoint, 'completed_at' => null]);
+    $sandboxProcess->task = $modelStore->task($task['id']);
+    $sandboxProcess->calls = [];
+    $sandboxProcess->failExport = $scenario === 'export-failure';
+    $beforeFactory = $factoryCalls;
+    $failure = null;
+    try { $retainedRunner->fire($queueJob, ['taskId' => $task['id'], 'operationToken' => $task['operation_token']]); } catch (Throwable $e) { $failure = $e; }
+    $latest = $modelStore->task($task['id']);
+    if (in_array($scenario, ['missing', 'cross-provider'], true)) {
+        phase2Expect($failure === null && $latest['status'] === 'paused' && $factoryCalls === $beforeFactory, '配置阻塞必须保留任务且禁止进入工厂');
+        phase2Expect($sandboxProcess->calls === [] && is_file($workspace . '/checkpoint'), '配置阻塞不得导出、清理或重建 retained sandbox');
+        foreach (['container_task_id', 'sandbox_volume', 'workspace_path', 'sandbox_status', 'sandbox_retained'] as $field) phase2Expect($latest[$field] === $sandboxProcess->task[$field], '必须保留 sandbox 字段 ' . $field);
+        phase2Expect($latest['output']['resume'] === $checkpoint['resume'], '配置阻塞必须保留审批恢复消息');
+        $cleaned = $sandboxManager->cleanupOrphans([array_replace($latest, ['completed_at' => '2020-01-01', 'heartbeat_at' => '2020-01-01'])], 1, 1, null, null, time(), static fn () => true);
+        phase2Expect($cleaned === 0 && $sandboxProcess->calls === [], '配置阻塞任务不能被过期清理器删除');
+        continue;
+    }
+    phase2Expect($factoryCalls === $beforeFactory + 1 && $latest['status'] === 'failed', '普通工厂异常仍走既有失败语义');
+    phase2Expect(in_array(['docker', 'exec', 'retained-container', 'git', 'diff', '--binary', '--no-ext-diff', 'HEAD'], $sandboxProcess->calls, true), '恢复工厂异常必须先导出已有改动，不能跳过安全收尾');
+    if ($scenario === 'export-failure') {
+        phase2Expect(is_file($workspace . '/checkpoint') && !in_array('rm', array_column($sandboxProcess->calls, 1), true), '导出失败必须保留 sandbox，禁止清理');
+        phase2Expect(($latest['error']['category'] ?? '') === 'artifact_export_failed', '导出失败必须记录既有错误分类');
+    } else {
+        phase2Expect($failure === $factoryFailure && $latest['sandbox_status'] === 'cleaned', '安全导出清理后仍抛出原工厂异常');
+        $changeSet = \app\console\ai\model\AiChangeSet::find($latest['change_set_id']);
+        phase2Expect($changeSet !== null && $changeSet->status === 'proposed' && file_get_contents($changeSet->patch_path) === 'retained patch', '清理前必须真实持久化变更集和 patch');
+        phase2Expect(file_get_contents($privateRoot . '/exports/' . $scenario . '/tree/retained.txt') === '已有改动', '清理后既有改动必须仍可读取');
+        phase2Expect(!is_dir($workspace), '成功收尾必须清理原 sandbox workspace');
+    }
+}
+phase2Expect(count($requests) === 2, '所有阻塞及工厂异常场景均不得发模型请求');
+\think\facade\Config::set(['provider' => []], 'ai');
 echo "AI phase 2 service tests: PASS\n";

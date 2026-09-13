@@ -45,7 +45,7 @@ $expect(is_file($controllerPath), 'AI Controller 必须位于 app/console/contro
 $expect(!is_file($root . '/app/console/ai/controller/Ai.php'), '旧 AI Controller 路径必须不存在');
 $controller = (string) file_get_contents($controllerPath);
 $expect(str_contains($controller, "namespace app\\console\\controller\\ai;"), 'AI Controller namespace 必须与目录一致');
-$expect(str_contains($controller, "#[Group('development/ai')]"), 'AI HTTP 路径必须保持不变');
+$expect(str_contains($controller, "#[Group('development/ai', ['complete_match' => true])]"), 'AI HTTP 路径必须保持不变');
 $expect(is_dir($root . '/app/console/ai'), 'AI 其余 service/model/job/contract/repository/infrastructure 必须仍在 app/console/ai');
 $job = (string) file_get_contents($root . '/app/console/ai/job/AiAgentJob.php');
 $expect(str_contains($job, 'namespace app\\console\\ai\\job;'), 'AI Job namespace 必须与目录一致');

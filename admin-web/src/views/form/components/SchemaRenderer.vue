@@ -45,7 +45,7 @@ import { flattenSchemaNodes } from '../schema/types';
 import SchemaNodeRenderer from './SchemaNodeRenderer.vue';
 import { createRuntimeState } from '../runtime/runtimeState';
 import type { ActionHandlers } from '../runtime/actionExecutor';
-import { useFormDataSource, type FormDataSourceControlState } from '../dataSource/useFormDataSource';
+import { useFormDataSource, type FormDataSourceRequest, type FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import { createAsyncValidatorRegistry } from '../validation/asyncValidatorRegistry';
 import { createElementPlusValidationRules } from '../validation/formSchemaDataValidator';
 import { assertRuntimeComponents } from '../schema/runtimeGuard';
@@ -59,6 +59,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean;
   formKey?: string;
   requestKeys?: string[];
+  optionsRequest?: FormDataSourceRequest;
   actionHandlers?: Partial<ActionHandlers>;
 }>(), { options: () => ({}), disabled: false, formKey: '', requestKeys: () => [], actionHandlers: () => ({}) });
 
@@ -98,7 +99,8 @@ const asyncDataSources = flattenSchemaNodes(props.schema.nodes).map(({ node }) =
     formKey: props.formKey,
     field: node.field!,
     definition: node.dataSource ?? {},
-    values: props.values
+    values: props.values,
+    request: props.optionsRequest
   })
 }));
 for (const { node, source } of asyncDataSources) {

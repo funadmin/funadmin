@@ -27,7 +27,12 @@ $reject(fn () => $service->createConversationGroup(0, ['name' => '无效']), 400
 $reject(fn () => $service->createConversationGroup(7, ['name' => '有效', 'admin_id' => 8]), 400, '分组拒绝未知字段');
 $conversation = $service->createConversation(7, ['title' => '初始', 'group_id' => $group['id']]);
 $id = $conversation['id'];
-foreach (['1', 1.5, true, 0, -1, [], '1x'] as $groupId) {
+try {
+    $check($service->updateConversationState($id, 7, ['group_id' => (string) $group['id']])['group_id'] === $group['id'], '十进制字符串分组 ID 规范化');
+    $check($service->createConversation(7, ['group_id' => (string) $group['id']])['group_id'] === $group['id'], '创建复用字符串分组规范化');
+} catch (InvalidArgumentException) { $check(false, '合法字符串分组 ID 不得拒绝'); }
+$reject(fn () => $service->updateConversationState($id, 7, ['group_id' => (string) $other['id']]), 404, '字符串分组 ID 保留所有权校验');
+foreach (['01', '+1', ' 1', '1 ', '1.0', '1e0', '', '0', '9223372036854775808', 1.0, 1.5, true, 0, -1, [], '1x'] as $groupId) {
     $reject(fn () => $service->updateConversationState($id, 7, ['group_id' => $groupId]), 400, '分组 ID 严格校验：' . get_debug_type($groupId));
     $reject(fn () => $service->createConversation(7, ['group_id' => $groupId]), 400, '创建分组 ID 严格校验');
 }

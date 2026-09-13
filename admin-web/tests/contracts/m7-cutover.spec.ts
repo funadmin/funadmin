@@ -18,7 +18,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     expect(rootRoute).toContain("'namespace' => 'app\\\\console\\\\controller'");
     expect(rootRoute).toContain("'name' => 'console'");
     expect(read('admin-web/src/config/index.ts')).toContain("baseApi: env.VITE_APP_BASE_API || '/console'");
-    const productionPhp = ['app', 'config', 'extend', 'route'].flatMap(phpFiles);
+    const productionPhp = ['app', 'config', 'route', 'plugins'].filter((directory) => existsSync(resolve(root, directory))).flatMap(phpFiles);
     for (const file of productionPhp) {
       expect(read(file), file).not.toContain('app\\\\backend\\\\');
     }
@@ -38,7 +38,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/common/service/MaintenanceContractService.php',
       'app/console/development/service/FormCrudDefinitionFactory.php',
     ]);
-    for (const file of ['app', 'config', 'extend', 'plugins'].flatMap(phpFiles).filter((path) => !allowed.has(path))) {
+    for (const file of ['app', 'config', 'route', 'plugins'].filter((directory) => existsSync(resolve(root, directory))).flatMap(phpFiles).filter((path) => !allowed.has(path))) {
       expect(read(file), file).not.toMatch(/\b(create_time|update_time|delete_time)\b/);
     }
   });

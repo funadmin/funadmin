@@ -154,13 +154,14 @@ final class FormSchemaValidator
             }
         };
         $collect($nodes);
+        if (array_key_exists('leftTree', $list)) $this->validateLeftTree($list['leftTree'], $fields);
         foreach (['category' => 'field', 'tree' => 'parentField'] as $kind => $binding) {
             if (!array_key_exists($kind, $list)) continue;
             $config = $list[$kind];
             if (!is_array($config) || ($config !== [] && array_is_list($config)) || array_diff(array_keys($config), ['enabled', $binding]) !== []) {
                 throw new FormSchemaException('列表配置不合法', '/list/' . $kind);
             }
-            if (isset($config['enabled']) && !is_bool($config['enabled'])) throw new FormSchemaException('enabled 必须为布尔值', '/list/' . $kind . '/enabled');
+            if (array_key_exists('enabled', $config) && !is_bool($config['enabled'])) throw new FormSchemaException('enabled 必须为布尔值', '/list/' . $kind . '/enabled');
             if (($config['enabled'] ?? false) !== true) continue;
             $name = $config[$binding] ?? '';
             $node = is_string($name) ? ($fields[$name] ?? null) : null;
@@ -182,6 +183,48 @@ final class FormSchemaValidator
                 }
             }
         }
+    }
+
+    /** 左树只声明业务来源；跨业务字段在加载已发布来源后再次验证。 */
+    private function validateLeftTree(mixed $config, array $fields): void
+    {
+        $object = static function (mixed $value, array $keys, string $path): array {
+            if (!is_array($value) || ($value !== [] && array_is_list($value)) || array_diff(array_keys($value), $keys)) {
+                throw new FormSchemaException('左树配置必须为受支持的对象', '/list/leftTree' . $path);
+            }
+            return $value;
+        };
+        $config = $object($config, ['enabled', 'source', 'mapping', 'selection', 'actions'], '');
+        if (array_key_exists('enabled', $config) && !is_bool($config['enabled'])) throw new FormSchemaException('enabled 必须为布尔值', '/list/leftTree/enabled');
+        $source = $object($config['source'] ?? [], ['type', 'module'], '/source');
+        $mapping = $object($config['mapping'] ?? [], ['valueField', 'labelField', 'parentField', 'sortField', 'targetField'], '/mapping');
+        $selection = $object($config['selection'] ?? [], ['mode', 'includeDescendants'], '/selection');
+        $actions = $object($config['actions'] ?? [], ['create', 'addChild', 'edit', 'delete'], '/actions');
+        foreach ($actions as $name => $enabled) {
+            if (!is_bool($enabled)) throw new FormSchemaException('动作开关必须为布尔值', '/list/leftTree/actions/' . $name);
+        }
+        if (isset($selection['mode']) && !in_array($selection['mode'], ['single', 'multiple'], true)) throw new FormSchemaException('选择模式不合法', '/list/leftTree/selection/mode');
+        if (array_key_exists('includeDescendants', $selection) && !is_bool($selection['includeDescendants'])) throw new FormSchemaException('后代开关必须为布尔值', '/list/leftTree/selection/includeDescendants');
+        if (($config['enabled'] ?? false) !== true) return;
+        if (!in_array($source['type'] ?? '', ['current', 'module'], true)) throw new FormSchemaException('来源只能为当前业务或已有业务模块', '/list/leftTree/source/type');
+        if ($source['type'] === 'module' && (!is_string($source['module'] ?? null) || !preg_match('/^[a-z][a-z0-9_]{0,63}$/', $source['module']))) throw new FormSchemaException('必须选择业务模块', '/list/leftTree/source/module');
+        foreach (['valueField', 'labelField', 'targetField'] as $required) {
+            if (empty($mapping[$required])) throw new FormSchemaException('字段映射不能为空', '/list/leftTree/mapping/' . $required);
+        }
+        foreach ($mapping as $name => $field) {
+            if ($field === '' && in_array($name, ['parentField', 'sortField'], true)) continue;
+            if (!is_string($field) || !preg_match('/^[a-z_][a-z0-9_]*$/', $field)) throw new FormSchemaException('字段标识不合法', '/list/leftTree/mapping/' . $name);
+            if ($name !== 'targetField' && $source['type'] === 'module') continue;
+            // 创建业务的系统主键不在设计节点中，实际主键在运行时再次校验。
+            if ($name === 'valueField' && $field === 'id' && !isset($fields[$field])) continue;
+            $node = $fields[$field] ?? null;
+            if (!$node || empty($node['database']['columnType']) || in_array($node['type'] ?? '', ['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
+                || in_array($node['valueType'] ?? '', ['array', 'object'], true) || ($node['props']['multiple'] ?? false)
+                || ($node['props']['sensitive'] ?? false) || ($node['props']['writeOnly'] ?? false)) {
+                throw new FormSchemaException('映射必须引用可读标量字段', '/list/leftTree/mapping/' . $name);
+            }
+        }
+        if (!empty($mapping['parentField']) && $mapping['parentField'] === $mapping['valueField']) throw new FormSchemaException('父级与节点值字段不能相同', '/list/leftTree/mapping/parentField');
     }
 
     private function validateNodes(array $nodes, string $path, int $depth, array &$ids, array &$fields, int &$count, array &$edges, array $dataSourceIds, int &$dataSourceCount): void

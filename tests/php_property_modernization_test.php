@@ -709,7 +709,6 @@ foreach ($ormPropertyExemptions as $class => $properties) {
 }
 $scan = modernizationScanProperties(modernizationPhpFiles([
     dirname(__DIR__) . '/app',
-    dirname(__DIR__) . '/extend',
 ]));
 foreach ($scan['untyped'] as $property) {
     $key = $property['class'] . '::$' . $property['property'];

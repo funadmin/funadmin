@@ -114,11 +114,15 @@ final class CrudDefinition implements JsonSerializable
             if ($condition) $actions[] = [$action, $suffix, $label];
         };
         $append($enabled('list'), 'index', 'list', '查看列表');
+        $leftTree = $enabled('list') && ($data['list']['leftTree']['enabled'] ?? false) === true;
+        $append($leftTree, 'lefttree', 'left-tree', '读取来源树');
+        $append($leftTree, 'lefttreeform', 'left-tree-form', '读取来源表单');
+        $append($leftTree, 'mutatelefttree', 'left-tree-mutate', '操作来源树');
         $append($enabled('detail') && ($features['detail'] ?? true), 'detail', 'detail', '查看详情');
         $append($enabled('create'), 'create', 'create', '新增');
         $append($enabled('update'), 'update', 'update', '编辑');
         $append($enabled('update') && ($features['status'] ?? false), 'status', 'status', '切换状态');
-        $hasOptions = $enabled('form') && (array) ($data['optionsSource'] ?? []) !== [];
+        $hasOptions = ($enabled('form') || ($enabled('list') && ($data['list']['category']['enabled'] ?? false))) && (array) ($data['optionsSource'] ?? []) !== [];
         $append($hasOptions, 'options', 'options', '读取选项');
         $append($delete, 'remove', 'delete', '删除');
         $append($softDelete, 'restore', 'restore', '恢复');

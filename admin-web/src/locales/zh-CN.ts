@@ -33,6 +33,11 @@ export default {
   aiDevelopment: {
     title: 'AI 开发助手',
     subtitle: '会话、工具审批与工作区变更',
+    modelSelection: {
+      current: '当前会话模型', unset: '未设置', id: '模型 ID', save: '保存模型',
+      hint: '仅支持当前配置的供应商，请输入其支持的模型 ID。切换仅影响保存后创建的任务，当前任务保持原模型。',
+      failed: '模型保存失败，请检查模型 ID 或重试'
+    },
     provider: 'Provider',
     fields: { base: '基线', local: '本地', remote: '远端', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
     task: '任务',

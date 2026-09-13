@@ -68,7 +68,16 @@ export interface FormSchemaNode {
   list?: Record<string, unknown>;
 }
 
+export interface FormLeftTreeConfiguration {
+  enabled: boolean;
+  source: { type: 'current' | 'module'; module?: string };
+  mapping: { valueField: string; labelField: string; targetField: string; parentField?: string; sortField?: string };
+  selection?: { mode?: 'single' | 'multiple'; includeDescendants?: boolean };
+  actions?: Partial<Record<'create' | 'addChild' | 'edit' | 'delete', boolean>>;
+}
+
 export interface FormListConfiguration {
+  leftTree?: FormLeftTreeConfiguration;
   category?: { enabled: boolean; field?: string };
   tree?: { enabled: boolean; parentField?: string };
   [key: string]: unknown;

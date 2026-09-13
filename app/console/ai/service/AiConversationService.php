@@ -234,6 +234,11 @@ final class AiConversationService
     private function validateGroupId(mixed $id, int $adminId): ?int
     {
         if ($id === null) return null;
+        // 兼容 ORM bigint 的十进制字符串，只接受无损、无歧义的正整数。
+        if (is_string($id) && preg_match('/^[1-9][0-9]*$/D', $id) === 1) {
+            $normalized = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($normalized !== false) $id = $normalized;
+        }
         if (!is_int($id) || $id <= 0) throw new InvalidArgumentException('group_id 必须为正整数或 null');
         $this->ownedGroup($id, $adminId);
         return $id;

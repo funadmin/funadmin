@@ -26,8 +26,38 @@ class MigrationService extends AbstractService
             $this->migrationSortKey($right)
         ));
 
+        return $this->runFiles($files, $scope);
+    }
+
+    /**
+     * 仅执行目录内的完整版本名（不含 .sql），不扫描或补跑其他 pending。
+     * 拒绝路径片段及符号链接；执行过程与全目录入口共享。
+     */
+    public function runVersion(string $directory, string $version, string $scope = 'core'): array
+    {
+        if (preg_match('/\A[0-9]+_[A-Za-z0-9_]+\z/', $version) !== 1) {
+            throw new RuntimeException('Migration 版本不合法：' . $version);
+        }
+        $resolvedDirectory = realpath($directory);
+        if ($resolvedDirectory === false || !is_dir($resolvedDirectory)) {
+            throw new RuntimeException('Migration 目录不存在：' . $directory);
+        }
+        $file = $resolvedDirectory . DIRECTORY_SEPARATOR . $version . '.sql';
+        if (!file_exists($file) && !is_link($file)) {
+            throw new RuntimeException('Migration 版本不存在：' . $version);
+        }
+        if (is_link($file) || !is_file($file) || !is_readable($file)
+            || dirname((string) realpath($file)) !== $resolvedDirectory) {
+            throw new RuntimeException('Migration 必须是目录内的普通文件：' . $version);
+        }
+        return $this->runFiles([$file], $scope);
+    }
+
+    /** 两种入口共用 checksum、预检、SQL 解析、事务和登记逻辑。 */
+    private function runFiles(array $files, string $scope): array
+    {
         $executed = [];
-        foreach ($files as $index => $file) {
+        foreach ($files as $file) {
             $version = pathinfo($file, PATHINFO_FILENAME);
             $checksum = hash_file('sha256', $file);
             $repositoryReady = $this->repositoryExists();

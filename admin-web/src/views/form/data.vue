@@ -1,6 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name ? `${meta.form.name} 数据` : '表单数据'" subtitle="元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉">
     <div class="flex flex-col gap-4 md:flex-row">
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <DataTableShell class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
@@ -139,6 +140,7 @@ import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId 
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
+import ListSourceTree from './components/ListSourceTree.vue';
 import { buildListTree } from './runtime/listPresentation';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
@@ -158,6 +160,8 @@ const rows = ref<Record<string, unknown>[]>([]);
 const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20 });
 const filters = reactive<Record<string, string>>({});
+const leftSelection = ref<FormRecordId[]>([]);
+const onLeftTree = (values: FormRecordId[]) => { leftSelection.value = values; onSearch(); };
 const dateFilters = reactive<Record<string, [string, string] | undefined>>({});
 const sort = reactive({ sort: '', order: '' });
 const dialogVisible = ref(false);
@@ -226,7 +230,7 @@ async function loadMeta() {
 async function loadData() {
   loading.value = true;
   try {
-    const data = await formDataApi.index(formKey, { ...query, ...sort, filters: { ...filters } });
+    const data = await formDataApi.index(formKey, { ...query, ...sort, filters: { ...filters, __leftTree: leftSelection.value } });
     rows.value = data.list;
     total.value = data.total;
   } finally {
@@ -238,6 +242,7 @@ const onSearch = () => {
   loadData();
 };
 const onReset = () => {
+  leftSelection.value = [];
   for (const key of Object.keys(filters)) delete filters[key];
   for (const key of Object.keys(dateFilters)) delete dateFilters[key];
   onSearch();
@@ -319,7 +324,7 @@ async function onDelete(row: Record<string, unknown>) {
   loadData();
 }
 async function onExport() {
-  const data = await formDataApi.export(formKey, { filters: { ...filters } });
+  const data = await formDataApi.export(formKey, { filters: { ...filters, __leftTree: leftSelection.value } });
   const columns = [primaryKeyName.value, ...listFields.value.map((f) => f.field_name), 'created_at'];
   const lines = [columns.join(',')];
   for (const row of data.list) {

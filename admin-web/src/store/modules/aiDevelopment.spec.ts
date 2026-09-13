@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   conversations: vi.fn(), conversationGroups: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
   eventTicket: vi.fn(), eventStreamUrl: vi.fn(), decideApproval: vi.fn(), cancelTask: vi.fn(), changeSet: vi.fn(), applyChangeSet: vi.fn(),
-  updateConversationState: vi.fn(), deleteConversation: vi.fn(), deleteConversationGroup: vi.fn()
+  updateConversation: vi.fn(), updateConversationState: vi.fn(), deleteConversation: vi.fn(), deleteConversationGroup: vi.fn()
 }));
 vi.mock('@/api/development/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/development/ai')>();
@@ -60,6 +60,143 @@ afterEach(() => {
 });
 
 describe('AI Development store', () => {
+  it('模型保存使用现有 PUT，仅合并模型字段且保持任务和 SSE', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, model: 'old', title: '并发改名' }];
+    store.selectedConversationId = 1;
+    store.activeTask = { ...task, model: 'frozen' };
+    await store.connectEvents(FakeEventSource as never);
+    const source = store.eventSource;
+    const active = store.activeTask;
+    store.eventCursor = 12;
+    mocks.updateConversation.mockResolvedValue({ ...conversation, model: 'new', provider: 'configured' });
+
+    await store.updateConversationModel(1, '  new  ');
+
+    expect(mocks.updateConversation).toHaveBeenCalledWith(1, { model: 'new' });
+    expect(store.conversations[0]).toMatchObject({ model: 'new', provider: 'configured', title: '并发改名' });
+    expect(store.activeTask).toBe(active);
+    expect(store.activeTask?.model).toBe('frozen');
+    expect(store.eventSource).toBe(source);
+    expect(source?.close).not.toHaveBeenCalled();
+    expect(store.eventCursor).toBe(12);
+    expect(mocks.eventTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it('保存后切走只更新原会话列表，不污染新会话或复活已删除会话', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation }, { ...conversation, id: 2, model: 'second' }];
+    store.selectedConversationId = 1;
+    let finish!: (value: typeof conversation) => void;
+    mocks.updateConversation.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const saving = store.updateConversationModel(1, 'new');
+    store.selectedConversationId = 2;
+    store.selectionGeneration += 1;
+    finish({ ...conversation, model: 'new' });
+    await saving;
+    expect(store.conversations.map((item) => item.model)).toEqual(['new', 'second']);
+    expect(store.selectedConversationId).toBe(2);
+    const deleted = store.updateConversationModel(1, 'later');
+    store.conversations = store.conversations.filter((item) => item.id !== 1);
+    finish({ ...conversation, model: 'later' });
+    await deleted;
+    expect(store.conversations.map((item) => item.id)).toEqual([2]);
+  });
+
+  it('空模型或不存在的会话不请求，失败不更改模型', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, model: 'old' }];
+    await store.updateConversationModel(1, '  ');
+    await store.updateConversationModel(99, 'new');
+    expect(mocks.updateConversation).not.toHaveBeenCalled();
+    mocks.updateConversation.mockRejectedValueOnce(new Error('保存失败'));
+    await expect(store.updateConversationModel(1, 'new')).rejects.toThrow('保存失败');
+    expect(store.conversations[0].model).toBe('old');
+  });
+
+  it.each(['保存前', '保存中'])('详情 GET 在%s发起、晚于 PUT 返回时保留新模型并更新其他详情', async (timing) => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, model: 'old', provider: 'old-provider' }];
+    let finishDetail!: (value: typeof conversation) => void;
+    let finishSave!: (value: typeof conversation) => void;
+    mocks.conversation.mockImplementationOnce(() => new Promise((resolve) => { finishDetail = resolve; }));
+    mocks.updateConversation.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
+    mocks.messages.mockResolvedValueOnce([{ id: 77 }]);
+
+    const opening = timing === '保存前' ? store.selectConversation(1) : undefined;
+    const saving = store.updateConversationModel(1, 'new');
+    const concurrentOpening = opening ?? store.selectConversation(1);
+    expect(mocks.conversation).toHaveBeenCalledWith(1);
+    expect(mocks.messages).toHaveBeenCalledWith(1);
+    expect(mocks.updateConversation).toHaveBeenCalledWith(1, { model: 'new' });
+    finishSave({ ...conversation, model: 'new', provider: 'new-provider' });
+    await saving;
+    finishDetail({ ...conversation, model: 'old', provider: 'old-provider', title: '服务端详情', context: { refreshed: true } });
+    await concurrentOpening;
+
+    expect(store.conversations[0]).toMatchObject({ model: 'new', provider: 'new-provider', title: '服务端详情', context: { refreshed: true } });
+    expect(store.messages).toEqual([{ id: 77 }]);
+    expect(mocks.updateConversationState).toHaveBeenCalledWith(1, { is_unread: false });
+    mocks.conversation.mockResolvedValueOnce({ ...conversation, model: 'latest', provider: 'latest-provider' });
+    await store.selectConversation(1);
+    expect(store.conversations[0]).toMatchObject({ model: 'latest', provider: 'latest-provider' });
+  });
+
+  it('同会话拒绝重复模型保存，其他会话仍并发且完成后可再次保存', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation }, { ...conversation, id: 2 }];
+    let finish!: (value: typeof conversation) => void;
+    mocks.updateConversation.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    mocks.updateConversation.mockResolvedValue({ ...conversation, id: 2, model: 'other' });
+    const first = store.updateConversationModel(1, 'first');
+    await expect(store.updateConversationModel(1, 'second')).rejects.toThrow('模型正在保存');
+    await store.updateConversationModel(2, 'other');
+    expect(mocks.updateConversation).toHaveBeenCalledTimes(2);
+    expect(store.conversations[1].model).toBe('other');
+    finish({ ...conversation, model: 'first' });
+    await first;
+    expect(store.conversations[0].model).toBe('first');
+    mocks.updateConversation.mockResolvedValueOnce({ ...conversation, model: 'second' });
+    await store.updateConversationModel(1, 'second');
+    expect(store.conversations[0].model).toBe('second');
+  });
+
+  it('模型保存失败后释放锁，详情可正常更新且允许重试', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, model: 'old' }];
+    let finish!: (value: typeof conversation) => void;
+    mocks.conversation.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const opening = store.selectConversation(1);
+    mocks.updateConversation.mockRejectedValueOnce(new Error('保存失败'));
+    await expect(store.updateConversationModel(1, 'failed')).rejects.toThrow('保存失败');
+    finish({ ...conversation, model: 'server', provider: 'server-provider' });
+    await opening;
+    expect(store.conversations[0]).toMatchObject({ model: 'server', provider: 'server-provider' });
+    mocks.updateConversation.mockResolvedValueOnce({ ...conversation, model: 'retry' });
+    await store.updateConversationModel(1, 'retry');
+    expect(store.conversations[0].model).toBe('retry');
+  });
+
+  it('模型保存与详情并发期间删除当前会话，晚到响应不复活工作区', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation }];
+    let finishDetail!: (value: typeof conversation) => void;
+    let finishSave!: (value: typeof conversation) => void;
+    mocks.conversation.mockImplementationOnce(() => new Promise((resolve) => { finishDetail = resolve; }));
+    mocks.updateConversation.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
+    const opening = store.selectConversation(1);
+    const saving = store.updateConversationModel(1, 'new');
+    await store.deleteConversation(1);
+    finishSave({ ...conversation, model: 'new' });
+    await saving;
+    finishDetail({ ...conversation });
+    await opening;
+    expect(store.conversations).toEqual([]);
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.messages).toEqual([]);
+    expect(mocks.updateConversationState).not.toHaveBeenCalled();
+  });
+
   it('打开会话只 PATCH 已读字段，且立即移除旧消息', async () => {
     const store = useAiDevelopmentStore();
     store.messages = [{ id: 99 } as never];

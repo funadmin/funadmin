@@ -28,15 +28,17 @@ use Throwable;
 final class AiAgentJob
 {
     private readonly AiConversationStore $store;
-    private readonly AiAgentOrchestrator $orchestrator;
+    private readonly ?AiAgentOrchestrator $orchestrator;
+    private readonly ?\Closure $orchestratorFactory;
     private readonly ?AgentSandboxManager $sandboxManager;
     private readonly ?AiSecurityStore $securityStore;
 
-    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null)
+    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null)
     {
         $this->store = $store ?? new DatabaseAiConversationStore();
         if ($orchestrator !== null) {
             $this->orchestrator = $orchestrator;
+            $this->orchestratorFactory = $orchestratorFactory;
             $this->sandboxManager = $sandboxManager;
             $this->securityStore = $securityStore;
             return;
@@ -49,7 +51,8 @@ final class AiAgentJob
         $this->securityStore = $security;
         $this->sandboxManager = new AgentSandboxManager(new NativeDockerProcessRunner(), root_path(), (string) config('ai.storage.private_path'), $sandboxConfig);
         $tools = new ContainerAiToolExecutor(new AgentToolRegistry((array) config('ai.tools.allowlist', [])), new ApprovalPolicyEngine(), new AiApprovalService($security), new AiAuditService((string) config('ai.storage.log_path'), (int) config('ai.storage.log_max_bytes')), $security, $this->sandboxManager, $sandboxConfig);
-        $this->orchestrator = new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(), (array) config('ai.provider', [])), $tools);
+        $this->orchestrator = null;
+        $this->orchestratorFactory = static fn (array $providerConfig): AiAgentOrchestrator => new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(), $providerConfig), $tools);
     }
 
     public function fire(Job $job, array $data): void
@@ -76,28 +79,57 @@ final class AiAgentJob
         $this->store->appendEvent($taskId, 'task.heartbeat', ['at' => date(DATE_ATOM)]);
         $sandbox = null;
         try {
-            if ($this->sandboxManager !== null) {
-                if ($retainedSandbox) {
-                    $containerId = (string)($task['container_task_id'] ?? '');
-                    $workspace = (string)($task['workspace_path'] ?? '');
-                    if ($containerId === '' || $workspace === '') throw new RuntimeException('paused 任务缺少 retained sandbox');
-                    $sandbox = ['containerId' => $containerId, 'volume' => (string)($task['sandbox_volume'] ?? ''), 'workspace' => $workspace];
-                } else {
-                    $sandbox = $this->sandboxManager->create($taskId, (int) $task['conversation_id']);
-                    $this->sandboxManager->start($sandbox['containerId']);
-                    $this->store->updateTask($taskId, ['container_task_id'=>$sandbox['containerId'],'sandbox_volume'=>$sandbox['volume'],'workspace_path'=>$sandbox['workspace'],'sandbox_status'=>'running','sandbox_retained'=>0,'heartbeat_at'=>date('Y-m-d H:i:s')]);
+            // 先接管并检查已有恢复信息，确保后续配置读取或网关工厂异常也进入安全导出收尾。
+            if ($this->sandboxManager !== null && $retainedSandbox) {
+                $containerId = (string)($task['container_task_id'] ?? '');
+                $workspace = (string)($task['workspace_path'] ?? '');
+                if ($containerId === '' || $workspace === '') throw new RuntimeException('paused 任务缺少 retained sandbox');
+                $sandbox = ['containerId' => $containerId, 'volume' => (string)($task['sandbox_volume'] ?? ''), 'workspace' => $workspace];
+            }
+            $orchestrator = $this->orchestrator;
+            if ($this->orchestratorFactory !== null) {
+                // 首次与审批恢复共用任务模型；凭据每次从服务端读取，不写入快照。
+                $providerConfig = (array) \think\facade\Config::get('ai.provider', []);
+                $provider = trim((string) ($providerConfig['name'] ?? ''));
+                $model = $task['model'] ?? null;
+                $snapshotProvider = $task['provider'] ?? null;
+                $block = null;
+                if ($snapshotProvider === null || $snapshotProvider === '' || $model === null || (is_string($model) && trim($model) === '')) {
+                    $block = ['code' => 'model_snapshot_missing', 'message' => '任务缺少供应商或模型快照，需人工确认配置；禁止使用当前全局配置补全旧快照'];
+                } elseif ($provider === '' || $snapshotProvider !== $provider) {
+                    $block = ['code' => 'provider_snapshot_mismatch', 'message' => '任务供应商与当前配置不匹配，需确认服务端配置；禁止跨供应商执行'];
+                } elseif (!is_string($model) || !mb_check_encoding($model, 'UTF-8') || mb_strlen($model) > 100 || preg_match('/[\x00-\x1f\x7f]/u', $model)) {
+                    $block = ['code' => 'model_snapshot_invalid', 'message' => '任务模型快照无效，需人工确认配置；禁止自动替换任务模型'];
                 }
+                if ($block !== null) {
+                    // paused 是现有非终态，清理器会跳过；保留审批上下文与原始执行阶段，不猜测历史模型。
+                    $block += ['category' => 'configuration_required', 'from_status' => $task['status']];
+                    $output = (array) ($task['output'] ?? []);
+                    $output['configuration_block'] = $block;
+                    if ($this->store->compareAndSetTask($taskId, ['running'], ['status' => 'paused', 'error' => $block, 'output' => $output])) {
+                        $this->store->appendEvent($taskId, 'task.paused', $block);
+                    }
+                    $job->delete();
+                    return;
+                }
+                $providerConfig['model'] = $model;
+                $orchestrator = ($this->orchestratorFactory)($providerConfig);
+            }
+            if ($this->sandboxManager !== null && !$retainedSandbox) {
+                $sandbox = $this->sandboxManager->create($taskId, (int) $task['conversation_id']);
+                $this->sandboxManager->start($sandbox['containerId']);
+                $this->store->updateTask($taskId, ['container_task_id'=>$sandbox['containerId'],'sandbox_volume'=>$sandbox['volume'],'workspace_path'=>$sandbox['workspace'],'sandbox_status'=>'running','sandbox_retained'=>0,'heartbeat_at'=>date('Y-m-d H:i:s')]);
             }
             $context = ['conversation_id'=>(int)$task['conversation_id'],'task_id'=>$taskId,'admin_id'=>(int)($task['input']['admin_id'] ?? 0),'approval_mode'=>$task['approval_mode'],'container_id'=>$sandbox['containerId'] ?? 'injected-test','workspace'=>$sandbox['workspace'] ?? dirname(__DIR__, 3)];
             $messages = (array)($task['input']['messages'] ?? []);
             if ($wasPaused) {
                 $record = $this->securityStore?->awaitingToolCall($taskId, (int)$task['conversation_id']);
                 if ($record === null) throw new RuntimeException('paused 任务缺少可信 awaiting_approval 工具调用');
-                $resumed = $this->orchestrator->resume($record, $context);
+                $resumed = $orchestrator->resume($record, $context);
                 $messages = (array)($task['output']['resume']['messages'] ?? $messages);
                 $messages[] = ['role'=>'tool','tool_call_id'=>(string)$record['idempotency_key'],'content'=>json_encode($resumed, JSON_THROW_ON_ERROR)];
             }
-            $result = $this->orchestrator->run(
+            $result = $orchestrator->run(
                 $messages,
                 (array) (($task['input']['tools'] ?? [])),
                 ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget']],

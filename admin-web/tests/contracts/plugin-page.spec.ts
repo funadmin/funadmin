@@ -11,13 +11,16 @@ const marketDrawer = readFileSync(resolve(process.cwd(), 'src/views/system/plugi
 const componentDirectory = resolve(process.cwd(), 'src/views/system/plugin/components');
 const projectRoot = resolve(process.cwd(), '..');
 
-const productionSource = (directory: string): string => readdirSync(resolve(projectRoot, directory), {
+const productionSource = (directory: string): string => {
+  if (!existsSync(resolve(projectRoot, directory))) return '';
+  return readdirSync(resolve(projectRoot, directory), {
   recursive: true,
   withFileTypes: true
 })
   .filter((entry) => entry.isFile() && /\.(php|json)$/.test(entry.name))
   .map((entry) => readFileSync(resolve(entry.parentPath, entry.name), 'utf8'))
   .join('\n');
+};
 
 describe('插件中心页面契约', () => {
   it('提供已安装、本地插件、云市场三个标签和关键状态字段', () => {

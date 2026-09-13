@@ -13,4 +13,6 @@ final class AiConversationGroup extends BackendModel
     use LaravelSoftDelete;
 
     protected $name = 'ai_conversation_group';
+
+    protected $type = ['id' => 'integer', 'admin_id' => 'integer'];
 }

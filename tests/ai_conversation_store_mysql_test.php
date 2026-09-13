@@ -51,6 +51,22 @@ try {
     $failures = [];
     $expect = static function (bool $ok, string $message) use (&$failures): void { if (!$ok) $failures[] = $message; };
     $expect($store->conversation($id, 7)['is_unread'] === false, '返回 boolean 而非 tinyint');
+    $raw = Db::name('ai_conversation_group')->where('id', $group['id'])->find();
+    echo '原始 MySQL bigint 类型: ' . get_debug_type($raw['id']) . "\n";
+    foreach ([$group, $store->conversationGroup((int) $group['id'], 7), $service->listConversationGroups(7)[0], $service->updateConversationGroup((int) $group['id'], 7, ['name' => '项目'])] as $record) {
+        $json = json_decode(json_encode($record, JSON_THROW_ON_ERROR), true);
+        $expect(is_int($json['id']) && is_int($json['admin_id']), '分组创建/读取/列表/更新 JSON ID 必须为整数：' . json_encode([$json['id'], $json['admin_id']]));
+    }
+    foreach ([$conversation, $service->getConversation($id, 7), $service->listConversations(7)[0], $service->updateConversation($id, 7, ['title' => '测试'])] as $record) {
+        $json = json_decode(json_encode($record, JSON_THROW_ON_ERROR), true);
+        $expect(is_int($json['id']) && is_int($json['admin_id']) && $json['group_id'] === (int) $group['id'], '会话创建/读取/列表/更新 JSON ID 必须为整数：' . json_encode([$json['id'], $json['admin_id'], $json['group_id']]));
+    }
+    try {
+        $moved = $service->updateConversationState($id, 7, ['group_id' => (string) $raw['id']]);
+        $expect($moved['group_id'] === (int) $raw['id'], '数据库字符串分组 ID 必须规范化');
+        $created = $service->createConversation(7, ['title' => '字符串分组', 'group_id' => (string) $raw['id']]);
+        $expect($created['group_id'] === (int) $raw['id'], '创建入口复用分组 ID 规范化');
+    } catch (InvalidArgumentException $e) { $expect(false, '真实数据库字符串 ID 被拒绝：' . $e->getMessage()); }
     foreach (['user', 'system', 'tool', 'assistant'] as $role) {
         $service->updateConversationState($id, 7, ['is_unread' => false]);
         $store->appendMessage($id, ['role' => $role, 'content' => ['text' => '回复']]);

@@ -65,6 +65,8 @@ interface AiDevelopmentState {
   connectionGeneration: number;
   selectionGeneration: number;
   messageGeneration: number;
+  modelGenerations: Record<number, number>;
+  modelSaving: Record<number, boolean>;
   syncError: boolean;
 }
 
@@ -100,6 +102,8 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
     connectionGeneration: 0,
     selectionGeneration: 0,
     messageGeneration: 0,
+    modelGenerations: {},
+    modelSaving: {},
     syncError: false
   }),
 
@@ -206,6 +210,25 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       try { await request; } finally { if (queue.get(id) === request) queue.delete(id); }
     },
 
+    async updateConversationModel(id: number, model: string) {
+      model = model.trim();
+      if (!model || !this.conversations.some((item) => item.id === id)) return;
+      if (this.modelSaving[id]) throw new Error('模型正在保存，请稍后重试');
+      this.modelSaving[id] = true;
+      try {
+        const updated = await aiDevelopmentApi.updateConversation(id, { model });
+        const conversation = this.conversations.find((item) => item.id === id);
+        // 只更新原会话的模型选择，不覆盖并发状态，也不触碰已冻结任务及事件连接。
+        if (conversation) {
+          Object.assign(conversation, { model: updated.model, provider: updated.provider });
+          // 成功回写时递增，使保存前或保存中发起的旧详情都能识别更新。
+          this.modelGenerations[id] = (this.modelGenerations[id] ?? 0) + 1;
+        }
+      } finally {
+        delete this.modelSaving[id];
+      }
+    },
+
     async markViewedRead(id: number, generation: number) {
       const current = () => this.selectedConversationId === id && this.selectionGeneration === generation;
       if (!current()) return;
@@ -246,10 +269,17 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.clearWorkspace();
       const generation = this.selectionGeneration;
       this.selectedConversationId = id;
+      const modelGeneration = this.modelGenerations[id] ?? 0;
       const [conversation, messages] = await Promise.all([aiDevelopmentApi.conversation(id), aiDevelopmentApi.messages(id)]);
       if (generation !== this.selectionGeneration || this.selectedConversationId !== id) return;
       const index = this.conversations.findIndex((item) => item.id === id);
-      if (index >= 0) this.conversations[index] = conversation;
+      if (index >= 0) {
+        const current = this.conversations[index];
+        // 旧 GET 仍更新其他详情字段，但不得覆盖期间已保存的模型配置。
+        this.conversations[index] = modelGeneration === (this.modelGenerations[id] ?? 0)
+          ? conversation
+          : { ...conversation, model: current.model, provider: current.provider };
+      }
       this.messages = messages;
       this.saveRouteState();
       await this.markViewedRead(id, generation);

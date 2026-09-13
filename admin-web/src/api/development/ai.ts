@@ -198,29 +198,49 @@ function eventUrl(taskId: number, ticket: string, cursor: number): string {
   return `${base}${PREFIX}/tasks/${taskId}/events?ticket=${encodeURIComponent(ticket)}&cursor=${cursor}`;
 }
 
+// HTTP 已解包 data；这里只校验 AI 实体形状并规范化 ORM bigint，不递归改写业务 JSON。
+const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id'] as const;
+function aiRecord<T>(value: T): T {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('id' in value)) throw new Error('AI 接口未返回有效实体');
+  const record = { ...value } as Record<string, unknown>;
+  for (const field of ID_FIELDS) {
+    if (!(field in record)) continue;
+    const raw = record[field];
+    if (raw === null && field !== 'id') continue;
+    const id = typeof raw === 'string' && /^[1-9][0-9]*$/.test(raw) ? Number(raw) : raw;
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) throw new Error(`AI 接口 ${field} 无效或超出安全整数范围`);
+    record[field] = id;
+  }
+  return record as T;
+}
+function aiRecords<T>(value: T[]): T[] {
+  if (!Array.isArray(value)) throw new Error('AI 接口未返回有效列表');
+  return value.map(aiRecord);
+}
+
 export const aiDevelopmentApi = {
-  conversations: () => http.get<AiConversation[]>('/development/ai/conversations'),
-  conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`),
-  createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }),
-  updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }),
+  conversations: () => http.get<AiConversation[]>('/development/ai/conversations').then(aiRecords),
+  conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`).then(aiRecords),
+  createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }).then(aiRecord),
+  updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }).then(aiRecord),
   deleteConversationGroup: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversation-groups/${id}`),
-  updateConversationState: (id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload),
-  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context'>>) => http.post<AiConversation>('/development/ai/conversations', payload),
-  conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`),
-  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload),
+  updateConversationState: (id: number, payload: Partial<Pick<AiConversation, 'group_id' | 'is_archived' | 'is_unread'>>) => http.patch<AiConversation>(`${PREFIX}/conversations/${id}/state`, payload).then(aiRecord),
+  createConversation: (payload: Pick<AiConversation, 'title' | 'approval_mode'> & Partial<Pick<AiConversation, 'provider' | 'model' | 'context'>>) => http.post<AiConversation>('/development/ai/conversations', payload).then(aiRecord),
+  conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`).then(aiRecord),
+  updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
   deleteConversation: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}`),
-  messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`),
-  createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload),
-  executeTask: (id: number, payload: { idempotency_key: string; type?: AiTask['type']; message_id?: number; input?: Record<string, unknown> }) => http.post<AiTask>(`${PREFIX}/conversations/${id}/tasks`, payload),
-  task: (id: number) => http.get<AiTask>(`${PREFIX}/tasks/${id}`),
+  messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`).then(aiRecords),
+  createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),
+  executeTask: (id: number, payload: { idempotency_key: string; type?: AiTask['type']; message_id?: number; input?: Record<string, unknown> }) => http.post<AiTask>(`${PREFIX}/conversations/${id}/tasks`, payload).then(aiRecord),
+  task: (id: number) => http.get<AiTask>(`${PREFIX}/tasks/${id}`).then(aiRecord),
   cancelTask: (id: number) => http.post<{ cancelled: boolean }>(`/development/ai/tasks/${id}/cancel`),
   eventTicket: (id: number) => http.post<{ ticket: string }>(`/development/ai/tasks/${id}/events/ticket`),
   eventStreamUrl: (id: number, ticket: string, cursor = 0) => eventUrl(id, ticket, cursor),
-  approvals: () => http.get<AiApproval[]>('/development/ai/approvals'),
-  decideApproval: (id: number, payload: AiApprovalDecision) => http.post<AiApproval>(`/development/ai/approvals/${id}/decision`, payload),
-  toolCalls: (id: number) => http.get<AiToolCall[]>(`/development/ai/tasks/${id}/tool-calls`),
+  approvals: () => http.get<AiApproval[]>('/development/ai/approvals').then(aiRecords),
+  decideApproval: (id: number, payload: AiApprovalDecision) => http.post<AiApproval>(`/development/ai/approvals/${id}/decision`, payload).then(aiRecord),
+  toolCalls: (id: number) => http.get<AiToolCall[]>(`/development/ai/tasks/${id}/tool-calls`).then(aiRecords),
   toolLog: (id: number, stream: 'stdout' | 'stderr') => http.get<{ content: string; hash: string | null }>(`/development/ai/tool-calls/${id}/logs/${stream}`),
-  changeSet: (id: number) => http.get<AiChangeSet>(`/development/ai/change-sets/${id}`),
+  changeSet: (id: number) => http.get<AiChangeSet>(`/development/ai/change-sets/${id}`).then(aiRecord),
   previewChangeSet: (id: number, selection: string[]) => http.post<AiChangeSetPreview>(`/development/ai/change-sets/${id}/preview`, { selection }),
   applyChangeSet: (id: number, payload: { selection: string[]; confirmToken: string; finalApprovalId: number }) => http.post<{ state: string; transactionId?: string }>(`/development/ai/change-sets/${id}/apply`, payload),
   settings: () => http.get<AiProviderSettings>('/development/ai/settings'),

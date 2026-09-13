@@ -114,11 +114,21 @@ final class ProductionTemplateContext
         $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
         $softTrait = $data['softDeletes'] ? "    use LaravelSoftDelete;\n\n" : '';
+        if (!empty($data['formSchema']['key'])) {
+            $key = $data['formSchema']['key'];
+            $connection = var_export((string) ($data['connection'] ?? 'mysql'), true);
+            if ($data['softDeletes']) $softTrait = "    use LaravelSoftDelete { delete as private treeDelete; restore as private treeRestore; }\n\n";
+            $delete = $data['softDeletes'] ? '$this->treeDelete()' : 'parent::delete()';
+            $methods[] = "    public function save(array|object \$data = [], \$where = [], bool \$refresh = false): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$data, \$where, \$refresh): bool {\n            \$payload = array_replace(\$this->getData(), (array) \$data);\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) (\$payload['{$primary['name']}'] ?? ''), \$payload);\n            return parent::save(\$data, \$where, \$refresh);\n        });\n    }";
+            $methods[] = "    public function delete(): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function (): bool {\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), [], true);\n            return {$delete};\n        });\n    }";
+            if ($data['softDeletes']) $methods[] = "    public function restore(array \$where = []): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$where): bool {\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), \$this->getData());\n            return \$this->treeRestore(\$where);\n        });\n    }";
+        }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_modelNamespace']};\n\n"
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
             . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
             . "    protected string \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
+            . (!empty($data['formSchema']['key']) ? '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n" : '')
             . "    protected string \$pk = '{$primary['name']}';\n"
             . '    protected array $type = ' . self::phpArray($casts) . ";\n\n"
             . implode("\n\n", $methods) . "\n}\n";
@@ -277,8 +287,22 @@ final class ProductionTemplateContext
             }
             $data['dataScope']['enabled'] = false;
         }
+        $leftTree = ($data['list']['leftTree']['enabled'] ?? false) === true;
+        $leftMethods = '';
+        $leftAlias = '';
+        if ($leftTree && $data['_consoleController']) {
+            $key = $data['formSchema']['key'] ?? str_replace('-', '_', $data['entity']);
+            $hash = $data['formSchemaHash'] ?? '';
+            $field = $data['list']['leftTree']['mapping']['targetField'];
+            $leftAlias = "        applyFilters as private crudOriginalFilters;\n";
+            $leftMethods = "\n    private function treeService(): \\app\\console\\form\\service\\FormDataService\n    {\n        return new \\app\\console\\form\\service\\FormDataService(new \\app\\common\\form\\validation\\FormAsyncValidatorRegistry((array) config('form.validators', [])), \\app\\common\\form\\dataSource\\FormDataSourceRegistry::core((array) config('form.data_sources', [])), permissionChecker: fn (string \$route): bool => (new \\app\\console\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route));\n    }\n"
+                . "    #[Get('left-tree')]\n    public function leftTree(): Response { return \$this->ok(data: \$this->treeService()->leftTree('{$key}')); }\n"
+                . "    #[Get('left-tree-form/:operation')]\n    #[Pattern('operation', 'create|addChild|edit')]\n    public function leftTreeForm(string \$operation): Response { return \$this->ok(data: \$this->treeService()->leftTreeForm('{$key}', \$operation, (string) \$this->request->get('id', ''), '{$hash}', (string) \$this->request->get('optionField', ''), (array) \$this->request->get('context', []))); }\n"
+                . "    #[Post('left-tree/:operation')]\n    #[Pattern('operation', 'create|addChild|edit|delete')]\n    public function mutateLeftTree(string \$operation): Response\n    {\n        \$payload = \$this->request->post('data', []);\n        if (!is_array(\$payload)) throw new \\InvalidArgumentException('data 必须为对象');\n        \$post = \$this->request->post();\n        \$post['data'] = '[REDACTED]';\n        \$this->request->withPost(\$post);\n        return \$this->ok(data: \$this->treeService()->mutateLeftTree('{$key}', \$operation, (string) \$this->request->post('id', ''), \$payload, '{$hash}', (string) \$this->request->post('sourceSchemaHash', '')));\n    }\n"
+                . "    protected function applyFilters(\$query)\n    {\n        \$query = \$this->crudOriginalFilters(\$query);\n        \$selected = \$this->request->get('__leftTree', []);\n        if (is_string(\$selected)) \$selected = json_decode(\$selected, true, 512, JSON_THROW_ON_ERROR);\n        if (!is_array(\$selected)) throw new \\InvalidArgumentException('左树选择必须为数组');\n        \$values = \$this->treeService()->resolveLeftTreeFilter('{$key}', \$selected, '{$hash}');\n        return \$values === [] ? \$query : \$query->whereIn('{$field}', \$values);\n    }\n";
+        }
         $statusTraitAlias = ($enabled['status'] || !$data['_consoleController']) ? "        status as private crudStatus; status as private;\n" : '';
-        $methods = [];
+        $methods = $leftMethods === '' ? [] : [$leftMethods];
         if ($enabled['list']) {
             $methods[] = ($data['list']['tree']['enabled'] ?? false)
                 ? "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }"
@@ -332,7 +356,7 @@ final class ProductionTemplateContext
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
             . "use think\\Model;\nuse think\\Response;\n\n#[Group('{$data['_controllerGroup']}')]\n"
-            . "{$controllerDeclaration}\n{\n{$controllerTraits}    use Crud {\n        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
+            . "{$controllerDeclaration}\n{\n{$controllerTraits}    use Crud {\n{$leftAlias}        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
             . $controllerMiddleware
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
             . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"
@@ -464,6 +488,11 @@ final class ProductionTemplateContext
             : "(async () => {\n  switch (source) {\n" . implode("\n", $endpointOptions)
                 . "\n    default:\n      return request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`);\n  }\n})()";
         $methods = [];
+        if (($data['list']['leftTree']['enabled'] ?? false) === true) {
+            $methods[] = "  leftTree: (_key?: string) => request.get<import('@/api/formData').FormLeftTreeResult>('{$base}/left-tree')";
+            $methods[] = "  leftTreeForm: (_key: string, operation: 'create' | 'addChild' | 'edit', id: string | number, schemaHash: string, optionField = '', context: Record<string, unknown> = {}) => request.get<{ meta: import('@/api/formData').FormDataMeta; row: Record<string, unknown>; options?: Array<{ label: string; value: string | number }>; total?: number }>(`{$base}/left-tree-form/\${operation}`, { id, schemaHash, optionField, context })";
+            $methods[] = "  mutateLeftTree: (_key: string, operation: 'create' | 'addChild' | 'edit' | 'delete', id: string | number, data: Record<string, unknown>, schemaHash: string, sourceSchemaHash: string) => request.post(`{$base}/left-tree/\${operation}`, { id, data, schemaHash, sourceSchemaHash })";
+        }
         if ($enabled['list']) $methods[] = "  list: (params: {$type}Query) => request.get<API.PageResult<{$type}>>('{$base}', params)";
         if ($enabled['detail']) $methods[] = "  detail: (id: {$type}Id) => request.get<{$type}>(`{$base}/\${id}`)";
         if ($enabled['create']) $methods[] = "  create: (data: {$type}Payload) => request.post<{$type}>('{$base}', data)";
@@ -587,16 +616,27 @@ final class ProductionTemplateContext
             $listSetup .= "function onCategory(value: string | number | undefined) { query.__category = value; query.page = 1; void loadData(); }\n";
             $categoryPanel = '<ListCategoryPanel :options="categoryOptions" :model-value="query.__category" @change="onCategory" />';
         }
+        $leftTree = ($data['list']['leftTree']['enabled'] ?? false) === true;
+        if ($leftTree) {
+            $key = $data['formSchema']['key'] ?? str_replace('-', '_', $data['entity']);
+            $hash = $data['formSchemaHash'] ?? '';
+            $listImports .= "import ListSourceTree from '@/views/form/components/ListSourceTree.vue';\nimport { useUserStore } from '@/store/modules/user';\n";
+            $listSetup .= "const treeUser = useUserStore();\nconst treePermission = (code: string): boolean => treeUser.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === code);\n";
+            $listSetup .= 'const leftTreeConfig = ' . self::json($data['list']['leftTree']) . " as const;\n";
+            $listSetup .= "const leftSelection = ref<Array<string | number>>([]);\nfunction onLeftTree(values: Array<string | number>) { leftSelection.value = values; query.__leftTree = JSON.stringify(values); query.page = 1; void loadData(); }\n";
+            $permissionPrefix = htmlspecialchars($data['permissionPrefix'], ENT_QUOTES);
+            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':left-tree-mutate\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
+        }
         $vueImports = [];
         if ($enabled['softDelete'] || $tree) $vueImports[] = 'computed';
-        if ($enabled['import'] || $category) $vueImports[] = 'ref';
+        if ($enabled['import'] || $category || $leftTree) $vueImports[] = 'ref';
         if ($category) $vueImports[] = 'onMounted';
         $vueImport = $vueImports === [] ? '' : "import { " . implode(', ', $vueImports) . " } from 'vue';\n";
         $csvImport = $enabled['import'] || $enabled['export']
             ? "import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';\n"
             : '';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
-            . ($category ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
+            . (($category || $leftTree) ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
             . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
             . $searchSlot
             . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
@@ -604,7 +644,7 @@ final class ProductionTemplateContext
             . $selectionColumn . implode("\n", $columns) . "\n" . $statusColumn
             . $operationColumn
             . '        </el-table>' . ($tree ? '' : '<el-pagination v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />') . "</template>\n"
-            . '    </DataTableShell>' . ($category ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
+            . '    </DataTableShell>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport . $listImports
@@ -825,7 +865,8 @@ final class ProductionTemplateContext
         $enabled = static fn (string $name): bool => ($capabilities[$name] ?? true) === true;
         $delete = $enabled('delete');
         $softDelete = $delete && $data['softDeletes'];
-        $dictionary = $enabled('form') && ($features['dictionary'] ?? false);
+        $categoryOptions = $enabled('list') && ($data['list']['category']['enabled'] ?? false);
+        $dictionary = ($enabled('form') && ($features['dictionary'] ?? false)) || $categoryOptions;
         $optionSources = self::enabledOptionSources($data, ['dictionary' => $dictionary]);
         return [
             'list' => $enabled('list'),
@@ -842,8 +883,8 @@ final class ProductionTemplateContext
             'export' => $enabled('export') && ($features['export'] ?? false),
             'upload' => $enabled('form') && ($features['upload'] ?? false),
             'dictionary' => $dictionary,
-            'options' => $enabled('form') && $optionSources !== [],
-            'serverOptions' => $enabled('form') && array_filter(
+            'options' => ($enabled('form') || $categoryOptions) && $optionSources !== [],
+            'serverOptions' => ($enabled('form') || $categoryOptions) && array_filter(
                 $optionSources,
                 static fn (array $source): bool => $source['type'] !== 'endpoint'
             ) !== [],

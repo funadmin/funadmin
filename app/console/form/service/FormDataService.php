@@ -111,7 +111,30 @@ final class FormDataService
         $list = (array) ($this->publishedRuntime($form)['schema']['list'] ?? []);
         $tree = ($list['tree']['enabled'] ?? false) === true;
         if ($tree && (!isset($schema[$list['tree']['parentField']]) || $list['tree']['parentField'] === $primary['name'])) throw new InvalidArgumentException('树父级字段不存在或与主键相同');
+        $query = $this->filteredQuery($form, $fields, $list, $filters);
+        $sortable = $this->sortableColumns($fields);
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
+        $result = $this->readListQuery($query, $tree, $page, $pageSize);
+        $result['list'] = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $result['list']);
+        return $result;
+    }
+
+    /** 列表与导出共用分类、普通过滤及基础权限查询，不绑定展示读取策略。 */
+    private function filteredQuery(Form $form, $fields, array $list, array $filters)
+    {
         $query = $this->baseQuery($form, $fields);
+        if (($list['leftTree']['enabled'] ?? false) === true && array_key_exists('__leftTree', $filters)) {
+            $selected = $filters['__leftTree'];
+            if (!is_array($selected)) throw new InvalidArgumentException('左树选择必须为数组');
+            $tree = $this->leftTree((string) $form->form_key);
+            $config = $list['leftTree'];
+            $values = (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $tree['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
+            if ($values !== []) {
+                $column = $form->table_name . '.' . $config['mapping']['targetField'];
+                count($values) === 1 ? $query->where($column, '=', $values[0]) : $query->whereIn($column, $values);
+            }
+        }
         if (($list['category']['enabled'] ?? false) && array_key_exists('__category', $filters) && $filters['__category'] !== '' && $filters['__category'] !== null) {
             if (!is_string($filters['__category']) && !is_int($filters['__category'])) throw new InvalidArgumentException('分类值必须是字符串或整数');
             $query->where($form->table_name . '.' . $list['category']['field'], '=', $filters['__category']);
@@ -156,12 +179,237 @@ final class FormDataService
                 $query->whereNotNull($name);
             }
         }
-        $sortable = $this->sortableColumns($fields);
-        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
-        $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
-        $result = $this->readListQuery($query, $tree, $page, $pageSize);
-        $result['list'] = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $result['list']);
+        return $query;
+    }
+
+    /** 左树仅从已发布业务快照读取，字段及行权限均在查询前校验。 */
+    public function leftTree(string $key): array
+    {
+        $target = $this->form($key);
+        $targetRuntime = $this->publishedRuntime($target);
+        $config = $targetRuntime['schema']['list']['leftTree'] ?? [];
+        if (($config['enabled'] ?? false) !== true) throw new InvalidArgumentException('左树未启用');
+        $sourceKey = $key;
+        if (($config['source']['type'] ?? '') === 'module') {
+            $module = BusinessModule::where('code', $config['source']['module'])->find();
+            if (!$module) throw new InvalidArgumentException('来源业务不存在');
+            $sourceForm = Form::where('id', (int) $module->form_id)->find();
+            if (!$sourceForm) throw new InvalidArgumentException('来源业务未绑定表单');
+            $sourceKey = (string) $sourceForm->form_key;
+        }
+        $source = $this->form($sourceKey);
+        $runtime = $this->publishedRuntime($source);
+        $permission = $this->businessPermissionRoute($runtime['module']);
+        if (!($this->permissionChecker)($permission . '/index')) throw new InvalidArgumentException('没有来源业务读取权限');
+        $mapping = $config['mapping'];
+        $schema = Db::connect((string) $source->connection)->getFields((string) $source->table_name);
+        $primary = $this->primaryKey($schema);
+        foreach ($mapping as $binding => $name) {
+            if ($name === '') continue;
+            $boundFields = $binding === 'targetField' ? $targetRuntime['fields'] : $runtime['fields'];
+            $boundForm = $binding === 'targetField' ? $target : $source;
+            $columns = Db::connect((string) $boundForm->connection)->getFields((string) $boundForm->table_name);
+            $field = null;
+            foreach ($boundFields as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
+            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
+                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || ($field['control_props']['multiple'] ?? false)) throw new InvalidArgumentException('左树映射字段不存在或无读取权限');
+        }
+        if ($mapping['valueField'] !== $primary['name']) throw new InvalidArgumentException('左树节点值必须映射来源业务主键');
+        $query = $this->baseQuery($source, $runtime['fields']);
+        $query->order($source->table_name . '.' . (($mapping['sortField'] ?? '') !== '' ? $mapping['sortField'] : $primary['name']), 'asc');
+        $rows = $query->limit(1001)->select()->toArray();
+        if (count($rows) > 1000) throw new InvalidArgumentException('左树超过 1000 条授权节点');
+        $nodes = array_map(static fn (array $row): array => [
+            'id' => $row[$primary['name']], 'value' => $row[$mapping['valueField']],
+            'label' => (string) $row[$mapping['labelField']], 'parent' => $row[$mapping['parentField'] ?? ''] ?? null,
+        ], $rows);
+        $actions = [];
+        foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
+            $actions[$action] = ($config['actions'][$action] ?? false) === true && ($this->permissionChecker)($permission . '/' . $operation);
+        }
+        return ['nodes' => $nodes, 'sourceKey' => $sourceKey, 'schemaHash' => $runtime['schemaHash'], 'actions' => $actions];
+    }
+
+    /** 正式生成与动态列表复用同一授权选择算法，版本不匹配时拒绝旧代码。 */
+    public function resolveLeftTreeFilter(string $key, array $selected, string $schemaHash): array
+    {
+        $runtime = $this->publishedRuntime($this->form($key));
+        $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
+        $config = $runtime['schema']['list']['leftTree'];
+        return (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $this->leftTree($key)['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
+    }
+
+    public function leftTreeForm(string $key, string $action, int|string $id, string $schemaHash, string $optionField = '', array $context = []): array
+    {
+        $runtime = $this->publishedRuntime($this->form($key));
+        $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
+        $tree = $this->leftTree($key);
+        if (!in_array($action, ['create', 'addChild', 'edit'], true) || !($tree['actions'][$action] ?? false)) {
+            throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
+        }
+        $row = $action === 'create' ? [] : $this->detail($tree['sourceKey'], $id)['row'];
+        $meta = $this->meta($tree['sourceKey']);
+        $this->assertPublishedSchemaHash($tree['schemaHash'], $meta['schemaHash']);
+        $result = ['meta' => $meta, 'row' => $action === 'edit' ? $row : []];
+        if ($optionField !== '') {
+            $field = null;
+            foreach ($meta['fields'] as $candidate) if ($candidate['field_name'] === $optionField) $field = $candidate;
+            if (!$field || !$this->fieldAccessAllowed($field, 'read') || !$this->fieldSubmissionAllowed($field, []) || $this->isSensitiveField($field)) throw new InvalidArgumentException('来源选项字段不可访问');
+            $result += $this->paginateOptions($this->options($tree['sourceKey'], $optionField, $context), (string) ($context['keyword'] ?? ''), max(1, (int) ($context['page'] ?? 1)), min(100, max(1, (int) ($context['pageSize'] ?? 20))));
+        }
         return $result;
+    }
+
+    /** 来源写操作在来源连接事务中完成；锁定完整节点集合以串行化父级变更。 */
+    public function mutateLeftTree(string $key, string $action, int|string $id, array $data, string $schemaHash, string $sourceSchemaHash): array
+    {
+        $target = $this->form($key);
+        $published = $this->publishedRuntime($target);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $tree = $this->leftTree($key);
+        if (!($tree['actions'][$action] ?? false)) throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
+        $this->assertPublishedSchemaHash($sourceSchemaHash, $tree['schemaHash']);
+        $source = $this->form($tree['sourceKey']);
+        $runtime = $this->publishedRuntime($source);
+        $mapping = $published['schema']['list']['leftTree']['mapping'];
+        $connection = Db::connect((string) $source->connection);
+        $columns = $connection->getFields((string) $source->table_name);
+        $primary = $this->primaryKey($columns)['name'];
+        $parent = (string) ($mapping['parentField'] ?? '');
+        return $connection->transaction(function () use ($connection, $source, $runtime, $tree, $action, $id, $data, $parent, $primary, $sourceSchemaHash, $columns): array {
+            // 不加用户范围：不可见节点同样参与环检测和删除保护，值不返回客户端。
+            $all = $connection->table((string) $source->table_name)->field(array_values(array_unique(array_filter([$primary, $parent]))))->order($primary)->lock(true)->select()->toArray();
+            if ($action !== 'create') {
+                $this->detail($tree['sourceKey'], $id);
+            }
+            if ($action === 'delete') {
+                if ($parent !== '' && $connection->table((string) $source->table_name)->where($parent, $id)->lock(true)->find()) {
+                    throw new InvalidArgumentException('节点仍有子节点，不能删除');
+                }
+                $this->assertLeftTreeUnreferenced($source, $primary, $id);
+                return $this->remove($tree['sourceKey'], $id, $sourceSchemaHash);
+            }
+            if ($action === 'addChild') {
+                if ($parent === '') throw new InvalidArgumentException('未配置父级字段');
+                $data[$parent] = $id;
+            }
+            $updating = $action === 'edit';
+            if ($updating && array_key_exists($primary, $data) && (string) $data[$primary] !== (string) $id) throw new InvalidArgumentException('不能修改节点主键');
+            if ($updating) unset($data[$primary]);
+            foreach ($data as $name => $_value) {
+                $field = null;
+                foreach ($runtime['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+                if (!$field || !$this->fieldSubmissionAllowed($field, [])) throw new InvalidArgumentException('字段不可写：' . $name);
+            }
+            if ($parent !== '' && array_key_exists($parent, $data) && $data[$parent] !== null && $data[$parent] !== '' && (string) $data[$parent] !== '0') {
+                $this->detail($tree['sourceKey'], $data[$parent]);
+                $parents = array_column($all, $parent, $primary);
+                $cursor = (string) $data[$parent];
+                $seen = [];
+                $own = (string) ($updating ? $id : ($data[$primary] ?? ''));
+                while ($cursor !== '' && $cursor !== '0') {
+                    if ($cursor === $own || isset($seen[$cursor])) throw new InvalidArgumentException('父级存在循环');
+                    $seen[$cursor] = true;
+                    $cursor = (string) ($parents[$cursor] ?? '');
+                }
+            }
+            return $updating
+                ? $this->update($tree['sourceKey'], $id, $data, [], $sourceSchemaHash)
+                : $this->create($tree['sourceKey'], $data, [], $sourceSchemaHash);
+        });
+    }
+
+    /** 所有来源写入口共用；调用方必须在同连接事务内调用并完成写入。 */
+    public function guardTreeWrite(string $key, int|string $id, array $data = [], bool $deleting = false): void
+    {
+        $source = $this->form($key);
+        $runtime = $this->publishedRuntime($source);
+        $connection = Db::connect((string) $source->connection);
+        $primary = $this->primaryKey($connection->getFields((string) $source->table_name))['name'];
+        $parents = [];
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+            if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝写入');
+            $document = (new FormSchemaRepository())->compile((array) $version->schema_document)->document();
+            $left = $document['list']['leftTree'] ?? [];
+            if (!($left['enabled'] ?? false)) continue;
+            $matches = ($left['source']['type'] ?? '') === 'current'
+                ? (int) $module->form_id === (int) $source->id
+                : ($left['source']['module'] ?? '') === (string) $runtime['module']->code;
+            if ($matches && ($left['mapping']['parentField'] ?? '') !== '') $parents[] = $left['mapping']['parentField'];
+        }
+        foreach (array_unique($parents) as $parent) {
+            $all = $connection->table((string) $source->table_name)->field([$primary, $parent])->order($primary)->lock(true)->select()->toArray();
+            if ($deleting) {
+                foreach ($all as $row) if ((string) ($row[$parent] ?? '') === (string) $id) throw new InvalidArgumentException('节点仍有子节点，不能删除');
+                continue;
+            }
+            if (!array_key_exists($parent, $data)) continue;
+            $cursor = (string) ($data[$parent] ?? '');
+            $own = (string) ($id !== '' ? $id : ($data[$primary] ?? ''));
+            $links = array_column($all, $parent, $primary);
+            $seen = [];
+            while ($cursor !== '' && $cursor !== '0') {
+                if ($cursor === $own || isset($seen[$cursor])) throw new InvalidArgumentException('父级存在循环');
+                $seen[$cursor] = true;
+                $cursor = (string) ($links[$cursor] ?? '');
+            }
+            $parentId = (string) ($data[$parent] ?? '');
+            if ($parentId !== '' && $parentId !== '0') $this->detail($key, $parentId);
+        }
+        if ($deleting) $this->assertLeftTreeUnreferenced($source, $primary, $id);
+    }
+
+    /** 完整已发布快照的引用检查不受字段、行和来源启用状态影响。 */
+    private function assertLeftTreeUnreferenced(Form $source, string $primary, int|string $id): void
+    {
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+            if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝删除');
+            $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
+            $document = $compiled->document();
+            $database = (array) ($document['database'] ?? []);
+            $table = (string) ($database['table'] ?? '');
+            $connectionName = (string) ($database['connection'] ?? 'mysql');
+            $references = [];
+            $left = $document['list']['leftTree'] ?? [];
+            if (($left['enabled'] ?? false) && (($left['source']['type'] ?? '') === 'current' ? $table === (string) $source->table_name : ($left['source']['module'] ?? '') === (string) $this->publishedRuntime($source)['module']->code)) {
+                if ($connectionName !== (string) $source->connection || $table !== (string) $source->table_name || $left['mapping']['targetField'] !== $primary) {
+                    $references[] = $left['mapping']['targetField'];
+                }
+            }
+            foreach ($compiled->fieldProjection() as $field) {
+                if ($table === (string) $source->table_name && $connectionName === (string) $source->connection && ($field['relation_type'] ?? '') === 'has_many') {
+                    $childTable = (string) ($field['relation_table'] ?? '');
+                    $childField = (string) ($field['relation_value_field'] ?? '');
+                    $this->assertIdentifier($childTable, '引用表');
+                    $this->assertIdentifier($childField, '引用字段');
+                    if (Db::connect($connectionName)->table($childTable)->where($childField, $id)->lock(true)->find()) {
+                        throw new InvalidArgumentException('节点仍被关联子表引用，不能删除');
+                    }
+                }
+                if (($field['relation_type'] ?? '') === 'belongs_to' && ($field['relation_table'] ?? '') === (string) $source->table_name && ($field['relation_value_field'] ?? '') === $primary) $references[] = $field['field_name'];
+            }
+            if ($references === []) continue;
+            if ($connectionName !== (string) $source->connection) throw new InvalidArgumentException('跨连接引用无法原子检查，拒绝删除');
+            $this->assertIdentifier($table, '引用表');
+            foreach (array_unique($references) as $field) {
+                $this->assertIdentifier($field, '引用字段');
+                if (Db::connect($connectionName)->table($table)->where($field, $id)->lock(true)->find()) throw new InvalidArgumentException('节点仍被业务数据引用，不能删除');
+            }
+        }
+    }
+
+    /** nodeAccess 接受路由资源，不接受前端 generated:* 能力码。 */
+    private function businessPermissionRoute(BusinessModule $module): string
+    {
+        if ((string) $module->lifecycle_status === 'dynamic_published') return 'console/form.data';
+        $form = Form::where('id', (int) $module->form_id)->find();
+        if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
+        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', (string) $form->form_key)));
+        return 'console/generated.' . strtolower($class) . 'controller';
     }
 
     /** 在行权限和软删除过滤之后读取；多取一条用于检测并发增加，绝不静默截断树。 */
@@ -171,14 +419,20 @@ final class FormDataService
         if ($tree && $total > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
         $rows = ($tree ? $query->limit(1001) : $query->page($page, $pageSize))->select()->toArray();
         if ($tree && count($rows) > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
-        return ['list' => $rows, 'total' => $tree ? count($rows) : $total];
+        return ['list' => $rows, 'total' => $tree ? count($rows) : $total, 'page' => $tree ? 1 : $page, 'pageSize' => $tree ? 1000 : $pageSize];
     }
 
     /** 导出：上限 5000 行。 */
     public function export(string $key, array $filters): array
     {
-        $result = $this->listing($key, $filters, '', 'asc', 1, self::EXPORT_LIMIT);
-        return $result['list'];
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $fields = $published['fields'];
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $query = $this->filteredQuery($form, $fields, (array) ($published['schema']['list'] ?? []), $filters);
+        $rows = $query->order($primary['name'], 'asc')->limit(self::EXPORT_LIMIT)->select()->toArray();
+        return array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $rows);
     }
 
     /** 详情：行 + has_many 子表首屏。 */
@@ -218,6 +472,7 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary, $published): array {
             $payload = $this->applyWriteDataScope($split['parent'], $form, $columns);
+            $this->guardTreeWrite((string) $form->form_key, '', $payload);
             $now = date('Y-m-d H:i:s');
             if (in_array('created_at', $columns, true)) $payload['created_at'] = $now;
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = $now;
@@ -251,14 +506,16 @@ final class FormDataService
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
         return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id, $published): array {
+            $this->guardTreeWrite((string) $form->form_key, $id, $split['parent']);
             $query = $this->applyDataScope(
                 $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true),
                 $form,
                 $columns,
                 (string) $form->table_name
             );
+            if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
             if (!$query->find()) throw new InvalidArgumentException('数据不存在');
-            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns);
+            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns, true);
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = date('Y-m-d H:i:s');
             if ($payload !== []) {
                 $this->applyDataScope(
@@ -282,24 +539,30 @@ final class FormDataService
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        $connection = $this->applyDataScope(
-            Db::connect((string) $form->connection)->table((string) $form->table_name),
-            $form,
-            $columns,
-            (string) $form->table_name
-        );
-        if (in_array('deleted_at', $columns, true)) {
-            $connection->where($primary['name'], $id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
-            return ['removed' => 1, 'mode' => 'soft'];
-        }
-        $connection->where($primary['name'], $id)->delete();
-        return ['removed' => 1, 'mode' => 'hard'];
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($database, $form, $columns, $primary, $id, $published): array {
+            $connection = $this->applyDataScope(
+                $database->table((string) $form->table_name), $form, $columns, (string) $form->table_name
+            )->where($primary['name'], $id);
+            if (in_array('deleted_at', $columns, true)) $connection->whereNull('deleted_at');
+            if (!(clone $connection)->lock(true)->find()) throw new InvalidArgumentException('数据不存在');
+            $this->guardTreeWrite((string) $form->form_key, $id, [], true);
+            if (in_array('deleted_at', $columns, true)) {
+                $connection->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                return ['removed' => 1, 'mode' => 'soft'];
+            }
+            $connection->delete();
+            return ['removed' => 1, 'mode' => 'hard'];
+        });
     }
 
     /** 选项源：static / 关联表（belongs_to 或 options_source.mode=relation）。 */
     public function options(string $key, string $fieldName, array $context = []): array
     {
-        $field = $this->fields($key)->firstWhere('field_name', $fieldName);
+        $field = null;
+        foreach ($this->fields($key) as $candidate) {
+            if ((string) $candidate->field_name === $fieldName) { $field = $candidate; break; }
+        }
         if (!$field) {
             throw new InvalidArgumentException('字段不存在：' . $fieldName);
         }

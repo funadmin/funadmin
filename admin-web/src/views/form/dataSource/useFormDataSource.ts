@@ -54,6 +54,12 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 const pending = new Map<string, Promise<FormDataSourceResult>>();
+const requestScopes = new WeakMap<FormDataSourceRequest, number>();
+let nextRequestScope = 0;
+const requestScope = (request: FormDataSourceRequest): number => {
+  if (!requestScopes.has(request)) requestScopes.set(request, ++nextRequestScope);
+  return requestScopes.get(request)!;
+};
 
 const defaultRequest: FormDataSourceRequest = (formKey, field, params, signal) => (
   formDataApi.options(formKey, field, params, signal)
@@ -133,7 +139,7 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
 
   const refresh = (): Promise<void> => {
     const params = parameters();
-    const key = stableKey([config.formKey, config.field, params]);
+    const key = stableKey([requestScope(config.request ?? defaultRequest), config.formKey, config.field, params]);
     if (activeRefresh && activeKey === key) return activeRefresh;
 
     const current = ++sequence;

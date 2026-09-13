@@ -23,6 +23,19 @@ describe('useFormDataSource', () => {
     vi.useRealTimers();
   });
 
+  it('不同权限通道不能共享选项缓存', async () => {
+    const scope = effectScope();
+    const first = vi.fn(async () => ({ options: [{ label: '允许', value: 1 }] }));
+    const second = vi.fn(async () => ({ options: [] }));
+    const create = (request: FormDataSourceRequest) => scope.run(() => useFormDataSource({ formKey: 'source', field: 'owner', values: {}, definition: { kind: 'user', cacheTtl: 60000 }, request, debounceMs: 0 }))!;
+    create(first);
+    await flush();
+    const denied = create(second);
+    await flush();
+    expect(second).toHaveBeenCalled();
+    expect(denied.options.value).toEqual([]);
+    scope.stop();
+  });
   it('防抖请求、取消前次请求且只让最后请求生效', async () => {
     const first = deferred<{ options: Array<{ label: string; value: number }> }>();
     const second = deferred<{ options: Array<{ label: string; value: number }> }>();

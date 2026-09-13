@@ -1,6 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <DataTableShell class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
@@ -71,6 +72,7 @@ import type { FormFieldDef } from '@/api/form';
 import type { ActionHandlers, FormAction } from './runtime/actionExecutor';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
+import ListSourceTree from './components/ListSourceTree.vue';
 import { buildListTree } from './runtime/listPresentation';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
@@ -90,6 +92,8 @@ const rows = ref<Record<string, unknown>[]>([]);
 const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20, sort: '', order: '' });
 const filters = reactive<Record<string, string>>({});
+const leftSelection = ref<FormRecordId[]>([]);
+const onLeftTree = (values: FormRecordId[]) => { leftSelection.value = values; onSearch(); };
 const dateFilters = reactive<Record<string, string[] | null>>({});
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
@@ -130,7 +134,7 @@ const loadData = async () => {
   loading.value = true;
   try {
     if (!meta.value) await loadMeta();
-    const result = await formDataApi.index(formKey.value, { ...query, filters: { ...filters } });
+    const result = await formDataApi.index(formKey.value, { ...query, filters: { ...filters, __leftTree: leftSelection.value } });
     rows.value = result.list;
     total.value = result.total;
   } finally {
@@ -149,7 +153,7 @@ const onSortChange = ({ prop, order }: { prop: string | null; order: string | nu
   void loadData();
 };
 const onExport = async () => {
-  const result = await formDataApi.export(formKey.value, { filters: { ...filters } });
+  const result = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
   const blob = new Blob([JSON.stringify(result.list, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${formKey.value}.json`; anchor.click(); URL.revokeObjectURL(url);
@@ -158,7 +162,7 @@ const formatDate = (value: unknown, type: string) => value ? dayjs(String(value)
 const formatLink = (type: string, value: unknown) => type === 'email' ? `mailto:${String(value ?? '')}` : type === 'phone' ? `tel:${String(value ?? '')}` : /^https?:\/\//.test(String(value ?? '')) ? String(value) : '#';
 const formatJson = (value: unknown) => { try { return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value); } catch { return String(value ?? ''); } };
 const openDetail = async (row: Record<string, unknown>) => { detail.value = await formDataApi.detail(formKey.value, row[primaryKey.value] as FormRecordId); detailVisible.value = true; };
-const onReset = () => { Object.keys(filters).forEach((key) => delete filters[key]); onSearch(); };
+const onReset = () => { leftSelection.value = []; Object.keys(filters).forEach((key) => delete filters[key]); onSearch(); };
 const decodeValue = (field: FormFieldDef, value: unknown) => {
   if (field.column_type !== 'json' || typeof value !== 'string' || value === '') return value;
   try {

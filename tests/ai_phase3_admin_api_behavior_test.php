@@ -42,6 +42,8 @@ public function compareAndSetTaskOperation(int $id, string $operationToken, arra
     public function consumeNonce(string $nonce, int $expiresAt): bool { return false; }
 }
 
+// 注册服务端配置容器，不初始化真实环境。
+new App(dirname(__DIR__));
 $store = new Phase3AdminStore();
 $auditEvents = [];
 $service = new AiConversationService($store, ['max_rounds' => 1], static function (string $event, array $payload) use (&$auditEvents): void { $auditEvents[] = compact('event', 'payload'); });

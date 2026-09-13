@@ -21,7 +21,8 @@ final class DatabaseAiConversationStore implements AiConversationStore
     {
         return Db::transaction(function () use ($data): array {
             $this->lockGroup($data['group_id'] ?? null, (int) $data['admin_id']);
-            return AiConversation::create($data)->toArray();
+            $created = AiConversation::create($data);
+            return $this->conversation((int) $created->id, (int) $data['admin_id']);
         });
     }
     public function conversations(int $adminId): array { return AiConversation::where('admin_id', $adminId)->order('id', 'desc')->select()->toArray(); }
@@ -44,7 +45,10 @@ final class DatabaseAiConversationStore implements AiConversationStore
     public function conversationGroup(int $id, int $adminId): ?array { return AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
     public function createConversationGroup(array $data): array
     {
-        return $this->groupWrite(fn () => AiConversationGroup::create($data)->toArray());
+        return $this->groupWrite(function () use ($data): array {
+            $created = AiConversationGroup::create($data);
+            return $this->conversationGroup((int) $created->id, (int) $data['admin_id']);
+        });
     }
     public function updateConversationGroup(int $id, int $adminId, array $data): bool
     {

@@ -140,12 +140,20 @@ try {
         'dataScope' => ['enabled' => true, 'field' => 'department_id', 'resolver' => 'adminDepartmentIds'],
     ]);
 
+    $listMode = getenv('FORM_LIST_RUNTIME') === '1';
+    if ($listMode) {
+        $listData = $definition->toArray();
+        $listData['list'] = ['category' => ['enabled' => true, 'field' => 'category'], 'tree' => ['enabled' => true, 'parentField' => 'parent_id']];
+        $listData['fields'][] = ['name' => 'parent_id', 'dbType' => 'bigint unsigned', 'nullable' => true, 'default' => 0, 'detail' => true];
+        $definition = CrudDefinition::fromArray($listData);
+    }
     $generator = new CrudGenerator($fixtureRoot, $projectRoot . '/app/common/crud/templates/v1', new ConfirmationToken($fixtureRoot, 'm5-runtime-secret'));
     $plan = $generator->plan($definition);
     $generated = $generator->generate($definition, $plan['confirmToken'], [], 'm5-runtime-test');
     m5Expect(($generated['write']['status'] ?? '') === 'written', 'fixture 必须真实生成');
 
     $uuidData = $definition->toArray();
+    $uuidData['list'] = [];
     $uuidData['entity'] = 'm5-uuid-record';
     $uuidData['table'] = 'fun_m5_uuid_record';
     $uuidData['primaryKey'] = 'uuid';
@@ -420,6 +428,28 @@ try {
     $detail = file_get_contents($fixtureRoot . '/admin-web/src/views/generated/m5-record/components/M5RecordDetail.vue');
     m5Expect(str_contains($detail, 'v-text') && !str_contains($detail, 'v-html'), '详情模板不得产生 XSS sink');
 
+    if ($listMode) {
+        // 大于上限的越权集合不能影响当前用户的完整授权树。
+        $foreignRows = [];
+        for ($index = 0; $index < 1001; $index++) {
+            $foreignRows[] = ['name' => 'foreign-' . $index, 'amount' => '1.00', 'department_id' => 2, 'category' => 'b', 'status' => 1, 'parent_id' => 99999];
+        }
+        $modelClass::insertAll($foreignRows);
+        Session::set('admin.id', 2);
+        $treeController = new $controllerClass($app);
+        m5Request($app, ['page' => 9, 'pageSize' => 1, '__category' => 'a']);
+        $treeResult = m5Data($treeController->index());
+        m5Expect($treeResult['code'] === 200 && count($treeResult['data']['list']) === 2, '生成树必须返回全部授权记录，不按请求分页');
+        m5Expect($treeResult['data']['page'] === 1, '生成树必须返回真实页码');
+        m5Request($app, ['__category' => 'b']);
+        m5Expect(m5Data($treeController->index())['data']['total'] === 0, '生成分类不能突破行权限');
+        m5Request($app, ['__category' => 'a']);
+        m5Expect(count(m5Data($treeController->export())['data']) === 2, '生成树导出必须包含完整授权平面集合');
+        Session::set('admin.id', 1);
+        $treeController = new $controllerClass($app);
+        m5Request($app, ['__category' => 'b']);
+        m5Expect(m5Data($treeController->index())['code'] === 422, '生成树超过1000必须报错');
+    }
     echo "M5 generated runtime tests: PASS\n";
 } finally {
     $server->exec("DROP DATABASE IF EXISTS `{$databaseName}`");

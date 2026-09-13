@@ -65,6 +65,9 @@ class PermissionResource
         $appName = self::normalizeSegment($appName);
         $controller = self::normalizeController($controller);
         $action = self::normalizeSegment($action ?: 'index');
+        if ($appName === 'console' && $controller === 'form.data' && in_array($action, ['lefttree', 'mutatelefttree', 'lefttreeform'], true)) {
+            $action = 'index';
+        }
         if ($appName === 'console' && $controller === 'development.ai') {
             $action = match ($action) {
                 'conversationgroupindex' => 'conversationindex',

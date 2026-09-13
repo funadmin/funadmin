@@ -19,6 +19,13 @@ export interface FormDataMeta {
   categoryOptions?: Array<{ label: string; value: string | number; disabled?: boolean }>;
 }
 
+export interface FormLeftTreeResult {
+  nodes: Array<{ id: FormRecordId; value: FormRecordId; label: string; parent: FormRecordId | null }>;
+  sourceKey: string;
+  schemaHash: string;
+  actions: Partial<Record<'create' | 'addChild' | 'edit' | 'delete', boolean>>;
+}
+
 export interface FormFieldError {
   path: string;
   message: string;
@@ -27,6 +34,11 @@ export interface FormFieldError {
 const PREFIX = '/form/data';
 
 export const formDataApi = {
+  leftTree: (key: string) => http.get<FormLeftTreeResult>(`${PREFIX}/left-tree/${key}`),
+    leftTreeForm: (key: string, operation: 'create' | 'addChild' | 'edit', id: FormRecordId, schemaHash: string, optionField = '', context: Record<string, unknown> = {}) =>
+      http.get<{ meta: FormDataMeta; row: Record<string, unknown>; options?: Array<{ label: string; value: string | number }>; total?: number }>(`${PREFIX}/left-tree-form/${key}/${operation}`, { id, schemaHash, optionField, context }),
+  mutateLeftTree: (key: string, operation: 'create' | 'addChild' | 'edit' | 'delete', id: FormRecordId, data: Record<string, unknown>, schemaHash: string, sourceSchemaHash: string) =>
+    http.post(`${PREFIX}/left-tree/${key}/${operation}`, { id, data, schemaHash, sourceSchemaHash }),
   meta: (key: string) => http.get<FormDataMeta>(`${PREFIX}/meta/${key}`),
   index: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[]; total: number }>(`${PREFIX}/index/${key}`, params),
   export: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[] }>(`${PREFIX}/export/${key}`, params),

@@ -96,8 +96,42 @@ final class Data extends AdminApiController
                 $this->page(),
                 $this->pageSize()
             ));
-            return $this->paginationData($result['list'], $result['total'], $this->page(), $this->pageSize());
+            return $this->paginationData($result['list'], $result['total'], $result['page'], $result['pageSize']);
         });
+    }
+
+    #[Get('left-tree/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function leftTree(string $key): Response
+    {
+        return $this->execute(fn (): array => $this->data->leftTree($key));
+    }
+
+    #[Get('left-tree-form/:key/:operation')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Pattern('operation', 'create|addChild|edit')]
+    public function leftTreeForm(string $key, string $operation): Response
+    {
+        return $this->execute(fn (): array => $this->data->leftTreeForm(
+            $key, $operation, (string) $this->request->get('id', ''), (string) $this->request->get('schemaHash', ''),
+            (string) $this->request->get('optionField', ''), (array) $this->request->get('context', [])
+        ));
+    }
+
+    #[Post('left-tree/:key/:operation')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Pattern('operation', 'create|addChild|edit|delete')]
+    public function mutateLeftTree(string $key, string $operation): Response
+    {
+        $payload = $this->payload();
+        // 来源可能包含敏感字段，审计日志不记录原始来源载荷。
+        $post = $this->request->post();
+        $post['data'] = '[REDACTED]';
+        $this->request->withPost($post);
+        return $this->execute(fn (): array => $this->data->mutateLeftTree(
+            $key, $operation, (string) $this->request->post('id', ''), $payload,
+            $this->schemaHash(), (string) $this->request->post('sourceSchemaHash', '')
+        ));
     }
 
     #[Get('export/:key')]
@@ -288,8 +322,12 @@ final class Data extends AdminApiController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         $action = (string) ($this->request->action(true) ?: '');
-        $permissionAction = $action === 'validateasync' ? 'options' : $action;
-        if ($permissionAction !== '' && !$this->authorization->nodeAccess('console/form.data:' . $permissionAction)) {
+        $permissionAction = match ($action) {
+            'validateasync' => 'options',
+            'lefttree', 'mutatelefttree', 'lefttreeform' => 'index',
+            default => $action,
+        };
+        if ($permissionAction !== '' && !$this->authorization->nodeAccess('console/form.data/' . $permissionAction)) {
             return $this->fail(msg: '没有访问权限', code: 403);
         }
         try {

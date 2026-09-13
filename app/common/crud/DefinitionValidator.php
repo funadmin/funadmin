@@ -105,7 +105,7 @@ final class DefinitionValidator
             }
             $listNodes[] = ['kind' => 'field', 'field' => $name, 'type' => $field['component'] ?? 'input',
                 'database' => ['columnType' => $field['dbType']], 'valueType' => $field['valueType'] ?? 'string',
-                'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['detail'] ?? true) === false]), 'dataSource' => $source];
+                'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['controlProps']['sensitive'] ?? false) || ($field['detail'] ?? true) === false]), 'dataSource' => $source];
         }
         (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
         if (($data['list']['tree']['enabled'] ?? false) && $data['list']['tree']['parentField'] === $data['primaryKey']) throw new InvalidArgumentException('父级字段不能是主键');

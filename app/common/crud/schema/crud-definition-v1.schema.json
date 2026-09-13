@@ -50,6 +50,21 @@
     }},
     "menu": { "$ref": "#/$defs/menu" },
     "permission": { "$ref": "#/$defs/permission" },
+    "list": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "object", "additionalProperties": false,
+          "properties": { "enabled": { "type": "boolean" }, "field": { "type": "string" } },
+          "allOf": [{ "if": { "required": ["enabled"], "properties": { "enabled": { "const": true } } }, "then": { "required": ["field"] } }]
+        },
+        "tree": {
+          "type": "object", "additionalProperties": false,
+          "properties": { "enabled": { "type": "boolean" }, "parentField": { "type": "string" } },
+          "allOf": [{ "if": { "required": ["enabled"], "properties": { "enabled": { "const": true } } }, "then": { "required": ["parentField"] } }]
+        }
+      }
+    },
     "layoutSchema": { "type": "array", "items": { "type": "object" } }
   },
   "$defs": {

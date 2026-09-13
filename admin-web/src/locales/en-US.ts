@@ -32,6 +32,11 @@ export default {
   aiDevelopment: {
     title: 'AI Development Assistant',
     subtitle: 'Conversations, tool approvals, and workspace changes',
+    modelSelection: {
+      current: 'Current conversation model', unset: 'Not set', id: 'Model ID', save: 'Save model',
+      hint: 'Only the currently configured provider is supported. Enter a model ID it supports. Changes affect only tasks created after saving; the current task keeps its original model.',
+      failed: 'Could not save the model. Check the model ID or retry'
+    },
     provider: 'Provider',
     fields: { base: 'Base', local: 'Local', remote: 'Remote', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
     task: 'Task',

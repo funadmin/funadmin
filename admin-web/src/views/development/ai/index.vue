@@ -23,6 +23,16 @@
             <el-button data-testid="toggle-inspector" @click="toggleInspector"><i class="i-ep-document" />{{ inspectorOpen ? t('aiDevelopment.changeSet.close') : t('aiDevelopment.task') }}</el-button>
             <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
+          <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
+            <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
+            <div class="model-controls">
+              <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
+              <el-input id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" aria-describedby="ai-model-hint" :disabled="modelSaving || !selectedConversation" />
+              <el-button data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
+            </div>
+            <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }}</small>
+            <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
+          </form>
         </header>
         <div class="workspace-scroll" data-scroll-container="primary">
           <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
@@ -89,6 +99,31 @@ const mobileTab = ref('workspace');
 const preview = ref<AiChangeSetPreview | null>(null);
 const providerSettings = ref<AiProviderSettings | null>(null);
 const selectedConversation = computed(() => store.conversations.find((item) => item.id === store.selectedConversationId));
+const modelDraft = ref('');
+const modelSaving = ref(false);
+const modelError = ref<string | null>(null);
+watch([() => store.selectedConversationId, () => store.selectionGeneration, () => selectedConversation.value?.model], () => {
+  modelDraft.value = selectedConversation.value?.model || '';
+  modelError.value = null;
+}, { immediate: true });
+
+async function saveModel() {
+  const id = selectedConversation.value?.id;
+  const model = modelDraft.value.trim();
+  if (id === undefined || !model || modelSaving.value) return;
+  const generation = store.selectionGeneration;
+  modelSaving.value = true;
+  modelError.value = null;
+  try {
+    await store.updateConversationModel(id, model);
+  } catch (error) {
+    if (store.selectedConversationId === id && store.selectionGeneration === generation) {
+      modelError.value = error instanceof Error ? error.message : '';
+    }
+  } finally {
+    modelSaving.value = false;
+  }
+}
 const pendingApprovals = computed(() => store.approvals.filter((item) => item.status === 'pending'));
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
@@ -296,8 +331,12 @@ h2 { margin: 0; font-size: 18px; } header small { color: var(--el-text-color-sec
 .ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
 .ai-context-pane { border-left: 1px solid var(--el-border-color-lighter); }
 .ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
-.workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .workspace-header > div:first-child { display: grid; gap: 2px; }.workspace-actions { display: flex; gap: 8px; }.workspace-scroll { min-height: 0; overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
+.model-form { flex: 1 0 100%; min-width: 0; display: grid; gap: 6px; }
+.model-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.model-controls .el-input { flex: 1 1 180px; min-width: 0; }
+.model-error { margin: 0; color: var(--el-color-danger); overflow-wrap: anywhere; }
 .context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-actions { display: none; }
 @media (max-width: 1024px) { .mobile-actions { display: flex; gap: 8px; padding-bottom: 10px; }.ai-layout { display: block; min-height: 0; }.ai-conversations-pane { height: 100%; border-right: 0; }.ai-context-pane { height: 100%; border-left: 0; }.ai-workspace-pane { height: 100%; }.workspace-actions [data-testid="toggle-inspector"] { display: none; } }
 @media (max-width: 680px) { .composer { grid-template-columns: 1fr; } }

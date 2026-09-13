@@ -44,7 +44,7 @@ use think\Response;
 use Throwable;
 
 /** AI 开发助手阶段二 Admin API。 */
-#[Group('development/ai')]
+#[Group('development/ai', ['complete_match' => true])]
 final class Ai extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];

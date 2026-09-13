@@ -27,6 +27,7 @@ const aiStore = reactive({
   clearWorkspace: vi.fn(),
   selectionGeneration: 0,
   updateConversationState: vi.fn().mockResolvedValue(undefined),
+  updateConversationModel: vi.fn().mockResolvedValue(undefined),
   deleteConversation: vi.fn().mockResolvedValue(undefined),
   deleteConversationGroup: vi.fn().mockResolvedValue(undefined),
   selectConversation: vi.fn().mockResolvedValue(undefined),
@@ -171,6 +172,91 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.toolCalls = [];
     aiStore.changeSet = null;
     vi.clearAllMocks();
+  });
+
+  it('工作区显示模型 ID 输入、当前模型和真实边界，空值及无会话禁用', async () => {
+    const { wrapper, locale } = mountPage('zh-CN');
+    expect(wrapper.find('[data-testid="save-model"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
+    aiStore.conversations = [{ id: 1, model: 'old-model' }];
+    aiStore.selectedConversationId = 1;
+    await nextTick();
+    expect(wrapper.get('[data-testid="current-model"]').text()).toContain('old-model');
+    expect(wrapper.text()).toContain('仅支持当前配置的供应商');
+    expect(wrapper.text()).toContain('仅影响保存后创建的任务');
+    await wrapper.get('[data-testid="model-id"]').setValue('   ');
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    expect(aiStore.updateConversationModel).not.toHaveBeenCalled();
+    locale.value = 'en-US';
+    await nextTick();
+    expect(wrapper.get('[data-testid="save-model"]').text()).toBe('Save model');
+    expect(wrapper.text()).toContain('Model ID');
+    wrapper.unmount();
+  });
+
+  it('运行任务时可以保存，保存中禁用且不重建任务或 SSE', async () => {
+    aiStore.conversations = [{ id: 1, model: 'old' }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 8, model: 'frozen', status: 'running' };
+    const { wrapper } = mountPage('zh-CN');
+    await flushPromises();
+    aiStore.connectEvents.mockClear();
+    let finish!: () => void;
+    aiStore.updateConversationModel.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));
+    await wrapper.get('[data-testid="model-id"]').setValue('  new  ');
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    expect(aiStore.updateConversationModel).toHaveBeenCalledWith(1, 'new');
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    expect(aiStore.updateConversationModel).toHaveBeenCalledTimes(1);
+    aiStore.conversations[0].model = 'new';
+    finish();
+    await flushPromises();
+    expect(wrapper.get('[data-testid="current-model"]').text()).toContain('new');
+    expect(aiStore.activeTask.model).toBe('frozen');
+    expect(aiStore.activateTask).not.toHaveBeenCalled();
+    expect(aiStore.closeEvents).not.toHaveBeenCalled();
+    expect(aiStore.connectEvents).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('保存失败显示错误并保留输入，可重试', async () => {
+    aiStore.conversations = [{ id: 1, model: 'old' }];
+    aiStore.selectedConversationId = 1;
+    const { wrapper } = mountPage('zh-CN');
+    aiStore.updateConversationModel.mockRejectedValueOnce(new Error('不支持该模型'));
+    await wrapper.get('[data-testid="model-id"]').setValue('new');
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="model-error"]').text()).toContain('模型保存失败');
+    expect(wrapper.get('[data-testid="model-error"]').text()).toContain('不支持该模型');
+    expect((wrapper.get('[data-testid="model-id"]').element as HTMLInputElement).value).toBe('new');
+    expect(wrapper.get('[data-testid="current-model"]').text()).toContain('old');
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it.each([false, true])('切走会话隔离旧保存结果，失败=%s', async (failed) => {
+    aiStore.conversations = [{ id: 1, model: 'old' }, { id: 2, model: 'second' }];
+    aiStore.selectedConversationId = 1;
+    const { wrapper } = mountPage('zh-CN');
+    let finish!: () => void;
+    aiStore.updateConversationModel.mockImplementationOnce(() => new Promise<void>((resolve, reject) => {
+      finish = () => failed ? reject(new Error('旧会话错误')) : resolve();
+    }));
+    await wrapper.get('[data-testid="model-id"]').setValue('new');
+    await wrapper.get('[data-testid="model-form"]').trigger('submit');
+    aiStore.selectedConversationId = 2;
+    aiStore.selectionGeneration += 1;
+    await nextTick();
+    finish();
+    await flushPromises();
+    expect((wrapper.get('[data-testid="model-id"]').element as HTMLInputElement).value).toBe('second');
+    expect(wrapper.get('[data-testid="current-model"]').text()).toContain('second');
+    expect(wrapper.find('[data-testid="model-error"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeUndefined();
+    wrapper.unmount();
   });
 
   it('显示空组、每会话日期，并通过已归档入口切换', async () => {
