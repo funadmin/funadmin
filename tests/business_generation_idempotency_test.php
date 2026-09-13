@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+$app = new think\App(dirname(__DIR__));
+think\Container::setInstance($app);
+$app->config->set(['connections' => ['mysql' => ['prefix' => 'fun_']]], 'database');
+
 define('FUNADMIN_CRUD_HELPER_TESTING', true);
 
 use app\common\crud\ConfirmationToken;

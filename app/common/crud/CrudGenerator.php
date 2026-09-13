@@ -224,6 +224,7 @@ final class CrudGenerator
         $context = $this->context($definition);
         $files = [];
         foreach ($paths as $type => $path) {
+            if ($type === 'migration' && $definition->isAdopted()) continue;
             if (!isset($templates[$type])) {
                 throw new InvalidArgumentException('目标缺少模板：' . $type);
             }

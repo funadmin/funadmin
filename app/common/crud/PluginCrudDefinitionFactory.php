@@ -29,6 +29,7 @@ final class PluginCrudDefinitionFactory
         $definition = CrudDefinition::fromArray([
             'schemaVersion' => '1.0', 'connection' => $connection, 'module' => $plugin,
             'entity' => $entity, 'table' => $table, 'title' => $title,
+            'tableIdentity' => ['source' => 'adopted', 'kind' => 'physical'],
             'apiPrefix' => '/' . $entity, 'routePath' => '/plugin/' . $plugin . '/' . $entity,
             'primaryKey' => (string) $primary[0]['name'], 'timestamps' => $this->has($fields, 'created_at') && $this->has($fields, 'updated_at'),
             'softDeletes' => $this->has($fields, 'deleted_at'),

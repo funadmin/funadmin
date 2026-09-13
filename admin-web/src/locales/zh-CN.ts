@@ -36,6 +36,8 @@ export default {
     SigningKeys: '签名密钥',
     IdentityAudit: '登录审计',
     ApplicationPortal: '应用门户',
+    BusinessDevelopment: '业务开发',
+    BusinessMine: '业务开发',
     AiDevelopment: 'AI 开发助手',
   },
   aiDevelopment: {

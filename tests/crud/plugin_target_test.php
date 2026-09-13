@@ -398,6 +398,44 @@ try {
     pluginCrudReject(static fn () => $generator->plan(pluginDefinition('console')), '冲突');
     file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
 
+    $app = new \think\App($root);
+    \think\Container::setInstance($app);
+    $loader = new class { use \app\console\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
+    foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
+        $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'wrong_'], 'archive' => ['prefix' => $prefix]]], 'database');
+        foreach (['shop_product_item', $prefix . 'shop_product_item'] as $table) {
+            $input = pluginDefinition('both', ['connection' => 'archive', 'table' => $table])->toArray();
+            file_put_contents($root . '/definition.json', json_encode($input));
+            $loaded = $loader->load($root . '/definition.json');
+            pluginCrudExpect($loaded->get('table') === $prefix . 'shop_product_item', 'CLI 新建逻辑表必须仅加目标连接前缀一次');
+            pluginCrudExpect($loaded->get('tableIdentity') === ['source' => 'created', 'kind' => 'physical'], 'CLI 必须固化已解析表身份');
+            file_put_contents($root . '/definition.json', json_encode($loaded));
+            pluginCrudExpect($loader->load($root . '/definition.json')->hash() === $loaded->hash(), '已解析 CLI Definition 重读不得改 hash');
+            $context = \app\common\crud\ProductionTemplateContext::build($loaded);
+            pluginCrudExpect(str_contains($context['migrationContent'], '`' . $prefix . 'shop_product_item`'), 'CLI 新建迁移绑定解析物理表');
+        }
+        foreach (['created', 'adopted'] as $source) {
+            $input = pluginDefinition('both', ['connection' => 'archive', 'table' => 'legacy_product', 'tableIdentity' => ['source' => $source, 'kind' => 'physical']])->toArray();
+            $hash = CrudDefinition::fromArray($input)->hash();
+            file_put_contents($root . '/definition.json', json_encode($input));
+            $loaded = $loader->load($root . '/definition.json');
+            pluginCrudExpect($loaded->get('table') === 'legacy_product' && $loaded->hash() === $hash, 'CLI 已有物理身份不得加前缀或修改 hash');
+        }
+    }
+    $migrationMethod = new ReflectionMethod(\app\common\crud\PluginCrudTarget::class, 'migration');
+    $migrationTarget = new \app\common\crud\PluginCrudTarget($root);
+    foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
+        $app->config->set(['connections' => ['archive' => ['prefix' => $prefix]]], 'database');
+        $oldDefinition = pluginDefinition('console', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => 'fun_shop_legacy']);
+        $oldSql = substr(\app\common\crud\ProductionTemplateContext::build($oldDefinition)['migrationContent'], strlen("-- funadmin-physical-table\n"));
+        $legacyPath = $root . '/plugins/shop/database/migrations/090_legacy.sql';
+        file_put_contents($legacyPath, $oldSql);
+        $newDefinition = pluginDefinition('console', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => $prefix . 'shop_legacy']);
+        $newSql = \app\common\crud\ProductionTemplateContext::build($newDefinition)['migrationContent'];
+        $result = $migrationMethod->invoke($migrationTarget, $newDefinition, 'shop', 'legacy-item', $newSql);
+        pluginCrudExpect($result['path'] === 'plugins/shop/database/migrations/090_legacy.sql' && $result['content'] === $oldSql, '旧模板迁移必须按执行前缀识别并原样复用，不得新增 CREATE 或改 checksum');
+        unlink($legacyPath);
+    }
     $factory = new PluginCrudDefinitionFactory($root);
     $inferred = $factory->fromInspection('shop', 'stock-item', 'shop_stock_item', 'both', [
         'schema' => ['table' => 'shop_stock_item', 'comment' => '库存', 'primaryKey' => ['id']],
@@ -410,12 +448,24 @@ try {
         new ConfirmationToken($root, 'plugin-crud-inferred')
     ))->plan($inferred);
     $inferredFiles = array_column($inferredPlan['files'], 'content', 'path');
+    pluginCrudExpect($inferred->get('tableIdentity') === ['source' => 'adopted', 'kind' => 'physical'], 'inspect/infer 必须标记采纳物理身份');
+    pluginCrudExpect(array_filter(array_keys($inferredFiles), static fn (string $path): bool => str_ends_with($path, '.sql')) === [], 'inspect/infer 采纳不得生成任何建表或变更 SQL');
     $inferredManifest = json_decode(
         $inferredFiles['plugins/shop/plugin.json'],
         true,
         512,
         JSON_THROW_ON_ERROR
     );
+    pluginCrudExpect(($inferredManifest['externalTables'][0]['table'] ?? '') === 'shop_stock_item', 'inspect/infer 必须登记外部表依赖，不取得表所有权');
+    $applicationInferred = $factory->fromInspection('shop', 'external-read', 'legacy_stock', 'application', [
+        'schema' => ['table' => 'legacy_stock', 'primaryKey' => ['id']],
+        'fields' => [['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true]],
+    ]);
+    $applicationPlan = (new CrudGenerator($root))->plan($applicationInferred);
+    $applicationFiles = array_column($applicationPlan['files'], 'content', 'path');
+    pluginCrudExpect(array_filter(array_keys($applicationFiles), static fn (string $path): bool => str_ends_with($path, '.sql')) === [], 'application 采纳不得建表');
+    $applicationManifest = json_decode($applicationFiles['plugins/shop/plugin.json'], true);
+    pluginCrudExpect(($applicationManifest['externalTables'][0]['table'] ?? '') === 'legacy_stock', 'application 采纳也必须声明外部表依赖');
     $inferredPermissionCodes = array_column($inferredManifest['adminWeb']['permissions'], 'code');
     pluginCrudExpect(
         in_array('shop:stock-item:list', $inferredPermissionCodes, true),

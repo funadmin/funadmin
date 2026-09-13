@@ -43,6 +43,17 @@ final class CrudResourceInstaller
         if (!hash_equals((string) $artifact['hash'], $checksum)) throw new RuntimeException('权限菜单 migration 哈希与生成审计不一致');
         $statements = $this->statements($sql);
         foreach ($statements as $statement) $this->assertSafe($statement);
+        $connection = (string) \think\facade\Config::get('database.default', 'mysql');
+        $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+        if ($prefix !== '' && preg_match('/^[A-Za-z][A-Za-z0-9_]*$/D', $prefix) !== 1) {
+            throw new RuntimeException('资源表前缀不合法');
+        }
+        // 哈希和白名单校验仍针对原始制品，只替换 SQL 标识符，不改写字符串值。
+        $statements = array_map(static fn (string $statement): string => (string) preg_replace_callback(
+            '/\x27(?:\\\\.|\x27\x27|[^\x27\\\\])*\x27|`fun_(permission|admin_menu)`/s',
+            static fn (array $match): string => isset($match[1]) ? '`' . $prefix . $match[1] . '`' : $match[0],
+            $statement
+        ), $statements);
         ($this->transaction)(function () use ($statements): void {
             foreach ($statements as $statement) ($this->executor)($statement);
         });

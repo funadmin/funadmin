@@ -66,7 +66,7 @@ export const staticRoutes: RouteRecordRaw[] = [
         path: 'development/business/designer',
         name: 'BusinessDesigner',
         component: () => import('@/views/form/designer/index.vue'),
-        meta: { title: '业务设计器', hidden: true, permission: 'development:business:save' }
+        meta: { title: '业务设计器', hidden: true, activeMenu: '/development/business/mine', permission: 'development:business:save' }
       },
       {
         path: 'development/business/runtime/:formKey',

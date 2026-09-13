@@ -20,6 +20,33 @@ final class CrudDefinition implements JsonSerializable
         return new self(self::normalize($data));
     }
 
+    /** 仅用于新的输入；持久化快照继续使用 fromArray，禁止重算其表身份或 hash。 */
+    public static function fromInput(array $data): self
+    {
+        if (isset($data['formSchema'])) return self::fromArray($data);
+        $identity = $data['tableIdentity'] ?? ['source' => 'created', 'kind' => 'logical'];
+        if (!is_array($identity) || array_diff(array_keys($identity), ['source', 'kind']) !== []
+            || !in_array($identity['source'] ?? null, ['created', 'adopted'], true)
+            || !in_array($identity['kind'] ?? null, ['logical', 'physical'], true)
+            || ($identity['source'] === 'adopted' && $identity['kind'] !== 'physical')) {
+            throw new \InvalidArgumentException('tableIdentity 必须显式区分新建逻辑表与采纳物理表');
+        }
+        if ($identity['kind'] === 'logical') {
+            $connection = (string) ($data['connection'] ?? $data['metadata']['connection'] ?? 'mysql');
+            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $table = trim((string) ($data['table'] ?? ''));
+            $data['table'] = $table !== '' && $prefix !== '' && !str_starts_with($table, $prefix) ? $prefix . $table : $table;
+            $identity['kind'] = 'physical';
+        }
+        $data['tableIdentity'] = $identity;
+        return self::fromArray($data);
+    }
+
+    public function isAdopted(): bool
+    {
+        return ($this->data['formSchema']['database']['source'] ?? $this->data['tableIdentity']['source'] ?? 'created') === 'adopted';
+    }
+
     private static function normalize(array $data): array
     {
         $fields = is_array($data['fields'] ?? null) ? $data['fields'] : [];

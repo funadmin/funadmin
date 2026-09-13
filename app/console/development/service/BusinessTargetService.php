@@ -147,7 +147,13 @@ final class BusinessTargetService
         foreach ($files as $file) {
             if (is_link($file)) throw new InvalidArgumentException('BUSINESS_TABLE_FORBIDDEN');
             $owner = preg_match('#/plugins/([^/]+)/#', $file, $match) ? $match[1] : 'core';
-            preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', (string) file_get_contents($file), $matches);
+            $sql = (string) file_get_contents($file);
+            if (!str_starts_with($sql, "-- funadmin-physical-table\n")) {
+                $templatePrefix = (string) \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
+                $prefix = (string) \think\facade\Config::get('database.connections.' . $this->defaultConnection . '.prefix', '');
+                if ($templatePrefix !== '') $sql = str_replace($templatePrefix, $prefix, $sql);
+            }
+            preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', $sql, $matches);
             foreach ($matches[1] as $table) $owners[$table] = isset($owners[$table]) && $owners[$table] !== $owner ? 'conflict' : $owner;
         }
         return $owners;

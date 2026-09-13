@@ -35,6 +35,8 @@ export default {
     SigningKeys: 'Signing Keys',
     IdentityAudit: 'Login Audit',
     ApplicationPortal: 'Application Portal',
+    BusinessDevelopment: 'Business Development',
+    BusinessMine: 'Business Development',
     AiDevelopment: 'AI Development Assistant',
   },
   aiDevelopment: {

@@ -114,6 +114,27 @@ $root = sys_get_temp_dir() . '/funadmin-crud-core-' . bin2hex(random_bytes(5));
 mkdir($root, 0755, true);
 
 try {
+    $app = new \think\App($root);
+    \think\Container::setInstance($app);
+    $loader = new class { use \app\console\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
+    foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
+        $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'wrong_'], 'archive' => ['prefix' => $prefix]]], 'database');
+        foreach (['audit_log', $prefix . 'audit_log'] as $table) {
+            $input = validDefinition(['connection' => 'archive', 'table' => $table]);
+            file_put_contents($root . '/definition.json', json_encode($input));
+            $loaded = $loader->load($root . '/definition.json');
+            crudExpect($loaded->get('table') === $prefix . 'audit_log', '核心 CLI 新建必须遵循连接前缀一次');
+        }
+        foreach (['legacy_audit_log', $prefix . 'audit_log'] as $table) {
+            $input = validDefinition(['connection' => 'archive', 'table' => $table, 'tableIdentity' => ['source' => 'adopted', 'kind' => 'physical']]);
+            file_put_contents($root . '/definition.json', json_encode($input));
+            $loaded = $loader->load($root . '/definition.json');
+            $plan = (new CrudGenerator($root))->plan($loaded);
+            crudExpect(!in_array('database/generated/audit_log.sql', array_column($plan['files'], 'path'), true), '核心 CLI 采纳不得生成建表 SQL');
+            crudExpect($loaded->get('table') === $table, '核心采纳必须保留物理表');
+        }
+    }
+    $app->config->set([], 'database');
     $definition = CrudDefinition::fromArray(validDefinition());
     (new DefinitionValidator())->validate($definition, $root);
     crudExpect($definition->schemaVersion() === '1.0', 'Definition 必须保留 schemaVersion');

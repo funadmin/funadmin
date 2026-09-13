@@ -23,7 +23,7 @@ trait CrudCommandSupport
         if (!is_array($data) || !isset($data['schemaVersion'])) {
             throw new InvalidArgumentException('旧 CRUD 配置已弃用，请使用版本化 CRUD Definition');
         }
-        return CrudDefinition::fromArray($data);
+        return CrudDefinition::fromInput($data);
     }
 
     private function readToken(string $tokenFile): string

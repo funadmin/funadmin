@@ -60,7 +60,8 @@ service.interceptors.response.use(
     if (nextCsrfToken) setCsrfToken(String(nextCsrfToken));
     if (opt.isReturnNativeResponse) return response;
 
-    const { code, msg, data } = response.data;
+    const { code, data } = response.data;
+    const msg = businessMessage(response.data);
     if (code === RESP_CODE.SUCCESS) {
       if (opt.showSuccessMsg && msg) ElMessage.success(msg);
       return data;
@@ -77,23 +78,36 @@ service.interceptors.response.use(
     const config = error?.config as AdminInternalConfig | undefined;
     const opt = { ...DEFAULT_REQUEST_OPTIONS, ...config?.requestOptions };
 
+    // 真实服务端故障不信任任何业务字段，也不将原始载荷交给页面二次展示。
+    if (status >= 500) {
+      const message = status === 502 ? '网关错误' : status === 504 ? '网关超时' : '服务器内部错误';
+      if (opt.showErrorMsg) showError(message, opt.errorMessageMode);
+      return Promise.reject({ code: status, msg: message, message, data: null });
+    }
+    const safeMessage = businessMessage(payload);
     if (status === 401 || payload?.code === RESP_CODE.UNAUTHORIZED) {
-      return handleUnauthorized(payload?.msg || '登录已失效，请重新登录');
+      return handleUnauthorized(safeMessage || '登录已失效，请重新登录');
     }
 
-    let message = payload?.msg || error?.message || '网络异常';
-    if (status === 403) message = payload?.msg || '没有访问权限';
-    else if (status === 404) message = payload?.msg || '请求资源不存在';
-    else if (status === 422) message = payload?.msg || '参数验证失败';
-    else if (status === 500) message = '服务器内部错误';
-    else if (status === 502) message = '网关错误';
-    else if (status === 504) message = '网关超时';
+    let message = safeMessage || error?.message || '网络异常';
+    if (status === 403) message = safeMessage || '没有访问权限';
+    else if (status === 404) message = safeMessage || '请求资源不存在';
+    else if (status === 422) message = safeMessage || '参数验证失败';
     else if (error?.code === 'ECONNABORTED') message = '请求超时';
 
     if (opt.showErrorMsg) showError(message, opt.errorMessageMode);
     return Promise.reject(payload || error);
   }
 );
+
+function businessMessage(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const body = payload as Record<string, unknown>;
+  for (const value of [body.msg, body.message]) {
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return undefined;
+}
 
 function showError(message: string, mode: RequestOptions['errorMessageMode']) {
   if (mode === 'modal') {

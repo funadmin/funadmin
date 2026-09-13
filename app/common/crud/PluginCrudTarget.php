@@ -37,7 +37,7 @@ final class PluginCrudTarget
         }
 
         $context = PluginTemplateContext::build($definition, $plugin, $scope !== 'application');
-        if (($definition->get('formSchema', [])['database']['source'] ?? 'created') !== 'adopted') {
+        if (!$definition->isAdopted()) {
             $migration = $this->migration($definition, $plugin, $entity, $this->render($renderer, $templates, 'migration', $context));
             $files[$migration['path']] = $migration['content'];
         }
@@ -96,12 +96,19 @@ final class PluginCrudTarget
             if (!is_string($content)) {
                 continue;
             }
+            $templatePrefix = (string) \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
+            $prefix = (string) \think\facade\Config::get('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '');
+            $effectiveContent = \app\common\service\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
             $stored = $this->migrationSnapshot($content);
+            if ($stored !== null && !str_starts_with($content, "-- funadmin-physical-table\n")) {
+                // 仅解析比较视图，不修改历史文件及其 checksum。
+                $stored = json_decode(\app\common\service\MigrationService::rewritePrefix(CrudDefinition::canonicalJson($stored), $templatePrefix, $prefix), true, 512, JSON_THROW_ON_ERROR);
+            }
             if (($stored['table'] ?? null) === $table) {
                 $previous = ['path' => $relative . '/' . $name, 'content' => $content, 'snapshot' => $stored];
             } elseif ($previous === null
-                && preg_match('/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`' . preg_quote($table, '/') . '`/i', $content) === 1) {
-                $previous = ['path' => $relative . '/' . $name, 'content' => $content, 'snapshot' => null];
+                && preg_match('/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`' . preg_quote($table, '/') . '`/i', $effectiveContent) === 1) {
+                $previous = ['path' => $relative . '/' . $name, 'content' => $content, 'effectiveContent' => $effectiveContent, 'snapshot' => null];
             }
         }
         if ($previous === null) {
@@ -111,7 +118,8 @@ final class PluginCrudTarget
             ];
         }
         if ($previous['snapshot'] === null) {
-            if (hash_equals(hash('sha256', rtrim($previous['content'])), hash('sha256', rtrim($createSql)))) {
+            $comparableSql = static fn (string $sql): string => rtrim(str_starts_with($sql, "-- funadmin-physical-table\n") ? substr($sql, strlen("-- funadmin-physical-table\n")) : $sql);
+            if (hash_equals(hash('sha256', $comparableSql($previous['effectiveContent'])), hash('sha256', $comparableSql($createSql)))) {
                 return ['path' => $previous['path'], 'content' => $previous['content']];
             }
             throw new InvalidArgumentException('已有表结构变更不可表达：旧 migration 缺少 schema metadata，请手写 forward migration');
@@ -122,7 +130,7 @@ final class PluginCrudTarget
         $alter = $this->forwardAlter($previous['snapshot'], $snapshot);
         return [
             'path' => sprintf('%s/%03d_alter_%s.sql', $relative, $this->nextSequence($maximum), str_replace('-', '_', $entity)),
-            'content' => "-- Generated forward migration; review before applying.\nALTER TABLE `{$table}`\n  "
+            'content' => "-- funadmin-physical-table\n-- Generated forward migration; review before applying.\nALTER TABLE `{$table}`\n  "
                 . implode(",\n  ", $alter) . ";\n" . $metadata,
         ];
     }

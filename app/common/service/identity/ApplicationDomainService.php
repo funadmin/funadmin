@@ -6,8 +6,7 @@ namespace app\common\service\identity;
 
 use app\common\model\identity\ApplicationDomain;
 use app\common\model\identity\EnterpriseApplication;
-use DomainException;
-use InvalidArgumentException;
+use app\common\service\identity\IdentityValidationException as InvalidArgumentException;
 use think\facade\Db;
 
 final class ApplicationDomainService
@@ -45,13 +44,13 @@ final class ApplicationDomainService
 
         return Db::transaction(function () use ($tenantId, $applicationId, $normalizedDomains, $expectedDomainIds): array {
             if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->lock(true)->find()) {
-                throw new DomainException('应用不存在或不属于当前租户');
+                throw new IdentityResourceException('应用不存在或不属于当前租户', 404);
             }
             $currentDomains = ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->lock(true)->select()->toArray();
             $currentDomainIds = array_map(static fn (array $domain): int => (int) $domain['id'], $currentDomains);
             sort($currentDomainIds);
             if ($currentDomainIds !== $expectedDomainIds) {
-                throw new DomainException('域名设置已被其他请求修改，请刷新后重试');
+                throw new IdentityResourceException('域名设置已被其他请求修改，请刷新后重试', 409);
             }
             ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->delete();
             $result = [];
@@ -66,7 +65,7 @@ final class ApplicationDomainService
     public function list(int $tenantId, int $applicationId): array
     {
         if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->find()) {
-            throw new DomainException('应用不存在或不属于当前租户');
+            throw new IdentityResourceException('应用不存在或不属于当前租户', 404);
         }
         return ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->select()->toArray();
     }

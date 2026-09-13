@@ -17,7 +17,7 @@ final class DefinitionValidator
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
         'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
-        'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list',
+        'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list', 'tableIdentity',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
@@ -52,6 +52,18 @@ final class DefinitionValidator
         $unknown = array_diff(array_keys($data), self::ROOT_KEYS);
         if ($unknown !== []) {
             throw new InvalidArgumentException('Definition 包含未知字段：' . implode(', ', $unknown));
+        }
+        if (isset($data['tableIdentity'])) {
+            $identity = $data['tableIdentity'];
+            if (!is_array($identity) || array_diff(array_keys($identity), ['source', 'kind']) !== []
+                || !in_array($identity['source'] ?? null, ['created', 'adopted'], true)
+                || ($identity['kind'] ?? null) !== 'physical') {
+                throw new InvalidArgumentException('tableIdentity 必须是已解析的物理表身份');
+            }
+            if (isset($data['formSchema']) && (($data['formSchema']['database']['source'] ?? null) !== $identity['source']
+                || ($data['formSchema']['database']['table'] ?? null) !== ($data['table'] ?? null))) {
+                throw new InvalidArgumentException('tableIdentity 与 formSchema 冲突');
+            }
         }
         if ($definition->schemaVersion() !== '1.0') {
             throw new InvalidArgumentException('不支持的 schemaVersion');

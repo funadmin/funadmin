@@ -58,7 +58,13 @@ final class ManifestMerger
         } catch (JsonException $exception) {
             throw new InvalidArgumentException('插件 Manifest JSON 无效', 0, $exception);
         }
-        if (!is_array($data) || !$adminWeb) {
+        if (!is_array($data)) throw new InvalidArgumentException('插件 Manifest JSON 无效');
+        if (!$adminWeb) {
+            if ($definition->isAdopted()) {
+                $this->assertProjectionScope($definition, $base);
+                $data['externalTables'] = $this->mergeOwned((array) ($data['externalTables'] ?? []),
+                    (array) ($base['externalTables'] ?? []), [\app\common\plugin\sdk\ExternalTableRequirements::fromDefinition($definition)], 'module', 'externalTables');
+            }
             return $this->encode($data);
         }
 
@@ -111,7 +117,7 @@ final class ManifestMerger
             $admin['menu'] = $this->mergeList((array) ($admin['menu'] ?? []), $menuItem, 'path', 'menu');
         }
         $data['adminWeb'] = $admin;
-        if (($definition->get('formSchema', [])['database']['source'] ?? '') === 'adopted') {
+        if ($definition->isAdopted()) {
             $data['externalTables'] = $this->mergeList((array) ($data['externalTables'] ?? []),
                 \app\common\plugin\sdk\ExternalTableRequirements::fromDefinition($definition), 'module', 'externalTable');
         }

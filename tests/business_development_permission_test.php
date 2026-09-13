@@ -176,4 +176,35 @@ foreach (['visual' => 'save', 'database' => 'inspect'] as $path => $permission) 
 businessPermissionExpect(str_contains($auth, "in_array((int) \$menu->permission_id, \$permissionIds, true)"), '非管理员仍按原权限绑定过滤，不能补授查看权限');
 businessPermissionExpect(!str_contains($hideSql, 'fun_permission') && !str_contains($hideSql, 'fun_casbin_rule'), '隐藏操作不得修改权限或角色授权');
 
+$leafFile = $root . '/database/migrations/125_business_development_leaf_menu.sql';
+businessPermissionExpect(is_file($leafFile), '缺少业务开发单叶子菜单迁移');
+$leafSql = (string) file_get_contents($leafFile);
+$leafStatements = (new ReflectionMethod(MigrationService::class, 'statements'))->invoke(new MigrationService(), $leafSql);
+foreach ($leafStatements as $statement) {
+    businessPermissionExpect(preg_match('/^UPDATE\s+`fun_admin_menu`\s+SET/i', $statement) === 1, '只能更新菜单，不得修改业务数据或权限');
+}
+$memory->exec("UPDATE fun_admin_menu SET query='component=Layout&name=BusinessDevelopment&type=M&redirect=/development/business/mine&permission=development:business:view' WHERE href='business'");
+$beforeLeaf = $memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+$memory->exec($leafSql);
+$afterLeaf = $memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+foreach ($afterLeaf as $index => $row) {
+    $old = $beforeLeaf[$index];
+    if ($index >= 5) {
+        businessPermissionExpect($row === $old, '不得影响其他应用或来源');
+        continue;
+    }
+    parse_str($row['query'], $meta);
+    if ($old['href'] === 'business') {
+        businessPermissionExpect($row['href'] === 'business/mine' && $meta['component'] === 'development/business/mine' && $meta['type'] === 'C' && empty($meta['redirect']), '父节点必须直接渲染列表');
+    } else {
+        businessPermissionExpect(filter_var($meta['hidden'], FILTER_VALIDATE_BOOL), '所有旧子菜单必须隐藏');
+        businessPermissionExpect(($meta['custom'] ?? '') === 'keep', '子菜单必须保留其他元数据');
+        businessPermissionExpect($row['href'] === '/development/business/' . ($old['href'] === 'mine' ? '' : $old['href']), '隐藏路由必须绝对路径且不得与父节点重复');
+    }
+    unset($row['href'], $row['query'], $old['href'], $old['query']);
+    businessPermissionExpect($row === $old, '保留菜单 ID、权限、状态及软删除字段');
+}
+$memory->exec($leafSql);
+businessPermissionExpect($memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC) === $afterLeaf, '单叶子菜单 SQL 重复执行必须幂等');
+businessPermissionExpect(str_contains($mine, "path: '/development/business/records', query: { moduleId: row.id }"), '业务行记录入口必须保留');
 echo "business development permission tests: PASS\n";

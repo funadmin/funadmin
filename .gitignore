@@ -19,6 +19,7 @@
 /.cursor
 /.qoder
 /tests/*
+!/tests/console_response_policy_test.php
 !/tests/browser_isolated_fixture.php
 !/tests/browser_isolated_acceptance.mjs
 !/tests/ai_*test.php
@@ -78,11 +79,15 @@
 !/tests/plugin_marketplace_remaining_test.php
 !/tests/plugin_modification_detector_test.php
 !/tests/crud/
+!/tests/crud_prefix_test.php
 !/tests/crud/plugin_target_test.php
 !/tests/fixtures/
 !/tests/fixtures/plugins/
 !/tests/fixtures/plugins/example/
 !/tests/fixtures/plugins/example/plugin.json
 /admin-web/tests/*
+!/admin-web/tests/utils/
+/admin-web/tests/utils/*
+!/admin-web/tests/utils/consoleHttp.spec.ts
 !/admin-web/tests/contracts/php-property-modernization.spec.ts
 !/admin-web/tests/contracts/plugin-code-name-cutover.spec.ts

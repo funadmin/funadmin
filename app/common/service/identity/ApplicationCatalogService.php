@@ -8,7 +8,7 @@ use app\common\model\identity\ApplicationAssignment;
 use app\common\model\identity\EnterpriseApplication;
 use app\common\model\identity\IdentityUser;
 use DomainException;
-use InvalidArgumentException;
+use app\common\service\identity\IdentityValidationException as InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
 final class ApplicationCatalogService

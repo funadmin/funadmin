@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\common\service\identity;
 
 use Closure;
-use InvalidArgumentException;
+use app\common\service\identity\IdentityValidationException as InvalidArgumentException;
 use Opis\Uri\Punycode;
 
 /** 企业应用 URL/域名的统一安全边界。 */

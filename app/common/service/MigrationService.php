@@ -64,7 +64,7 @@ class MigrationService extends AbstractService
     }
 
     /** 历史安装 SQL 使用模板前缀；新生成制品已绑定物理表，禁止二次改写。 */
-    private static function rewritePrefix(string $sql, string $templatePrefix, string $prefix): string
+    public static function rewritePrefix(string $sql, string|array $templatePrefix, string $prefix): string
     {
         if (str_starts_with($sql, "-- funadmin-physical-table\n") || $templatePrefix === '') return $sql;
         return str_replace($templatePrefix, $prefix, $sql);
@@ -102,7 +102,7 @@ class MigrationService extends AbstractService
             $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
             $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
             $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
-            $sql = self::rewritePrefix($sql, (string) config('funadmin.mysqlPrefix'), (string) config('database.connections.mysql.prefix'));
+            $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix'), (string) config('database.connections.mysql.prefix'));
             $statements = $this->statements($sql);
             if (!$statements) {
                 throw new RuntimeException('Migration 没有可执行 SQL：' . $file);

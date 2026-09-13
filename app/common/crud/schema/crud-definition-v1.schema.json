@@ -18,6 +18,7 @@
     "module": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "entity": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "table": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" },
+    "tableIdentity": { "type": "object", "additionalProperties": false, "required": ["source", "kind"], "properties": { "source": { "enum": ["created", "adopted"] }, "kind": { "enum": ["logical", "physical"] } }, "allOf": [{ "if": { "properties": { "source": { "const": "adopted" } } }, "then": { "properties": { "kind": { "const": "physical" } } } }] },
     "title": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "apiPrefix": { "type": "string", "pattern": "^/[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*$" },

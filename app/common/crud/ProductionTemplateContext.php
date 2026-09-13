@@ -100,11 +100,19 @@ final class ProductionTemplateContext
             }
         }
         $methods = [];
+        $pivotModels = [];
         foreach ($data['relations'] as $relation) {
+            $pivotClass = $class . self::studly($relation['name']) . 'Pivot';
+            if ($relation['type'] === 'belongsToMany') {
+                // ORM 的字符串 middle 按逻辑表处理；使用显式物理表模型避免二次前缀。
+                $pivotModels[] = "\nfinal class {$pivotClass} extends \\think\\model\\Pivot\n{\n"
+                    . '    protected string $table = ' . var_export($relation['pivotTable'], true) . ";\n"
+                    . '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n}\n";
+            }
             $target = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'] . '::class';
             $arguments = match ($relation['type']) {
                 'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
-                default => "$target, '{$relation['pivotTable']}', '"
+                default => "$target, {$pivotClass}::class, '"
                     . ($relation['pivotTargetKey'] ?? $relation['targetField']) . "', '"
                     . ($relation['pivotLocalKey'] ?? $relation['field']) . "'",
             };
@@ -131,7 +139,7 @@ final class ProductionTemplateContext
             . '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n"
             . "    protected string \$pk = '{$primary['name']}';\n"
             . '    protected array $type = ' . self::phpArray($casts) . ";\n\n"
-            . implode("\n\n", $methods) . "\n}\n";
+            . implode("\n\n", $methods) . "\n}\n" . implode('', $pivotModels);
     }
 
     private static function validator(array $data, string $class, array $primary): string

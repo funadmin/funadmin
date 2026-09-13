@@ -41,6 +41,9 @@ pnpm-debug.log*
 /messagebox-*.png
 /msgbox-*.png
 /tests/*
+!/tests/utils/
+/tests/utils/*
+!/tests/utils/consoleHttp.spec.ts
 !/tests/contracts/
 /tests/contracts/*
 !/tests/contracts/form-publish.spec.ts

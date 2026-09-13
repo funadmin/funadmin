@@ -583,12 +583,12 @@ const normalizeIdentifier = (value: string) => value
   .slice(0, 61);
 const suggestedTableName = computed(() => {
   const key = normalizeIdentifier(String(store.form.value.form_key ?? ''));
-  return key ? `fun_${key}` : '';
+  return String(store.form.value.table_name ?? '') || key;
 });
 const tableHelp = computed(() => isPluginTarget.value
   ? (businessTarget.value?.tableStrategy === 'external' ? '外部依赖表：不生成 CREATE／ALTER，不取得表所有权。' : '保存只更新草稿；生成只写源码与迁移，安装／更新时建表。')
   : store.form.value.source_type === 'created'
-  ? `新表将在保存或发布时按画布字段创建；建议表名：${suggestedTableName.value || 'fun_业务标识'}`
+  ? `新表将在保存或发布时按画布字段创建；建议表名：${suggestedTableName.value || '业务标识'}`
   : '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。');
 const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
 const loadDatabaseTables = async (force = false) => {
@@ -615,12 +615,12 @@ const updateSourceType = (sourceType: string | number | boolean | undefined) => 
 };
 const normalizeFormKey = () => {
   const current = normalizeIdentifier(String(store.form.value.form_key ?? ''));
-  const fromTable = normalizeIdentifier(String(store.form.value.table_name ?? '')).replace(/^fun_/, '');
+  const fromTable = normalizeIdentifier(String(store.form.value.table_name ?? ''));
   const normalized = current || fromTable;
   const patch: Record<string, unknown> = {};
   if (normalized !== store.form.value.form_key) patch.form_key = normalized;
-  if (store.form.value.source_type === 'created' && (!store.form.value.table_name || store.form.value.table_name === `fun_${current}`)) {
-    const tableName = normalized ? `fun_${normalized}` : '';
+  if (store.form.value.source_type === 'created' && !store.form.value.table_name) {
+    const tableName = normalized;
     if (tableName !== store.form.value.table_name) patch.table_name = tableName;
   }
   if (Object.keys(patch).length) store.updateForm(patch);

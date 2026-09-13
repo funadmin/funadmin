@@ -169,14 +169,15 @@ final class FormDesignerService
         return ['valid' => true];
     }
 
-    public function normalizeIdentifier(string $value, bool $fromTable = false): string
+    public function normalizeIdentifier(string $value, bool $fromTable = false, string $connection = 'mysql'): string
     {
         $normalized = strtolower(trim($value));
         $normalized = preg_replace('/[\s-]+/', '_', $normalized) ?? '';
         $normalized = preg_replace('/[^a-z0-9_]/', '', $normalized) ?? '';
         $normalized = trim($normalized, '_');
-        if ($fromTable && str_starts_with($normalized, 'fun_')) {
-            $normalized = substr($normalized, 4);
+        if ($fromTable) {
+            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            if ($prefix !== '' && str_starts_with($normalized, strtolower($prefix))) $normalized = substr($normalized, strlen($prefix));
         }
         return substr($normalized, 0, 61);
     }
@@ -186,7 +187,7 @@ final class FormDesignerService
     {
         $formKey = $this->normalizeIdentifier((string) ($payload['form_key'] ?? ''));
         if ($formKey === '') {
-            $formKey = $this->normalizeIdentifier((string) ($payload['table_name'] ?? ''), true);
+            $formKey = $this->normalizeIdentifier((string) ($payload['table_name'] ?? ''), true, (string) ($payload['connection'] ?? 'mysql'));
         }
         $payload['form_key'] = $formKey;
         $this->validateDefinition($payload, true);
@@ -322,9 +323,9 @@ final class FormDesignerService
             return ['mode' => 'none', 'sql' => '', 'file' => '', 'message' => '采纳表禁止 DDL，仅保存元数据'];
         }
         $table = trim((string) $payload['table_name']);
-        $exists = in_array($table, Db::connect()->getTables(), true);
+        $exists = in_array($table, Db::connect((string) ($payload['connection'] ?? 'mysql'))->getTables(), true);
         $sql = $exists
-            ? $this->additiveSql($table, $payload['fields'])
+            ? $this->additiveSql($table, $payload['fields'], (string) ($payload['connection'] ?? 'mysql'))
             : $this->createTableSql($table, $payload['fields']);
         return [
             'mode' => $exists ? 'additive' : 'create',
@@ -349,7 +350,7 @@ final class FormDesignerService
         $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
-            Db::execute(rtrim(trim((string) $preview['sql']), ';'));
+            Db::connect((string) ($payload['connection'] ?? 'mysql'))->execute(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
         } catch (Throwable $exception) {
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
@@ -450,7 +451,27 @@ final class FormDesignerService
     private function schemaPayload(array $payload): array
     {
         $schema = $payload['schema_document'] ?? null;
-        return is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2 ? $schema : $payload;
+        $isV2 = is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2;
+        $document = $isV2 ? $schema : $payload;
+        $database = $isV2 ? (array) ($document['database'] ?? []) : [
+            'connection' => $payload['connection'] ?? 'mysql',
+            'table' => $payload['table_name'] ?? '',
+            'source' => $payload['source_type'] ?? 'created',
+        ];
+        // 只归一化新建身份，已有记录与采纳表不得随配置变化重命名。
+        if ((int) ($payload['id'] ?? 0) === 0 && ($database['source'] ?? 'created') === 'created') {
+            $connection = (string) ($database['connection'] ?? 'mysql');
+            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $table = trim((string) ($database['table'] ?? ''));
+            if ($table !== '' && $prefix !== '' && !str_starts_with($table, $prefix)) {
+                if ($isV2) {
+                    $document['database']['table'] = $prefix . $table;
+                } else {
+                    $document['table_name'] = $prefix . $table;
+                }
+            }
+        }
+        return $document;
     }
 
     private function fieldRow(int $formId, array $field, int $sort): array
@@ -533,14 +554,14 @@ final class FormDesignerService
         return $sql;
     }
 
-    private function additiveSql(string $table, array $fields): string
+    private function additiveSql(string $table, array $fields, string $connection = 'mysql'): string
     {
         $existing = array_column(
-            Db::connect()->query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
+            Db::connect($connection)->query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
             'COLUMN_NAME'
         );
         $existingIndexes = array_column(
-            Db::connect()->query('SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
+            Db::connect($connection)->query('SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
             'INDEX_NAME'
         );
         $parts = [];

@@ -3,6 +3,8 @@ import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-rout
 import { generateRoutes } from './dynamic';
 import { setupRouterGuard } from './guard';
 import { staticRoutes } from './routes';
+import zh from '@/locales/zh-CN';
+import en from '@/locales/en-US';
 import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
@@ -98,16 +100,18 @@ describe('混合布局菜单全树路由', () => {
     warn.mockRestore();
   });
 
-  it('Mock 菜单暴露业务开发四入口与 AI 开发助手', () => {
+  it('Mock 业务开发直接展示列表，隐藏辅助入口并保留 AI', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
     const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
-    expect(business).toMatchObject({ path: 'business', redirect: '/development/business/mine', permission: 'development:business:view' });
+    expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'development:business:view' });
+    expect(business?.redirect).toBeUndefined();
+    expect(business?.children?.every((item) => item.hidden)).toBe(true);
     expect(business?.children?.map((item) => item.routeName)).toEqual(['BusinessMine', 'BusinessVisual', 'BusinessDatabase', 'BusinessRecords']);
 
     const routes = generateRoutes(menuSeed);
     const router = createRouter({ history: createMemoryHistory(), routes });
-    expect(router.resolve('/development/business/mine').name).toBe('BusinessMine');
+    expect(router.resolve('/development/business/mine').name).toBe('BusinessDevelopment');
     const developmentRoute = routes.find((route) => route.name === 'Development');
     expect(getVisibleMenuChildren(developmentRoute!).map((route) => route.name)).toEqual(['BusinessDevelopment', 'AiDevelopment']);
     expect(router.resolve('/development/ai').name).toBe('AiDevelopment');
@@ -115,32 +119,57 @@ describe('混合布局菜单全树路由', () => {
     expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203, 207]));
   });
 
-  it('隐藏业务创建菜单只影响侧栏，不移除动态路由或改变权限', () => {
+  it('隐藏辅助入口保留权限、组件及 active 菜单，父子不重复注册路径', () => {
     const seed = getAdminMenuTreeSeed();
     const business = seed.find((menu) => menu.routeName === 'Development')!.children!
       .find((menu) => menu.routeName === 'BusinessDevelopment')!;
-    const hiddenNames = ['BusinessVisual', 'BusinessDatabase'];
-    for (const menu of business.children!) {
-      if (hiddenNames.includes(menu.routeName!)) menu.hidden = true;
-    }
+    expect(business.type).toBe('C');
     const routes = generateRoutes(seed);
     const router = createRouter({ history: createMemoryHistory(), routes });
     const businessRoute = routes.find((route) => route.name === 'Development')!.children!
       .find((route) => route.name === 'BusinessDevelopment')!;
     expect(getVisibleMenuChildren(businessRoute).map((route) => route.name))
-      .toEqual(['BusinessMine', 'BusinessRecords']);
+      .toEqual([]);
+    expect(getFirstLeafRouteFullPath(businessRoute, '/development')).toBe('/development/business/mine');
+    expect(router.resolve('/development/business/mine').matched.at(-1)?.components?.default).toBeTypeOf('function');
+    const paths = router.getRoutes().map((route) => route.path);
+    expect(new Set(paths).size).toBe(paths.length);
     for (const [path, name, permission] of [
       ['visual', 'BusinessVisual', 'save'],
-      ['database', 'BusinessDatabase', 'inspect']
+      ['database', 'BusinessDatabase', 'inspect'],
+      ['records', 'BusinessRecords', 'records'],
+      ['designer', 'BusinessDesigner', 'save']
     ]) {
       const resolved = router.resolve(`/development/business/${path}`);
       expect(resolved.name).toBe(name);
       expect(resolved.meta.hidden).toBe(true);
+      expect(resolved.meta.activeMenu).toBe('/development/business/mine');
       expect(resolved.meta.permission).toBe(`development:business:${permission}`);
       expect(resolved.matched.at(-1)?.components?.default).toBeTypeOf('function');
     }
-    expect(router.resolve('/development/business/mine').name).toBe('BusinessMine');
+    expect(router.resolve('/development/business/mine').name).toBe('BusinessDevelopment');
     expect(router.resolve('/development/business/mine').meta.permission).toBe('development:business:view');
+  });
+
+  it('业务列表菜单与兼容入口中英文标题统一', () => {
+    expect(zh.menu).toMatchObject({ BusinessDevelopment: '业务开发', BusinessMine: '业务开发' });
+    expect(en.menu).toMatchObject({ BusinessDevelopment: 'Business Development', BusinessMine: 'Business Development' });
+    const designer = staticRoutes.flatMap((route) => route.children || []).find((route) => route.name === 'BusinessDesigner');
+    expect(designer?.meta?.activeMenu).toBe('/development/business/mine');
+  });
+
+  it('旧业务目录 URL 保留 query/hash 重定向到列表', async () => {
+    const routes = generateRoutes(getAdminMenuTreeSeed());
+    // 重定向测试只需真实路由配置，不加载页面依赖。
+    const stub = (items: RouteRecordRaw[]) => items.forEach((item) => {
+      item.component = { template: '页面' };
+      if (item.children) stub(item.children);
+    });
+    stub(routes);
+    const router = createRouter({ history: createMemoryHistory(), routes });
+    await router.push('/development/business?keyword=test#list');
+    expect(router.currentRoute.value.fullPath).toBe('/development/business/mine?keyword=test#list');
+    expect(router.currentRoute.value.name).toBe('BusinessDevelopment');
   });
 
   it('TopMenu 首叶跳转与 Sidebar 路径解析一致', () => {

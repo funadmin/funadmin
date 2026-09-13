@@ -74,7 +74,7 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
       (route as any).children = (menu.children as API.MenuItem[])
         .filter((c) => c.type !== 'B')
         .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
-        .map((child) => transformChild(child, parentPath));
+        .flatMap((child) => transformChildRoutes(child, parentPath));
     }
     return route;
   }
@@ -114,6 +114,19 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
 /**
  * 递归子路由；parentAbsolutePath 为父级完整路径（如 /system），用于子 path 拼接与中间目录 redirect。
  */
+// 页面节点的隐藏辅助页提升为同级路由：页面无需嵌套 router-view，也不会重复注册列表路径。
+function transformChildRoutes(menu: API.MenuItem, parentPath: string): RouteRecordRaw[] {
+  if (menu.type === 'C' && menu.component && !['Layout', 'Blank'].includes(menu.component) && menu.children?.length) {
+    const activeMenu = resolveMenuPath(parentPath, menu.path);
+    const page = transformChild({ ...menu, children: undefined }, parentPath);
+    const auxiliary = menu.children.filter((child) => child.type !== 'B')
+      .flatMap((child) => transformChildRoutes(child, activeMenu));
+    auxiliary.forEach((route) => { route.meta = { ...route.meta, activeMenu }; });
+    return [page, ...auxiliary];
+  }
+  return [transformChild(menu, parentPath)];
+}
+
 function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRecordRaw {
   const absolute = menu.path.startsWith('/');
   const seg = absolute ? ensureLeadingSlash(menu.path) : menu.path.replace(/^\//, '');
@@ -131,7 +144,8 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
       keepAlive: Boolean(menu.keepAlive),
       permission: menu.permission,
       rank: menu.sort,
-      formKey: menu.formKey
+      formKey: menu.formKey,
+      ...(menu.routeName === 'BusinessDesigner' ? { activeMenu: '/development/business/mine' } : {})
     }
   } as RouteRecordRaw;
 
@@ -139,7 +153,7 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
     (route as any).children = (menu.children as API.MenuItem[])
       .filter((c) => c.type !== 'B')
       .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
-      .map((child) => transformChild(child, fullPath));
+      .flatMap((child) => transformChildRoutes(child, fullPath));
     if (!menu.redirect) {
       const auto = findFirstLeafRedirectPath(menu, fullPath);
       if (auto) (route as RouteRecordRaw).redirect = auto;
