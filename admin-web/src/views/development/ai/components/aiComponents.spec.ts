@@ -1,6 +1,7 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
 import ElementPlus, { ElSwitch, ElInput, ElInputNumber, ElForm } from 'element-plus';
 import { readFileSync } from 'node:fs';
+import { compileStyle, parse } from '@vue/compiler-sfc';
 import { createI18n } from 'vue-i18n';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/api/development/ai', async importOriginal => ({ ...await importOriginal<object>(), aiDevelopmentApi: { attachmentContent: vi.fn().mockResolvedValue(new Blob(['safe'], { type: 'text/plain' })) } }));
@@ -58,6 +59,42 @@ const chooseProfile = async (wrapper: ReturnType<typeof mount>) => {
 };
 
 describe('AI Development components', () => {
+  it('矮窗口使用真实 Drawer DOM 和编译后 CSS，正文可整体滚动而非被固定栏夹断', async () => {
+    const wrapper = mount(ProviderSettingsDrawer, { props: { modelValue: true }, attachTo: document.body, global: { plugins: [i18n, ElementPlus] } });
+    const style = document.createElement('style');
+    try {
+      await wrapper.vm.$nextTick();
+      const source = readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
+      const { descriptor } = parse(source);
+      const scopeId = (ProviderSettingsDrawer as unknown as { __scopeId: string }).__scopeId;
+      const compiled = compileStyle({ source: descriptor.styles[0]!.content, filename: 'ProviderSettingsDrawer.vue', id: scopeId, scoped: true });
+      expect(compiled.errors).toEqual([]);
+      style.textContent = compiled.code;
+      document.head.append(style);
+      // jsdom 不执行媒体查询和几何布局；按桌面宽、400px 高选择真实 CSS 规则。
+      const rules = Array.from(style.sheet!.cssRules);
+      style.textContent = rules.map(rule => {
+        if (rule instanceof CSSMediaRule) {
+          const height = rule.conditionText.match(/max-height:\s*(\d+)px/);
+          return height && 400 <= Number(height[1]) ? Array.from(rule.cssRules).map(item => item.cssText).join('\n') : '';
+        }
+        return rule.cssText;
+      }).join('\n');
+      const body = document.querySelector('.provider-drawer .el-drawer__body')!;
+      const form = body.querySelector('.provider-form')!;
+      const content = body.querySelector('.profile-content')!;
+      expect(body).not.toBeNull();
+      expect(getComputedStyle(body).overflowY || getComputedStyle(body).overflow).toBe('auto');
+      expect(getComputedStyle(form).height).toBe('auto');
+      expect(getComputedStyle(content).flexGrow).toBe('0');
+      expect(getComputedStyle(content).flexShrink).toBe('0');
+      expect(getComputedStyle(content).overflowY).toBe('visible');
+      expect(body.querySelector('[data-testid="profile-save"]')).not.toBeNull();
+    } finally {
+      style.remove();
+      wrapper.unmount();
+    }
+  });
   it('档案使用单列限宽布局、真实 EP 表单与独立底栏，能力默认折叠', () => {
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
     expect(wrapper.find('nav').exists()).toBe(false);

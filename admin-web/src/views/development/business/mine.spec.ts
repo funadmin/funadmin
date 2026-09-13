@@ -157,12 +157,14 @@ describe('BusinessMine', () => {
   it('插件业务展示归属、待发布及冲突恢复状态，不暴露动态运行时', async () => {
     mocks.modules.mockResolvedValue(result([
       { ...sampleRows[0], metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', locked: true } } },
-      { ...sampleRows[1], generation_status: 'recovery_required' }
+      { ...sampleRows[1], generation_status: 'failed', recovery_status: 'recovery_required' },
+      { ...sampleRows[1], id: 3, generation_status: 'running', recovery_status: 'recovering' }
     ]));
     const wrapper = render(); await flushPromises();
     expect(wrapper.text()).toContain('demo');
     expect(wrapper.text()).toContain('待安装／更新发布');
     expect(wrapper.text()).toContain('需要恢复');
+    expect(wrapper.text()).toContain('恢复中');
     expect(wrapper.find('[data-runtime="1"]').exists()).toBe(false);
   });
 

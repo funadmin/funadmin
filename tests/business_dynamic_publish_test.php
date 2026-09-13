@@ -204,7 +204,8 @@ $saveFailure = new FormPublishService(
     static function (): void {},
     static fn (): array => [],
     static function (int $formId, string $status, array $extra = [], ?array $baseline = null) use (&$failureStatuses): void { $failureStatuses[] = $status; },
-    static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0]
+    static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0],
+    moduleTargetReader: static fn (): array => ['type' => 'core']
 );
 try {
     $saveFailure->publishDynamic(['id' => 9, 'schema_document' => $schema, 'schemaHash' => $hash, 'formDependencyHash' => $preview['formDependencyHash']], 'tester');

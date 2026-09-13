@@ -66,7 +66,7 @@ function render() {
     template: '<form :data-label-position="labelPosition"><slot /></form>'
   });
   const wrapper = mount(BusinessVisual, {
-    global: { stubs: { PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton } }
+    global: { stubs: { ElSelect: true, ElOption: true, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton } }
   });
   return { wrapper, formApi, focus };
 }
@@ -86,6 +86,24 @@ describe('BusinessVisual', () => {
     mocks.query = {};
     mocks.targets.mockResolvedValue({ list: [{ type: 'core', pluginCode: null, name: '核心后台', scope: 'console' }, { type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console' }], defaultConnection: 'mysql', migrationPath: 'database/migrations' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
+  });
+
+  it('目标请求失败后点击重试恢复创建，保留预选插件和已填内容', async () => {
+    mocks.query = { plugin: 'demo' };
+    mocks.targets.mockRejectedValueOnce(new Error('目标服务暂不可用'));
+    mocks.createVisual.mockResolvedValueOnce({ module: { id: 7, form_id: 11 }, fields: [] });
+    const { wrapper } = render();
+    await flushPromises();
+    await fillRequired(wrapper);
+    expect(wrapper.text()).toContain('目标服务暂不可用');
+    expect(mocks.createVisual).not.toHaveBeenCalled();
+    await wrapper.get('a[href="#"]').trigger('click');
+    await flushPromises();
+    expect(mocks.targets).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).not.toContain('目标服务暂不可用');
+    await wrapper.findAll('button')[0]!.trigger('click');
+    expect(mocks.createVisual).toHaveBeenCalledWith(expect.objectContaining({ name: '客户订单', target: { type: 'plugin', pluginCode: 'demo' } }));
+    wrapper.unmount();
   });
 
   it('query 预选插件，使用默认连接与插件表前缀且只发送受控目标', async () => {

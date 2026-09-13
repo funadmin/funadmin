@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(resolve(process.cwd(), '../app/common/service/MigrationService.php'), 'utf8');
-const runDirectory = source.match(/public function runDirectory[\s\S]*?(?=\n    \/\*\*)/)?.[0] ?? '';
+const runDirectory = source.match(/private function runFiles[\s\S]*?(?=\n    \/\*\*)/)?.[0] ?? '';
 const preflight = source.match(/private function preflightSchemaIntegrity006[\s\S]*?(?=\n    (?:private|public) function )/)?.[0] ?? '';
 
 describe('MigrationService 不可变 006 legacy preflight 契约', () => {

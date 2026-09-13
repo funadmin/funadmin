@@ -31,6 +31,7 @@ export interface BusinessModule {
   origin: BusinessModuleOrigin;
   lifecycle_status: 'draft' | 'published' | 'dynamic_published' | 'disabled' | string;
   generation_status?: string;
+  recovery_status?: string;
   metadata?: { target?: BusinessTarget; [key: string]: unknown };
   table_name?: string;
   connection_name?: string;

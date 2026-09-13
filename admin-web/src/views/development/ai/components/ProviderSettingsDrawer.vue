@@ -222,4 +222,10 @@ function test() {
   .profile-feedback:empty { display: none; }
   .profile-footer .profile-actions { margin-left: auto; }
 }
+/* 矮窗口取消固定栏夹层，让全部字段和保存操作可通过正文滚动访问。 */
+@media (max-height: 600px) {
+  :global(.provider-drawer .el-drawer__body) { display: block; overflow-y: auto; }
+  .provider-form { height: auto; }
+  .profile-content { flex: none; overflow-y: visible; }
+}
 </style>

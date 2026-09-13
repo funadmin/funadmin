@@ -33,6 +33,8 @@
 !/tests/business_generation_idempotency_test.php
 !/tests/business_plugin_boundary_test.php
 !/tests/business_plugin_managed_test.php
+!/tests/business_plugin_managed_integration_test.php
+!/tests/business_plugin_lifecycle_integration_test.php
 !/tests/business_external_table_test.php
 !/tests/generation_resource_transaction_test.php
 !/tests/business_schema_database_cas_test.php

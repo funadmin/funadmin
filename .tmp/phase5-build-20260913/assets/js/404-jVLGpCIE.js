@@ -1,0 +1,1 @@
+import{Yt as e,gn as t,nn as n}from"./element-MZGbz2-N.js";import{t as r}from"./ErrorPage-vxEaFi2K.js";var i=n({__name:`404`,setup(n){return(n,i)=>(t(),e(r,{code:`404`}))}});export{i as default};

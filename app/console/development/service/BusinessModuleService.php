@@ -60,7 +60,22 @@ final class BusinessModuleService
         if ($status !== '') $query->where('lifecycle_status', $status);
         if ($origin !== '') $query->where('origin', $origin);
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return ['list' => $result->items(), 'total' => $result->total(), 'page' => $page, 'pageSize' => $pageSize];
+        $list = array_map(static fn ($module): array => $module->toArray(), $result->items());
+        if ($list !== []) {
+            // 成功指针不代表最新尝试；按本页模块批量投影生成状态，不暴露制品内容。
+            $latestIds = CrudGeneration::whereIn('business_module_id', array_column($list, 'id'))
+                ->group('business_module_id')->column('MAX(id)');
+            $states = CrudGeneration::whereIn('id', $latestIds)
+                ->field('business_module_id,status,recovery_status')->select()->toArray();
+            $states = array_column($states, null, 'business_module_id');
+            foreach ($list as &$module) {
+                $state = $states[$module['id']] ?? null;
+                $module['recovery_status'] = (string) ($state['recovery_status'] ?? 'none');
+                if ($state !== null) $module['generation_status'] = (string) $state['status'];
+            }
+            unset($module);
+        }
+        return ['list' => $list, 'total' => $result->total(), 'page' => $page, 'pageSize' => $pageSize];
     }
 
     public function detail(int $id): array

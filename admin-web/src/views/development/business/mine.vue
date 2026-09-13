@@ -36,7 +36,7 @@
             <el-table-column prop="lifecycle_status" label="发布状态" width="130">
               <template #default="{ row }"><el-tag :type="lifecycleType(row.lifecycle_status)" :title="lifecycleDescription(row.lifecycle_status)">{{ row.metadata?.target?.type === 'plugin' && ['generated', 'completed'].includes(row.generation_status) ? '源码已生成，待安装／更新发布' : lifecycleLabel(row.lifecycle_status) }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="generation_status" label="生成状态" width="120"><template #default="{ row }"><span v-if="['recovering', 'recovery_required'].includes(row.generation_status)">{{ row.generation_status === 'recovering' ? '恢复中' : '需要恢复' }}</span><GenerationStatusTag v-else :status="row.generation_status" /></template></el-table-column>
+            <el-table-column prop="generation_status" label="生成状态" width="120"><template #default="{ row }"><span v-if="['recovering', 'recovery_required'].includes(row.recovery_status)">{{ row.recovery_status === 'recovering' ? '恢复中' : '需要恢复' }}</span><GenerationStatusTag v-else :status="row.generation_status" /></template></el-table-column>
             <el-table-column prop="updated_at" label="更新时间" width="170" />
             <el-table-column label="操作" min-width="250" fixed="right">
               <template #default="{ row }">

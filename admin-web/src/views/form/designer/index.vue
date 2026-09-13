@@ -367,7 +367,9 @@ import GenerationPlanView from '../../development/business/components/Generation
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const moduleId = computed(() => Number(route.query.moduleId ?? 0));
+// 路由容器以 fullPath 缓存实例；身份必须固定，避免后台实例跟随全局路由串写。
+const instanceModuleId = Number(route.query.moduleId ?? 0);
+const moduleId = computed(() => instanceModuleId);
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const store = useDesigner();
 const businessModule = ref<BusinessModule | null>(null);
@@ -792,7 +794,7 @@ async function saveDefinition(automatic: boolean) {
 
 const onDynamicPublish = async () => {
   if (!businessModule.value || isPluginTarget.value || saveBlocked.value || !validateDefinitionBasics() || store.dirty.value) return;
-  const moduleId = Number(route.query.moduleId ?? 0);
+  const moduleId = instanceModuleId;
   const schemaHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId || !schemaHash) throw new Error('业务模块或 Schema hash 缺失');
   const payload = { schema_document: store.schemaDocument.value, schemaHash, expected_schema_hash: schemaHash, publish_config: publishConfig.value };
@@ -801,7 +803,7 @@ const onDynamicPublish = async () => {
   ElMessage.success('动态发布成功');
 };
 const openFormalGeneration = async () => {
-  const moduleId = Number(route.query.moduleId ?? 0);
+  const moduleId = instanceModuleId;
   if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning('请先保存业务 Schema'); return; }
   invalidateGenerationPreview();
   const revision = previewRevision;
@@ -921,7 +923,7 @@ const onPublish = async () => {
   executingGenerationId.value = generationId || null;
   try {
     if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
-    const moduleId = Number(route.query.moduleId ?? 0);
+    const moduleId = instanceModuleId;
     const result = await businessDevelopmentApi.formalGeneration(
       moduleId,
       generationId,

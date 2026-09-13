@@ -77,7 +77,8 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).toContain('businessDevelopmentApi.previewPublish');
     expect(designer).toContain('businessDevelopmentApi.previewFormalGeneration');
     expect(designer).toContain('businessDevelopmentApi.formalGeneration');
-    expect(designer).toContain(':disabled="conflictFiles.length > 0"');
+    expect(designer).toContain(':disabled="!canConfirmGeneration"');
+        expect(designer).toContain('!conflictFiles.value.length');
     expect(designer).toContain('confirmToken');
     expect(designer).not.toContain('allowOverwrite');
     expect(designer).not.toContain('formFullPublishApi.');
@@ -98,7 +99,7 @@ describe('统一表单发布引擎契约', () => {
 
   it('正式生成按钮维持 generate 与 apply-resources 权限边界', () => {
     const designer = read('admin-web/src/views/form/designer/index.vue');
-    expect(designer).toContain('v-perm="\'development:business:generate\'" @click="openFormalGeneration"');
+    expect(designer).toMatch(/v-perm="'development:business:generate'"[^>]*@click="openFormalGeneration"/);
     expect(designer).toContain('v-perm="\'development:business:apply-resources\'"');
   });
 
