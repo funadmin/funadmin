@@ -1,0 +1,1 @@
+import{Zt as e,in as t,vn as n}from"./element-DwvkgeLi.js";import{t as r}from"./ErrorPage-BgS22bJs.js";var i=t({__name:`403`,setup(t){return(t,i)=>(n(),e(r,{code:`403`}))}});export{i as default};

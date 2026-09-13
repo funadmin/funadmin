@@ -306,10 +306,15 @@ final class BusinessDevelopmentService
         $selection = $input['target'] ?? [];
         if (!is_array($selection)) throw new InvalidArgumentException('target 必须为对象');
         $target = BusinessModuleService::normalizeTarget($selection, $source);
-        $table = trim((string) ($allowed['table'] ?? ('fun_' . ($target['type'] === 'plugin' ? $target['pluginCode'] . '_' : '') . $code)));
-        self::assertIdentifier($table, 'table');
         $connection = trim((string) ($allowed['connection'] ?? 'mysql'));
         self::assertIdentifier($connection, 'connection');
+        $table = trim((string) ($allowed['table'] ?? ''));
+        if ($source === 'created') {
+            $table = $table !== '' ? $table : ($target['type'] === 'plugin' ? $target['pluginCode'] . '_' : '') . $code;
+            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            if ($prefix !== '' && !str_starts_with($table, $prefix)) $table = $prefix . $table;
+        }
+        self::assertIdentifier($table, 'table');
         $status = $allowed['status'] ?? 1;
         if (!in_array($status, [0, 1, '0', '1'], true)) throw new InvalidArgumentException('status 不合法');
         $listConfig = $allowed['listConfig'] ?? [];

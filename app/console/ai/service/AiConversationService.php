@@ -276,7 +276,7 @@ final class AiConversationService
         $id = $input['profile_id'] ?? null;
         // null 继承档案；省略由会话合并保留。禁止以 default 混淆档案的不发送参数语义。
         $effort = $input['reasoning_effort'] ?? null;
-        if (!in_array($effort, [null, 'low', 'medium', 'high'], true)) throw new InvalidArgumentException('reasoning_effort 必须为 null、low、medium 或 high', 400);
+        if (!in_array($effort, [null, ...\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS], true)) throw new InvalidArgumentException('reasoning_effort 必须为 null、low、medium、high、xhigh、max 或 ultra', 400);
         if ($id === null) {
             if ($effort !== null) throw new InvalidArgumentException('会话推理覆盖需要选择能力已声明的档案', 400);
             return $this->modelSelection($input);

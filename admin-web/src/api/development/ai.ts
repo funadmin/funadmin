@@ -16,7 +16,8 @@ export interface AiConversationGroup {
   updated_at?: string;
 }
 
-export type AiReasoningEffort = 'low' | 'medium' | 'high';
+export const AI_REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'] as const;
+export type AiReasoningEffort = typeof AI_REASONING_EFFORTS[number];
 export interface AiModelDeclaration {
   image_input?: boolean;
   image_tokens?: number;
@@ -72,7 +73,7 @@ export interface AiProfile extends Omit<Required<AiProfileInput>, 'api_key' | 'f
   is_default: boolean;
   has_api_key: boolean;
   fallback_enabled: boolean;
-  reasoning_effort: 'low' | 'medium' | 'high' | null;
+  reasoning_effort: AiReasoningEffort | null;
   capabilities?: AiModelCapability;
   runtime_capabilities?: AiRuntimeCapabilities;
   created_at?: string;
@@ -89,7 +90,7 @@ export function profileCapabilityError(profile: AiProfileInput): string {
   const validModel = (model: string) => typeof model === 'string' && model.trim() === model && !!model && new TextEncoder().encode(model).length <= 200 && !/[\x00-\x1f\x7f]/.test(model);
   const validLimit = (n: number | null) => n === null || (Number.isInteger(n) && n >= 1 && n <= 10000000);
   const declarations = profile.model_capabilities || [];
-  if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !['low', 'medium', 'high'].includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return '模型能力声明无效、重复或预算超出范围';
+  if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !AI_REASONING_EFFORTS.includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return '模型能力声明无效、重复或预算超出范围';
   if (declarations.some(c => (c.image_input !== undefined && typeof c.image_input !== 'boolean') || (c.image_tokens !== undefined && c.image_tokens !== 32768) || (c.max_images !== undefined && (!Number.isInteger(c.max_images) || c.max_images < 1 || c.max_images > 4)) || (c.image_mime_types !== undefined && (!Array.isArray(c.image_mime_types) || !c.image_mime_types.length || new Set(c.image_mime_types).size !== c.image_mime_types.length || c.image_mime_types.some(m => !['image/png', 'image/jpeg', 'image/webp'].includes(m)))))) return '图片能力声明无效，图片预算固定为 32768';
   const fallback = profile.fallback_models || [];
   if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选';

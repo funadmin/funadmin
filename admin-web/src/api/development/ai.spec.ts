@@ -13,6 +13,20 @@ function respond(data: unknown) {
 const conversation = { id: '2', admin_id: '1', group_id: null, title: '新 AI 会话', status: 'draft', model: '', context: [], is_archived: false, is_unread: false };
 
 describe('AI 真实 HTTP 响应边界', () => {
+  it('六档必须逐模型显式声明，主备取交集且拒绝非法声明', () => {
+    const efforts = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+    const profile = { name: 'p', provider: 'custom', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_enabled: true, fallback_models: ['b'], max_output_tokens: 100, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: efforts, output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 })) };
+    for (const effort of efforts) {
+      expect(profileCapabilityError({ ...profile, reasoning_effort: effort } as never)).toBe('');
+      expect(profileCapabilityError({ ...profile, model: 'unknown-max', reasoning_effort: effort } as never)).not.toBe('');
+      expect(profileCapabilityError({ ...profile, reasoning_effort: effort, model_capabilities: [profile.model_capabilities[0], { ...profile.model_capabilities[1], reasoning_efforts: [] }] } as never)).not.toBe('');
+    }
+    for (const invalid of [['MAX'], ['ultra', 'ultra'], ['default'], [null], ['guess']]) {
+      expect(profileCapabilityError({ ...profile, model_capabilities: [{ ...profile.model_capabilities[0], reasoning_efforts: invalid }] } as never)).not.toBe('');
+    }
+    expect(profileCapabilityError({ ...profile, fallback_enabled: false, model: 'unknown', model_capabilities: [], reasoning_effort: null } as never)).toBe('');
+  });
+
   it('未知图片能力默认关闭，图片预算固定且 MIME 必须在白名单内', () => {
     expect(profileModelCapability({}, 'unknown')).toMatchObject({ image_input: false, image_tokens: 32768, max_images: 4, image_mime_types: ['image/png', 'image/jpeg', 'image/webp'] });
     const base = { name: 'p', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com', model: 'm', model_capabilities: [{ model: 'm', reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, image_input: true, image_tokens: 1, max_images: 4, image_mime_types: ['image/svg+xml'] }] };
@@ -59,8 +73,9 @@ describe('AI 真实 HTTP 响应边界', () => {
     expect(created.data.has_api_key).toBe(true);
     expect(created.data).not.toHaveProperty('api_key');
     const id = created.data.id;
-    const declaration = { model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_completion_tokens', context_window: 1000, max_output_tokens: 200 };
+    const declaration = { model: 'm', reasoning_efforts: ['high', 'xhigh', 'max', 'ultra'], output_token_parameter: 'max_completion_tokens', context_window: 1000, max_output_tokens: 200 };
     const configured = await request('PATCH', `/${id}`, { model_capabilities: [declaration], reasoning_effort: 'high' });
+    expect(configured.code).toBe(200);
     expect(configured.data.capabilities).toMatchObject({ ...declaration, source: 'administrator', unknown_policy: 'reject' });
     expect(configured.data.runtime_capabilities).toMatchObject({ fallback: true, stream_fallback: false, max_fallback_models: 3 });
     const catalog = await request('POST', `/${id}/models`);
@@ -76,6 +91,11 @@ describe('AI 真实 HTTP 响应边界', () => {
     expect((await update({ reasoning_effort: 'low' })).code).not.toBe(200);
     expect((await update({ reasoning_effort: 'high' })).data.reasoning_effort).toBe('high');
     expect((await update({ title: '保留' })).data.reasoning_effort).toBe('high');
+    for (const effort of ['xhigh', 'max', 'ultra']) {
+      expect((await update({ reasoning_effort: effort })).data.reasoning_effort).toBe(effort);
+      expect((await createConversation.handler({ method: 'POST', url: '/development/ai/conversations', body: { profile_id: id, reasoning_effort: effort }, params: {}, pathParams: {}, headers: {} })).data.reasoning_effort).toBe(effort);
+    }
+    expect(configured.data.runtime_capabilities.reasoning_efforts).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'ultra']);
     expect((await update({ reasoning_effort: null })).data.reasoning_effort).toBeNull();
     expect((await request('PATCH', `/${id}`, { name: '改名' })).data.has_api_key).toBe(true);
     const copy = await request('POST', `/${id}/copy`, { name: '副本' });

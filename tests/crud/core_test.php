@@ -127,8 +127,8 @@ try {
     crudExpect(preg_match('/`(?:created|updated|deleted)_at`[^\'\n]*DEFAULT\s+0/', $generatedMigration) !== 1, '生成时间列不得使用 DEFAULT 0');
     crudExpect(str_contains($generatedPermissionMigration, 'component=generated/audit-log/index'), '生成菜单必须指向独立 generated 源码');
     crudExpect(str_contains($generatedPermissionMigration, 'permission=system:audit-log:list'), '生成菜单必须声明真实页面访问权限');
-    crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: Record<string, unknown>[])'), 'audit-log index.vue selection 回调必须使用结构化通用行类型');
-    crudExpect(str_contains($generatedView, 'onSelectionChange(rows as unknown as AuditLogModel[])'), 'selection 回调必须在 useCrud 边界安全转换为生成模型类型');
+    crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: AuditLogModel[])'), 'selection 回调必须接受表格实际模型数组，不能要求模型具有字符串索引签名');
+    crudExpect(str_contains($generatedView, '=> onSelectionChange(rows);'), 'selection 回调必须直接传递模型数组，不需要双重类型断言');
     crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');
 
     $definitionSchema = json_decode(
@@ -833,7 +833,7 @@ TS
     file_put_contents($temporaryWeb . '/generated-support.d.ts', <<<'TS'
 declare module '@/composables/useCrud' {
   export function useCrud<T extends Record<string, any>, Q extends Record<string, any>, ID>(options: any): {
-    loading: any; list: any; total: any; query: Q; selection: any; dialogVisible: any; drawerVisible: any;
+    loading: any; list: import('vue').Ref<T[]>; total: any; query: Q; selection: any; dialogVisible: any; drawerVisible: any;
     current: any; loadData: () => Promise<void>; onSearch: () => void; onReset: () => void; onAdd: () => void;
     onEdit: (row: T) => void; onOpenDrawer: (row: T) => void; onBatchDelete: () => Promise<void>;
     onSelectionChange: (rows: T[]) => void;

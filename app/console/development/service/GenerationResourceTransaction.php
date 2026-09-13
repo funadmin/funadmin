@@ -87,6 +87,7 @@ final class GenerationResourceTransaction
             $groups[$sourceName]['menus'][] = [
                 'name' => (string) ($resource['name'] ?? $sourceName),
                 'href' => (string) ($resource['href'] ?? $identity),
+                'query' => (string) ($resource['query'] ?? ''),
                 'permission' => (string) ($resource['permission'] ?? ''),
                 'icon' => (string) ($resource['icon'] ?? 'i-ep-menu'),
                 'sort' => (int) ($resource['sortOrder'] ?? $resource['sort'] ?? 999),

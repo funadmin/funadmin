@@ -19,6 +19,8 @@
 /.cursor
 /.qoder
 /tests/*
+!/tests/browser_isolated_fixture.php
+!/tests/browser_isolated_acceptance.mjs
 !/tests/ai_*test.php
 !/tests/form_data_relation_mysql_test.php
 !/tests/form_data_test.php
@@ -32,6 +34,9 @@
 !/tests/business_generation_canonical_state_test.php
 !/tests/business_generation_idempotency_test.php
 !/tests/business_plugin_boundary_test.php
+!/tests/plugin_empty_migration_test.php
+!/tests/business_domain_layout_test.php
+!/tests/business_legacy_form_origin_retirement_test.php
 !/tests/business_plugin_managed_test.php
 !/tests/business_plugin_managed_integration_test.php
 !/tests/business_plugin_lifecycle_integration_test.php

@@ -173,6 +173,28 @@ final class GenerationTransactionService
         }, (array) ($bundle['target'] ?? []));
     }
 
+    /** 采纳与生成/恢复共用锁；恢复阻断仅用于采纳，不改变恢复入口的可用性。 */
+    public function withBaselineAdoptionLock(array $target, int $moduleId, string $path, string $hash, callable $operation): mixed
+    {
+        return $this->locked(function () use ($moduleId, $path, $hash, $operation): mixed {
+            $directory = $this->privateRoot() . '/wal';
+            foreach (glob($directory . '/*.json') ?: [] as $file) {
+                try {
+                    $journal = $this->inspect(pathinfo($file, PATHINFO_FILENAME));
+                } catch (Throwable $exception) {
+                    throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED', [], previous: $exception);
+                }
+                if (in_array($journal['state'], ['completed', 'rolled_back'], true)) continue;
+                if ((int) ($journal['module_id'] ?? 0) === $moduleId
+                    || in_array($path, array_column((array) ($journal['files'] ?? []), 'path'), true)
+                    || in_array($hash, array_column((array) ($journal['prepared_blobs'] ?? []), 'hash'), true)) {
+                    throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED');
+                }
+            }
+            return $operation();
+        }, $target);
+    }
+
     public function executionOutcome(): string
     {
         return $this->executionOutcome;

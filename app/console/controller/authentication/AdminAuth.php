@@ -139,6 +139,17 @@ class AdminAuth extends BaseController
     private function menuData(AdminMenu $menu): array
     {
         parse_str((string) $menu->query, $meta);
+        // 旧受管生成曾漏写 query；仅恢复身份完全匹配且元数据为空的生成菜单，不写库、不覆盖二开。
+        $source = (string) $menu->source_name;
+        if ((string) $menu->source_type === 'generated' && (string) $menu->query === ''
+            && preg_match('/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/', $source) === 1
+            && (string) $menu->href === '/generated/' . $source) {
+            $meta = [
+                'component' => 'generated/' . $source . '/index',
+                'name' => str_replace(' ', '', ucwords(str_replace('-', ' ', $source))),
+                'type' => 'C', 'formKey' => str_replace('-', '_', $source),
+            ];
+        }
         $permission = $menu->permission_id > 0 ? Permission::find((int) $menu->permission_id) : null;
         return [
             'id' => (int) $menu->id,

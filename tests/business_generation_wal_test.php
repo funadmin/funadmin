@@ -294,13 +294,21 @@ try {
     ];
     $latestConflict = 200;
     $adoptionState = new MemoryGenerationStateRepository();
+    $adoptionModule = ['id' => 7, 'metadata' => ['target' => ['type' => 'core']]];
+    $moduleReads = 0;
+    $driftTarget = false;
     $adoptionService = new ManagedGenerationService(
         $managedRoot,
         baselines: new GeneratedFileBaselineRepository($managedRoot, $adoptionState),
         stateRepository: $adoptionState,
         tokens: new ConfirmationToken($managedRoot, 'adoption-secret'),
-        moduleReader: static fn (int $id): array => ['id' => $id, 'metadata' => ['target' => ['type' => 'core']]],
-        generationReader: static fn (int $id): ?array => $conflictRecords[$id] ?? null,
+        moduleReader: static function (int $id) use (&$adoptionModule, &$moduleReads, &$driftTarget): array {
+            if ($driftTarget && ++$moduleReads > 1) {
+                return ['id' => $id, 'metadata' => ['target' => ['type' => 'plugin', 'pluginCode' => 'other', 'scope' => 'console']]];
+            }
+            return $adoptionModule;
+        },
+        generationReader: static function (int $id) use (&$conflictRecords): ?array { return $conflictRecords[$id] ?? null; },
         latestConflictReader: static function (int $moduleId) use (&$latestConflict): ?int {
             return $latestConflict;
         }
@@ -311,7 +319,32 @@ try {
     $latestConflict = 200;
     generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, str_repeat('b', 64), $resolvedHash, 'tester'), '当前 Local hash');
     generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, str_repeat('c', 64), 'tester'), 'Remote hash 不匹配');
+    // 核心采纳必须与真实生成写锁互斥，拒绝时不能产生 blob 或 DB 基线。
+    if (!is_dir($managedRoot . '/runtime/cache')) mkdir($managedRoot . '/runtime/cache', 0700, true);
+    $lock = fopen($managedRoot . '/runtime/cache/business-development-write.lock', 'c+');
+    generationExpect($lock !== false && flock($lock, LOCK_EX | LOCK_NB), '测试必须取得生成锁');
+    try {
+        generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), '排他锁');
+        generationExpect($adoptionState->baselines === [], '锁竞争不得提交基线');
+    } finally { flock($lock, LOCK_UN); fclose($lock); }
+    $driftTarget = true;
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), 'BUSINESS_TARGET_IDENTITY_CONFLICT');
+    $driftTarget = false;
+    $conflictRecords[200]['recovery_status'] = 'recovery_required';
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), 'GENERATION_RECOVERY_REQUIRED');
+    $conflictRecords[200]['recovery_status'] = 'none';
+    $walRoot = $managedRoot . '/runtime/private/business-development/wal';
+    if (!is_dir($walRoot)) mkdir($walRoot, 0700, true);
+    $pendingId = str_repeat('e', 32);
+    $pending = ['transaction_id' => $pendingId, 'module_id' => 7, 'generation_id' => 199,
+        'state' => 'prepared', 'history' => ['prepared'], 'plan_digest' => str_repeat('a', 64), 'files' => [], 'updated_at' => gmdate(DATE_ATOM)];
+    file_put_contents($walRoot . '/' . $pendingId . '.json', json_encode($pending));
+    generationReject(static fn () => $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester'), 'GENERATION_RECOVERY_REQUIRED');
+    $recovery = new GenerationTransactionService($managedRoot, new ConfirmationToken($managedRoot, 'adoption-secret'),
+        new GeneratedFileBaselineRepository($managedRoot, $adoptionState), $adoptionState, new MemoryGenerationResources(), static fn () => []);
+    generationExpect($recovery->recover($pendingId)['state'] === 'rolled_back', '采纳阻断不得影响 WAL 自动恢复');
     $adopted = $adoptionService->adoptResolvedBaseline(7, 200, $resolvedPath, $resolvedHash, $resolvedHash, 'tester');
+    generationExpect((new GeneratedFileBaselineRepository($managedRoot, $adoptionState))->load($adopted['base_storage_path'], $adopted['base_hash']) === $resolvedContent, '单次读取的内容、hash 和 blob 必须一致');
     generationExpect(($adopted['base_hash'] ?? '') === $resolvedHash && ($adopted['target_hash'] ?? '') === $resolvedHash, '采纳成功必须把计划 Remote 保存为 baseline');
 
     unlink($managedRoot . '/' . $modelPath);

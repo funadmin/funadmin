@@ -62,7 +62,7 @@
               <el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" :value-on-clear="null" controls-position="right" placeholder="不指定" />
             </el-form-item>
           </div>
-          <el-form-item label="思考模式"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" label="默认（不发送 reasoning_effort）" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
+          <el-form-item :label="t('aiDevelopment.reasoning.profile')"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" :label="t('aiDevelopment.reasoning.defaultOption')" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
           <p v-if="form.reasoning_effort && !legalEfforts.includes(form.reasoning_effort)" role="alert">已保存档位 {{ form.reasoning_effort }} 不兼容当前选择，请明确选择默认或合法档位。</p>
           <details class="profile-help"><summary>当前模型预算说明</summary><p>当前模型：{{ currentCapability.source === 'administrator' ? '管理员声明' : '未知能力' }}；上下文 {{ currentCapability.context_window ?? '未知' }}；输出 {{ currentCapability.max_output_tokens ?? '未知' }}；输出参数 {{ currentCapability.output_token_parameter }}</p></details>
         </section>
@@ -73,12 +73,12 @@
           <details class="profile-help"><summary>运行累计限制</summary><p>运行累计上限：{{ selectedRuntime?.max_requests ?? 12 }} 次请求、{{ selectedRuntime?.max_reserved_seconds ?? 300 }} 秒预留超时；达到上限由后端终止，不保证尝试完所有备用。</p></details>
           <h3>模型能力（管理员声明）</h3>
           <details class="profile-help"><summary>能力来源说明</summary>
-            <p>以下能力由管理员明确声明，不代表官方验证。目录只提供模型标识，不自动推断或采纳能力。</p>
+            <p>{{ t('aiDevelopment.reasoning.capabilityHint') }}</p>
             <p v-for="item in models" :key="item.id">{{ item.id }} · source: {{ item.capabilities?.source || 'unknown' }}（{{ item.capabilities?.source === 'administrator' ? '已保存的管理员声明' : '未知能力' }}）</p>
           </details>
           <div v-for="(cap, index) in form.model_capabilities" :key="index" class="capability-row">
             <el-form-item label="模型标识"><el-input v-model="cap.model" required maxlength="200" /></el-form-item>
-            <el-form-item label="思考档位"><el-checkbox-group v-model="cap.reasoning_efforts"><el-checkbox v-for="effort in efforts" :key="effort" :value="effort">{{ effort }}</el-checkbox></el-checkbox-group></el-form-item>
+            <el-form-item :label="t('aiDevelopment.reasoning.levels')"><el-checkbox-group v-model="cap.reasoning_efforts"><el-checkbox v-for="effort in efforts" :key="effort" :value="effort">{{ effort }}</el-checkbox></el-checkbox-group></el-form-item>
             <el-form-item label="输出参数"><el-select v-model="cap.output_token_parameter" :data-testid="`cap-output-${index}`"><el-option value="max_tokens" label="max_tokens" /><el-option value="max_completion_tokens" label="max_completion_tokens" /></el-select></el-form-item>
             <el-form-item label="模型上下文上限"><el-input-number v-model="cap.context_window" :min="1" :max="10000000" :precision="0" :value-on-clear="null" placeholder="未知" controls-position="right" /></el-form-item>
             <el-form-item label="模型输出上限"><el-input-number v-model="cap.max_output_tokens" :min="1" :max="10000000" :precision="0" :value-on-clear="null" placeholder="未知" controls-position="right" /></el-form-item>
@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { profileCapabilityError, profileModelCapability, type AiCatalogModel, type AiReasoningEffort, type AiProfile, type AiProfileInput, type AiProviderSettings } from '@/api/development/ai';
+import { AI_REASONING_EFFORTS, profileCapabilityError, profileModelCapability, type AiCatalogModel, type AiReasoningEffort, type AiProfile, type AiProfileInput, type AiProviderSettings } from '@/api/development/ai';
 const props = withDefaults(defineProps<{ modelValue: boolean; settings?: AiProviderSettings; profiles?: AiProfile[]; busy?: boolean; models?: AiCatalogModel[]; error?: string; notice?: string; savedProfile?: AiProfile | null }>(), { profiles: () => [], models: () => [] });
 const { t } = useI18n();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [payload: AiProfileInput, id: number | null]; test: [payload: Record<string, unknown>]; copy: [id: number]; remove: [id: number]; default: [id: number]; models: [id: number]; select: [] }>();
@@ -126,7 +126,7 @@ const numericFields = [
   { key: 'max_retries', min: 0, max: 3, nullable: false }
 ] as const;
 const modelOptions = computed(() => [...new Set([...props.models.map((item) => item.id), ...(form.favorite_models || []), ...(form.model_capabilities || []).map(c => c.model), ...(form.model ? [form.model] : [])])].filter(Boolean));
-const efforts: AiReasoningEffort[] = ['low', 'medium', 'high'];
+const efforts = AI_REASONING_EFFORTS;
 const currentCapability = computed(() => profileModelCapability(form, form.model));
 const selectedRuntime = computed(() => props.profiles.find(p => p.id === selectedId.value)?.runtime_capabilities);
 const legalEfforts = computed(() => efforts.filter(e => [form.model, ...(form.fallback_enabled ? form.fallback_models || [] : [])].every(m => profileModelCapability(form, m).reasoning_efforts.includes(e))));

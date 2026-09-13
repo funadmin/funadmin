@@ -120,5 +120,42 @@ namespace {
     catalogExpect(!str_contains(json_encode($public), 'rotated-key'), '能力响应不包含凭据');
     catalogExpect($public['capabilities']['image_input'] === false && $public['capabilities']['image_tokens'] === 32768, '真实模型能力响应默认拒绝图片');
     catalogExpect(($public['runtime_capabilities']['max_http_body_bytes'] ?? null) === 20971520, '真实响应暴露 HTTP 体积上限');
+    // 根域配置不改写；新快照可运行，历史根域快照不得被重新解释。
+    $repository->rows[2]->configuration = $original;
+    foreach (['https://api.example.com', 'https://api.example.com/'] as $rootUrl) {
+        $repository->rows[2]->configuration['base_url'] = $rootUrl;
+        $fresh = $service->snapshot(7, 2);
+        $legacy = $fresh;
+        unset($legacy['url_version']);
+        foreach ([$rootUrl, 'https://api.example.com/v1'] as $currentUrl) {
+            $repository->rows[2]->configuration['base_url'] = $currentUrl;
+            $reads = $repository->rows[2]->secretReads;
+            try { $service->resolveSnapshot(7, $legacy); throw new \LogicException('历史根域快照必须拒绝'); }
+            catch (\RuntimeException $e) { catalogExpect($e->getCode() === 409, '历史根域快照需新建任务'); }
+            catalogExpect($repository->rows[2]->secretReads === $reads, '历史根域快照不得读取当前密钥');
+        }
+        $repository->rows[2]->configuration['base_url'] = $rootUrl;
+        catalogExpect(($fresh['url_version'] ?? null) === 1 && $fresh['configuration']['base_url'] === $rootUrl, '新快照标记 URL 规则且保留配置原值');
+        $resolved = $service->resolveSnapshot(7, $fresh);
+        $factory($resolved)->models();
+        catalogExpect((string) end($history)['request']->getUri() === 'https://api.example.com/v1/models', '根域新快照使用统一目录路径');
+        $service->models(7, 2);
+        catalogExpect((string) end($history)['request']->getUri() === 'https://api.example.com/v1/models', '已有根域档案目录兼容');
+        catalogExpect($repository->rows[2]->configuration['base_url'] === $rootUrl, '读取不改写已有配置');
+        $repository->rows[2]->configuration['base_url'] = 'https://api.example.com/v1';
+        $reads = $repository->rows[2]->secretReads;
+        try { $service->resolveSnapshot(7, $fresh); throw new \LogicException('新快照也不得放宽原始目标绑定'); }
+        catch (\RuntimeException $e) { catalogExpect($e->getCode() === 409, '新快照仍严格比较目标'); }
+        catalogExpect($repository->rows[2]->secretReads === $reads, '新快照目标改变不读取密钥');
+    }
+    foreach (['/v1', '/v1/', '/proxy/v1', '/compatible-mode/v1', '/proxy'] as $path) {
+        $repository->rows[2]->configuration['base_url'] = 'https://api.example.com' . $path;
+        $legacy = $service->snapshot(7, 2);
+        unset($legacy['url_version']);
+        $resolved = $service->resolveSnapshot(7, $legacy);
+        $factory($resolved)->models();
+        catalogExpect((string) end($history)['request']->getUri() === 'https://api.example.com' . rtrim($path, '/') . '/models', '历史非空路径保持原意');
+    }
+    $repository->rows[2]->configuration = $original;
     echo "AI saved profile catalog: PASS\n";
 }

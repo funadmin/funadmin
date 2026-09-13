@@ -37,13 +37,26 @@ final class DatabaseGenerationStateRepository
         return Db::transaction($operation);
     }
 
-    public function adoptResolvedBaseline(int $moduleId, int $generationId, array $record): array
+    public function adoptResolvedBaseline(int $moduleId, int $generationId, array $record, array $expected): array
     {
-        return Db::transaction(function () use ($moduleId, $generationId, $record): array {
+        return Db::transaction(function () use ($moduleId, $generationId, $record, $expected): array {
             $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
             $generation = CrudGeneration::where('id', $generationId)->where('business_module_id', $moduleId)->lock(true)->find();
             if (!$module || !$generation) throw new RuntimeException('业务模块或生成记录不存在');
             if ((string) $generation->status !== 'conflict') throw new RuntimeException('仅冲突生成记录可采纳 baseline');
+            $latest = CrudGeneration::where('business_module_id', $moduleId)->where('status', 'conflict')->order('id', 'desc')->lock(true)->find();
+            if (!$latest || (int) $latest->id !== $generationId) throw new BusinessOperationException('GENERATION_PLAN_CONFLICT');
+            $this->assertAdoptionSnapshot($module->toArray(), (array) ($expected['module'] ?? []), [
+                'id', 'form_id', 'code', 'table_name', 'connection_name', 'metadata', 'current_generation_id', 'last_success_generation_id',
+            ]);
+            $this->assertAdoptionSnapshot($generation->toArray(), (array) ($expected['generation'] ?? []), [
+                'id', 'business_module_id', 'form_id', 'status', 'definition_hash', 'manifest', 'recovery_status', 'transaction_id',
+            ]);
+            $pending = CrudGeneration::where('business_module_id', $moduleId)
+                ->where(function ($query): void {
+                    $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+                })->lock(true)->find();
+            if ($pending) throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED');
             $allowed = array_intersect_key($record, array_flip([
                 'relative_path', 'artifact_type', 'base_hash', 'base_storage_path', 'target_hash',
                 'template_version', 'definition_hash', 'content_kind',
@@ -59,6 +72,15 @@ final class DatabaseGenerationStateRepository
                 throw new RuntimeException('采纳 baseline 记录无效');
             }
             $baseline = GeneratedFileBaseline::withTrashed()->where('business_module_id', $moduleId)->where('relative_path', $path)->lock(true)->find();
+            $actualBaseline = $baseline && !$baseline->trashed() && $baseline->status === 'active' ? $baseline->toArray() : null;
+            $expectedBaseline = $expected['baseline'] ?? null;
+            if (($actualBaseline === null) !== ($expectedBaseline === null)) throw new BusinessOperationException('GENERATION_PLAN_CONFLICT');
+            if ($actualBaseline !== null) {
+                $this->assertAdoptionSnapshot($actualBaseline, $expectedBaseline, [
+                    'business_module_id', 'relative_path', 'artifact_type', 'base_hash', 'base_storage_path', 'target_hash',
+                    'template_version', 'definition_hash', 'generation_id', 'content_kind', 'status',
+                ]);
+            }
             if (!$baseline) $baseline = new GeneratedFileBaseline();
             if ($baseline->id && $baseline->trashed()) $baseline->restore();
             $baseline->save(array_replace($allowed, [
@@ -70,6 +92,17 @@ final class DatabaseGenerationStateRepository
             ]));
             return $baseline->toArray();
         });
+    }
+
+    /** 行锁内执行 compare-and-set，拒绝锁外或文件读取期间过期的 DB 快照。 */
+    private function assertAdoptionSnapshot(array $actual, array $expected, array $fields): void
+    {
+        foreach ($fields as $field) {
+            if (\app\common\crud\CrudDefinition::canonicalJson([$actual[$field] ?? null])
+                !== \app\common\crud\CrudDefinition::canonicalJson([$expected[$field] ?? null])) {
+                throw new BusinessOperationException('GENERATION_PLAN_CONFLICT');
+            }
+        }
     }
 
     public function isBaselineBlobReferenced(string $relativePath): bool

@@ -186,7 +186,7 @@ final class DevPluginService
         return ['path' => $real, 'filename' => $filename];
     }
 
-    public function options(): array
+    public function options(bool $includeWithoutScopes = false): array
     {
         $items = [];
         foreach (glob($this->pluginsDirectory() . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR) ?: [] as $directory) {
@@ -211,7 +211,7 @@ final class DevPluginService
             if ($application && $console) {
                 $scopes[] = 'both';
             }
-            if ($scopes === []) {
+            if ($scopes === [] && !$includeWithoutScopes) {
                 continue;
             }
             $items[] = [

@@ -84,7 +84,7 @@ final class ProductionTemplateContext
             $columns[] = '  `deleted_at` datetime NULL';
         }
         $lines = array_merge($columns, ["  PRIMARY KEY (`{$primary['name']}`)"], $indexes);
-        return "-- Generated forward migration; review before applying.\n"
+        return "-- funadmin-physical-table\n-- Generated forward migration; review before applying.\n"
             . "CREATE TABLE IF NOT EXISTS `{$data['table']}` (\n"
             . implode(",\n", $lines)
             . "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT=" . self::sqlLiteral($data['title']) . ";\n";
@@ -127,8 +127,8 @@ final class ProductionTemplateContext
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
             . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
-            . "    protected string \$name = '" . preg_replace('/^fun_/', '', $data['table']) . "';\n"
-            . (!empty($data['formSchema']['key']) ? '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n" : '')
+            . '    protected string $table = ' . var_export((string) $data['table'], true) . ";\n"
+            . '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n"
             . "    protected string \$pk = '{$primary['name']}';\n"
             . '    protected array $type = ' . self::phpArray($casts) . ";\n\n"
             . implode("\n\n", $methods) . "\n}\n";
@@ -435,12 +435,7 @@ final class ProductionTemplateContext
             ? "COALESCE((SELECT `id` FROM `fun_admin_menu` WHERE `source_type` IN ('admin_web','generated') AND `source_name` = " . self::sqlLiteral($menu['parentSourceName']) . " ORDER BY `id` LIMIT 1),0)"
             : (string) ($menu['parentId'] ?? 0);
         $href = '/' . ltrim((string) $data['routePath'], '/');
-        $listPermission = $permission['enabled'] ? self::listPermissionCode($data) : '';
-        $query = 'component=generated/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
-            . '&type=C&formKey=' . str_replace('-', '_', (string) $data['entity'])
-            . ($listPermission === '' ? '' : '&permission=' . $listPermission)
-            . '&hidden=' . ($menu['hidden'] ? '1' : '0') . '&keepAlive=' . ($menu['keepAlive'] ? '1' : '0')
-            . '&affix=' . ($menu['affix'] ? '1' : '0');
+        $query = self::menuQuery($data);
         $fields = [self::sqlLiteral($menu['name']), self::sqlLiteral($href), self::sqlLiteral($query), self::sqlLiteral($menu['target']), self::sqlLiteral($menu['icon'])];
         [$name, $path, $menuQuery, $target, $icon] = $fields;
         $sort = (int) $menu['sortOrder'];
@@ -449,6 +444,18 @@ final class ProductionTemplateContext
             . "SELECT {$parent},{$groupId},'console',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
             . "WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
             . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`={$groupId},`app_name`='console',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName};\n";
+    }
+
+    /** SQL 模板与受管资源事务共享菜单元数据，避免正式生成丢失组件身份。 */
+    public static function menuQuery(array $data): string
+    {
+        $menu = $data['menu'];
+        $listPermission = $data['permission']['enabled'] ? self::listPermissionCode($data) : '';
+        return 'component=generated/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
+            . '&type=C&formKey=' . str_replace('-', '_', (string) $data['entity'])
+            . ($listPermission === '' ? '' : '&permission=' . $listPermission)
+            . '&hidden=' . ($menu['hidden'] ? '1' : '0') . '&keepAlive=' . ($menu['keepAlive'] ? '1' : '0')
+            . '&affix=' . ($menu['affix'] ? '1' : '0');
     }
 
     private static function listPermissionCode(array $data): string
@@ -656,7 +663,7 @@ final class ProductionTemplateContext
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
             . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
-            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: Record<string, unknown>[]) => onSelectionChange(rows as unknown as {$type}[]);\n" : '')
+            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: {$type}[]) => onSelectionChange(rows);\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')

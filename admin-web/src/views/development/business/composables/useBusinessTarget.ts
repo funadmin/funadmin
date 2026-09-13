@@ -10,8 +10,15 @@ export function useBusinessTarget() {
   const defaultConnection = ref('mysql');
   const loading = ref(true);
   const error = ref('');
-  const available = computed(() => !loading.value && !error.value && candidates.value.some((item) => (item.pluginCode ?? '') === selected.value));
-  const notice = computed(() => error.value || (loading.value ? '正在加载业务目标' : !available.value ? '所选插件不可用或无权限，请重新选择目标。服务端未提供具体排除原因。' : ''));
+  const candidate = computed(() => candidates.value.find((item) => (item.pluginCode ?? '') === selected.value));
+  const available = computed(() => !loading.value && !error.value && Boolean(candidate.value) && candidate.value?.available !== false);
+  const notice = computed(() => error.value || (loading.value ? '正在加载业务目标' : !available.value
+    ? candidate.value?.reason?.message ? `所选插件不可用：${candidate.value.reason.message}` : '所选插件不可用或无权限，请重新选择目标。'
+    : ''));
+  function candidateLabel(item: BusinessTargetCandidates['list'][number]): string {
+    const name = item.type === 'plugin' ? `${item.name} (${item.pluginCode})` : item.name;
+    return item.available === false ? `${name} — ${item.reason?.message || '目标不可用'}` : name;
+  }
   const target = computed<BusinessTargetSelection>(() => selected.value ? { type: 'plugin', pluginCode: selected.value } : { type: 'core' });
   watch(() => route.query.plugin, (plugin) => { selected.value = typeof plugin === 'string' ? plugin : ''; });
   async function loadTargets() {
@@ -27,5 +34,5 @@ export function useBusinessTarget() {
     } finally { loading.value = false; }
   }
   onMounted(loadTargets);
-  return { selected, candidates, defaultConnection, loading, notice, available, target, loadTargets };
+  return { selected, candidates, candidateLabel, defaultConnection, loading, notice, available, target, loadTargets };
 }

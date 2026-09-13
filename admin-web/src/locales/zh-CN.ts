@@ -41,6 +41,11 @@ export default {
   aiDevelopment: {
     title: 'AI 开发助手',
     subtitle: '会话、工具审批与工作区变更',
+    reasoning: {
+      profile: '思考模式', conversation: '会话思考档位', levels: '思考档位',
+      default: '默认', defaultOption: '默认（不发送 reasoning_effort）', inherit: '继承档案', override: '会话覆盖', noProfile: '未选择档案',
+      capabilityHint: '能力由管理员逐模型声明，不代表官方验证，不从模型名称或目录推断。可声明 low、medium、high、xhigh、max、ultra；当前仅 openai-chat 按 reasoning_effort 原样透传，不转换档位，也不保证上游支持。'
+    },
     modelSelection: {
       current: '当前会话模型', unset: '未设置', id: '模型 ID', save: '保存模型',
       hint: '仅支持当前配置的供应商，请输入其支持的模型 ID。切换仅影响保存后创建的任务，当前任务保持原模型。',

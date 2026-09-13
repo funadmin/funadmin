@@ -40,7 +40,7 @@ final class OpenAiCompatibleGateway
         ?callable $resolver = null,
         ?callable $sleeper = null
     ) {
-        $this->baseUrl = rtrim(trim((string) ($config['base_url'] ?? '')), '/');
+        $this->baseUrl = self::normalizeBaseUrl((string) ($config['base_url'] ?? ''));
         $this->apiKey = (string) ($config['api_key'] ?? '');
         $this->model = (string) ($config['model'] ?? '');
         $this->connectTimeout = max(self::MIN_CONNECT_TIMEOUT, min(self::MAX_CONNECT_TIMEOUT, (int) ($config['connect_timeout'] ?? 5)));
@@ -55,6 +55,17 @@ final class OpenAiCompatibleGateway
         $this->candidate = (int) ($state['candidate'] ?? 0);
         if ($this->requestCount < 0 || $this->reservedSeconds < 0 || $this->candidate < 0 || $this->candidate > count($config['fallback_models'] ?? [])) throw new InvalidArgumentException('运行额度状态无效');
         if ($this->requestCount >= 12 || $this->reservedSeconds + $this->requestTimeout > 300) throw new AiProviderException('request_budget_exceeded', '累计请求额度耗尽');
+    }
+
+    /** 只为根域补默认版本；代理前缀保持原意，不猜测或剥离完整 endpoint。 */
+    public static function normalizeBaseUrl(string $url): string
+    {
+        $url = rtrim(trim($url), '/');
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if (preg_match('~/(?:chat/completions|models|responses|messages)$~', $path)) {
+            throw new InvalidArgumentException('AI Provider 请填写 Base URL，不支持完整 endpoint');
+        }
+        return $path === '' ? $url . '/v1' : $url;
     }
 
     /** 目录只证明端点返回了模型 ID，不推断窗口或推理能力。 */

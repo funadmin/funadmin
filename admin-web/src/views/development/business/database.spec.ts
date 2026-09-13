@@ -95,7 +95,7 @@ const BusinessPageState = defineComponent({
 function render(): VueWrapper {
   return mount(DatabasePage, {
     global: {
-      stubs: { ElSelect: true, ElOption: true, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTable, ElTableColumn, BusinessPageState }
+      stubs: { ElSelect: { template: '<div><slot /></div>' }, ElOption: { props: ['label', 'disabled', 'value'], template: '<option :value="value" :disabled="disabled">{{ label }}</option>' }, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton, ElAlert, ElTable, ElTableColumn, BusinessPageState }
     }
   });
 }
@@ -129,6 +129,53 @@ describe('数据库采纳页', () => {
     mocks.routeGuard = undefined;
     mocks.confirm.mockResolvedValue('confirm');
     mocks.push.mockResolvedValue(undefined);
+  });
+
+  it('目标失败后重试恢复保留全部表单与预选插件，并使用原检查基线采纳', async () => {
+    mocks.query = { plugin: 'demo' };
+    mocks.targets.mockRejectedValueOnce(new Error('目标服务暂不可用'));
+    const wrapper = render();
+    await flushPromises();
+    await fillRequired(wrapper);
+    await wrapper.get('textarea[name="remark"]').setValue('保留备注');
+    await inspectSuccessfully(wrapper);
+    expect(wrapper.get('[role="alert"]').text()).toContain('目标服务暂不可用');
+    expect(wrapper.get('[data-action="create"]').attributes('disabled')).toBeDefined();
+    expect(mocks.createFromDatabase).not.toHaveBeenCalled();
+    const retry = deferred<unknown>();
+    mocks.targets.mockReturnValueOnce(retry.promise);
+    await wrapper.get('a[href="#"]').trigger('click');
+    expect(wrapper.get('[data-action="create"]').attributes('disabled')).toBeDefined();
+    retry.resolve({ list: [{ type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console', available: true, reason: null }], defaultConnection: 'mysql' });
+    await flushPromises();
+    expect(mocks.targets).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).not.toContain('目标服务暂不可用');
+    for (const [name, value] of Object.entries({ connection: 'mysql', table: 'fun_orders', name: '订单', code: 'orders' })) {
+      expect((wrapper.get(`input[name="${name}"]`).element as HTMLInputElement).value).toBe(value);
+    }
+    expect((wrapper.get('textarea[name="remark"]').element as HTMLTextAreaElement).value).toBe('保留备注');
+    expect(wrapper.get('[data-action="create"]').attributes('disabled')).toBeUndefined();
+    mocks.createFromDatabase.mockResolvedValueOnce({ module: { id: 8, form_id: 9 } });
+    await wrapper.get('[data-action="create"]').trigger('click');
+    await flushPromises();
+    expect(mocks.createFromDatabase).toHaveBeenCalledWith({ connection: 'mysql', table: 'fun_orders', name: '订单', code: 'orders', remark: '保留备注', target: { type: 'plugin', pluginCode: 'demo' }, expectedInspectionHash: inspection.snapshotHash });
+    expect(mocks.inspectDatabase).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it('发布锁候选禁用并展示原因，已检查表也不得采纳', async () => {
+    mocks.query = { plugin: 'demo' };
+    const message = '插件正在发布或执行生命周期操作，请稍后重试';
+    mocks.targets.mockResolvedValueOnce({ list: [{ type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console', available: false, reason: { code: 'BUSINESS_TARGET_OPERATION_LOCKED', message } }], defaultConnection: 'mysql' });
+    const wrapper = render();
+    await fillRequired(wrapper);
+    await inspectSuccessfully(wrapper);
+    expect(wrapper.get('option[value="demo"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('option[value="demo"]').text()).toContain(message);
+    expect(wrapper.get('[role="alert"]').text()).toContain(message);
+    expect(wrapper.get('[data-action="create"]').attributes('disabled')).toBeDefined();
+    expect(mocks.createFromDatabase).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('插件采纳保留外部表边界，发送目标且成功导航不再确认离开', async () => {

@@ -40,6 +40,11 @@ export default {
   aiDevelopment: {
     title: 'AI Development Assistant',
     subtitle: 'Conversations, tool approvals, and workspace changes',
+    reasoning: {
+      profile: 'Reasoning mode', conversation: 'Conversation reasoning effort', levels: 'Reasoning efforts',
+      default: 'Default', defaultOption: 'Default (omit reasoning_effort)', inherit: 'Inherit profile', override: 'Conversation override', noProfile: 'No profile selected',
+      capabilityHint: 'Capabilities are declared per model by an administrator, not officially verified or inferred from names or catalogs. Allowed declarations: low, medium, high, xhigh, max, ultra. Only openai-chat currently passes reasoning_effort unchanged; no level conversion or upstream support is guaranteed.'
+    },
     modelSelection: {
       current: 'Current conversation model', unset: 'Not set', id: 'Model ID', save: 'Save model',
       hint: 'Only the currently configured provider is supported. Enter a model ID it supports. Changes affect only tasks created after saving; the current task keeps its original model.',

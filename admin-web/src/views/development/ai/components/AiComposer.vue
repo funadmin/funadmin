@@ -4,18 +4,24 @@
       <article v-for="item in draft.files" :key="item.key">
         <img v-if="item.preview" :src="item.preview" :alt="item.file.name" />
         <span>{{ item.file.name }}</span><small>{{ item.state }}</small>
-        <button v-if="item.state === 'failed'" type="button" :disabled="locked" @click="upload(item)">{{ t('aiComposer.retry') }}</button>
-        <button type="button" :disabled="locked || item.state === 'uploading'" @click="remove(item)">{{ t('aiComposer.remove') }}</button>
+        <el-button v-if="item.state === 'failed'" size="small" :disabled="locked" @click="upload(item)">{{ t('aiComposer.retry') }}</el-button>
+        <el-button size="small" :disabled="locked || item.state === 'uploading'" @click="remove(item)">{{ t('aiComposer.remove') }}</el-button>
       </article>
     </div>
-    <textarea v-model="draft.text" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" rows="4" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
+    <el-input v-model="draft.text" type="textarea" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" :rows="4" resize="vertical" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
     <div class="toolbar">
-      <details class="model-menu"><summary>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</summary><div class="popover"><slot name="models" /></div></details>
-      <details><summary>{{ t('aiComposer.approval') }}</summary><div class="popover"><slot name="approval" /></div></details>
+      <el-popover v-model:visible="modelsOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="approvalOpen = false">
+        <template #reference><el-button ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
+        <div v-if="modelsOpen" @keydown.esc.stop="closeModels"><slot name="models" /></div>
+      </el-popover>
+      <el-popover v-model:visible="approvalOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="modelsOpen = false">
+        <template #reference><el-button :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false">{{ t('aiComposer.approval') }}</el-button></template>
+        <div v-if="approvalOpen"><slot name="approval" /></div>
+      </el-popover>
       <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
-      <button type="button" :aria-label="t('aiComposer.attach')" :disabled="locked || !conversationId" @click="fileInput?.click()"><i class="i-ep-paperclip" /></button>
-      <button v-if="running" class="send" type="button" @click="$emit('stop')">{{ t('aiDevelopment.stop') }}</button>
-      <button v-else class="send" type="button" :disabled="!canSend" @click="send">{{ t('aiDevelopment.send') }}</button>
+      <el-button :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId" @click="fileInput?.click()" />
+      <el-button v-if="running" class="send" type="danger" @click="$emit('stop')">{{ t('aiDevelopment.stop') }}</el-button>
+      <el-button v-else class="send" type="primary" :disabled="!canSend" @click="send">{{ t('aiDevelopment.send') }}</el-button>
     </div>
     <p class="privacy">{{ t('aiComposer.privacy') }}</p>
     <p v-if="draft.error || imageError" role="alert">{{ draft.error || imageError }}</p>
@@ -23,8 +29,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElButton, ElInput, ElPopover } from 'element-plus';
+import { Paperclip } from '@element-plus/icons-vue';
 import { aiDevelopmentApi as api, profileModelCapability, type AiAttachment, type AiMessage, type AiProfile, type AiTask } from '@/api/development/ai';
 const props = defineProps<{ conversationId: number | null; model: string; profile?: AiProfile; running: boolean; saving: boolean }>();
 const emit = defineEmits<{ sent: [task: AiTask, message: AiMessage, conversationId: number]; stop: [] }>();
@@ -42,6 +50,15 @@ const draft = computed(() => {
 const locked = computed(() => draft.value.busy || !!draft.value.payload);
 const composing = ref(false);
 const fileInput = ref<HTMLInputElement>();
+const modelsOpen = ref(false);
+const approvalOpen = ref(false);
+const popoverStyle = { maxWidth: 'calc(100vw - 32px)', maxHeight: '55vh', overflow: 'auto', overflowWrap: 'anywhere' } as const;
+const modelTrigger = ref<InstanceType<typeof ElButton>>();
+async function closeModels() {
+  modelsOpen.value = false;
+  await nextTick();
+  modelTrigger.value?.$el.focus();
+}
 const extensions = 'txt md csv json yaml yml xml html css scss js jsx ts tsx vue php py rb go rs java c h cpp hpp cs sql sh bash zsh toml ini conf log diff patch kt swift'.split(' ');
 const imageMimes: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
 const accept = [...Object.keys(imageMimes), ...extensions].map(e => `.${e}`).join(',');
@@ -58,6 +75,8 @@ const imageError = computed(() => {
 const canSend = computed(() => !!props.conversationId && !props.running && !props.saving && !draft.value.busy && !imageError.value && (!!draft.value.text.trim() || draft.value.files.length > 0) && draft.value.files.every(f => f.state === 'ready'));
 function release(d: Draft) { for (const f of d.files) { if (f.preview) URL.revokeObjectURL(f.preview); f.preview = ''; } }
 watch(() => props.conversationId, (_, previous) => {
+  modelsOpen.value = false;
+  approvalOpen.value = false;
   if (previous && drafts.has(previous)) release(drafts.get(previous)!);
   for (const f of draft.value.files) if (f.file.type.startsWith('image/') && !f.preview) f.preview = URL.createObjectURL(f.file);
 });
@@ -105,7 +124,8 @@ async function remove(item: Entry) {
 }
 function choose(event: Event) { const input = event.target as HTMLInputElement; void addFiles(Array.from(input.files || [])); input.value = ''; }
 function paste(event: ClipboardEvent) { const files = Array.from(event.clipboardData?.files || []); if (files.length) { event.preventDefault(); void addFiles(files); } }
-function keydown(event: KeyboardEvent) {
+function keydown(event: Event | KeyboardEvent) {
+  if (!(event instanceof KeyboardEvent)) return;
   if (event.key !== 'Enter' || event.shiftKey || composing.value || event.isComposing || event.keyCode === 229) return;
   event.preventDefault(); if (!event.repeat) void send();
 }
@@ -127,15 +147,15 @@ async function send() {
 </script>
 
 <style scoped>
-.ai-composer { position: relative; width: calc(100% - 32px); max-width: 860px; margin: 12px auto; padding: 14px; border: 1px solid var(--el-border-color); border-radius: 18px; background: var(--el-bg-color); box-sizing: border-box; }
-textarea { width: 100%; box-sizing: border-box; min-height: 94px; max-height: 220px; resize: vertical; border: 0; outline: none; background: transparent; color: var(--el-text-color-primary); font: inherit; }
-textarea:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+.ai-composer { position: relative; width: 100%; min-width: 0; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--el-border-color); border-radius: 18px; background: var(--el-bg-color); box-sizing: border-box; }
+.ai-composer :deep(.el-textarea__inner) { min-height: 94px; max-height: 220px; }
+.ai-composer > .el-textarea { margin-bottom: 10px; }
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-summary, button { cursor: pointer; border: 1px solid var(--el-border-color-lighter); background: var(--el-fill-color-extra-light); border-radius: 20px; padding: 7px 10px; color: var(--el-text-color-primary); }
-summary { list-style: none; overflow-wrap: anywhere; } button:disabled { opacity: .45; cursor: not-allowed; }
-.send { margin-left: auto; background: var(--el-text-color-primary); color: var(--el-bg-color); }
-.popover { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 20; width: min(560px, 100%); max-height: 55vh; overflow: auto; padding: 16px; box-sizing: border-box; border: 1px solid var(--el-border-color); border-radius: 14px; box-shadow: var(--el-box-shadow-light); background: var(--el-bg-color); }
+.toolbar :deep(.el-button) { margin-left: 0; }
+.toolbar .send { margin-left: auto; }
+.model-menu { min-width: 0; max-width: 100%; }
+.model-menu :deep(span) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .privacy { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 0; } [role=alert] { color: var(--el-color-danger); }
 .draft-files { display: flex; flex-wrap: wrap; gap: 8px; } article { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 100%; overflow-wrap: anywhere; } article img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
-@media(max-width: 520px) { .ai-composer { width: calc(100% - 16px); padding: 10px; } .model-menu { max-width: 100%; } .toolbar { gap: 4px; } }
+@media(max-width: 520px) { .ai-composer { padding: 10px 16px; } .model-menu { max-width: 100%; } .toolbar { gap: 4px; } }
 </style>

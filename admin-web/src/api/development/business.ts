@@ -19,7 +19,11 @@ export interface BusinessTarget {
   locked?: boolean;
 }
 export interface BusinessTargetCandidates {
-  list: Array<BusinessTarget & { name: string }>;
+  list: Array<BusinessTarget & {
+    name: string;
+    available?: boolean;
+    reason?: { code: string; message: string } | null;
+  }>;
   defaultConnection: string;
   migrationPath: string;
 }

@@ -317,6 +317,19 @@ final class ManagedGenerationService
         if (!method_exists($this->stateRepository, 'adoptResolvedBaseline')) {
             throw new RuntimeException('生成 baseline 数据仓储不支持采纳');
         }
+        // 锁外只读取锁身份；所有授权、冲突和文件校验均在共享锁内执行。
+        $target = (array) (($this->moduleReader)($moduleId)['metadata']['target'] ?? ['type' => 'core']);
+        $lockTarget = ($target['type'] ?? 'core') === 'plugin'
+            ? ['type' => 'plugin', 'plugin' => (string) ($target['pluginCode'] ?? ''), 'scope' => 'console']
+            : ['type' => 'core'];
+        $transaction = new GenerationTransactionService($this->projectRoot, $this->tokens, $this->baselines,
+            $this->stateRepository, $this->resources, static fn (): array => []);
+        return $transaction->withBaselineAdoptionLock($lockTarget, $moduleId, $path, $remoteHash,
+            fn (): array => $this->adoptResolvedBaselineLocked($moduleId, $generationId, $path, $localHash, $remoteHash, $target));
+    }
+
+    private function adoptResolvedBaselineLocked(int $moduleId, int $generationId, string $path, string $localHash, string $remoteHash, array $target): array
+    {
         $record = ($this->generationReader)($generationId);
         if (!is_array($record) || (int) ($record['business_module_id'] ?? 0) !== $moduleId
             || (string) ($record['status'] ?? '') !== 'conflict') {
@@ -325,6 +338,16 @@ final class ManagedGenerationService
         $latest = ($this->latestConflictReader)($moduleId);
         if ($latest !== $generationId) throw new InvalidArgumentException('仅可采纳最近冲突计划');
         $module = ($this->moduleReader)($moduleId);
+        if ((array) ($module['metadata']['target'] ?? ['type' => 'core']) !== $target) {
+            throw new InvalidArgumentException('BUSINESS_TARGET_IDENTITY_CONFLICT');
+        }
+        if (!in_array($record['recovery_status'] ?? 'none', ['none', 'rolled_back', 'recovered_completed'], true)) {
+            throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED');
+        }
+        $expectedBaseline = null;
+        foreach ($this->baselines->baselines($moduleId) as $baseline) {
+            if ($baseline['relative_path'] === $path) $expectedBaseline = $baseline;
+        }
         if (($module['metadata']['target']['type'] ?? 'core') === 'plugin') {
             $resolved = $this->resolveDefinition($moduleId);
             $files = (new CrudGenerator($this->projectRoot))->renderManagedBundle($resolved['definition'], $this->baselineInputs($moduleId));
@@ -349,12 +372,12 @@ final class ManagedGenerationService
         if ($stat === false || is_link($absolute) || (($stat['mode'] & 0170000) !== 0100000)) {
             throw new InvalidArgumentException('当前 Local 必须为项目内普通文件');
         }
-        $actualLocalHash = hash_file('sha256', $absolute);
-        if (!is_string($actualLocalHash) || !hash_equals($actualLocalHash, $localHash) || !hash_equals($localHash, $remoteHash)) {
-            throw new InvalidArgumentException('当前 Local hash 必须等于该计划 Remote hash');
-        }
         $content = file_get_contents($absolute);
         if (!is_string($content)) throw new RuntimeException('无法读取已解析文件');
+        $actualLocalHash = hash('sha256', $content);
+        if (!hash_equals($actualLocalHash, $localHash) || !hash_equals($localHash, $remoteHash)) {
+            throw new InvalidArgumentException('当前 Local hash 必须等于该计划 Remote hash');
+        }
         $blob = $this->baselines->prepare($content);
         return $this->stateRepository->adoptResolvedBaseline($moduleId, $generationId, [
             'relative_path' => $path,
@@ -365,7 +388,7 @@ final class ManagedGenerationService
             'template_version' => (string) ($manifest['hashes']['templateVersion'] ?? CrudGenerator::TEMPLATE_VERSION),
             'definition_hash' => (string) ($record['definition_hash'] ?? ''),
             'content_kind' => (string) ($planned['contentKind'] ?? 'text'),
-        ]);
+        ], ['module' => $module, 'generation' => $record, 'baseline' => $expectedBaseline]);
     }
 
     /** Phase3 消费的可信定义边界：仅服务端保存版本，调用时重新校验目标与表身份。 */
@@ -575,6 +598,7 @@ final class ManagedGenerationService
             $resources[] = [
                 'resourceKey' => "menu|{$source}|{$href}", 'resourceType' => 'menu', 'sourceName' => $source,
                 'name' => (string) $menu['name'], 'href' => $href,
+                'query' => \app\common\crud\ProductionTemplateContext::menuQuery($data),
                 'permission' => (string) ($resources[0]['code'] ?? ''), 'icon' => (string) $menu['icon'],
                 'sortOrder' => (int) $menu['sortOrder'], 'visible' => ($menu['hidden'] ?? false) ? 0 : 1,
             ];

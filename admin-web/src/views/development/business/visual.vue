@@ -4,7 +4,7 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-3xl">
         <el-form-item label="业务目标">
           <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
-            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="item.type === 'plugin' ? `${item.name} (${item.pluginCode})` : item.name" :value="item.pluginCode || ''" />
+            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="candidateLabel(item)" :disabled="item.available === false" :value="item.pluginCode || ''" />
           </el-select>
           <span v-if="targetNotice" role="alert">{{ targetNotice }}</span>
           <a v-if="!targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
@@ -20,7 +20,7 @@
           <span id="business-code-help" class="field-help">以小写字母开头，只能包含小写字母、数字和下划线。</span>
         </el-form-item>
         <el-form-item label="数据表" prop="table">
-          <el-input v-model="form.table" placeholder="默认 fun_业务标识" aria-describedby="business-table-help" />
+          <el-input v-model="form.table" placeholder="默认业务标识，自动补齐连接前缀" aria-describedby="business-table-help" />
           <span id="business-table-help" class="field-help">留空时根据业务标识自动生成。</span>
         </el-form-item>
         <el-form-item label="数据库连接" prop="connection">
@@ -52,7 +52,7 @@ import { useBusinessTarget } from './composables/useBusinessTarget';
 
 defineOptions({ name: 'BusinessVisual' });
 const router = useRouter();
-const { selected, candidates, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
+const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
 const submitting = ref(false);
 const dirty = ref(false);
 const formRef = ref<FormInstance>();
@@ -74,7 +74,7 @@ watch(form, () => { dirty.value = true; }, { deep: true, flush: 'sync' });
 
 function normalize() {
   form.code = form.code.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  if (!form.table && form.code) form.table = `fun_${selected.value ? `${selected.value}_` : ''}${form.code}`;
+  if (!form.table && form.code) form.table = `${selected.value ? `${selected.value}_` : ''}${form.code}`;
 }
 
 function fieldErrorMessage(value: unknown): string | undefined {

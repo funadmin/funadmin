@@ -436,6 +436,24 @@ final class PluginInfrastructureService
             if (count($columns) !== count((array) ($snapshot['fields'] ?? []))) {
                 throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 字段集合不同');
             }
+            // 生成快照中的索引也是结构契约，不能因 IF NOT EXISTS 静默跳过。
+            $expectedIndexes = [];
+            foreach ((array) ($snapshot['fields'] ?? []) as $name => $field) {
+                $kind = (string) ($field['index'] ?? '');
+                if ($kind === '') continue;
+                if (!in_array($kind, ['unique', 'index'], true)) {
+                    throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 无效索引快照');
+                }
+                $indexName = ($kind === 'unique' ? 'uk_' : 'idx_') . $table . '_' . $name;
+                $expectedIndexes[$indexName] = ['name' => $indexName, 'unique' => $kind === 'unique', 'columns' => [(string) $name]];
+            }
+            $actualIndexes = array_column(array_values(array_filter($actual['indexes'],
+                static fn (array $index): bool => $index['name'] !== 'PRIMARY')), null, 'name');
+            ksort($expectedIndexes, SORT_STRING);
+            ksort($actualIndexes, SORT_STRING);
+            if ($actualIndexes !== $expectedIndexes) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 索引不同 ' . $table);
+            }
             preg_match('/PRIMARY\s+KEY\s*\(([^)]+)\)/i', $sql, $primary);
             preg_match_all('/`([^`]+)`/', $primary[1] ?? '', $names);
             if ($actual['primaryKey'] !== $names[1]) {

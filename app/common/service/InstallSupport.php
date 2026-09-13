@@ -106,6 +106,7 @@ final class InstallSupport
     public static function normalizeDatabaseInput(array $db): array
     {
         $db = array_map(static fn (mixed $value): string => (string) $value, $db);
+        $db['prefix'] ??= '';
         if (preg_match('/^([^:]+):(\d+)$/', $db['host'] ?? '', $matches)) {
             $db['host'] = $matches[1];
             $db['port'] = $matches[2];

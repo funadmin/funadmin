@@ -4,7 +4,7 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px" class="max-w-3xl">
         <el-form-item label="业务目标">
           <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
-            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="item.type === 'plugin' ? `${item.name} (${item.pluginCode})` : item.name" :value="item.pluginCode || ''" />
+            <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="candidateLabel(item)" :disabled="item.available === false" :value="item.pluginCode || ''" />
           </el-select>
           <span v-if="targetNotice" role="alert">{{ targetNotice }}</span>
           <a v-if="!targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
@@ -100,7 +100,7 @@ interface DatabaseAdoptionForm {
 }
 
 const router = useRouter();
-const { selected, candidates, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
+const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
 const formRef = ref<FormInstance>();
 const form = reactive<DatabaseAdoptionForm>({ connection: 'mysql', table: '', name: '', code: '', remark: '' });
 const initialForm = JSON.stringify(form);

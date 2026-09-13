@@ -1,6 +1,6 @@
 import { computed, defineComponent, inject, nextTick, provide, reactive, ref, type InjectionKey, type Ref } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
-import { ElMessageBox } from 'element-plus';
+import ElementPlus, { ElMessageBox, ElSelect, ElOption, ElInput, ElButton } from 'element-plus';
 import { aiDevelopmentApi } from '@/api/development/ai';
 import ConversationList from './components/ConversationList.vue';
 import ProviderSettingsDrawer from './components/ProviderSettingsDrawer.vue';
@@ -108,9 +108,11 @@ const descriptionsStub = defineComponent({ template: '<dl><slot /></dl>' });
 const descriptionsItemStub = defineComponent({ props: ['label'], template: '<dt>{{ label }}</dt><dd><slot /></dd>' });
 
 const stubs = {
+  ElBadge: passthrough,
   ElForm: passthrough,
   ElFormItem: passthrough,
-  ElTooltip: passthrough,
+  ElTooltip: defineComponent({ template: '<div><slot /><slot name="content" /></div>' }),
+  ElPopover: defineComponent({ props: ['visible'], emits: ['update:visible'], template: '<div><div @click="$emit(\'update:visible\', !visible)"><slot name="reference" /></div><slot /></div>' }),
   ElSwitch: true,
   ElInputNumber: true,
   ElCheckboxGroup: passthrough,
@@ -154,10 +156,11 @@ const setMobile = (mobile: boolean) => {
   });
 };
 
-const mountPage = (locale: 'zh-CN' | 'en-US', mobile = false) => {
+const mountPage = async (locale: 'zh-CN' | 'en-US', mobile = false) => {
   setMobile(mobile);
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'en-US': enUS } });
   const wrapper = mount(AiDevelopment, { global: { plugins: [i18n], stubs } });
+  await wrapper.get('[data-testid="model-menu-trigger"]').trigger('click');
   return { wrapper, locale: i18n.global.locale };
 };
 
@@ -185,8 +188,131 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     vi.clearAllMocks();
   });
 
+  it.each([false, true])('任务权限弹窗保持实例、审批去重且关闭不触发业务调用，移动端=%s', async (mobile) => {
+    setMobile(mobile);
+    aiStore.conversations = [{ id: 1, approval_mode: 'request_approval' }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 7, conversation_id: 1, type: 'code_change', stage: 'review', status: 'paused' };
+    const approval = { id: 11, task_id: 7, conversation_id: 1, status: 'pending', operation: 'write_workspace', impact: {}, risk_reason: '写入文件' };
+    aiStore.approvals = [approval, { ...approval }, { ...approval, id: 12, status: 'approved' }, { ...approval, id: 13, status: 'denied' }];
+    aiStore.toolCalls = [{ id: 21, approval_id: 11, status: 'awaiting_approval' }];
+    const wrapper = mount(AiDevelopment, { attachTo: document.body, global: {
+      plugins: [ElementPlus, createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })],
+      stubs: { ...stubs, transition: false, ElDialog: false, ElBadge: false, ElCard: passthrough, ProviderSettingsDrawer: true }
+    } });
+    try {
+      await flushPromises();
+      expect(wrapper.get('[data-testid="toggle-inspector"]').text()).toBe('任务与权限');
+      expect(wrapper.get('[data-testid="pending-approvals-badge"]').text()).toContain('1');
+      expect(wrapper.find('[data-ai-region="context"]').exists()).toBe(false);
+      await wrapper.get('[data-testid="toggle-inspector"]').trigger('click');
+      await flushPromises();
+      const dialog = wrapper.findAllComponents({ name: 'ElDialog' }).find(item => item.props('title') === '任务与权限')!;
+      expect(dialog.props('alignCenter')).toBe(true);
+      expect(dialog.props('destroyOnClose')).toBe(false);
+      expect(dialog.props('width')).toBe('min(760px, 94vw)');
+      const panel = wrapper.getComponent({ name: 'AiContextPanel' });
+      const instance = panel.vm;
+      expect(panel.text()).toContain('#7 代码变更');
+      const card = wrapper.get('.task-permissions-scroll .approval-card');
+      await card.get('textarea').setValue('保留审批反馈');
+      expect(wrapper.findAll('.task-permissions-scroll .approval-card')).toHaveLength(1);
+      const generation = aiStore.selectionGeneration;
+      vi.clearAllMocks();
+      await dialog.get('.el-dialog__headerbtn').trigger('click');
+      await vi.waitFor(() => expect(dialog.props('modelValue')).toBe(false));
+      await flushPromises();
+      expect(dialog.props('modelValue')).toBe(false);
+      expect(wrapper.getComponent({ name: 'AiContextPanel' }).vm).toBe(instance);
+      expect(aiStore.selectionGeneration).toBe(generation);
+      expect(aiStore.activeTask.status).toBe('paused');
+      expect(aiStore.conversations[0].approval_mode).toBe('request_approval');
+      for (const action of [aiStore.closeEvents, aiStore.connectEvents, aiStore.refreshTaskContext, aiStore.cancelActiveTask, aiStore.decideApproval, aiStore.activateTask, aiDevelopmentApi.updateConversation, aiDevelopmentApi.executeTask]) expect(action).not.toHaveBeenCalled();
+      aiStore.approvals.push({ ...approval, id: 14 });
+      await nextTick();
+      expect(wrapper.get('[data-testid="pending-approvals-badge"]').text()).toContain('2');
+      await wrapper.get('[data-testid="toggle-inspector"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.getComponent({ name: 'AiContextPanel' }).vm).toBe(instance);
+      expect((card.get('textarea').element as HTMLTextAreaElement).value).toBe('保留审批反馈');
+      await card.findAll('button').find(button => button.text() === '拒绝')!.trigger('click');
+      expect(aiStore.decideApproval).toHaveBeenCalledWith(approval, 'reject', 'once', '保留审批反馈');
+      aiStore.approvals = [];
+      await nextTick();
+      await vi.waitFor(() => {
+        const badge = wrapper.find('[data-testid="pending-approvals-badge"] .el-badge__content');
+        expect(badge.exists() && badge.isVisible()).toBe(false);
+      });
+    } finally { wrapper.unmount(); }
+  });
+
+  it('真实 Element Plus 模型弹层统一控件并保留 nullable 思考事件', async () => {
+    setMobile(false);
+    aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7 }];
+    aiStore.selectedConversationId = 1;
+    vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '档案', enabled: true, model: 'm', favorite_models: ['m'], reasoning_effort: null, model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] }] as never);
+    const wrapper = mount(AiDevelopment, { attachTo: document.body, global: {
+      plugins: [ElementPlus, createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })],
+      stubs: { ...stubs, ElSelect: false, ElOption: false, ElInput: false, ElButton: false, ElTooltip: false, ElPopover: false, ProviderSettingsDrawer: true }
+    } });
+    try {
+      await flushPromises();
+      const composer = wrapper.get('.ai-composer');
+      expect(composer.find('details').exists()).toBe(false);
+      expect(composer.findComponent(ElInput).exists()).toBe(true);
+      expect(composer.get('button[aria-label="' + zhCN.aiComposer.attach + '"]').find('svg').exists()).toBe(true);
+      expect(document.querySelector('[data-testid="model-form"]')).toBeNull();
+      await composer.get('[data-testid="model-menu-trigger"]').trigger('click');
+      await flushPromises();
+      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).not.toBeNull());
+      const form = document.querySelector('[data-testid="model-form"]')!;
+      expect(form.querySelector('select, option, button:not(.el-button)')).toBeNull();
+      const reasoning = wrapper.findAllComponents(ElSelect).find(c => c.attributes('data-testid') === 'conversation-reasoning')!;
+      expect(reasoning.findAllComponents(ElOption).map(c => c.props('value'))).toEqual(['', 'high']);
+      await reasoning.get('[role="combobox"]').trigger('click');
+      await flushPromises();
+      const high = [...document.querySelectorAll<HTMLElement>('.el-select-dropdown__item')].find(el => el.textContent === 'high')!;
+      high.click();
+      await flushPromises();
+      expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, 'high');
+      aiStore.conversations[0].reasoning_effort = 'high';
+      await nextTick();
+      await reasoning.get('[role="combobox"]').trigger('click');
+      await flushPromises();
+      [...document.querySelectorAll<HTMLElement>('.el-select-dropdown__item')].find(el => el.textContent?.includes('继承档案'))!.click();
+      await flushPromises();
+      expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, null);
+      aiStore.conversations[0].reasoning_effort = null;
+      await nextTick();
+      expect(wrapper.findAllComponents(ElButton).length).toBeGreaterThan(0);
+      const modelInput = wrapper.findAllComponents(ElInput).find(c => c.find('input#ai-model-id').exists())!;
+      await modelInput.get('input').setValue(' next-model ');
+      let finish!: () => void;
+      aiStore.updateConversationModel.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await nextTick();
+      expect(aiStore.updateConversationModel).toHaveBeenLastCalledWith(1, 'next-model');
+      expect(reasoning.props('disabled')).toBe(true);
+      expect(modelInput.get('input').attributes('disabled')).toBeDefined();
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      expect(aiStore.updateConversationModel).toHaveBeenCalledTimes(1);
+      finish();
+      await flushPromises();
+      modelInput.get('input').element.focus();
+      await modelInput.get('input').trigger('keydown', { key: 'Escape', code: 'Escape' });
+      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).toBeNull());
+      expect(document.activeElement).toBe(composer.get('[data-testid="model-menu-trigger"]').element);
+      await composer.get('[data-testid="model-menu-trigger"]').trigger('keydown', { code: 'Enter', key: 'Enter' });
+      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).not.toBeNull());
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      document.body.click();
+      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).toBeNull());
+    } finally { wrapper.unmount(); }
+  });
+
   it.each([false, true])('Provider 位于会话栏新建工具区并保持打开行为，移动端=%s', async (mobile) => {
-    const { wrapper } = mountPage('zh-CN', mobile);
+    const { wrapper } = await mountPage('zh-CN', mobile);
     await flushPromises();
     if (mobile) await wrapper.get('[data-testid="mobile-conversations"]').trigger('click');
     const actions = wrapper.get('.conversation-list__header > div');
@@ -211,7 +337,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('保存档案途中关闭再打开，不把旧响应切回当前编辑档案', async () => {
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
     await flushPromises();
     const drawer = wrapper.findComponent(ProviderSettingsDrawer);
@@ -231,14 +357,14 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   it('新会话显式继承服务端默认档案，不复制配置或密钥到请求', async () => {
     vi.mocked(aiDevelopmentApi.defaultProfile).mockResolvedValueOnce({ id: 7 } as never);
     vi.mocked(aiDevelopmentApi.createConversation).mockResolvedValueOnce({ id: 8 } as never);
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     wrapper.findComponent(ConversationList).vm.$emit('create');
     await flushPromises();
     expect(aiDevelopmentApi.createConversation).toHaveBeenCalledWith({ title: '新 AI 会话', approval_mode: 'request_approval', profile_id: 7 });
   });
 
   it('显示档案选择与默认继承入口，档案设置不再读取临时全局设置', async () => {
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     expect(wrapper.find('[data-testid="conversation-profile"]').exists()).toBe(true);
     await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
     await flushPromises();
@@ -247,22 +373,46 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.find('[data-testid="profile-save"]').exists()).toBe(true);
   });
 
+  it('composer 六档按声明展示，英文继承与默认不混淆', async () => {
+    const efforts = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+    aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7, reasoning_effort: null }];
+    aiStore.selectedConversationId = 1;
+    vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '六档', enabled: true, model: 'm', reasoning_effort: null, model_capabilities: [{ model: 'm', reasoning_efforts: efforts, output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] }] as never);
+    setMobile(false);
+    const wrapper = mount(AiDevelopment, { global: { plugins: [createI18n({ legacy: false, locale: 'en-US', messages: { 'zh-CN': zhCN, 'en-US': enUS } })], stubs, renderStubDefaultSlot: true } });
+    await wrapper.get('[data-testid="model-menu-trigger"]').trigger('click');
+    await flushPromises();
+    const select = wrapper.findAllComponents({ name: 'ElSelect' }).find(c => c.attributes('data-testid') === 'conversation-reasoning')!;
+    expect(select.findAllComponents({ name: 'ElOption' }).map(o => o.attributes('value'))).toEqual(['', ...efforts]);
+    expect(wrapper.get('[data-testid="inherited-reasoning"]').text()).toContain('Inherit profile');
+    expect(wrapper.get('[data-testid="inherited-reasoning"]').text()).toContain('Default');
+    for (const effort of ['xhigh', 'max', 'ultra']) {
+      select.vm.$emit('change', effort);
+      await flushPromises();
+      expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, effort);
+    }
+    select.vm.$emit('change', '');
+    await flushPromises();
+    expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, null);
+  });
+
   it('思考模式继承档案，展示默认模型和常用模型，阻止不兼容模型切换', async () => {
     aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7 }];
     aiStore.selectedConversationId = 1;
     vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '能力档案', enabled: true, is_default: true, model: 'm', favorite_models: ['m', 'b'], reasoning_effort: 'high', model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }], max_output_tokens: 100 }] as never);
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     await flushPromises();
     expect(wrapper.find('[data-testid="inherited-reasoning"]').text()).toContain('high');
     expect(wrapper.find('[data-testid="inherited-reasoning"]').text()).toContain('继承档案');
-    const reasoning = wrapper.get('[data-testid="conversation-reasoning"]');
-    expect(reasoning.findAll('option').map(option => option.element.value)).toEqual(['', 'high']);
-    await reasoning.setValue('high');
+    const reasoning = wrapper.findAllComponents({ name: 'ElSelect' }).find(c => c.attributes('data-testid') === 'conversation-reasoning')!;
+    reasoning.vm.$emit('change', 'high');
+    await nextTick();
     expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, 'high');
     await flushPromises();
     aiStore.conversations[0].reasoning_effort = 'high';
     await nextTick();
-    await reasoning.setValue('');
+    reasoning.vm.$emit('change', '');
+    await nextTick();
     expect(aiStore.updateConversationReasoning).toHaveBeenLastCalledWith(1, null);
     await flushPromises();
     expect(wrapper.find('[data-testid="profile-model-summary"]').text()).toContain('m');
@@ -275,12 +425,13 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('工作区显示模型 ID 输入、当前模型和真实边界，空值及无会话禁用', async () => {
-    const { wrapper, locale } = mountPage('zh-CN');
+    const { wrapper, locale } = await mountPage('zh-CN');
     expect(wrapper.find('[data-testid="save-model"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
     aiStore.conversations = [{ id: 1, model: 'old-model' }];
     aiStore.selectedConversationId = 1;
     await nextTick();
+    await wrapper.get('[data-testid="model-menu-trigger"]').trigger('click');
     expect(wrapper.get('[data-testid="current-model"]').text()).toContain('old-model');
     expect(wrapper.text()).toContain('仅支持当前配置的供应商');
     expect(wrapper.text()).toContain('仅影响保存后创建的任务');
@@ -299,7 +450,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.conversations = [{ id: 1, model: 'old' }];
     aiStore.selectedConversationId = 1;
     aiStore.activeTask = { id: 8, model: 'frozen', status: 'running' };
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     await flushPromises();
     aiStore.connectEvents.mockClear();
     let finish!: () => void;
@@ -326,12 +477,13 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.selectedConversationId = 1;
     aiStore.activeTask = { id: 8, status: 'running', model: 'frozen' };
     vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '档案', enabled: true, model: 'm', reasoning_effort: null, model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] }] as never);
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     await flushPromises();
     aiStore.connectEvents.mockClear();
     let reject!: (error: Error) => void;
     aiStore.updateConversationReasoning.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
-    await wrapper.get('[data-testid="conversation-reasoning"]').setValue('low');
+    wrapper.findAllComponents({ name: 'ElSelect' }).find(c => c.attributes('data-testid') === 'conversation-reasoning')!.vm.$emit('change', 'low');
+    await nextTick();
     expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('disabled')).toBeDefined();
     expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-testid="model-form"]').trigger('submit');
@@ -341,9 +493,10 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     await nextTick();
     reject(new Error('旧思考保存失败'));
     await flushPromises();
+    await wrapper.get('[data-testid="model-menu-trigger"]').trigger('click');
     expect(wrapper.find('[data-testid="model-error"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('disabled')).toBeUndefined();
-    expect((wrapper.get('[data-testid="conversation-reasoning"]').element as HTMLSelectElement).value).toBe('');
+    expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('disabled')).toBe('false');
+    expect(wrapper.get('[data-testid="conversation-reasoning"]').attributes('model-value')).toBe('');
     expect(aiStore.activeTask.model).toBe('frozen');
     expect(aiStore.activateTask).not.toHaveBeenCalled();
     expect(aiStore.closeEvents).not.toHaveBeenCalled();
@@ -354,7 +507,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   it('保存失败显示错误并保留输入，可重试', async () => {
     aiStore.conversations = [{ id: 1, model: 'old' }];
     aiStore.selectedConversationId = 1;
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     aiStore.updateConversationModel.mockRejectedValueOnce(new Error('不支持该模型'));
     await wrapper.get('[data-testid="model-id"]').setValue('new');
     await wrapper.get('[data-testid="model-form"]').trigger('submit');
@@ -370,7 +523,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   it.each([false, true])('切走会话隔离旧保存结果，失败=%s', async (failed) => {
     aiStore.conversations = [{ id: 1, model: 'old' }, { id: 2, model: 'second' }];
     aiStore.selectedConversationId = 1;
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     let finish!: () => void;
     aiStore.updateConversationModel.mockImplementationOnce(() => new Promise<void>((resolve, reject) => {
       finish = () => failed ? reject(new Error('旧会话错误')) : resolve();
@@ -382,6 +535,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     await nextTick();
     finish();
     await flushPromises();
+    await wrapper.get('[data-testid="model-menu-trigger"]').trigger('click');
     expect((wrapper.get('[data-testid="model-id"]').element as HTMLInputElement).value).toBe('second');
     expect(wrapper.get('[data-testid="current-model"]').text()).toContain('second');
     expect(wrapper.find('[data-testid="model-error"]').exists()).toBe(false);
@@ -395,7 +549,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
       { id: 1, title: '正常会话', group_id: null, status: 'running', is_archived: false, is_unread: true, updated_at: '2026-09-12 10:30:00' },
       { id: 2, title: '归档会话', group_id: null, status: 'running', is_archived: true, is_unread: false }
     ];
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     expect(wrapper.text()).toContain('空项目');
     expect(wrapper.text()).toContain('09-12 10:30');
     expect(wrapper.text()).not.toContain('归档会话');
@@ -407,7 +561,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
   it('分组使用 Element Plus 弹窗，取消不请求，确认后保留空组', async () => {
     const dialog = vi.spyOn(ElMessageBox, 'prompt').mockRejectedValueOnce('cancel');
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     const list = wrapper.findComponent(ConversationList);
     list.vm.$emit('create-group');
     await flushPromises();
@@ -424,7 +578,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
   it('会话菜单接入改名、归档、恢复、删除和手动未读', async () => {
     aiStore.conversations = [{ id: 1, title: '旧标题', group_id: null, is_archived: false, is_unread: false }];
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     const list = wrapper.findComponent(ConversationList);
     const dialog = vi.spyOn(ElMessageBox, 'prompt').mockResolvedValue({ value: '新标题' } as never);
     vi.mocked(aiDevelopmentApi.updateConversation).mockResolvedValueOnce({ id: 1, title: '新标题' } as never);
@@ -452,7 +606,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   it('移动组只提交 group_id，未分组提交 null；失败保留弹窗', async () => {
     aiStore.conversations = [{ id: 1, title: '会话', group_id: 10 }];
     aiStore.conversationGroups = [{ id: 10, name: '项目' }];
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     wrapper.findComponent(ConversationList).vm.$emit('action', 'move', 1);
     await flushPromises();
     const select = wrapper.findAllComponents({ name: 'ElSelect' }).find((item) => item.attributes('aria-label') === '分组名称')!;
@@ -473,8 +627,9 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
   it('审批升级取消时不更新真实会话', async () => {
     aiStore.conversations = [{ id: 1, approval_mode: 'request_approval' }]; aiStore.selectedConversationId = 1;
-    const { wrapper } = mountPage('zh-CN'); await flushPromises();
+    const { wrapper } = await mountPage('zh-CN'); await flushPromises();
     vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel');
+    await wrapper.findAll('.toolbar button').find(button => button.text() === zhCN.aiComposer.approval)!.trigger('click');
     wrapper.findComponent({ name: 'ApprovalModeSelector' }).vm.$emit('update:modelValue', 'full_access');
     await flushPromises(); expect(aiDevelopmentApi.updateConversation).not.toHaveBeenCalled(); wrapper.unmount();
   });
@@ -483,7 +638,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.selectedConversationId = 1;
     let finish!: (value: unknown) => void;
     vi.mocked(aiDevelopmentApi.createMessage).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve as never; }));
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     await wrapper.find('.ai-composer textarea').setValue('旧请求');
     await wrapper.find('.ai-composer textarea').trigger('keydown', { key: 'Enter' });
     aiStore.selectedConversationId = 2;
@@ -497,11 +652,11 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('切换语言会更新页面、Tabs、按钮与真实空状态文案', async () => {
-    const { wrapper, locale } = mountPage('zh-CN', true);
+    const { wrapper, locale } = await mountPage('zh-CN', true);
     expect(wrapper.text()).not.toContain('AI 开发助手');
     expect(wrapper.text()).not.toContain('会话、工具审批与工作区变更');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('会话');
-    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('任务');
+    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('任务与权限');
     expect(wrapper.text()).toContain('发送');
     expect(wrapper.text()).toContain('开始一个新的 AI 会话');
 
@@ -511,14 +666,14 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.text()).not.toContain('AI Development Assistant');
     expect(wrapper.text()).not.toContain('Conversations, tool approvals, and workspace changes');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('Conversations');
-    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('Task');
+    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('Task and permissions');
     expect(wrapper.text()).toContain('Send');
     expect(wrapper.text()).toContain('Start a new AI conversation');
     expect(wrapper.text()).not.toContain('开始一个新的 AI 会话');
   });
 
   it('移动端顶部入口位于内容区域之前且切换时只显示对应真实区域', async () => {
-    const { wrapper } = mountPage('zh-CN', true);
+    const { wrapper } = await mountPage('zh-CN', true);
     const actions = wrapper.find('.mobile-actions').element;
     const layout = wrapper.find('.ai-layout').element;
     expect(actions.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -529,7 +684,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     const contextButton = wrapper.find('[data-testid="mobile-context"]');
     expect(workspaceButton.attributes('aria-pressed')).toBe('true');
     expect(conversationsButton.attributes('aria-pressed')).toBe('false');
-    expect(contextButton.attributes('aria-pressed')).toBe('false');
+    expect(contextButton.attributes('aria-expanded')).toBe('false');
 
     await conversationsButton.trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['conversations']);
@@ -538,9 +693,9 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(conversationsButton.attributes('aria-pressed')).toBe('true');
 
     await contextButton.trigger('click');
-    expect(visibleRegions(wrapper)).toEqual(['context']);
-    expect(wrapper.find('[data-ai-region="context"]').text()).toContain('暂无活动任务');
-    expect(contextButton.attributes('aria-pressed')).toBe('true');
+    expect(visibleRegions(wrapper)).toEqual(['conversations']);
+    expect(wrapper.find('.task-permissions-scroll').text()).toContain('暂无活动任务');
+    expect(contextButton.attributes('aria-expanded')).toBe('true');
   });
 
   it('reviewing、任务阶段类型与 ChangeSet 状态均翻译，未知枚举原样回退', async () => {
@@ -548,7 +703,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.selectedConversationId = 1;
     aiStore.activeTask = { id: 7, type: 'code_change', stage: 'review', status: 'paused' };
     aiStore.changeSet = { id: 9, status: 'proposed' };
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     expect(wrapper.text()).toContain('审核中');
     await wrapper.find('[data-testid="toggle-inspector"]').trigger('click');
     expect(wrapper.text()).toContain('#7 代码变更');
@@ -560,32 +715,61 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('桌面端默认以会话栏和主工作区为两栏，检查器按需打开且无任务不永久占栏', async () => {
-    const { wrapper } = mountPage('zh-CN');
+    const { wrapper } = await mountPage('zh-CN');
     expect(visibleRegions(wrapper)).toEqual(['conversations', 'workspace']);
     expect(wrapper.find('[data-ai-region="context"]').exists()).toBe(false);
 
     await wrapper.find('[data-testid="toggle-inspector"]').trigger('click');
-    expect(visibleRegions(wrapper)).toEqual(['conversations', 'workspace', 'context']);
-    expect(wrapper.find('[data-testid="toggle-inspector"]').text()).toContain('关闭');
+    expect(visibleRegions(wrapper)).toEqual(['conversations', 'workspace']);
+    expect(wrapper.find('[data-testid="toggle-inspector"]').text()).toContain('任务与权限');
+    expect(wrapper.find('.ai-layout--inspector').exists()).toBe(false);
 
     await wrapper.find('[data-testid="toggle-inspector"]').trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['conversations', 'workspace']);
     expect(keys(zhCN.aiDevelopment).sort()).toEqual(keys(enUS.aiDevelopment).sort());
   });
 
-  it('工作区消息正文限制在舒适宽度，三栏各自处理溢出且主消息区保持独立滚动', () => {
-    const { wrapper } = mountPage('zh-CN');
+  it.each([
+    ['消息列表', timelineSource, '.message-timeline'],
+    ['输入区', readFileSync(resolve(process.cwd(), 'src/views/development/ai/components/AiComposer.vue'), 'utf8'), '.ai-composer']
+  ])('%s 满宽且仅保留左右 16px 内距，所有断点均不恢复固定宽度或自动居中', (_name, source, selector) => {
+    const css = source.slice(source.indexOf('<style scoped>') + '<style scoped>'.length);
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selectors]) => selectors!.trim() === selector)
+      .map(([, , declarations]) => declarations!);
+    expect(rules.length).toBeGreaterThan(0);
+    const base = rules[0]!;
+    expect(base).toMatch(/(?:^|;)\s*width:\s*100%\s*;/);
+    expect(base).toMatch(/box-sizing:\s*border-box\s*;/);
+    expect(base).toMatch(/padding:\s*\d+px\s+16px\s*;/);
+    for (const rule of rules) {
+      expect(rule).not.toMatch(/max-width:\s*(?!none)[^;]+;/);
+      expect(rule).not.toMatch(/margin(?:-inline)?\s*:[^;]*auto/);
+      const width = rule.match(/(?:^|;)\s*width:\s*([^;]+);/);
+      if (width) expect(width[1]!.trim()).toBe('100%');
+      const padding = rule.match(/padding:\s*([^;]+);/);
+      if (padding) expect(padding[1]).toMatch(/^\d+px\s+16px$/);
+    }
+  });
+
+  it('消息气泡保留合理宽度和用户右对齐，代码内部滚动且主消息区独立滚动', async () => {
+    const { wrapper } = await mountPage('zh-CN');
     expect(wrapper.find('.workspace-scroll').attributes('data-scroll-container')).toBe('primary');
-    expect(timelineSource).toMatch(/\.message-timeline\s*\{[^}]*max-width:\s*\d+px/s);
+    expect(timelineSource).toMatch(/\.message\s*\{[^}]*max-width:\s*86%/s);
+    expect(timelineSource).toMatch(/\.message\s*\{[^}]*min-width:\s*0/s);
+    expect(timelineSource).toMatch(/\.message\s*\{[^}]*box-sizing:\s*border-box/s);
+    expect(timelineSource).toMatch(/\.message--user\s*\{[^}]*align-self:\s*flex-end/s);
+    expect(timelineSource).toMatch(/\.message-text\s*\{[^}]*overflow-wrap:\s*anywhere/s);
+    expect(timelineSource).toMatch(/\.code-block\s*\{[^}]*overflow:\s*auto[^}]*white-space:\s*pre/s);
     expect(pageSource).toMatch(/\.ai-page\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0/s);
     expect(pageSource).toMatch(/\.workspace-scroll\s*\{[^}]*overflow:\s*auto/s);
     expect(pageSource).toMatch(/\.ai-conversations-pane[^}]*overflow:\s*auto/s);
-    expect(pageSource).toMatch(/\.ai-context-pane[^}]*overflow:\s*auto/s);
+    expect(pageSource).toMatch(/\.task-permissions-scroll\s*\{[^}]*max-height:[^}]*overflow:\s*auto/s);
   });
 
   it('移动端通过顶部按钮打开会话和任务，选择会话后回到工作区', async () => {
     aiStore.conversations = [{ id: 1, title: '移动会话', status: 'running', group_id: null, is_archived: false, is_unread: false }];
-    const { wrapper } = mountPage('zh-CN', true);
+    const { wrapper } = await mountPage('zh-CN', true);
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
 
     await wrapper.find('[data-testid="mobile-conversations"]').trigger('click');
@@ -595,7 +779,8 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
 
     await wrapper.find('[data-testid="mobile-context"]').trigger('click');
-    expect(visibleRegions(wrapper)).toEqual(['context']);
+    expect(visibleRegions(wrapper)).toEqual(['workspace']);
+    expect(wrapper.find('.task-permissions-scroll').exists()).toBe(true);
     await wrapper.find('[data-testid="mobile-workspace"]').trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['workspace']);
   });

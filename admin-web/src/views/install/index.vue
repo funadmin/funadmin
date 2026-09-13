@@ -41,7 +41,7 @@
             <el-form-item label="数据库主机" required><el-input v-model="form.hostname" placeholder="127.0.0.1" /></el-form-item>
             <el-form-item label="端口" required><el-input v-model="form.port" placeholder="3306" /></el-form-item>
             <el-form-item label="数据库名" required><el-input v-model="form.database" /></el-form-item>
-            <el-form-item label="数据表前缀"><el-input v-model="form.prefix" /></el-form-item>
+            <el-form-item label="数据表前缀"><el-input v-model="form.prefix" placeholder="可选，默认无前缀" /></el-form-item>
             <el-form-item label="数据库用户名" required><el-input v-model="form.username" /></el-form-item>
             <el-form-item label="数据库密码"><el-input v-model="form.password" type="password" show-password autocomplete="new-password" /></el-form-item>
           </div>
@@ -91,7 +91,7 @@ const siteName = ref('FunAdmin');
 const siteVersion = ref('');
 const environmentChecks = ref<EnvironmentCheck[]>([]);
 const result = ref<InstallResult>();
-const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
+const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: '', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
 const canNext = computed(() => active.value === 0 ? agreed.value : canContinueInstallation(environmentChecks.value));
 
 const loadEnvironment = async () => {

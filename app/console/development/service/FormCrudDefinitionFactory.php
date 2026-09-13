@@ -55,6 +55,8 @@ final class FormCrudDefinitionFactory
         $fields = $adopted
             ? [$this->schemaManagedField($schemaColumns[$primaryKey], true)]
             : [$this->managedField('id', 'bigint unsigned', true)];
+        $prefix = \think\Container::getInstance()->bound('config')
+            ? (string) \think\facade\Config::get('database.connections.' . $form['connection'] . '.prefix', '') : '';
         $relations = [];
         $optionSources = [];
         $layoutSchema = [];
@@ -68,12 +70,12 @@ final class FormCrudDefinitionFactory
             if ((string) ($field['relation_type'] ?? 'none') === 'has_many') {
                 $relations[] = [
                     'name' => (string) ($field['field_name'] ?? ''), 'type' => 'hasMany',
-                    'field' => $primaryKey, 'target' => $this->studly((string) preg_replace('/^fun_/', '', (string) ($field['relation_table'] ?? ''))),
+                    'field' => $primaryKey, 'target' => $this->relationClass((string) ($field['relation_table'] ?? ''), $prefix),
                     'targetField' => (string) ($field['relation_value_field'] ?? ''), 'with' => true,
                 ];
                 continue;
             }
-            $fields[] = $this->field($field, $type, $relations, $optionSources);
+            $fields[] = $this->field($field, $type, $relations, $optionSources, $prefix);
         }
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
             if (in_array($managed, array_column($fields, 'name'), true)) continue;
@@ -159,7 +161,7 @@ final class FormCrudDefinitionFactory
         return $this->config($form, [], $key);
     }
 
-    private function field(array $field, string $type, array &$relations, array &$optionSources): array
+    private function field(array $field, string $type, array &$relations, array &$optionSources, string $prefix): array
     {
         if (!isset(self::COMPONENTS[$type])) throw new InvalidArgumentException('控件无法生成静态代码：' . $type);
         $name = $this->identifier((string) ($field['field_name'] ?? ''), '字段名');
@@ -188,7 +190,7 @@ final class FormCrudDefinitionFactory
         if (in_array($type, ['checkbox', 'transfer', 'daterange', 'datetimerange', 'images', 'file', 'files', 'json'], true)) $row['cast'] = 'json';
         if (in_array($type, ['image', 'images', 'file', 'files'], true)) $row['upload'] = true;
         $this->options($field, $name, $row, $optionSources);
-        $this->relation($field, $name, $row, $relations, $optionSources);
+        $this->relation($field, $name, $row, $relations, $optionSources, $prefix);
         return $row;
     }
 
@@ -214,13 +216,13 @@ final class FormCrudDefinitionFactory
         ];
     }
 
-    private function relation(array $field, string $name, array &$row, array &$relations, array &$sources): void
+    private function relation(array $field, string $name, array &$row, array &$relations, array &$sources, string $prefix): void
     {
         if ((string) ($field['relation_type'] ?? 'none') !== 'belongs_to') return;
         $table = $this->identifier((string) ($field['relation_table'] ?? ''), '关联表');
         $targetField = $this->identifier((string) ($field['relation_value_field'] ?? 'id'), '关联值字段');
         $relationName = preg_replace('/_id$/', '', $name) ?: $name . '_relation';
-        $target = $this->studly(preg_replace('/^fun_/', '', $table) ?: $table);
+        $target = $this->relationClass($table, $prefix);
         $sourceName = $name . '_options';
         $row['relation'] = $relationName;
         $row['references'] = $target . '.' . $targetField;
@@ -298,7 +300,9 @@ final class FormCrudDefinitionFactory
 
     private function schemaManagedField(array $column, bool $primary): array
     {
-        return $this->managedField((string) $column['name'], (string) $column['type'], $primary);
+        $field = $this->managedField((string) $column['name'], (string) $column['type'], $primary);
+        $field['nullable'] = (bool) $column['nullable'];
+        return $field;
     }
 
     private function managedField(string $name, string $type, bool $primary): array
@@ -351,6 +355,11 @@ final class FormCrudDefinitionFactory
         $value = trim($value);
         if (!preg_match('/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/', $value)) throw new InvalidArgumentException($label . '不合法');
         return $value;
+    }
+
+    private function relationClass(string $table, string $prefix): string
+    {
+        return $this->studly($prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table);
     }
 
     private function studly(string $value): string

@@ -141,4 +141,47 @@ try {
 } catch (InvalidArgumentException) {
 }
 
+// 所有入口使用同一确定性路径规则，不通过失败请求探测地址。
+foreach ([''=>'/v1', '/'=>'/v1', '/v1'=>'/v1', '/v1/'=>'/v1', '/proxy/v1'=>'/proxy/v1', '/compatible-mode/v1/'=>'/compatible-mode/v1', '/proxy'=>'/proxy', '/v2'=>'/v2'] as $basePath => $prefix) {
+    foreach (['chat', 'stream', 'models', 'test'] as $operation) {
+        $history = [];
+        $body = $operation === 'models' ? '{"data":[{"id":"test-model"}]}' : ($operation === 'stream' ? "data: [DONE]\n\n" : '{"choices":[{"message":{"content":"ok"}}]}');
+        $config = ['base_url'=>'https://api.example.com' . $basePath];
+        if ($operation === 'test') {
+            $settings = new \app\console\ai\service\AiProviderSettingsService($config, static function ($resolved) use (&$history, $body) {
+                return providerGateway([new Response(200, [], $body)], $history, $resolved);
+            });
+            $settings->test([]);
+        } else {
+            $gateway = providerGateway([new Response(200, [], $body)], $history, $config);
+            if ($operation === 'stream') iterator_to_array($gateway->stream([]));
+            elseif ($operation === 'models') $gateway->models();
+            else $gateway->chat([]);
+        }
+        providerExpect(count($history) === 1, '每次操作只发一次请求，不探测 URL');
+        $entry = $history[0];
+        $endpoint = $operation === 'models' ? '/models' : '/chat/completions';
+        providerExpect((string) $entry['request']->getUri() === 'https://api.example.com' . $prefix . $endpoint, $operation . ' 路径归一化失败：' . $basePath);
+        providerExpect($entry['request']->getMethod() === ($operation === 'models' ? 'GET' : 'POST'), '请求方法保持不变');
+        providerExpect($entry['options']['allow_redirects'] === false && $entry['options']['curl'][CURLOPT_RESOLVE][0] === 'api.example.com:443:93.184.216.34', '归一化不得改变重定向或 DNS 固定');
+    }
+}
+foreach (['/v1/chat/completions', '/models/', '/proxy/v1/responses', '/v1/messages'] as $endpoint) {
+    $history = [];
+    try {
+        providerGateway([], $history, ['base_url'=>'https://api.example.com' . $endpoint]);
+        throw new RuntimeException('完整 endpoint 必须明确拒绝');
+    } catch (InvalidArgumentException $e) {
+        providerExpect(str_contains($e->getMessage(), 'endpoint'), '明确提示应填写 Base URL 而不是 endpoint');
+    }
+    providerExpect($history === [], '完整 endpoint 不得发送请求');
+}
+foreach ([302, 404] as $status) {
+    $history = [];
+    $gateway = providerGateway([new Response($status, ['Location'=>'https://other.example.com/v1'])], $history, ['base_url'=>'https://api.example.com']);
+    try { $gateway->chat([]); throw new RuntimeException('失败必须停止'); }
+    catch (AiProviderException) {}
+    providerExpect(count($history) === 1, '失败 POST 不得换地址重试');
+}
+
 echo "AI OpenAI-compatible provider tests: PASS\n";

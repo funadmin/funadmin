@@ -23,6 +23,9 @@ function boundaryReject(callable $operation, string $code): void
     throw new RuntimeException('应拒绝：' . $code);
 }
 
+$app = new think\App(dirname(__DIR__));
+think\Container::setInstance($app);
+$app->config->set(['connections' => ['mysql' => ['prefix' => 'fun_']]], 'database');
 boundaryExpect(class_exists(BusinessTargetService::class), '缺少接通业务目标的应用边界');
 $authorized = true;
 $state = [];
@@ -34,12 +37,36 @@ $policy = new BusinessTargetService(
     static fn (): array => [
         ['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true],
         ['code' => 'readonly', 'name' => '只读', 'scopes' => ['console'], 'businessWritable' => false],
+        ['code' => 'noconsole', 'name' => '无后台', 'scopes' => [], 'businessWritable' => true],
+        ['code' => '../secret', 'name' => 'secret-content', 'scopes' => ['console'], 'businessWritable' => true],
     ],
     static fn (): array => ['fun_admin' => 'core', 'fun_other_item' => 'other'],
     static fn (string $table): bool => $table === 'fun_legacy'
 );
 $target = BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'adopted');
-boundaryExpect(count($policy->candidates()['list']) === 2, '仅返回核心与可写插件');
+$candidates = $policy->candidates()['list'];
+boundaryExpect(count($candidates) === 4, '安全的不可用插件也必须逐项返回');
+$byCode = array_column($candidates, null, 'pluginCode');
+boundaryExpect($byCode['sample']['available'] === true && $byCode['sample']['reason'] === null, '可用候选显式声明状态');
+boundaryExpect($byCode['readonly']['available'] === false && $byCode['readonly']['reason'] === ['code' => 'BUSINESS_TARGET_READ_ONLY', 'message' => '插件目录或必要文件不可写'], '只读候选必须有安全原因');
+boundaryExpect($byCode['noconsole']['reason']['code'] === 'BUSINESS_TARGET_CONSOLE_MISSING', '缺少 console 必须有原因');
+boundaryExpect(!str_contains(json_encode($candidates), 'secret'), '非法标识及内容不可泄露');
+boundaryReject(fn () => $policy->assertSelection(['type' => 'plugin', 'pluginCode' => 'readonly'], 'mysql', 'fun_legacy'), 'BUSINESS_TARGET_UNAVAILABLE');
+foreach ([
+    ['recovery_token' => 'secret-recovery', 'reason' => 'BUSINESS_TARGET_RECOVERY_LOCKED'],
+    ['operation_token' => 'secret-operation', 'reason' => 'BUSINESS_TARGET_OPERATION_LOCKED'],
+    ['lifecycle_state' => 'updating', 'reason' => 'BUSINESS_TARGET_LIFECYCLE_BLOCKED'],
+] as $locked) {
+    $expectedReason = $locked['reason'];
+    unset($locked['reason']);
+    $state = ['sample' => $locked];
+    $candidate = array_column($policy->candidates()['list'], null, 'pluginCode')['sample'];
+    boundaryExpect($candidate['available'] === false && $candidate['reason']['code'] === $expectedReason, '锁状态必须有逐项原因');
+    boundaryExpect(array_keys($candidate) === ['type', 'pluginCode', 'name', 'scope', 'available', 'reason'], 'DTO 必须白名单输出');
+    boundaryExpect(!str_contains(json_encode($candidate), 'secret'), '不得输出锁令牌');
+    boundaryReject(fn () => $policy->assertSelection($target, 'mysql', 'fun_legacy'), 'BUSINESS_TARGET_UNAVAILABLE');
+}
+$state = [];
 $policy->assertSelection($target, 'mysql', 'fun_legacy');
 boundaryReject(fn () => $policy->assertSelection($target, 'archive', 'fun_legacy'), 'BUSINESS_DEFAULT_CONNECTION_ONLY');
 boundaryReject(fn () => $policy->assertSelection($target, 'mysql', 'fun_admin'), 'BUSINESS_TABLE_FORBIDDEN');
@@ -68,6 +95,28 @@ boundaryExpect($definition->get('generationTargets') === null, '不得携带核�
 boundaryExpect($definition->get('formSchema') === $core->get('formSchema'), '必须保留完整表单语义');
 boundaryExpect($definition->get('permissionPrefix') === 'sample:item', '插件权限派生');
 boundaryExpect($definition->get('routePath') === '/plugin/sample/item', '插件路由派生');
+// 采纳表的受管时间列必须保留真实 Schema，而不是套用新建表的 nullable 默认值。
+$adoptedDocument = $schema->document();
+$adoptedDocument['database']['source'] = 'adopted';
+$adoptedSchema = (new FormSchemaCompiler(new FormSchemaValidator()))->compile($adoptedDocument);
+foreach ([false, true] as $nullable) {
+    $actualSchema = ['primaryKey' => ['id'], 'columns' => [
+        ['name' => 'id', 'type' => 'bigint unsigned', 'nullable' => false],
+        ['name' => 'title', 'type' => 'varchar(255)', 'nullable' => false],
+    ]];
+    foreach (['created_at', 'updated_at', 'deleted_at'] as $name) {
+        $actualSchema['columns'][] = ['name' => $name, 'type' => 'datetime', 'nullable' => $nullable];
+    }
+    $adoptedDefinition = $factory->createFromSchema($adoptedSchema, [], [], $actualSchema);
+    $requirement = \app\common\plugin\sdk\ExternalTableRequirements::fromDefinition($adoptedDefinition);
+    $columns = array_column($requirement['columns'], null, 'name');
+    foreach (['created_at', 'updated_at', 'deleted_at'] as $name) {
+        boundaryExpect($columns[$name]['nullable'] === $nullable, '采纳时间字段丢失真实 nullable：' . $name);
+    }
+    (new \app\common\plugin\sdk\ExternalTableRequirements('mysql', static fn (): array => $actualSchema))->assertCompatible([$requirement]);
+}
+$coreFields = array_column($core->fields(), null, 'name');
+boundaryExpect($coreFields['created_at']['nullable'] && !$coreFields['id']['nullable'], '新建表受管字段默认值不得改变');
 $enforcer = new \Casbin\Enforcer(dirname(__DIR__) . '/config/casbin/rbac_model.conf');
 $enforcer->addPolicy('role:42', 'default', 'console/development.business', 'modules');
 $enforcer->addGroupingPolicy('admin:42', 'role:42', 'default');
@@ -105,4 +154,23 @@ $productionPolicy = new BusinessTargetService(dirname(__DIR__), 'mysql',
 boundaryExpect(count($productionPolicy->candidates()['list']) === 2, '默认授权必须使用普通角色的插件 options 权限');
 $GLOBALS['boundaryAdminId'] = 43;
 boundaryExpect(count($productionPolicy->candidates()['list']) === 1, '默认授权不得向未授权角色泄露候选');
+// 真实磁盘候选只使用本次独占的隔离根，不接触项目插件。
+$fixtureRoot = dirname(__DIR__) . '/runtime/business-candidates-' . bin2hex(random_bytes(6));
+$scaffolder = new \app\common\plugin\sdk\PluginScaffolder($fixtureRoot . '/plugins');
+$scaffolder->scaffold('emptyplugin', '无后台插件', false, false, false);
+$scaffolder->scaffold('noweb', '无前端插件', false, true, false);
+$scaffolder->scaffold('diskreadonly', '磁盘只读插件', false, true, true);
+chmod($fixtureRoot . '/plugins/diskreadonly/plugin.json', 0444);
+$scaffolder->scaffold('unsafe', 'secret-symlink', false, true, true);
+symlink($fixtureRoot . '/plugins/noweb/plugin.json', $fixtureRoot . '/plugins/unsafe/secret');
+$diskPolicy = new BusinessTargetService($fixtureRoot, authorized: static fn (): bool => true, states: static fn (): array => []);
+$diskCandidates = array_column($diskPolicy->candidates()['list'], null, 'pluginCode');
+boundaryExpect(($diskCandidates['emptyplugin']['reason']['code'] ?? '') === 'BUSINESS_TARGET_CONSOLE_MISSING', '无任何应用目录的本地插件也应返回缺 console 原因');
+boundaryExpect(($diskCandidates['noweb']['reason']['code'] ?? '') === 'BUSINESS_TARGET_ADMIN_WEB_MISSING', '无 admin-web 必须给出安全原因');
+boundaryExpect(($diskCandidates['diskreadonly']['reason']['code'] ?? '') === 'BUSINESS_TARGET_READ_ONLY', '真实磁盘只读必须被识别');
+boundaryExpect(!isset($diskCandidates['unsafe']) && !str_contains(json_encode($diskCandidates), 'secret'), '非法符号链接插件不能出现在候选中');
+$noEnumeration = new BusinessTargetService($fixtureRoot, authorized: static fn (): bool => false,
+    states: static function (): array { throw new RuntimeException('无权限不得读取状态'); },
+    options: static function (): array { throw new RuntimeException('无权限不得枚举插件'); });
+boundaryExpect(count($noEnumeration->candidates()['list']) === 1, '无权限只返回核心目标');
 echo "business plugin boundary tests: PASS\n";

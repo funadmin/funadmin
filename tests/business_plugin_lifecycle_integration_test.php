@@ -139,7 +139,9 @@ try {
         $document = ['schemaVersion' => 2, 'key' => $entity, 'title' => $entity,
             'database' => ['connection' => 'mysql', 'table' => $table, 'source' => 'created'],
             'nodes' => [['id' => 'title_node', 'kind' => 'field', 'type' => 'input', 'field' => 'title', 'title' => '标题',
-                'database' => ['columnType' => 'varchar(255)', 'nullable' => false], 'children' => []]]];
+                'database' => ['columnType' => 'varchar(255)', 'nullable' => false, 'index' => 'unique'], 'children' => []],
+                ['id' => 'category_node', 'kind' => 'field', 'type' => 'input', 'field' => 'category', 'title' => '分类',
+                    'database' => ['columnType' => 'varchar(64)', 'nullable' => true], 'list' => ['filter' => 'eq'], 'children' => []]]];
         $schemas->saveVersion((int) $form->id, $document, 'manual', 'lifecycle-test');
         $target = BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => $code], 'created');
         $module = BusinessModule::create(['code' => $entity, 'name' => $entity, 'form_id' => $form->id, 'origin' => 'visual',
@@ -151,6 +153,38 @@ try {
         lifecycleExpect(!in_array($table, Db::connect()->getTables(), true), '生成时不得执行 DDL');
         lifecycleExpect(is_file($directory . '/app/console/model/' . ucfirst($entity) . '.php'), '模块源码未生成');
         if ($index === 0) {
+            // 真实生成快照与同名表：每次只改变索引，不改变列和主键。
+            $createFile = glob($directory . '/database/migrations/*_create_entry.sql')[0];
+            $createSql = (string) file_get_contents($createFile);
+            lifecycleExpect(str_contains($createSql, 'UNIQUE KEY') && str_contains($createSql, 'idx_' . $table . '_category'), '测试必须生成唯一和普通索引');
+            Db::execute($createSql);
+            $infrastructure = new \app\console\plugin\service\PluginInfrastructureService();
+            $manifest = Manifest::fromDirectory($directory);
+            $infrastructure->assertExternalTables($manifest);
+            $failures = [];
+            $unique = 'uk_' . $table . '_title';
+            $normal = 'idx_' . $table . '_category';
+            $cases = [
+                'missing unique' => ["DROP INDEX `{$unique}`", "ADD UNIQUE KEY `{$unique}` (`title`)"],
+                'unique downgraded' => ["DROP INDEX `{$unique}`, ADD KEY `{$unique}` (`title`)", "DROP INDEX `{$unique}`, ADD UNIQUE KEY `{$unique}` (`title`)"],
+                'wrong unique column' => ["DROP INDEX `{$unique}`, ADD UNIQUE KEY `{$unique}` (`category`)", "DROP INDEX `{$unique}`, ADD UNIQUE KEY `{$unique}` (`title`)"],
+                'missing normal' => ["DROP INDEX `{$normal}`", "ADD KEY `{$normal}` (`category`)"],
+                'wrong normal columns' => ["DROP INDEX `{$normal}`, ADD KEY `{$normal}` (`title`, `category`)", "DROP INDEX `{$normal}`, ADD KEY `{$normal}` (`category`)"],
+            ];
+            foreach ($cases as $label => [$change, $restore]) {
+                Db::execute("ALTER TABLE `{$table}` {$change}");
+                try {
+                    $infrastructure->assertExternalTables($manifest);
+                    $failures[] = $label;
+                } catch (InvalidArgumentException $error) {
+                    lifecycleExpect(str_contains($error->getMessage(), 'PLUGIN_TABLE_STRUCTURE_CONFLICT'), '索引预检异常原因错误');
+                } finally {
+                    Db::execute("ALTER TABLE `{$table}` {$restore}");
+                }
+            }
+            lifecycleExpect($failures === [], '同名 CREATE 未拒绝索引冲突：' . implode(', ', $failures));
+            $infrastructure->assertExternalTables($manifest);
+            echo "INDEX PREFLIGHT PASS: missing unique, downgraded unique, wrong unique column, missing normal, wrong normal columns rejected; compatible accepted\n";
             lifecycleExpect($plugins->installPlugin($code), '真实安装失败');
             lifecycleExpect(is_file(runtime_path() . 'install-hook'), '未执行安装钩子');
             $firstMigration = Db::name('system_migration')->where('scope', 'plugin:' . $code)->select()->toArray();
@@ -170,7 +204,50 @@ try {
         lifecycleExpect(Db::name('plugin_resource')->where('plugin_code', $code)->count() > 0, '未登记发布资源');
     }
     foreach (['Entry', 'Detail'] as $entity) lifecycleExpect(is_file($root . '/app/console/model/plugin/' . $code . '/' . $entity . '.php'), '两个模块必须都已原生发布：' . $entity);
-    echo "TWO MODULES PASS: both generated models published; permissions=" . Db::name('permission')->where('source_name', $code)->count() . "\n";
+    // 同一已生成模块新增字段，必须追加 forward migration，不能重写历史。
+    $history = Db::name('system_migration')->where('scope', 'plugin:' . $code)->order('version')->select()->toArray();
+    $historicalFiles = [];
+    foreach (glob($directory . '/database/migrations/*.sql') as $file) $historicalFiles[$file] = hash_file('sha256', $file);
+    Db::execute("INSERT INTO fun_lifetest_detail (id, title, category) VALUES (41, 'detail-sentinel', 'old-category')");
+    $oldRows = Db::query('SELECT * FROM fun_lifetest_detail ORDER BY id');
+    $document['nodes'][] = ['id' => 'note_node', 'kind' => 'field', 'type' => 'input', 'field' => 'note', 'title' => '备注',
+        'database' => ['columnType' => 'varchar(128)', 'nullable' => true], 'children' => []];
+    $schemas->saveVersion((int) $form->id, $document, 'manual', 'lifecycle-forward');
+    $forward = $generation->preview((int) $module->id, true, 'lifecycle-detail-forward');
+    lifecycleExpect(!$forward['plan']['blocked'], '同模块新增字段计划被阻断：' . json_encode($forward['plan']));
+    $generated = $generation->execute((int) $module->id, $forward['generationId'], $forward['sensitive']['confirmToken']);
+    lifecycleExpect($generated['resourceApplyStatus'] === 'pending_publication', '增量生成不得冒充更新');
+    $newFiles = array_values(array_diff(glob($directory . '/database/migrations/*.sql'), array_keys($historicalFiles)));
+    lifecycleExpect(count($newFiles) === 1 && str_ends_with($newFiles[0], '_alter_detail.sql'), '同模块必须只追加一个 ALTER migration');
+    lifecycleExpect(str_contains(file_get_contents($newFiles[0]), 'ADD COLUMN `note` varchar(128) NULL'), '增量迁移必须包含新增列');
+    lifecycleExpect(!in_array('note', array_column(Db::query('SHOW COLUMNS FROM fun_lifetest_detail'), 'Field'), true), '真实 update 前不得执行增量 DDL');
+    lifecycleManifest($directory, static function (array &$data): void { $data['version'] = '1.2.0'; });
+    lifecycleExpect($plugins->updatePlugin($code), '同模块增量真实更新失败');
+    lifecycleExpect(file_get_contents(runtime_path() . 'update-hook') === '1.1.0->1.2.0', '同模块增量更新钩子不符');
+    $columns = array_column(Db::query('SHOW COLUMNS FROM fun_lifetest_detail'), null, 'Field');
+    lifecycleExpect(isset($columns['note']) && $columns['note']['Type'] === 'varchar(128)' && $columns['note']['Null'] === 'YES', '真实更新没有正确新增列');
+    $expectedRows = array_map(static fn (array $row): array => $row + ['note' => null], $oldRows);
+    lifecycleExpect(Db::query('SELECT * FROM fun_lifetest_detail ORDER BY id') === $expectedRows, '增量更新破坏旧数据或新列默认值');
+    $afterHistory = Db::name('system_migration')->where('scope', 'plugin:' . $code)->order('version')->select()->toArray();
+    lifecycleExpect(count($afterHistory) === 3 && array_slice($afterHistory, 0, 2) === $history, '历史 migration 记录被改变或重复执行');
+    foreach ($historicalFiles as $file => $hash) lifecycleExpect(hash_file('sha256', $file) === $hash, '历史 migration 文件被修改');
+    lifecycleExpect($afterHistory[2]['checksum'] === hash_file('sha256', $newFiles[0]), '新增 migration 登记指纹不符');
+    echo "FORWARD UPDATE PASS: same detail module; migration=3; note column added; old rows and historical files/records unchanged\n";
+
+    foreach (['entry', 'detail'] as $entity) {
+        foreach (['list', 'create', 'update', 'delete'] as $action) {
+            $permission = Db::name('permission')->where('code', $code . ':' . $entity . ':' . $action)->find();
+            lifecycleExpect($permission !== null && $permission['source_type'] === 'plugin' && $permission['source_name'] === $code
+                && $permission['app_name'] === 'console' && $permission['obj'] === $entity && $permission['act'] === $action,
+                '具体权限归属或资源动作不符：' . $entity . ':' . $action);
+        }
+        $listPermission = Db::name('permission')->where('code', $code . ':' . $entity . ':list')->find();
+        $menus = Db::name('admin_menu')->where('href', '/plugin/' . $code . '/' . $entity)->select()->toArray();
+        lifecycleExpect(count($menus) === 1 && $menus[0]['name'] === $entity && $menus[0]['source_type'] === 'plugin'
+            && $menus[0]['source_name'] === $code && $menus[0]['app_name'] === 'console'
+            && (int) $menus[0]['permission_id'] === (int) $listPermission['id'], '具体菜单及列表权限绑定错误：' . $entity);
+    }
+    echo "TWO MODULES PASS: both models published; entry/detail list/create/update/delete permissions and menu permission bindings verified\n";
 
     $external = [['module' => 'legacy', 'connection' => 'mysql', 'table' => 'fun_external_lifecycle', 'primaryKey' => ['id'],
         'columns' => [['name' => 'id', 'type' => 'bigint unsigned', 'nullable' => false]]]];
@@ -188,8 +265,23 @@ try {
     lifecycleExpect(!$plugins->isInstall($missingCode), '拒绝安装不得留下插件记录');
     lifecycleExpect(Db::name('plugin_resource')->where('plugin_code', $missingCode)->count() === 0, '拒绝安装不得发布资源');
     lifecycleExpect(Db::name('system_migration')->where('scope', 'plugin:' . $missingCode)->count() === 0, '拒绝安装不得执行迁移');
-    Db::execute('CREATE TABLE fun_external_lifecycle (id bigint unsigned NOT NULL PRIMARY KEY, payload varchar(255) NOT NULL)');
+    Db::execute('CREATE TABLE fun_external_lifecycle (id int unsigned NOT NULL PRIMARY KEY, payload varchar(255) NOT NULL)');
     Db::execute("INSERT INTO fun_external_lifecycle VALUES (7, 'external-sentinel')");
+    $incompatibleDdl = Db::query('SHOW CREATE TABLE fun_external_lifecycle');
+    $incompatibleRows = Db::query('SELECT * FROM fun_external_lifecycle ORDER BY id');
+    try {
+        $plugins->installPlugin($missingCode);
+        throw new LogicException('外部表不兼容时真实安装未拒绝');
+    } catch (InvalidArgumentException $error) {
+        lifecycleExpect($error->getMessage() === 'EXTERNAL_TABLE_STRUCTURE_CONFLICT', '外部表不兼容拒绝原因错误');
+    }
+    lifecycleExpect(!$plugins->isInstall($missingCode), '不兼容安装不得留下插件记录');
+    lifecycleExpect(Db::name('plugin_resource')->where('plugin_code', $missingCode)->count() === 0
+        && Db::name('system_migration')->where('scope', 'plugin:' . $missingCode)->count() === 0, '不兼容安装不得发布或迁移');
+    lifecycleExpect(Db::query('SHOW CREATE TABLE fun_external_lifecycle') === $incompatibleDdl
+        && Db::query('SELECT * FROM fun_external_lifecycle ORDER BY id') === $incompatibleRows, '拒绝安装改变外部表或行');
+    echo "INCOMPATIBLE EXTERNAL PASS: real install rejected; no plugin/resources/migrations; DDL+rows unchanged\n";
+    Db::execute('ALTER TABLE fun_external_lifecycle MODIFY id bigint unsigned NOT NULL');
     lifecycleExpect($plugins->installPlugin($missingCode), '外部表补齐后真实安装应通过');
     lifecycleManifest($directory, static function (array &$data) use ($external): void { $data['externalTables'] = $external; });
     $beforeDdl = Db::query('SHOW CREATE TABLE fun_external_lifecycle');
@@ -204,6 +296,15 @@ try {
     lifecycleExpect(Db::query('SHOW CREATE TABLE fun_external_lifecycle') === $beforeDdl && Db::query('SELECT * FROM fun_external_lifecycle ORDER BY id') === $beforeRows, '外部表结构或数据被改变');
     lifecycleExpect(Db::name('plugin_operation')->where('plugin_code', $code)->where('operation', 'purge')->where('result', 'failed')->count() > 0, '缺少真实 purge 失败审计');
     echo "PURGE PASS: PluginService rejected EXTERNAL_TABLE_PURGE_FORBIDDEN; hook not called; external DDL+rows unchanged; failure audited\n";
+    lifecycleExpect($plugins->uninstallPlugin($missingCode), '外部依赖插件真实卸载失败');
+    $uninstalled = $plugins->isInstall($missingCode);
+    lifecycleExpect($uninstalled !== null && $uninstalled->deleted_at !== null && $uninstalled->lifecycle_state === 'discovered', '卸载后必须软删除并回到 discovered');
+    lifecycleExpect(Db::name('plugin_resource')->where('plugin_code', $missingCode)->count() === 0
+        && Db::name('admin_menu')->where('source_name', $missingCode)->count() === 0
+        && Db::name('permission')->where('source_name', $missingCode)->count() === 0, '卸载没有清理插件资源');
+    lifecycleExpect(Db::query('SHOW CREATE TABLE fun_external_lifecycle') === $beforeDdl
+        && Db::query('SELECT * FROM fun_external_lifecycle ORDER BY id') === $beforeRows, '真实卸载删除或修改外部表及行');
+    echo "UNINSTALL PASS: PluginService; plugin resources removed; external table and sentinel row unchanged\n";
     echo "business plugin lifecycle integration: PASS\n";
 } catch (Throwable $error) {
     $exit = 1;

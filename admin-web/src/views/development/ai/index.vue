@@ -3,10 +3,12 @@
     <nav class="mobile-actions" :aria-label="t('aiDevelopment.workspace')">
       <el-button data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
       <el-button data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
-      <el-button data-testid="mobile-context" :aria-pressed="mobileTab === 'context'" @click="mobileTab = 'context'"><i class="i-ep-document" />{{ t('aiDevelopment.task') }}</el-button>
+      <el-badge :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
+        <el-button data-testid="mobile-context" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+      </el-badge>
     </nav>
 
-    <div class="ai-layout" :class="{ 'ai-layout--inspector': !isMobile && inspectorOpen }">
+    <div class="ai-layout">
       <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
         <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
           <template #actions>
@@ -19,7 +21,9 @@
         <header class="workspace-header">
           <div><strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ statusLabel(store.activeTask.status) }}</small></div>
           <div class="workspace-actions">
-            <el-button data-testid="toggle-inspector" @click="toggleInspector"><i class="i-ep-document" />{{ inspectorOpen ? t('aiDevelopment.changeSet.close') : t('aiDevelopment.task') }}</el-button>
+            <el-badge class="task-permissions-badge" data-testid="pending-approvals-badge" :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
+              <el-button data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+            </el-badge>
             <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
         </header>
@@ -27,30 +31,33 @@
           <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
           <MessageTimeline :messages="store.messages" />
           <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
-          <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
         </div>
         <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="store.cancelActiveTask()">
           <template #models>
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
+            <el-tooltip placement="top" :popper-style="{ maxWidth: 'calc(100vw - 32px)' }">
+              <template #content><div id="ai-model-hint" class="model-help">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }} 仅影响新建任务，运行任务保留快照。
+                <div data-testid="profile-model-summary">档案默认模型：{{ selectedProfile?.model || '未选择档案' }}；Token 输入 {{ selectedProfile?.max_input_tokens ?? '未指定' }} / 输出 {{ selectedProfile?.max_output_tokens ?? '未指定' }} / 上下文 {{ selectedProfile?.context_window ?? '未指定' }}</div>
+              </div></template>
+              <el-button size="small" text class="model-help-trigger" aria-label="模型与思考设置说明">设置说明</el-button>
+            </el-tooltip>
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
-              <el-select data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
+              <el-select size="small" :teleported="false" data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
                 <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="`${profile.name}${profile.is_default ? '（默认）' : ''} · ${profile.model}`" :disabled="!profile.enabled" />
               </el-select>
-              <el-button :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
+              <el-button size="small" :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
               <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
-              <el-input id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" aria-describedby="ai-model-hint" :disabled="modelSaving || !selectedConversation" />
-              <el-button data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
+              <el-input size="small" id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" :disabled="modelSaving || !selectedConversation" />
+              <el-button size="small" type="primary" data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
             </div>
-            <small data-testid="profile-model-summary">档案默认模型：{{ selectedProfile?.model || '未选择档案' }}；Token 输入 {{ selectedProfile?.max_input_tokens ?? '未指定' }} / 输出 {{ selectedProfile?.max_output_tokens ?? '未指定' }} / 上下文 {{ selectedProfile?.context_window ?? '未指定' }}</small>
-            <div v-if="selectedProfile" data-testid="favorite-models">常用模型：<button v-for="model in selectedProfile.favorite_models" :key="model" type="button" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</button></div>
-            <label for="ai-conversation-reasoning">会话思考档位</label>
-            <select id="ai-conversation-reasoning" data-testid="conversation-reasoning" :value="selectedConversation?.reasoning_effort ?? ''" :disabled="modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
-              <option value="">继承档案（default）</option>
-              <option v-for="effort in legalReasoningEfforts" :key="effort" :value="effort">{{ effort }}</option>
-            </select>
-            <small data-testid="inherited-reasoning">思考模式：{{ selectedProfile ? (effectiveReasoning || '默认（不发送参数）') : '未选择档案，使用服务端配置' }}。{{ selectedConversation?.reasoning_effort == null ? '继承档案' : '会话覆盖' }}；仅影响新建任务，运行任务保留快照。</small>
-            <small id="ai-model-hint">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }}</small>
+            <div v-if="selectedProfile?.favorite_models?.length" class="favorite-models" data-testid="favorite-models"><span>常用模型</span><el-button v-for="model in selectedProfile.favorite_models" :key="model" size="small" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</el-button></div>
+            <label for="ai-conversation-reasoning">{{ t('aiDevelopment.reasoning.conversation') }}</label>
+            <el-select id="ai-conversation-reasoning" size="small" :teleported="false" :aria-label="t('aiDevelopment.reasoning.conversation')" data-testid="conversation-reasoning" :model-value="selectedConversation?.reasoning_effort ?? ''" :disabled="modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
+              <el-option value="" :label="t('aiDevelopment.reasoning.inherit')" />
+              <el-option v-for="effort in legalReasoningEfforts" :key="effort" :value="effort" :label="effort" />
+            </el-select>
+            <small data-testid="inherited-reasoning">{{ selectedProfile ? (effectiveReasoning || t('aiDevelopment.reasoning.default')) : t('aiDevelopment.reasoning.noProfile') }} · {{ t(selectedConversation?.reasoning_effort == null ? 'aiDevelopment.reasoning.inherit' : 'aiDevelopment.reasoning.override') }}</small>
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
           </template>
@@ -58,9 +65,15 @@
         </AiComposer>
       </main>
 
-      <aside v-if="regionVisible('context')" class="ai-context-pane" data-ai-region="context"><ContextPanel /></aside>
     </div>
 
+    <el-dialog v-model="inspectorOpen" :title="t('aiDevelopment.taskAndPermissions')" width="min(760px, 94vw)" align-center :destroy-on-close="false">
+      <div class="task-permissions-scroll">
+        <ContextPanel />
+        <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
+        <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
+      </div>
+    </el-dialog>
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
     <ProviderSettingsDrawer v-model="providerOpen" :profiles="profiles" :busy="profileBusy" :models="profileModels" :saved-profile="savedProfile" :error="profileError" :notice="profileNotice" @select="resetProfileFeedback" @save="saveProfile" @copy="copyProfile" @remove="removeProfile" @default="defaultProfile" @models="fetchProfileModels" @test="testProvider" />
     <el-dialog v-model="moveOpen" :title="t('aiDevelopment.management.move')" width="min(440px, 94vw)">
@@ -79,7 +92,7 @@ import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, 
 import { useI18n } from 'vue-i18n';
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
-import { aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
+import { AI_REASONING_EFFORTS, aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
 import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
@@ -199,11 +212,8 @@ async function fetchProfileModels(id: number) {
 const selectedConversation = computed(() => store.conversations.find((item) => item.id === store.selectedConversationId));
 const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedConversation.value?.profile_id));
 const effectiveReasoning = computed(() => selectedConversation.value?.reasoning_effort ?? selectedProfile.value?.reasoning_effort ?? null);
-const legalReasoningEfforts = computed(() => (['low', 'medium', 'high'] as AiReasoningEffort[]).filter(reasoning_effort => selectedProfile.value && !profileCapabilityError({ ...selectedProfile.value, model: selectedConversation.value?.model || selectedProfile.value.model, reasoning_effort })));
-async function selectReasoning(event: Event) {
-  const control = event.target as HTMLSelectElement;
-  const value = control.value;
-  control.value = selectedConversation.value?.reasoning_effort ?? '';
+const legalReasoningEfforts = computed(() => AI_REASONING_EFFORTS.filter(reasoning_effort => selectedProfile.value && !profileCapabilityError({ ...selectedProfile.value, model: selectedConversation.value?.model || selectedProfile.value.model, reasoning_effort })));
+async function selectReasoning(value: string) {
   const id = selectedConversation.value?.id;
   const profile = selectedProfile.value;
   if (!id || !profile || !profile.enabled || modelSaving.value) return;
@@ -246,12 +256,13 @@ async function saveModel() {
     modelSaving.value = false;
   }
 }
-const pendingApprovals = computed(() => store.approvals.filter((item) => item.status === 'pending'));
+// 数量与审批卡共用真实审批记录，避免重复响应或工具调用重复计数。
+const pendingApprovals = computed(() => [...new Map(store.approvals.map((item) => [item.id, item])).values()].filter((item) => item.status === 'pending'));
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
-const regionVisible = (region: string) => isMobile.value ? mobileTab.value === region : region !== 'context' || inspectorOpen.value;
+const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
 const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
-const toggleInspector = () => { inspectorOpen.value = !inspectorOpen.value; };
+const toggleInspector = () => { inspectorOpen.value = true; };
 const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobile.value = event.matches; };
 
 const ContextPanel = defineComponent({
@@ -457,18 +468,23 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 .ai-page :deep(> main > div:last-child) { overflow: hidden; }
 header small { color: var(--el-text-color-secondary); }
 .ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
-.ai-layout--inspector { grid-template-columns: minmax(220px, 260px) minmax(380px, 1fr) minmax(270px, 330px); }
-.ai-conversations-pane, .ai-context-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
+.task-permissions-scroll { max-height: calc(100dvh - 160px); overflow: auto; display: grid; gap: 14px; min-width: 0; overflow-wrap: anywhere; }
+.ai-conversations-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
 .ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
-.ai-context-pane { border-left: 1px solid var(--el-border-color-lighter); }
 .ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
 .workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .workspace-header > div:first-child { display: grid; gap: 2px; }.workspace-actions { display: flex; gap: 8px; }.workspace-scroll { min-height: 0; overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
-.model-form { flex: 1 0 100%; min-width: 0; display: grid; gap: 6px; }
-.model-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.model-controls .el-input { flex: 1 1 180px; min-width: 0; }
+.model-form { min-width: 0; display: grid; gap: 8px; overflow-wrap: anywhere; }
+.model-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.model-controls label { grid-column: 1 / -1; }
+.model-form :deep(.el-button) { margin-left: 0; }
+.model-form :deep(.el-select), .model-controls .el-input { min-width: 0; width: 100%; }
+.model-help-trigger { justify-self: end; }
+.model-help { max-width: 320px; overflow-wrap: anywhere; }
+.favorite-models { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.favorite-models .el-button { max-width: 100%; height: auto; min-height: 24px; white-space: normal; overflow-wrap: anywhere; }
 .model-error { margin: 0; color: var(--el-color-danger); overflow-wrap: anywhere; }
 .context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-actions { display: none; }
-@media (max-width: 1024px) { .mobile-actions { display: flex; gap: 8px; padding-bottom: 10px; }.ai-layout { display: block; min-height: 0; }.ai-conversations-pane { height: 100%; border-right: 0; }.ai-context-pane { height: 100%; border-left: 0; }.ai-workspace-pane { height: 100%; }.workspace-actions [data-testid="toggle-inspector"] { display: none; } }
+@media (max-width: 1024px) { .mobile-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; }.ai-layout { display: block; min-height: 0; }.ai-conversations-pane { height: 100%; border-right: 0; }.ai-workspace-pane { height: 100%; }.workspace-actions .task-permissions-badge { display: none; } }
 @media (max-width: 680px) { .composer { grid-template-columns: 1fr; } }
 </style>

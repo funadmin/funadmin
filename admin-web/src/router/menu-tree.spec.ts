@@ -115,6 +115,34 @@ describe('混合布局菜单全树路由', () => {
     expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203, 207]));
   });
 
+  it('隐藏业务创建菜单只影响侧栏，不移除动态路由或改变权限', () => {
+    const seed = getAdminMenuTreeSeed();
+    const business = seed.find((menu) => menu.routeName === 'Development')!.children!
+      .find((menu) => menu.routeName === 'BusinessDevelopment')!;
+    const hiddenNames = ['BusinessVisual', 'BusinessDatabase'];
+    for (const menu of business.children!) {
+      if (hiddenNames.includes(menu.routeName!)) menu.hidden = true;
+    }
+    const routes = generateRoutes(seed);
+    const router = createRouter({ history: createMemoryHistory(), routes });
+    const businessRoute = routes.find((route) => route.name === 'Development')!.children!
+      .find((route) => route.name === 'BusinessDevelopment')!;
+    expect(getVisibleMenuChildren(businessRoute).map((route) => route.name))
+      .toEqual(['BusinessMine', 'BusinessRecords']);
+    for (const [path, name, permission] of [
+      ['visual', 'BusinessVisual', 'save'],
+      ['database', 'BusinessDatabase', 'inspect']
+    ]) {
+      const resolved = router.resolve(`/development/business/${path}`);
+      expect(resolved.name).toBe(name);
+      expect(resolved.meta.hidden).toBe(true);
+      expect(resolved.meta.permission).toBe(`development:business:${permission}`);
+      expect(resolved.matched.at(-1)?.components?.default).toBeTypeOf('function');
+    }
+    expect(router.resolve('/development/business/mine').name).toBe('BusinessMine');
+    expect(router.resolve('/development/business/mine').meta.permission).toBe('development:business:view');
+  });
+
   it('TopMenu 首叶跳转与 Sidebar 路径解析一致', () => {
     const routes = generateRoutes(menus);
 

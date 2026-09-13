@@ -72,6 +72,74 @@ try {
     $policy = new \app\console\development\service\BusinessTargetService($root, 'mysql', static fn () => true, static fn () => [],
         static fn () => [['code' => 'sample', 'name' => '隔离插件', 'scopes' => ['console'], 'businessWritable' => true]], static fn () => [], static fn () => false);
     $service = new \app\console\development\service\ManagedGenerationService($root, targetService: $policy);
+    // 使用真实 DB 冲突记录验证采纳与三层锁、提交前 CAS 的边界。
+    $adoptPath = 'plugins/sample/app/console/model/Entry.php';
+    $adoptContent = "<?php\nnamespace app\\console\\model\\plugin\\sample;\nclass Entry {}\n";
+    $adoptHash = hash('sha256', $adoptContent);
+    file_put_contents($root . '/' . $adoptPath, $adoptContent);
+    $conflict = \app\console\development\model\CrudGeneration::create([
+        'business_module_id' => $module->id, 'form_id' => $form->id, 'status' => 'conflict', 'operation' => 'preview',
+        'definition_hash' => str_repeat('a', 64), 'manifest' => ['plan' => ['files' => [[
+            'path' => $adoptPath, 'status' => 'conflict-no-base', 'remoteHash' => $adoptHash, 'artifactType' => 'model',
+        ]]]],
+    ]);
+    $adopt = fn () => $service->adoptResolvedBaseline((int) $module->id, (int) $conflict->id, $adoptPath, $adoptHash, $adoptHash, 'tester');
+    $infra = new \app\console\plugin\service\PluginInfrastructureService();
+    $held = $infra::lifecycleLock($root)->acquire('sample');
+    try {
+        try { $adopt(); throw new LogicException('采纳未取得生命周期锁'); }
+        catch (RuntimeException $error) { managedExpect(str_contains($error->getMessage(), '生命周期'), $error->getMessage()); }
+    } finally { $held->release(); }
+    $infra->withPublicationLock(function () use ($adopt): void {
+        try { $adopt(); throw new LogicException('采纳未取得发布锁'); }
+        catch (RuntimeException $error) { managedExpect(str_contains($error->getMessage(), '锁'), $error->getMessage()); }
+    }, $root);
+    managedExpect(Db::name('generated_file_baseline')->count() === 0, '竞争失败不能保存基线');
+    $saved = $adopt();
+    $state = new \app\console\development\repository\DatabaseGenerationStateRepository();
+    $expected = ['module' => \app\console\development\model\BusinessModule::find($module->id)->toArray(),
+        'generation' => \app\console\development\model\CrudGeneration::find($conflict->id)->toArray(),
+        'baseline' => $state->loadBaselines((int) $module->id)[0]];
+    $casReject = function (array $snapshot) use ($state, $module, $conflict, $saved): void {
+        try {
+            $state->adoptResolvedBaseline((int) $module->id, (int) $conflict->id, $saved, $snapshot);
+            throw new LogicException('提交 CAS 未拒绝快照漂移');
+        } catch (\app\console\development\exception\BusinessOperationException $error) {
+            managedExpect(str_contains($error->getMessage(), 'GENERATION_PLAN_CONFLICT'), $error->getMessage());
+        }
+    };
+    foreach (['module', 'generation', 'baseline'] as $part) {
+        $stale = $expected;
+        if ($part === 'module') $stale[$part]['metadata']['target']['pluginCode'] = 'other';
+        elseif ($part === 'generation') $stale[$part]['manifest']['plan']['files'][0]['remoteHash'] = str_repeat('c', 64);
+        else $stale[$part]['base_hash'] = str_repeat('d', 64);
+        $casReject($stale);
+    }
+    $stale = $expected;
+    $stale['baseline'] = null;
+    $casReject($stale);
+    managedExpect($adopt()['base_hash'] === $adoptHash, '同一冲突重复采纳仍可用');
+    $deniedPolicy = new \app\console\development\service\BusinessTargetService($root, 'mysql', function () use ($root): bool {
+        $probe = fopen($root . '/runtime/cache/business-development-write.lock', 'c+');
+        try { managedExpect(!flock($probe, LOCK_EX | LOCK_NB), '授权校验必须位于生成锁内'); }
+        finally { fclose($probe); }
+        return false;
+    });
+    $deniedAdoption = new \app\console\development\service\ManagedGenerationService($root, targetService: $deniedPolicy);
+    managedReject(fn () => $deniedAdoption->adoptResolvedBaseline((int) $module->id, (int) $conflict->id,
+        $adoptPath, $adoptHash, $adoptHash, 'tester'), 'BUSINESS_TARGET_FORBIDDEN');
+    \app\console\development\model\CrudGeneration::create([
+        'business_module_id' => $module->id, 'form_id' => $form->id, 'status' => 'conflict', 'operation' => 'preview', 'definition_hash' => str_repeat('b', 64),
+    ]);
+    try {
+        $state->adoptResolvedBaseline((int) $module->id, (int) $conflict->id, $saved, $expected);
+        throw new LogicException('提交 CAS 未拒绝过期冲突');
+    } catch (\app\console\development\exception\BusinessOperationException $error) {
+        managedExpect(str_contains($error->getMessage(), 'GENERATION_PLAN_CONFLICT'), $error->getMessage());
+    }
+    Db::name('generated_file_baseline')->delete(true);
+    unlink($root . '/' . $adoptPath);
+    echo "managed plugin isolated database: baseline adoption locks and CAS PASS\n";
     $preview = $service->preview((int) $module->id, true, 'isolated-plugin-preview');
     managedExpect(!$preview['plan']['blocked'], '插件草稿必须能预览');
     managedExpect(!is_file($root . '/plugins/sample/app/console/model/Entry.php'), '预览不得写源码');

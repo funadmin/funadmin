@@ -26,7 +26,7 @@ final class AiConfigurationProfileService
         $config = self::validate(array_merge($row->configuration, ['name'=>$row->name], $model === null ? [] : ['model'=>$model], $reasoningEffort === null ? [] : ['reasoning_effort'=>$reasoningEffort]));
         if (!$config['enabled']) throw new \RuntimeException('档案已停用', 409);
         unset($config['api_key']);
-        return ['profile_id'=>$id, 'configuration'=>$config, 'model'=>$config['model']];
+        return ['profile_id'=>$id, 'configuration'=>$config, 'model'=>$config['model'], 'url_version'=>1];
     }
 
     /** 恢复只按引用读取当前凭据；当前档案配置不得覆盖冻结参数。 */
@@ -38,6 +38,12 @@ final class AiConfigurationProfileService
         if (array_key_exists('api_key', $snapshot['configuration'])) throw new InvalidArgumentException('快照不得包含密钥', 400);
         $config = self::validate($snapshot['configuration']);
         if (($snapshot['model'] ?? null) !== $config['model']) throw new InvalidArgumentException('模型快照不一致', 400);
+        // 历史根域指向无版本端点，不能套用新规则后再注入当前密钥。
+        $legacyBase = rtrim(trim($config['base_url']), '/');
+        if ((!array_key_exists('url_version', $snapshot) && \app\common\ai\provider\OpenAiCompatibleGateway::normalizeBaseUrl($legacyBase) !== $legacyBase)
+            || (array_key_exists('url_version', $snapshot) && $snapshot['url_version'] !== 1)) {
+            throw new \RuntimeException('档案 URL 规则已变更，请创建新任务', 409);
+        }
         // 当前凭据仅可用于完全相同的可信目标，目标变更必须在读取密文和解密前停止。
         foreach (['base_url', 'protocol', 'provider'] as $field) {
             if (($row->configuration[$field] ?? null) !== $config[$field]) throw new \RuntimeException('档案可信目标已变更，请创建新任务', 409);
@@ -65,7 +71,7 @@ final class AiConfigurationProfileService
     {
         return array_merge($row->configuration, [
             'capabilities'=>self::capabilities($row->configuration, (string) ($row->configuration['model'] ?? '')),
-            'runtime_capabilities'=>['reasoning_efforts'=>['low','medium','high'], 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
+            'runtime_capabilities'=>['reasoning_efforts'=>\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS, 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
             'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttr('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
         ]);
     }
@@ -157,7 +163,7 @@ final class AiConfigurationProfileService
         if ($data['reasoning_effort'] === 'default') $data['reasoning_effort'] = null;
         $data['model_capabilities'] = \app\common\ai\provider\AiModelCapabilities::normalize($data['model_capabilities']);
         \app\common\ai\provider\AiModelCapabilities::validateSelection($data);
-        if (!in_array($data['reasoning_effort'], [null,'low','medium','high'], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
+        if (!in_array($data['reasoning_effort'], [null, ...\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
         if ($data['context_window'] !== null && ($data['max_input_tokens'] ?? 0) + ($data['max_output_tokens'] ?? 0) > $data['context_window']) throw new InvalidArgumentException('输入与输出预算超过上下文窗口', 400);
         if ($data['connect_timeout'] > $data['request_timeout']) throw new InvalidArgumentException('连接超时不得超过请求超时', 400);
         if (array_key_exists('api_key', $data) && (!is_string($data['api_key']) || strlen($data['api_key']) > 8192 || preg_match('/[\x00-\x20\x7f]/', $data['api_key']))) throw new InvalidArgumentException('api_key 无效', 400);

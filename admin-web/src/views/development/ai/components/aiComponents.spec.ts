@@ -264,6 +264,23 @@ describe('AI Development components', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(true);
   });
 
+  it('六档仅按主备声明交集可选，默认提交 null', async () => {
+    const efforts = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+    const profile = { id: 3, name: '六档', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', reasoning_effort: null, fallback_enabled: true, fallback_models: ['b'], max_output_tokens: 100, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: efforts, output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 })) };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await chooseProfile(wrapper);
+    const select = control(wrapper, '[data-testid="reasoning-effort"]');
+    expect(select.findAllComponents({ name: 'ElOption' }).map(o => o.props('value'))).toEqual(['', ...efforts]);
+    for (const effort of ['xhigh', 'max', 'ultra']) {
+      select.vm.$emit('update:modelValue', effort);
+      await wrapper.find('form').trigger('submit');
+      expect(wrapper.emitted('save')?.at(-1)?.[0]).toMatchObject({ reasoning_effort: effort });
+    }
+    select.vm.$emit('update:modelValue', '');
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')?.at(-1)?.[0]).toMatchObject({ reasoning_effort: null });
+  });
+
   it('管理员编辑能力、选择合法档位并调整备用顺序，不修改原档案', async () => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_models: ['b', 'c'], model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });

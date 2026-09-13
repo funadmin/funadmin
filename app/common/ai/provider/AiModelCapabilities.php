@@ -8,6 +8,7 @@ use InvalidArgumentException;
 /** 能力仅来自管理员逐模型声明，不使用名称、供应商标签或目录元数据推断。 */
 final class AiModelCapabilities
 {
+    public const REASONING_EFFORTS = ['low','medium','high','xhigh','max','ultra'];
     public const IMAGE_TOKENS = 32768;
     public const MAX_HTTP_BODY_BYTES = 20 * 1024 * 1024;
     public const IMAGE_DEFAULTS = ['image_input'=>false, 'image_tokens'=>self::IMAGE_TOKENS, 'max_images'=>4, 'image_mime_types'=>['image/png','image/jpeg','image/webp']];
@@ -31,8 +32,8 @@ final class AiModelCapabilities
             foreach ($mimes as $mime) if (!in_array($mime, self::IMAGE_DEFAULTS['image_mime_types'], true)) throw new InvalidArgumentException('图片 MIME 不支持', 400);
             if (count(array_unique($mimes)) !== count($mimes)) throw new InvalidArgumentException('图片 MIME 重复', 400);
             $efforts = $entry['reasoning_efforts'];
-            if (!is_array($efforts) || !array_is_list($efforts) || count($efforts) > 3) throw new InvalidArgumentException('推理能力必须是档位列表', 400);
-            foreach ($efforts as $effort) if (!in_array($effort, ['low','medium','high'], true)) throw new InvalidArgumentException('推理档位无效', 400);
+            if (!is_array($efforts) || !array_is_list($efforts) || count($efforts) > count(self::REASONING_EFFORTS)) throw new InvalidArgumentException('推理能力必须是档位列表', 400);
+            foreach ($efforts as $effort) if (!in_array($effort, self::REASONING_EFFORTS, true)) throw new InvalidArgumentException('推理档位无效', 400);
             if (count(array_unique($efforts)) !== count($efforts)) throw new InvalidArgumentException('推理档位不得重复', 400);
             if (!in_array($entry['output_token_parameter'], ['max_tokens','max_completion_tokens'], true)) throw new InvalidArgumentException('输出上限协议字段无效', 400);
             foreach (['context_window','max_output_tokens'] as $field) if ($entry[$field] !== null && (!is_int($entry[$field]) || $entry[$field] < 1 || $entry[$field] > 10000000)) throw new InvalidArgumentException('模型预算能力无效', 400);
@@ -54,7 +55,7 @@ final class AiModelCapabilities
     {
         $effort = $config['reasoning_effort'] ?? null;
         if ($effort === 'default') $effort = null;
-        if (!in_array($effort, [null,'low','medium','high'], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
+        if (!in_array($effort, [null, ...self::REASONING_EFFORTS], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
         $fallback = $config['fallback_enabled'] ?? false;
         if (!is_bool($fallback)) throw new InvalidArgumentException('fallback_enabled 必须是布尔值', 400);
         $models = $fallback ? ($config['fallback_models'] ?? []) : [];

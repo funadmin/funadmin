@@ -137,4 +137,43 @@ SQL);
     }
 }
 
+// 使用内存数据库执行真实 SQL，验证只隐藏两个入口且重复执行无副作用。
+$hideFile = $root . '/database/migrations/124_business_creation_menu_hidden.sql';
+businessPermissionExpect(is_file($hideFile), '缺少仅隐藏两个业务入口的 forward-only migration');
+$hideSql = (string) file_get_contents($hideFile);
+$hideStatements = (new ReflectionMethod(MigrationService::class, 'statements'))->invoke(new MigrationService(), $hideSql);
+businessPermissionExpect(count($hideStatements) === 1, '隐藏迁移只能执行一次菜单 UPDATE');
+businessPermissionExpect(preg_match('/^UPDATE\s+`fun_admin_menu`\s+SET\s+`query`\s*=/i', trim($hideStatements[0])) === 1, '只能更新菜单元数据');
+$memory = new PDO('sqlite::memory:');
+$memory->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$memory->sqliteCreateFunction('CONCAT', static fn (...$parts): string => implode('', $parts));
+$memory->exec('CREATE TABLE fun_admin_menu (id INTEGER PRIMARY KEY, app_name TEXT, source_type TEXT, source_name TEXT, href TEXT, query TEXT, permission_id INTEGER, status INTEGER, deleted_at TEXT)');
+$insert = $memory->prepare('INSERT INTO fun_admin_menu VALUES (?,?,?,?,?,?,?,?,?)');
+foreach (['visual', 'database', 'mine', 'records', 'business'] as $index => $href) {
+    $insert->execute([$index + 1, 'console', 'admin_web', 'business_development', $href, 'component=development/business/' . $href . '&hidden=false&custom=keep', 479 + $index, 1, null]);
+}
+foreach ([['api', 'admin_web', 'business_development'], ['console', 'generated', 'business_development'], ['console', 'admin_web', 'other']] as $index => $scope) {
+    $insert->execute([$index + 6, ...$scope, 'visual', 'custom=keep', 900, 1, null]);
+}
+$before = $memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+$memory->exec($hideSql);
+$after = $memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+foreach ($after as $index => $row) {
+    $expected = $before[$index];
+    if ($index < 2) {
+        $expected['query'] .= '&hidden=1';
+        parse_str($row['query'], $meta);
+        businessPermissionExpect(filter_var($meta['hidden'], FILTER_VALIDATE_BOOL), '两个入口必须隐藏');
+    }
+    businessPermissionExpect($row === $expected, '不得修改其他菜单、路由、状态或权限绑定');
+}
+$memory->exec($hideSql);
+businessPermissionExpect($memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC) === $after, '隐藏迁移必须幂等');
+$mine = (string) file_get_contents($root . '/admin-web/src/views/development/business/mine.vue');
+foreach (['visual' => 'save', 'database' => 'inspect'] as $path => $permission) {
+    businessPermissionExpect(str_contains($mine, "v-perm=\"'development:business:{$permission}'\" @click=\"router.push('/development/business/{$path}')\""), '我的业务按钮和既有权限必须保留');
+}
+businessPermissionExpect(str_contains($auth, "in_array((int) \$menu->permission_id, \$permissionIds, true)"), '非管理员仍按原权限绑定过滤，不能补授查看权限');
+businessPermissionExpect(!str_contains($hideSql, 'fun_permission') && !str_contains($hideSql, 'fun_casbin_rule'), '隐藏操作不得修改权限或角色授权');
+
 echo "business development permission tests: PASS\n";

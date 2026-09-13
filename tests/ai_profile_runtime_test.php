@@ -105,6 +105,23 @@ try { $service->updateConversation($override['id'], 7, ['model'=>'unknown']); th
 $sql = file_get_contents(dirname(__DIR__) . '/database/migrations/121_ai_conversation_reasoning_effort.sql');
 phase2Expect(str_contains($sql, 'ADD COLUMN `reasoning_effort` varchar(10) NULL DEFAULT NULL'), '独立新增迁移，旧会话默认继承');
 try { $service->createConversation(7, ['reasoning_effort'=>'low']); throw new LogicException('无档案不得覆盖'); } catch (InvalidArgumentException) {}
+foreach (['xhigh','max','ultra'] as $effort) {
+    $config['model_capabilities'][0]['reasoning_efforts'] = [$effort];
+    $config['model_capabilities'][1]['reasoning_efforts'] = [$effort];
+    $config['reasoning_effort'] = $effort;
+    $config['fallback_enabled'] = false;
+    $repository->rows[2]->configuration = $config;
+    $extended = $service->createConversation(7, ['profile_id'=>2, 'reasoning_effort'=>$effort]);
+    $extendedTask = $service->createTask($extended['id'], 7, ['idempotency_key'=>'extended-'.$effort]);
+    phase2Expect($extendedTask['input']['profile_snapshot']['configuration']['reasoning_effort'] === $effort, '扩展档位原样冻结');
+    $service->updateConversation($extended['id'], 7, ['reasoning_effort'=>null]);
+    $repository->rows[2]->configuration['reasoning_effort'] = null;
+    $runner->fire($queueJob, ['taskId'=>$extendedTask['id'], 'operationToken'=>$extendedTask['operation_token']]);
+    phase2Expect(end($httpRequests)['body']['reasoning_effort'] === $effort, '档案与会话修改不影响已冻结扩展档位');
+    $defaultTask = $service->createTask($extended['id'], 7, ['idempotency_key'=>'default-'.$effort]);
+    $runner->fire($queueJob, ['taskId'=>$defaultTask['id'], 'operationToken'=>$defaultTask['operation_token']]);
+    phase2Expect(!array_key_exists('reasoning_effort', end($httpRequests)['body']), '会话 null 继承档案 null，真实请求不发送字段');
+}
 unset($repository->rows[2]);
 $captured = null;
 try { $runner->fire($queueJob, ['taskId'=>$next['id'], 'operationToken'=>$next['operation_token']]); } catch (RuntimeException) {}

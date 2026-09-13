@@ -66,7 +66,7 @@ function render() {
     template: '<form :data-label-position="labelPosition"><slot /></form>'
   });
   const wrapper = mount(BusinessVisual, {
-    global: { stubs: { ElSelect: true, ElOption: true, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton } }
+    global: { stubs: { ElSelect: { template: '<div><slot /></div>' }, ElOption: { props: ['label', 'disabled', 'value'], template: '<option :value="value" :disabled="disabled">{{ label }}</option>' }, PageWrapper, ElCard, ElForm, ElFormItem, ElInput, ElButton } }
   });
   return { wrapper, formApi, focus };
 }
@@ -106,6 +106,25 @@ describe('BusinessVisual', () => {
     wrapper.unmount();
   });
 
+  it.each([
+    ['BUSINESS_TARGET_READ_ONLY', '插件目录或必要文件不可写'],
+    ['BUSINESS_TARGET_RECOVERY_LOCKED', '插件存在待恢复操作，请先完成恢复'],
+    ['BUSINESS_TARGET_CONSOLE_MISSING', '插件缺少 console 后台目录'],
+    ['BUSINESS_TARGET_ADMIN_WEB_MISSING', '插件缺少标准 admin-web 前端目录']
+  ])('不可用候选 %s 禁用并展示原因，预选阻止创建', async (code, message) => {
+    mocks.query = { plugin: 'demo' };
+    mocks.targets.mockResolvedValueOnce({ list: [{ type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console', available: false, reason: { code, message } }], defaultConnection: 'mysql' });
+    const { wrapper } = render();
+    await flushPromises();
+    await fillRequired(wrapper);
+    expect(wrapper.get('option[value="demo"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('option[value="demo"]').text()).toContain(message);
+    expect(wrapper.get('[role="alert"]').text()).toContain(message);
+    expect(wrapper.findAll('button')[0]!.attributes('disabled')).toBeDefined();
+    expect(mocks.createVisual).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('query 预选插件，使用默认连接与插件表前缀且只发送受控目标', async () => {
     mocks.query = { plugin: 'demo' };
     mocks.createVisual.mockResolvedValue({ module: { id: 7, form_id: 11 }, fields: [] });
@@ -113,7 +132,7 @@ describe('BusinessVisual', () => {
     await flushPromises();
     await fillRequired(wrapper);
     await wrapper.findAll('button')[0]!.trigger('click');
-    expect(mocks.createVisual).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'plugin', pluginCode: 'demo' }, table: 'fun_demo_customer_order', connection: 'mysql' }));
+    expect(mocks.createVisual).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'plugin', pluginCode: 'demo' }, table: 'demo_customer_order', connection: 'mysql' }));
     wrapper.unmount();
   });
 

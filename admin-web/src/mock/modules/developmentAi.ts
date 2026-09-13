@@ -1,5 +1,5 @@
 import { fail, ok, type MockRoute } from '../types';
-import { profileCapabilityError, profileModelCapability, type AiConversation, type AiConversationGroup, type AiProfile } from '@/api/development/ai';
+import { AI_REASONING_EFFORTS, profileCapabilityError, profileModelCapability, type AiConversation, type AiConversationGroup, type AiProfile } from '@/api/development/ai';
 
 const now = '2026-09-12 10:00:00';
 let mode: 'request_approval' | 'agent_approval' | 'full_access' = 'request_approval';
@@ -16,7 +16,7 @@ const groups: AiConversationGroup[] = [];
 
 let profileId = 0;
 const profiles: AiProfile[] = [];
-const runtimeCapabilities = { reasoning_efforts: ['low', 'medium', 'high'] as const, default_omits_parameter: true, capability_source: 'administrator', unknown_policy: 'reject', fallback: true, stream_fallback: false, max_fallback_models: 3, max_requests: 12, max_reserved_seconds: 300 };
+const runtimeCapabilities = { reasoning_efforts: [...AI_REASONING_EFFORTS], default_omits_parameter: true, capability_source: 'administrator', unknown_policy: 'reject', fallback: true, stream_fallback: false, max_fallback_models: 3, max_requests: 12, max_reserved_seconds: 300 };
 function publicProfile(item: AiProfile) { return { ...item, capabilities: profileModelCapability(item, item.model), runtime_capabilities: runtimeCapabilities }; }
 function createProfile(body: Record<string, any>) {
   const { api_key, ...configuration } = body;
@@ -121,7 +121,7 @@ export const developmentAiMockHandlers: MockRoute[] = [
     if (body.profile_id && !profile) return fail('档案不存在', 404);
     if (profile && !profile.enabled) return fail('档案已停用', 409);
     const effort = body.reasoning_effort ?? null;
-    if (effort !== null && !['low', 'medium', 'high'].includes(effort)) return fail('推理档位无效');
+    if (effort !== null && !AI_REASONING_EFFORTS.includes(effort)) return fail('推理档位无效');
     if (!profile && effort !== null) return fail('推理覆盖需要档案');
     const error = profile ? profileCapabilityError({ ...profile, model: body.model ?? profile.model, reasoning_effort: effort ?? profile.reasoning_effort }) : '';
     if (error) return fail(error);
@@ -138,7 +138,7 @@ export const developmentAiMockHandlers: MockRoute[] = [
     if (candidate.profile_id && !profile) return fail('档案不存在', 404);
     if (profile && !profile.enabled) return fail('档案已停用', 409);
     const effort = candidate.reasoning_effort ?? null;
-    if (effort !== null && !['low', 'medium', 'high'].includes(effort)) return fail('推理档位无效');
+    if (effort !== null && !AI_REASONING_EFFORTS.includes(effort)) return fail('推理档位无效');
     if (!profile && effort !== null) return fail('推理覆盖需要档案');
     const error = profile ? profileCapabilityError({ ...profile, model: candidate.model, reasoning_effort: effort ?? profile.reasoning_effort }) : '';
     if (error) return fail(error);

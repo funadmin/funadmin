@@ -42,15 +42,20 @@ $sent = json_decode((string) $history[0]['request']->getBody(), true)['messages'
 providerExpect(($sent[0]['tool_calls'][0]['function']['name'] ?? '') === 'read' && count($sent) === 3, '规范化内部工具调用，保留消息配对');
 $history = [];
 try { providerGateway([], $history)->chat([['role'=>'tool','tool_call_id'=>'orphan','content'=>'x']]); throw new LogicException('孤立工具消息必须请求前拒绝'); } catch (InvalidArgumentException) {}
-$caps = array_map(static fn ($model) => ['model'=>$model,'reasoning_efforts'=>['low','medium','high'],'output_token_parameter'=>'max_completion_tokens','context_window'=>8000,'max_output_tokens'=>500], ['test-model','b','c']);
+$caps = array_map(static fn ($model) => ['model'=>$model,'reasoning_efforts'=>['low','medium','high','xhigh','max','ultra'],'output_token_parameter'=>'max_completion_tokens','context_window'=>8000,'max_output_tokens'=>500], ['test-model','b','c']);
 $policy = ['model_capabilities'=>$caps,'max_output_tokens'=>100,'fallback_enabled'=>true,'fallback_models'=>['b','c']];
 $ok = new Response(200, [], '{"model":"b-actual","choices":[{"message":{"content":"ok"}}],"usage":{"total_tokens":5}}');
-foreach (['low','medium','high','default',null] as $effort) {
+foreach (['low','medium','high','xhigh','max','ultra','default',null] as $effort) {
     $history = [];
     providerGateway([$ok], $history, ['model_capabilities'=>$caps,'reasoning_effort'=>$effort,'max_output_tokens'=>100])->chat([]);
     $sent = json_decode((string) $history[0]['request']->getBody(), true);
     providerExpect(($sent['reasoning_effort'] ?? null) === (in_array($effort, ['default',null], true) ? null : $effort), '真实发送声明档位，default 不发送');
     providerExpect(($sent['max_completion_tokens'] ?? null) === 100 && !isset($sent['max_tokens']), '明确输出协议包含推理 token');
+    if ($effort === null || $effort === 'default') providerExpect(!array_key_exists('reasoning_effort', $sent), '默认必须省略字段，不能发送 null');
+    $streamHistory = [];
+    iterator_to_array(providerGateway([new Response(200, [], "data: [DONE]\n\n")], $streamHistory, ['model_capabilities'=>$caps,'reasoning_effort'=>$effort,'max_output_tokens'=>100])->stream([]));
+    $streamSent = json_decode((string) $streamHistory[0]['request']->getBody(), true);
+    providerExpect(($streamSent['reasoning_effort'] ?? null) === ($sent['reasoning_effort'] ?? null), '流式同样原样透传，不映射 max/ultra');
 }
 $history = [];
 $gateway = providerGateway([new Response(429),new Response(503),new Response(500),new Response(502),$ok], $history, $policy);
