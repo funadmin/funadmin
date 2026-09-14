@@ -53,7 +53,7 @@ final class ListButtonSchemaValidator
                 if ($action['type'] === 'builtin') $this->oneOf($action['key'] ?? null, self::BUILTINS[$location], $at . '/action/key');
                 elseif (in_array($action['type'], ['registered', 'navigate', 'external', 'download'], true)) $this->identifier($action['key'] ?? null, $at . '/action/key');
                 elseif (array_key_exists('key', $action)) $this->fail('该动作不接受 key', $at . '/action/key');
-                if ($action['type'] === 'registered') $this->text($action['capabilityVersion'] ?? null, $at . '/action/capabilityVersion', 64);
+                if (in_array($action['type'], ['registered', 'navigate', 'external'], true)) $this->text($action['capabilityVersion'] ?? null, $at . '/action/capabilityVersion', 64);
                 elseif (array_key_exists('capabilityVersion', $action)) $this->fail('仅注册动作接受版本', $at . '/action/capabilityVersion');
                 if (array_key_exists('interaction', $button)) $this->interaction($button['interaction'], $at . '/interaction');
                 $params = $this->map($button['params'] ?? [], $at . '/params');

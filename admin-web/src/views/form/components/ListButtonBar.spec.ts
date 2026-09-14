@@ -9,6 +9,18 @@ import type { FormListButton } from '../schema/types';
 const provide = { [listButtonAdapterKey as symbol]: { api: formDataApi, declaration: { catalogPermission: 'console/form.data:listactions', executePermission: 'console/form.data:listaction' } } };
 const edit: FormListButton = { id: 'edit', label: '修改名称', action: { type: 'builtin', key: 'edit' } };
 describe('真实共享按钮组件', () => {
+  it('复制经过实际后端宿主且切换记录后的迟到结果不产生副作用', async () => {
+    vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, resources: {}, resourceHash: 'r1' });
+    let finish!: (reply: any) => void;
+    vi.spyOn(formDataApi, 'listAction').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const copy = vi.fn(); Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: copy } });
+    const context = { formKey: 'orders', schemaHash: 'hash', location: 'row' as const, ids: [1] };
+    const wrapper = mount(Bar, { props: { buttons: [{ id: 'copy', label: '复制', action: { type: 'copy' }, params: { text: { source: 'row', field: 'title' } } }], handlers: {}, allowed: () => true, permissionCheck: () => true, context }, global: { plugins: [ElementPlus], provide } });
+    await flushPromises(); await wrapper.get('button').trigger('click'); await flushPromises();
+    await wrapper.setProps({ context: { ...context, ids: [2] } }); await flushPromises();
+    finish({ status: 'success', result: { type: 'copy', text: '旧记录' } }); await flushPromises();
+    expect(copy).not.toHaveBeenCalled(); wrapper.unmount(); vi.restoreAllMocks();
+  });
   it('异步执行期间替换外部锁，只释放实际取得的锁', async () => {
     let finish!: () => void;
     const firstLock = { busy: false };

@@ -39,7 +39,7 @@ const nodeButtons = computed(() => resolveListButtons(props.list, 'categoryNode'
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
   if (button.permission && !props.permissionCheck?.(button.permission)) return false;
-  if (button.action.type === 'registered') return listButtonAdapterAllowed(adapter, code => props.permissionCheck?.(code) === true, buttonContext('categoryToolbar'));
+  if (['registered', 'navigate', 'external', 'copy'].includes(button.action.type)) return listButtonAdapterAllowed(adapter, code => props.permissionCheck?.(code) === true, buttonContext('categoryToolbar'));
   if (key === 'refresh') return true;
   return props.canMutate && (key === 'delete' || props.canReadForm) && Boolean(props.config.actions?.[key as 'create'] ?? true) && Boolean(result.value?.actions[key as 'create']) && (key !== 'addChild' || Boolean(props.config.mapping.parentField));
 };

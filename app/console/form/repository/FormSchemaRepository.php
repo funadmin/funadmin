@@ -50,7 +50,8 @@ final class FormSchemaRepository
             static function () use ($registries): bool {
                 try { $registries->listExecutor(); return true; }
                 catch (\InvalidArgumentException) { return false; }
-            }
+            },
+            $registries->listResources()
         );
     }
 

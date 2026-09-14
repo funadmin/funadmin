@@ -37,7 +37,7 @@ export function defaultListButtons(location: FormListButtonLocation): FormListBu
 export function listActionKey(button: FormListButton): string {
   return button.action.type === 'builtin' ? button.action.key : button.action.type === 'form' ? 'edit' : button.action.type;
 }
-interface StateOptions { handlers: ListButtonHandlers; allowed: (button: FormListButton) => boolean; registered?: (button: FormListButton) => boolean; values?: Record<string, unknown>; fields?: readonly string[] }
+interface StateOptions { resource?: (button: FormListButton) => boolean; handlers: ListButtonHandlers; allowed: (button: FormListButton) => boolean; registered?: (button: FormListButton) => boolean; values?: Record<string, unknown>; fields?: readonly string[] }
 export function listButtonState(button: FormListButton, options: StateOptions) {
   const state = { visible: !button.hidden, disabled: Boolean(button.disabled), reason: button.disabledReason ?? '' };
   let budget = 100;
@@ -53,12 +53,12 @@ export function listButtonState(button: FormListButton, options: StateOptions) {
       || !condition.field || !/^[a-z][a-z0-9_]*$/.test(condition.field) || ['constructor', 'prototype', '__proto__'].includes(condition.field) || !options.fields?.includes(condition.field)) throw Error('条件引用不可读字段或不支持的运算');
   };
   try {
-    if (button.action.type !== 'registered' && Object.keys(button.params ?? {}).length) throw Error('参数绑定尚未接通安全宿主适配，不可执行或发布');
+    if (button.action.type !== 'registered' && !options.resource?.(button) && Object.keys(button.params ?? {}).length) throw Error('参数绑定尚未接通安全宿主适配，不可执行或发布');
     for (const condition of [button.visibleWhen, button.disabledWhen]) if (condition) validate(condition);
     if (button.visibleWhen) state.visible &&= evaluateCondition(button.visibleWhen as Condition, options.values ?? {});
     if (button.disabledWhen) state.disabled ||= evaluateCondition(button.disabledWhen as Condition, options.values ?? {});
     if (!options.allowed(button)) state.visible = false;
-    if (button.action.type === 'registered' ? !options.registered?.(button) : ['navigate', 'external', 'download', 'copy'].includes(button.action.type) || !Object.hasOwn(options.handlers, listActionKey(button)) || !options.handlers[listActionKey(button)]) {
+    if (button.action.type === 'registered' ? !options.registered?.(button) : ['navigate', 'external', 'download', 'copy'].includes(button.action.type) ? !options.resource?.(button) : !Object.hasOwn(options.handlers, listActionKey(button)) || !options.handlers[listActionKey(button)]) {
       state.disabled = true; state.reason = '该动作尚未接通安全宿主适配，不可执行或发布';
     }
   } catch (error) { state.disabled = true; state.reason = error instanceof Error ? error.message : '配置无效'; }

@@ -45,6 +45,8 @@ export interface FormFieldError {
 }
 
 export interface FormListActionCatalog {
+  resources?: Record<string, import('@/views/form/runtime/listResourceHost').ListResource>;
+  resourceHash?: string;
   schemaHash: string;
   sourceSchemaHash?: string;
   sourceKey?: string;

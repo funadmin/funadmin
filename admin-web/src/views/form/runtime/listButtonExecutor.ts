@@ -33,6 +33,7 @@ export interface ListButtonReply {
   confirmation?: string;
 }
 export interface ListButtonExecutionHost {
+  lock?: () => { busy: boolean } | undefined;
   /** 宿主必须检查能力、权限、记录条件及当前上下文，不得只检查按钮显示。 */
   check: (button: FormListButton) => Promise<boolean>;
   context?: () => string;
@@ -57,8 +58,10 @@ export function createListButtonExecutor(host: ListButtonExecutionHost) {
     input: (id: string) => { syncContext(); return clone(drafts.get(id) ?? {}); },
     clear: () => { drafts.clear(); },
     async execute(source: FormListButton, submittedInput?: Input): Promise<ListButtonExecutionResult> {
-      if (locked) return { status: 'busy' };
+      const acquiredLock = host.lock?.();
+      if (locked || acquiredLock?.busy) return { status: 'busy' };
       locked = true;
+      if (acquiredLock) acquiredLock.busy = true;
       try {
         const context = syncContext();
         const button = JSON.parse(JSON.stringify(source)) as FormListButton;
@@ -93,6 +96,7 @@ export function createListButtonExecutor(host: ListButtonExecutionHost) {
         return { status: 'success', result: reply.result };
       } finally {
         locked = false;
+        if (acquiredLock) acquiredLock.busy = false;
       }
     }
   };

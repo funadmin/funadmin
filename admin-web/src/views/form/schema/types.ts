@@ -81,7 +81,8 @@ export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'b
 export type FormListButtonAction =
   | { type: 'builtin'; key: FormListBuiltinAction }
   | { type: 'registered'; key: string; capabilityVersion: string }
-  | { type: 'navigate' | 'external' | 'download'; key: string }
+  | { type: 'navigate' | 'external'; key: string; capabilityVersion: string }
+    | { type: 'download'; key: string }
   | { type: 'form' | 'detail' | 'copy' | 'refresh' };
 export type FormListParameterBinding =
   | { source: 'literal'; value: string | number | boolean | null }

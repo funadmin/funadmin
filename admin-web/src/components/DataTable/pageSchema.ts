@@ -18,8 +18,8 @@ export interface PageSchema {
   pageSchemaVersion: 1; key: string; search: PageSearch[]; columns: PageColumn[];
   toolbar: PageAction[]; rowActions: PageAction[]; pagination: { pageSize: number; pageSizes: number[]; enabled?: boolean };
 }
-export interface PageHandler { version: string; permission?: string; run: (row?: any) => unknown; available?: (row?: any) => boolean }
-export interface PageContext { values: Record<string, unknown>; permissions: string[]; handlers: Record<string, PageHandler>; row?: any }
+export interface PageHandler { version: string; interaction?: FormListButton['interaction']; permission?: string; run: (row?: any) => unknown; available?: (row?: any) => boolean }
+export interface PageContext { version?: string | number; values: Record<string, unknown>; permissions: string[]; handlers: Record<string, PageHandler>; row?: any }
 const owns = (value: object, key: string) => Object.prototype.hasOwnProperty.call(value, key);
 const identifier = (value: unknown): value is string => typeof value === 'string' && /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/.test(value) && !['constructor', 'prototype', '__proto__'].includes(value);
 const fail = (): never => { throw new Error('PAGE_SCHEMA_INVALID'); };

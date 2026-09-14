@@ -4,6 +4,17 @@ import type { FormListButton } from '../schema/types';
 
 const button: FormListButton = { id: 'reload', label: '随意改名', action: { type: 'refresh' }, success: { refresh: true } };
 describe('列表执行生命周期', () => {
+  it('跨执行器共用外部锁，并释放实际取得的对象', async () => {
+    const original = { busy: false }; let lock = original;
+    let cancel!: (value: null) => void;
+    const host = { lock: () => lock, check: async () => true, interact: () => new Promise<null>(resolve => { cancel = resolve; }), invoke: vi.fn() };
+    const first = createListButtonExecutor(host).execute(button);
+    await Promise.resolve();
+    expect(original.busy).toBe(true);
+    expect(await createListButtonExecutor(host).execute(button)).toEqual({ status: 'busy' });
+    lock = { busy: true }; cancel(null); await first;
+    expect(original.busy).toBe(false); expect(lock.busy).toBe(true);
+  });
   it('上下文变化使交互失效并清空草稿', async () => {
     let context = 'a';
     const invoke = vi.fn();
