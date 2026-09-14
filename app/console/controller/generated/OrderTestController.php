@@ -57,6 +57,13 @@ final class OrderTestController extends AdminApiController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function update(int|string $id): Response { return $this->crudUpdate($id); }
 
+    #[Get('options/:source')]
+    #[Pattern('source', '[a-z][a-z0-9_]*')]
+    public function options(string $source): Response
+    {
+        return $this->ok(data: (new OrderTestService())->options($source));
+    }
+
     #[Delete(':id')]
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function remove(int|string $id): Response { return $this->crudRemove($id); }
@@ -87,6 +94,7 @@ final class OrderTestController extends AdminApiController
     protected function searchFields(): array { return array (
 ); }
     protected function exactFilters(): array { return array (
+  '__category' => 'field_2',
 ); }
     protected function rangeFilters(): array { return array (
 ); }
@@ -94,6 +102,7 @@ final class OrderTestController extends AdminApiController
 ); }
     protected function sortFields(): array { return array (
   'id' => 'id',
+  'field1' => 'field_1',
 ); }
     protected function primaryKey(): string { return 'id'; }
     protected function primaryKeyType(): string { return 'integer'; }
@@ -104,14 +113,15 @@ final class OrderTestController extends AdminApiController
     protected function exportFields(): array { return array (
   0 => 'id',
   1 => 'field1',
-  2 => 'field2',
-  3 => 'field3',
-  4 => 'field4',
-  5 => 'field5',
-  6 => 'field6',
-  7 => 'createdAt',
-  8 => 'updatedAt',
-  9 => 'deletedAt',
+  2 => 'field7',
+  3 => 'field2',
+  4 => 'field3',
+  5 => 'field4',
+  6 => 'field5',
+  7 => 'field6',
+  8 => 'createdAt',
+  9 => 'updatedAt',
+  10 => 'deletedAt',
 ); }
     protected function importLimit(): int { return 10000; }
     protected function exportLimit(): int { return 10000; }
@@ -136,6 +146,7 @@ final class OrderTestController extends AdminApiController
         return [
             'id' => (int) $model->id,
             'field1' => (string) ($model->field_1 ?? ''),
+            'field7' => (array) $model->field_7,
             'field2' => (string) ($model->field_2 ?? ''),
             'field3' => (string) ($model->field_3 ?? ''),
             'field4' => (string) ($model->field_4 ?? ''),

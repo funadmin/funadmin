@@ -745,6 +745,26 @@ html.dark .app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
   box-shadow: var(--app-shadow-lg);
   overflow: hidden;
 }
+/* 长表单只滚动主体；短表单保持自然高度，全屏弹窗沿用原有布局。 */
+.el-dialog:not(.is-fullscreen) {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-height: 85vh;
+  max-height: 85dvh;
+  max-width: calc(100vw - 24px);
+  margin-top: 7.5vh;
+  margin-top: 7.5dvh;
+}
+.el-dialog:not(.is-fullscreen) > .el-dialog__header,
+.el-dialog:not(.is-fullscreen) > .el-dialog__footer {
+  flex-shrink: 0;
+}
+.el-dialog:not(.is-fullscreen) > .el-dialog__body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
 .el-dialog .el-dialog__body {
   padding: 20px;
   color: var(--app-text);

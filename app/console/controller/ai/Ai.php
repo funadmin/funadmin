@@ -66,7 +66,7 @@ final class Ai extends AdminApiController
     }
 
     #[Get('conversations')]
-    public function conversationIndex(): Response { return $this->run(fn () => $this->ai->listConversations($this->adminId())); }
+    public function conversationIndex(): Response { return $this->run(fn () => $this->ai->conversationPage($this->adminId(), $this->request->get())); }
     #[Get('conversation-groups')]
     public function conversationGroupIndex(): Response { return $this->run(fn () => $this->ai->listConversationGroups($this->adminId())); }
     #[Post('conversation-groups')]
@@ -94,7 +94,7 @@ final class Ai extends AdminApiController
     public function conversationDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversation($id, $this->adminId())]); }
     #[Get('conversations/:id/messages')]
     #[Pattern('id', '\d+')]
-    public function messageIndex(int $id): Response { return $this->run(fn () => $this->ai->listMessages($id, $this->adminId())); }
+    public function messageIndex(int $id): Response { return $this->run(fn () => $this->ai->messagePage($id, $this->adminId(), $this->request->get())); }
     #[Post('conversations/:id/messages')]
     #[Pattern('id', '\d+')]
     public function messageCreate(int $id): Response { return $this->run(fn () => $this->ai->appendUserMessage($id, $this->adminId(), $this->input())); }
@@ -434,6 +434,14 @@ final class Ai extends AdminApiController
     private function adminId(): int { $id = (int) Session::get('admin.id', 0); if ($id <= 0) throw new RuntimeException('未登录', 401); return $id; }
     private function run(callable $operation): Response
     {
-        try { return $this->ok(data: $operation()); } catch (Throwable $exception) { $code = in_array($exception->getCode(), [400, 401, 403, 404, 409, 413, 503], true) ? $exception->getCode() : 400; return $this->fail(msg: $exception->getMessage(), code: $code); }
+        try {
+            return $this->ok(data: $operation());
+        } catch (Throwable $exception) {
+            if ($exception instanceof \think\exception\HttpResponseException) return $exception->getResponse();
+            if ($exception instanceof \think\exception\HttpException) return (new \app\ExceptionHandle(app()))->render($this->request, $exception);
+            $expected = $exception instanceof \InvalidArgumentException || $exception instanceof RuntimeException;
+            $code = $expected && in_array($exception->getCode(), [400, 401, 403, 404, 409, 413, 503], true) ? $exception->getCode() : 500;
+            return $this->fail(msg: $exception->getMessage(), code: $code);
+        }
     }
 }

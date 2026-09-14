@@ -1,15 +1,21 @@
 <template>
-  <PageWrapper title="可视化创建" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
+  <PageWrapper title="创建业务" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
     <el-card shadow="never">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-3xl">
+        <el-form-item label="创建方式">
+          <el-radio-group v-model="mode" :disabled="submitting" aria-label="创建方式" class="creation-mode">
+            <el-radio-button value="created">创建新表</el-radio-button>
+            <el-radio-button value="adopted">使用已有表</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <p v-if="permissionNotice" role="alert">{{ permissionNotice }}</p>
         <el-form-item label="业务目标">
           <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
             <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="candidateLabel(item)" :disabled="item.available === false" :value="item.pluginCode || ''" />
           </el-select>
           <span v-if="targetNotice" role="alert">{{ targetNotice }}</span>
-          <a v-if="!targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
-          <span class="field-help">{{ selected ? '插件拥有新表；生成仅写源码和迁移，不建表、不安装启用，需安装／更新发布。' : '核心后台保持原有动态发布流程。' }}</span>
-          <a href="#" @click.prevent="router.push({ path: '/development/business/database', query: selected ? { plugin: selected } : {} })">改为采纳已有表</a>
+          <a v-if="canLoadTargets && !targetsLoading && targetNotice" href="#" @click.prevent="loadTargets">重新加载目标</a>
+          <span class="field-help">{{ mode === 'adopted' ? (selected ? '已有表仅作为外部依赖，不生成 CREATE／ALTER，不取得表所有权，卸载或清除插件不会删除该表。核心敏感表及其他插件所属表不可采纳。' : '先只读检查已有表结构，采纳后保存不可变 Schema 基线。') : (selected ? '插件拥有新表；生成仅写源码和迁移，不建表、不安装启用，需安装／更新发布。' : '核心后台保持原有动态发布流程。') }}</span>
         </el-form-item>
         <el-form-item label="业务名称" prop="name">
           <el-input v-model="form.name" maxlength="100" aria-describedby="business-name-help" />
@@ -19,9 +25,19 @@
           <el-input v-model="form.code" maxlength="61" placeholder="例如 customer_order" aria-describedby="business-code-help" @blur="normalize" />
           <span id="business-code-help" class="field-help">以小写字母开头，只能包含小写字母、数字和下划线。</span>
         </el-form-item>
-        <el-form-item label="数据表" prop="table">
+        <el-form-item v-if="mode === 'created'" key="new-table" label="新表名称" prop="table">
           <el-input v-model="form.table" placeholder="默认业务标识，自动补齐连接前缀" aria-describedby="business-table-help" />
           <span id="business-table-help" class="field-help">留空时根据业务标识自动生成。</span>
+        </el-form-item>
+        <el-form-item v-else key="existing-table" label="已有数据表" prop="existingTable">
+          <div class="existing-table-controls">
+            <el-select v-if="canListTables" v-model="form.existingTable" filterable allow-create default-first-option :loading="tablesLoading" :disabled="submitting" placeholder="搜索并选择已有数据表" aria-label="已有数据表" @visible-change="visible => visible && loadTables()">
+              <el-option v-for="table in tables" :key="table.name" :label="table.comment ? `${table.name} — ${table.comment}` : table.name" :value="table.name" />
+            </el-select>
+            <el-input v-else v-model="form.existingTable" :disabled="submitting || !canInspect" placeholder="输入已有数据表名称" aria-label="已有数据表" />
+            <el-button v-if="canInspect" data-action="inspect" :loading="inspecting || inspectPending" :disabled="submitting || !form.existingTable" @click="inspect">检查结构</el-button>
+          </div>
+          <span v-if="tableError" class="field-help" role="alert">{{ tableError }} <a href="#" @click.prevent="loadTables">重新加载</a></span>
         </el-form-item>
         <el-form-item label="数据库连接" prop="connection">
           <el-input v-model="form.connection" :disabled="Boolean(selected)" aria-describedby="business-connection-help" />
@@ -31,9 +47,37 @@
           <el-input v-model="form.remark" type="textarea" :rows="4" maxlength="1000" show-word-limit aria-describedby="business-remark-help" />
           <span id="business-remark-help" class="field-help">可选，最多 1000 个字符。</span>
         </el-form-item>
+        <div class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement }}</div>
+        <BusinessPageState v-if="mode === 'adopted' && canInspect" :loading="inspecting" :error="inspectionError" :empty="!inspection" :empty-text="inspectionNotice || '选择或输入已有数据表后，请先检查结构'" :on-retry="form.existingTable && canInspect ? inspect : undefined">
+          <template v-if="inspection">
+            <el-alert :title="inspectionSummary" :type="inspectionBlockReason ? 'warning' : 'success'" :closable="false" class="mb-3" />
+            <dl class="inspection-meta mb-3">
+              <div><dt>连接</dt><dd>{{ inspection.connection }}</dd></div>
+              <div><dt>数据表</dt><dd>{{ inspection.table }}</dd></div>
+              <div><dt>主键</dt><dd>{{ inspection.primaryKey.join(', ') || '缺少主键' }}</dd></div>
+              <div><dt>快照哈希</dt><dd class="snapshot-hash">{{ inspection.snapshotHash }}</dd></div>
+            </dl>
+            <div class="field-table-scroll" tabindex="0" role="region" aria-label="检查字段列表">
+              <el-table class="field-table" :data="inspection.fields" border max-height="360">
+                <el-table-column prop="name" label="字段" min-width="140" />
+                <el-table-column prop="label" label="名称" min-width="140" />
+                <el-table-column prop="dbType" label="列类型" min-width="140" />
+                <el-table-column prop="component" label="控件" min-width="120" />
+              </el-table>
+            </div>
+            <div class="field-cards" aria-label="检查字段卡片">
+              <article v-for="(field, index) in inspection.fields" :key="String(field.name || index)" class="field-card">
+                <strong>{{ field.name || field.field_name || `字段 ${index + 1}` }}</strong>
+                <span>{{ field.label || '—' }}</span>
+                <span>{{ field.dbType || field.columnType || field.column_type || '—' }}</span>
+                <span>{{ field.component || field.type || '—' }}</span>
+              </article>
+            </div>
+          </template>
+        </BusinessPageState>
         <el-form-item>
           <div class="form-actions">
-            <el-button type="primary" :loading="submitting" :disabled="submitting || !targetAvailable" @click="submit">创建并开始设计</el-button>
+            <el-button v-if="canSubmitMode" data-action="submit" type="primary" :loading="submitting" :disabled="submitting || !targetAvailable || (mode === 'adopted' && !canAdopt)" @click="submit">{{ mode === 'created' ? '创建并开始设计' : '采纳并进入设计器' }}</el-button>
             <el-button :disabled="submitting" @click="cancel">取消</el-button>
           </div>
         </el-form-item>
@@ -43,27 +87,113 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import type { FormInstance, FormRules } from 'element-plus';
-import { businessDevelopmentApi } from '@/api/development/business';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useUserStore } from '@/store/modules/user';
+import { ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import { businessDevelopmentApi, isBusinessApiError, type BusinessDatabaseTable, type BusinessFieldInspection } from '@/api/development/business';
+import BusinessPageState from './components/BusinessPageState.vue';
+import { useLatestRequest } from './composables/useLatestRequest';
 import { useDirtyGuard } from './composables/useDirtyGuard';
 import { useBusinessTarget } from './composables/useBusinessTarget';
 
 defineOptions({ name: 'BusinessVisual' });
+const props = defineProps<{ initialMode?: 'created' | 'adopted' }>();
 const router = useRouter();
-const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget();
+const route = useRoute();
+const user = useUserStore();
+// 合并的 save/inspect 别名不能推导后台独立动作授权。
+const hasAction = (action: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === `console/development.business:${action}`);
+const canInspect = computed(() => hasAction('inspectdatabase'));
+const canListTables = computed(() => hasAction('databasetables'));
+const canCreate = computed(() => hasAction('createvisual'));
+const canCreateFromDatabase = computed(() => hasAction('createfromdatabase'));
+const canLoadTargets = computed(() => hasAction('modules') && (canCreate.value || canCreateFromDatabase.value));
+const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget(() => canLoadTargets.value);
 const submitting = ref(false);
 const dirty = ref(false);
 const formRef = ref<FormInstance>();
-const form = reactive({ name: '', code: '', table: '', connection: 'mysql', remark: '' });
+const mode = ref<'created' | 'adopted'>(props.initialMode ?? (route.query.mode === 'adopted' || (!canCreate.value && canInspect.value) ? 'adopted' : 'created'));
+const canSubmitMode = computed(() => mode.value === 'created' ? canCreate.value : canCreateFromDatabase.value);
+const permissionNotice = computed(() => mode.value === 'created'
+  ? (!canCreate.value ? '无创建新表权限。' : '')
+  : !canInspect.value ? '无结构检查权限，不能检查或采纳已有表。'
+    : !canCreateFromDatabase.value ? '当前为只读检查，无采纳权限，不能提交。' : '');
+const inspectPending = ref(false);
+const form = reactive({ name: '', code: '', table: '', existingTable: '', connection: 'mysql', remark: '' });
 const identifier = /^[a-z_][a-z0-9_]*$/;
 const rules: FormRules = {
   name: [{ required: true, message: '请输入业务名称', trigger: 'blur' }],
   code: [{ required: true, pattern: /^[a-z][a-z0-9_]{0,60}$/, message: '以小写字母开头，只能包含小写字母、数字和下划线', trigger: 'blur' }],
   table: [{ validator: (_rule, value, callback) => !value || identifier.test(value) ? callback() : callback(new Error('数据表标识不合法')), trigger: 'blur' }],
-  connection: [{ required: true, pattern: identifier, message: '连接标识不合法', trigger: 'blur' }]
+  connection: [{ required: true, pattern: identifier, message: '连接标识不合法', trigger: 'blur' }],
+  existingTable: [{ required: true, message: '请选择已有数据表', trigger: 'change' }]
 };
+const tableRequest = useLatestRequest<BusinessDatabaseTable[], [string]>(connection => businessDevelopmentApi.databaseTables(connection));
+const tables = computed(() => tableRequest.data.value || []);
+const tablesLoading = tableRequest.loading;
+const tableError = computed(() => requestError(tableRequest.error.value));
+const inspectionRequest = useLatestRequest<BusinessFieldInspection, [string, string]>((connection, table) => businessDevelopmentApi.inspectDatabase(connection, table));
+const inspection = inspectionRequest.data;
+const inspecting = inspectionRequest.loading;
+const inspectionNotice = ref('');
+const inspectionError = computed(() => requestError(inspectionRequest.error.value));
+const inspectionBlockReason = computed(() => !inspection.value ? '' : !inspection.value.fields.length ? '未识别到字段，无法采纳' : !inspection.value.primaryKey.length ? '缺少主键，无法采纳' : '');
+const inspectionSummary = computed(() => inspectionBlockReason.value || `已识别 ${inspection.value?.fields.length || 0} 个字段，确认后将保存不可变 Schema 基线。`);
+const announcement = computed(() => inspecting.value ? '正在检查数据库结构' : submitting.value ? '正在创建业务' : inspectionError.value || inspectionNotice.value || (inspection.value ? inspectionSummary.value : ''));
+const canAdopt = computed(() => Boolean(canInspect.value && canCreateFromDatabase.value && inspection.value && !inspecting.value && !inspectionBlockReason.value && inspection.value.connection === form.connection.trim() && inspection.value.table === form.existingTable));
+let inspectionEpoch = 0;
+
+function requestError(error: unknown): string {
+  if (!error) return '';
+  return isBusinessApiError(error) ? error.msg : error instanceof Error ? error.message : '请求失败，请重试';
+}
+
+function invalidateInspection(message = '') {
+  inspectionEpoch += 1;
+  inspectionRequest.invalidate();
+  inspectionRequest.data.value = undefined;
+  inspectionRequest.error.value = undefined;
+  inspectionNotice.value = message;
+}
+
+async function loadTables() {
+  if (!canListTables.value || mode.value !== 'adopted' || !form.connection.trim() || tablesLoading.value) return;
+  try { await tableRequest.execute(form.connection.trim()); } catch { /* 错误由页面展示并允许重试。 */ }
+}
+
+async function inspect() {
+  if (!canInspect.value || mode.value !== 'adopted' || submitting.value || inspecting.value || inspectPending.value) return;
+  inspectPending.value = true;
+  invalidateInspection();
+  const epoch = inspectionEpoch;
+  try {
+    await formRef.value?.validateField(['connection', 'existingTable']);
+    if (epoch !== inspectionEpoch || !canInspect.value) return;
+    const result = await inspectionRequest.execute(form.connection.trim(), form.existingTable);
+    if (epoch !== inspectionEpoch || !result || inspection.value !== result) return;
+    if (!form.code.trim()) form.code = result.table.replace(/^fun_/, '').toLowerCase();
+    if (!form.name.trim()) form.name = form.code;
+  } catch { /* 校验和检查错误由对应控件展示。 */ }
+  finally { inspectPending.value = false; }
+}
+
+watch(mode, async () => {
+  invalidateInspection();
+  tableRequest.invalidate();
+  tableRequest.data.value = undefined;
+  tableRequest.error.value = undefined;
+  await nextTick();
+  formRef.value?.clearValidate();
+}, { flush: 'sync' });
+watch(() => [form.connection, selected.value], () => {
+  form.existingTable = '';
+  tableRequest.invalidate();
+  tableRequest.data.value = undefined;
+  tableRequest.error.value = undefined;
+  invalidateInspection('连接或目标已变化，请重新检查');
+}, { flush: 'sync' });
+watch(() => form.existingTable, () => invalidateInspection(), { flush: 'sync' });
 
 watch([selected, defaultConnection], () => {
   if (selected.value) form.connection = defaultConnection.value;
@@ -74,7 +204,7 @@ watch(form, () => { dirty.value = true; }, { deep: true, flush: 'sync' });
 
 function normalize() {
   form.code = form.code.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  if (!form.table && form.code) form.table = `${selected.value ? `${selected.value}_` : ''}${form.code}`;
+  if (mode.value === 'created' && !form.table && form.code) form.table = `${selected.value ? `${selected.value}_` : ''}${form.code}`;
 }
 
 function fieldErrorMessage(value: unknown): string | undefined {
@@ -142,16 +272,39 @@ function cancel() {
 }
 
 async function submit() {
-  if (submitting.value || !targetAvailable.value) return;
+  if (!canSubmitMode.value || !canLoadTargets.value || submitting.value || !targetAvailable.value || (mode.value === 'adopted' && !canAdopt.value)) return;
   submitting.value = true;
   try {
-    normalize();
-    if (!await formRef.value?.validate()) return;
-    const result = await businessDevelopmentApi.createVisual({ ...form, target: target.value });
+    if (mode.value === 'created') normalize();
+    if (!await formRef.value?.validate() || !canSubmitMode.value || !canLoadTargets.value) return;
+    const { existingTable, ...visualForm } = form;
+    let result;
+    if (mode.value === 'adopted') {
+      const inspected = inspection.value;
+      if (!inspected || !canAdopt.value) return;
+      const selectedTarget = JSON.stringify(target.value);
+      await ElMessageBox.confirm(
+        `确认采纳连接 ${inspected.connection} 的表 ${inspected.table}？主键：${inspected.primaryKey.join(', ')}；字段数：${inspected.fields.length}。采纳后将保存不可变 Schema 基线。`,
+        '确认数据库采纳',
+        { type: 'warning', confirmButtonText: '确认采纳', cancelButtonText: '取消' }
+      );
+      if (!canSubmitMode.value || !canLoadTargets.value || !targetAvailable.value || selectedTarget !== JSON.stringify(target.value) || inspection.value !== inspected || !canAdopt.value) return;
+      result = await businessDevelopmentApi.createFromDatabase({ ...visualForm, name: form.name.trim(), code: form.code.trim(), connection: form.connection.trim(), table: existingTable, target: target.value, expectedInspectionHash: inspected.snapshotHash });
+    } else {
+      result = await businessDevelopmentApi.createVisual({ ...visualForm, target: target.value });
+    }
     dirty.value = false;
     await router.push({ path: '/development/business/designer', query: { id: String(result.module.form_id), moduleId: String(result.module.id) } });
   } catch (reason) {
+    if (isBusinessApiError(reason) && reason.data.error.code === 'DATABASE_INSPECTION_STALE') {
+      invalidateInspection('数据库结构已变化，请重新检查');
+      return;
+    }
     const fieldErrors = responseFieldErrors(reason);
+    if (mode.value === 'adopted' && fieldErrors.table) {
+      fieldErrors.existingTable = fieldErrors.table;
+      delete fieldErrors.table;
+    }
     if (Object.keys(fieldErrors).length) setFieldErrors(fieldErrors);
     else if (responseCode(reason) === 409) {
       const response = errorRecord(reason);
@@ -164,6 +317,21 @@ async function submit() {
 </script>
 
 <style scoped>
+.inspection-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
+.inspection-meta div { min-width: 0; }
+.inspection-meta dt { color: var(--el-text-color-secondary); font-size: 12px; }
+.inspection-meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.snapshot-hash { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.field-table-scroll { overflow-x: auto; }
+.field-cards { display: none; }
+.field-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; padding: 12px; border: 1px solid var(--el-border-color); border-radius: 6px; overflow-wrap: anywhere; }
+.existing-table-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+.existing-table-controls .el-select { flex: 1; min-width: 200px; }
 .field-help {
   display: block;
   width: 100%;
@@ -179,11 +347,13 @@ async function submit() {
 }
 
 .form-actions :deep(.el-button) {
-  min-height: 44px;
   margin-left: 0;
 }
 
 @media (max-width: 640px) {
+  .inspection-meta { grid-template-columns: 1fr; }
+  .field-table-scroll { display: none; }
+  .field-cards { display: grid; gap: 10px; }
   .business-form :deep(.el-form-item__label) {
     width: auto !important;
   }

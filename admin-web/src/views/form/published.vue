@@ -2,7 +2,7 @@
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
     <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
-    <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
+    <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <DataTableShell class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">

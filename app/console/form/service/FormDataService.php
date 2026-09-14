@@ -77,6 +77,53 @@ final class FormDataService
         ];
     }
 
+    /** 来源配置只读取已发布且获业务读取授权的字段，不读取记录或草稿。 */
+    public function sourceMeta(string $key): array
+    {
+        $form = $this->form($key);
+        $runtime = $this->publishedRuntime($form);
+        if (!($this->permissionChecker)($this->businessPermissionRoute($runtime['module']) . '/index')) {
+            throw new InvalidArgumentException('没有来源业务读取权限');
+        }
+        $fields = [];
+        foreach ($runtime['fields'] as $field) {
+            $row = $field->toArray();
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')
+                || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none'
+                || in_array($row['type'] ?? '', ['repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
+                || !empty($row['control_props']['multiple'])) continue;
+            $fields[] = ['field_name' => (string) $row['field_name'], 'label' => (string) ($row['label'] ?? '')];
+        }
+        // 独立白名单 DTO，不复用运行态 meta，避免 AST、默认值及选项查询旁路泄露。
+        return [
+            'moduleId' => (int) $runtime['module']->id,
+            'moduleCode' => (string) $runtime['module']->code,
+            'formKey' => (string) $form->form_key,
+            'primaryKey' => $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name)),
+            'fields' => $fields,
+        ];
+    }
+
+    /** 服务端筛选来源；未授权、插件和无有效发布快照的模块不进入响应或总数。 */
+    public function sourceCandidates(): array
+    {
+        $list = [];
+        $modules = BusinessModule::whereIn('lifecycle_status', ['published', 'dynamic_published'])
+            ->field('id,form_id,code,lifecycle_status,metadata')->order('id', 'asc')->select();
+        foreach ($modules as $module) {
+            try {
+                if (!($this->permissionChecker)($this->businessPermissionRoute($module) . '/index')) continue;
+                $form = Form::where('id', (int) $module->form_id)->field('id,form_key')->find();
+                if (!$form) continue;
+                $meta = $this->sourceMeta((string) $form->form_key);
+                if ($meta['moduleId'] === (int) $module->id) $list[] = $meta;
+            } catch (InvalidArgumentException) {
+                // 无效或已撤销授权的来源不应打断其他合法候选。
+            }
+        }
+        return ['list' => $list, 'total' => count($list)];
+    }
+
     /** 返回不含业务值的已发布运行态观测上下文。 */
     public function runtimeContext(string $key, string $nodeId = '', string $dataSource = '', string $actionKey = ''): array
     {
@@ -227,7 +274,9 @@ final class FormDataService
         ], $rows);
         $actions = [];
         foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
-            $actions[$action] = ($config['actions'][$action] ?? false) === true && ($this->permissionChecker)($permission . '/' . $operation);
+            $actions[$action] = ($config['actions'][$action] ?? false) === true
+                            && ($action !== 'addChild' || ($mapping['parentField'] ?? '') !== '')
+                            && ($this->permissionChecker)($permission . '/' . $operation);
         }
         return ['nodes' => $nodes, 'sourceKey' => $sourceKey, 'schemaHash' => $runtime['schemaHash'], 'actions' => $actions];
     }
@@ -290,6 +339,13 @@ final class FormDataService
                 }
                 $this->assertLeftTreeUnreferenced($source, $primary, $id);
                 return $this->remove($tree['sourceKey'], $id, $sourceSchemaHash);
+            }
+            if ($action === 'create' && $parent !== '') {
+                if (isset($data[$parent]) && !in_array($data[$parent], ['', 0, '0'], true)) {
+                    throw new InvalidArgumentException('新增根节点不能指定父级');
+                }
+                // 显式覆盖数据库非空默认父级，避免省略字段创建出伪根。
+                $data[$parent] = ($columns[$parent]['notnull'] ?? false) ? 0 : null;
             }
             if ($action === 'addChild') {
                 if ($parent === '') throw new InvalidArgumentException('未配置父级字段');
@@ -405,6 +461,10 @@ final class FormDataService
     /** nodeAccess 接受路由资源，不接受前端 generated:* 能力码。 */
     private function businessPermissionRoute(BusinessModule $module): string
     {
+        // 插件使用独立 manifest 权限，不能回退到同名核心路由授权。
+        if (($module->metadata['target']['type'] ?? 'core') !== 'core') {
+            throw new InvalidArgumentException('插件来源暂不支持快捷分类，请使用插件正式表单');
+        }
         if ((string) $module->lifecycle_status === 'dynamic_published') return 'console/form.data';
         $form = Form::where('id', (int) $module->form_id)->find();
         if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');

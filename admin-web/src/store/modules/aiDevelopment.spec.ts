@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  conversations: vi.fn(), conversationGroups: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
+  conversationPage: vi.fn(), messagePage: vi.fn(), conversations: vi.fn(), conversationGroups: vi.fn(), conversation: vi.fn(), messages: vi.fn(), task: vi.fn(), approvals: vi.fn(), toolCalls: vi.fn(),
   eventTicket: vi.fn(), eventStreamUrl: vi.fn(), decideApproval: vi.fn(), cancelTask: vi.fn(), changeSet: vi.fn(), applyChangeSet: vi.fn(),
   updateConversation: vi.fn(), updateConversationState: vi.fn(), deleteConversation: vi.fn(), deleteConversationGroup: vi.fn()
 }));
@@ -35,6 +35,8 @@ beforeEach(() => {
   setActivePinia(createPinia());
   vi.clearAllMocks();
   FakeEventSource.instances = [];
+  mocks.conversationPage.mockImplementation(async () => ({ items: await mocks.conversations(), has_more: false, next_cursor: null }));
+  mocks.messagePage.mockImplementation(async (id) => ({ items: await mocks.messages(id), has_more: false, next_cursor: null }));
   mocks.conversations.mockResolvedValue([conversation]);
   mocks.conversationGroups.mockResolvedValue([]);
   mocks.updateConversationState.mockImplementation(async (id, state) => ({ ...conversation, id, ...state }));
@@ -60,6 +62,107 @@ afterEach(() => {
 });
 
 describe('AI Development store', () => {
+  const msg = (id: number) => ({ id, sequence: id, conversation_id: 1, parent_id: null, role: 'assistant' as const, content: [], metadata: {} });
+  it('服务端筛选重置游标且隔离旧列表响应，追加不重复', async () => {
+    const store = useAiDevelopmentStore();
+    expect(store).toHaveProperty('loadConversations');
+    let resolve!: (page: unknown) => void;
+    mocks.conversationPage.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const old = store.loadConversations({ search: '旧' });
+    mocks.conversationPage.mockResolvedValueOnce({ items: [{ ...conversation, id: 90 }], has_more: true, next_cursor: '90' });
+    await store.loadConversations({ is_archived: 1, is_unread: 1, group_id: 4, search: '新' });
+    resolve({ items: [conversation], has_more: false, next_cursor: null }); await old;
+    expect(store.conversations.map(c => c.id)).toEqual([90]);
+    mocks.conversationPage.mockResolvedValueOnce({ items: [{ ...conversation, id: 89 }], has_more: false, next_cursor: null });
+    await store.loadMoreConversations();
+    expect(mocks.conversationPage).toHaveBeenLastCalledWith({ limit: 30, cursor: '90', is_archived: 1, is_unread: 1, group_id: 4, search: '新' });
+    expect(store.conversations.map(c => c.id)).toEqual([90, 89]);
+  });
+  it('状态保存成功后在途列表不得覆盖归档与未读状态', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation }];
+    store.selectedConversationId = 1;
+    let resolve!: (page: unknown) => void;
+    mocks.conversationPage.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const pending = store.loadConversations();
+    await store.updateConversationState(1, { is_unread: true });
+    resolve({ items: [{ ...conversation, is_unread: false }], has_more: false, next_cursor: null });
+    await pending;
+    expect(store.conversations[0].is_unread).toBe(true);
+    expect(store.conversationsLoading).toBe(false);
+  });
+  it('删除分组后在途列表不得恢复旧分组成员', async () => {
+    const store = useAiDevelopmentStore();
+    store.conversations = [{ ...conversation, group_id: 4 }];
+    store.selectedConversationId = 1;
+    let resolve!: (page: unknown) => void;
+    mocks.conversationPage.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const pending = store.loadConversations();
+    await store.deleteConversationGroup(4);
+    resolve({ items: [{ ...conversation, group_id: 4 }], has_more: false, next_cursor: null });
+    await pending;
+    expect(store.conversations[0]).toMatchObject({ group_id: null, is_archived: true });
+  });
+  it('初始最新页、向上合并，SSE after 超过一页连续补齐且不清历史', async () => {
+    const store = useAiDevelopmentStore();
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(100), msg(101)], has_more: true, next_cursor: '100:100' });
+    await store.selectConversation(1);
+    expect(store.messages.map(m => m.id)).toEqual([100, 101]);
+    expect(store).toHaveProperty('loadOlderMessages');
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(98), msg(99)], has_more: true, next_cursor: '98:98' });
+    await store.loadOlderMessages();
+    expect(mocks.messagePage).toHaveBeenLastCalledWith(1, { limit: 50, before: '100:100' });
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(102), msg(103)], has_more: true, next_cursor: '103:103' });
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(104)], has_more: false, next_cursor: null });
+    await store.refreshViewedMessages(1);
+    expect(mocks.messagePage).toHaveBeenLastCalledWith(1, { limit: 50, after: '103:103' });
+    expect(store.messages.map(m => m.id)).toEqual([98,99,100,101,102,103,104]);
+    expect(store.olderMessageCursor).toBe('98:98');
+  });
+  it('向上加载中切换会话后旧页不得污染，首屏外详情可恢复', async () => {
+    const store = useAiDevelopmentStore();
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(100)], has_more: true, next_cursor: '100:100' });
+    await store.selectConversation(1);
+    expect(store.conversations.some(c => c.id === 1)).toBe(true);
+    let resolve!: (page: unknown) => void;
+    mocks.messagePage.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const old = store.loadOlderMessages();
+    mocks.conversation.mockResolvedValueOnce({ ...conversation, id: 2 });
+    mocks.messagePage.mockResolvedValueOnce({ items: [], has_more: false, next_cursor: null });
+    await store.selectConversation(2);
+    resolve({ items: [msg(1)], has_more: false, next_cursor: null }); await old;
+    expect(store.messages).toEqual([]);
+    expect(store.selectedConversationId).toBe(2);
+  });
+  it('发送回执先到不能推进增量水位而跳过中间消息', async () => {
+    const store = useAiDevelopmentStore();
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(10)], has_more: false, next_cursor: null });
+    await store.selectConversation(1);
+    store.messages.push(msg(15));
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(11),msg(12),msg(13),msg(14),msg(15)], has_more: false, next_cursor: null });
+    await store.refreshViewedMessages(1);
+    expect(mocks.messagePage).toHaveBeenLastCalledWith(1, { limit: 50, after: '10:10' });
+    expect(store.messages.map(m => m.id)).toEqual([10,11,12,13,14,15]);
+  });
+  it('空首屏后新增超过一页也要从起点连续补齐', async () => {
+    const store = useAiDevelopmentStore();
+    mocks.messagePage.mockResolvedValueOnce({ items: [], has_more: false, next_cursor: null });
+    await store.selectConversation(1);
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(1)], has_more: true, next_cursor: '1:1' });
+    mocks.messagePage.mockResolvedValueOnce({ items: [msg(2)], has_more: false, next_cursor: null });
+    await store.refreshViewedMessages(1);
+    expect(mocks.messagePage).toHaveBeenCalledWith(1, { limit: 50, after: '0:0' });
+    expect(store.messages.map(m => m.id)).toEqual([1,2]);
+  });
+  it('删除成功后列表旧响应不得复活会话', async () => {
+    const store = useAiDevelopmentStore();
+    let resolve!: (page: unknown) => void;
+    mocks.conversationPage.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const pending = store.loadConversations();
+    await store.deleteConversation(1);
+    resolve({ items: [conversation], has_more: false, next_cursor: null }); await pending;
+    expect(store.conversations).toEqual([]);
+  });
   it('思考覆盖与模型共用锁，保留并发状态、旧详情保护及任务 SSE，null 显式继承', async () => {
     const store = useAiDevelopmentStore();
     store.conversations = [{ ...conversation, model: 'm', profile_id: 2 }];

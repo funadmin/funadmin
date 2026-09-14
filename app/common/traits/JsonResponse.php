@@ -26,13 +26,13 @@ trait JsonResponse
         return [];
     }
 
-    private function jsonResponse(string $msg, mixed $data, int $code): Response
+    protected function responseHttpStatus(int $code): int
     {
-        return json([
-            'code' => $code,
-            'msg' => $msg,
-            'time' => time(),
-            'data' => $data,
-        ], $code)->header($this->responseHeaders());
+        return $code;
+    }
+
+    protected function jsonResponse(string $msg, mixed $data, int $code): Response
+    {
+        return \app\common\http\JsonEnvelope::create($msg, $data, $code, $this->responseHttpStatus($code), $this->responseHeaders());
     }
 }

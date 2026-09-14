@@ -49,7 +49,7 @@ export interface AiRuntimeCapabilities {
 export interface AiProfileInput {
   name: string;
   provider: string;
-  protocol: 'openai-chat';
+  protocol: 'openai-chat' | 'openai-responses' | 'anthropic-messages';
   base_url: string;
   model: string;
   api_key?: string;
@@ -141,6 +141,10 @@ export interface AiContentPart {
   language?: string;
   [key: string]: unknown;
 }
+
+export interface AiPage<T> { items: T[]; has_more: boolean; next_cursor: string | null }
+export interface AiConversationQuery { limit?: number; cursor?: string; is_archived?: 0 | 1; is_unread?: 0 | 1; group_id?: number; search?: string }
+export interface AiMessageQuery { limit?: number; before?: string; after?: string }
 
 export interface AiMessage {
   id: number;
@@ -301,7 +305,7 @@ function eventUrl(taskId: number, ticket: string, cursor: number): string {
 }
 
 // HTTP 已解包 data；这里只校验 AI 实体形状并规范化 ORM bigint，不递归改写业务 JSON。
-const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id', 'profile_id'] as const;
+const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id', 'profile_id', 'sequence'] as const;
 function aiRecord<T>(value: T): T {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !('id' in value)) throw new Error('AI 接口未返回有效实体');
   const record = { ...value } as Record<string, unknown>;
@@ -340,7 +344,9 @@ export const aiDevelopmentApi = {
   makeDefaultProfile: (id: number) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/default`).then(aiRecord),
   copyProfile: (id: number, name: string) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/copy`, { name }).then(aiRecord),
   profileModels: (id: number) => http.post<AiCatalogModel[]>(`${PREFIX}/profiles/${id}/models`),
-  conversations: () => http.get<AiConversation[]>('/development/ai/conversations').then(aiRecords),
+  conversationPage: (params: AiConversationQuery = {}) => http.get<AiPage<AiConversation>>(`${PREFIX}/conversations`, params).then(page => ({ ...page, items: aiRecords(page.items) })),
+  messagePage: (id: number, params: AiMessageQuery = {}) => http.get<AiPage<AiMessage>>(`${PREFIX}/conversations/${id}/messages`, params).then(page => ({ ...page, items: aiRecords(page.items) })),
+  conversations: () => http.get<AiPage<AiConversation>>(`${PREFIX}/conversations`).then(page => aiRecords(page.items)),
   conversationGroups: () => http.get<AiConversationGroup[]>(`${PREFIX}/conversation-groups`).then(aiRecords),
   createConversationGroup: (name: string) => http.post<AiConversationGroup>(`${PREFIX}/conversation-groups`, { name }).then(aiRecord),
   updateConversationGroup: (id: number, name: string) => http.put<AiConversationGroup>(`${PREFIX}/conversation-groups/${id}`, { name }).then(aiRecord),
@@ -350,7 +356,7 @@ export const aiDevelopmentApi = {
   conversation: (id: number) => http.get<AiConversation>(`${PREFIX}/conversations/${id}`).then(aiRecord),
   updateConversation: (id: number, payload: Partial<Pick<AiConversation, 'title' | 'approval_mode' | 'context' | 'model' | 'profile_id' | 'reasoning_effort'>>) => http.put<AiConversation>(`${PREFIX}/conversations/${id}`, payload).then(aiRecord),
   deleteConversation: (id: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}`),
-  messages: (id: number) => http.get<AiMessage[]>(`${PREFIX}/conversations/${id}/messages`).then(aiRecords),
+  messages: (id: number) => http.get<AiPage<AiMessage>>(`${PREFIX}/conversations/${id}/messages`).then(page => aiRecords(page.items)),
   createMessage: (id: number, payload: Pick<AiMessage, 'role' | 'content'> & { idempotency_key?: string } & Partial<Pick<AiMessage, 'metadata' | 'parent_id'>>) => http.post<AiMessage>(`${PREFIX}/conversations/${id}/messages`, payload).then(aiRecord),
   executeTask: (id: number, payload: { idempotency_key: string; type?: AiTask['type']; message_id?: number; input?: Record<string, unknown> }) => http.post<AiTask>(`${PREFIX}/conversations/${id}/tasks`, payload).then(aiRecord),
   task: (id: number) => http.get<AiTask>(`${PREFIX}/tasks/${id}`).then(aiRecord),

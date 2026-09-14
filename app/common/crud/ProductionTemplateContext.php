@@ -17,7 +17,7 @@ final class ProductionTemplateContext
         $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? $data['apiPrefix']);
         $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/generated/{$data['entity']}");
         $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
-        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
+        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? 'use app\\console\\model\\BackendModel;');
         $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
         $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
         $data['_modelNamespace'] = (string) ($target['modelNamespace'] ?? $data['_namespace'] . '\\model');
@@ -172,7 +172,7 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
-            . '    protected array $rule = ' . self::phpArray($rules) . ";\n\n"
+            . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
             . "    public function forUpdate(int|string \$id): self\n    {\n"
             . "        foreach (\$this->rule as &\$rule) {\n"
             . "            \$rule = str_replace('{{$primary['name']}}', (string) \$id, \$rule);\n"
@@ -284,6 +284,8 @@ final class ProductionTemplateContext
                 . self::dtoValue($field, "\$model->{$field['name']}") . ',';
         }
         foreach ($data['relations'] as $relation) {
+            // 同名字段优先由 ORM 返回标量，不能作为关联对象序列化。
+            if (in_array($relation['name'], array_column($data['fields'], 'name'), true)) continue;
             $dto[] = "            '{$relation['name']}' => \$model->{$relation['name']}?->toArray(),";
         }
         $features = $data['features'];
@@ -614,7 +616,7 @@ final class ProductionTemplateContext
         $selectionColumn = $enabled['batchDelete'] ? "          <el-table-column type=\"selection\" width=\"48\" />\n" : '';
         $selectionChange = $enabled['batchDelete'] ? ' @selection-change="handleSelectionChange"' : '';
         $tree = ($data['list']['tree']['enabled'] ?? false) === true;
-        $category = ($data['list']['category']['enabled'] ?? false) === true;
+        $category = ($data['list']['category']['enabled'] ?? false) === true && !($data['list']['leftTree']['enabled'] ?? false);
         $listImports = '';
         $listSetup = '';
         $categoryPanel = '';

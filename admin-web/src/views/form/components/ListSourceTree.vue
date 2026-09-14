@@ -5,7 +5,7 @@
     <el-tree ref="treeRef" :data="nodes" node-key="value" :props="{ label: 'label', children: '__listChildren' }" :show-checkbox="multiple" check-strictly highlight-current default-expand-all @node-click="clickNode" @check="checkNodes">
       <template #default="{ data }">
         <span>{{ data.label }}</span>
-        <el-button v-if="canReadForm && canMutate && result?.actions.addChild" link @click.stop="open('addChild', data.id)">加子级</el-button>
+        <el-button v-if="canReadForm && canMutate && config.mapping.parentField && result?.actions.addChild" link @click.stop="open('addChild', data.id)">加子级</el-button>
         <el-button v-if="canReadForm && canMutate && result?.actions.edit" link @click.stop="open('edit', data.id)">编辑</el-button>
         <el-button v-if="canMutate && result?.actions.delete" link type="danger" @click.stop="remove(data.id)">删除</el-button>
       </template>
@@ -77,7 +77,7 @@ const select = (ids: FormRecordId[]) => { treeRef.value?.setCheckedKeys(ids); tr
 const clickNode = (node: { value: FormRecordId }) => { if (!multiple.value) select([node.value]); };
 const checkNodes = (_node: unknown, state: { checkedKeys: FormRecordId[] }) => emit('change', state.checkedKeys);
 const open = async (action: 'create' | 'addChild' | 'edit', id: FormRecordId = '') => {
-  if (!props.canReadForm || !props.canMutate || !result.value?.actions[action]) return;
+  if (!props.canReadForm || !props.canMutate || !result.value?.actions[action] || (action === 'addChild' && !props.config.mapping.parentField)) return;
   const sequence = ++dialogSequence.value;
   visible.value = false;
   sourceMeta.value = undefined;

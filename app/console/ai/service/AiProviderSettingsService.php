@@ -12,6 +12,9 @@ final class AiProviderSettingsService
 {
     private const FIELDS = [
         'name',
+        'provider',
+        'protocol',
+        'max_output_tokens',
         'base_url',
         'model',
         'connect_timeout',
@@ -39,9 +42,7 @@ final class AiProviderSettingsService
 
     public function test(array $input): array
     {
-        if (($input['protocol'] ?? $this->serverConfig['protocol'] ?? 'openai-chat') !== 'openai-chat') {
-            throw new \InvalidArgumentException('连接测试仅支持 openai-chat');
-        }
+        new \app\common\ai\provider\AiProtocol($input['protocol'] ?? $this->serverConfig['protocol'] ?? 'openai-chat');
         $this->validateInput($input);
         $config = $this->serverConfig;
         foreach (self::FIELDS as $field) {
@@ -50,6 +51,12 @@ final class AiProviderSettingsService
             }
         }
 
+        if (!array_key_exists('api_key', $input) && ($config['api_key'] ?? '') !== '') {
+            foreach (['base_url','protocol','provider','name'] as $field) {
+                if (($config[$field] ?? null) !== ($this->serverConfig[$field] ?? null)) throw new \InvalidArgumentException('连接目标已变更，请提供临时密钥或明确清空');
+            }
+        }
+        if (isset($config['max_output_tokens']) && (!is_int($config['max_output_tokens']) || $config['max_output_tokens'] < 1 || $config['max_output_tokens'] > 10000000)) throw new \InvalidArgumentException('输出预算无效');
         $gateway = $this->gatewayFactory !== null
             ? ($this->gatewayFactory)($config)
             : new OpenAiCompatibleGateway(new Client(), $config);
@@ -64,7 +71,7 @@ final class AiProviderSettingsService
 
     private function validateInput(array $input): void
     {
-        foreach (['name', 'base_url', 'model', 'api_key'] as $field) {
+        foreach (['name', 'provider', 'protocol', 'base_url', 'model', 'api_key'] as $field) {
             if (array_key_exists($field, $input) && !is_string($input[$field])) {
                 throw new \InvalidArgumentException('Provider 字段类型无效');
             }

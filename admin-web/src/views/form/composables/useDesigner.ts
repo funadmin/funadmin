@@ -440,7 +440,42 @@ export function useDesigner() {
     form.value = { ...form.value, schema_hash: schemaHash };
     saveStatus.value = 'unsaved';
   };
-  const markSaved = (definition: FormDefinition) => load(definition);
+  const markSaved = (definition: FormDefinition) => {
+    // 保存确认不是重新加载：保留画布引用、选择和历史，仅同步服务端规范化结果。
+    const document = definition.schema_document;
+    if (document?.schemaVersion === 2) {
+      if (JSON.stringify(nodes.value) !== JSON.stringify(document.nodes)) {
+        const existing = new Map(flattenedNodes.value.map(({ node }) => [node.id, node]));
+        const reconcile = (target: FormSchemaNode[], source: FormSchemaNode[]) => {
+          const next = source.map((saved) => {
+            const node = existing.get(saved.id);
+            if (!node) return clone(saved);
+            const { children, ...properties } = saved;
+            for (const key of Object.keys(node)) {
+              if (key !== 'children' && !(key in properties)) Reflect.deleteProperty(node, key);
+            }
+            for (const [key, value] of Object.entries(properties)) {
+              if (JSON.stringify(Reflect.get(node, key)) !== JSON.stringify(value)) Reflect.set(node, key, clone(value));
+            }
+            reconcile(node.children, children ?? []);
+            return node;
+          });
+          if (target.length !== next.length || next.some((node, index) => node !== target[index])) target.splice(0, target.length, ...next);
+        };
+        reconcile(nodes.value, document.nodes);
+        const projected = projectFields(nodes.value, fields.value).map((field) => {
+          const current = fields.value.find((item) => item.field_name === field.field_name);
+          return current ? Object.assign(current, field) : field;
+        });
+        fields.value.splice(0, fields.value.length, ...projected);
+        selectNode(selectedNodeId.value && findNode(selectedNodeId.value) ? selectedNodeId.value : null);
+      }
+      form.value.schema_document = clone(document);
+    }
+    form.value.schema_hash = definition.schema_hash;
+    dirty.value = false;
+    saveStatus.value = 'saved';
+  };
 
   return {
     form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,

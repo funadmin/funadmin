@@ -6,6 +6,8 @@ import {
   type AiChangeSet,
   type AiConversation,
   type AiConversationGroup,
+  type AiConversationQuery,
+  type AiPage,
   type AiEventSourceLike,
   type AiMessage,
   type AiTask,
@@ -48,6 +50,15 @@ interface RouteState {
 
 interface AiDevelopmentState {
   conversations: AiConversation[];
+  conversationFilters: AiConversationQuery;
+  conversationCursor: string | null;
+  conversationsHasMore: boolean;
+  conversationsLoading: boolean;
+  conversationGeneration: number;
+  olderMessageCursor: string | null;
+  latestMessageCursor: string;
+  messagesHasMore: boolean;
+  olderMessagesLoading: boolean;
   conversationGroups: AiConversationGroup[];
   selectedConversationId: number | null;
   messages: AiMessage[];
@@ -85,6 +96,15 @@ function readRouteState(): RouteState {
 export const useAiDevelopmentStore = defineStore('aiDevelopment', {
   state: (): AiDevelopmentState => ({
     conversations: [],
+    conversationFilters: { is_archived: 0 },
+    conversationCursor: null,
+    conversationsHasMore: false,
+    conversationsLoading: false,
+    conversationGeneration: 0,
+    olderMessageCursor: null,
+    latestMessageCursor: '0:0',
+    messagesHasMore: false,
+    olderMessagesLoading: false,
     conversationGroups: [],
     selectedConversationId: null,
     messages: [],
@@ -108,6 +128,69 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
   }),
 
   actions: {
+    async loadConversations(filters?: AiConversationQuery) {
+      this.conversationGeneration++;
+      this.conversationFilters = { ...(filters ?? this.conversationFilters) };
+      delete this.conversationFilters.cursor;
+      this.conversationCursor = null;
+      this.conversationsHasMore = true;
+      this.conversationsLoading = false;
+      // 保留当前详情对象，但不让它参与列表游标。
+      this.conversations = this.conversations.filter(c => c.id === this.selectedConversationId);
+      await this.loadMoreConversations();
+    },
+
+    async loadMoreConversations() {
+      if (this.conversationsLoading || !this.conversationsHasMore) return;
+      const generation = this.conversationGeneration;
+      this.conversationsLoading = true;
+      try {
+        const page = await aiDevelopmentApi.conversationPage({ ...this.conversationFilters, limit: 30, ...(this.conversationCursor ? { cursor: this.conversationCursor } : {}) });
+        if (generation !== this.conversationGeneration) return;
+        const rows = new Map(this.conversations.map(c => [c.id, c]));
+        for (const row of page.items) rows.set(row.id, row);
+        this.conversations = [...rows.values()].sort((a, b) => b.id - a.id);
+        this.conversationCursor = page.next_cursor;
+        this.conversationsHasMore = page.has_more;
+      } catch {
+        if (generation === this.conversationGeneration) this.syncError = true;
+      } finally {
+        if (generation === this.conversationGeneration) this.conversationsLoading = false;
+      }
+    },
+
+    setMessagePage(page: AiPage<AiMessage>) {
+      this.messages = page.items;
+      const last = page.items.at(-1);
+      this.latestMessageCursor = last ? `${last.sequence}:${last.id}` : '0:0';
+      this.olderMessageCursor = page.next_cursor;
+      this.messagesHasMore = page.has_more;
+    },
+
+    mergeMessages(rows: AiMessage[]) {
+      const messages = new Map(this.messages.map(m => [m.id, m]));
+      for (const row of rows) messages.set(row.id, row);
+      this.messages = [...messages.values()].sort((a, b) => a.sequence - b.sequence || a.id - b.id);
+    },
+
+    async loadOlderMessages() {
+      const id = this.selectedConversationId;
+      if (!id || this.olderMessagesLoading || !this.messagesHasMore || !this.olderMessageCursor) return;
+      const generation = this.selectionGeneration;
+      this.olderMessagesLoading = true;
+      try {
+        const page = await aiDevelopmentApi.messagePage(id, { limit: 50, before: this.olderMessageCursor });
+        if (generation !== this.selectionGeneration || this.selectedConversationId !== id) return;
+        this.mergeMessages(page.items);
+        this.olderMessageCursor = page.next_cursor;
+        this.messagesHasMore = page.has_more;
+      } catch {
+        if (generation === this.selectionGeneration) this.syncError = true;
+      } finally {
+        if (generation === this.selectionGeneration) this.olderMessagesLoading = false;
+      }
+    },
+
     saveRouteState() {
       sessionStorage.setItem(ROUTE_STATE_KEY, JSON.stringify({
         selectedConversationId: this.selectedConversationId,
@@ -130,25 +213,24 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.toolCalls = [];
       this.changeSet = null;
       this.reconnectDelay = 0;
-      const [conversations, groups] = await Promise.all([
-        aiDevelopmentApi.conversations(),
+      const [, groups] = await Promise.all([
+        this.loadConversations(),
         aiDevelopmentApi.conversationGroups()
       ]);
       if (generation !== this.selectionGeneration) return;
-      this.conversations = conversations;
       this.conversationGroups = groups;
       if (this.selectedConversationId !== null) {
         const id = this.selectedConversationId;
         const [conversation, messages] = await Promise.all([
           aiDevelopmentApi.conversation(this.selectedConversationId),
-          aiDevelopmentApi.messages(this.selectedConversationId)
+          aiDevelopmentApi.messagePage(this.selectedConversationId, { limit: 50 })
         ]);
         if (generation !== this.selectionGeneration) return;
         if (conversation.is_archived) { this.clearWorkspace(); return; }
         const index = this.conversations.findIndex((item) => item.id === conversation.id);
         if (index >= 0) this.conversations[index] = conversation;
         else this.conversations.unshift(conversation);
-        this.messages = messages;
+        this.setMessagePage(messages);
         await this.markViewedRead(id, generation);
         if (generation !== this.selectionGeneration) return;
         if (this.restoredTaskId !== null) {
@@ -186,6 +268,10 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       this.activateTask(null);
       this.selectedConversationId = null;
       this.messages = [];
+      this.latestMessageCursor = '0:0';
+      this.olderMessageCursor = null;
+      this.messagesHasMore = false;
+      this.olderMessagesLoading = false;
       this.approvedFinalApproval = null;
       this.reconnectDelay = 0;
       this.syncError = false;
@@ -199,6 +285,8 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         if (guard && !guard()) return;
         const updated = await aiDevelopmentApi.updateConversationState(id, payload);
         if (guard && !guard()) return;
+        this.conversationGeneration += 1;
+        this.conversationsLoading = false;
         const current = this.conversations.find((item) => item.id === id);
         // 只合并本次修改字段，避免完整响应覆盖并发改名、移动等操作。
         if (current) for (const key of Object.keys(payload) as Array<keyof typeof payload>) {
@@ -255,9 +343,17 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       const generation = this.selectionGeneration;
       const refresh = ++this.messageGeneration;
       try {
-        const messages = await aiDevelopmentApi.messages(id);
-        if (generation !== this.selectionGeneration || refresh !== this.messageGeneration || this.selectedConversationId !== id) return;
-        this.messages = messages;
+        let after = this.latestMessageCursor;
+        do {
+          const page = await aiDevelopmentApi.messagePage(id, { limit: 50, ...(after ? { after } : {}) });
+          if (generation !== this.selectionGeneration || refresh !== this.messageGeneration || this.selectedConversationId !== id) return;
+          this.mergeMessages(page.items);
+          const last = page.items.at(-1);
+          if (last) this.latestMessageCursor = `${last.sequence}:${last.id}`;
+          if (!page.has_more) break;
+          if (!page.next_cursor || page.next_cursor === after) throw new Error('消息分页游标未前进');
+          after = page.next_cursor;
+        } while (true);
         await this.markViewedRead(id, generation);
       } catch {
         if (generation === this.selectionGeneration) this.syncError = true;
@@ -266,17 +362,27 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
 
     async deleteConversation(id: number) {
       await aiDevelopmentApi.deleteConversation(id);
+      this.conversationGeneration++;
+      this.conversationsLoading = false;
       this.conversations = this.conversations.filter((item) => item.id !== id);
       if (this.selectedConversationId === id) this.clearWorkspace();
     },
 
     async deleteConversationGroup(id: number) {
       await aiDevelopmentApi.deleteConversationGroup(id);
+      this.conversationGeneration += 1;
+      this.conversationsLoading = false;
       this.conversationGroups = this.conversationGroups.filter((group) => group.id !== id);
       for (const item of this.conversations) {
         if (item.group_id !== id) continue;
         Object.assign(item, { group_id: null, is_archived: true });
         if (this.selectedConversationId === item.id) this.clearWorkspace();
+      }
+      // 以删除成功时的筛选为准，保留期间切换的分组及其他条件。
+      if (this.conversationFilters.group_id === id) {
+        const filters = { ...this.conversationFilters };
+        delete filters.group_id;
+        await this.loadConversations(filters);
       }
     },
 
@@ -285,7 +391,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
       const generation = this.selectionGeneration;
       this.selectedConversationId = id;
       const modelGeneration = this.modelGenerations[id] ?? 0;
-      const [conversation, messages] = await Promise.all([aiDevelopmentApi.conversation(id), aiDevelopmentApi.messages(id)]);
+      const [conversation, messages] = await Promise.all([aiDevelopmentApi.conversation(id), aiDevelopmentApi.messagePage(id, { limit: 50 })]);
       if (generation !== this.selectionGeneration || this.selectedConversationId !== id) return;
       const index = this.conversations.findIndex((item) => item.id === id);
       if (index >= 0) {
@@ -295,7 +401,8 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
           ? conversation
           : { ...conversation, model: current.model, provider: current.provider, profile_id: current.profile_id, reasoning_effort: current.reasoning_effort };
       }
-      this.messages = messages;
+      if (index < 0) this.conversations.push(conversation);
+      this.setMessagePage(messages);
       this.saveRouteState();
       await this.markViewedRead(id, generation);
     },

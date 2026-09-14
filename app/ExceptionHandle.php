@@ -13,7 +13,7 @@ namespace app;
 
 use app\common\service\identity\IdentityValidationException;
 use app\common\service\identity\IdentityResourceException;
-use app\console\middleware\ConsoleResponsePolicy;
+use app\console\http\AdminResponse;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\Handle;
@@ -63,13 +63,13 @@ class ExceptionHandle extends Handle
      */
     public function render($request, Throwable $e): Response
     {
-        $console = new ConsoleResponsePolicy($this->app);
         if ($e instanceof HttpResponseException) {
-            return $console->normalize($request, $e->getResponse());
+            return $e->getResponse();
         }
-        if ($console->applies($request)) {
+        if ($this->app->http->getName() === 'console') {
             if ($e instanceof ValidateException || $e instanceof IdentityValidationException) {
-                return json(['code' => 422, 'msg' => $e->getMessage(), 'time' => time(), 'data' => null]);
+                $httpStatus = str_contains(strtolower((string) $request->header('accept', '')), 'text/event-stream') ? 422 : null;
+                return AdminResponse::create($e->getMessage(), null, 422, $httpStatus);
             }
             $status = 500;
             $message = '服务器内部错误';
@@ -85,9 +85,7 @@ class ExceptionHandle extends Handle
                 $status = 404;
                 $message = '请求资源不存在';
             }
-            return ConsoleResponsePolicy::transport(json([
-                'code' => $status, 'msg' => $message, 'time' => time(), 'data' => null,
-            ], $status)->header($headers));
+            return AdminResponse::create($message, null, $status, $status, $headers);
         }
         if ($this->app->http->getName() !== 'api') {
             return parent::render($request, $e);

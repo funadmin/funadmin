@@ -28,12 +28,7 @@
     <section v-if="diffFiles.length" data-section="diffs" class="mb-4">
       <details v-for="file in diffFiles" :key="file.path" :data-file-diff="file.path">
         <summary>{{ file.path.endsWith('/plugin.json') ? 'Manifest 变化（含外部依赖声明）' : file.path.endsWith('.sql') ? '数据库迁移' : '源码差异' }} · {{ file.path }}</summary>
-        <div class="grid gap-3 md:grid-cols-3">
-          <div v-for="side in conflictSides" :key="side.key" class="min-w-0">
-            <h5>{{ t(side.labelKey) }}</h5>
-            <pre class="overflow-auto max-h-96">{{ file[side.key] ?? '未提供内容' }}</pre>
-          </div>
-        </div>
+        <GenerationFileDiff :file="file" />
       </details>
     </section>
 
@@ -41,12 +36,7 @@
       <h4>{{ t('business.conflicts') }}</h4>
       <article v-for="file in conflicts" :key="file.path" :data-conflict-path="file.path" class="mb-3">
         <strong>{{ file.path }}</strong>
-        <div class="grid gap-3 md:grid-cols-3">
-          <div v-for="side in conflictSides" :key="side.key">
-            <h5>{{ t(side.labelKey) }}</h5>
-            <pre>{{ file[side.key] ?? '' }}</pre>
-          </div>
-        </div>
+        <GenerationFileDiff :file="file" />
       </article>
     </section>
 
@@ -64,17 +54,13 @@ import { useI18n } from 'vue-i18n';
 import type { TagProps } from 'element-plus';
 import type { BusinessGenerationFile, BusinessGenerationPlan } from '@/api/development/business';
 import { FILE_STATUS_META, type BusinessStatusTone } from '../constants';
+import GenerationFileDiff from './GenerationFileDiff.vue';
 
 const props = withDefaults(defineProps<{ plan: BusinessGenerationPlan; conflicts?: BusinessGenerationFile[] }>(), {
   conflicts: () => []
 });
 const { t } = useI18n();
 
-const conflictSides = [
-  { key: 'baseContent', labelKey: 'business.base' },
-  { key: 'localContent', labelKey: 'business.local' },
-  { key: 'remoteContent', labelKey: 'business.remote' }
-] as const;
 const conflicts = computed(() => props.conflicts.length
   ? props.conflicts
   : props.plan.files.filter((file) => file.status.includes('conflict')));
@@ -102,3 +88,9 @@ function tagType(tone: BusinessStatusTone): TagProps['type'] {
   return tone === 'primary' ? undefined : tone;
 }
 </script>
+
+<style scoped>
+.generation-plan-view, details, article { min-width: 0; max-width: 100%; }
+summary, strong, code { overflow-wrap: anywhere; }
+pre { overflow: auto; max-height: 480px; }
+</style>

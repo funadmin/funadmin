@@ -9,6 +9,9 @@ interface AiConversationStore
 {
     public function createConversation(array $data): array;
     public function conversations(int $adminId): array;
+    /** 数据库层筛选、排序并限制为 limit+1 条，禁止全量读取后切片。 */
+    public function conversationPageRows(int $adminId, array $filters, ?int $cursor, int $limit): array;
+    public function messagePageRows(int $conversationId, ?array $cursor, bool $forward, int $limit): array;
     public function conversation(int $id, int $adminId): ?array;
     public function updateConversation(int $id, int $adminId, array $data): bool;
     public function deleteConversation(int $id, int $adminId): bool;
@@ -23,6 +26,7 @@ interface AiConversationStore
     public function appendMessage(int $conversationId, array $data): array;
     /** 在所有权行锁内去重；创建回调及幂等标记与附件绑定同事务提交。 */
     public function idempotentMessage(int $conversationId, int $adminId, string $key, string $digest, callable $create): array;
+    /** 内部完整历史：任务冻结不得使用 UI 分页替代。 */
     public function messages(int $conversationId): array;
     public function createTask(array $data): array;
     public function task(int $id): ?array;

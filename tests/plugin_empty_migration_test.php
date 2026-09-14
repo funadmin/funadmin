@@ -45,6 +45,11 @@ namespace think\facade {
         public function getTables(): array { return self::$ready ? ['test_system_migration'] : []; }
         public static function transaction(callable $callback): void { $callback(); }
         public static function execute(string $sql): void { self::$executed[] = $sql; }
+        public static function query(string $sql, array $bind = [], bool $master = false): array
+        {
+            if (!str_contains($sql, '@@character_set_client')) throw new \RuntimeException('意外查询');
+            return [['client'=>'utf8mb4','connection_charset'=>'utf8mb4','results_charset'=>'utf8mb4']];
+        }
     }
 }
 

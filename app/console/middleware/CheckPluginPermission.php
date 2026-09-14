@@ -35,11 +35,6 @@ class CheckPluginPermission
 
     private function deny(int $code, string $message)
     {
-        return json([
-            'code' => $code,
-            'msg' => $message,
-            'time' => time(),
-            'data' => null,
-        ], $code);
+        return \app\console\http\AdminResponse::create($message, null, $code);
     }
 }

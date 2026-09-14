@@ -19,6 +19,19 @@ export interface FormDataMeta {
   categoryOptions?: Array<{ label: string; value: string | number; disabled?: boolean }>;
 }
 
+export interface FormSourceField {
+  field_name: string;
+  label: string;
+}
+
+export interface FormSourceMeta {
+  moduleId: number;
+  moduleCode: string;
+  formKey: string;
+  primaryKey: { name: string; type: 'integer' | 'string' };
+  fields: FormSourceField[];
+}
+
 export interface FormLeftTreeResult {
   nodes: Array<{ id: FormRecordId; value: FormRecordId; label: string; parent: FormRecordId | null }>;
   sourceKey: string;
@@ -40,6 +53,8 @@ export const formDataApi = {
   mutateLeftTree: (key: string, operation: 'create' | 'addChild' | 'edit' | 'delete', id: FormRecordId, data: Record<string, unknown>, schemaHash: string, sourceSchemaHash: string) =>
     http.post(`${PREFIX}/left-tree/${key}/${operation}`, { id, data, schemaHash, sourceSchemaHash }),
   meta: (key: string) => http.get<FormDataMeta>(`${PREFIX}/meta/${key}`),
+  sourceMeta: (key: string) => http.get<FormSourceMeta>(`${PREFIX}/meta/${key}`, { source: true }, { requestOptions: { showErrorMsg: false } }),
+  sourceCandidates: () => http.get<{ list: FormSourceMeta[]; total: number }>('/development/business/modules', { source: true }, { requestOptions: { showErrorMsg: false } }),
   index: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[]; total: number }>(`${PREFIX}/index/${key}`, params),
   export: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[] }>(`${PREFIX}/export/${key}`, params),
   detail: (key: string, id: string | number) => http.get<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> }>(`${PREFIX}/detail/${key}/${id}`),

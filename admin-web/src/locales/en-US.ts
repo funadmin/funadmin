@@ -65,6 +65,7 @@ export default {
       deleteGroupConfirm: 'Deleting this group will archive all its conversations. Continue?', deleteConfirm: 'Delete this conversation? This cannot be undone.',
       failed: 'Conversation operation failed. Please retry.', syncFailed: 'Messages or read status could not be synchronized. Reopen the conversation.'
     },
+    pagination: { more: 'Load more', older: 'Load older messages', search: 'Search conversations', unreadFilter: 'Read status', allReadStates: 'All read states', groupFilter: 'Filter by group', allGroups: 'All groups' },
     newConversation: 'New',
     unnamedConversation: 'Untitled conversation',
     noConversations: 'No conversations',
@@ -75,6 +76,8 @@ export default {
     newConversationTitle: 'New AI conversation',
     taskContext: 'Task context',
     taskAndPermissions: 'Task and permissions',
+    taskOverview: 'Task overview',
+    riskAndApproval: 'Risks and approvals',
     stage: 'Stage',
     status: 'Status',
     test: 'Tests',

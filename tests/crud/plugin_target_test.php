@@ -424,6 +424,7 @@ try {
     }
     $migrationMethod = new ReflectionMethod(\app\common\crud\PluginCrudTarget::class, 'migration');
     $migrationTarget = new \app\common\crud\PluginCrudTarget($root);
+    $app->config->set(['mysqlPrefix' => ['__PREFIX__', 'fun_']], 'funadmin');
     foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         $app->config->set(['connections' => ['archive' => ['prefix' => $prefix]]], 'database');
         $oldDefinition = pluginDefinition('console', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => 'fun_shop_legacy']);
@@ -434,6 +435,20 @@ try {
         $newSql = \app\common\crud\ProductionTemplateContext::build($newDefinition)['migrationContent'];
         $result = $migrationMethod->invoke($migrationTarget, $newDefinition, 'shop', 'legacy-item', $newSql);
         pluginCrudExpect($result['path'] === 'plugins/shop/database/migrations/090_legacy.sql' && $result['content'] === $oldSql, '旧模板迁移必须按执行前缀识别并原样复用，不得新增 CREATE 或改 checksum');
+        $snapshotMethod = new ReflectionMethod(\app\common\crud\PluginCrudTarget::class, 'schemaSnapshot');
+        $oldSnapshot = $snapshotMethod->invoke($migrationTarget, $oldDefinition);
+        $withMetadata = $oldSql . '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($oldSnapshot)) . "\n";
+        file_put_contents($legacyPath, $withMetadata);
+        $same = $migrationMethod->invoke($migrationTarget, $newDefinition, 'shop', 'legacy-item', $newSql);
+        pluginCrudExpect($same['content'] === $withMetadata, '带 metadata 旧迁移也必须保留原内容及 hash');
+        $changed = $newDefinition->toArray();
+        $changed['fields'][] = ['name' => 'sku', 'dbType' => 'varchar(64)', 'nullable' => true, 'unique' => true];
+        $changed = CrudDefinition::fromArray($changed);
+        $forward = $migrationMethod->invoke($migrationTarget, $changed, 'shop', 'legacy-item', \app\common\crud\ProductionTemplateContext::build($changed)['migrationContent']);
+        pluginCrudExpect(str_starts_with($forward['content'], "-- funadmin-physical-table\n") && str_contains($forward['content'], 'ALTER TABLE `' . $prefix . 'shop_legacy`') && str_contains($forward['content'], 'ADD UNIQUE KEY'), '旧 metadata forward 必须绑定物理表且保留 unique');
+        file_put_contents($legacyPath, $oldSql);
+        pluginCrudReject(static fn () => $migrationMethod->invoke($migrationTarget, $changed, 'shop', 'legacy-item', \app\common\crud\ProductionTemplateContext::build($changed)['migrationContent']), '缺少 schema metadata');
+        pluginCrudExpect(file_get_contents($legacyPath) === $oldSql, '拒绝旧迁移演进不得覆盖历史 SQL');
         unlink($legacyPath);
     }
     $factory = new PluginCrudDefinitionFactory($root);

@@ -11,17 +11,17 @@
     <el-input v-model="draft.text" type="textarea" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" :rows="4" resize="vertical" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
     <div class="toolbar">
       <el-popover v-model:visible="modelsOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="approvalOpen = false">
-        <template #reference><el-button ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
+        <template #reference><el-button size="small" ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
         <div v-if="modelsOpen" @keydown.esc.stop="closeModels"><slot name="models" /></div>
       </el-popover>
       <el-popover v-model:visible="approvalOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="modelsOpen = false">
-        <template #reference><el-button :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false">{{ t('aiComposer.approval') }}</el-button></template>
+        <template #reference><el-button size="small" :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false">{{ t('aiComposer.approval') }}</el-button></template>
         <div v-if="approvalOpen"><slot name="approval" /></div>
       </el-popover>
       <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
-      <el-button :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId" @click="fileInput?.click()" />
-      <el-button v-if="running" class="send" type="danger" @click="$emit('stop')">{{ t('aiDevelopment.stop') }}</el-button>
-      <el-button v-else class="send" type="primary" :disabled="!canSend" @click="send">{{ t('aiDevelopment.send') }}</el-button>
+      <el-button size="small" :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId" @click="fileInput?.click()" />
+      <el-button v-if="running" size="small" class="send" type="danger" @click="$emit('stop')">{{ t('aiDevelopment.stop') }}</el-button>
+      <el-button v-else size="small" class="send" type="primary" :disabled="!canSend" @click="send">{{ t('aiDevelopment.send') }}</el-button>
     </div>
     <p class="privacy">{{ t('aiComposer.privacy') }}</p>
     <p v-if="draft.error || imageError" role="alert">{{ draft.error || imageError }}</p>
@@ -150,8 +150,8 @@ async function send() {
 .ai-composer { position: relative; width: 100%; min-width: 0; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--el-border-color); border-radius: 18px; background: var(--el-bg-color); box-sizing: border-box; }
 .ai-composer :deep(.el-textarea__inner) { min-height: 94px; max-height: 220px; }
 .ai-composer > .el-textarea { margin-bottom: 10px; }
-.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.toolbar :deep(.el-button) { margin-left: 0; }
+.toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.toolbar :deep(.el-button) { margin-left: 0; min-height: 24px; padding: 5px 8px; }
 .toolbar .send { margin-left: auto; }
 .model-menu { min-width: 0; max-width: 100%; }
 .model-menu :deep(span) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

@@ -20,23 +20,13 @@ class CheckAdminApiRole
     public function handle($request, \Closure $next)
     {
         if (!$this->session->isLogin()) {
-            return json([
-                'code' => 401,
-                'msg' => '登录已失效，请重新登录',
-                'time' => time(),
-                'data' => null,
-            ], 401);
+            return \app\console\http\AdminResponse::create('登录已失效，请重新登录', null, 401);
         }
 
         try {
             $this->authorization->roleAccess(true);
         } catch (HttpResponseException $e) {
-            return json([
-                'code' => 403,
-                'msg' => '没有访问权限',
-                'time' => time(),
-                'data' => null,
-            ], 403);
+            return \app\console\http\AdminResponse::create('没有访问权限', null, 403);
         }
 
         return $next($request);

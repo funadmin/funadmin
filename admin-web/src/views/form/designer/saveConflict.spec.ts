@@ -27,9 +27,14 @@ let wrapper: ReturnType<typeof shallowMount>;
 let state: any;
 const start = async () => {
   wrapper = shallowMount(Designer, { global: { renderStubDefaultSlot: true, directives: { perm: {} }, stubs: {
-    ...Object.fromEntries(['ElTag', 'ElRadioButton', 'ElRadioGroup', 'ElButton', 'ElOption', 'ElSelect', 'ElAlert', 'ElCard', 'ElFormItem', 'ElForm', 'ElInput', 'ElDivider', 'ElEmpty', 'ElSteps', 'ElStep', 'ElTreeSelect', 'ElCheckbox', 'ElSwitch', 'ElDescriptionsItem', 'ElDescriptions', 'ElTableColumn', 'ElTable', 'ElCollapseItem', 'ElCollapse', 'ElTabPane', 'ElTabs', 'ElResult'].map((name) => [name, true])),
+    ...Object.fromEntries(['ElDropdown', 'ElDropdownMenu', 'ElDropdownItem', 'ElTag', 'ElRadioButton', 'ElRadioGroup', 'ElButton', 'ElOption', 'ElSelect', 'ElAlert', 'ElCard', 'ElFormItem', 'ElForm', 'ElInput', 'ElDivider', 'ElEmpty', 'ElSteps', 'ElStep', 'ElTreeSelect', 'ElCheckbox', 'ElSwitch', 'ElDescriptionsItem', 'ElDescriptions', 'ElTableColumn', 'ElTable', 'ElCollapseItem', 'ElCollapse', 'ElTabPane', 'ElTabs', 'ElResult'].map((name) => [name, true])),
     ElButton: { props: ['disabled', 'loading'], template: '<button :disabled="disabled || loading"><slot /></button>' },
     PageWrapper: { template: '<main><slot /></main>' },
+    ElCard: { template: '<section><header><slot name="header" /></header><slot /></section>' },
+    ElDrawer: { props: ['modelValue', 'title', 'size'], template: '<aside v-if="modelValue" role="dialog"><h2>{{ title }}</h2><button aria-label="关闭表单大纲" @click="$emit(\'update:modelValue\', false)">关闭</button><slot /></aside>' },
+    SchemaNodeTree: false,
+    DesignerCanvas: false,
+    DesignerCanvasNode: false,
     ElDialog: { props: ['modelValue'], template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>' }
   } } });
   await flushPromises();
@@ -57,6 +62,94 @@ beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+describe('按需表单大纲', () => {
+  const open = async () => {
+    const button = wrapper.findAll('.designer-canvas-heading button').find((item) => item.text() === '表单大纲');
+    expect(button, '画布提供次要大纲入口').toBeDefined();
+    await button!.trigger('click');
+  };
+  it.each(['basic', 'advanced'])('%s 默认不内联树或来源提示，点击打开并关闭', async (mode) => {
+    await start();
+    state.designerMode = mode;
+    await nextTick();
+    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+    expect(wrapper.html()).not.toContain('Schema 来源');
+    expect(wrapper.text()).not.toContain('FormSchema v2 AST 节点树');
+    await open();
+    expect(wrapper.get('[role="dialog"] h2').text()).toBe('表单大纲');
+    expect(wrapper.find('.schema-node-tree').exists()).toBe(true);
+    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
+    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+  });
+  it('标题使用真实字段名与中文类型，布局不伪造字段；选择同步画布', async () => {
+    await start();
+    state.store.addNode('input');
+    state.store.addNode('group');
+    const field = state.store.nodes.value[0];
+    await open();
+    const rows = wrapper.findAll('.schema-tree-row');
+    expect(rows[0].text()).toContain(`${field.title}（${field.field}）`);
+    expect(rows[0].text()).toContain('单行输入');
+    expect(rows[1].text()).toContain('分组');
+    expect(rows[1].text()).not.toContain('（');
+    await rows[0].trigger('click');
+    expect(wrapper.get(`[data-node-id="${field.id}"]`).attributes('aria-selected')).toBe('true');
+    expect(state.store.selected.value.field_name).toBe(field.field);
+    await wrapper.get(`[data-node-id="${state.store.nodes.value[1].id}"]`).trigger('click');
+    expect(rows[1].classes()).toContain('is-selected');
+  });
+  it('抽屉内移动、复制、添加分组保留真实结构操作', async () => {
+    await start();
+    state.store.addNode('input'); state.store.addNode('select');
+    const firstId = state.store.nodes.value[0].id;
+    await open();
+    await wrapper.findAll('.schema-tree-row')[0].get('[title="下移"]').trigger('click');
+    expect(state.store.nodes.value[1].id).toBe(firstId);
+    await wrapper.findAll('.schema-tree-row')[1].findAll('button').find((item) => item.text() === '复制')!.trigger('click');
+    expect(state.store.nodes.value).toHaveLength(3);
+    expect(new Set(state.store.nodes.value.map((node: any) => node.field)).size).toBe(3);
+    await wrapper.findAll('[role="dialog"] button').find((item) => item.text() === '添加布局分组')!.trigger('click');
+    expect(state.store.nodes.value[3].type).toBe('group');
+  });
+  it('开关不改变 Schema、历史、dirty、保存状态或草稿', async () => {
+    await start();
+    const schema = JSON.stringify(state.store.schemaDocument.value);
+    localStorage.setItem('form-designer-draft:7', '保留草稿');
+    await open();
+    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(state.store.dirty.value).toBe(false);
+    expect(state.store.saveStatus.value).toBe('saved');
+    expect(state.store.canUndo.value).toBe(false);
+    expect(JSON.stringify(state.store.schemaDocument.value)).toBe(schema);
+    expect(localStorage.getItem('form-designer-draft:7')).toBe('保留草稿');
+    expect(api.saveSchema).not.toHaveBeenCalled();
+    await pause();
+    await vi.advanceTimersByTimeAsync(1000);
+    const savedDraft = localStorage.getItem('form-designer-draft:7');
+    await open();
+    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(state.store.dirty.value).toBe(true);
+    expect(state.saveBlocked).toBe(true);
+    expect(localStorage.getItem('form-designer-draft:7')).toBe(savedDraft);
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
+  });
+  it.each(['desktop', 'tablet', 'mobile'])('切换 %s 预览关闭大纲，返回编辑不自动打开', async (mode) => {
+    await start(); await open();
+    state.workspaceMode = mode; await nextTick();
+    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+    expect(wrapper.findAll('.designer-canvas-heading button')).toHaveLength(0);
+    expect(state.activeTab).toBe('design');
+    state.workspaceMode = 'edit'; await nextTick();
+    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+  });
+  it('抽屉宽度限制在视口内', async () => {
+    await start(); await open();
+    expect(wrapper.getComponent<any>('[role="dialog"]').props('size')).toBe('min(480px, 100vw)');
+  });
+});
 
 describe('插件业务生成闭环', () => {
   const pluginRemote = () => ({ ...remote(), module: { id: 12, metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', tableStrategy: 'owned', locked: true } } } });

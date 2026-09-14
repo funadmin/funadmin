@@ -18,12 +18,7 @@ class CheckAdminApiCsrf
         $sessionToken = (string) Session::get('__token__', '');
         $requestToken = (string) ($request->header('X-CSRF-TOKEN', '') ?: $request->param('__token__', ''));
         if ($sessionToken === '' || $requestToken === '' || !hash_equals($sessionToken, $requestToken)) {
-            return json([
-                'code' => 403,
-                'msg' => 'CSRF Token 无效或已过期',
-                'time' => time(),
-                'data' => null,
-            ], 403);
+            return \app\console\http\AdminResponse::create('CSRF Token 无效或已过期', null, 403);
         }
 
         return $next($request);

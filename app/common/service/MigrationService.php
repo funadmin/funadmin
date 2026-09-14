@@ -67,7 +67,8 @@ class MigrationService extends AbstractService
     public static function rewritePrefix(string $sql, string|array $templatePrefix, string $prefix): string
     {
         if (str_starts_with($sql, "-- funadmin-physical-table\n") || $templatePrefix === '') return $sql;
-        return str_replace($templatePrefix, $prefix, $sql);
+        $aliases = array_values(array_filter((array) $templatePrefix, static fn (string $alias): bool => $alias !== ''));
+        return $aliases === [] ? $sql : strtr($sql, array_fill_keys($aliases, $prefix));
     }
 
     /** 两种入口共用 checksum、预检、SQL 解析、事务和登记逻辑。 */
@@ -90,14 +91,28 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('安装插件前必须先完成核心 migration');
             }
 
-            $this->preflightSchemaIntegrity006($scope, $version);
-            $this->preflightBusinessDevelopment077($scope, $version);
-            $this->preflightAiPhase4Migrations($scope, $version);
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
                 throw new RuntimeException('无法读取 migration：' . $file);
             }
+            DdlEncodingGuard::check(Db::connect(), $sql);
             $this->assertForwardOnly($sql, $file);
+            if ($scope === 'core' && $version === CommentEncodingRepair::VERSION) {
+                if (!$repositoryReady) {
+                    throw new RuntimeException('注释补偿要求已存在 migration 仓库');
+                }
+                CommentEncodingRepair::apply(Db::connect(), Db::query($sql));
+                // MySQL DDL 隐式提交：全部修复及验证成功后才单独登记，失败可安全续跑。
+                SystemMigration::create([
+                    'scope' => $scope, 'version' => $version,
+                    'checksum' => $checksum, 'executed_at' => time(),
+                ]);
+                $executed[] = $version;
+                continue;
+            }
+            $this->preflightSchemaIntegrity006($scope, $version);
+            $this->preflightBusinessDevelopment077($scope, $version);
+            $this->preflightAiPhase4Migrations($scope, $version);
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
             $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
             $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);

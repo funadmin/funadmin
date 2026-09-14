@@ -3,6 +3,7 @@ import request from '@/utils/http';
 export interface OrderTestModel {
   id: number;
   field1?: string;
+  field7?: Record<string, unknown> | unknown[];
   field2?: string;
   field3?: string;
   field4?: string;
@@ -27,6 +28,7 @@ export const orderTestApi = {
   removeMany: (ids: OrderTestModelId[]) => request.delete('/generated/order-test', { ids }),
   restoreMany: (ids: OrderTestModelId[]) => request.post('/generated/order-test/restore', { ids }),
   forceDeleteMany: (ids: OrderTestModelId[]) => request.delete('/generated/order-test/destroy', { ids }),
+  options: (source: string) => request.get<Array<{ label: string; value: string | number }>>(`/generated/order-test/options/${source}`),
   importRows: (rows: OrderTestModelPayload[]) => request.post('/generated/order-test/import', { rows }),
   exportRows: (params: Partial<OrderTestModelQuery>) => request.get<OrderTestModel[]>('/generated/order-test/export', params)
 };

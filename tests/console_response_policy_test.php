@@ -8,7 +8,7 @@ require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 use app\ExceptionHandle;
 use app\common\service\identity\ApplicationCatalogService;
 use app\common\service\identity\EnterpriseApplicationUrlPolicy;
-use app\console\middleware\ConsoleResponsePolicy;
+use app\console\http\AdminResponse;
 use think\App;
 use think\Request;
 use think\exception\HttpException;
@@ -28,37 +28,45 @@ $response = $handler->render($request, new ValidateException('名称不能为空
 consoleExpect($response->getCode() === 200, 'RED: console 参数验证必须 HTTP 200');
 consoleExpect($response->getData()['code'] === 422 && $response->getData()['msg'] === '名称不能为空', '验证失败必须保留明确业务消息');
 
-$middleware = new ConsoleResponsePolicy($app);
 $app->bind(\think\exception\Handle::class, ExceptionHandle::class);
-$app->middleware->import([ConsoleResponsePolicy::class], 'console-test');
+$app->middleware->import([], 'console-test');
 $pipelineResponse = $app->middleware->pipeline('console-test')->send($request)->then(function () {
     throw new ValidateException('管道验证失败');
 });
 consoleExpect($pipelineResponse->getCode() === 200 && $pipelineResponse->getData()['msg'] === '管道验证失败', '框架管道异常出口必须应用策略');
-consoleExpect(in_array(ConsoleResponsePolicy::class, require dirname(__DIR__) . '/app/console/middleware.php', true), '策略必须注册在 console 应用中间件');
+consoleExpect(!is_file(dirname(__DIR__) . '/app/console/middleware/ConsoleResponsePolicy.php'), '响应中间件必须删除');
 foreach ([400, 422] as $status) {
     $body = ['code' => $status, 'msg' => '明确业务失败', 'data' => ['field' => 'name']];
-    $original = json($body, $status)->header(['X-CSRF-TOKEN' => 'next-token', 'Cache-Control' => 'no-store']);
-    $result = $middleware->handle($request, fn () => $original);
-    consoleExpect($result === $original && $result->getCode() === 200 && $result->getData() === $body, '直接 JSON 必须只改变 HTTP 状态');
+    $original = AdminResponse::create($body['msg'], $body['data'], $status, headers: ['X-CSRF-TOKEN' => 'next-token', 'Cache-Control' => 'no-store']);
+    $result = $original;
+    consoleExpect($result->getCode() === 200 && $result->getData()['code'] === $status && $result->getData()['data'] === $body['data'], '明确后台出口必须在源头分离状态');
     consoleExpect($result->getHeader('X-CSRF-TOKEN') === 'next-token', '保留 CSRF 响应头');
-    $exceptionResponse = $handler->render($request, new HttpResponseException(json($body, $status)));
+    $exceptionResponse = $handler->render($request, new HttpResponseException($original));
     consoleExpect($exceptionResponse->getCode() === 200, '响应异常同样归一化');
 }
 foreach ([401, 403, 404, 405, 409, 410, 413, 415, 419, 429, 500, 502, 503, 504] as $status) {
-    $response = json(['code' => $status, 'msg' => '保留状态'], $status);
-    consoleExpect($middleware->handle($request, fn () => $response)->getCode() === $status, '保留状态 ' . $status);
+    $response = AdminResponse::create('保留状态', null, $status);
+    consoleExpect($response->getCode() === $status, '保留状态 ' . $status);
 }
-$rawFailure = json(['code' => 500, 'msg' => 'secret SQL', 'data' => ['password' => 'secret']], 500);
-consoleExpect(!str_contains($middleware->handle($request, fn () => $rawFailure)->getContent(), 'secret'), '局部 catch 生成的 500 也必须脱敏');
+$rawFailure = AdminResponse::create('secret SQL', ['password' => 'secret'], 500);
+consoleExpect(!str_contains($rawFailure->getContent(), 'secret'), '局部 catch 生成的 500 也必须脱敏');
 foreach ([400, 422, 401, 403, 404, 409, 429, 503] as $status) {
-    $response = $middleware->handle($request, fn () => $handler->render($request, new HttpException($status, '协议错误')));
+    $response = $handler->render($request, new HttpException($status, '协议错误'));
     consoleExpect($response->getCode() === $status, 'HttpException 不得转成普通业务状态');
 }
 foreach ([new InvalidArgumentException('secret SQL'), new DomainException('secret path'), new RuntimeException('secret token')] as $exception) {
     $response = $handler->render($request, $exception);
     consoleExpect($response->getCode() === 500 && !str_contains($response->getContent(), 'secret'), '未知异常必须为安全 500');
 }
+$aiClass = new ReflectionClass(\app\console\controller\ai\Ai::class);
+$ai = $aiClass->newInstanceWithoutConstructor();
+$originalSession = $app->make('session');
+$app->instance('session', new class { public function get($name, $default = null) { return ''; } });
+foreach ([new InvalidArgumentException('secret SQL'), new RuntimeException('secret token')] as $exception) {
+    $response = $aiClass->getMethod('run')->invoke($ai, static function () use ($exception) { throw $exception; });
+    consoleExpect($response->getCode() === 500 && !str_contains($response->getContent(), 'secret'), 'AI 局部 mapper 不得吞掉未知异常');
+}
+$app->instance('session', $originalSession);
 $domainService = new \app\common\service\identity\ApplicationDomainService(new EnterpriseApplicationUrlPolicy(static fn () => ['93.184.216.34']));
 try {
     $domainService->normalizeCallbacks(['identityCallback' => 'https://one.example/cb', 'logoutCallback' => 'https://two.example/cb']);
@@ -92,14 +100,15 @@ foreach ([
     redirect('/login'),
 ] as $original) {
     $status = $original->getCode();
-    consoleExpect($middleware->handle($request, fn () => $original)->getCode() === $status, '非业务响应不变');
+    consoleExpect($handler->render($request, new HttpResponseException($original))->getCode() === $status, '非业务响应不变');
 }
 $sse = (new Request())->withHeader(['accept' => 'text/event-stream']);
-consoleExpect($middleware->handle($sse, fn () => json(['code' => 400, 'msg' => '流失败'], 400))->getCode() === 400, 'SSE 握手失败不变');
+consoleExpect($handler->render($sse, new ValidateException('流参数无效'))->getCode() === 422, '流握手验证失败必须保留 HTTP 422');
+consoleExpect($handler->render($sse, new HttpResponseException(json(['code' => 400, 'msg' => '流失败'], 400)))->getCode() === 400, 'SSE 握手失败不变');
 foreach (['api', 'identity'] as $name) {
     $app->http->name($name);
     $original = json(['code' => 422, 'msg' => '公开接口'], 422);
-    consoleExpect($middleware->handle($request, fn () => $original)->getCode() === 422, '非 console 隔离');
+    consoleExpect($handler->render($request, new HttpResponseException($original))->getCode() === 422, '非 console 隔离');
     consoleExpect($handler->render($request, new HttpResponseException($original)) === $original, '非 console 响应异常不变');
 }
 echo "console response policy tests: PASS\n";

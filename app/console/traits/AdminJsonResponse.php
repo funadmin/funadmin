@@ -14,6 +14,16 @@ trait AdminJsonResponse
 {
     use JsonResponse;
 
+    protected function responseHttpStatus(int $code): int
+    {
+        return \app\console\http\AdminResponse::httpStatus($code);
+    }
+
+    protected function jsonResponse(string $msg, mixed $data, int $code): \think\Response
+    {
+        return \app\console\http\AdminResponse::create($msg, $data, $code, $this->responseHttpStatus($code), $this->responseHeaders());
+    }
+
     protected function responseHeaders(): array
     {
         return ['X-CSRF-TOKEN' => (string) Session::get('__token__', '')];

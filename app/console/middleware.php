@@ -13,7 +13,6 @@
 
 
 return [
-     \app\console\middleware\ConsoleResponsePolicy::class,
      \think\middleware\LoadLangPack::class,
 
      \think\middleware\SessionInit::class,

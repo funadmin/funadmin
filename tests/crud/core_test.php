@@ -124,6 +124,9 @@ try {
             file_put_contents($root . '/definition.json', json_encode($input));
             $loaded = $loader->load($root . '/definition.json');
             crudExpect($loaded->get('table') === $prefix . 'audit_log', '核心 CLI 新建必须遵循连接前缀一次');
+            $workbench = new \app\console\development\service\DevCrudService($root, ['archive'], auditWriter: static fn (): int => 1);
+            $validated = $workbench->validate($input);
+            crudExpect($validated['definition']['table'] === $prefix . 'audit_log', 'Workbench Definition 输入必须与 CLI 使用相同逻辑表边界');
         }
         foreach (['legacy_audit_log', $prefix . 'audit_log'] as $table) {
             $input = validDefinition(['connection' => 'archive', 'table' => $table, 'tableIdentity' => ['source' => 'adopted', 'kind' => 'physical']]);

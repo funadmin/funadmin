@@ -3,7 +3,7 @@ import { useRoute } from 'vue-router';
 import { businessDevelopmentApi, type BusinessTargetCandidates, type BusinessTargetSelection } from '@/api/development/business';
 
 /** 候选以服务端为准；query 指定的不可用插件不得静默回退核心。 */
-export function useBusinessTarget() {
+export function useBusinessTarget(canLoad: () => boolean = () => true) {
   const route = useRoute();
   const selected = ref(typeof route.query.plugin === 'string' ? route.query.plugin : '');
   const candidates = ref<BusinessTargetCandidates['list']>([]);
@@ -22,6 +22,12 @@ export function useBusinessTarget() {
   const target = computed<BusinessTargetSelection>(() => selected.value ? { type: 'plugin', pluginCode: selected.value } : { type: 'core' });
   watch(() => route.query.plugin, (plugin) => { selected.value = typeof plugin === 'string' ? plugin : ''; });
   async function loadTargets() {
+    if (!canLoad()) {
+      loading.value = false;
+      candidates.value = [];
+      error.value = '无业务目标查看权限，不能创建或采纳；已授权的结构检查仍可使用。';
+      return;
+    }
     loading.value = true;
     error.value = '';
     try {

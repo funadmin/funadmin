@@ -33,7 +33,7 @@ $history = [];
 try { providerGateway([], $history, ['fallback_enabled'=>true, 'fallback_models'=>['b']])->chat([]); throw new LogicException('未实现备用必须明确拒绝'); }
 catch (InvalidArgumentException) {}
 $settings = new \app\console\ai\service\AiProviderSettingsService([], static fn () => throw new LogicException('unsupported 不得进入连接测试'));
-try { $settings->test(['protocol'=>'anthropic-messages']); throw new LogicException('不支持协议应拒绝'); } catch (InvalidArgumentException) {}
+try { $settings->test(['protocol'=>'unsupported']); throw new LogicException('不支持协议应拒绝'); } catch (InvalidArgumentException) {}
 $history = [];
 $messages = [['role'=>'assistant','content'=>null,'tool_calls'=>[['id'=>'c1','name'=>'read','arguments'=>['path'=>'x']]]], ['role'=>'tool','tool_call_id'=>'c1','content'=>'ok'], ['role'=>'user','content'=>'继续']];
 $gateway = providerGateway([new Response(200, [], '{"choices":[{"message":{"content":"ok"}}]}')], $history);

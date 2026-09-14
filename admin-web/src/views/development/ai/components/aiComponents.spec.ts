@@ -95,7 +95,7 @@ describe('AI Development components', () => {
       wrapper.unmount();
     }
   });
-  it('档案使用单列限宽布局、真实 EP 表单与独立底栏，能力默认折叠', () => {
+  it('档案使用紧凑响应式布局、真实 EP 表单与独立底栏，能力默认折叠', () => {
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
     expect(wrapper.find('nav').exists()).toBe(false);
     expect(wrapper.find('fieldset').exists()).toBe(false);
@@ -108,9 +108,50 @@ describe('AI Development components', () => {
     expect(wrapper.get('[data-testid="profile-advanced"]').attributes('open')).toBeUndefined();
     const source = readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
     expect(source).toMatch(/max-width:\s*1000px/);
-    expect(source).toMatch(/grid-template-columns:\s*repeat\(3,/);
+    expect(source).toMatch(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(source).toContain('overflow-y: auto');
     expect(source).not.toMatch(/(?:^|\n)\s*(?:input|label|fieldset|select)\s*[:{,]/);
+  });
+  it('移除纯说明 UI，保留密钥操作语义、配置字段与反馈', async () => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, error: '连接失败', notice: '档案已保存' });
+    expect(wrapper.findAll('details')).toHaveLength(1);
+    expect(wrapper.find('.profile-help').exists()).toBe(false);
+    for (const text of ['协议与模型目录说明', '备用切换限制', '当前模型预算说明', '运行累计限制', '能力来源说明', '测试说明']) expect(wrapper.text()).not.toContain(text);
+    expect(wrapper.get('[data-testid="provider-api-key"]').attributes('placeholder')).toBe(zhCN.aiDevelopment.profiles.keyHint);
+    expect(wrapper.get('[data-testid="provider-clear-key"] input').attributes('aria-label')).toBe(zhCN.aiDevelopment.profiles.clearKey);
+    expect(wrapper.get('[role="alert"]').text()).toBe('连接失败');
+    expect(wrapper.get('[role="status"]').text()).toBe('档案已保存');
+    expect(wrapper.findAll('.profile-fields')).toHaveLength(2);
+    await wrapper.findAll('button').find(button => button.text() === '添加模型能力声明')!.trigger('click');
+    expect(wrapper.findAll('.capability-row .el-form-item')).toHaveLength(8);
+    wrapper.unmount();
+  });
+  it.each([1080, 390])('档案在 %ipx 下应用紧凑间距及响应式字段列数', async (width) => {
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
+    const style = document.createElement('style');
+    try {
+      const { descriptor } = parse(readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8'));
+      const scopeId = (ProviderSettingsDrawer as unknown as { __scopeId: string }).__scopeId;
+      const compiled = compileStyle({ source: descriptor.styles[0]!.content, filename: 'ProviderSettingsDrawer.vue', id: scopeId, scoped: true });
+      expect(compiled.errors).toEqual([]);
+      style.textContent = compiled.code;
+      document.head.append(style);
+      // jsdom 不执行媒体查询，按目标宽度展开编译后的响应式规则。
+      style.textContent = Array.from(style.sheet!.cssRules).map(rule => {
+        if (!(rule instanceof CSSMediaRule)) return rule.cssText;
+        const maxWidth = rule.conditionText.match(/max-width:\s*(\d+)px/);
+        return maxWidth && width <= Number(maxWidth[1]) ? Array.from(rule.cssRules).map(item => item.cssText).join('\n') : '';
+      }).join('\n');
+      document.body.append(wrapper.element);
+      const fields = wrapper.get('.profile-fields').element;
+      expect(getComputedStyle(fields).gridTemplateColumns).toBe(width > 640 ? 'repeat(2, minmax(0, 1fr))' : '1fr');
+      expect(getComputedStyle(wrapper.get('.profile-section').element).padding).toBe('var(--profile-space)');
+      expect(getComputedStyle(wrapper.get('.profile-section .el-form-item').element).marginBottom).toBe('var(--profile-space)');
+    } finally {
+      style.remove();
+      wrapper.unmount();
+      wrapper.element.remove();
+    }
   });
   it('真实开关清空密钥，档案操作和模型获取仍使用已保存 ID，忙碌时禁用', async () => {
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [{ id: 3, name: '生产', model: 'm', base_url: 'https://example.com/v1', has_api_key: true }] });

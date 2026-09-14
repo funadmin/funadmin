@@ -363,7 +363,12 @@ class AdminAuth extends BaseController
         }
         $result = [];
         foreach ($permissionCodes as $code) {
-            $webCode = $mapping[strtolower((string) $code)] ?? null;
+            // 保留业务独立动作供前端精确控制；合并别名不代表获得其他动作授权。
+            $normalizedCode = strtolower((string) $code);
+            if (str_starts_with($normalizedCode, 'console/development.business:') && isset($mapping[$normalizedCode])) {
+                $result[$normalizedCode] = true;
+            }
+            $webCode = $mapping[$normalizedCode] ?? null;
             if ($webCode) {
                 $result[$webCode] = true;
             }

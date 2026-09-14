@@ -50,6 +50,15 @@ final class Business extends AdminApiController
     public function modules(): Response
     {
         return $this->execute(function (): array {
+            if ($this->request->get('source/b', false)) {
+                $authorization = new AdminAuthorizationService();
+                if (!$authorization->nodeAccess('console/form.data/meta')) {
+                    throw new InvalidArgumentException('没有来源元数据读取权限');
+                }
+                return (new \app\console\form\service\FormDataService(
+                    permissionChecker: fn (string $permission): bool => $authorization->nodeAccess($permission)
+                ))->sourceCandidates();
+            }
             [$page, $pageSize] = BusinessDevelopmentService::pagination((int) $this->request->get('page', 1), (int) $this->request->get('pageSize', 20));
             return $this->business->modules($page, $pageSize, trim((string) $this->request->get('keyword', '')), trim((string) $this->request->get('status', '')), trim((string) $this->request->get('origin', '')));
         });

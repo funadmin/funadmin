@@ -137,7 +137,7 @@ final class DevCrudService
 
     public function validate(array $definition): array
     {
-        $normalized = CrudDefinition::fromArray($definition);
+        $normalized = CrudDefinition::fromInput($definition);
         (new DefinitionValidator())->validate($normalized, $this->projectRoot);
         $this->assertMenuParent($normalized);
         return ['valid' => true, 'definitionHash' => $normalized->hash(), 'definition' => $normalized->toArray()];
@@ -146,7 +146,7 @@ final class DevCrudService
     public function preview(array $definition, bool $includeSensitive, bool $canGenerate): array
     {
         try {
-            $crudDefinition = CrudDefinition::fromArray($definition);
+            $crudDefinition = CrudDefinition::fromInput($definition);
             $this->assertMenuParent($crudDefinition);
             $plan = (new CrudGenerator($this->projectRoot))->plan($crudDefinition);
             $token = (string) ($plan['confirmToken'] ?? '');
@@ -174,7 +174,7 @@ final class DevCrudService
         if ($confirmToken === '') throw new InvalidArgumentException('缺少 preview 确认 token');
         if ($allowOverwrite !== [] && !$canOverwrite) throw new InvalidArgumentException('缺少单独的 overwrite 权限');
         if (!$canApplyResources) throw new InvalidArgumentException('缺少 resource apply 专用权限');
-        $crudDefinition = CrudDefinition::fromArray($definition);
+        $crudDefinition = CrudDefinition::fromInput($definition);
         $this->assertMenuParent($crudDefinition);
         $plan = (new CrudGenerator($this->projectRoot))->plan($crudDefinition);
         $digest = (string) ($plan['planDigest'] ?? '');
@@ -213,7 +213,7 @@ final class DevCrudService
             throw new InvalidArgumentException('缺少 resource apply 专用权限');
         }
         try {
-            $crudDefinition = CrudDefinition::fromArray($definition);
+            $crudDefinition = CrudDefinition::fromInput($definition);
             $this->assertMenuParent($crudDefinition);
             $generator = new CrudGenerator($this->projectRoot);
             $result = $validatedPlan === null

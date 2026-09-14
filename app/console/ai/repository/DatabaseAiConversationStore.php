@@ -26,6 +26,34 @@ final class DatabaseAiConversationStore implements AiConversationStore
         });
     }
     public function conversations(int $adminId): array { return AiConversation::where('admin_id', $adminId)->order('id', 'desc')->select()->toArray(); }
+    public function conversationPageRows(int $adminId, array $filters, ?int $cursor, int $limit): array
+    {
+        $query = AiConversation::where('admin_id', $adminId);
+        if ($cursor !== null) $query->where('id', '<', $cursor);
+        foreach (['is_archived', 'is_unread'] as $field) if (isset($filters[$field])) $query->where($field, $filters[$field]);
+        if (isset($filters['group_id'])) {
+            if ($filters['group_id'] === 0) $query->whereNull('group_id');
+            else $query->where('group_id', $filters['group_id']);
+        }
+        if (($filters['search'] ?? '') !== '') $query->whereLike('title', '%' . addcslashes($filters['search'], '\\%_') . '%');
+        return $query->order('id', 'desc')->limit($limit)->select()->toArray();
+    }
+
+    public function messagePageRows(int $conversationId, ?array $cursor, bool $forward, int $limit): array
+    {
+        $query = AiMessage::where('conversation_id', $conversationId);
+        if ($cursor !== null) {
+            $operator = $forward ? '>' : '<';
+            $query->where(function ($query) use ($cursor, $operator): void {
+                $query->where('sequence', $operator, $cursor[0])->whereOr(function ($query) use ($cursor, $operator): void {
+                    $query->where('sequence', $cursor[0])->where('id', $operator, $cursor[1]);
+                });
+            });
+        }
+        $order = $forward ? 'asc' : 'desc';
+        return $query->order(['sequence'=>$order, 'id'=>$order])->limit($limit)->select()->toArray();
+    }
+
     public function conversation(int $id, int $adminId): ?array { return AiConversation::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
     public function updateConversation(int $id, int $adminId, array $data): bool
     {

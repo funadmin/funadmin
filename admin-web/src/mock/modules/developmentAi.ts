@@ -34,6 +34,19 @@ let attachmentId = 0;
 let messageId = 602;
 const mockAttachments = new Map<number, { conversationId: number; bound: boolean }>();
 const mockMessages = new Map<string, { digest: string; message: Record<string, unknown> }>();
+const history: typeof message[] = [message];
+function pageNumber(value: unknown, minimum = 1): boolean {
+  return (typeof value === 'string' || typeof value === 'number') && /^(0|[1-9][0-9]*)$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) >= minimum;
+}
+function validPage(params: Record<string, unknown>, messages = false): boolean {
+  const allowed = messages ? ['limit', 'before', 'after'] : ['limit', 'cursor', 'search', 'group_id', 'is_archived', 'is_unread'];
+  if (Object.keys(params).some(k => !allowed.includes(k))) return false;
+  if ('limit' in params && (!pageNumber(params.limit) || Number(params.limit) > 100)) return false;
+  if (messages) return !('before' in params && 'after' in params) && ['before','after'].every(k => !(k in params) || (k === 'after' && params[k] === '0:0') || typeof params[k] === 'string' && String(params[k]).split(':').length === 2 && String(params[k]).split(':').every(v => pageNumber(v)));
+  return (!('cursor' in params) || pageNumber(params.cursor)) && (!('group_id' in params) || pageNumber(params.group_id, 0))
+    && ['is_archived','is_unread'].every(k => !(k in params) || [0,1,'0','1'].includes(params[k] as never))
+    && (!('search' in params) || typeof params.search === 'string' && params.search.length <= 255 && !/[\x00-\x1f\x7f]/.test(params.search));
+}
 export const developmentAiMockHandlers: MockRoute[] = [
   { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/attachments$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
     const id = Number(pathParams.id);
@@ -115,7 +128,18 @@ export const developmentAiMockHandlers: MockRoute[] = [
     for (const key of ['group_id', 'is_archived', 'is_unread']) if (key in body) Object.assign(current, { [key]: body[key] });
     return ok({ ...current });
   } },
-  { method: 'GET', url: '/development/ai/conversations', handler: () => ok(conversations.map((item) => ({ ...item }))) },
+  { method: 'GET', url: '/development/ai/conversations', handler: ({ params }) => {
+    if (!validPage(params)) return fail('分页参数无效', 400);
+    if (Number(params.group_id) > 0 && !groups.some(g => g.id === Number(params.group_id))) return fail('分组不存在', 404);
+    const limit = Number(params.limit ?? 30);
+    const rows = conversations.filter(c => (!params.cursor || c.id < Number(params.cursor))
+      && (!('is_archived' in params) || Number(c.is_archived) === Number(params.is_archived))
+      && (!('is_unread' in params) || Number(c.is_unread) === Number(params.is_unread))
+      && (!('group_id' in params) || (c.group_id ?? 0) === Number(params.group_id))
+      && (!params.search || c.title.includes(String(params.search).trim()))).sort((a,b) => b.id-a.id).slice(0, limit+1);
+    const more = rows.length > limit; if (more) rows.pop();
+    return ok({ items: rows.map(c => ({ ...c })), has_more: more, next_cursor: more ? String(rows.at(-1)!.id) : null });
+  } },
   { method: 'POST', url: '/development/ai/conversations', handler: ({ body }) => {
     const profile = body.profile_id ? profiles.find((p) => p.id === body.profile_id) : null;
     if (body.profile_id && !profile) return fail('档案不存在', 404);
@@ -146,7 +170,22 @@ export const developmentAiMockHandlers: MockRoute[] = [
     return ok({ ...current });
   } },
   { method: 'DELETE', url: /^\/development\/ai\/conversations\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => { const index = conversations.findIndex((item) => item.id === Number(pathParams.id)); if (index < 0) return fail('会话不存在', 404); conversations.splice(index, 1); return ok({ deleted: true }); } },
-  { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: () => ok([message]) },
+  { method: 'GET', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ params, pathParams }) => {
+    const id = Number(pathParams.id);
+    if (!conversations.some(c => c.id === id)) return fail('会话不存在', 404);
+    if (!validPage(params, true)) return fail('消息分页参数无效', 400);
+    const limit = Number(params.limit ?? 50); const forward = 'after' in params;
+    const cursor = String(params.after ?? params.before ?? '').split(':').map(Number);
+    const rows = history.filter(m => {
+      if (m.conversation_id !== id) return false;
+      if (!params.after && !params.before) return true;
+      const cmp = m.sequence - cursor[0] || m.id - cursor[1];
+      return forward ? cmp > 0 : cmp < 0;
+    }).sort((a,b) => (forward ? 1 : -1) * (a.sequence-b.sequence || a.id-b.id)).slice(0, limit+1);
+    const more = rows.length > limit; if (more) rows.pop();
+    const edge = rows.at(-1);
+    return ok({ items: forward ? rows : rows.reverse(), has_more: more, next_cursor: more && edge ? `${edge.sequence}:${edge.id}` : null });
+  } },
   { method: 'POST', url: /^\/development\/ai\/conversations\/(\d+)\/messages$/, paramNames: ['id'], handler: ({ body, pathParams }) => {
     const id = Number(pathParams.id);
     if (!conversations.some(c => c.id === id)) return fail('会话不存在', 404);
@@ -157,6 +196,7 @@ export const developmentAiMockHandlers: MockRoute[] = [
     if (ids.some((aid: number) => mockAttachments.get(aid)?.conversationId !== id)) return fail('附件不存在', 404);
     if (ids.some((aid: number) => mockAttachments.get(aid)!.bound)) return fail('附件已绑定', 409);
     const created = { ...message, ...body, conversation_id: id, id: ++messageId, sequence: messageId - 600 };
+    history.push(created);
     ids.forEach((aid: number) => { mockAttachments.get(aid)!.bound = true; });
     if (body.idempotency_key) mockMessages.set(key, { digest, message: created });
     return ok(created);

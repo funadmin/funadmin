@@ -17,8 +17,7 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button type="primary" v-perm="'development:business:save'" @click="router.push('/development/business/visual')"><i class="i-ep-plus" />可视化创建</el-button>
-        <el-button v-perm="'development:business:inspect'" @click="router.push('/development/business/database')">采纳数据表</el-button>
+        <el-button v-if="creationPath" data-action="create-business" type="primary" @click="router.push({ path: creationPath, query: route.query })"><i class="i-ep-plus" />创建业务</el-button>
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">
         <BusinessPageState
@@ -93,7 +92,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useUserStore } from '@/store/modules/user';
 import type { TagProps } from 'element-plus';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessFormalGenerationPreview, type BusinessModule } from '@/api/development/business';
 import BusinessPageState from './components/BusinessPageState.vue';
@@ -105,6 +105,14 @@ import { useLatestRequest } from './composables/useLatestRequest';
 
 defineOptions({ name: 'BusinessMine' });
 const router = useRouter();
+const route = useRoute();
+const user = useUserStore();
+const creationPath = computed(() => {
+  const permissions = user.permissions;
+  if (permissions.some(permission => ['*', '*:*:*', 'console/development.business:createvisual'].includes(permission))) return '/development/business/visual';
+  if (permissions.includes('console/development.business:inspectdatabase')) return '/development/business/database';
+  return '';
+});
 const { t } = useI18n();
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);
 const list = ref<BusinessModule[]>([]);
@@ -121,7 +129,7 @@ const listRequest = useLatestRequest(() => businessDevelopmentApi.modules({ ...q
 const previewRequest = useLatestRequest((moduleId: number) => businessDevelopmentApi.previewFormalGeneration(moduleId, previewNonce));
 const loading = listRequest.loading;
 const loadError = computed(() => errorMessage(listRequest.error.value));
-const emptyText = computed(() => filtered.value ? '没有符合筛选条件的业务模块' : '还没有业务模块，可先创建或采纳数据表');
+const emptyText = computed(() => filtered.value ? '没有符合筛选条件的业务模块' : '还没有业务模块，可通过创建业务选择新表或已有表');
 const activePreviewLoading = computed(() => activePreviewModuleId.value !== null && previewingIds.has(activePreviewModuleId.value));
 const previewAnnouncement = computed(() => {
   if (activePreviewLoading.value) return '正在加载生成预览';

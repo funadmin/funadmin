@@ -149,9 +149,9 @@ final class BusinessTargetService
             $owner = preg_match('#/plugins/([^/]+)/#', $file, $match) ? $match[1] : 'core';
             $sql = (string) file_get_contents($file);
             if (!str_starts_with($sql, "-- funadmin-physical-table\n")) {
-                $templatePrefix = (string) \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
+                $templatePrefix = \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
                 $prefix = (string) \think\facade\Config::get('database.connections.' . $this->defaultConnection . '.prefix', '');
-                if ($templatePrefix !== '') $sql = str_replace($templatePrefix, $prefix, $sql);
+                $sql = \app\common\service\MigrationService::rewritePrefix($sql, $templatePrefix, $prefix);
             }
             preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', $sql, $matches);
             foreach ($matches[1] as $table) $owners[$table] = isset($owners[$table]) && $owners[$table] !== $owner ? 'conflict' : $owner;

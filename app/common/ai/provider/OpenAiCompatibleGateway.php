@@ -20,6 +20,7 @@ final class OpenAiCompatibleGateway
     public const MIN_RETRIES = 0;
     public const MAX_RETRIES = 3;
 
+    private readonly AiProtocol $protocol;
     private readonly string $baseUrl;
     private readonly string $apiKey;
     private readonly string $model;
@@ -40,6 +41,7 @@ final class OpenAiCompatibleGateway
         ?callable $resolver = null,
         ?callable $sleeper = null
     ) {
+        $this->protocol = new AiProtocol($config['protocol'] ?? 'openai-chat');
         $this->baseUrl = self::normalizeBaseUrl((string) ($config['base_url'] ?? ''));
         $this->apiKey = (string) ($config['api_key'] ?? '');
         $this->model = (string) ($config['model'] ?? '');
@@ -71,7 +73,13 @@ final class OpenAiCompatibleGateway
     /** 目录只证明端点返回了模型 ID，不推断窗口或推理能力。 */
     public function models(): array
     {
-        $response = $this->request([], false, '/models', 'GET');
+        $models = [];
+        $cursor = null;
+        $seen = [];
+        $page = 0;
+        do {
+        if (++$page > 10) throw new AiProviderException('request_budget_exceeded', '模型目录分页超过上限');
+        $response = $this->request([], false, '/models' . ($cursor === null ? '' : '?after_id=' . rawurlencode($cursor)), 'GET');
         try {
             $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
@@ -80,7 +88,6 @@ final class OpenAiCompatibleGateway
         if (!is_array($body['data'] ?? null) || !array_is_list($body['data'])) {
             throw new AiProviderException('invalid_response', '模型目录格式无效');
         }
-        $models = [];
         foreach ($body['data'] as $item) {
             $id = is_array($item) ? ($item['id'] ?? null) : null;
             if (!is_string($id) || trim($id) !== $id || $id === '' || strlen($id) > 200 || preg_match('/[\x00-\x1f\x7f]/', $id)) {
@@ -88,6 +95,13 @@ final class OpenAiCompatibleGateway
             }
             $models[$id] = ['id'=>$id];
         }
+        $cursor = null;
+        if ($this->protocol->name === 'anthropic-messages' && ($body['has_more'] ?? false) === true) {
+            $cursor = $body['last_id'] ?? null;
+            if (!is_string($cursor) || $cursor === '' || strlen($cursor) > 200 || isset($seen[$cursor]) || $body['data'] === []) throw new AiProviderException('invalid_response', '模型目录分页游标无效');
+            $seen[$cursor] = true;
+        }
+        } while ($cursor !== null);
         return array_values($models);
     }
 
@@ -121,6 +135,8 @@ final class OpenAiCompatibleGateway
         }
         // 供应商回显的图片不得进入任务输出、审批参数或事件。
         if (preg_match('/data:[^,\s]*;base64,/i', json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES))) throw new AiProviderException('invalid_response', '供应商响应包含内联二进制数据');
+        if (!is_array($body)) throw new AiProviderException('invalid_response', 'Provider 响应必须是对象');
+        $body = $this->protocol->decode($body);
         $choice = $body['choices'][0] ?? [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
 
@@ -144,17 +160,19 @@ final class OpenAiCompatibleGateway
         $response = $this->request($this->payload($messages, $tools, true), true);
         $buffer = '';
         $calls = [];
+        $state = [];
         while (!$response->getBody()->eof()) {
             $buffer .= $response->getBody()->read(8192);
-            foreach ($this->drainEvents($buffer, $calls) as $chunk) {
+            foreach ($this->drainEvents($buffer, $calls, $state) as $chunk) {
                 yield $chunk;
             }
         }
         if ($buffer !== '') {
-            foreach ($this->parseEvent($buffer, $calls) as $chunk) {
+            foreach ($this->parseEvent($buffer, $calls, $state) as $chunk) {
                 yield $chunk;
             }
         }
+        if ($this->protocol->name !== 'openai-chat' && !($state['done'] ?? false)) throw new AiProviderException('invalid_response', 'Provider 流被截断');
         foreach ($calls as $call) {
             yield $this->normalizeStreamToolCall($call);
         }
@@ -163,12 +181,13 @@ final class OpenAiCompatibleGateway
 
     private function request(array $json, bool $stream = false, string $path = '/chat/completions', string $method = 'POST', ?int $retries = null): ResponseInterface
     {
+        if ($path === '/chat/completions') $path = $this->protocol->endpoint();
         $addresses = $this->validatedAddresses();
         $host = (string) parse_url($this->baseUrl, PHP_URL_HOST);
         $port = (int) (parse_url($this->baseUrl, PHP_URL_PORT) ?: 443);
         $retries ??= $this->maxRetries;
         for ($attempt = 0; ; $attempt++) {
-            if ($path === '/chat/completions') {
+            if ($method === 'POST') {
                 if ($this->requestCount >= 12 || $this->reservedSeconds + $this->requestTimeout > 300) throw new AiProviderException('request_budget_exceeded', '累计请求次数或超时额度耗尽');
                 $this->requestCount++;
                 $this->reservedSeconds += $this->requestTimeout;
@@ -178,8 +197,7 @@ final class OpenAiCompatibleGateway
                 $response = $this->client->request($method, $this->baseUrl . $path, [
                     'headers' => array_filter([
                         'Accept' => $stream ? 'text/event-stream' : 'application/json',
-                        'Authorization' => $this->apiKey === '' ? null : 'Bearer ' . $this->apiKey,
-                    ]),
+                    ] + $this->protocol->headers($this->apiKey)),
                     'json' => $method === 'GET' ? null : $json,
                     'connect_timeout' => $this->connectTimeout,
                     'timeout' => $this->requestTimeout,
@@ -201,7 +219,8 @@ final class OpenAiCompatibleGateway
             }
             // 非成功响应若携带内容、工具调用或安全拒绝，不能视为无输出暂时故障。
             $errorBody = json_decode((string) $response->getBody(), true);
-            $errorCode = $errorBody['error']['code'] ?? null;
+            if (!empty($errorBody['output']) || !empty($errorBody['content'])) throw new AiProviderException('response_started', '非成功响应已包含模型输出');
+            $errorCode = $errorBody['error']['code'] ?? $errorBody['error']['type'] ?? null;
             if (in_array($errorCode, ['content_policy_violation','content_filter','safety_refusal','context_length_exceeded','unsupported_parameter','invalid_parameter','invalid_api_key','insufficient_quota'], true)) throw new AiProviderException('invalid_request', 'Provider 明确拒绝请求，禁止降级');
             foreach ($errorBody['choices'] ?? [] as $choice) {
                 if ((isset($choice['message']['content']) && $choice['message']['content'] !== '') || !empty($choice['message']['tool_calls']) || isset($choice['message']['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('response_started', '非成功响应已包含模型输出');
@@ -216,9 +235,6 @@ final class OpenAiCompatibleGateway
 
     private function payload(array $messages, array $tools, bool $stream, ?string $model = null): array
     {
-        if (($this->config['protocol'] ?? 'openai-chat') !== 'openai-chat') {
-            throw new InvalidArgumentException('仅支持 openai-chat 协议');
-        }
         if ($stream && ($this->config['fallback_enabled'] ?? false)) throw new InvalidArgumentException('流式请求暂不支持备用');
         AiModelCapabilities::validateSelection($this->config);
         $model ??= $this->model;
@@ -285,6 +301,7 @@ final class OpenAiCompatibleGateway
             if (!is_string($image['bytes'] ?? null) || strlen($image['bytes']) > 5242880 || ($image['mime'] ?? null) !== $reference['mime'] || !hash_equals((string) ($reference['sha256'] ?? ''), hash('sha256', $image['bytes']))) throw new InvalidArgumentException('图片内容校验失败');
             $payload['messages'][$mi]['content'][$bi] = ['type'=>'image_url', 'image_url'=>['url'=>'data:' . $image['mime'] . ';base64,' . base64_encode($image['bytes'])]];
         }
+        $payload = $this->protocol->encode($payload);
         if (strlen(json_encode($payload, JSON_THROW_ON_ERROR)) > AiModelCapabilities::MAX_HTTP_BODY_BYTES) throw new AiProviderException('request_body_exceeded', 'HTTP 请求体超过 20MiB');
         return $payload;
     }
@@ -302,19 +319,19 @@ final class OpenAiCompatibleGateway
         }, $calls);
     }
 
-    private function drainEvents(string &$buffer, array &$calls): array
+    private function drainEvents(string &$buffer, array &$calls, array &$state): array
     {
         $output = [];
         while (preg_match('/\r?\n\r?\n/', $buffer, $match, PREG_OFFSET_CAPTURE)) {
             $separator = $match[0][1];
             $event = substr($buffer, 0, $separator);
             $buffer = substr($buffer, $separator + strlen($match[0][0]));
-            $output = array_merge($output, $this->parseEvent($event, $calls));
+            $output = array_merge($output, $this->parseEvent($event, $calls, $state));
         }
         return $output;
     }
 
-    private function parseEvent(string $event, array &$calls): array
+    private function parseEvent(string $event, array &$calls, array &$state): array
     {
         $output = [];
         foreach (preg_split('/\r?\n/', $event) ?: [] as $line) {
@@ -329,6 +346,12 @@ final class OpenAiCompatibleGateway
                 $decoded = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
             } catch (JsonException $exception) {
                 throw new AiProviderException('invalid_response', 'Provider SSE chunk 不是有效 JSON', previous: $exception);
+            }
+            if (!is_array($decoded) || isset($decoded['error'])) throw new AiProviderException('invalid_response', 'Provider SSE 协议错误');
+            if (preg_match('/data:[^,\s]*;base64,/i', $data)) throw new AiProviderException('invalid_response', '供应商流包含内联二进制数据');
+            if ($this->protocol->name !== 'openai-chat') {
+                $output = array_merge($output, $this->protocol->streamEvent($decoded, $state, $calls));
+                continue;
             }
             if (is_array($decoded['usage'] ?? null)) {
                 $output[] = ['type'=>'usage', 'usage'=>$this->normalizeUsage($decoded['usage'])];

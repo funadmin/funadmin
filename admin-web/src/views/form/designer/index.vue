@@ -67,7 +67,7 @@
       </template>
     </el-dialog>
 
-    <div v-if="workspaceMode === 'edit'" class="designer-edit-only">
+    <div v-show="workspaceMode === 'edit'" class="designer-edit-only">
     <el-alert
       class="designer-guide mb-3"
       type="info"
@@ -79,13 +79,13 @@
       </template>
     </el-alert>
 
+    </div>
+
+    <el-tabs v-model="activeTab" class="designer-tabs">
+      <el-tab-pane label="基本信息" name="basic" :lazy="false">
     <el-card shadow="never" class="mb-3">
-      <template #header>
-        <button type="button" class="designer-section-toggle" :aria-expanded="!basicInfoCollapsed" @click="toggleDesignerSection('basicInfo')">
-          <span>第一步 · {{ t('formDesigner.basicInfo', '表单基本信息') }}</span><i :class="basicInfoCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
-        </button>
-      </template>
-      <el-form v-show="!basicInfoCollapsed" label-width="90px" class="designer-meta-form">
+      <template #header>{{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
+      <el-form label-width="90px" class="designer-meta-form">
         <el-form-item :label="t('formDesigner.formName', '表单名称')" required>
           <el-input :model-value="store.form.value.name" maxlength="100" :placeholder="t('formDesigner.namePlaceholder', '如：活动报名')" @update:model-value="(name) => store.updateForm({ name })" />
         </el-form-item>
@@ -128,15 +128,9 @@
         </el-form-item>
       </el-form>
     </el-card>
-
-    <el-alert
-      v-if="designerMode === 'advanced'"
-      class="mb-3"
-      :title="`Schema 来源：${schemaOriginLabel}。高级 JSON 应用后来源将切换为外部导入。`"
-      type="info"
-      :closable="false"
-      show-icon
-    />
+      </el-tab-pane>
+      <el-tab-pane label="表单设计" name="design" :lazy="false">
+    <div v-show="workspaceMode === 'edit'">
     <el-alert
       v-if="catalogDiagnostics.length"
       class="mb-3"
@@ -146,26 +140,13 @@
       show-icon
     />
 
-    <el-card v-if="designerMode === 'advanced'" shadow="never" class="mb-3">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span>FormSchema v2 AST 节点树</span>
-          <el-button link type="primary" @click="store.addNode('group')">添加根容器</el-button>
-        </div>
-      </template>
-      <SchemaNodeTree :nodes="store.nodes.value" :store="store" />
-    </el-card>
     </div>
 
     <div class="designer-layout flex gap-3" :class="{ 'is-preview': workspaceMode !== 'edit' }">
       <!-- 左：控件 palette -->
-      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="control-palette shrink-0">
-        <template #header>
-          <button type="button" class="designer-section-toggle" :aria-expanded="!controlsCollapsed" @click="toggleDesignerSection('controls')">
-            <span>第二步 · 选择控件</span><i :class="controlsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
-          </button>
-        </template>
-        <div v-show="!controlsCollapsed" ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
+      <el-card v-show="workspaceMode === 'edit'" shadow="never" class="control-palette shrink-0">
+        <template #header>选择控件</template>
+        <div ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
             <div class="palette-group-title">{{ group }}</div>
             <div class="palette-group-grid">
@@ -190,19 +171,20 @@
       <!-- 中：画布 -->
       <el-card shadow="never" class="min-w-0 flex-1">
         <template #header>
-          <button type="button" class="designer-section-toggle" :aria-expanded="!canvasCollapsed" @click="toggleDesignerSection('canvas')">
-            <span>第二步 · 设计画布（{{ store.fields.value.length }} 字段）</span><i :class="canvasCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
+          <div class="designer-canvas-heading">
+            <span>设计画布（{{ store.fields.value.length }} 字段）</span>
+            <el-button v-if="workspaceMode === 'edit'" size="small" :aria-expanded="outlineVisible" @click="outlineVisible = true">表单大纲</el-button>
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
-          </button>
+          </div>
         </template>
-        <div v-show="!canvasCollapsed">
+        <div>
           <DesignerCanvas
-            v-if="workspaceMode === 'edit'"
+            v-show="workspaceMode === 'edit'"
             class="designer-canvas"
             :nodes="store.nodes.value"
             :store="store"
           />
-          <div v-else class="designer-canvas schema-preview" :class="`schema-preview-${workspaceMode}`">
+          <div v-if="workspaceMode !== 'edit'" class="designer-canvas schema-preview" :class="`schema-preview-${workspaceMode}`">
             <SchemaRenderer
               ref="previewRenderer"
               :schema="previewSchema"
@@ -215,13 +197,9 @@
       </el-card>
 
       <!-- 右：属性面板 -->
-      <el-card v-if="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
-        <template #header>
-          <button type="button" class="designer-section-toggle" :aria-expanded="!fieldPropsCollapsed" @click="toggleDesignerSection('fieldProps')">
-            <span>第三步 · 字段属性</span><i :class="fieldPropsCollapsed ? 'i-ep-arrow-right' : 'i-ep-arrow-down'" />
-          </button>
-        </template>
-        <div v-show="!fieldPropsCollapsed">
+      <el-card v-show="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
+        <template #header>字段属性</template>
+        <div>
           <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
           <el-empty v-else description="点选画布字段编辑参数" />
           <template v-if="designerMode === 'advanced' && store.selectedNode.value">
@@ -232,8 +210,16 @@
       </el-card>
     </div>
 
-
+      </el-tab-pane>
+      <el-tab-pane label="列表展示" name="list" :lazy="false">
     <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" @update="store.updateList" />
+      </el-tab-pane>
+    </el-tabs>
+
+    <el-drawer v-model="outlineVisible" title="表单大纲" size="min(480px, 100vw)" append-to-body destroy-on-close>
+      <el-button size="small" @click="store.addNode('group')">添加布局分组</el-button>
+      <SchemaNodeTree v-if="outlineVisible" :nodes="store.nodes.value" :store="store" />
+    </el-drawer>
 
     <el-dialog v-model="publishVisible" title="正式生成" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
@@ -376,17 +362,16 @@ const businessModule = ref<BusinessModule | null>(null);
 const businessTarget = computed(() => businessModule.value?.metadata?.target);
 const isPluginTarget = computed(() => businessTarget.value?.type === 'plugin');
 const designerMode = ref<'basic' | 'advanced'>('basic');
-const basicInfoCollapsed = ref(false);
-const controlsCollapsed = ref(false);
-const canvasCollapsed = ref(false);
-const fieldPropsCollapsed = ref(false);
-const toggleDesignerSection = (section: 'basicInfo' | 'controls' | 'canvas' | 'fieldProps') => {
-  if (section === 'basicInfo') basicInfoCollapsed.value = !basicInfoCollapsed.value;
-  if (section === 'controls') controlsCollapsed.value = !controlsCollapsed.value;
-  if (section === 'canvas') canvasCollapsed.value = !canvasCollapsed.value;
-  if (section === 'fieldProps') fieldPropsCollapsed.value = !fieldPropsCollapsed.value;
-};
+// 区域切换仅改变显示，不进入 Schema、历史和自动保存通道。
+const activeTab = ref<'basic' | 'design' | 'list'>('basic');
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
+// 大纲仅为临时视图状态，不进入草稿与自动保存通道。
+const outlineVisible = ref(false);
+watch(workspaceMode, (mode) => {
+  activeTab.value = 'design';
+  if (mode !== 'edit') outlineVisible.value = false;
+});
+watch(activeTab, (tab) => { if (tab !== 'design') outlineVisible.value = false; });
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 const previewMode = ref<'create' | 'edit' | 'readonly' | 'search'>('create');
 const previewSettingsVisible = ref(false);
@@ -542,9 +527,6 @@ const saveStatusLabel = computed(() => ({
   saved: t('formDesigner.saved', '已保存')
 }[store.saveStatus.value]));
 const saveStatusType = computed(() => ({ unsaved: 'warning', saving: 'info', failed: 'danger', saved: 'success' } as const)[store.saveStatus.value]);
-const schemaOriginLabel = computed(() => ({
-  designer: '可视化设计器', import: '外部导入', migration: '旧版迁移', api: 'API 写入'
-}[String(store.form.value.schema_origin ?? 'designer')] ?? String(store.form.value.schema_origin)));
 const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument) => {
   if (!moduleId.value) throw new Error('业务模块 ID 缺失');
   const compiled = await businessDevelopmentApi.compileSchema(moduleId.value, schema);
@@ -762,7 +744,7 @@ async function saveDefinition(automatic: boolean) {
     if (unchanged) {
       store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
       clearLocalDraft();
-      if (designerActive) ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
+      if (designerActive && !automatic) ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
     } else {
       // 请求成功必须推进版本，但不能用旧请求内容覆盖其间的新编辑。
       store.acknowledgeSave(saved.schemaHash);
@@ -969,6 +951,7 @@ const onOnline = () => { online.value = true; if (designerActive) void saveDefin
 const onOffline = () => { online.value = false; persistLocalDraft(); };
 // KeepAlive 停用不卸载组件，必须同时停止定时器、监听器和异步保存的后续排队。
 const deactivateDesigner = () => {
+  outlineVisible.value = false;
   if (store.dirty.value) persistLocalDraft();
   designerActive = false;
   invalidateGenerationPreview();
@@ -1138,11 +1121,19 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px 20px;
 }
-.publish-config-grid,
-.designer-meta-form {
+.publish-config-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(280px, 1fr));
   column-gap: 24px;
+}
+.designer-meta-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 760px;
+  width: 100%;
+}
+.designer-meta-form :deep(.el-form-item__content) {
+  min-width: 0;
 }
 .form-tip {
   color: var(--el-text-color-secondary);
@@ -1152,23 +1143,11 @@ onBeforeUnmount(() => {
 .designer-layout {
   align-items: flex-start;
 }
-.designer-section-toggle {
+.designer-canvas-heading {
   display: flex;
-  width: 100%;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--el-text-color-primary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.designer-section-toggle > i {
-  flex-shrink: 0;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
 }
 .designer-layout.is-preview {
   display: block;

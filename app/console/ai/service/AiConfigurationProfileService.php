@@ -108,6 +108,11 @@ final class AiConfigurationProfileService
         return $this->repository->transaction(function () use ($adminId, $id, $input) {
             $row = $this->repository->find($adminId, $id, true);
             $data = self::validate(array_replace($row->configuration, ['name'=>$row->name], $input));
+            foreach (['base_url','protocol','provider'] as $field) {
+                if (($row->configuration[$field] ?? null) !== $data[$field] && !array_key_exists('api_key', $input) && (string) $row->getAttr('secret_ciphertext') !== '') {
+                    throw new InvalidArgumentException('可信目标已变更，请明确提供新密钥或清空旧密钥', 400);
+                }
+            }
             $row->save($this->attributes($adminId, $data));
             return $this->publicRecord($row);
         });
@@ -143,7 +148,7 @@ final class AiConfigurationProfileService
             $data[$field] = trim($data[$field]);
         }
         if (!preg_match('/^[a-z0-9][a-z0-9._-]*$/', $data['provider'])) throw new InvalidArgumentException('provider 无效', 400);
-        if ($data['protocol'] !== 'openai-chat') throw new InvalidArgumentException('protocol 尚未实现，仅支持 openai-chat', 400);
+        new \app\common\ai\provider\AiProtocol($data['protocol']);
         // 这里只校验地址，未验证类型的密钥等字段不得提前交给网关。
         new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), ['base_url'=>$data['base_url']]);
         $url = parse_url($data['base_url']);

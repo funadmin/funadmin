@@ -96,8 +96,9 @@ final class PluginCrudTarget
             if (!is_string($content)) {
                 continue;
             }
-            $templatePrefix = (string) \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '');
+            $hasConfig = \think\Container::getInstance()->bound('config');
+            $templatePrefix = $hasConfig ? \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_') : 'fun_';
+            $prefix = $hasConfig ? (string) \think\facade\Config::get('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '') : '';
             $effectiveContent = \app\common\service\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
             $stored = $this->migrationSnapshot($content);
             if ($stored !== null && !str_starts_with($content, "-- funadmin-physical-table\n")) {

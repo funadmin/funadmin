@@ -1,16 +1,16 @@
 <template>
   <PageWrapper class="ai-page">
     <nav class="mobile-actions" :aria-label="t('aiDevelopment.workspace')">
-      <el-button data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
-      <el-button data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
+      <el-button size="small" data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
+      <el-button size="small" data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
       <el-badge :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
-        <el-button data-testid="mobile-context" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+        <el-button size="small" data-testid="mobile-context" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
       </el-badge>
     </nav>
 
     <div class="ai-layout">
-      <section v-if="regionVisible('conversations')" class="ai-conversations-pane" data-ai-region="conversations">
-        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
+      <section v-if="regionVisible('conversations')" ref="conversationPane" class="ai-conversations-pane" data-ai-region="conversations" @scroll="loadAtBottom">
+        <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" :filters="conversationFilters" :has-more="store.conversationsHasMore" :loading="store.conversationsLoading" @filter="changeFilters" @load-more="store.loadMoreConversations()" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
           <template #actions>
             <el-button size="small" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
           </template>
@@ -22,12 +22,13 @@
           <div><strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ statusLabel(store.activeTask.status) }}</small></div>
           <div class="workspace-actions">
             <el-badge class="task-permissions-badge" data-testid="pending-approvals-badge" :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
-              <el-button data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+              <el-button size="small" data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
             </el-badge>
-            <el-button v-if="store.activeTask && running" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+            <el-button v-if="store.activeTask && running" size="small" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
         </header>
-        <div class="workspace-scroll" data-scroll-container="primary">
+        <div ref="messagePane" class="workspace-scroll" data-scroll-container="primary" @scroll="messageScrolled">
+                  <el-button v-if="store.messagesHasMore" data-testid="load-older-messages" :loading="store.olderMessagesLoading" :disabled="store.olderMessagesLoading" @click="loadOlderMessages">{{ t('aiDevelopment.pagination.older') }}</el-button>
           <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
           <MessageTimeline :messages="store.messages" />
           <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
@@ -67,13 +68,19 @@
 
     </div>
 
-    <el-dialog v-model="inspectorOpen" :title="t('aiDevelopment.taskAndPermissions')" width="min(760px, 94vw)" align-center :destroy-on-close="false">
+    <el-drawer v-model="inspectorOpen" class="task-permissions-drawer" :title="t('aiDevelopment.taskAndPermissions')" direction="rtl" size="min(520px, 100vw)" :destroy-on-close="false">
       <div class="task-permissions-scroll">
-        <ContextPanel />
-        <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
-        <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
+        <el-config-provider size="small">
+          <ContextPanel />
+          <section class="task-permissions-section" aria-labelledby="ai-risk-heading">
+            <h3 id="ai-risk-heading">{{ t('aiDevelopment.riskAndApproval') }}</h3>
+            <p v-if="!pendingApprovals.length" class="empty-context">{{ t('aiDevelopment.noPendingRisk') }}</p>
+            <ToolCallTimeline v-if="store.toolCalls.length" :tool-calls="store.toolCalls" @open-log="openToolLog" />
+            <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
+          </section>
+        </el-config-provider>
       </div>
-    </el-dialog>
+    </el-drawer>
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
     <ProviderSettingsDrawer v-model="providerOpen" :profiles="profiles" :busy="profileBusy" :models="profileModels" :saved-profile="savedProfile" :error="profileError" :notice="profileNotice" @select="resetProfileFeedback" @save="saveProfile" @copy="copyProfile" @remove="removeProfile" @default="defaultProfile" @models="fetchProfileModels" @test="testProvider" />
     <el-dialog v-model="moveOpen" :title="t('aiDevelopment.management.move')" width="min(440px, 94vw)">
@@ -88,16 +95,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
+import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import { AI_REASONING_EFFORTS, aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
 import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
 import AiComposer from './components/AiComposer.vue';
-import type { AiTask, AiMessage } from '@/api/development/ai';
+import type { AiTask, AiMessage, AiConversationQuery } from '@/api/development/ai';
 import MessageTimeline from './components/MessageTimeline.vue';
 import ApprovalCard from './components/ApprovalCard.vue';
 import ApprovalModeSelector from './components/ApprovalModeSelector.vue';
@@ -110,6 +117,60 @@ const { t } = useI18n();
 const store = useAiDevelopmentStore();
 const userStore = useUserStore();
 const showArchived = ref(false);
+const conversationFilters = computed({
+  get: () => store.conversationFilters,
+  set: (filters: AiConversationQuery) => { store.conversationFilters = filters; }
+});
+const conversationPane = ref<HTMLElement>();
+const messagePane = ref<HTMLElement>();
+let followMessages = true;
+let prepending = false;
+async function changeFilters(filters: Partial<AiConversationQuery>) {
+  conversationFilters.value = { ...conversationFilters.value, ...filters };
+  await store.loadConversations(conversationFilters.value);
+}
+watch(conversationFilters, () => {
+  if (conversationPane.value) conversationPane.value.scrollTop = 0;
+});
+watch(showArchived, archived => { void changeFilters({ is_archived: archived ? 1 : 0 }); });
+function loadAtBottom() {
+  const pane = conversationPane.value;
+  if (pane && pane.clientHeight > 0 && pane.scrollHeight - pane.scrollTop - pane.clientHeight < 64) void store.loadMoreConversations();
+}
+watch(() => store.conversations.length, async () => { await nextTick(); loadAtBottom(); });
+function messageScrolled() {
+  const pane = messagePane.value;
+  if (!pane || prepending) return;
+  followMessages = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 64;
+  if (pane.scrollTop < 32) void loadOlderMessages();
+}
+async function loadOlderMessages() {
+  const pane = messagePane.value;
+  if (!pane || prepending || !store.messagesHasMore || store.olderMessagesLoading) return;
+  const generation = store.selectionGeneration;
+  const height = pane.scrollHeight;
+  const top = pane.scrollTop;
+  const paneTop = pane.getBoundingClientRect().top;
+  const anchor = Array.from(pane.querySelectorAll<HTMLElement>('.message')).find(element => element.getBoundingClientRect().bottom > paneTop);
+  const anchorTop = anchor?.getBoundingClientRect().top;
+  prepending = true;
+  try {
+    await store.loadOlderMessages();
+    await nextTick();
+    if (generation === store.selectionGeneration) {
+      // 锚定原可见节点，避免同时追加的新回复高度被误算进历史补偿。
+      pane.scrollTop = top + (anchor && pane.contains(anchor) && anchorTop !== undefined ? anchor.getBoundingClientRect().top - anchorTop : pane.scrollHeight - height);
+    }
+  } finally { if (generation === store.selectionGeneration) prepending = false; }
+}
+watch(() => store.selectionGeneration, () => { followMessages = true; prepending = false; });
+watch(() => store.selectedConversationId, () => { followMessages = true; });
+watch(() => store.messages.length, async () => {
+  const generation = store.selectionGeneration;
+  const follow = followMessages && !prepending;
+  await nextTick();
+  if (follow && generation === store.selectionGeneration && messagePane.value) messagePane.value.scrollTop = messagePane.value.scrollHeight;
+});
 const moveOpen = ref(false);
 const moveConversationId = ref<number | null>(null);
 const moveGroupId = ref(0);
@@ -273,16 +334,20 @@ const ContextPanel = defineComponent({
       set: (value: AiApprovalMode) => updateApprovalMode(value)
     });
     return () => h('div', { class: 'context-panel' }, [
-      h('h3', t('aiDevelopment.taskAndPermissions')),
-      h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } }),
-      store.activeTask ? h(ElDescriptions, { column: 1, border: true, size: 'small' }, () => [
-        h(ElDescriptionsItem, { label: t('aiDevelopment.task') }, () => `#${store.activeTask?.id} ${aiEnumLabel(t, 'taskTypes', store.activeTask?.type || 'unknown')}`),
-        h(ElDescriptionsItem, { label: t('aiDevelopment.stage') }, () => aiEnumLabel(t, 'taskStages', store.activeTask?.stage || 'unknown')),
-        h(ElDescriptionsItem, { label: t('aiDevelopment.status') }, () => h(ElTag, {}, () => statusLabel(store.activeTask?.status || 'unknown'))),
-        h(ElDescriptionsItem, { label: t('aiDevelopment.test') }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-'),
-        h(ElDescriptionsItem, { label: t('aiDevelopment.risk') }, () => pendingApprovals.value.map((item) => item.risk_reason).join('；') || t('aiDevelopment.noPendingRisk'))
-      ]) : h('p', { class: 'empty-context' }, t('aiDevelopment.noActiveTask')),
-      store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `${t('aiDevelopment.changeSet.entity')} #${store.changeSet.id} · ${aiEnumLabel(t, 'changeSetStatuses', store.changeSet.status)}`) : null
+      h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-approval-heading' }, [
+        h('h3', { id: 'ai-approval-heading' }, t('aiComposer.approval')),
+        h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } })
+      ]),
+      h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-task-heading' }, [
+        h('h3', { id: 'ai-task-heading' }, t('aiDevelopment.taskOverview')),
+        store.activeTask ? h(ElDescriptions, { column: 1, border: true, size: 'small' }, () => [
+          h(ElDescriptionsItem, { label: t('aiDevelopment.task') }, () => `#${store.activeTask?.id} ${aiEnumLabel(t, 'taskTypes', store.activeTask?.type || 'unknown')}`),
+          h(ElDescriptionsItem, { label: t('aiDevelopment.stage') }, () => aiEnumLabel(t, 'taskStages', store.activeTask?.stage || 'unknown')),
+          h(ElDescriptionsItem, { label: t('aiDevelopment.status') }, () => h(ElTag, { size: 'small' }, () => statusLabel(store.activeTask?.status || 'unknown'))),
+          h(ElDescriptionsItem, { label: t('aiDevelopment.test') }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-')
+        ]) : h('p', { class: 'empty-context' }, t('aiDevelopment.noActiveTask')),
+        store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `${t('aiDevelopment.changeSet.entity')} #${store.changeSet.id} · ${aiEnumLabel(t, 'changeSetStatuses', store.changeSet.status)}`) : null
+      ])
     ]);
   }
 });
@@ -468,12 +533,33 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 .ai-page :deep(> main > div:last-child) { overflow: hidden; }
 header small { color: var(--el-text-color-secondary); }
 .ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
-.task-permissions-scroll { max-height: calc(100dvh - 160px); overflow: auto; display: grid; gap: 14px; min-width: 0; overflow-wrap: anywhere; }
+.task-permissions-drawer { max-width: 100vw; }
+.task-permissions-drawer :deep(.el-drawer__header) { margin-bottom: 0; padding: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.task-permissions-drawer :deep(.el-drawer__body) { padding: 16px; overflow: auto; }
+.task-permissions-scroll { display: grid; align-content: start; gap: 16px; min-width: 0; overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.context-panel) { display: grid; gap: 16px; padding: 0; }
+.task-permissions-scroll :deep(.task-permissions-section) { display: grid; align-content: start; gap: 10px; min-width: 0; }
+.task-permissions-scroll :deep(h3) { margin: 0; font-size: 14px; line-height: 1.5; color: var(--el-text-color-primary); }
+.task-permissions-scroll :deep(.empty-context) { margin: 0; font-size: 12px; color: var(--el-text-color-secondary); }
+.task-permissions-scroll :deep(.el-descriptions__table) { table-layout: fixed; width: 100%; }
+.task-permissions-scroll :deep(.el-descriptions__label) { width: 76px; vertical-align: top; }
+.task-permissions-scroll :deep(.el-descriptions__content) { overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.el-radio-group) { display: flex; flex-wrap: wrap; gap: 6px; }
+.task-permissions-scroll :deep(.el-radio-button__inner) { border: 1px solid var(--el-border-color); border-radius: 4px; box-shadow: none; white-space: normal; overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.el-radio-button) { max-width: 100%; }
+.task-permissions-scroll :deep(.approval-card__title) { flex-wrap: wrap; }
+.task-permissions-scroll :deep(.el-card__header), .task-permissions-scroll :deep(.el-card__body) { padding: 10px; }
+.task-permissions-scroll :deep(.el-button) { margin-left: 0; max-width: 100%; height: auto; min-height: 24px; white-space: normal; }
+.task-permissions-scroll :deep(.el-tag) { max-width: 100%; height: auto; white-space: normal; }
+.task-permissions-scroll :deep(.el-timeline) { padding-left: 0; margin: 0; }
+.task-permissions-scroll :deep(.changeset-link) { padding: 8px 10px; text-align: left; overflow-wrap: anywhere; }
 .ai-conversations-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
 .ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
 .ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
-.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .workspace-header > div:first-child { display: grid; gap: 2px; }.workspace-actions { display: flex; gap: 8px; }.workspace-scroll { min-height: 0; overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
+.workspace-actions, .mobile-actions { align-items: center; }
+.workspace-actions :deep(.el-button--small), .mobile-actions :deep(.el-button--small) { margin-left: 0; min-height: 24px; padding: 5px 8px; }
 .model-form { min-width: 0; display: grid; gap: 8px; overflow-wrap: anywhere; }
 .model-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .model-controls label { grid-column: 1 / -1; }

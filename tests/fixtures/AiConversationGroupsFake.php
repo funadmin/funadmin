@@ -5,6 +5,29 @@ declare(strict_types=1);
 /** 分组端口的内存实现，删除操作包含归档语义。 */
 trait AiConversationGroupsFake
 {
+    public function conversationPageRows(int $adminId, array $filters, ?int $cursor, int $limit): array
+    {
+        $rows = array_filter($this->conversations($adminId), static function (array $row) use ($filters, $cursor): bool {
+            if ($cursor !== null && $row['id'] >= $cursor) return false;
+            foreach (['is_archived', 'is_unread'] as $key) if (isset($filters[$key]) && (int) ($row[$key] ?? 0) !== $filters[$key]) return false;
+            if (isset($filters['group_id']) && (int) ($row['group_id'] ?? 0) !== $filters['group_id']) return false;
+            return !isset($filters['search']) || str_contains($row['title'], $filters['search']);
+        });
+        usort($rows, static fn ($a, $b) => $b['id'] <=> $a['id']);
+        return array_slice($rows, 0, $limit);
+    }
+
+    public function messagePageRows(int $conversationId, ?array $cursor, bool $forward, int $limit): array
+    {
+        $rows = array_filter($this->messages($conversationId), static function (array $row) use ($cursor, $forward): bool {
+            if ($cursor === null) return true;
+            $comparison = [(int)$row['sequence'], (int)$row['id']] <=> $cursor;
+            return $forward ? $comparison > 0 : $comparison < 0;
+        });
+        usort($rows, static fn ($a, $b) => ($forward ? 1 : -1) * ([$a['sequence'], $a['id']] <=> [$b['sequence'], $b['id']]));
+        return array_slice($rows, 0, $limit);
+    }
+
     private array $messageKeys = [];
     public function idempotentMessage(int $conversationId, int $adminId, string $key, string $digest, callable $create): array
     {

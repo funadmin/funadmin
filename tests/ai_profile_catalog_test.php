@@ -99,7 +99,7 @@ namespace {
     $repository->rows[2]->configuration['model_capabilities'] = [];
     $resolved = $service->resolveSnapshot(7, $frozen);
     catalogExpect($resolved['fallback_models'] === ['backup'] && $resolved['model_capabilities'][1]['reasoning_efforts'] === ['high'], '候选与能力必须冻结，不读取后续编辑');
-    $repository->rows[2]->configuration['protocol'] = 'anthropic-messages';
+    $repository->rows[2]->configuration['protocol'] = 'unsupported';
     try { $service->models(7, 2); throw new \LogicException('历史未实现协议必须拒绝'); }
     catch (\InvalidArgumentException) {}
     catalogExpect(count($history) === 1, '越权和未实现协议不得发送请求');

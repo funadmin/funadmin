@@ -168,12 +168,27 @@ try {
 } catch (InvalidArgumentException) {
 }
 
+// 使用真实配置契约的内存 fixture，不初始化应用或连接数据库。
+$config = new \think\Config();
+$config->set(['connections' => ['mysql' => ['prefix' => 'fun_']]], 'database');
+\think\Container::getInstance()->instance('config', $config);
+
 $serviceReflection = new ReflectionClass(BusinessDevelopmentService::class);
 $serviceWithoutDependencies = $serviceReflection->newInstanceWithoutConstructor();
 $creationPayload = $serviceReflection->getMethod('creationPayload');
 $targetPayload = $creationPayload->invoke($serviceWithoutDependencies, ['code' => 'sample', 'name' => '示例', 'target' => ['type' => 'plugin', 'pluginCode' => 'sample']], 'created', []);
 businessApiExpect(($targetPayload['business_target']['pluginCode'] ?? '') === 'sample', '创建不能丢弃业务目标');
 businessApiExpect($targetPayload['table_name'] === 'fun_sample_sample', '插件新表默认名称须使用插件前缀');
+// 截图同数据：只调用真实参数映射、草稿校验与 Schema 编译，不连接数据库。
+$screenshotPayload = $creationPayload->invoke($serviceWithoutDependencies, [
+    'name' => 'test', 'code' => 'test', 'table' => 'example_test',
+    'connection' => 'mysql', 'remark' => 'asdf',
+    'target' => ['type' => 'plugin', 'pluginCode' => 'example'],
+], 'created', []);
+businessApiExpect($screenshotPayload['form_key'] === 'test' && $screenshotPayload['table_name'] === 'fun_example_test', '截图字段必须映射为业务标识和插件物理表名');
+(new FormDesignerService($root))->validateDefinition($screenshotPayload, true);
+(new FormSchemaRepository())->compile($screenshotPayload);
+echo "screenshot payload mapping and draft compilation: PASS\n";
 $modulePersistence = (string) file_get_contents($moduleFile);
 businessApiExpect(str_contains($modulePersistence, "'target' => \$target"), '创建事务必须持久化受控目标');
 foreach ([
@@ -201,7 +216,8 @@ $inferred = (new \app\common\crud\FieldInference())->infer([
         ['name' => 'created_at', 'type' => 'datetime', 'nullable' => true],
     ],
 ]);
-$adoptedPayload = $creationPayload->invoke($serviceWithoutDependencies, ['code' => 'sample', 'name' => '示例'], 'adopted', $inferred);
+$adoptedPayload = $creationPayload->invoke($serviceWithoutDependencies, ['code' => 'sample', 'name' => '示例', 'table' => 'legacy_sample'], 'adopted', $inferred);
+businessApiExpect($adoptedPayload['table_name'] === 'legacy_sample', '采纳必须保留已有物理表名，不得追加配置前缀');
 (new FormDesignerService($root))->validateDefinition($adoptedPayload);
 $adoptedFields = array_column($adoptedPayload['fields'], null, 'field_name');
 businessApiExpect(array_keys($adoptedFields) === ['quantity', 'status', 'password'], '采纳字段必须排除主键和托管时间字段');

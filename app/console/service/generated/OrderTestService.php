@@ -11,13 +11,15 @@ final class OrderTestService
 {
     public const WRITABLE_FIELDS = array (
   0 => 'field_1',
-  1 => 'field_2',
-  2 => 'field_3',
-  3 => 'field_4',
-  4 => 'field_5',
-  5 => 'field_6',
+  1 => 'field_7',
+  2 => 'field_2',
+  3 => 'field_3',
+  4 => 'field_4',
+  5 => 'field_5',
+  6 => 'field_6',
 );
     public const WITH_RELATIONS = array (
+  0 => 'field_1',
 );
 
     public function prepareCreatePayload(array $payload): array
@@ -60,6 +62,14 @@ final class OrderTestService
             }
         }
         return null;
+    }
+
+    public function options(string $source, ?array $departmentIds = null): array
+    {
+        return match ($source) {
+            'field_1_options' => array_map(static fn (array $row): array => ['label' => (string) $row['username'], 'value' => $row['id']], \app\console\model\generated\AdminLog::order('id', 'asc')->field('id,username')->select()->toArray()),
+            default => throw new \InvalidArgumentException('未知 optionsSource'),
+        };
     }
 }
 

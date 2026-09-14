@@ -8,7 +8,7 @@ use think\Validate;
 
 final class OrderTestValidate extends Validate
 {
-    protected array $rule = array (
+    protected $rule = array (
 );
 
     public function forUpdate(int|string $id): self

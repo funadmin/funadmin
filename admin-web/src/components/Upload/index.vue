@@ -98,7 +98,20 @@
 
       <ul v-if="fileList.length" class="app-upload__file-list">
         <li v-for="(it, idx) in fileList" :key="(it.url || it.name) + idx" class="app-upload__file-row">
-          <i :class="getFileIcon(it.name)" class="app-upload__file-row-icon" />
+          <ElImage
+            v-if="isImageFile(it)"
+            :src="it.url"
+            :alt="it.name"
+            :preview-src-list="[it.url]"
+            preview-teleported
+            fit="cover"
+            class="app-upload__file-row-thumbnail"
+          >
+            <template #error>
+              <i :class="getFileIcon(it.name)" class="app-upload__file-row-icon" />
+            </template>
+          </ElImage>
+          <i v-else :class="getFileIcon(it.name)" class="app-upload__file-row-icon" />
           <div class="app-upload__file-row-meta">
             <div class="app-upload__file-row-name" :title="it.name">{{ it.name }}</div>
             <div class="app-upload__file-row-info">
@@ -149,6 +162,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   ElButton,
+  ElImage,
   ElImageViewer,
   ElMessage,
   ElUpload,
@@ -228,6 +242,23 @@ const isMaxReached = computed(() => {
 const fileList = computed<UploadResult[]>(() =>
   props.type === 'file' ? ((props.modelValue as UploadResult[]) || []) : []
 );
+
+/** 仅为常见位图创建预览；识别时去掉 URL 查询参数，但展示保留原始签名地址。 */
+function isImageFile(item: UploadResult): boolean {
+  if (!item.url?.trim()) return false;
+  try {
+    const url = new URL(item.url, window.location.href);
+    if (url.protocol === 'data:') {
+      return /^data:image\/(?:png|jpe?g|gif|webp|bmp|avif|x-icon|vnd\.microsoft\.icon);base64,/i.test(item.url);
+    }
+    if (!['http:', 'https:', 'blob:'].includes(url.protocol)) return false;
+    const ext = item.ext || item.name?.match(/\.([^.]+)$/)?.[1]
+      || url.pathname.match(/\.([^.\/]+)$/)?.[1] || '';
+    return /^(?:png|jpe?g|gif|webp|bmp|avif|ico)$/i.test(ext);
+  } catch {
+    return false;
+  }
+}
 
 function removeFile(idx: number) {
   const next = ((props.modelValue as UploadResult[]) || []).filter((_, i) => i !== idx);
@@ -519,6 +550,16 @@ function onRemoveImage(idx: number) {
   font-size: 22px;
   color: var(--el-color-primary);
   flex-shrink: 0;
+}
+.app-upload__file-row-thumbnail {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: var(--el-fill-color-lighter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .app-upload__file-row-meta {
   flex: 1;

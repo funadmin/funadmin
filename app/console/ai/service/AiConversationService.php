@@ -56,6 +56,66 @@ final class AiConversationService
         return $this->store->conversations($adminId);
     }
 
+    /** UI 专用有界读取，不参与内部任务历史冻结。 */
+    public function conversationPage(int $adminId, array $query): array
+    {
+        if ($adminId <= 0) throw new InvalidArgumentException('管理员无效');
+        $this->validateFields($query, ['limit', 'cursor', 'is_archived', 'is_unread', 'group_id', 'search'], false);
+        $limit = array_key_exists('limit', $query) ? $this->pageInteger($query['limit'], 1, 100) : 30;
+        $filters = [];
+        foreach (['is_archived', 'is_unread'] as $field) {
+            if (!array_key_exists($field, $query)) continue;
+            if (!in_array($query[$field], [0, 1, '0', '1'], true)) throw new InvalidArgumentException($field . ' 必须为 0 或 1');
+            $filters[$field] = (int) $query[$field];
+        }
+        if (array_key_exists('group_id', $query)) {
+            $filters['group_id'] = $this->pageInteger($query['group_id'], 0);
+            if ($filters['group_id'] > 0) $this->ownedGroup($filters['group_id'], $adminId);
+        }
+        if (array_key_exists('search', $query)) {
+            if (!is_string($query['search']) || !mb_check_encoding($query['search'], 'UTF-8') || mb_strlen($query['search']) > 255 || preg_match('/[\x00-\x1f\x7f]/u', $query['search'])) throw new InvalidArgumentException('搜索文本无效');
+            $filters['search'] = trim($query['search']);
+        }
+        $cursor = array_key_exists('cursor', $query) ? $this->pageInteger($query['cursor'], 1) : null;
+        $rows = $this->store->conversationPageRows($adminId, $filters, $cursor, $limit + 1);
+        $more = count($rows) > $limit;
+        if ($more) array_pop($rows);
+        return ['items'=>$rows, 'has_more'=>$more, 'next_cursor'=>$more ? (string) end($rows)['id'] : null];
+    }
+
+    /** sequence/id 复合游标；after 必须从最早新增开始，避免跨页跳消息。 */
+    public function messagePage(int $conversationId, int $adminId, array $query): array
+    {
+        $this->ownedConversation($conversationId, $adminId);
+        $this->validateFields($query, ['limit', 'before', 'after'], false);
+        if (array_key_exists('before', $query) && array_key_exists('after', $query)) throw new InvalidArgumentException('before 与 after 互斥');
+        $limit = array_key_exists('limit', $query) ? $this->pageInteger($query['limit'], 1, 100) : 50;
+        $forward = array_key_exists('after', $query);
+        $cursor = null;
+        if ($forward || array_key_exists('before', $query)) {
+            $value = $query[$forward ? 'after' : 'before'];
+            if ($forward && $value === '0:0') $cursor = [0, 0];
+            else {
+                if (!is_string($value) || preg_match('/^([1-9][0-9]*):([1-9][0-9]*)$/D', $value, $parts) !== 1) throw new InvalidArgumentException('消息游标无效');
+                $cursor = [$this->pageInteger($parts[1], 1), $this->pageInteger($parts[2], 1)];
+            }
+        }
+        $rows = $this->store->messagePageRows($conversationId, $cursor, $forward, $limit + 1);
+        $more = count($rows) > $limit;
+        if ($more) array_pop($rows);
+        $edge = $rows ? end($rows) : null;
+        if (!$forward) $rows = array_reverse($rows);
+        return ['items'=>$rows, 'has_more'=>$more, 'next_cursor'=>$more && $edge ? $edge['sequence'] . ':' . $edge['id'] : null];
+    }
+
+    private function pageInteger(mixed $value, int $minimum, int $maximum = PHP_INT_MAX): int
+    {
+        if ((!is_int($value) && !is_string($value)) || preg_match('/^(0|[1-9][0-9]*)$/D', (string) $value) !== 1) throw new InvalidArgumentException('分页参数必须为无歧义整数');
+        $number = filter_var($value, FILTER_VALIDATE_INT, ['options'=>['min_range'=>$minimum, 'max_range'=>$maximum]]);
+        if ($number === false) throw new InvalidArgumentException('分页参数超出范围');
+        return $number;
+    }
+
     public function listConversationGroups(int $adminId): array
     {
         return $this->store->conversationGroups($adminId);

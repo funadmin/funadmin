@@ -24,6 +24,7 @@ final class BusinessApiErrorMapper
         'BUSINESS_DEFAULT_CONNECTION_ONLY' => [422, '插件业务仅支持默认数据库连接', false],
         'BUSINESS_TABLE_PREFIX_REQUIRED' => [422, '新表名称必须使用所属插件前缀', false],
         'BUSINESS_TABLE_ALREADY_EXISTS' => [409, '新建业务表已存在', false],
+        'BUSINESS_CODE_ALREADY_EXISTS' => [409, '业务标识已存在，请更换业务标识', false],
         'BUSINESS_EXTERNAL_TABLE_MISSING' => [409, '外部依赖表不存在', false],
         'BUSINESS_TABLE_STRATEGY_INVALID' => [422, '业务表策略无效', false],
         'FORM_SCHEMA_CONFLICT' => [409, '表单结构已被修改，请刷新后重试', false],
@@ -44,6 +45,14 @@ final class BusinessApiErrorMapper
         $code = self::code($exception);
         [$httpStatus, $message, $retryable] = self::ERRORS[$code] ?? self::fallback($exception);
         $details = $exception instanceof BusinessOperationException ? $exception->details() : [];
+        // 仅将已知业务错误映射到公开表单字段，不透传异常文本或数据库信息。
+        $field = match ($code) {
+            'BUSINESS_CODE_ALREADY_EXISTS' => 'code',
+            'BUSINESS_TABLE_ALREADY_EXISTS', 'BUSINESS_TABLE_PREFIX_REQUIRED', 'BUSINESS_EXTERNAL_TABLE_MISSING' => 'table',
+            'BUSINESS_DEFAULT_CONNECTION_ONLY' => 'connection',
+            default => null,
+        };
+        if ($field !== null) $details['fieldErrors'] = [$field => $message];
         return [
             'httpStatus' => $httpStatus,
             'message' => $message,
@@ -60,6 +69,9 @@ final class BusinessApiErrorMapper
     {
         if ($exception instanceof BusinessOperationException) return $exception->errorCode();
         $message = $exception->getMessage();
+        if ($exception instanceof InvalidArgumentException && in_array($message, ['表单标识已存在', '业务模块标识已存在'], true)) {
+            return 'BUSINESS_CODE_ALREADY_EXISTS';
+        }
         if (isset(self::ERRORS[$message])) return $message;
         if ($exception instanceof BusinessResourceGoneException) return 'RESOURCE_GONE';
         if ($exception instanceof BusinessConflictException) return 'GENERATION_PLAN_CONFLICT';

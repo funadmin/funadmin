@@ -25,6 +25,7 @@ $service = (new ReflectionClass(BusinessDevelopmentService::class))->newInstance
 $creation = new ReflectionMethod(BusinessDevelopmentService::class, 'creationPayload');
 $compiler = new FormSchemaCompiler(new FormSchemaValidator());
 $factory = new FormCrudDefinitionFactory();
+$app->config->set(['mysqlPrefix' => ['__PREFIX__', '__prefix__', '{PREFIX}', '{prefix}', 'fun_', 'Fun_', 'THINK_', 'think_']], 'funadmin');
 foreach (['', 'tenant_', 'fun_'] as $prefix) {
     $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'wrong_'], 'archive' => ['prefix' => $prefix]]], 'database');
     foreach (['core', 'plugin'] as $type) {
@@ -77,6 +78,15 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
             $modelCode = str_replace('extends BackendModel', 'extends \\app\\console\\model\\BackendModel', $modelCode);
             eval(substr($modelCode, 5));
             $modelClass = $namespace[1] . '\\Entry';
+            $validateCode = preg_replace('/namespace [^;]+;/', 'namespace ' . $namespace[1] . ';', $context['validateContent'], 1);
+            eval(substr($validateCode, 5));
+            $validatorClass = $namespace[1] . '\\EntryValidate';
+            $validator = new $validatorClass();
+            $rulesProperty = new ReflectionProperty($validatorClass, 'rule');
+            $uniqueRule = $rulesProperty->getValue($validator)['title'];
+            $expect(str_contains($uniqueRule, 'unique:\\') && str_contains($uniqueRule, '\\Entry,title,{id},id'), 'unique 规则必须引用生成的绑定表模型');
+            $validator->forUpdate(42);
+            $expect(str_contains($rulesProperty->getValue($validator)['title'], ',title,42,id'), '更新 unique 必须排除当前主键');
             $model = (new ReflectionClass($modelClass))->newInstanceWithoutConstructor();
             $expect($model->getOption('table') === $table && $model->getOption('connection') === 'archive', '真实 ORM 模型配置必须保持物理表与连接');
         }
@@ -104,6 +114,8 @@ foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
     $physicalSql = "-- funadmin-physical-table\nCREATE TABLE `{$prefix}entry` (`id` int);";
     $expect($rewrite->invoke(null, $physicalSql, 'fun_', $prefix) === $physicalSql, '生成物理表 SQL 不得再次替换前缀');
 }
+$aliases = ['__PREFIX__', '__prefix__', '{PREFIX}', '{prefix}', 'fun_', 'Fun_', 'THINK_', 'think_'];
+$expect($rewrite->invoke(null, 'CREATE TABLE `__PREFIX__entry` (`id` int);', $aliases, 'tenant_fun_') === 'CREATE TABLE `tenant_fun_entry` (`id` int);', '模板别名必须单次替换，不能再次替换结果中包含的 fun_');
 $resourceRoot = sys_get_temp_dir() . '/crud-prefix-' . bin2hex(random_bytes(6));
 mkdir($resourceRoot, 0700);
 try {

@@ -10,6 +10,8 @@ import type {
 } from '@/api/development/business';
 
 const mocks = vi.hoisted(() => ({
+  permissions: ['*'] as string[],
+  query: { plugin: 'demo', source: 'test' },
   modules: vi.fn(),
   previewFormalGeneration: vi.fn(),
   refreshBusinessMenu: vi.fn(),
@@ -27,12 +29,36 @@ vi.mock('@/api/development/business', async (importOriginal) => {
     }
   };
 });
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.push, addRoute: vi.fn() }) }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ get permissions() { return mocks.permissions; } }) }));
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: mocks.query }), useRouter: () => ({ push: mocks.push, addRoute: vi.fn() }) }));
 vi.mock('./composables/useBusinessMenuRefresh', () => ({
   useBusinessMenuRefresh: () => ({ refreshBusinessMenu: mocks.refreshBusinessMenu })
 }));
 
 import BusinessMine from './mine.vue';
+
+it.each([
+  [['*'], '/development/business/visual'],
+  [['console/development.business:inspectdatabase'], '/development/business/database'],
+  [['development:business:save'], null],
+  [[], null]
+] as [string[], string | null][])('统一入口按独立动作选择现有路由并保留 query：%j', async (permissions, path) => {
+  mocks.permissions = permissions;
+  mocks.modules.mockResolvedValue({ list: [], total: 0 });
+  const wrapper = render();
+  await flushPromises();
+  const entries = wrapper.findAll('[data-action="create-business"]');
+  expect(entries).toHaveLength(path ? 1 : 0);
+  expect(wrapper.text()).not.toContain('可视化创建');
+  expect(wrapper.text()).not.toContain('采纳数据表');
+  if (path) {
+    expect(entries[0]!.text()).toContain('创建业务');
+    await entries[0]!.trigger('click');
+    expect(mocks.push).toHaveBeenCalledWith({ path, query: mocks.query });
+  }
+  wrapper.unmount();
+  mocks.permissions = ['*'];
+});
 
 const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } });
 const tableRowsKey = Symbol('tableRows');

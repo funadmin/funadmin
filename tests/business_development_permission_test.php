@@ -11,6 +11,24 @@ function businessPermissionExpect(bool $condition, string $message): void
     if (!$condition) throw new RuntimeException($message);
 }
 
+$authClass = new ReflectionClass(\app\console\controller\authentication\AdminAuth::class);
+$authInstance = $authClass->newInstanceWithoutConstructor();
+$webPermissions = $authClass->getMethod('webPermissions');
+foreach (['createvisual', 'createfromdatabase', 'inspectdatabase', 'databasetables', 'modules'] as $action) {
+    $code = 'console/development.business:' . $action;
+    $permissions = $webPermissions->invoke($authInstance, [$code], false);
+    businessPermissionExpect(in_array($code, $permissions, true), '必须保留已授权独立动作：' . $action);
+    foreach (['createvisual', 'createfromdatabase', 'inspectdatabase', 'databasetables', 'modules'] as $other) {
+        if ($other !== $action) businessPermissionExpect(!in_array('console/development.business:' . $other, $permissions, true), '不得扩大独立动作授权');
+    }
+}
+businessPermissionExpect($webPermissions->invoke($authInstance, [], false) === [], '无权限不得获得动作');
+businessPermissionExpect($webPermissions->invoke($authInstance, [], true) === ['*'], '保留超级管理员通配');
+if (getenv('BUSINESS_PERMISSION_READ_ONLY') === '1') {
+    echo "business action permission tests: PASS (no database)\n";
+    exit(0);
+}
+
 $root = dirname(__DIR__);
 $migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
 sort($migrations, SORT_STRING);
@@ -170,9 +188,8 @@ foreach ($after as $index => $row) {
 $memory->exec($hideSql);
 businessPermissionExpect($memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC) === $after, '隐藏迁移必须幂等');
 $mine = (string) file_get_contents($root . '/admin-web/src/views/development/business/mine.vue');
-foreach (['visual' => 'save', 'database' => 'inspect'] as $path => $permission) {
-    businessPermissionExpect(str_contains($mine, "v-perm=\"'development:business:{$permission}'\" @click=\"router.push('/development/business/{$path}')\""), '我的业务按钮和既有权限必须保留');
-}
+businessPermissionExpect(substr_count($mine, 'data-action="create-business"') === 1, '我的业务只保留统一创建入口');
+businessPermissionExpect(str_contains($mine, 'console/development.business:createvisual') && str_contains($mine, '/development/business/database'), '统一入口必须按独立动作保留只读旧路由');
 businessPermissionExpect(str_contains($auth, "in_array((int) \$menu->permission_id, \$permissionIds, true)"), '非管理员仍按原权限绑定过滤，不能补授查看权限');
 businessPermissionExpect(!str_contains($hideSql, 'fun_permission') && !str_contains($hideSql, 'fun_casbin_rule'), '隐藏操作不得修改权限或角色授权');
 

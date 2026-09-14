@@ -31,6 +31,98 @@ const plan: BusinessGenerationPlan = {
   ]
 };
 
+function preview(baseContent: string | null, localContent: string | null, remoteContent: string | null) {
+  return mount(GenerationPlanView, {
+    props: { plan: { blocked: true, files: [{ path: 'sample.ts', status: 'conflict', baseContent, localContent, remoteContent }] } },
+    global: { plugins: [i18n], stubs }
+  });
+}
+
+describe('GenerationPlanView 行级差异', () => {
+  it.each([['', ''], ['same\n', 'same\n']])('等同和空文件明确无差异', (base, remote) => {
+    const wrapper = preview(base, base, remote);
+    expect(wrapper.get('[data-diff-status]').text()).toContain('内容相同');
+    expect(wrapper.get('[data-diff-stats]').text()).toContain('+0 / −0');
+    expect(wrapper.get('[data-next-diff]').attributes('disabled')).toBeDefined();
+  });
+
+  it.each([
+    ['', 'new\n', 1, 0], ['old\n', '', 0, 1],
+    ['a\nold\nz\n', 'a\nnew\nz\n', 1, 1],
+    ['a\nb\n', 'x\na\nb\n', 1, 0]
+  ])('准确计算新增、删除、修改及插入后的对应行', (base, remote, added, removed) => {
+    const wrapper = preview(base, base, remote);
+    expect(wrapper.get('[data-diff-stats]').text()).toContain(`+${added} / −${removed}`);
+    expect(wrapper.findAll('[data-line-kind="add"]')).toHaveLength(added);
+    expect(wrapper.findAll('[data-line-kind="delete"]')).toHaveLength(removed);
+    for (const row of wrapper.findAll('[data-line-kind="equal"]')) {
+      expect(row.get('[data-old-line]').text()).not.toBe('');
+      expect(row.get('[data-new-line]').text()).not.toBe('');
+    }
+    if (remote.startsWith('x')) {
+      const row = wrapper.findAll('[data-line-kind="equal"]')[0];
+      expect(row.get('[data-old-line]').text()).toBe('1');
+      expect(row.get('[data-new-line]').text()).toBe('2');
+    }
+  });
+
+  it.each([['a\r\n', 'a\n', 'CRLF'], ['a', 'a\n', '无末尾换行']])('保留换行差异，不假报相同', (base, remote, marker) => {
+    const wrapper = preview(base, base, remote);
+    expect(wrapper.get('[data-diff-stats]').text()).toContain('+1 / −1');
+    expect(wrapper.get('[data-diff-scroll]').text()).toContain(marker);
+  });
+
+  it('导航差异、切 Tab 和切文件不修改计划或触发业务事件', async () => {
+    const wrapper = preview('a\nb\nc\n', 'local\n', 'x\nb\ny\n');
+    const original = JSON.stringify(wrapper.props('plan'));
+    expect(wrapper.get('[data-diff-position]').text()).toContain('1 / 2');
+    await wrapper.get('[data-next-diff]').trigger('click');
+    expect(wrapper.get('[data-diff-position]').text()).toContain('2 / 2');
+    await wrapper.get('[data-prev-diff]').trigger('click');
+    expect(wrapper.get('[data-diff-position]').text()).toContain('1 / 2');
+    await wrapper.get('[data-comparison="local"]').trigger('click');
+    expect(wrapper.get('[data-diff-scroll]').text()).toContain('local');
+    expect(wrapper.get('[data-diff-position]').text()).toContain('1 / 1');
+    await wrapper.get('[data-wrap-lines]').setValue(true);
+    expect(wrapper.get('[data-diff-scroll]').classes()).toContain('is-wrapped');
+    expect(JSON.stringify(wrapper.props('plan'))).toBe(original);
+    expect(Object.keys(wrapper.emitted()).filter((event) => !['click', 'input', 'change'].includes(event))).toEqual([]);
+    await wrapper.setProps({ plan: { blocked: false, files: [{ path: 'other.ts', status: 'update', baseContent: '', localContent: '', remoteContent: 'other' }] } });
+    expect(wrapper.get('[data-comparison="remote"]').attributes('aria-selected')).toBe('true');
+    expect(wrapper.get('[data-diff-scroll]').text()).toContain('other');
+  });
+
+  it('注入字符串只作为文本输出', () => {
+    const injection = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
+    const wrapper = preview('', '', injection);
+    expect(wrapper.get('[data-diff-scroll]').text()).toContain(injection);
+    expect(wrapper.find('img,script').exists()).toBe(false);
+  });
+
+  it.each(['x'.repeat(200001), 'x\n'.repeat(5001), Array.from({ length: 1500 }, (_, i) => `${i}\n`).join('')])('大文本或复杂计算明确降级', (text) => {
+    const wrapper = preview(text, text, text.replaceAll('x', 'y').split('').reverse().join(''));
+    expect(wrapper.get('[data-diff-status]').text()).toContain('未计算');
+    expect(wrapper.get('[data-diff-status]').text()).not.toContain('内容相同，无差异');
+    expect(wrapper.find('[data-diff-stats]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-line-kind]')).toHaveLength(0);
+  });
+
+  it('缺失基线不当成空文件，允许明确的本地与待生成对比', async () => {
+    const wrapper = preview(null, 'old', 'new');
+    expect(wrapper.get('[data-diff-stats]').text()).toContain('+1 / −1');
+    expect(wrapper.get('[data-comparison="direct"]').attributes('aria-selected')).toBe('true');
+    await wrapper.get('[data-comparison="remote"]').trigger('click');
+    expect(wrapper.get('[data-diff-status]').text()).toContain('未提供');
+    expect(wrapper.find('[data-diff-stats]').exists()).toBe(false);
+  });
+
+  it('二进制冲突不执行文本对比', () => {
+    const binary = mount(GenerationPlanView, { props: { plan: { blocked: true, files: [{ path: 'a.bin', status: 'binary-conflict', contentKind: 'binary', baseContent: '', remoteContent: 'binary' }] } }, global: { plugins: [i18n], stubs } });
+    expect(binary.get('[data-diff-status]').text()).toContain('二进制');
+    expect(binary.find('[data-diff-stats]').exists()).toBe(false);
+  });
+});
+
 describe('GenerationPlanView', () => {
   it('真实 PHP 授权预览响应能显示 SQL 和受管 Manifest 增量', () => {
     const response = JSON.parse(execFileSync('/opt/homebrew/opt/php@8.1/bin/php',
@@ -72,7 +164,7 @@ describe('GenerationPlanView', () => {
     expect(wrapper.get('[data-section="summary"]').text()).toContain('新建: 1');
   });
 
-  it('冲突按 Base、Local、Remote 三栏显示', () => {
+  it('冲突使用只读对比 Tab，不再显示三栏原文', async () => {
     const conflictFile = plan.files[5];
     const withoutConflict = { ...plan, files: plan.files.slice(0, 5) };
     const wrapper = mount(GenerationPlanView, { props: { plan: withoutConflict, conflicts: [conflictFile] }, global: { plugins: [i18n], stubs } });
@@ -80,7 +172,10 @@ describe('GenerationPlanView', () => {
     expect(conflict.text()).toContain('Base');
     expect(conflict.text()).toContain('base-content');
     expect(conflict.text()).toContain('Local');
+    expect(conflict.findAll('[role="tab"]')).toHaveLength(2);
+    await conflict.get('[data-comparison="local"]').trigger('click');
     expect(conflict.text()).toContain('local-content');
+    await conflict.get('[data-comparison="remote"]').trigger('click');
     expect(conflict.text()).toContain('Remote');
     expect(conflict.text()).toContain('remote-content');
   });
@@ -90,6 +185,6 @@ describe('GenerationPlanView', () => {
     const advanced = wrapper.get('details');
     expect(advanced.attributes('open')).toBeUndefined();
     expect(advanced.text()).toContain('"blocked": true');
-    expect(wrapper.findAll('pre')).toHaveLength(4);
+    expect(wrapper.findAll('pre')).toHaveLength(1);
   });
 });

@@ -13,6 +13,38 @@ function respond(data: unknown) {
 const conversation = { id: '2', admin_id: '1', group_id: null, title: '新 AI 会话', status: 'draft', model: '', context: [], is_archived: false, is_unread: false };
 
 describe('AI 真实 HTTP 响应边界', () => {
+  it('分页 API 保留游标元数据并归一化行 ID，透传筛选与方向', async () => {
+    expect(api).toHaveProperty('conversationPage');
+    expect(api).toHaveProperty('messagePage');
+    const params = { limit: 30, cursor: '90', is_archived: 0 as const, search: '测试' };
+    service.defaults.adapter = async config => {
+      expect(config.params).toEqual(params);
+      return { config, status: 200, statusText: 'OK', headers: {}, data: { code: 200, data: { items: [conversation], has_more: true, next_cursor: '2' } } };
+    };
+    expect(await api.conversationPage(params)).toMatchObject({ items: [{ id: 2 }], has_more: true, next_cursor: '2' });
+    respond({ items: [{ id: '9', conversation_id: '2', sequence: '8', content: [] }], has_more: false, next_cursor: null });
+    expect(await api.messagePage(2, { after: '7:8' })).toMatchObject({ items: [{ id: 9, sequence: 8 }], has_more: false });
+  });
+  it('mock 会话/消息分页遵守上限和方向，保留已发送消息', async () => {
+    const request = async (method: MockMethod, url: string, params: Record<string, unknown> = {}, body = {}) => {
+      const route = developmentAiMockHandlers.find(r => r.method === method && (typeof r.url === 'string' ? r.url === url : r.url.test(url)))!;
+      const match = route.url instanceof RegExp ? url.match(route.url) : null;
+      return route.handler({ method, url, params, body, headers: {}, pathParams: Object.fromEntries((route.paramNames || []).map((key, i) => [key, match![i+1]])) });
+    };
+    const base = '/development/ai/conversations';
+    const created = await request('POST', base, {}, { title: '分页 mock' });
+    const id = created.data.id;
+    for (let i = 0; i < 55; i++) await request('POST', `${base}/${id}/messages`, {}, { role: 'user', content: [{ type: 'text', text: String(i) }], idempotency_key: `page-${i}` });
+    const page = (await request('GET', `${base}/${id}/messages`)).data;
+    expect(page.items).toHaveLength(50); expect(page.has_more).toBe(true);
+    const older = (await request('GET', `${base}/${id}/messages`, { before: page.next_cursor })).data;
+    expect(older.items).toHaveLength(5);
+    expect((await request('GET', `${base}/${id}/messages`, { after: '0:0' })).data.items[0].id).toBe(older.items[0].id);
+    expect((await request('GET', base, { search: '分页 mock', limit: 1 })).data.items).toHaveLength(1);
+    expect((await request('GET', `${base}/999999/messages`)).code).toBe(404);
+    expect((await request('GET', base, { limit: 101 })).code).toBe(400);
+    expect((await request('GET', `${base}/${id}/messages`, { before: '1:1', after: '1:1' })).code).toBe(400);
+  });
   it('六档必须逐模型显式声明，主备取交集且拒绝非法声明', () => {
     const efforts = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
     const profile = { name: 'p', provider: 'custom', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_enabled: true, fallback_models: ['b'], max_output_tokens: 100, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: efforts, output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 })) };
@@ -145,7 +177,7 @@ describe('AI 真实 HTTP 响应边界', () => {
     await expect(api.conversation(2)).rejects.toThrow();
   });
   it('列表和单记录只解包一次，所有会话及分组入口统一 ID 类型', async () => {
-    respond([conversation]);
+    respond({ items: [conversation], has_more: false, next_cursor: null });
     expect((await api.conversations())[0]).toMatchObject({ id: 2, admin_id: 1, group_id: null });
     respond(conversation);
     for (const record of [await api.conversation(2), await api.createConversation({ title: '新 AI 会话', approval_mode: 'request_approval' }), await api.updateConversation(2, { title: '改名' }), await api.updateConversationState(2, { group_id: null })]) {
@@ -162,8 +194,10 @@ describe('AI 真实 HTTP 响应边界', () => {
     const row = { id: '3', conversation_id: '2', task_id: '4', message_id: null, context: { id: 'external' }, input: { conversation_id: 'external' } };
     respond(row);
     for (const record of [await api.task(4), await api.changeSet(3)]) expect(record).toMatchObject({ id: 3, conversation_id: 2, task_id: 4, message_id: null, input: { conversation_id: 'external' } });
+    respond({ items: [row], has_more: false, next_cursor: null });
+    expect((await api.messages(2))[0]).toMatchObject({ conversation_id: 2, task_id: 4 });
     respond([row]);
-    for (const records of [await api.messages(2), await api.approvals(), await api.toolCalls(4)]) expect(records[0]).toMatchObject({ conversation_id: 2, task_id: 4 });
+    for (const records of [await api.approvals(), await api.toolCalls(4)]) expect(records[0]).toMatchObject({ conversation_id: 2, task_id: 4 });
   });
   it('不允许非法或超出 JS 安全范围的 ID 悄然转换', async () => {
     for (const id of ['9007199254740993', 'undefined', '', 1.5]) {

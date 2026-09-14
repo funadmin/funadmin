@@ -66,6 +66,7 @@ export default {
       deleteGroupConfirm: '删除分组后，其中全部会话将归档，是否继续？', deleteConfirm: '确定删除此会话？此操作不可撤销。',
       failed: '会话操作失败，请重试', syncFailed: '消息或已读状态同步失败，请重新打开会话'
     },
+    pagination: { more: '加载更多', older: '加载更早消息', search: '搜索会话', unreadFilter: '阅读状态', allReadStates: '全部阅读状态', groupFilter: '分组筛选', allGroups: '全部分组' },
     newConversation: '新建',
     unnamedConversation: '未命名会话',
     noConversations: '暂无会话',
@@ -76,6 +77,8 @@ export default {
     newConversationTitle: '新 AI 会话',
     taskContext: '任务上下文',
     taskAndPermissions: '任务与权限',
+    taskOverview: '任务概况',
+    riskAndApproval: '风险及审批操作',
     stage: '阶段',
     status: '状态',
     test: '测试',

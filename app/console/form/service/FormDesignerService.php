@@ -350,7 +350,9 @@ final class FormDesignerService
         $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
-            Db::connect((string) ($payload['connection'] ?? 'mysql'))->execute(rtrim(trim((string) $preview['sql']), ';'));
+            $connection = Db::connect((string) ($payload['connection'] ?? 'mysql'));
+            \app\common\service\DdlEncodingGuard::check($connection, (string) $preview['sql']);
+            $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
         } catch (Throwable $exception) {
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);

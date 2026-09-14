@@ -71,6 +71,9 @@ final class Data extends AdminApiController
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     public function meta(string $key): Response
     {
+        if ($this->request->get('source/b', false)) {
+            return $this->execute(fn (): array => $this->data->sourceMeta($key));
+        }
         $etag = '';
         $response = $this->execute(function () use ($key, &$etag): array {
             $meta = $this->observe($key, 'meta', fn (): array => $this->data->meta($key));
