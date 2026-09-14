@@ -1,1 +1,0 @@
-import{$t as e,in as t,pn as n,vn as r}from"./element-DwvkgeLi.js";import{c as i,s as a}from"./vue-C3eQ3azB.js";var o=t({__name:`index`,setup(t){let o=a(),s=i();return n(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(t,n)=>(r(),e(`div`))}});export{o as default};

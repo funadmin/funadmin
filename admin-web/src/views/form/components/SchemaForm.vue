@@ -56,7 +56,7 @@ const optionsRequest = async (key: string, field: string) => formDataApi.options
 watch(() => linkState.value.writes, writes => {
   for (const [key, value] of Object.entries(writes)) if (props.values[key] !== value) props.values[key] = value;
 }, { deep: true });
-const validate = () => renderer.value?.validate();
+const validate = async () => renderer.value?.validate();
 const setFieldErrors = (errors: Record<string, string>) => renderer.value?.setFieldErrors(errors);
 defineExpose({ validate, setFieldErrors });
 </script>

@@ -1,1 +1,0 @@
-import{Zt as e,dn as t,gn as n,nn as r}from"./element-MZGbz2-N.js";import{c as i,s as a}from"./vue-fqkwagY6.js";var o=r({__name:`index`,setup(r){let o=a(),s=i();return t(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(t,r)=>(n(),e(`div`))}});export{o as default};

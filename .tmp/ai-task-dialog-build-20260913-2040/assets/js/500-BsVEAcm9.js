@@ -1,1 +1,0 @@
-import{Zt as e,in as t,vn as n}from"./element-DwvkgeLi.js";import{t as r}from"./ErrorPage-CAChonT4.js";var i=t({__name:`500`,setup(t){return(t,i)=>(n(),e(r,{code:`500`}))}});export{i as default};

@@ -1,1 +1,0 @@
-import{Yt as e,bn as t,gn as n}from"./element-MZGbz2-N.js";import{d as r}from"./index-BKzF-4Dv.js";var i={};function a(r,i){let a=t(`router-view`);return n(),e(a,{key:r.$route.fullPath})}var o=r(i,[[`render`,a]]);export{o as default};

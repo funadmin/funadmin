@@ -1,1 +1,0 @@
-import{Sn as e,Zt as t,vn as n}from"./element-DwvkgeLi.js";import{d as r}from"./index-2iKcqw56.js";var i={};function a(r,i){let a=e(`router-view`);return n(),t(a,{key:r.$route.fullPath})}var o=r(i,[[`render`,a]]);export{o as default};
