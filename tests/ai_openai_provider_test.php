@@ -86,7 +86,7 @@ $history = [];
 $streamParts = [
     "data: {\"choices\":[{\"delta\":{\"content\":\"A\"}}]}\r\n\r",
     "\ndata: {\"choices\":[{\"delta\":{\"content\":\"B\"}}]}\n",
-    "\ndata: {\"choices\":[{\"delta\":{\"content\":\"C\"}}]}",
+    "\ndata: {\"choices\":[{\"delta\":{\"content\":\"C\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]", 
 ];
 $streamBody = new PumpStream(static function () use (&$streamParts): ?string {
     return array_shift($streamParts);

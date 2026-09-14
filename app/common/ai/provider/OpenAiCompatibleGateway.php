@@ -139,6 +139,9 @@ final class OpenAiCompatibleGateway
         $body = $this->protocol->decode($body);
         $choice = $body['choices'][0] ?? [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
+        foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
+            if (!empty($message[$field])) throw new AiProviderException('unsupported_capability', '暂不支持推理内容往返，请使用非思考模式');
+        }
 
         if (!empty($message['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('safety_refusal', '模型安全拒绝');
         $actual = $body['model'] ?? $models[$this->candidate];
@@ -172,7 +175,7 @@ final class OpenAiCompatibleGateway
                 yield $chunk;
             }
         }
-        if ($this->protocol->name !== 'openai-chat' && !($state['done'] ?? false)) throw new AiProviderException('invalid_response', 'Provider 流被截断');
+        if (!($state['done'] ?? false)) throw new AiProviderException('invalid_response', 'Provider 流被截断');
         foreach ($calls as $call) {
             yield $this->normalizeStreamToolCall($call);
         }
@@ -241,6 +244,9 @@ final class OpenAiCompatibleGateway
         $cap = AiModelCapabilities::forModel($this->config, $model);
         $pending = [];
         foreach ($messages as &$message) {
+            foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
+                if (array_key_exists($field, $message)) throw new InvalidArgumentException('暂不支持推理消息往返，禁止静默丢弃');
+            }
             if (($message['role'] ?? '') === 'tool') {
                 $id = $message['tool_call_id'] ?? '';
                 if (!isset($pending[$id])) throw new InvalidArgumentException('工具结果缺少配对调用');
@@ -315,7 +321,8 @@ final class OpenAiCompatibleGateway
             } catch (JsonException $exception) {
                 throw new AiProviderException('invalid_response', 'Provider tool arguments 不是有效 JSON', previous: $exception);
             }
-            return ['id' => (string) ($call['id'] ?? ''), 'name' => (string) ($function['name'] ?? ''), 'arguments' => is_array($arguments) ? $arguments : []];
+            if (!is_array($arguments) || !str_starts_with(ltrim((string) ($function['arguments'] ?? '{}')), '{') || empty($call['id']) || empty($function['name'])) throw new AiProviderException('invalid_response', '工具调用必须包含标识、名称和对象参数');
+            return ['id' => (string) $call['id'], 'name' => (string) $function['name'], 'arguments' => $arguments];
         }, $calls);
     }
 
@@ -334,12 +341,20 @@ final class OpenAiCompatibleGateway
     private function parseEvent(string $event, array &$calls, array &$state): array
     {
         $output = [];
+        $lines = [];
         foreach (preg_split('/\r?\n/', $event) ?: [] as $line) {
+            if (str_starts_with($line, 'data:')) $lines[] = preg_replace('/^ /', '', substr($line, 5));
+        }
+        if ($lines === []) return [];
+        foreach (['data:' . implode("\n", $lines)] as $line) {
             if (!str_starts_with($line, 'data:')) {
                 continue;
             }
             $data = trim(substr($line, 5));
-            if ($data === '' || $data === '[DONE]') {
+            if ($state['done'] ?? false) throw new AiProviderException('invalid_response', '完成后收到额外数据');
+            if ($data === '[DONE]') {
+                if ($this->protocol->name !== 'openai-chat') throw new AiProviderException('invalid_response', '协议结束标记不匹配');
+                $state['done'] = true;
                 continue;
             }
             try {
@@ -356,7 +371,15 @@ final class OpenAiCompatibleGateway
             if (is_array($decoded['usage'] ?? null)) {
                 $output[] = ['type'=>'usage', 'usage'=>$this->normalizeUsage($decoded['usage'])];
             }
-            $delta = (array) ($decoded['choices'][0]['delta'] ?? []);
+            $choice = $decoded['choices'][0] ?? [];
+            $delta = (array) ($choice['delta'] ?? []);
+            foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
+                if (!empty($delta[$field])) throw new AiProviderException('unsupported_capability', '暂不支持推理内容往返，请使用非思考模式');
+            }
+            if (!empty($delta['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('safety_refusal', '模型安全拒绝');
+            if (isset($choice['finish_reason']) && !in_array($choice['finish_reason'], ['stop','tool_calls'], true)) throw new AiProviderException('invalid_response', 'Chat 流未完整完成');
+            if (($state['finished'] ?? false) && $delta !== []) throw new AiProviderException('invalid_response', '结束原因后收到增量');
+            if (isset($choice['finish_reason'])) $state['finished'] = true;
             if (($delta['content'] ?? '') !== '') {
                 $output[] = ['type' => 'content', 'content' => (string) $delta['content']];
             }
@@ -378,7 +401,8 @@ final class OpenAiCompatibleGateway
         } catch (JsonException $exception) {
             throw new AiProviderException('invalid_response', 'Provider 流式 tool arguments 不是有效 JSON', previous: $exception);
         }
-        return ['type' => 'tool_call', 'id' => $call['id'], 'name' => $call['name'], 'arguments' => is_array($arguments) ? $arguments : []];
+        if (!is_array($arguments) || !str_starts_with(ltrim($call['arguments'] ?: '{}'), '{') || empty($call['id']) || empty($call['name'])) throw new AiProviderException('invalid_response', '流式工具调用参数必须是对象且标识完整');
+        return ['type' => 'tool_call', 'id' => $call['id'], 'name' => $call['name'], 'arguments' => $arguments];
     }
 
     private function normalizeUsage(array $usage): array

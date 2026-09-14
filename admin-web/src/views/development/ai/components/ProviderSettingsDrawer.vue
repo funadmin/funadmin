@@ -22,7 +22,7 @@
           <el-form-item class="profile-wide" label="API 协议"><el-select v-model="form.protocol" data-testid="provider-protocol"><el-option value="openai-chat" label="Chat Completions" /><el-option value="openai-responses" label="Responses" /><el-option value="anthropic-messages" label="Anthropic Messages" /></el-select></el-form-item>
           <p class="profile-wide">预设仅在点击应用后替换供应商、协议和地址，不预置密钥；应用到已有档案需再次确认。协议与地址可独立修改。</p>
           <p v-if="presetId === 'ollama'" class="profile-wide">Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。</p>
-          <p v-if="form.protocol === 'anthropic-messages'" class="profile-wide">Messages 必须设置明确的输出 Token 预算，推理档位请选择默认。</p>
+          <p class="profile-wide">当前支持文本、function 工具及 usage；不支持 thinking 内容、签名和 reasoning item 的往返，收到此类内容将明确报错。Responses / Messages 请选择默认推理档位及非思考模型；Messages 必须设置输出 Token 预算。</p>
           <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
           <el-form-item label="供应商标识">
             <el-input v-model="form.provider" required pattern="[a-z0-9][a-z0-9._-]*" maxlength="64" placeholder="例如 openai-compatible" />
@@ -148,7 +148,8 @@ function applyPreset() {
   validationError.value = '';
   presetConfirmation.value = '';
 }
-watch(() => [form.provider, form.protocol, form.base_url], () => { apiKey.value = ''; });
+watch(() => [form.provider, form.protocol, form.base_url], () => { apiKey.value = ''; presetConfirmation.value = ''; });
+watch(presetId, () => { presetConfirmation.value = ''; });
 const numericFields = [
   { key: 'context_window', min: 1, max: 10000000, nullable: true },
   { key: 'max_input_tokens', min: 1, max: 10000000, nullable: true },
@@ -160,7 +161,7 @@ const numericFields = [
 ] as const;
 const modelOptions = computed(() => [...new Set([...props.models.map((item) => item.id), ...(form.favorite_models || []), ...(form.model_capabilities || []).map(c => c.model), ...(form.model ? [form.model] : [])])].filter(Boolean));
 const efforts = AI_REASONING_EFFORTS;
-const legalEfforts = computed(() => efforts.filter(e => [form.model, ...(form.fallback_enabled ? form.fallback_models || [] : [])].every(m => profileModelCapability(form, m).reasoning_efforts.includes(e))));
+const legalEfforts = computed(() => form.protocol !== 'openai-chat' ? [] : efforts.filter(e => [form.model, ...(form.fallback_enabled ? form.fallback_models || [] : [])].every(m => profileModelCapability(form, m).reasoning_efforts.includes(e))));
 const fallbackOptions = computed(() => modelOptions.value.filter(m => m !== form.model && !form.fallback_models?.includes(m)));
 function addFallback(value: string) {
   const model = value?.trim();
@@ -192,7 +193,8 @@ watch(() => props.savedProfile, (profile) => { if (profile) select(profile); });
 watch(() => props.modelValue, (visible) => { if (!visible) { apiKey.value = ''; clearKey.value = false; } else select(props.profiles.find((p) => p.id === selectedId.value)); });
 function submit() {
   if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = '连接目标已变更，请提供新密钥或明确清空旧密钥。'; return; }
-  if (form.protocol === 'anthropic-messages' && (!form.max_output_tokens || form.reasoning_effort)) { validationError.value = 'Messages 必须设置输出 Token 预算且推理档位为默认。'; return; }
+  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'; return; }
+  if (form.protocol === 'anthropic-messages' && !form.max_output_tokens) { validationError.value = 'Messages 必须设置输出 Token 预算。'; return; }
   const payload = { ...form, favorite_models: [...(form.favorite_models || [])], fallback_models: [...(form.fallback_models || [])], model_capabilities: (form.model_capabilities || []).map(c => ({ ...c, reasoning_efforts: [...c.reasoning_efforts], context_window: String(c.context_window) === '' ? null : c.context_window, max_output_tokens: String(c.max_output_tokens) === '' ? null : c.max_output_tokens })) };
   for (const field of numericFields) if (field.nullable && (payload[field.key] === undefined || String(payload[field.key]) === '')) Object.assign(payload, { [field.key]: null });
   const capabilityError = profileCapabilityError(payload);
@@ -209,6 +211,7 @@ function submit() {
   apiKey.value = '';
 }
 function test() {
+  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = '当前协议不支持显式推理模式。'; return; }
   emit('test', { protocol: form.protocol, name: form.provider, max_output_tokens: form.max_output_tokens, base_url: form.base_url, model: form.model, connect_timeout: form.connect_timeout, request_timeout: form.request_timeout, max_retries: form.max_retries, api_key: clearKey.value ? '' : apiKey.value });
   apiKey.value = '';
 }
