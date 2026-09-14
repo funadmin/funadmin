@@ -59,6 +59,7 @@ final class ListButtonExecutor
         foreach ($ids as $id) if ((!is_string($id) && !is_int($id)) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/', (string) $id)) $this->fail('FORM_LIST_REQUEST_INVALID');
         if (count(array_unique(array_map('strval', $ids))) !== count($ids)) $this->fail('FORM_LIST_REQUEST_INVALID');
         if (($location === 'row' && count($ids) !== 1) || ($location === 'toolbar' && !$definition['batch'])) $this->fail('FORM_LIST_BATCH_UNSUPPORTED');
+        if ($location === 'toolbar' && (count($ids) < ($button['selection']['min'] ?? 0) || count($ids) > ($button['selection']['max'] ?? 200))) $this->fail('FORM_LIST_SELECTION_COUNT_INVALID');
         $records = $categoryLocation ? [] : $loadRecords($ids);
         $loadedIds = array_map('strval', array_column($records, 'id'));
         $expectedIds = array_map('strval', $ids);

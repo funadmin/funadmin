@@ -212,7 +212,7 @@
 
       </el-tab-pane>
       <el-tab-pane label="列表展示" name="list" :lazy="false">
-    <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" @update="store.updateList" />
+    <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" @update="store.updateList" />
       </el-tab-pane>
     </el-tabs>
 
@@ -343,6 +343,7 @@ import SchemaRenderer from '../components/SchemaRenderer.vue';
 import DesignerCanvas from './components/DesignerCanvas.vue';
 import PropsPanel from './components/PropsPanel.vue';
 import ListConfigurationPanel from './components/ListConfigurationPanel.vue';
+import { useUserStore } from '@/store/modules/user';
 import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
 import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
@@ -354,6 +355,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 // 路由容器以 fullPath 缓存实例；身份必须固定，避免后台实例跟随全局路由串写。
+const buttonUser = useUserStore();
 const instanceModuleId = Number(route.query.moduleId ?? 0);
 const moduleId = computed(() => instanceModuleId);
 const { refreshBusinessMenu } = useBusinessMenuRefresh(router);

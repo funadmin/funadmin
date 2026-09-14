@@ -39,7 +39,8 @@
       </template>
       </el-tab-pane>
       <el-tab-pane label="按钮与工具" name="buttons">
-        <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? [] : scalarFields.map(field => field.field_name)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
+        <el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog">重新加载动作目录</el-button>
+        <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? categoryButtonFields : buttonFields" :filter-fields="scalarFields.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name)" :category-fields="categoryButtonFields" :resources="resources" :actions="actionCatalogs[location.key]" :catalog-error="catalogErrors[location.key]" :builtin-keys="builtinKeys(location.key)" :resource-enabled="!pluginTarget && (!location.key.startsWith('category') || left.enabled)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
         <el-divider>通用工具</el-divider>
         <el-form-item v-for="tool in tools" :key="tool.key" :label="tool.label"><el-switch :model-value="modelValue.tools?.[tool.key] !== false" @change="value => emit('update', { tools: { ...modelValue.tools, [tool.key]: Boolean(value) } })" /></el-form-item>
       </el-tab-pane>
@@ -51,9 +52,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { formDataApi, type FormSourceMeta, type FormSourceField } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
+import { businessDevelopmentApi } from '@/api/development/business';
+import type { ListResource } from '../../runtime/listResourceHost';
+import { listButtonKeys } from '../../runtime/listButtonHost';
+import type { FormListActionMetadata, FormListBuiltinAction } from '../../schema/types';
 import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation } from '../../schema/types';
 import ListButtonEditor from './ListButtonEditor.vue';
-const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[] }>();
+const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
 // Tab 仅保存面板显示状态，不进入 Schema 更新通道。
 const activeTab = ref('category');
@@ -118,6 +123,37 @@ watch(() => [left.value.source.type, left.value.source.module], async ([type, co
   if (disposed || sequence !== sourceSequence) return;
   await chooseModule(code, true);
 }, { immediate: true });
+const buttonFields = computed(() => ['id', ...scalarFields.value.filter(field => !field.control_props?.schemaAccess).map(field => field.field_name)].filter((field, index, all) => all.indexOf(field) === index));
+const categoryButtonFields = computed(() => left.value.enabled ? sourceFields.value.map(field => field.field_name).filter(name => buttonFields.value.includes(name)) : []);
+const resources = ref<Record<string, ListResource>>({});
+const actionCatalogs = ref<Partial<Record<FormListButtonLocation, Record<string, FormListActionMetadata>>>>({});
+const catalogErrors = ref<Partial<Record<FormListButtonLocation, string>>>({});
+const catalogLoading = ref(false);
+let catalogSequence = 0;
+function builtinKeys(location: FormListButtonLocation): FormListBuiltinAction[] {
+  if (!location.startsWith('category')) return listButtonKeys[location];
+  if (!left.value.enabled || props.pluginTarget) return [];
+  return listButtonKeys[location].filter(key => left.value.actions?.[key as 'create'] === true && (key !== 'addChild' || Boolean(left.value.mapping.parentField)));
+}
+async function loadButtonCatalog() {
+  const current = ++catalogSequence;
+  resources.value = {}; actionCatalogs.value = {}; catalogErrors.value = {};
+  catalogLoading.value = false;
+  if (!props.moduleId) return;
+  catalogLoading.value = true;
+  const errors: Partial<Record<FormListButtonLocation, string>> = {};
+  try {
+    const result = await businessDevelopmentApi.designActionCatalog(props.moduleId);
+    if (disposed || current !== catalogSequence) return;
+    if (result.moduleId !== props.moduleId || result.designOnly !== true || result.executable !== false) throw new Error('设计目录响应无效');
+    // 服务端按路由权限过滤；前端权限别名不能替代或再次误过滤该目录。
+    resources.value = result.resources;
+    actionCatalogs.value = result.actions;
+  } catch {
+    for (const location of buttonLocations) errors[location.key] = '设计动作目录加载失败、无权限或目标无适配器；已保存配置仍保留，请重试。';
+  } finally { if (!disposed && current === catalogSequence) { catalogErrors.value = errors; catalogLoading.value = false; } }
+}
+watch(() => [props.moduleId, props.permissions, props.pluginTarget], loadButtonCatalog, { immediate: true, deep: true });
 const categoryFields = computed(() => scalarFields.value.filter(field => ['static', 'dictionary'].includes(String(field.options_source?.kind ?? field.options_source?.mode ?? ''))));
 const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>) => emit('update', { category: { enabled: false, ...props.modelValue.category, ...patch }, ...(patch.enabled ? { leftTree: { ...left.value, enabled: false } } : {}) });
 const tree = (patch: Partial<NonNullable<FormListConfiguration['tree']>>) => emit('update', { tree: { enabled: false, ...props.modelValue.tree, ...patch } });

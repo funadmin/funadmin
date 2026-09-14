@@ -25,6 +25,15 @@ function crudExpect(bool $condition, string $message): void
     }
 }
 
+function crudFormSchema(string $source): array
+{
+    crudExpect(str_contains($source, ':schema="formSchema"') && str_contains($source, ':options-request="optionsRequest"'), '生成表单必须绑定真实 schema 和选项请求');
+    crudExpect(preg_match('/const formSchema=(.*?) as unknown as FormSchemaDocument;/', $source, $matches) === 1, '缺少生成的 schema 文档');
+    $schema = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
+    crudExpect($schema['schemaVersion'] === 2, '必须生成 v2 schema');
+    return $schema;
+}
+
 function crudReject(callable $callback, string $contains): void
 {
     try {
@@ -152,7 +161,7 @@ try {
     crudExpect(str_contains($generatedPermissionMigration, 'component=generated/audit-log/index'), '生成菜单必须指向独立 generated 源码');
     crudExpect(str_contains($generatedPermissionMigration, 'permission=system:audit-log:list'), '生成菜单必须声明真实页面访问权限');
     crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: AuditLogModel[])'), 'selection 回调必须接受表格实际模型数组，不能要求模型具有字符串索引签名');
-    crudExpect(str_contains($generatedView, '=> onSelectionChange(rows);'), 'selection 回调必须直接传递模型数组，不需要双重类型断言');
+    crudExpect(str_contains($generatedView, 'onSelectionChange(rows);') && str_contains($generatedView, 'buttonContextVersion.value++'), 'selection 回调必须直接传递模型数组，不需要双重类型断言');
     crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');
 
     $definitionSchema = json_decode(
@@ -658,7 +667,7 @@ try {
     crudExpect(str_contains($generatedByPath['fixture/app/console/model/AuditLog.php'], 'function department()'), '必须生成模型关系');
     crudExpect(str_contains($generatedByPath['fixture/admin-web/src/api/generated/audit-log.ts'], 'amount: string'), '金额前端类型必须为 string');
     crudExpect(str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'useCrud'), '前端列表必须复用 useCrud');
-    crudExpect(str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'SearchForm') && str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'DataTableShell'), '列表必须复用 SearchForm/DataTableShell');
+    crudExpect(str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'SearchForm') && str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'SchemaTablePage'), '列表必须复用 SearchForm/DataTableShell');
     $permissionMigration = $generatedByPath['fixture/database/generated/audit_log_permissions.sql'];
     crudExpect(str_contains($permissionMigration, 'Generated forward permission/menu migration'), '权限菜单必须为独立 forward migration');
     crudExpect(str_contains($permissionMigration, 'fun_admin_menu'), '权限迁移必须同时注册菜单');
@@ -749,9 +758,15 @@ try {
         'batchDelete=false 时单记录删除、恢复与永久删除 API 必须保留'
     );
     $batchDisabledView = $batchDisabledByPath['batch-disabled/admin-web/src/views/generated/audit-log/index.vue'];
-    foreach (['批量删除', '批量恢复', '批量永久删除', 'onBatchDelete', 'selection', 'type="selection"'] as $batchUi) {
+    foreach (['批量删除', '批量恢复', '批量永久删除', 'onBatchDelete', 'restoreSelected', 'forceDeleteSelected', 'selectedIds', 'type="selection"'] as $batchUi) {
         crudExpect(!str_contains($batchDisabledView, $batchUi), 'batchDelete=false 不得生成批量 UI：' . $batchUi);
     }
+    // 注册工具栏动作仍可使用选择上下文；禁用批删时不得无条件显示选择列。
+    crudExpect(
+        str_contains($batchDisabledView, "toolbarButtons.value.some(button => button.action.type === 'registered') ? [{ key: 'selection'")
+        && !str_contains($batchDisabledView, "toolbarButtons.value.some(button => button.action.type === 'registered') || true"),
+        'batchDelete=false 时选择列必须仅由注册工具栏动作启用'
+    );
     crudExpect(
         str_contains($batchDisabledView, 'delete: row => removeRow(resolveButtonRow(row))') && str_contains($batchDisabledView, ':buttons="rowButtons"')
         && str_contains($batchDisabledView, 'await auditLogApi.remove(row.id)'),
@@ -801,15 +816,20 @@ try {
         'dictionary=false 不得影响 relation/endpoint options API'
     );
     $featureDisabledForm = $featureDisabledByPath['feature-disabled/admin-web/src/views/generated/audit-log/components/AuditLogForm.vue'];
+    $disabledNodes = array_column(crudFormSchema($featureDisabledForm)['nodes'], null, 'field');
     crudExpect(
-        str_contains($featureDisabledForm, '<el-input v-model="form.dictionaryValue" />')
+        $disabledNodes['dictionary_value']['type'] === 'input'
+        && ($disabledNodes['dictionary_value']['dataSource']['kind'] ?? 'static') === 'static'
         && !str_contains($featureDisabledForm, 'dictionary_options')
-        && str_contains($featureDisabledForm, 'optionLists.owner_options')
-        && str_contains($featureDisabledForm, 'optionLists.remote_options'),
+        && $disabledNodes['owner_id']['type'] === 'select'
+        && $disabledNodes['owner_id']['dataSource']['kind'] === 'remote'
+        && $disabledNodes['remote_value']['dataSource']['kind'] === 'remote'
+        && str_contains($featureDisabledForm, '"owner_id":"owner_options"')
+        && str_contains($featureDisabledForm, '"remote_value":"remote_options"'),
         'dictionary=false 时字典字段必须退化输入，relation/endpoint 选项仍保留'
     );
     crudExpect(
-        str_contains($featureDisabledForm, '<el-input v-model="form.attachment" />')
+        $disabledNodes['attachment']['type'] === 'input'
         && !str_contains($featureDisabledForm, '<Upload')
         && !str_contains($featureDisabledForm, "import Upload from"),
         'upload=false 时上传字段必须退化为普通输入且不引入 Upload'
@@ -836,6 +856,43 @@ try {
         '禁用唯一字典 optionsSource 时表单不得调用未生成的 loadOptions'
     );
 
+    $capabilityData = $featureDisabledDefinition->toArray();
+    $capabilityData['fields'][] = ['name' => 'read_value', 'dbType' => 'varchar(30)', 'nullable' => true, 'form' => true, 'writable' => false, 'component' => 'readonly'];
+    $capabilityData['fields'][] = ['name' => 'event_date', 'dbType' => 'date', 'nullable' => true, 'form' => true, 'component' => 'date', 'controlProps' => ['valueFormat' => 'YYYY-MM-DD']];
+    $capabilityData['fields'][] = ['name' => 'quantity', 'dbType' => 'int', 'nullable' => false, 'form' => true, 'component' => 'inputNumber', 'default' => 3];
+    foreach (['fields', 'layoutSchema', 'formSchema'] as $branch) {
+        $input = $capabilityData;
+        if ($branch !== 'fields') {
+            $nodes = array_map(static fn (array $field): array => [
+                'id' => $field['name'], 'kind' => 'field', 'field' => $field['name'],
+                'type' => $field['name'] === 'attachment' ? 'file' : ($field['component'] ?? 'input'),
+                'title' => $field['name'], 'props' => $field['controlProps'] ?? [],
+                'dataSource' => $field['name'] === 'dictionary_value' ? ['kind' => 'dictionary', 'dictionary' => 'audit_status'] : ['kind' => 'static', 'options' => []],
+                'children' => [],
+            ], $input['fields']);
+            $input[$branch] = $branch === 'formSchema' ? ['schemaVersion' => 2, 'key' => 'audit_log', 'title' => '审计日志', 'nodes' => $nodes] : $nodes;
+            if ($branch === 'formSchema') $input['formSchemaHash'] = hash('sha256', CrudDefinition::canonicalJson($input['formSchema']));
+        }
+        foreach ([false, true] as $featureEnabled) {
+            $input['features']['dictionary'] = $featureEnabled;
+            $input['features']['upload'] = $featureEnabled;
+            $context = \app\common\crud\ProductionTemplateContext::build(CrudDefinition::fromArray($input));
+            $nodes = array_column(crudFormSchema($context['formContent'])['nodes'], null, 'field');
+            crudExpect($nodes['dictionary_value']['type'] === ($featureEnabled ? 'select' : 'input'), $branch . ' 字典控件裁剪错误');
+            crudExpect(($nodes['dictionary_value']['dataSource']['kind'] ?? 'static') === ($featureEnabled ? 'remote' : 'static'), $branch . ' 字典请求裁剪错误');
+            crudExpect($nodes['attachment']['type'] === ($featureEnabled ? 'file' : 'input'), $branch . ' upload 裁剪错误');
+            preg_match('/const fieldMap=(.*?);/', $context['formContent'], $mapMatch);
+            $writeMap = json_decode($mapMatch[1], true, flags: JSON_THROW_ON_ERROR);
+            crudExpect($nodes['read_value']['type'] === 'readonly' && $nodes['read_value']['disabled'] === true && !in_array('read_value', array_column($writeMap, 'target'), true) && str_contains($context['formContent'], 'for(const item of valueMap)'), $branch . ' 只读字段必须显示且禁止提交');
+            crudExpect($nodes['event_date']['type'] === 'date' && $nodes['event_date']['props']['valueFormat'] === 'YYYY-MM-DD', $branch . ' 日期格式不得回退');
+            crudExpect($nodes['quantity']['type'] === 'number', $branch . ' 数字必须映射注册的 v2 控件');
+            crudExpect($nodes['owner_id']['dataSource']['kind'] === 'remote', $branch . ' 关联选项不得回退');
+        }
+        $input['capabilities']['form'] = false;
+        $context = \app\common\crud\ProductionTemplateContext::build(CrudDefinition::fromArray($input));
+        crudExpect(crudFormSchema($context['formContent'])['nodes'] === [] && !str_contains($context['formContent'], '"owner_id":"owner_options"'), $branch . ' form=false 不得输出控件和数据源');
+    }
+
     $generated = $generator->generate($fixtureDefinition, $generatorPlan['confirmToken'], [], 'm5-test');
     crudExpect(($generated['write']['status'] ?? '') === 'written', 'M5 preview 后必须真实生成到临时项目');
     foreach (array_keys($generatedByPath) as $relativePath) {
@@ -851,7 +908,7 @@ try {
     mkdir($temporaryWeb . '/src/utils/http', 0755, true);
     file_put_contents($temporaryWeb . '/src/utils/http/index.ts', <<<'TS'
 const call = async <T = unknown>(..._args: any[]): Promise<T> => undefined as T;
-export default { get: call, post: call, put: call, delete: call };
+export default { get: call, post: call, put: call, delete: call, upload: call };
 TS
     );
     file_put_contents($temporaryWeb . '/generated-support.d.ts', <<<'TS'

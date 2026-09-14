@@ -11,7 +11,7 @@ final class ListButtonSchemaValidator
     public const TOOLS = ['refresh', 'search', 'columns', 'density', 'fullscreen'];
     private const BUILTINS = [
         'toolbar' => ['create', 'batchDelete', 'import', 'export', 'recycle'],
-        'row' => ['detail', 'edit', 'delete', 'restore', 'destroy'],
+        'row' => ['detail', 'edit', 'delete', 'restore', 'destroy', 'copyCreate'],
         'categoryToolbar' => ['create'],
         'categoryNode' => ['addChild', 'edit', 'delete'],
     ];
@@ -30,7 +30,14 @@ final class ListButtonSchemaValidator
             $ids = [];
             foreach ($buttons as $index => $button) {
                 $at = $path . '/' . $index;
-                $button = $this->object($button, ['id', 'label', 'icon', 'color', 'size', 'tips', 'placement', 'order', 'hidden', 'disabled', 'disabledReason', 'permission', 'visibleWhen', 'disabledWhen', 'interaction', 'action', 'params', 'success'], $at);
+                $button = $this->object($button, ['id', 'label', 'icon', 'color', 'size', 'tips', 'placement', 'order', 'hidden', 'disabled', 'disabledReason', 'permission', 'visibleWhen', 'disabledWhen', 'interaction', 'action', 'params', 'success', 'selection'], $at);
+                if (array_key_exists('selection', $button)) {
+                    if ($location !== 'toolbar') $this->fail('数量约束仅支持列表顶部选择', $at . '/selection');
+                    $selection = $this->object($button['selection'], ['min', 'max'], $at . '/selection');
+                    if (!$selection) $this->fail('数量约束不能为空', $at . '/selection');
+                    foreach ($selection as $key => $value) if (!is_int($value) || $value < 0 || $value > 200) $this->fail('选择数量必须为 0–200 的整数', $at . '/selection/' . $key);
+                    if (($selection['min'] ?? 0) > ($selection['max'] ?? 200)) $this->fail('最少选择不能超过最多选择', $at . '/selection');
+                }
                 $this->identifier($button['id'] ?? null, $at . '/id');
                 if (isset($ids[$button['id']])) $this->fail('按钮 ID 重复', $at . '/id');
                 $ids[$button['id']] = true;

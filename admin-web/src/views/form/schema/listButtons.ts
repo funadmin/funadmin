@@ -19,6 +19,12 @@ export function resolveListButtons(
   for (const button of source) {
     if (!button || typeof button.id !== 'string' || !/^[a-z][a-z0-9_.-]{0,63}$/.test(button.id)
       || button.id.split('.').some((part) => forbidden.has(part)) || ids.has(button.id)) throw new Error('FORM_LIST_BUTTON_INVALID');
+    if (owns(button, 'selection')) {
+      const selection = button.selection;
+      if (location !== 'toolbar' || !selection || typeof selection !== 'object' || Array.isArray(selection)
+        || !Object.keys(selection).length || Object.entries(selection).some(([key, value]) => !['min', 'max'].includes(key) || typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 200)
+        || (selection.min ?? 0) > (selection.max ?? 200)) throw new Error('FORM_LIST_BUTTON_INVALID');
+    }
     ids.add(button.id);
   }
   const result = JSON.parse(JSON.stringify(source)) as FormListButton[];

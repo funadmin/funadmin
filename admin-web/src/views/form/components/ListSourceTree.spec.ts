@@ -13,6 +13,21 @@ function render(parent = '', grants = true) {
   return { wrapper, api };
 }
 describe('来源分类动作与来源表单', () => {
+  it('实际保存占用外部锁，锁替换后只释放取得的锁', async () => {
+    const { wrapper, api } = render(); await flushPromises();
+    const state = (wrapper.vm as any).$.setupState;
+    const first = { busy: false }; const second = { busy: true };
+    await wrapper.setProps({ lock: first });
+    await state.open('edit', 1);
+    let finish!: () => void;
+    api.mutateLeftTree.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+    const saving = state.save(); await flushPromises();
+    expect(first.busy).toBe(true);
+    await state.save(); expect(api.mutateLeftTree).toHaveBeenCalledTimes(1);
+    await wrapper.setProps({ lock: second }); finish(); await saving;
+    expect(first.busy).toBe(false); expect(second.busy).toBe(true);
+    wrapper.unmount();
+  });
   it('分类节点上下文仅传身份、空 ids 和双版本，成功效果由宿主处理', async () => {
     const { wrapper, api } = render('parent_id'); await flushPromises();
     const state = (wrapper.vm as any).$.setupState;

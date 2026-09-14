@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-4 md:flex-row">
     <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
-    <DataTableShell class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :loading="loading" :show-refresh="meta?.schema.list?.tools?.refresh !== false" :show-density="meta?.schema.list?.tools?.density !== false" :show-fullscreen="meta?.schema.list?.tools?.fullscreen !== false" :show-column-setting="meta?.schema.list?.tools?.columns !== false" @refresh="loadData">
+    <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template v-if="meta?.schema.list?.tools?.search !== false" #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label" :prop="field.field_name">
@@ -36,22 +36,10 @@
           </el-form-item>
         </SearchForm>
       </template>
-      <template #toolbar-left>
+      <template #toolbar>
         <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
-      <el-table ref="tableRef" v-loading="loading" :data="displayRows" @selection-change="onSelectionChange" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKeyName" @sort-change="onSortChange">
-        <el-table-column v-if="toolbarButtons.some(button => button.action.type === 'registered')" type="selection" width="48" />
-        <el-table-column :prop="primaryKeyName" label="ID" width="120" />
-        <el-table-column
-          v-for="field in listFields"
-          :key="field.field_name"
-          :prop="field.field_name"
-          :label="field.label"
-          :width="field.list_width || undefined"
-          :sortable="field.list_sort === 1 ? 'custom' : false"
-          show-overflow-tooltip
-        >
-          <template #default="{ row }">
+      <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
             <template v-if="field.relation_type === 'belongs_to'">{{ row['__label_' + field.field_name] ?? row[field.field_name] }}</template>
             <el-tag v-else-if="field.list_formatter === 'switch' || field.list_formatter === 'boolean'" :type="isTruthy(row[field.field_name]) ? 'success' : 'info'" size="small">
               {{ isTruthy(row[field.field_name]) ? '是' : '否' }}
@@ -87,19 +75,11 @@
             <el-link v-else-if="field.list_formatter === 'phone'" :href="`tel:${String(row[field.field_name] ?? '')}`" type="primary">{{ row[field.field_name] }}</el-link>
             <code v-else-if="field.list_formatter === 'json'">{{ formatJson(row[field.field_name]) }}</code>
             <span v-else>{{ row[field.field_name] }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="170" sortable="custom" />
-        <el-table-column v-if="hasRowButtons" label="操作" min-width="180" align="center" fixed="right">
-          <template #default="{ row }">
-            <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="readableButtonFields" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
-          </template>
-        </el-table-column>
-      </el-table>
-      <template #pagination>
-        <Pagination v-if="!treeEnabled" v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />
       </template>
-    </DataTableShell>
+      <template #actions="{ row }">
+            <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="readableButtonFields" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
+      </template>
+    </SchemaTablePage>
     </div>
 
     <!-- 新增/编辑弹窗 -->
@@ -145,7 +125,8 @@ import type { FormListButton } from './schema/types';
 import { useUserStore } from '@/store/modules/user';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
 import ListSourceTree from './components/ListSourceTree.vue';
-import { buildListTree } from './runtime/listPresentation';
+import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
+import type { PageSchema } from '@/components/DataTable/pageSchema';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
@@ -206,7 +187,17 @@ let closeDialogAfterSave = false;
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const primaryKeyName = computed(() => meta.value?.primaryKey.name ?? 'id');
 const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
-const displayRows = computed(() => treeEnabled.value ? buildListTree(rows.value, primaryKeyName.value, meta.value?.schema.list?.tree?.parentField ?? '') : rows.value);
+const tableSchema = computed<PageSchema>(() => ({
+  pageSchemaVersion: 1, key: 'dynamic_form', primaryKey: primaryKeyName.value, search: [], toolbar: [], rowActions: [],
+  list: { ...(meta.value?.schema.list?.tree ? { tree: meta.value.schema.list.tree } : {}), ...(meta.value?.schema.list?.tools ? { tools: meta.value.schema.list.tools } : {}) },
+  columns: [
+    ...(toolbarButtons.value.some(button => button.action.type === 'registered') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
+    { key: 'primary', prop: primaryKeyName.value, label: 'ID', width: 120 },
+    ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
+    { key: 'created', prop: 'created_at', label: '创建时间', width: 170, sortable: true },
+    ...(hasRowButtons.value ? [{ key: 'actions', label: '操作', slot: 'actions', minWidth: 180, fixed: 'right' as const }] : [])
+  ], pagination: { pageSize: 20, pageSizes: [10, 20, 50, 100], enabled: !treeEnabled.value }
+}));
 const onCategory = (value: string | number | undefined) => { if (value === undefined) delete filters.__category; else filters.__category = String(value); onSearch(); };
 const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1 && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== '' && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
@@ -329,10 +320,13 @@ const responseFieldErrors = (reason: unknown): FormFieldError[] => {
   return response.data?.fieldErrors ?? response.fieldErrors ?? [];
 };
 async function onSave() {
-  if (saving.value) return;
-  await schemaRendererRef.value?.submit();
+  if (saving.value || buttonLock.busy) return;
   saving.value = true;
+  buttonLock.busy = true;
+  const identity = JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]);
   try {
+    await schemaRendererRef.value?.submit();
+    if (identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
     const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
     const schemaHash = meta.value?.schemaHash ?? '';
@@ -348,6 +342,7 @@ async function onSave() {
     else throw reason;
   } finally {
     saving.value = false;
+    buttonLock.busy = false;
   }
 }
 async function openDetail(row: Record<string, unknown>) {

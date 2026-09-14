@@ -16,7 +16,7 @@ import { Plus, Edit, Delete, View, Refresh, Download, Upload, Search } from '@el
 import type { Component } from 'vue';
 import type { FormListButton } from '../schema/types';
 import { useListButtonAdapter, listButtonAdapterAllowed, listActionKey, listButtonState, type ListButtonHandlers } from '../runtime/listButtonHost';
-import { createListButtonExecutor, registeredListButtonAvailable, listButtonRequest, type ListButtonContext } from '../runtime/listButtonExecutor';
+import { createListButtonExecutor, registeredListButtonAvailable, listButtonRequest, listButtonSelectionReason, type ListButtonContext } from '../runtime/listButtonExecutor';
 import ListButtonInteraction from './ListButtonInteraction.vue';
 import { routerKey } from 'vue-router';
 import { executeListResource, isListResource } from '../runtime/listResourceHost';
@@ -59,6 +59,8 @@ const state = (button: FormListButton) => {
   if (props.localHost) return { ...props.localHost.state(button), reason: '' };
   const result = listButtonState(button, { handlers: props.handlers, allowed: props.allowed, registered, resource, values: props.values ?? props.row, fields: props.fields });
   if (button.action.type === 'registered' && result.disabled) result.reason = catalogError.value || '动作目录、权限、版本或选择不满足执行条件';
+  const selectionReason = listButtonSelectionReason(button, props.context);
+  if (selectionReason) { result.disabled = true; result.reason = selectionReason; }
   return result;
 };
 const items = computed(() => [...props.buttons].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(button => ({ button, state: state(button) })).filter(item => item.state.visible));
@@ -90,7 +92,7 @@ const executor = createListButtonExecutor({
       const token = contextToken();
       const reply = await adapter!.api.listAction(props.context.formKey, listButtonRequest(button, props.context, input, key));
       if (!active || token !== contextToken()) throw Error('FORM_LIST_CONTEXT_CHANGED');
-      if (reply.status !== 'success' || !resource(button)) throw Error('FORM_LIST_RESOURCE_FORBIDDEN');
+      if (reply.status !== 'success' || !reply.result || typeof reply.result !== 'object' || (reply.result as Record<string, unknown>).type !== button.action.type || !resource(button)) throw Error('FORM_LIST_RESOURCE_FORBIDDEN');
       await executeListResource(reply.result, { permission, router, resource: 'key' in button.action ? catalog.value?.resources?.[button.action.key] : undefined, copy: text => navigator.clipboard.writeText(text), open: (url, target, features) => window.open(url, target, features), download: props.handlers.export ? () => props.handlers.export!() : undefined, refresh: props.refresh });
       return reply;
     }

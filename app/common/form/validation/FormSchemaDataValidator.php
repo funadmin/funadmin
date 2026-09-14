@@ -36,7 +36,7 @@ final class FormSchemaDataValidator
                 continue;
             }
             $type = (string) ($rule['type'] ?? '');
-            if ($type === 'async' || ($type !== 'required' && $this->isEmpty($value))) {
+            if ($type === 'async' || ($type !== 'required' && !is_array($value) && $this->isEmpty($value))) {
                 continue;
             }
             $nested = $this->nestedErrors($type, $field, $value, $rule['value'] ?? null, $values);
@@ -197,13 +197,26 @@ final class FormSchemaDataValidator
     {
         if (!is_string($value)) return false;
         return match ($format) {
-            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+            'email' => $this->validEmail($value),
             'url' => filter_var($value, FILTER_VALIDATE_URL) !== false && in_array(parse_url($value, PHP_URL_SCHEME), ['http', 'https'], true),
             'date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 && $this->dateTimestamp($value) !== null,
             'dateTime', 'datetime' => $this->dateTimestamp($value) !== null && str_contains($value, 'T'),
             'uuid' => preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $value) === 1,
             default => false,
         };
+    }
+
+    private function validEmail(string $value): bool
+    {
+        // 双端采用 ASCII dot-atom 与 DNS 域名，不接受引号、本地域名或地址字面量。
+        $parts = explode('@', $value);
+        if (count($parts) !== 2 || strlen($value) > 254 || strlen($parts[0]) > 64) return false;
+        if (preg_match('/^[a-z0-9!#$%&\'*+\-\/=?^_`{|}~]+(?:\.[a-z0-9!#$%&\'*+\-\/=?^_`{|}~]+)*$/iD', $parts[0]) !== 1) return false;
+        if (!str_contains($parts[1], '.')) return false;
+        foreach (explode('.', $parts[1]) as $label) {
+            if (preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/iD', $label) !== 1) return false;
+        }
+        return true;
     }
 
     private function compareDate(mixed $left, mixed $right, int $direction): bool

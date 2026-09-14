@@ -14,6 +14,8 @@ use Throwable;
 final class BusinessApiErrorMapper
 {
     private const ERRORS = [
+        'BUSINESS_DESIGN_FORBIDDEN' => [403, '没有 Schema 设计权限', false],
+        'FORM_LIST_ACTION_ADAPTER_UNAVAILABLE' => [422, '该业务目标暂无动作适配器', false],
         'BUSINESS_TARGET_FORBIDDEN' => [403, '没有插件开发权限', false],
         'BUSINESS_TABLE_FORBIDDEN' => [403, '不允许访问该业务表', false],
         'BUSINESS_TARGET_UNAVAILABLE' => [409, '插件目标不可用，请刷新后重试', true],

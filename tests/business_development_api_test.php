@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+\think\Container::getInstance()->instance('env', new \think\Env());
 
 use app\common\form\registry\FieldCapabilityRegistry;
 use app\console\controller\base\AdminApiController;
@@ -71,13 +72,14 @@ $routes = [
     'retryResources' => [Post::class, 'generations/:id/retry-resources'],
     'adoptResolvedBaseline' => [Post::class, 'modules/:id/baselines/adopt-resolved'],
     'fieldCapabilities' => [Get::class, 'field-capabilities'],
+    'designActionCatalog' => [Get::class, 'modules/:id/schema/design-action-catalog'],
 ];
 foreach ($routes as $method => [$attribute, $path]) {
     businessApiExpect($controller->hasMethod($method), '缺少控制器方法：' . $method);
     $attributes = $controller->getMethod($method)->getAttributes($attribute);
     businessApiExpect(count($attributes) === 1 && $attributes[0]->newInstance()->rule === $path, $method . ' 路由不匹配');
 }
-foreach (['module' => ['id'], 'compileSchema' => ['id'], 'exportSchema' => ['id'], 'schemaVersions' => ['id'], 'schemaVersion' => ['id', 'version'], 'schemaDiff' => ['id'], 'rollbackSchema' => ['id', 'version'], 'databaseTableSchema' => ['table']] as $method => $parameters) {
+foreach (['module' => ['id'], 'designActionCatalog' => ['id'], 'compileSchema' => ['id'], 'exportSchema' => ['id'], 'schemaVersions' => ['id'], 'schemaVersion' => ['id', 'version'], 'schemaDiff' => ['id'], 'rollbackSchema' => ['id', 'version'], 'databaseTableSchema' => ['table']] as $method => $parameters) {
     $patterns = array_map(static fn (ReflectionAttribute $attribute): string => $attribute->newInstance()->name, $controller->getMethod($method)->getAttributes(Pattern::class));
     foreach ($parameters as $parameter) businessApiExpect(in_array($parameter, $patterns, true), $method . ' 缺少 Pattern：' . $parameter);
 }
@@ -267,6 +269,11 @@ set_exception_handler(static function (Throwable $exception): void {
     fwrite(STDERR, $exception->getMessage() . "\n");
     exit(1);
 });
+$authorization = new \app\console\authorization\service\AdminAuthorizationService($app->request);
+$alias = new ReflectionMethod($authorization, 'aliasResource');
+$resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'designActionCatalog');
+$mappedResource = $alias->invoke($authorization, 'development/business/modules/42/schema/design-action-catalog', $resource);
+businessApiExpect($mappedResource['code'] === 'console/development.business:saveschema', '设计目录中间件必须复用现有 Schema 设计权限，无需新增数据库权限');
 $app->event->trigger(\think\event\RouteLoaded::class);
 (new ReflectionProperty(\think\Route::class, 'request'))->setValue($app->route, $app->request);
 foreach ($routes as $action => [$attribute, $path]) {
@@ -285,6 +292,7 @@ foreach (['modules/invalid', 'modules/42/unknown', 'generations/42/unknown', 'da
 }
 
 foreach ([
+    'BUSINESS_DESIGN_FORBIDDEN' => 403, 'FORM_LIST_ACTION_ADAPTER_UNAVAILABLE' => 422,
     'BUSINESS_TARGET_FORBIDDEN' => 403, 'BUSINESS_TABLE_FORBIDDEN' => 403,
     'BUSINESS_TARGET_UNAVAILABLE' => 409, 'BUSINESS_TARGET_IDENTITY_CONFLICT' => 409,
     'BUSINESS_SCHEMA_IDENTITY_CONFLICT' => 409, 'BUSINESS_SAVED_SCHEMA_REQUIRED' => 409,

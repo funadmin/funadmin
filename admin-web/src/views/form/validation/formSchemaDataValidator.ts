@@ -109,7 +109,14 @@ const dateTimestamp = (value: unknown): number | null => {
 
 const matchesFormat = (value: unknown, format: string): boolean => {
   if (typeof value !== 'string') return false;
-  if (format === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  if (format === 'email') {
+    // 双端采用 ASCII dot-atom 与 DNS 域名，不接受引号、本地域名或地址字面量。
+    const parts = value.split('@');
+    const local = parts[0] ?? ''; const domain = parts[1] ?? '';
+    return parts.length === 2 && value.length <= 254 && local.length <= 64
+      && /^[a-z0-9!#$%&'*+\-/=?^_`{|}~]+(?:\.[a-z0-9!#$%&'*+\-/=?^_`{|}~]+)*$/i.test(local)
+      && domain.includes('.') && domain.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+  }
   if (format === 'url') { try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; } }
   if (format === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(value) && dateTimestamp(value) !== null;
   if (format === 'dateTime' || format === 'datetime') return value.includes('T') && dateTimestamp(value) !== null;
@@ -179,7 +186,7 @@ const nestedErrors = (type: string, field: string, value: unknown, argument: unk
 export const validateFormSchemaField = (field: string, value: unknown, rules: FormSchemaValidationRule[], values: Record<string, unknown>): FormSchemaValidationError[] => {
   const errors: FormSchemaValidationError[] = [];
   for (const rule of rules) {
-    if (!conditionMatches(rule.when, values) || rule.type === 'async' || (rule.type !== 'required' && isEmpty(value))) continue;
+    if (!conditionMatches(rule.when, values) || rule.type === 'async' || (rule.type !== 'required' && !Array.isArray(value) && isEmpty(value))) continue;
     const nested = nestedErrors(rule.type, field, value, rule.value, values);
     if (!nested.length && passes(rule.type, value, rule.value, values)) continue;
     errors.push({ field: nested[0]?.field ?? field, rule: rule.type, message: rule.message ?? nested[0]?.message ?? DEFAULT_MESSAGES[rule.type] ?? '字段校验失败', severity: rule.severity ?? 'error' });

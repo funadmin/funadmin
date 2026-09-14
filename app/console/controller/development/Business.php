@@ -178,6 +178,16 @@ final class Business extends AdminApiController
         return $this->execute(fn (): array => $this->business->publish($id, $this->input(), $this->actor()), '动态发布完成');
     }
 
+    #[Get('modules/:id/schema/design-action-catalog')]
+    #[Pattern('id', '\d+')]
+    public function designActionCatalog(int $id): Response
+    {
+        $authorization = new AdminAuthorizationService();
+        return $this->execute(fn (): array => $this->business->designActionCatalog(
+            $id, fn (string $permission): bool => $authorization->nodeAccess($permission)
+        ));
+    }
+
     #[Get('modules/:id/runtime-meta')]
     #[Pattern('id', '\d+')]
     public function runtimeMeta(int $id): Response
@@ -257,7 +267,11 @@ final class Business extends AdminApiController
     #[Get('field-capabilities')]
     public function fieldCapabilities(): Response
     {
-        return $this->execute(fn (): array => $this->business->fieldCapabilities());
+        return $this->execute(function (): array {
+            $resources = \app\common\form\registry\FormRegistryFactory::production()->listResources();
+            $authorization = new \app\console\authorization\service\AdminAuthorizationService();
+            return $this->business->fieldCapabilities() + ['listResources' => (object) $resources->catalog(fn (string $permission): bool => $authorization->nodeAccess($permission)), 'listResourceHash' => $resources->hash()];
+        });
     }
 
     private function input(): array

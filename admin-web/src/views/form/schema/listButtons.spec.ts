@@ -27,6 +27,14 @@ describe('列表按钮共享协议', () => {
     expect(() => resolveListButtons({ buttons: { row: null } } as unknown as FormListConfiguration, 'row', defaults)).toThrow();
     expect(() => resolveListButtons({ buttons: { row: [defaults[0], defaults[0]] } } as FormListConfiguration, 'row', defaults)).toThrow();
   });
+  it('选择数量协议只允许顶部非负整数范围且保留配置', () => {
+    const button = { ...defaults[0]!, selection: { min: 2, max: 3 } };
+    expect(resolveListButtons({ buttons: { toolbar: [button] } }, 'toolbar', [])[0]).toEqual(button);
+    for (const selection of [null, {}, { min: -1 }, { max: 201 }, { min: '2' }, { min: 1.5 }, { min: 3, max: 2 }, { other: 1 }]) {
+      expect(() => resolveListButtons({ buttons: { toolbar: [{ ...button, selection }] } } as unknown as FormListConfiguration, 'toolbar', [])).toThrow('FORM_LIST_BUTTON_INVALID');
+    }
+    expect(() => resolveListButtons({ buttons: { row: [button] } }, 'row', [])).toThrow('FORM_LIST_BUTTON_INVALID');
+  });
   it('字段映射确定性，snake/camel 别名冲突及原型字段拒绝', () => {
     expect(buildListFieldMap(['id', 'display_name'], 'camel')).toEqual({ id: 'id', display_name: 'displayName' });
     expect(buildListFieldMap(['display_name'], 'snake')).toEqual({ display_name: 'display_name' });

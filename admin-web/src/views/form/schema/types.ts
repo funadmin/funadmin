@@ -77,7 +77,7 @@ export interface FormLeftTreeConfiguration {
 }
 
 export type FormListButtonLocation = 'toolbar' | 'row' | 'categoryToolbar' | 'categoryNode';
-export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'batchDelete' | 'import' | 'export' | 'recycle' | 'restore' | 'destroy' | 'addChild';
+export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'batchDelete' | 'import' | 'export' | 'recycle' | 'restore' | 'destroy' | 'addChild' | 'copyCreate';
 export type FormListButtonAction =
   | { type: 'builtin'; key: FormListBuiltinAction }
   | { type: 'registered'; key: string; capabilityVersion: string }
@@ -88,6 +88,18 @@ export type FormListParameterBinding =
   | { source: 'literal'; value: string | number | boolean | null }
   | { source: 'selection'; field: 'ids' }
   | { source: 'row' | 'filter' | 'category' | 'form'; field: string };
+export interface FormListActionMetadata {
+  permission: string;
+  capabilityVersion: string;
+  parameters: string[];
+  parameterTypes: Record<string, 'string' | 'integer' | 'number' | 'boolean' | 'ids'>;
+  locations: string[];
+  targets: string[];
+  batch: boolean;
+  effect: string;
+  resultContract: string;
+  requiresConfirmation: boolean;
+}
 export interface FormListInputField {
   name: string;
   label: string;
@@ -121,6 +133,7 @@ export interface FormListButton {
   visibleWhen?: FormSchemaCondition;
   disabledWhen?: FormSchemaCondition;
   interaction?: FormListButtonInteraction;
+  selection?: { min?: number; max?: number };
   action: FormListButtonAction;
   params?: Record<string, FormListParameterBinding>;
   success?: { message?: string; refresh?: boolean; clearSelection?: boolean; close?: boolean };

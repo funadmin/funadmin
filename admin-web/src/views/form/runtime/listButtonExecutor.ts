@@ -14,9 +14,18 @@ export function registeredListButtonAvailable(button: FormListButton, context: L
   if (!action || action.capabilityVersion !== button.action.capabilityVersion || !action.permission || button.permission !== action.permission || !permission(action.permission)
     || !action.locations?.includes(context.location) || !action.targets?.includes(target) || !['read', 'write'].includes(action.effect) || action.resultContract !== 'json') return false;
   if (category && (!context.sourceSchemaHash || catalog.sourceSchemaHash !== context.sourceSchemaHash || (context.sourceKey && catalog.sourceKey !== context.sourceKey))) return false;
+  if (listButtonSelectionReason(button, context)) return false;
   if (context.ids.some(id => !validId(id)) || new Set(context.ids.map(String)).size !== context.ids.length) return false;
   if (category) return context.ids.length === 0 && (context.location !== 'categoryNode' || validId(context.category?.id));
   return context.location === 'row' ? context.ids.length === 1 : action.batch === true && context.ids.length > 0 && context.ids.length <= 200;
+}
+export function listButtonSelectionReason(button: FormListButton, context?: ListButtonContext): string {
+  if (!button.selection) return '';
+  if (!context || context.location !== 'toolbar') return '缺少当前页选择上下文';
+  const count = context.ids.length;
+  if (count < (button.selection.min ?? 0)) return `至少选择 ${button.selection.min} 条，当前已选择 ${count} 条`;
+  if (count > (button.selection.max ?? 200)) return `最多选择 ${button.selection.max ?? 200} 条，当前已选择 ${count} 条`;
+  return '';
 }
 /** 只传身份和声明输入；参数绑定和来源记录必须由后端解析。 */
 export function listButtonRequest(button: FormListButton, context: ListButtonContext, input: Record<string, unknown>, key: string, confirmation?: string): FormListActionRequest {

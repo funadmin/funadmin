@@ -25,7 +25,7 @@ import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
 import { flattenSchemaNodes } from '@/views/form/schema/types';
 
-const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions }>(), { row: null });
+const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions; lock?: { busy: boolean } }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const formRef = ref<InstanceType<typeof SchemaRenderer>>();
@@ -88,8 +88,10 @@ watch(() => [props.modelValue, props.row] as const, ([opened]) => {
 onBeforeUnmount(() => { generation.value++; });
 
 async function onSubmit() {
-  if (saving.value || loading.value || loadError.value || !definition.value || unavailable.value) return;
+  const acquiredLock = props.lock;
+  if (acquiredLock?.busy || saving.value || loading.value || loadError.value || !definition.value || unavailable.value) return;
   saving.value = true;
+  if (acquiredLock) acquiredLock.busy = true;
   const token = generation.value;
   const id = props.row?.id;
   try {
@@ -104,6 +106,7 @@ async function onSubmit() {
     // 请求层已显示业务错误，保留输入以便修正后重试。
   } finally {
     saving.value = false;
+    if (acquiredLock) acquiredLock.busy = false;
   }
 }
 </script>

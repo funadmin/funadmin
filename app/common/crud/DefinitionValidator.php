@@ -124,14 +124,14 @@ final class DefinitionValidator
         (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
         foreach ($data['list']['buttons'] ?? [] as $location => $buttons) {
             foreach ($buttons as $index => $button) {
-                if ($button['action']['type'] === 'registered' && ($data['target']['type'] ?? 'core') === 'core'
+                if (in_array($button['action']['type'], ['registered', 'navigate', 'external', 'download', 'copy', 'refresh'], true) && ($data['target']['type'] ?? 'core') === 'core'
                     && !empty($data['formSchema']['key']) && ($data['capabilities']['list'] ?? true)) {
                     $schema = ['list' => ['buttons' => [$location => [$button]]]];
                     try {
                         $result = $this->listDependencies !== null
                             ? $this->listDependencies->check($schema, 'core-generated')
                             : (new \app\console\form\repository\FormSchemaRepository())->checkDependencies($schema, 'core-generated');
-                        if ($result['diagnostics'] === []) continue;
+                        if ($result['diagnostics'] === [] && ($button['action']['type'] !== 'download' || ($data['features']['export'] ?? false))) continue;
                     } catch (\Throwable) {
                         // CLI 未初始化生产注册表或安全存储不可用时保持阻断，不泄露连接信息。
                     }

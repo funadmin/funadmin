@@ -21,6 +21,20 @@ $asyncRegistry = new FormAsyncValidatorRegistry([
     'unique' => static fn (mixed $value, array $values, array $options): bool|string => $value === 'used' ? '值已存在' : true,
 ]);
 $service = new FormDataService($asyncRegistry);
+$copyFields = [
+    ['field_name' => 'title', 'type' => 'input', 'column_type' => 'varchar'],
+    ['field_name' => 'code', 'type' => 'input', 'column_type' => 'varchar'],
+    ['field_name' => 'created_at', 'type' => 'input', 'column_type' => 'varchar'],
+    ['field_name' => 'secret', 'type' => 'password', 'column_type' => 'varchar'],
+    ['field_name' => 'unique_code', 'type' => 'input', 'column_type' => 'varchar', 'index_type' => 'unique'],
+    ['field_name' => 'relation', 'type' => 'input', 'column_type' => 'int', 'relation_type' => 'belongs_to'],
+    ['field_name' => 'readonly', 'type' => 'input', 'column_type' => 'varchar', 'form_readonly' => 1],
+    ['field_name' => 'protected', 'type' => 'input', 'column_type' => 'varchar', 'control_props' => ['schemaAccess' => ['write' => ['secret:write']]]],
+];
+$copyService = new FormDataService(permissionChecker: static fn () => false);
+dataExpect(method_exists($copyService, 'copyCreateValues'), '缺少复制新增安全预填过滤');
+$copyRecord = array_fill_keys(array_column($copyFields, 'field_name'), '旧值');
+dataExpect($copyService->copyCreateValues($copyFields, $copyRecord, 'code') === ['title' => '旧值'], '复制只允许创建可写非敏感字段，排除主键审计关系唯一值和越权字段');
 $publishedHash = str_repeat('a', 64);
 dataExpect($service->assertPublishedSchemaHash($publishedHash, $publishedHash) === $publishedHash, '提交必须接受与已发布快照一致的 schemaHash');
 try {

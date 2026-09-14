@@ -15,6 +15,13 @@ describe('businessDevelopmentApi', () => {
     expect(httpMocks.get).toHaveBeenCalledWith('/development/business/targets');
   });
 
+  it('草稿目录按模块 ID 读取，不请求运行态或发送执行参数', async () => {
+    httpMocks.get.mockResolvedValue({ moduleId: 12, designOnly: true, executable: false, actions: {}, resources: {} });
+    await businessDevelopmentApi.designActionCatalog(12);
+    expect(httpMocks.get).toHaveBeenCalledWith('/development/business/modules/12/schema/design-action-catalog');
+    expect(httpMocks.post).not.toHaveBeenCalled();
+  });
+
   it('recoverGeneration 发送 generation id 与 CAS recovery 状态', async () => {
     httpMocks.post.mockResolvedValue({ state: 'rolled_back' });
     await businessDevelopmentApi.recoverGeneration(41, 'recovery_required');

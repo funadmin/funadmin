@@ -78,6 +78,14 @@ final class BusinessModuleService
         return ['list' => $list, 'total' => $result->total(), 'page' => $page, 'pageSize' => $pageSize];
     }
 
+    /** 设计目录只读取模块身份，不加载字段、默认值或发布版本。 */
+    public function designTarget(int $id): string
+    {
+        $module = BusinessModule::where('id', $id)->field('id,metadata')->find();
+        if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
+        return (string) ($module->metadata['target']['type'] ?? 'core');
+    }
+
     public function detail(int $id): array
     {
         $module = BusinessModule::find($id);

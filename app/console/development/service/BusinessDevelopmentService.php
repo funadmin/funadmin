@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace app\console\development\service;
 
 use app\common\crud\CrudDefinition;
+use app\common\form\action\FormActionRegistry;
+use app\common\form\action\ListResourceRegistry;
+use app\common\form\registry\FormRegistryFactory;
 use app\common\form\registry\FieldCapabilityRegistry;
 use app\console\development\exception\BusinessOperationException;
 use app\console\development\http\BusinessResponseSanitizer;
@@ -196,6 +199,25 @@ final class BusinessDevelopmentService
     public function publish(int $moduleId, array $payload, string $actor): array
     {
         return $this->publisher->publishDynamic($this->modulePayload($moduleId, $payload), $actor);
+    }
+
+    /** 只读设计目录：不加载已发布 Schema，不创建执行器或确认令牌。 */
+    public function designActionCatalog(int $moduleId, callable $permissionChecker, ?FormActionRegistry $actions = null, ?ListResourceRegistry $resources = null): array
+    {
+        if (!$permissionChecker('console/development.business/saveschema')) throw new InvalidArgumentException('BUSINESS_DESIGN_FORBIDDEN');
+        self::assertPositiveId($moduleId);
+        if ($this->modules->designTarget($moduleId) !== 'core') throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        $factory = FormRegistryFactory::production();
+        $actions ??= $factory->actions();
+        $resources ??= $factory->listResources();
+        $catalog = [];
+        foreach (['toolbar' => 'selection', 'row' => 'record', 'categoryToolbar' => 'none', 'categoryNode' => 'category'] as $location => $target) {
+            $items = $actions->listCatalog($permissionChecker, $location, $target);
+            if ($location === 'toolbar') $items = array_filter($items, static fn (array $item): bool => $item['batch']);
+            $catalog[$location] = (object) $items;
+        }
+        return ['moduleId' => $moduleId, 'designOnly' => true, 'executable' => false, 'actions' => $catalog,
+            'resources' => (object) $resources->catalog($permissionChecker)];
     }
 
     public function runtimeMeta(int $moduleId): array

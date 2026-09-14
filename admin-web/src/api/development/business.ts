@@ -1,6 +1,17 @@
 import http from '@/utils/http';
 import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
 
+import type { FormListActionMetadata, FormListButtonLocation } from '@/views/form/schema/types';
+import type { ListResource } from '@/views/form/runtime/listResourceHost';
+
+export interface BusinessDesignActionCatalog {
+  moduleId: number;
+  designOnly: true;
+  executable: false;
+  actions: Record<FormListButtonLocation, Record<string, FormListActionMetadata>>;
+  resources: Record<string, ListResource>;
+}
+
 const PREFIX = '/development/business';
 
 export interface BusinessDatabaseTable {
@@ -217,6 +228,7 @@ export const businessDevelopmentApi = {
     http.post<Record<string, unknown>>(`${PREFIX}/modules/${id}/publish/preview`, payload),
   publish: (id: number, payload: Record<string, unknown>) =>
     http.post<Record<string, unknown>>(`${PREFIX}/modules/${id}/publish`, payload),
+  designActionCatalog: (id: number) => http.get<BusinessDesignActionCatalog>(`${PREFIX}/modules/${id}/schema/design-action-catalog`),
   runtimeMeta: (id: number) => http.get<Record<string, unknown>>(`${PREFIX}/modules/${id}/runtime-meta`),
   previewFormalGeneration: (id: number, nonce = '') =>
     http.post<BusinessFormalGenerationPreview>(`${PREFIX}/modules/${id}/formal-generation/preview`, { nonce }),

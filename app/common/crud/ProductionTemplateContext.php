@@ -396,7 +396,7 @@ final class ProductionTemplateContext
                 : '')
             . "    protected function importFields(): array { return array_combine({$class}Service::WRITABLE_FIELDS, {$class}Service::WRITABLE_FIELDS); }\n"
             . "    protected function importPayload(array \$row): array { return (new {$class}Service())->prepareCreatePayload(\$this->mapImportRow(\$row)); }\n"
-            . "    protected function exportFields(): array { return " . self::phpArray(array_values(array_map(static fn (array $field): string => self::camel($field['name']), array_filter($data['fields'], static fn (array $field): bool => ($field['detail'] ?? true) === true)))) . "; }\n"
+            . "    protected function exportFields(): array { return " . self::phpArray(array_values(array_map(static fn (array $field): string => self::camel($field['name']), array_filter($data['fields'], static fn (array $field): bool => ($field['detail'] ?? true) === true && ($field['component'] ?? '') !== 'password' && empty($field['controlProps']['sensitive']) && empty($field['controlProps']['writeOnly']) && empty($field['controlProps']['schemaAccess'])))) ?: ['__no_export_fields__']) . "; }\n"
             . "    protected function importLimit(): int { return {$features['importLimit']}; }\n"
             . "    protected function exportLimit(): int { return {$features['exportLimit']}; }\n"
             . "    protected function payload(?Model \$model = null): array\n    {\n"
@@ -624,7 +624,7 @@ final class ProductionTemplateContext
             : '';
         $operationColumn = $editButton . $detailButton . $deleteButtons === '' ? '' : "          <el-table-column label=\"操作\"><template #default=\"scope\">{$editButton}{$detailButton}{$deleteButtons}</template></el-table-column>\n";
         $formEnabled = ($enabled['create'] || $enabled['update']) && ($data['capabilities']['form'] ?? true);
-        $formComponent = $formEnabled ? "<{$class}Form v-model=\"dialogVisible\" :row=\"current\" @success=\"loadData\" />" : '';
+        $formComponent = $formEnabled ? "<{$class}Form :lock=\"buttonLock\" v-model=\"dialogVisible\" :row=\"current\" @success=\"loadData\" />" : '';
         $detailComponent = $enabled['detail'] ? "<{$class}Detail v-model=\"drawerVisible\" :row=\"current\" />" : '';
         $crudBindings = ['loading', 'list', 'total', 'query', 'loadData'];
         if ($enabled['search']) array_push($crudBindings, 'onSearch', 'onReset');
@@ -699,13 +699,14 @@ final class ProductionTemplateContext
         $defaults = ['toolbar' => [], 'row' => []];
         $handlers = ['refresh: () => loadData()'];
         $append = static function (string $location, string $key, string $label, string $handler) use (&$defaults, &$handlers): void {
-            $defaults[$location][] = ['id' => strtolower($key), 'label' => $label, 'action' => ['type' => 'builtin', 'key' => $key]];
+            $defaults[$location][] = ['id' => strtolower($key), 'label' => $label, 'action' => ['type' => 'builtin', 'key' => $key]]
+                + (in_array($key, ['delete', 'batchDelete', 'destroy'], true) ? ['interaction' => ['type' => 'confirm', 'message' => '确认' . $label . '？此操作可能不可恢复。']] : []);
             $handlers[] = $key . ': ' . $handler;
         };
         if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()');
         if ($enabled['export']) $append('toolbar', 'export', '导出', '() => exportRows()');
         if ($enabled['import']) $append('toolbar', 'import', '导入', '() => fileInput.value?.click()');
-        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '批量删除', '() => onBatchDelete()');
+        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '批量删除', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshButtonHost(); }");
         if ($enabled['softDelete']) $append('toolbar', 'recycle', '切换回收站', '() => switchMode(!recycled.value)');
         if ($enabled['update'] && $formEnabled) $append('row', 'edit', '编辑', "row => onEdit(resolveButtonRow(row))");
         if ($enabled['detail']) $append('row', 'detail', '详情', "row => onOpenDrawer(resolveButtonRow(row))");
@@ -716,7 +717,7 @@ final class ProductionTemplateContext
         }
         if ($enabled['batchSoftDelete']) {
             $defaults['toolbar'][] = ['id' => 'restoreselected', 'label' => '批量恢复', 'action' => ['type' => 'builtin', 'key' => 'restore']];
-            $defaults['toolbar'][] = ['id' => 'destroyselected', 'label' => '批量永久删除', 'action' => ['type' => 'builtin', 'key' => 'destroy']];
+            $defaults['toolbar'][] = ['id' => 'destroyselected', 'label' => '批量永久删除', 'action' => ['type' => 'builtin', 'key' => 'destroy'], 'interaction' => ['type' => 'confirm', 'message' => '确认永久删除选中记录？此操作不可恢复。']];
             $handlers = array_map(static fn (string $handler): string => str_starts_with($handler, 'restore:')
                 ? 'restore: row => row ? restoreRow(resolveButtonRow(row)) : restoreSelected()'
                 : (str_starts_with($handler, 'destroy:') ? 'destroy: row => row ? forceDeleteRow(resolveButtonRow(row)) : forceDeleteSelected()' : $handler), $handlers);
@@ -748,16 +749,32 @@ final class ProductionTemplateContext
         $csvImport = $enabled['import'] || $enabled['export']
             ? "import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';\n"
             : '';
+        $pageColumns = [];
+        $cellSlots = '';
+        foreach ($data['fields'] as $field) {
+            if (!($field['list'] ?? false)) continue;
+            $key = self::camel($field['name']);
+            $column = ['key' => $key, 'prop' => $key, 'slot' => $key, 'label' => (string) ($field['label'] ?? $field['name'])];
+            if (($field['listWidth'] ?? 0) > 0) $column['width'] = (int) $field['listWidth'];
+            if ($field['sortable'] ?? false) $column['sortable'] = true;
+            $pageColumns[] = $column;
+            $cellSlots .= str_replace('#default="scope"', '#' . $key . '="scope"', self::listCell($key, (string) ($field['listFormatter'] ?? '')));
+        }
+        if ($enabled['status']) {
+            $pageColumns[] = ['key' => 'statusAction', 'label' => '状态操作', 'slot' => 'statusAction'];
+            $cellSlots .= '<template #statusAction="scope"><el-switch :model-value="Number(scope.row.status) === 1" :disabled="recycled || buttonLock.busy" @change="value => changeStatus(resolveButtonRow(scope.row), value === true)" /></template>';
+        }
+        $pageList = ['tools' => (object) ($data['list']['tools'] ?? [])];
+        if ($tree) $pageList['tree'] = ['enabled' => true, 'parentField' => self::camel($data['list']['tree']['parentField'])];
+        $page = ['pageSchemaVersion' => 1, 'key' => str_replace('-', '_', $data['entity']), 'primaryKey' => $primaryName, 'search' => [], 'toolbar' => [], 'rowActions' => [], 'list' => $pageList, 'pagination' => ['pageSize' => 20, 'pageSizes' => [10, 20, 50, 100], 'enabled' => !$tree]];
+        $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\n";
+        $listSetup .= 'const tableSchema = computed<PageSchema>(() => ({ ...' . self::json($page) . ', columns: [...(toolbarButtons.value.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . ' ? [{ key: \'selection\', label: \'\', type: \'selection\' as const, width: 48 }] : []), ...' . self::json($pageColumns) . ', ...(hasRowButtons.value ? [{ key: \'actions\', label: \'操作\', slot: \'actions\' }] : [])] } as PageSchema));' . "\n";
+        $actionSlot = '<template #actions="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template>';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
             . (($category || $leftTree) ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
-            . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" :show-refresh=\"listConfig.tools?.refresh !== false\" :show-density=\"listConfig.tools?.density !== false\" :show-fullscreen=\"listConfig.tools?.fullscreen !== false\" :show-column-setting=\"listConfig.tools?.columns !== false\" @refresh=\"loadData\">\n"
-            . $searchSlot
-            . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
-            . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table ref=\"buttonTable\" :data=\"" . ($tree ? 'displayRows' : 'list') . "\" row-key=\"{$primaryName}\" :tree-props=\"{ children: '__listChildren' }\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
-            . $selectionColumn . implode("\n", $columns) . "\n" . $statusColumn
-            . $operationColumn
-            . '        </el-table>' . ($tree ? '' : '<el-pagination v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />') . "</template>\n"
-            . '    </DataTableShell>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
+            . "<SchemaTablePage ref=\"buttonTable\" class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :schema=\"tableSchema\" :query=\"query\" :rows=\"list\" :total=\"total\" :loading=\"loading\" :lock=\"buttonLock\" :context=\"{ values: {}, permissions: buttonUser.permissions, handlers: {} }\" @refresh=\"refreshButtonHost\" @sort-change=\"({ prop, order }) => { query.sort = prop ?? ''; query.order = order === 'descending' ? 'desc' : 'asc'; loadData(); }\" @selection-change=\"handleSelectionChange\">"
+            . $searchSlot . '<template #toolbar>' . implode('', $toolbar) . '</template>' . $cellSlots . $actionSlot
+            . '</SchemaTablePage>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport . $listImports
@@ -773,96 +790,103 @@ final class ProductionTemplateContext
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
-            . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await ElMessageBox.confirm('" . ($enabled['softDelete'] ? '确认删除该记录？' : '确认永久删除该记录？此操作不可恢复。') . "', '" . ($enabled['softDelete'] ? '删除确认' : '永久删除确认') . "', { type: '" . ($enabled['softDelete'] ? 'warning' : 'error') . "' }); await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\n" : '')
-            . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await ElMessageBox.confirm('确认永久删除该记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
-            . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await ElMessageBox.confirm('确认永久删除选中记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
-            . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); }\n" : '')
-            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file) return; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); await {$camel}Api.importRows(rows); await loadData(); }\n" : '')
+            . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\n" : '')
+            . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
+            . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
+            . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { if (buttonLock.busy || {$recycledValue} || !buttonPermission({$prefix} + ':status')) return; buttonLock.busy = true; try { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); } finally { buttonLock.busy = false; } }\n" : '')
+            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file || buttonLock.busy || !buttonPermission({$prefix} + ':import')) return; buttonLock.busy = true; try { const version = buttonContextVersion.value; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); if (version !== buttonContextVersion.value || !buttonPermission({$prefix} + ':import')) return; await {$camel}Api.importRows(rows); await loadData(); } finally { buttonLock.busy = false; } }\n" : '')
             . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
             . "</script>\n";
     }
 
     private static function form(array $data, string $class): string
     {
-        if (($data['layoutSchema'] ?? []) !== []) return self::schemaForm($data, $class);
-        $camel = self::camel($class);
-        $type = self::tsTypeName($class);
-        $enabled = self::enabledCapabilities($data);
-        $tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog';
-        $fields = [];
-        $optionNames = [];
-        $usesUpload = false;
-        $optionSources = array_column($data['optionsSource'], null, 'name');
-        $enabledOptionSources = array_column(self::enabledOptionSources($data, $enabled), null, 'name');
-        foreach ($data['fields'] as $field) {
-            if (!($field['form'] ?? false) || ($field['primary'] ?? false) || !($field['writable'] ?? true)) {
-                continue;
-            }
-            $key = self::camel($field['name']);
-            $label = htmlspecialchars($field['label'] ?? $field['comment'] ?? $field['name'], ENT_QUOTES);
-            $component = (string) ($field['component'] ?? 'input');
-            $dynamicSource = '';
-            if (($field['optionsSource'] ?? '') !== '' && isset($enabledOptionSources[$field['optionsSource']])) {
-                $dynamicSource = (string) $field['optionsSource'];
-                $optionNames[$dynamicSource] = true;
-            } elseif (($optionSources[$field['optionsSource'] ?? '']['type'] ?? '') === 'dictionary') {
-                $field['component'] = 'input';
-                $component = 'input';
-            }
-            if ($enabled['upload'] && (in_array($component, ['image', 'images', 'file', 'files'], true) || ($field['upload'] ?? false) === true)) {
-                $usesUpload = true;
-            }
-            $control = self::formControl($field, $key, $dynamicSource, $enabled['upload']);
-            $fields[] = "<el-form-item label=\"{$label}\" prop=\"{$key}\">{$control}</el-form-item>";
-        }
-        $optionNames = array_keys($optionNames);
-        $optionState = [];
-        foreach ($optionNames as $name) {
-            $optionState[] = "{$name}: []";
-        }
-        $loadOptions = $optionNames === []
-            ? ''
-            : "async function loadOptions() { await Promise.all(" . self::json($optionNames) . ".map(async source => { optionLists[source] = await {$camel}Api.options(source); })); }\n";
-        $loadOptionsWhenOpen = $optionNames === [] ? '' : ' if (open) void loadOptions();';
-        $uploadImport = $usesUpload ? "import Upload from '@/components/Upload/index.vue';\n" : '';
-        return "<template><{$tag} v-model=\"visible\" title=\"编辑\"><el-form :model=\"form\">"
-            . implode('', $fields)
-            . "</el-form><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
-            . "<script setup lang=\"ts\">\nimport { computed, reactive, watch } from 'vue';\n{$uploadImport}"
-            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
-            . "const props = defineProps<{ modelValue: boolean; row: {$type} | null }>();\nconst emit = defineEmits<{ 'update:modelValue': [boolean]; success: [] }>();\n"
-            . "const visible = computed({ get: () => props.modelValue, set: value => emit('update:modelValue', value) });\nconst form = reactive<{$type}Payload>({});\n"
-            . "const optionLists = reactive<Record<string, Array<{ label: string; value: string | number }>>>({ " . implode(', ', $optionState) . " });\n"
-            . $loadOptions
-            . "watch(() => [props.row, props.modelValue] as const, ([row, open]) => { Object.keys(form).forEach(key => delete form[key as keyof {$type}Payload]); Object.assign(form, row || {});{$loadOptionsWhenOpen} }, { immediate: true });\n"
-            . "async function submit() { "
-            . ($enabled['update'] ? "if (props.row) await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ", form); " : '')
-            . ($enabled['create'] ? ($enabled['update'] ? "else " : '') . "await {$camel}Api.create(form); " : '')
-            . "visible.value = false; emit('success'); }\n</script>\n";
+        return self::schemaForm($data, $class);
     }
 
     private static function schemaForm(array $data, string $class): string
     {
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
-        $schema = self::json($data['formSchema'] ?? [
-            'schemaVersion' => 2,
-            'key' => str_replace('-', '_', (string) $data['entity']),
-            'title' => (string) ($data['title'] ?? ''),
-            'nodes' => $data['layoutSchema'],
-        ]);
+        $enabled = self::enabledCapabilities($data);
+        $tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog';
+        $nodes = $data['layoutSchema'] ?? [];
+        $formFields = ($data['capabilities']['form'] ?? true) ? array_values(array_filter($data['fields'], static fn (array $field): bool => ($field['form'] ?? false) && !($field['primary'] ?? false) && !($field['managed'] ?? false))) : [];
+        $writable = array_values(array_filter($formFields, static fn (array $field): bool => ($field['writable'] ?? true) && ($field['component'] ?? '') !== 'readonly'));
+        if ($nodes === []) foreach ($formFields as $field) {
+            $rules = [];
+            if ($field['required'] ?? false) $rules[] = ['type' => 'required'];
+            $nodes[] = ['id' => $field['name'], 'kind' => 'field', 'type' => $field['component'] ?? 'input', 'field' => $field['name'], 'title' => $field['label'] ?? $field['name'], 'defaultValue' => $field['default'] ?? '', 'props' => (object) ($field['controlProps'] ?? []), 'validation' => $rules, 'dataSource' => ['kind' => 'static', 'options' => $field['options'] ?? []], 'children' => []];
+        }
+        $document = $data['formSchema'] ?? ['schemaVersion' => 2, 'key' => str_replace('-', '_', (string) $data['entity']), 'title' => (string) ($data['title'] ?? ''), 'nodes' => $nodes];
+        if (empty($document['nodes'])) $document['nodes'] = $nodes;
+        $fieldsByName = array_column($formFields, null, 'name');
+        $sources = array_column($data['optionsSource'], null, 'name');
+        $allowedSources = array_column(self::enabledOptionSources($data, $enabled), null, 'name');
+        $optionMap = [];
+        $prune = static function (array $nodes) use (&$prune, &$optionMap, $fieldsByName, $sources, $allowedSources, $enabled): array {
+            $result = [];
+            foreach ($nodes as $node) {
+                if (($node['kind'] ?? '') === 'field') {
+                    $field = $fieldsByName[$node['field'] ?? ''] ?? null;
+                    if ($field === null) continue;
+                    $sourceName = $field['optionsSource'] ?? '';
+                    $source = $sources[$sourceName] ?? null;
+                    $kind = $node['dataSource']['kind'] ?? $node['dataSource']['mode'] ?? '';
+                    $dictionaryDisabled = !$enabled['dictionary'] && (($source['type'] ?? '') === 'dictionary' || in_array($kind, ['dictionary', 'dict'], true) || $node['type'] === 'dictionary');
+                    if ($dictionaryDisabled) {
+                        $node['type'] = 'input';
+                        $node['dataSource'] = ['kind' => 'static', 'options' => []];
+                    } elseif ($enabled['options'] && isset($allowedSources[$sourceName])) {
+                        $optionMap[$field['name']] = $sourceName;
+                        $node['dataSource'] = array_merge((array) ($node['dataSource'] ?? []), ['kind' => 'remote']);
+                        if ($node['type'] === 'input') $node['type'] = 'select';
+                    }
+                    if (in_array($node['type'], ['image', 'images', 'file', 'files'], true) || ($field['upload'] ?? false)) {
+                        if (!$enabled['upload']) {
+                            $node['type'] = 'input';
+                        } elseif (!in_array($node['type'], ['image', 'images', 'file', 'files'], true)) {
+                            $multiple = preg_match('/(?:^|_)(?:images|files)$/', $field['name']) === 1;
+                            $image = preg_match('/(?:^|_)(?:image|images|avatar|thumb)(?:_|$)/', $field['name']) === 1;
+                            $node['type'] = $image ? ($multiple ? 'images' : 'image') : ($multiple ? 'files' : 'file');
+                        }
+                    }
+                    if ($node['type'] === 'inputNumber') $node['type'] = 'number';
+                    if (($field['writable'] ?? true) === false || ($field['component'] ?? '') === 'readonly') $node['disabled'] = true;
+                }
+                if (isset($node['children'])) $node['children'] = $prune($node['children']);
+                $result[] = $node;
+            }
+            return $result;
+        };
+        $document['nodes'] = ($data['capabilities']['form'] ?? true) ? $prune($document['nodes']) : [];
+        $schema = self::json($document);
+        $valueMap = self::json(array_values(array_map(
+            static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
+            $formFields
+        )));
         $fieldMap = self::json(array_values(array_map(
             static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
-            array_filter($data['fields'], static fn (array $field): bool => !($field['managed'] ?? false))
+            $writable
         )));
+        $defaults = self::json((object) array_column($formFields, 'default', 'name'));
         $formKey = str_replace('-', '_', (string) $data['entity']);
-        return "<template><el-dialog v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" form-key=\"{$formKey}\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></el-dialog></template>\n"
-            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\n"
-            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
-            . "const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap};\n"
-            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{Object.keys(form).forEach(key=>delete form[key]);for(const item of fieldMap)form[item.target]=row?.[item.source as keyof {$type}]??'';},{immediate:true});\n"
-            . "async function submit(){await schemaFormRef.value?.validate();const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;if(props.row)await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ",payload);else await {$camel}Api.create(payload);visible.value=false;emit('success');}\n</script>\n";
+        // 选项映射仅来自裁剪后真正交给 renderer 的节点。
+        $optionsSetup = 'const optionSources = ' . self::json((object) $optionMap) . " as Record<string,string>;\n"
+            . "const optionsRequest = async (_key:string, field:string) => { const source=Object.hasOwn(optionSources,field)?optionSources[field]:undefined; if(!source) throw Error('选项来源未注册'); "
+            . ($enabled['options'] ? "return {options:await {$camel}Api.options(source)};" : "throw Error('选项能力未启用');") . " };\n";
+        $permissionPrefix = self::json($data['permissionPrefix']);
+        $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error('编辑能力未启用');") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error('新增能力未启用');") . ' }';
+        return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
+            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
+            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
+            . "const props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>;\n"
+            . $optionsSetup
+            . "const user=useUserStore(); const permitted=(edit:boolean)=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code==={$permissionPrefix}+':'+(edit?'update':'create'));\n"
+            . "const saving=ref(false); const generation=ref(0);\n"
+            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
+            . "async function submit(){const lock=props.lock;if(saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||token!==generation.value||!props.modelValue||!permitted(!!row))return;const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string

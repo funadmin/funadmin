@@ -5,6 +5,13 @@
     "same", "different", "before", "after", "precision", "file", "array", "object", "items", "properties"
   ],
   "cases": [
+    { "name": "邮箱拒绝本地部分连续点", "field": "value", "values": { "value": "a..b@example.com" }, "rules": [{ "type": "format", "value": "email" }], "valid": false, "failedRules": ["format"] },
+    { "name": "邮箱拒绝域名下划线", "field": "value", "values": { "value": "a@exam_ple.com" }, "rules": [{ "type": "format", "value": "email" }], "valid": false, "failedRules": ["format"] },
+    { "name": "邮箱拒绝引号本地部分", "field": "value", "values": { "value": "\"a\"@example.com" }, "rules": [{ "type": "format", "value": "email" }], "valid": false, "failedRules": ["format"] },
+    { "name": "邮箱允许加号和子域名", "field": "value", "values": { "value": "user+tag@mail.example.com" }, "rules": [{ "type": "format", "value": "email" }], "valid": true },
+    { "name": "空数组仍校验最小长度", "field": "value", "values": { "value": [] }, "rules": [{ "type": "array" }, { "type": "minLength", "value": 1 }], "valid": false, "failedRules": ["minLength"] },
+    { "name": "空数组满足零长度", "field": "value", "values": { "value": [] }, "rules": [{ "type": "array" }, { "type": "length", "value": 0 }], "valid": true },
+    { "name": "空数组不属于字符串", "field": "value", "values": { "value": [] }, "rules": [{ "type": "type", "value": "string" }], "valid": false, "failedRules": ["type"] },
     { "name": "required accepts zero", "field": "value", "values": { "value": 0 }, "rules": [{ "type": "required" }], "valid": true },
     { "name": "required rejects blank string", "field": "value", "values": { "value": "   " }, "rules": [{ "type": "required" }], "valid": false, "failedRules": ["required"] },
     { "name": "type accepts declared number", "field": "value", "values": { "value": 12.5 }, "rules": [{ "type": "type", "value": "number" }], "valid": true },

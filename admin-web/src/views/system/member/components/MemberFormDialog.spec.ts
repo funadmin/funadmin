@@ -30,6 +30,11 @@ const render = (row: any = null) => mount(MemberFormDialog, {
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>((r) => { resolve = r; }); return { promise, resolve }; };
 beforeEach(() => { vi.clearAllMocks(); api.options.mockResolvedValue(definition()); api.create.mockResolvedValue({}); api.update.mockResolvedValue({}); });
 describe('会员 Builder 弹窗', () => {
+  it('页面动作持锁时禁止实际保存', async () => {
+    const wrapper = render(); await wrapper.setProps({ lock: { busy: true } } as any); await flushPromises();
+    await wrapper.findAll('button').find(b => b.text() === '确定')!.trigger('click'); await flushPromises();
+    expect(api.create).not.toHaveBeenCalled(); wrapper.unmount();
+  });
   it('加载九字段默认值，保留提示并以 camelCase 专用 payload 提交', async () => {
     const wrapper = render(); await flushPromises();
     const schema = wrapper.findComponent({ name: 'SchemaRenderer' });

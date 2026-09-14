@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Panel from './ListConfigurationPanel.vue';
 import ElementPlus from 'element-plus';
 
-const api = vi.hoisted(() => ({ modules: vi.fn(), module: vi.fn(), meta: vi.fn(), sourceCandidates: vi.fn(), sourceMeta: vi.fn() }));
+const api = vi.hoisted(() => ({ modules: vi.fn(), module: vi.fn(), meta: vi.fn(), sourceCandidates: vi.fn(), sourceMeta: vi.fn(), fieldCapabilities: vi.fn(), listActions: vi.fn(), designActionCatalog: vi.fn() }));
 const safeSource = { moduleId: 1, moduleCode: 'allowed', formKey: 'allowed_form', primaryKey: { name: 'code', type: 'string' }, fields: [{ field_name: 'title', label: '标题' }] };
 vi.mock('@/api/development/business', () => ({ businessDevelopmentApi: api }));
 vi.mock('@/api/formData', () => ({ formDataApi: api }));
@@ -15,6 +15,29 @@ const config = () => ({ category: { enabled: true, field: 'mention' }, leftTree:
 const render = () => mount(Panel, { props: { modelValue: config(), fields: [] }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElForm: box, ElTabs: box, ElTabPane: box, ElFormItem: item, ElSwitch: switchStub, ElAlert: defineComponent({ props: ['title'], template: '<p>{{ title }}</p>' }), ElSelect: box, ElOption: true, ElRadioGroup: box, ElRadio: box } } });
 beforeEach(() => { vi.clearAllMocks(); api.sourceCandidates.mockResolvedValue({ list: [safeSource], total: 1 }); api.sourceMeta.mockResolvedValue(safeSource); api.modules.mockResolvedValue({ list: [{ id: 1, code: 'allowed', name: '分类', lifecycle_status: 'published' }, { id: 2, code: 'denied', lifecycle_status: 'published' }], total: 2 }); api.module.mockImplementation(async (id: number) => ({ form: { form_key: id === 1 ? 'allowed' : 'denied' } })); api.meta.mockImplementation(async (key: string) => { if (key === 'denied') throw Error('拒绝'); return { primaryKey: { name: 'code' }, fields: [] }; }); });
 describe('独立分类配置入口', () => {
+  it('按实际入口加载权限目录并传给编辑器，失败不改写按钮', async () => {
+    api.designActionCatalog.mockResolvedValue({ moduleId: 7, designOnly: true, executable: false, resources: { customer: { type: 'navigate', permission: 'view', capabilityVersion: 'v2', params: [], query: [] } }, actions: { row: { inspect: { permission: 'inspect', capabilityVersion: 'v3', parameters: [], parameterTypes: {}, locations: ['row'], targets: ['record'], effect: 'read', batch: false, requiresConfirmation: false, resultContract: 'json' } } } });
+    const wrapper = render();
+    await wrapper.setProps({ moduleId: 7, permissions: ['development:business:save'] } as never);
+    await flushPromises();
+    expect(api.designActionCatalog).toHaveBeenCalledWith(7);
+    expect(api.fieldCapabilities).not.toHaveBeenCalled();
+    expect(api.listActions).not.toHaveBeenCalled();
+    expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })[1]!.props('resources')).toHaveProperty('customer');
+    const editor = wrapper.findAllComponents({ name: 'ListButtonEditor' })[1]!;
+    const state = (editor.vm as any).$.setupState;
+    state.add(); state.changeAction('registered:inspect'); state.save();
+    const saved = (wrapper.emitted('update')?.at(-1)?.[0] as any).buttons;
+    expect(saved.row.at(-1).action).toEqual({ type: 'registered', key: 'inspect', capabilityVersion: 'v3' });
+    await wrapper.setProps({ modelValue: { ...config(), buttons: saved } });
+    const updates = wrapper.emitted('update')?.length;
+    api.designActionCatalog.mockRejectedValueOnce(Error('离线'));
+    await wrapper.setProps({ moduleId: 8 } as never); await flushPromises();
+    expect(wrapper.emitted('update')?.length).toBe(updates);
+    expect(wrapper.props('modelValue').buttons).toEqual(saved);
+    expect(editor.props('catalogError')).toContain('保留');
+    wrapper.unmount();
+  });
   it('右表允许选择真实 belongs_to 外键，但选项筛选仍排除关系字段', async () => {
     const wrapper = render();
     await wrapper.setProps({ fields: [{ field_name: 'category_id', label: '分类', column_type: 'bigint', relation_type: 'belongs_to', type: 'relation' }] as never });

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { createPinia } from 'pinia';
 import designerSource from './index.vue?raw';
 import zhCN from '@/locales/zh-CN';
 import enUS from '@/locales/en-US';
@@ -10,6 +11,8 @@ vi.mock('@/api/development/business', async (original) => ({ ...await original<o
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
 vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [] } }));
+// 用户权限不是冲突测试的目标；导入前隔离会话读取，草稿仍使用每例独立的 localStorage。
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] }) }));
 vi.mock('../schema/pluginComponentLoader', () => ({ loadPluginFormComponents: async () => {} }));
 vi.mock('../../development/business/composables/useBusinessMenuRefresh', () => ({ useBusinessMenuRefresh: () => ({ refreshBusinessMenu: vi.fn() }) }));
 vi.mock('sortablejs', () => ({ default: { create: () => ({ destroy() {} }) } }));
@@ -26,7 +29,7 @@ const draft = () => JSON.parse(localStorage.getItem('form-designer-draft:7')!);
 let wrapper: ReturnType<typeof shallowMount>;
 let state: any;
 const start = async () => {
-  wrapper = shallowMount(Designer, { global: { renderStubDefaultSlot: true, directives: { perm: {} }, stubs: {
+  wrapper = shallowMount(Designer, { global: { plugins: [createPinia()], renderStubDefaultSlot: true, directives: { perm: {} }, stubs: {
     ...Object.fromEntries(['ElDropdown', 'ElDropdownMenu', 'ElDropdownItem', 'ElTag', 'ElRadioButton', 'ElRadioGroup', 'ElButton', 'ElOption', 'ElSelect', 'ElAlert', 'ElCard', 'ElFormItem', 'ElForm', 'ElInput', 'ElDivider', 'ElEmpty', 'ElSteps', 'ElStep', 'ElTreeSelect', 'ElCheckbox', 'ElSwitch', 'ElDescriptionsItem', 'ElDescriptions', 'ElTableColumn', 'ElTable', 'ElCollapseItem', 'ElCollapse', 'ElTabPane', 'ElTabs', 'ElResult'].map((name) => [name, true])),
     ElButton: { props: ['disabled', 'loading'], template: '<button :disabled="disabled || loading"><slot /></button>' },
     PageWrapper: { template: '<main><slot /></main>' },

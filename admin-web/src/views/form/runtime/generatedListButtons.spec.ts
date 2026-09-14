@@ -9,6 +9,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import ElementPlus, { ElMessageBox } from 'element-plus';
 import Bar from '../components/ListButtonBar.vue';
 import Tree from '../components/ListSourceTree.vue';
+import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import * as host from './listButtonHost';
 import * as buttons from '../schema/listButtons';
 import { useCrud } from '@/composables/useCrud';
@@ -54,9 +55,9 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const api = evaluate(generated.apiContent, { '@/utils/http': { default: http } });
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
-  const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
+  const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
   permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
-  const wrapper = mount(page, { global: { plugins: [ElementPlus], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true } } });
+  const wrapper = mount(page, { global: { plugins: [ElementPlus], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
 }
 afterEach(() => { vi.restoreAllMocks(); });
@@ -80,6 +81,16 @@ describe('PHP 真实生成页面消费正式宿主', () => {
       expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
     }
   }, 30000);
+  it('批删确认中选择或权限变化时取消，不使用确认后的新选择', async () => {
+    const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
+    const table = wrapper.findComponent({ name: 'ElTable' });
+    table.vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
+    await wrapper.findAll('button').find(button => button.text() === '批量删除')!.trigger('click'); await flushPromises();
+    expect(document.body.textContent).toContain('确认批量删除');
+    table.vm.$emit('selection-change', [{ orderId: 'order-99' }]); await flushPromises();
+    expect(http.delete).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
   it('生成 API、独立权限、snake/camel 主键与发布版本真实进入共享执行链', async () => {
     const { wrapper, http, declaration } = render(); await flushPromises();
     const approve = wrapper.findAll('button').find(button => button.text() === '批准');
@@ -115,8 +126,11 @@ describe('PHP 真实生成页面消费正式宿主', () => {
   it('回收站仅在能力启用时出现，恢复命中生成 API，显式空不补默认', async () => {
     const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
     await wrapper.findAll('button').find(button => button.text() === '切换回收站')!.trigger('click'); await flushPromises();
-    const restore = wrapper.findAll('button').find(button => button.text() === '恢复')!;
-    expect(restore).toBeDefined(); await restore.trigger('click'); await flushPromises();
+    const rowBar = wrapper.findAllComponents(Bar).find(bar => bar.props('context')?.location === 'row' && bar.props('row')?.orderId === 'order-42')!;
+    expect(rowBar.props('row')).toEqual({ orderId: 'order-42', orderTitle: '可批准' });
+    const restore = rowBar.findAll('button').find(button => button.text() === '恢复')!;
+    expect(restore).toBeDefined(); expect(restore.attributes('disabled')).toBeUndefined(); await restore.trigger('click'); await flushPromises();
+    expect(wrapper.findAllComponents(Bar).flatMap(bar => bar.emitted('error') ?? [])).toEqual([]);
     expect(http.post).toHaveBeenCalledWith('/generated/host-demo/order-42/restore');
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const batchRestore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
@@ -138,8 +152,9 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const destroy = wrapper.findAll('button').find(button => button.text() === '批量永久删除');
     expect(destroy).toBeDefined(); expect(destroy!.attributes('disabled')).toBeUndefined();
-    vi.spyOn(ElMessageBox, 'confirm').mockImplementation(async () => 'confirm' as Awaited<ReturnType<typeof ElMessageBox.confirm>>);
     await destroy!.trigger('click'); await flushPromises();
+    const confirmation = [...document.querySelectorAll('.el-dialog button')].find(button => button.textContent?.trim() === '确定') as HTMLButtonElement;
+    expect(confirmation).toBeDefined(); confirmation.click(); await flushPromises();
     expect(http.delete).toHaveBeenCalledWith('/generated/host-demo/destroy', { ids: ['order-42'] });
     permission.permissions = ['generated:host-demo:list', 'generated:host-demo:restore', 'generated:host-demo:destroy'];
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();

@@ -1,9 +1,9 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
-    <DataTableShell class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :loading="loading" @refresh="loadData">
+    <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label">
@@ -14,14 +14,10 @@
           </el-form-item>
         </SearchForm>
       </template>
-      <template #toolbar-left>
-        <el-button type="primary" @click="openDialog()">新增</el-button>
-        <el-button @click="onExport">导出</el-button>
+      <template #toolbar>
+        <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" />
       </template>
-      <el-table :data="displayRows" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKey" @sort-change="onSortChange">
-        <el-table-column :prop="primaryKey" label="ID" width="100" sortable="custom" />
-        <el-table-column v-for="field in listFields" :key="field.field_name" :prop="field.field_name" :label="field.label" :width="field.list_width || undefined" :sortable="field.list_sort === 1 ? 'custom' : false" show-overflow-tooltip>
-          <template #default="{ row }">
+      <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
             <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ Number(row[field.field_name]) === 1 ? '是' : '否' }}</el-tag>
             <el-tag v-else-if="field.list_formatter === 'tag'">{{ row[field.field_name] }}</el-tag>
             <el-image v-else-if="field.list_formatter === 'image'" :src="String(row[field.field_name] || '')" fit="cover" class="h-10 w-10 rounded" />
@@ -32,18 +28,11 @@
             <code v-else-if="field.list_formatter === 'json'">{{ formatJson(row[field.field_name]) }}</code>
             <span v-else-if="field.list_formatter === 'percent'">{{ Number(row[field.field_name] || 0).toFixed(2) }}%</span>
             <span v-else>{{ row[field.field_name] }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link @click="openDetail(row)">详情</el-button>
-            <el-button link type="danger" @click="removeRow(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <template #pagination><Pagination v-if="!treeEnabled" v-model:page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" /></template>
-    </DataTableShell>
+      </template>
+      <template #actions="{ row }">
+        <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" link />
+      </template>
+    </SchemaTablePage>
     </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" destroy-on-close>
@@ -63,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -73,7 +62,14 @@ import type { ActionHandlers, FormAction } from './runtime/actionExecutor';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
 import ListSourceTree from './components/ListSourceTree.vue';
-import { buildListTree } from './runtime/listPresentation';
+import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
+import type { PageSchema } from '@/components/DataTable/pageSchema';
+import ListButtonBar from './components/ListButtonBar.vue';
+import { resolveListButtons } from './schema/listButtons';
+import { provideListButtonAdapter, defaultListButtons, listActionKey, type ListButtonHandlers } from './runtime/listButtonHost';
+import type { ListButtonContext } from './runtime/listButtonExecutor';
+import type { FormListButton } from './schema/types';
+import { useUserStore } from '@/store/modules/user';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
@@ -82,6 +78,24 @@ import {
   sanitizeRuntimeRecord
 } from './runtime/submissionPolicy';
 
+provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'console/form.data:listactions', executePermission: 'console/form.data:listaction' } });
+const user = useUserStore();
+const hasPermission = (code: string) => user.permissions.some(p => p === '*' || p === '*:*:*' || p === code);
+const buttonLock = reactive({ busy: false });
+const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')));
+const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')));
+const buttonAllowed = (button: FormListButton) => {
+  const key = listActionKey(button);
+  const routes: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index' };
+  return (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`console/form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('console/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
+};
+const buttonHandlers: ListButtonHandlers = { create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData() };
+const selectedRows = ref<Record<string, unknown>[]>([]);
+const tableRef = ref<{ clearSelection: () => void }>();
+const buttonContextVersion = ref(0);
+const onSelectionChange = (rows: Record<string, unknown>[]) => { selectedRows.value = rows; buttonContextVersion.value++; };
+const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearSelection(); buttonContextVersion.value++; };
+const buttonContext = (location: 'row' | 'toolbar', row?: Record<string, unknown>): ListButtonContext => ({ formKey: formKey.value, schemaHash: meta.value?.schemaHash ?? '', location, ids: (row ? [row] : selectedRows.value).map(row => row[primaryKey.value] as FormRecordId) });
 const route = useRoute();
 const router = useRouter();
 const formKey = computed(() => String(route.params.formKey || route.meta.formKey || route.query.formKey || ''));
@@ -102,11 +116,21 @@ const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, unknown>>({});
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
-const listFields = computed(() => formFields.value.filter((field) => field.list_show === 1));
-const filterFields = computed(() => formFields.value.filter((field) => field.list_filter !== ''));
+const readableFields = computed(() => formFields.value.filter(field => field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly));
+const listFields = computed(() => readableFields.value.filter(field => field.list_show === 1));
+const filterFields = computed(() => readableFields.value.filter(field => field.list_filter !== ''));
 const primaryKey = computed(() => meta.value?.primaryKey.name || 'id');
 const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
-const displayRows = computed(() => treeEnabled.value ? buildListTree(rows.value, primaryKey.value, meta.value?.schema.list?.tree?.parentField ?? '') : rows.value);
+const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'published_form', primaryKey: primaryKey.value, search: [], toolbar: [], rowActions: [],
+  list: { ...(meta.value?.schema.list?.tree ? { tree: meta.value.schema.list.tree } : {}), ...(meta.value?.schema.list?.tools ? { tools: meta.value.schema.list.tools } : {}) },
+  columns: [
+    ...(toolbarButtons.value.some(button => button.action.type === 'registered') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
+    { key: 'primary', prop: primaryKey.value, label: 'ID', width: 100, sortable: true },
+    ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
+    ...(rowButtons.value.some(button => !button.hidden && buttonAllowed(button)) ? [{ key: 'actions', label: '操作', slot: 'actions', width: 180, fixed: 'right' as const }] : [])
+  ], pagination: { pageSize: 20, pageSizes: [10, 20, 50, 100], enabled: !treeEnabled.value }
+}));
+watch(() => JSON.stringify([filters, query, leftSelection.value]), clearSelection, { flush: 'sync' });
 const onCategory = (value: string | number | undefined) => { if (value === undefined) delete filters.__category; else filters.__category = String(value); onSearch(); };
 const requestKeys = computed(() => (meta.value?.schema.actions ?? []).flatMap((action) => {
   const record = action as { steps?: Array<{ type?: string; key?: string }> };
@@ -127,18 +151,25 @@ const actionHandlers: Partial<ActionHandlers> = {
 
 const loadMeta = async () => {
   if (!formKey.value) return;
-  meta.value = await formDataApi.meta(formKey.value);
+  const key = formKey.value;
+  const result = await formDataApi.meta(key);
+  if (key === formKey.value) meta.value = result;
 };
+let dataSequence = 0;
+onBeforeUnmount(() => { dataSequence++; });
 const loadData = async () => {
   if (!formKey.value) return;
+  const sequence = ++dataSequence;
+  clearSelection();
   loading.value = true;
   try {
     if (!meta.value) await loadMeta();
     const result = await formDataApi.index(formKey.value, { ...query, filters: { ...filters, __leftTree: leftSelection.value } });
+    if (sequence !== dataSequence) return;
     rows.value = result.list;
     total.value = result.total;
   } finally {
-    loading.value = false;
+    if (sequence === dataSequence) loading.value = false;
   }
 };
 const onSearch = () => { query.page = 1; void loadData(); };
@@ -194,10 +225,13 @@ const isSchemaConflict = (reason: unknown) => {
   return response.code === 409 || response.data?.code === 'FORM_SCHEMA_CONFLICT';
 };
 const saveRow = async () => {
-  if (saving.value || !meta.value) return;
-  await schemaRendererRef.value?.submit();
+  if (saving.value || buttonLock.busy || !meta.value) return;
   saving.value = true;
+  buttonLock.busy = true;
+  const identity = JSON.stringify([formKey.value, editingId.value, meta.value.schemaHash]);
   try {
+    await schemaRendererRef.value?.submit();
+    if (identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
     const include = resolveSubmissionInclude({ schema_document: meta.value.schema });
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
     const schemaHash = meta.value.schemaHash;
@@ -217,14 +251,18 @@ const saveRow = async () => {
     } else throw reason;
   } finally {
     saving.value = false;
+    buttonLock.busy = false;
   }
 };
 const removeRow = async (row: Record<string, unknown>) => {
+  const snapshot = JSON.stringify(buttonContext('row', row)); const version = buttonContextVersion.value;
   await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
+  if (snapshot !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('console/form.data:remove')) return;
   await formDataApi.remove(formKey.value, row[primaryKey.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
   await loadData();
 };
 
+watch(formKey, async () => { dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadData(); });
 onMounted(loadData);
 </script>

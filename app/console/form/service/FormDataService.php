@@ -516,6 +516,20 @@ final class FormDataService
         return ['row' => $this->sanitizeRecord($fields, $row), 'children' => $children];
     }
 
+    /** 复制新增预填：仅复制当前授权下可创建的普通字段，主键、审计、关系、敏感和唯一值必须重新生成。 */
+    public function copyCreateValues(array $fields, array $record, string $primary = 'id'): array
+    {
+        $result = [];
+        foreach ($fields as $field) {
+            $name = (string) ($field['field_name'] ?? '');
+            if ($name === '' || $name === $primary || in_array($name, ['created_at', 'updated_at', 'deleted_at'], true)
+                || ($field['relation_type'] ?? 'none') !== 'none' || ($field['index_type'] ?? 'none') === 'unique'
+                || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'write') || $this->isExcludedFromSubmission($field)) continue;
+            if (array_key_exists($name, $record)) $result[$name] = $record[$name];
+        }
+        return $result;
+    }
+
     /** 新增：白名单过滤 + 动态校验。 */
     public function create(string $key, array $data, array $include = [], string $schemaHash = ''): array
     {

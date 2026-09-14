@@ -1,6 +1,6 @@
 import type { Router } from 'vue-router';
 export interface ListResource { type: 'navigate' | 'external'; permission: string; capabilityVersion: string; route?: string; params: string[]; query: string[]; origin?: string; path?: string; paths?: string[] }
-export const isListResource = (type: string) => ['navigate', 'external', 'copy', 'download', 'refresh'].includes(type);
+export const isListResource = (type: string) => ['navigate', 'external', 'copy', 'download'].includes(type);
 interface Host { permission: (code: string) => boolean; router?: Router; resource?: ListResource; copy?: (text: string) => unknown; open?: (url: string, target: string, features: string) => unknown; download?: () => unknown; refresh?: () => unknown }
 const fail = (): never => { throw Error('FORM_LIST_RESOURCE_FORBIDDEN'); };
 const values = (value: unknown, keys: string[]): Record<string, string> => {

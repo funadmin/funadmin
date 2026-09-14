@@ -5,7 +5,7 @@
       <el-alert :title="definitionError || listError" type="error" :closable="false" />
       <el-button @click="definitionError ? initialize() : loadData()">重试</el-button>
     </div>
-    <SchemaTablePage v-if="pageSchema" storage-key="system-member" :schema="pageSchema" :query="query"
+    <SchemaTablePage :lock="buttonLock" v-if="pageSchema" storage-key="system-member" :schema="pageSchema" :query="query"
       :rows="list" :total="total" :loading="loading" :context="actionContext" :formatters="formatters"
       @refresh="loadData" @search="onSearch" @reset="onReset" @selection-change="selection = $event" @action-error="actionError">
       <template #toolbar-extra>
@@ -25,13 +25,13 @@
       </template>
       <template #status="{ row }">
         <div v-if="!recycled" class="app-status-switch">
-          <el-switch size="small" :model-value="row.status === 1" :disabled="!hasPermission('system:member:status')"
+          <el-switch size="small" :model-value="row.status === 1" :disabled="buttonLock.busy || !hasPermission('system:member:status')"
             @change="(value: string | number | boolean) => toggleStatus(row as MemberModel, value === true)" />
         </div>
         <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
       </template>
     </SchemaTablePage>
-    <MemberFormDialog v-model="dialogVisible" :row="current" :options="options" @success="loadData" />
+    <MemberFormDialog :lock="buttonLock" v-model="dialogVisible" :row="current" :options="options" @success="loadData" />
   </PageWrapper>
 </template>
 
@@ -39,7 +39,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import { parsePageSchema, type PageSchema, type PageHandler } from '@/components/DataTable/pageSchema';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import {
   memberApi,
   type MemberImportResult,
@@ -56,6 +56,7 @@ defineOptions({ name: 'SystemMember' });
 
 const userStore = useUserStore();
 const loading = ref(false);
+const buttonLock = reactive({ busy: false });
 const pageSchema = ref<PageSchema | null>(null);
 const definitionLoading = ref(false);
 const definitionError = ref('');
@@ -106,13 +107,13 @@ const handlers: Record<string, PageHandler> = {
   recycled: { version: '1', run: () => switchMode(true) },
   add: { version: '1', permission: 'system:member:add', available: () => !recycled.value, run: openAdd },
   edit: { version: '1', permission: 'system:member:edit', available: (row) => !recycled.value && !!row, run: openEdit },
-  recycle: { version: '1', permission: 'system:member:delete', available: () => !recycled.value && !!selection.value.length, run: recycleSelected },
+  recycle: { version: '1', interaction: { type: 'confirm', message: '确认将选中的会员移入回收站吗？' }, permission: 'system:member:delete', available: () => !recycled.value && !!selection.value.length, run: recycleSelected },
   restore: { version: '1', permission: 'system:member:restore', available: () => recycled.value && !!selection.value.length, run: restoreSelected },
-  destroy: { version: '1', permission: 'system:member:destroy', available: () => recycled.value && !!selection.value.length, run: destroySelected },
+  destroy: { version: '1', interaction: { type: 'confirm', message: '确认永久删除选中的会员吗？此操作不可恢复。' }, permission: 'system:member:destroy', available: () => recycled.value && !!selection.value.length, run: destroySelected },
   import: { version: '1', permission: 'system:member:import', available: () => !recycled.value, run: () => fileInput.value?.click() },
   export: { version: '1', permission: 'system:member:export', run: exportRows }
 };
-const actionContext = computed(() => ({ values: { recycled: recycled.value, selectionCount: selection.value.length }, permissions: userStore.permissions, handlers }));
+const actionContext = computed(() => ({ values: { recycled: recycled.value, selectionCount: selection.value.length, selectionIds: selection.value.map(row => row.id), query: { ...query } }, permissions: userStore.permissions, handlers }));
 function actionError(error: unknown) {
   if (error !== 'cancel' && error !== 'close') ElMessage.error('操作失败，请重试');
 }
@@ -193,6 +194,8 @@ function openEdit(row: MemberModel) {
 }
 
 async function toggleStatus(row: MemberModel, enabled: boolean) {
+  if (buttonLock.busy || recycled.value || !hasPermission('system:member:status')) return;
+  buttonLock.busy = true;
   const previous = row.status;
   row.status = enabled ? 1 : 0;
   try {
@@ -200,11 +203,10 @@ async function toggleStatus(row: MemberModel, enabled: boolean) {
   } catch (error) {
     row.status = previous;
     throw error;
-  }
+  } finally { buttonLock.busy = false; }
 }
 
 async function recycleSelected() {
-  await ElMessageBox.confirm(`确认将选中的 ${selection.value.length} 个会员移入回收站吗？`, '操作确认', { type: 'warning' });
   await memberApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }
@@ -215,10 +217,6 @@ async function restoreSelected() {
 }
 
 async function destroySelected() {
-  await ElMessageBox.confirm(`确认永久删除选中的 ${selection.value.length} 个会员吗？此操作不可恢复。`, '永久删除确认', {
-    type: 'error',
-    confirmButtonText: '永久删除'
-  });
   await memberApi.destroy(selection.value.map((item) => item.id));
   await loadData();
 }
@@ -227,17 +225,22 @@ async function importCsv(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (!file) return;
+  if (!file || buttonLock.busy || recycled.value || !hasPermission('system:member:import')) return;
+  buttonLock.busy = true;
+  const snapshot = JSON.stringify(actionContext.value.values);
+  try {
   const parsed = parseCsv<Partial<MemberPayload>>(await readFileAsText(file), csvColumns);
   if (!parsed.length) {
     ElMessage.warning('CSV 中没有可导入的数据');
     return;
   }
+  if (snapshot !== JSON.stringify(actionContext.value.values) || !hasPermission('system:member:import')) return;
   const result: MemberImportResult = await memberApi.importRows(parsed);
   if (result.errors.length) {
     ElMessage.warning(`成功 ${result.created} 条，跳过 ${result.skipped} 条：${result.errors.slice(0, 3).join('；')}`);
   }
   await loadData();
+  } finally { buttonLock.busy = false; }
 }
 
 async function exportRows() {

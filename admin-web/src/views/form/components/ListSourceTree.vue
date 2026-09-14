@@ -121,8 +121,11 @@ const open = async (action: 'create' | 'addChild' | 'edit', id: FormRecordId = '
   visible.value = true;
 };
 const save = async () => {
+  const acquiredLock = buttonLock.value;
+  if (acquiredLock.busy) return;
   if (!actionAllowed(operation.value) || !props.canReadForm || !props.canMutate || !sourceMeta.value || !result.value?.actions[operation.value] || saving.value || unsupportedValidation.value || !renderer.value) return;
   saving.value = true;
+  acquiredLock.busy = true;
   const sequence = dialogSequence.value;
   try {
     await renderer.value.submit();
@@ -132,13 +135,14 @@ const save = async () => {
     await api.mutateLeftTree(props.formKey, operation.value, editingId.value, data, props.schemaHash, sourceMeta.value.schemaHash);
     visible.value = false;
     await load(); emit('mutated');
-  } finally { saving.value = false; }
+  } finally { saving.value = false; acquiredLock.busy = false; }
 };
 const remove = async (id: FormRecordId) => {
   if (!actionAllowed('delete') || !props.canMutate || !result.value?.actions.delete) return;
   const sequence = dialogSequence.value;
+  const version = contextVersion.value;
   await ElMessageBox.confirm('确认删除来源节点？有子节点或业务引用时禁止删除。', '删除确认', { type: 'warning' });
-  if (sequence !== dialogSequence.value || !actionAllowed('delete') || !result.value) return;
+  if (sequence !== dialogSequence.value || version !== contextVersion.value || !actionAllowed('delete') || !result.value) return;
   const api = props.api ?? formDataApi;
   await api.mutateLeftTree(props.formKey, 'delete', id, {}, props.schemaHash, result.value.schemaHash);
   select((props.modelValue ?? []).filter(value => String(value) !== String(id)));

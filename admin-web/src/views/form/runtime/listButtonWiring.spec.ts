@@ -21,8 +21,10 @@ describe('实际页面按钮接线', () => {
     const source = read('../data.vue');
     expect(source).toContain(':buttons="rowButtons"');
     expect(source).toContain(':buttons="toolbarButtons"');
-    expect(source).toContain(':show-refresh="meta?.schema.list?.tools?.refresh');
-    expect(source).toContain('v-if="hasRowButtons"');
+    expect(source).toContain(':schema="tableSchema"');
+    expect(source).toContain('tools: meta.value.schema.list.tools');
+    expect(read('../../../components/DataTable/SchemaTablePage.vue')).toContain(':show-refresh="definition.list?.tools?.refresh !== false"');
+    expect(source).toContain('hasRowButtons.value ?');
     expect(source).not.toContain('@click="openDialog(row)"');
   });
 });

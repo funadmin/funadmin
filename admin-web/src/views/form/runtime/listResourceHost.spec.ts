@@ -18,4 +18,11 @@ it('禁止未授权、重定向路由和外链地址篡改', async () => {
   await executeListResource({ type: 'external', url: 'https://example.org/help', permission: 'read' }, host as any);
   expect(open).toHaveBeenCalledWith('https://example.org/help', '_blank', 'noopener,noreferrer');
   expect(push).not.toHaveBeenCalled();
+  const navigate = { ...host, resource: { type: 'navigate', permission: 'read', route: 'orders', params: ['id'], query: [] } };
+  await expect(executeListResource({ type: 'navigate', route: 'orders', permission: 'read', params: { id: '1' }, query: {} }, navigate as any)).rejects.toThrow();
+  const safe = { ...navigate, router: { ...router, resolve: () => ({ matched: [{ meta: { permission: 'read' } }] }) } };
+  await executeListResource({ type: 'navigate', route: 'orders', permission: 'read', params: { id: '1' }, query: {} }, safe as any);
+  expect(push).toHaveBeenCalledWith({ name: 'orders', params: { id: '1' }, query: {} });
+  for (const params of [JSON.parse('{"__proto__":"x"}'), { constructor: 'x' }, { id: 'https://evil.test' }]) await expect(executeListResource({ type: 'navigate', route: 'orders', permission: 'read', params, query: {} }, safe as any)).rejects.toThrow();
+  await expect(executeListResource({ type: 'navigate', route: 'orders', permission: 'read', params: {}, query: {} }, { ...safe, permission: () => false } as any)).rejects.toThrow();
 });

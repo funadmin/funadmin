@@ -47,7 +47,7 @@ import { createRuntimeState } from '../runtime/runtimeState';
 import type { ActionHandlers } from '../runtime/actionExecutor';
 import { useFormDataSource, type FormDataSourceRequest, type FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import { createAsyncValidatorRegistry } from '../validation/asyncValidatorRegistry';
-import { createElementPlusValidationRules } from '../validation/formSchemaDataValidator';
+import { createElementPlusValidationRules, validateFormSchemaValues } from '../validation/formSchemaDataValidator';
 import { assertRuntimeComponents } from '../schema/runtimeGuard';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
 import { formDataApi } from '@/api/formData';
@@ -188,6 +188,15 @@ const validate = async () => {
   if (registryError.value) throw new Error(registryError.value);
   assertRuntimeComponents(props.schema);
   fieldErrors.value = {};
+  const activeRules = Object.fromEntries(flattenSchemaNodes(props.schema.nodes)
+    .filter(({ node }) => node.field && !runtime.nodeState(node.id).hidden)
+    .map(({ node }) => [node.field!, node.validation ?? []]));
+  const errors = validateFormSchemaValues(props.values, activeRules);
+  if (errors.length) {
+    await setFieldErrors(Object.fromEntries(errors.map(error => [error.field, error.message])));
+    throw fieldErrors.value;
+  }
+  await nextTick();
   try {
     return await formRef.value?.validate();
   } catch (reason) {

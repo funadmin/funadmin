@@ -23,7 +23,7 @@ final class ListResourceRegistry
             }
             if (count(array_unique(array_merge($resource['params'], $resource['query']))) !== count($resource['params']) + count($resource['query'])) $this->fail();
             if ($type === 'navigate') {
-                $this->identifier($resource['route'] ?? null);
+                if (!is_string($resource['route'] ?? null) || !preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,99}$/D', $resource['route']) || in_array(strtolower($resource['route']), ['constructor', 'prototype'], true)) $this->fail();
                 if (array_intersect(array_keys($resource), ['origin', 'path', 'paths'])) $this->fail();
             } else {
                 if ($resource['params'] || isset($resource['route'])) $this->fail();
