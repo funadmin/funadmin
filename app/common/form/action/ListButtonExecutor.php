@@ -9,9 +9,9 @@ use InvalidArgumentException;
 /** 共享执行边界：快照和记录加载器必须由已授权宿主提供，绝不来自请求。 */
 final class ListButtonExecutor
 {
-    public function __construct(private readonly FormActionRegistry $registry, private readonly string $confirmationSecret, private readonly ?ListActionStore $store = null)
+    public function __construct(private readonly FormActionRegistry $registry, private readonly string $confirmationSecret, private readonly ?ListActionStore $store = null, private readonly ?ListResourceRegistry $resources = null)
     {
-        if (strlen($confirmationSecret) < 32) throw new InvalidArgumentException('FORM_LIST_CONFIRMATION_UNAVAILABLE');
+        if (!$resources && strlen($confirmationSecret) < 32) throw new InvalidArgumentException('FORM_LIST_CONFIRMATION_UNAVAILABLE');
     }
 
     public function execute(array $snapshot, array $request, string $principal, callable $permission, callable $loadRecords): array
@@ -30,7 +30,17 @@ final class ListButtonExecutor
         $found = array_values(array_filter($buttons, static fn ($item) => ($item['id'] ?? '') === ($request['buttonId'] ?? null)));
         if (count($found) !== 1) $this->fail('FORM_LIST_BUTTON_NOT_DECLARED');
         $button = $found[0];
-        if (($button['action']['type'] ?? '') !== 'registered') $this->fail('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        $resourceType = $button['action']['type'] ?? '';
+        $resource = in_array($resourceType, ['navigate', 'external', 'copy', 'refresh', 'download'], true);
+        if (!$resource && $resourceType !== 'registered') $this->fail('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        if ($resource) {
+            if (!$this->resources || (!empty($button['permission']) && !$permission($button['permission']))) $this->fail('FORM_ACTION_FORBIDDEN');
+            if (in_array($resourceType, ['navigate', 'external'], true)) $this->resources->definition($button['action'], $permission);
+            if ($resourceType === 'copy' && (array_keys($button['params'] ?? []) !== ['text'] || !in_array($button['params']['text']['source'] ?? '', ['row', 'category'], true))) $this->fail('FORM_LIST_BINDING_UNSUPPORTED');
+            if (in_array($resourceType, ['refresh', 'download'], true) && !empty($button['params'])) $this->fail('FORM_LIST_BINDING_UNSUPPORTED');
+            if ($resourceType === 'download' && (($button['action']['key'] ?? '') !== 'export' || $location !== 'toolbar')) $this->fail('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+            $definition = ['effect' => 'read', 'batch' => true];
+        } else {
         $key = $button['action']['key'];
         $definition = $this->registry->definitions()[$key] ?? null;
         if (!$definition || !$permission($definition['permission']) || ($button['permission'] ?? '') !== $definition['permission']) $this->fail('FORM_ACTION_FORBIDDEN');
@@ -39,12 +49,13 @@ final class ListButtonExecutor
         if (($button['action']['capabilityVersion'] ?? '') !== $definition['capabilityVersion']) $this->fail('FORM_ACTION_VERSION_MISMATCH');
         if ($categoryLocation && $definition['effect'] === 'write'
             && !in_array($definition['permission'], $snapshot['categoryContext']['writePermissions'][$location] ?? [], true)) $this->fail('FORM_ACTION_FORBIDDEN');
+        }
         // 静态开关先检查；声明条件在授权记录重新加载后逐条复验。
         if (($button['hidden'] ?? false) || ($button['disabled'] ?? false)) $this->fail('FORM_LIST_BUTTON_DISABLED');
         // 持久化原子占位尚未接通时，绝不退回 Cache::remember 或进程内锁。
         if ($definition['effect'] !== 'read' && !$this->store) $this->fail('FORM_LIST_ATOMIC_STORE_UNAVAILABLE');
         $ids = $request['ids'] ?? null;
-        if (!is_array($ids) || !array_is_list($ids) || (!$ids && !$categoryLocation) || ($categoryLocation && $ids !== []) || count($ids) > 200) $this->fail('FORM_LIST_REQUEST_INVALID');
+        if (!is_array($ids) || !array_is_list($ids) || (!$ids && !$categoryLocation && (!$resource || $location === 'row')) || ($categoryLocation && $ids !== []) || count($ids) > 200) $this->fail('FORM_LIST_REQUEST_INVALID');
         foreach ($ids as $id) if ((!is_string($id) && !is_int($id)) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/', (string) $id)) $this->fail('FORM_LIST_REQUEST_INVALID');
         if (count(array_unique(array_map('strval', $ids))) !== count($ids)) $this->fail('FORM_LIST_REQUEST_INVALID');
         if (($location === 'row' && count($ids) !== 1) || ($location === 'toolbar' && !$definition['batch'])) $this->fail('FORM_LIST_BATCH_UNSUPPORTED');
@@ -55,7 +66,7 @@ final class ListButtonExecutor
         if ($loadedIds !== $expectedIds) $this->fail('FORM_LIST_RECORD_FORBIDDEN');
         $input = $request['input'] ?? [];
         $this->validateInput($button['interaction']['fields'] ?? [], $input);
-        $conditionRecords = $categoryLocation ? [$snapshot['categoryContext']['record'] ?? []] : $records;
+        $conditionRecords = $categoryLocation ? [$snapshot['categoryContext']['record'] ?? []] : ($records ?: [[]]);
         foreach ($conditionRecords as $record) {
             if ((isset($button['visibleWhen']) && !$this->condition($button['visibleWhen'], $record))
                 || (isset($button['disabledWhen']) && $this->condition($button['disabledWhen'], $record))) $this->fail('FORM_LIST_BUTTON_DISABLED');
@@ -78,6 +89,18 @@ final class ListButtonExecutor
                 $parameters[$name] = $records[0][$field];
             } else $this->fail('FORM_LIST_BINDING_UNSUPPORTED');
         }
+        if ($resource) {
+            $result = match ($resourceType) {
+                'navigate', 'external' => $this->resources->resolve($button['action'], $parameters, $permission),
+                'copy' => ['type' => 'copy', 'text' => $parameters['text']],
+                'download' => ['type' => 'download', 'key' => 'export'],
+                'refresh' => ['type' => 'refresh'],
+            };
+            if ($resourceType === 'copy' && (!is_scalar($result['text']) || strlen((string) $result['text']) > 10000)) $this->fail('FORM_LIST_PARAMETER_INVALID');
+            if ($resourceType === 'copy') $result['text'] = (string) $result['text'];
+            return ['status' => 'success', 'result' => $result];
+        }
+        if (strlen($this->confirmationSecret) < 32) $this->fail('FORM_LIST_CONFIRMATION_UNAVAILABLE');
         if (array_diff(array_keys($parameters), $definition['parameters']) || array_diff($definition['parameters'], array_keys($parameters))) $this->fail('FORM_LIST_PARAMETER_INVALID');
         foreach ($definition['parameterTypes'] as $name => $type) {
             $value = $parameters[$name];

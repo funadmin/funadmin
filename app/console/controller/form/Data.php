@@ -249,8 +249,7 @@ final class Data extends AdminApiController
     {
         $payload = $this->request->post();
         $this->request->withPost(['buttonId' => $payload['buttonId'] ?? '', 'input' => '[REDACTED]']);
-        return $this->execute(fn (): array => $this->data->executeListButton($key, $payload,
-            \app\common\form\registry\FormRegistryFactory::production()->listExecutor()));
+        return $this->execute(fn (): array => $this->data->executeListButton($key, $payload));
     }
 
     #[Post('action/:key/:action')]

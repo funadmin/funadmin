@@ -5,16 +5,20 @@ import MemberFormDialog from './MemberFormDialog.vue';
 
 const api = vi.hoisted(() => ({ options: vi.fn(), create: vi.fn(), update: vi.fn(), validate: vi.fn(async () => true) }));
 vi.mock('@/api/system/member', () => ({ memberApi: api }));
-vi.mock('@/views/form/components/SchemaForm.vue', () => ({ default: defineComponent({
-  name: 'SchemaForm', props: ['fields', 'values', 'formKey'], setup(_, { expose }) { expose({ validate: api.validate }); }, template: '<div />'
+vi.mock('@/views/form/components/SchemaRenderer.vue', () => ({ default: defineComponent({
+  name: 'SchemaRenderer', props: ['schema', 'values', 'options'], setup(_, { expose }) { expose({ validate: api.validate }); }, template: '<div />'
 }) }));
-const definition = () => ({
-  groups: [{ id: 7, name: '组' }], levels: [{ id: 3, name: '等级' }], tags: [], schema: { schemaVersion: 2, key: 'system_member' },
+const definition = () => {
+  const result = ({
+  groups: [{ id: 7, name: '组' }], levels: [{ id: 3, name: '等级' }], tags: [], schema: { schemaVersion: 2, key: 'system_member', nodes: [] as any[] },
   fields: [
     ['username', 'input', ''], ['mobile', 'input', ''], ['email', 'input', ''], ['group_ids', 'select', [7]],
     ['level_id', 'select', 3], ['tag_ids', 'select', []], ['sex', 'radio', '0'], ['status', 'radio', 1], ['avatar', 'image', '']
   ].map(([field_name, type, default_value]) => ({ field_name, type, default_value, options_source: { kind: 'static', options: field_name === 'group_ids' ? [{ label: '组', value: 7 }] : field_name === 'level_id' ? [{ label: '等级', value: 3 }] : [] } }))
 });
+  result.schema.nodes = result.fields.map(field => ({ id: field.field_name, field: field.field_name, type: field.type, kind: 'field', title: field.field_name, defaultValue: field.default_value, children: [] }));
+  return result;
+};
 const render = (row: any = null) => mount(MemberFormDialog, {
   props: { modelValue: true, row, options: definition() as any },
   global: { stubs: {
@@ -28,9 +32,9 @@ beforeEach(() => { vi.clearAllMocks(); api.options.mockResolvedValue(definition(
 describe('会员 Builder 弹窗', () => {
   it('加载九字段默认值，保留提示并以 camelCase 专用 payload 提交', async () => {
     const wrapper = render(); await flushPromises();
-    const schema = wrapper.findComponent({ name: 'SchemaForm' });
+    const schema = wrapper.findComponent({ name: 'SchemaRenderer' });
     expect(schema.exists()).toBe(true);
-    expect(schema.props('fields')).toHaveLength(9);
+    expect(schema.props('schema').nodes).toHaveLength(9);
     expect(wrapper.text()).toContain('不设置密码');
     Object.assign(schema.props('values'), { username: '会员', mobile: '123456', email: '' });
     await wrapper.findAll('button').find((b) => b.text() === '确定')!.trigger('click'); await flushPromises();
@@ -40,9 +44,9 @@ describe('会员 Builder 弹窗', () => {
   it('失败时不展示旧定义，提供重试', async () => {
     api.options.mockRejectedValueOnce(new Error('失败'));
     const wrapper = render(); await flushPromises();
-    expect(wrapper.findComponent({ name: 'SchemaForm' }).exists()).toBe(false);
+    expect(wrapper.findComponent({ name: 'SchemaRenderer' }).exists()).toBe(false);
     await wrapper.findAll('button').find((b) => b.text() === '重试')!.trigger('click'); await flushPromises();
-    expect(wrapper.findComponent({ name: 'SchemaForm' }).exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'SchemaRenderer' }).exists()).toBe(true);
     wrapper.unmount();
   });
   it('切换会员丢弃迟到响应，不覆盖新会员', async () => {
@@ -50,10 +54,10 @@ describe('会员 Builder 弹窗', () => {
     const wrapper = render();
     await wrapper.setProps({ row: { id: 2, username: '第二位', mobile: '123456', email: '', groupIds: [99], groupNames: ['旧组'], tagIds: [], tagNames: [], levelId: 3, levelName: '等级', sex: '0', status: 1, avatar: '' } as any });
     await flushPromises(); first.resolve(definition()); await flushPromises();
-    const schema = wrapper.findComponent({ name: 'SchemaForm' });
+    const schema = wrapper.findComponent({ name: 'SchemaRenderer' });
     expect(schema.props('values').username).toBe('第二位');
     expect(schema.props('values').group_ids).toEqual([99]);
-    expect(JSON.stringify(schema.props('fields'))).toContain('不可用');
+    expect(JSON.stringify(schema.props('options'))).toContain('不可用');
     expect(wrapper.text()).toContain('不可用');
     wrapper.unmount();
   });
@@ -66,7 +70,7 @@ describe('会员 Builder 弹窗', () => {
     const pending = deferred(); api.options.mockReturnValueOnce(pending.promise);
     await wrapper.setProps({ row: null }); await wrapper.setProps({ modelValue: false });
     pending.resolve(definition()); await flushPromises();
-    expect(wrapper.findComponent({ name: 'SchemaForm' }).exists()).toBe(false);
+    expect(wrapper.findComponent({ name: 'SchemaRenderer' }).exists()).toBe(false);
     wrapper.unmount();
   });
   it('不可用关系阻止提交而不是静默过滤', async () => {
@@ -74,7 +78,7 @@ describe('会员 Builder 弹窗', () => {
     await flushPromises();
     await wrapper.findAll('button').find((b) => b.text() === '确定')!.trigger('click'); await flushPromises();
     expect(api.update).not.toHaveBeenCalled();
-    expect(wrapper.findComponent({ name: 'SchemaForm' }).props('values')).toMatchObject({ group_ids: [99], tag_ids: [88], level_id: 66 });
+    expect(wrapper.findComponent({ name: 'SchemaRenderer' }).props('values')).toMatchObject({ group_ids: [99], tag_ids: [88], level_id: 66 });
     wrapper.unmount();
   });
   it('校验等待期间与请求等待期间均防重复提交', async () => {

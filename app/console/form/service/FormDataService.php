@@ -784,18 +784,24 @@ final class FormDataService
         $source = in_array($location, ['categoryToolbar', 'categoryNode'], true) ? $this->listCategoryRuntime($runtime) : null;
         $catalog = $actions->listCatalog($this->permissionChecker, $location, $target);
         if ($source) $catalog = array_filter($catalog, static fn (array $action): bool => $action['effect'] === 'read' || in_array($action['permission'], $source['writePermissions'][$location], true));
-        return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog]
+        $resources = \app\common\form\registry\FormRegistryFactory::production()->listResources();
+                return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog, 'resources' => (object) $resources->catalog($this->permissionChecker), 'resourceHash' => $resources->hash()]
             + ($source ? ['sourceSchemaHash' => $source['schemaHash'], 'sourceKey' => (string) $source['form']->form_key] : []);
     }
 
     /** 只接受按钮请求；模块、身份、记录和发布版本均由服务端取得。 */
-    public function executeListButton(string $key, array $request, \app\common\form\action\ListButtonExecutor $executor): array
+    public function executeListButton(string $key, array $request, ?\app\common\form\action\ListButtonExecutor $executor = null): array
     {
         $adminId = (int) session('admin.id');
         if ($adminId <= 0) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime = $this->listActionRuntime($key, 'listaction');
         if (!is_string($request['schemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
         $this->assertPublishedSchemaHash($request['schemaHash'], $runtime['schemaHash']);
+        $buttons = $runtime['schema']['list']['buttons'][$request['location'] ?? ''] ?? [];
+        $button = array_values(array_filter($buttons, static fn (array $b): bool => ($b['id'] ?? '') === ($request['buttonId'] ?? null)))[0] ?? [];
+        $factory = \app\common\form\registry\FormRegistryFactory::production();
+        $executor ??= ($button['action']['type'] ?? '') === 'registered' ? $factory->listExecutor() : $factory->resourceExecutor();
+        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->productionBinding['route'] . '/export' : 'console/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
         $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
         if ($categoryLocation || array_key_exists('category', $request)) {

@@ -55,6 +55,16 @@ final class FormRegistryFactory
             new \app\common\form\action\ListActionStore($pdo, $store['table']));
     }
 
+    public function listResources(): \app\common\form\action\ListResourceRegistry
+    {
+        return new \app\common\form\action\ListResourceRegistry($this->section('list_resources'));
+    }
+
+    public function resourceExecutor(): \app\common\form\action\ListButtonExecutor
+    {
+        return new \app\common\form\action\ListButtonExecutor($this->actions(), '', resources: $this->listResources());
+    }
+
     public function dataSources(): FormDataSourceRegistry
     {
         return FormDataSourceRegistry::core($this->section('data_sources'));

@@ -8,14 +8,15 @@ export interface PageAction extends Omit<FormListButton, 'visibleWhen' | 'disabl
   inactiveColor?: FormListButton['color']; selectionCount?: boolean;
 }
 export interface PageColumn {
-  key: string; label: string; prop?: string; type?: 'selection'; width?: number; minWidth?: number;
+  key: string; label: string; prop?: string; type?: 'selection'; width?: number; minWidth?: number; sortable?: boolean;
   align?: 'left' | 'center' | 'right'; fixed?: 'left' | 'right'; slot?: string; formatter?: string; visibleWhen?: PageCondition;
 }
-export interface PageSearch { field: string; label: string; type: 'input' | 'select'; placeholder?: string; options?: { label: string; value: string | number }[] }
+export interface PageSearch { field: string; label: string; type: 'input' | 'select' | 'date' | 'range'; placeholder?: string; options?: { label: string; value: string | number }[] }
 export interface PageSchema {
-  list?: Pick<FormListConfiguration, 'category' | 'leftTree' | 'buttons'>;
+  primaryKey?: string;
+  list?: Pick<FormListConfiguration, 'category' | 'leftTree' | 'buttons' | 'tree' | 'tools'>;
   pageSchemaVersion: 1; key: string; search: PageSearch[]; columns: PageColumn[];
-  toolbar: PageAction[]; rowActions: PageAction[]; pagination: { pageSize: number; pageSizes: number[] };
+  toolbar: PageAction[]; rowActions: PageAction[]; pagination: { pageSize: number; pageSizes: number[]; enabled?: boolean };
 }
 export interface PageHandler { version: string; permission?: string; run: (row?: any) => unknown; available?: (row?: any) => boolean }
 export interface PageContext { values: Record<string, unknown>; permissions: string[]; handlers: Record<string, PageHandler>; row?: any }
@@ -32,20 +33,21 @@ const condition = (value: unknown) => {
 };
 /** 仅接收闭合的数据协议，绝不把服务端对象展开为组件事件或请求参数。 */
 export function parsePageSchema(value: unknown): PageSchema {
-  const p = record(value, ['pageSchemaVersion', 'key', 'search', 'columns', 'toolbar', 'rowActions', 'pagination', 'list']);
+  const p = record(value, ['pageSchemaVersion', 'key', 'search', 'columns', 'toolbar', 'rowActions', 'pagination', 'list', 'primaryKey']);
   if (p.pageSchemaVersion !== 1 || !identifier(p.key)) fail();
+  if (owns(p, 'primaryKey') && !identifier(p.primaryKey)) fail();
   for (const section of ['search', 'columns', 'toolbar', 'rowActions']) {
     const items = p[section]; if (!Array.isArray(items) || items.length > 100) fail();
     const ids = new Set<string>();
     for (const raw of items) {
       const keys = section === 'search' ? ['field', 'label', 'type', 'placeholder', 'options'] : section === 'columns'
-        ? ['key', 'label', 'prop', 'type', 'width', 'minWidth', 'align', 'fixed', 'slot', 'formatter', 'visibleWhen']
+        ? ['key', 'label', 'prop', 'type', 'width', 'minWidth', 'align', 'fixed', 'slot', 'formatter', 'visibleWhen', 'sortable']
         : ['id', 'label', 'icon', 'color', 'permission', 'hidden', 'disabled', 'visibleWhen', 'disabledWhen', 'activeWhen', 'inactiveColor', 'selectionCount', 'action'];
       const item = record(raw, keys); const id = item[section === 'search' ? 'field' : section === 'columns' ? 'key' : 'id'];
       if (!identifier(id) || ids.has(id) || typeof item.label !== 'string') fail(); ids.add(id);
       for (const k of ['visibleWhen', 'disabledWhen', 'activeWhen']) if (owns(item, k)) condition(item[k]);
       if (section === 'search') {
-        if (!['input', 'select'].includes(item.type)) fail();
+        if (!['input', 'select', 'date', 'range'].includes(item.type)) fail();
         if (owns(item, 'placeholder') && typeof item.placeholder !== 'string') fail();
         if (owns(item, 'options')) {
           if (!Array.isArray(item.options)) fail();
@@ -55,6 +57,7 @@ export function parsePageSchema(value: unknown): PageSchema {
         for (const k of ['prop', 'slot', 'formatter']) if (owns(item, k) && !identifier(item[k])) fail();
         for (const k of ['width', 'minWidth']) if (owns(item, k) && (!Number.isInteger(item[k]) || item[k] < 1 || item[k] > 2000)) fail();
         if (owns(item, 'type') && item.type !== 'selection') fail();
+        if (owns(item, 'sortable') && typeof item.sortable !== 'boolean') fail();
         if (owns(item, 'align') && !['left', 'center', 'right'].includes(item.align)) fail();
         if (owns(item, 'fixed') && !['left', 'right'].includes(item.fixed)) fail();
       } else {
@@ -68,7 +71,15 @@ export function parsePageSchema(value: unknown): PageSchema {
     }
   }
   if (owns(p, 'list')) {
-    const list = record(p.list, ['category', 'leftTree', 'buttons']);
+    const list = record(p.list, ['category', 'leftTree', 'buttons', 'tree', 'tools']);
+    if (owns(list, 'tree')) {
+      const tree = record(list.tree, ['enabled', 'parentField']);
+      if (typeof tree.enabled !== 'boolean' || (owns(tree, 'parentField') && !identifier(tree.parentField)) || (tree.enabled && !tree.parentField)) fail();
+    }
+    if (owns(list, 'tools')) {
+      const tools = record(list.tools, ['refresh', 'search', 'columns', 'density', 'fullscreen']);
+      if (Object.values(tools).some(value => typeof value !== 'boolean')) fail();
+    }
     if (owns(list, 'category')) {
       const c = record(list.category, ['enabled', 'field']);
       if (typeof c.enabled !== 'boolean' || (owns(c, 'field') && !identifier(c.field))) fail();
@@ -99,7 +110,8 @@ export function parsePageSchema(value: unknown): PageSchema {
       for (const location of ['categoryToolbar', 'categoryNode'] as const) resolveListButtons(list, location, []);
     }
   }
-  const pagination = record(p.pagination, ['pageSize', 'pageSizes']);
+  const pagination = record(p.pagination, ['pageSize', 'pageSizes', 'enabled']);
+  if (owns(pagination, 'enabled') && typeof pagination.enabled !== 'boolean') fail();
   if (!Array.isArray(pagination.pageSizes) || !pagination.pageSizes.length || pagination.pageSizes.some((n: unknown) => !Number.isInteger(n) || Number(n) < 1 || Number(n) > 1000) || !pagination.pageSizes.includes(pagination.pageSize)) fail();
   return JSON.parse(JSON.stringify(p)) as PageSchema;
 }

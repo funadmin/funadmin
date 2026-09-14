@@ -14,19 +14,25 @@ final class Page
         $this->definition = ['pageSchemaVersion' => 1, 'key' => $key, 'search' => [], 'columns' => [], 'toolbar' => [], 'rowActions' => [], 'pagination' => ['pageSize' => 20, 'pageSizes' => [10, 20, 50, 100]]];
     }
     public static function make(string $key): self { return new self($key); }
+    public function primaryKey(string $field): self { $this->definition['primaryKey'] = $field; return $this; }
     public function list(array $configuration): self { $this->definition['list'] = $configuration; return $this; }
     public function search(array $items): self { $this->definition['search'] = $items; return $this; }
     public function columns(array $items): self { $this->definition['columns'] = $items; return $this; }
     public function toolbar(array $items): self { $this->definition['toolbar'] = $items; return $this; }
     public function rowActions(array $items): self { $this->definition['rowActions'] = $items; return $this; }
-    public function pagination(int $pageSize, array $pageSizes): self { $this->definition['pagination'] = compact('pageSize', 'pageSizes'); return $this; }
+    public function pagination(int $pageSize, array $pageSizes, ?bool $enabled = null): self {
+            $this->definition['pagination'] = compact('pageSize', 'pageSizes');
+            if ($enabled !== null) $this->definition['pagination']['enabled'] = $enabled;
+            return $this;
+        }
     public function compile(): array { self::validate($this->definition); return $this->definition; }
 
     public static function validate(array $page): void
     {
-        self::keys($page, ['pageSchemaVersion', 'key', 'search', 'columns', 'toolbar', 'rowActions', 'pagination', 'list']);
+        self::keys($page, ['pageSchemaVersion', 'key', 'search', 'columns', 'toolbar', 'rowActions', 'pagination', 'list', 'primaryKey']);
         if (($page['pageSchemaVersion'] ?? null) !== 1) self::fail();
         self::identifier($page['key'] ?? null);
+        if (array_key_exists('primaryKey', $page)) self::identifier($page['primaryKey']);
         foreach (['search', 'columns', 'toolbar', 'rowActions'] as $section) {
             $items = $page[$section] ?? null;
             if (!is_array($items) || !array_is_list($items) || count($items) > 100) self::fail();
@@ -41,7 +47,7 @@ final class Page
                 foreach (['visibleWhen', 'disabledWhen', 'activeWhen'] as $condition) if (isset($item[$condition])) self::condition($item[$condition]);
                 if ($section === 'search') {
                     self::keys($item, ['field', 'label', 'type', 'placeholder', 'options']);
-                    if (!in_array($item['type'] ?? null, ['input', 'select'], true)) self::fail();
+                    if (!in_array($item['type'] ?? null, ['input', 'select', 'date', 'range'], true)) self::fail();
                     if (isset($item['placeholder']) && !is_string($item['placeholder'])) self::fail();
                     if (isset($item['options'])) {
                         if (!is_array($item['options']) || !array_is_list($item['options'])) self::fail();
@@ -52,10 +58,11 @@ final class Page
                         }
                     }
                 } elseif ($section === 'columns') {
-                    self::keys($item, ['key', 'label', 'prop', 'type', 'width', 'minWidth', 'align', 'fixed', 'slot', 'formatter', 'visibleWhen']);
+                    self::keys($item, ['key', 'label', 'prop', 'type', 'width', 'minWidth', 'align', 'fixed', 'slot', 'formatter', 'visibleWhen', 'sortable']);
                     foreach (['prop', 'slot', 'formatter'] as $key) if (isset($item[$key])) self::identifier($item[$key]);
                     foreach (['width', 'minWidth'] as $key) if (isset($item[$key]) && (!is_int($item[$key]) || $item[$key] < 1 || $item[$key] > 2000)) self::fail();
                     if (isset($item['type']) && $item['type'] !== 'selection') self::fail();
+                    if (array_key_exists('sortable', $item) && !is_bool($item['sortable'])) self::fail();
                     if (isset($item['align']) && !in_array($item['align'], ['left', 'center', 'right'], true)) self::fail();
                     if (isset($item['fixed']) && !in_array($item['fixed'], ['left', 'right'], true)) self::fail();
                 } else {
@@ -71,7 +78,19 @@ final class Page
         if (array_key_exists('list', $page)) {
             if (!is_array($page['list'])) self::fail();
             $list = $page['list'];
-            self::keys($list, ['category', 'leftTree', 'buttons']);
+            self::keys($list, ['category', 'leftTree', 'buttons', 'tree', 'tools']);
+            if (array_key_exists('tree', $list)) {
+                $tree = $list['tree'];
+                if (!is_array($tree)) self::fail();
+                self::keys($tree, ['enabled', 'parentField']);
+                if (!is_bool($tree['enabled'] ?? null)) self::fail();
+                if (array_key_exists('parentField', $tree) || $tree['enabled']) self::identifier($tree['parentField'] ?? null);
+            }
+            if (array_key_exists('tools', $list)) {
+                if (!is_array($list['tools'])) self::fail();
+                self::keys($list['tools'], ['refresh', 'search', 'columns', 'density', 'fullscreen']);
+                foreach ($list['tools'] as $enabled) if (!is_bool($enabled)) self::fail();
+            }
             if (isset($list['category'])) {
                 $category = $list['category'];
                 if (!is_array($category)) self::fail();
@@ -94,7 +113,8 @@ final class Page
             } catch (\app\common\form\schema\FormSchemaException $e) { self::fail(); }
         }
         $pagination = $page['pagination'] ?? [];
-        self::keys($pagination, ['pageSize', 'pageSizes']);
+        self::keys($pagination, ['pageSize', 'pageSizes', 'enabled']);
+        if (array_key_exists('enabled', $pagination) && !is_bool($pagination['enabled'])) self::fail();
         if (!is_array($pagination['pageSizes'] ?? null) || !array_is_list($pagination['pageSizes']) || !$pagination['pageSizes']) self::fail();
         foreach ($pagination['pageSizes'] as $size) if (!is_int($size) || $size < 1 || $size > 1000) self::fail();
         if (!in_array($pagination['pageSize'] ?? null, $pagination['pageSizes'], true)) self::fail();

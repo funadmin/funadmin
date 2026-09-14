@@ -16,6 +16,7 @@ return [
         'password' => \think\facade\Env::get('form.list_action_store_password', ''),
         'table' => \think\facade\Env::get('form.list_action_store_table', 'fun_form_list_action_execution'),
     ],
+    'list_resources' => [],
     'idempotency_ttl' => 86400,
     'action_timeout_ms' => 3000,
     'action_max_chain' => 5,

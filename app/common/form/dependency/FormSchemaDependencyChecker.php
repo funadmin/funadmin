@@ -18,7 +18,8 @@ final class FormSchemaDependencyChecker
         private readonly FormDataSourceRegistry $dataSources,
         private readonly FormAsyncValidatorRegistry $asyncValidators,
         private readonly PluginFormComponentRegistry $pluginComponents,
-        private readonly mixed $listAdapterReady = null
+        private readonly mixed $listAdapterReady = null,
+                private readonly ?\app\common\form\action\ListResourceRegistry $listResources = null
     ) {
     }
 
@@ -50,6 +51,23 @@ final class FormSchemaDependencyChecker
                 $action = $button['action'];
                 $path = '/list/buttons/' . $this->escape((string) $location) . '/' . $index;
                 $type = $action['type'] ?? '';
+                if (in_array($type, ['navigate', 'external', 'copy', 'download', 'refresh'], true) && in_array($host, ['core-dynamic', 'core-generated'], true)) {
+                    $resources = $this->listResources ?? new \app\common\form\action\ListResourceRegistry();
+                    $dependencies['listResources'] = ['hash' => $resources->hash(), 'host' => $host, 'version' => '1'];
+                    try {
+                        $params = $button['params'] ?? [];
+                        if (in_array($type, ['navigate', 'external'], true)) {
+                            $r = $resources->definition($action, static fn (): bool => true);
+                            if (($action['capabilityVersion'] ?? '') !== $r['capabilityVersion'] || ($button['permission'] ?? '') !== $r['permission'] || array_diff(array_keys($params), array_merge($r['params'], $r['query'])) || array_diff($r['params'], array_keys($params))) throw new \InvalidArgumentException();
+                        } elseif ($type === 'copy') {
+                            if (!in_array($location, ['row', 'categoryNode'], true) || array_keys($params) !== ['text'] || ($params['text']['source'] ?? '') !== ($location === 'row' ? 'row' : 'category')) throw new \InvalidArgumentException();
+                        } elseif ($params || ($type === 'download' && (($action['key'] ?? '') !== 'export' || $location !== 'toolbar'))) throw new \InvalidArgumentException();
+                        continue;
+                    } catch (\InvalidArgumentException) {
+                        $this->diagnostic($diagnostics, $path . '/action', 'FORM_LIST_RESOURCE_INVALID', '受控资源未注册、版本过期或绑定不合法');
+                        continue;
+                    }
+                }
                 if ($type === 'registered') {
                     $key = (string) ($action['key'] ?? '');
                     $definition = $this->actions->definitions()[$key] ?? null;
