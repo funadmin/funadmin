@@ -435,7 +435,7 @@ final class Ai extends AdminApiController
     private function run(callable $operation): Response
     {
         try {
-            return $this->ok(data: $operation());
+            return $this->ok(data: \app\console\ai\service\AiAuditService::publicValue($operation()));
         } catch (Throwable $exception) {
             if ($exception instanceof \think\exception\HttpResponseException) return $exception->getResponse();
             if ($exception instanceof \think\exception\HttpException) return (new \app\ExceptionHandle(app()))->render($this->request, $exception);

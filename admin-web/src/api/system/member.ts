@@ -1,4 +1,6 @@
 import http from '@/utils/http';
+import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaDocument } from '@/views/form/schema/types';
 
 const PREFIX = '/system/member';
 
@@ -11,6 +13,8 @@ export interface MemberOptions {
   groups: MemberOption[];
   levels: MemberOption[];
   tags: MemberOption[];
+  schema?: FormSchemaDocument;
+  fields?: FormFieldDef[];
 }
 
 export interface MemberModel {

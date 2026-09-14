@@ -56,7 +56,7 @@ const fieldNode = (field: FormFieldDef): FormSchemaNode => ({
 
 const needsRemote = (field: FormFieldDef) =>
   ['select', 'selectV2', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user'].includes(field.type) &&
-  ((field.options_source?.mode !== 'static') || (field.options_source == null && field.relation_type === 'belongs_to'));
+  ((field.options_source?.kind ?? field.options_source?.mode) !== 'static');
 
 const optionsOf = (field: FormFieldDef) => {
   if (needsRemote(field)) return remoteOptions.value[field.field_name] ?? [];
@@ -76,6 +76,13 @@ const rules = computed<FormRules>(() => {
     if (typeof extra.pattern === 'string' && extra.pattern) {
       items.push({ pattern: new RegExp(extra.pattern), message: `${field.label}格式不正确`, trigger: 'blur' });
     }
+    const type = extra.email === true ? 'email' : extra.type;
+    const bounds: Record<string, unknown> = {};
+    if (typeof type === 'string' && ['string', 'number', 'array', 'email', 'url', 'integer', 'boolean', 'object'].includes(type)) bounds.type = type;
+    for (const [source, target] of Object.entries({ min: 'min', max: 'max', minLength: 'min', maxLength: 'max', minlen: 'min', maxlen: 'max', length: 'len' })) {
+      if (typeof extra[source] === 'number') bounds[target] = extra[source];
+    }
+    if (Object.keys(bounds).length) items.push({ ...bounds, message: `${field.label}格式或长度不正确`, trigger: ['blur', 'change'] });
     if (items.length) result[field.field_name] = items;
   }
   return result;
@@ -103,7 +110,7 @@ onMounted(async () => {
 });
 
 const validate = async () => {
-  await loadPluginFormComponents();
+  if (props.fields.some((field) => field.type.includes(':'))) await loadPluginFormComponents();
   assertFieldComponents(props.fields);
   return formRef.value?.validate();
 };

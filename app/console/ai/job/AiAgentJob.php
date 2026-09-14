@@ -138,12 +138,13 @@ final class AiAgentJob
                 $messages = (array)($task['output']['resume']['messages'] ?? $messages);
                 $messages[] = ['role'=>'tool','tool_call_id'=>(string)$record['idempotency_key'],'content'=>json_encode($resumed, JSON_THROW_ON_ERROR)];
             }
+            $privateMetadata = [];
             $result = $orchestrator->run(
                 $messages,
                 (array) (($task['input']['tools'] ?? [])),
                 ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget'], 'usedTokens'=>(int) ($task['output']['usage']['totalTokens'] ?? 0), 'usedRounds'=>(int) ($task['output']['rounds'] ?? 0)],
                 fn (): bool => ($this->store->task($taskId)['status'] ?? '') === 'cancelled',
-                function (string $type, array $payload) use ($taskId, $task): array {
+                function (string $type, array $payload) use ($taskId, $task, &$privateMetadata): array {
                     if ($type === 'provider.request') {
                         $latest = $this->store->task($taskId);
                         if (($latest['status'] ?? '') !== 'running') throw new \app\common\ai\provider\AiProviderException('cancelled', '任务已取消');
@@ -155,12 +156,17 @@ final class AiAgentJob
                         $this->store->appendMessage((int) $task['conversation_id'], [
                             'role' => 'assistant',
                             'content' => [['type' => 'text', 'text' => $payload['content'] ?? '']],
-                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null],
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null] + $privateMetadata,
                         ]);
                     }
                     return $this->store->appendEvent($taskId, $type, $payload);
                 },
-                $context
+                $context,
+                static function (array $message, array $history) use (&$privateMetadata): void {
+                    $privateMetadata = [];
+                    if (isset($message['protocol_context'])) $privateMetadata['protocol_context'] = $message['protocol_context'];
+                    if (empty($message['tool_calls']) && array_filter($history, static fn (array $item): bool => isset($item['protocol_context']))) $privateMetadata['protocol_history'] = $history;
+                }
             );
             $result['provider_state'] = (array) ($this->store->task($taskId)['output']['provider_state'] ?? []);
             if ($result['status'] === 'awaiting_approval') {

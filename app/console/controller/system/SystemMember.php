@@ -14,6 +14,7 @@ use app\console\model\MemberGroupRelation;
 use app\console\model\MemberLevel;
 use app\console\model\MemberTag;
 use app\console\model\MemberTagRelation;
+use app\console\service\MemberFormDefinition;
 use app\common\service\identity\MemberIdentityAdapter;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
@@ -66,11 +67,12 @@ class SystemMember extends AdminApiController
     #[Get('options')]
     public function options(): Response
     {
-        return $this->ok(data: [
+        $options = [
             'groups' => MemberGroup::where('status', 1)->order('id', 'asc')->field('id,name')->select()->toArray(),
             'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
             'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
-        ]);
+        ];
+        return $this->ok(data: $options + MemberFormDefinition::build($options));
     }
 
     #[Post('')]

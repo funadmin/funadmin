@@ -105,7 +105,7 @@ final class AiConversationService
         if ($more) array_pop($rows);
         $edge = $rows ? end($rows) : null;
         if (!$forward) $rows = array_reverse($rows);
-        return ['items'=>$rows, 'has_more'=>$more, 'next_cursor'=>$more && $edge ? $edge['sequence'] . ':' . $edge['id'] : null];
+        return ['items'=>AiAuditService::publicValue($rows), 'has_more'=>$more, 'next_cursor'=>$more && $edge ? $edge['sequence'] . ':' . $edge['id'] : null];
     }
 
     private function pageInteger(mixed $value, int $minimum, int $maximum = PHP_INT_MAX): int
@@ -232,6 +232,13 @@ final class AiConversationService
             $role = $row['role'] ?? '';
             if (!in_array($role, ['user', 'assistant'], true)) continue;
             if ($role === 'assistant' && !empty($row['metadata']['tool_calls'])) continue;
+            if ($role === 'assistant' && isset($row['metadata']['protocol_history'])) {
+                $history = $row['metadata']['protocol_history'];
+                $bytes += strlen(json_encode($history, JSON_THROW_ON_ERROR));
+                if ($bytes > 1024 * 1024) throw new InvalidArgumentException('历史文本超过请求上限', 413);
+                $messages = array_merge($messages, $history);
+                continue;
+            }
             $blocks = $row['content'] ?? [];
             // 兼容旧版数据库文本对象，但绝不把旧消息元数据转成模型指令。
             if (is_array($blocks) && array_keys($blocks) === ['text']) $blocks = [['type'=>'text', 'text'=>$blocks['text']]];
@@ -241,7 +248,9 @@ final class AiConversationService
                 : implode("\n", array_column($blocks, 'text'));
             $bytes += is_string($text) ? strlen($text) : strlen(json_encode($text, JSON_THROW_ON_ERROR));
             if ($bytes > 1024 * 1024) throw new InvalidArgumentException('历史文本超过请求上限', 413);
-            $messages[] = ['role'=>$role, 'content'=>$text];
+            $message = ['role'=>$role, 'content'=>$text];
+            if ($role === 'assistant' && isset($row['metadata']['protocol_context'])) $message['protocol_context'] = $row['metadata']['protocol_context'];
+            $messages[] = $message;
         }
         return $this->createTask($conversationId, $adminId, array_replace($input, ['input'=>[
             'messages'=>$messages, 'tools'=>[], 'history_sequence'=>(int) $target['sequence'],
@@ -282,7 +291,7 @@ final class AiConversationService
     public function listMessages(int $conversationId, int $adminId): array
     {
         $this->ownedConversation($conversationId, $adminId);
-        return $this->store->messages($conversationId);
+        return AiAuditService::publicValue($this->store->messages($conversationId));
     }
 
     public function createTask(int $conversationId, int $adminId, array $input): array
@@ -322,7 +331,7 @@ final class AiConversationService
     {
         $task = $this->store->task($taskId);
         if (!$task || !$this->store->conversation((int) $task['conversation_id'], $adminId)) throw new RuntimeException('资源不存在', 404);
-        return $task;
+        return AiAuditService::publicValue($task);
     }
 
     public function cancelTask(int $taskId, int $adminId): bool

@@ -15,9 +15,24 @@ final class AiAuditService
     {
     }
 
+    /** 对外投影直接删除私有协议字段，不修改内部持久化快照。 */
+    public static function publicValue(mixed $value): mixed
+    {
+        if (!is_array($value)) return $value;
+        if (in_array($value['type'] ?? null, ['thinking','redacted_thinking','reasoning'], true)) return '[REDACTED]';
+        $result = [];
+        foreach ($value as $key => $item) {
+            if (preg_match('/^(?:protocol_?context|protocol_history|reasoning_content|reasoning|thinking|signature|encrypted_content)$/i', (string) $key)) continue;
+            $result[$key] = self::publicValue($item);
+        }
+        return $result;
+    }
+
     public function redact(mixed $value): mixed
     {
         if (is_array($value)) {
+            $value = self::publicValue($value);
+            if (!is_array($value)) return $value;
             $result = [];
             foreach ($value as $key => $item) {
                 $result[$key] = preg_match(self::SENSITIVE_KEYS, (string) $key) === 1 ? '[REDACTED]' : $this->redact($item);

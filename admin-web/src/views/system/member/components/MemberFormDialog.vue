@@ -1,163 +1,103 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="row?.id ? '编辑会员' : '新增会员'"
-    width="680px"
-    :close-on-click-modal="false"
-    destroy-on-close
-    @closed="resetForm"
-  >
-    <el-alert
-      v-if="!row?.id"
-      title="后台新建会员不设置密码，会员需后续通过前台找回或设置密码后才能登录。"
-      type="warning"
-      :closable="false"
-      class="mb-4"
-    />
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="92px">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model="form.username" maxlength="80" show-word-limit />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="手机号" prop="mobile">
-            <el-input v-model="form.mobile" maxlength="20" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="form.email" maxlength="60" placeholder="选填" />
-      </el-form-item>
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="会员组" prop="groupIds">
-            <el-select v-model="form.groupIds" multiple collapse-tags collapse-tags-tooltip class="w-full" placeholder="请选择会员组">
-              <el-option v-for="item in options.groups" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="会员等级" prop="levelId">
-            <el-select v-model="form.levelId" class="w-full" placeholder="请选择会员等级">
-              <el-option v-for="item in options.levels" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="会员标签" prop="tagIds">
-        <el-select v-model="form.tagIds" multiple collapse-tags collapse-tags-tooltip clearable class="w-full" placeholder="请选择会员标签">
-          <el-option v-for="item in options.tags" :key="item.id" :label="item.name" :value="item.id" />
-        </el-select>
-      </el-form-item>
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="性别" prop="sex">
-            <el-radio-group v-model="form.sex">
-              <el-radio value="0">保密</el-radio>
-              <el-radio value="1">男</el-radio>
-              <el-radio value="2">女</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="状态" prop="status">
-            <el-radio-group v-model="form.status">
-              <el-radio :value="1">启用</el-radio>
-              <el-radio :value="0">停用</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="头像" prop="avatar">
-        <Upload v-model="form.avatar" type="image" biz-type="avatar" :max-size="2" hint="支持常见图片格式，最大 2MB" />
-      </el-form-item>
-    </el-form>
+  <el-dialog v-model="visible" :title="row?.id ? '编辑会员' : '新增会员'" width="680px" :close-on-click-modal="false" destroy-on-close>
+    <el-alert v-if="!row?.id" title="后台新建会员不设置密码，会员需后续通过前台找回或设置密码后才能登录。" type="warning" :closable="false" class="mb-4" />
+    <el-skeleton v-if="loading" :rows="6" animated />
+    <template v-else-if="loadError">
+      <el-alert :title="loadError" type="error" :closable="false" />
+      <el-button class="mt-4" @click="loadDefinition">重试</el-button>
+    </template>
+    <template v-else-if="definition">
+      <el-alert v-if="unavailable" title="存在已停用、已删除或不可用的会员关系，原值已保留，请重新选择后保存。" type="warning" :closable="false" class="mb-4" />
+      <SchemaForm :key="generation" ref="formRef" :form-key="definition.schema!.key" :fields="fields" :values="values" />
+      <p class="text-xs text-[var(--el-text-color-secondary)]">头像支持常见图片格式，最大 2MB</p>
+    </template>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">确定</el-button>
+      <el-button type="primary" :loading="saving" :disabled="loading || !!loadError || !definition" @click="onSubmit">确定</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
-import type { FormInstance, FormRules } from 'element-plus';
-import Upload from '@/components/Upload/index.vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { memberApi, type MemberModel, type MemberOptions, type MemberPayload } from '@/api/system/member';
+import type { FormFieldDef } from '@/api/form';
+import SchemaForm from '@/views/form/components/SchemaForm.vue';
 
-const props = withDefaults(defineProps<{
-  modelValue: boolean;
-  row?: MemberModel | null;
-  options: MemberOptions;
-}>(), { row: null });
-const emit = defineEmits<{
-  (event: 'update:modelValue', value: boolean): void;
-  (event: 'success'): void;
-}>();
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-});
-const formRef = ref<FormInstance>();
+const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions }>(), { row: null });
+const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
+const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
+const formRef = ref<InstanceType<typeof SchemaForm>>();
+const definition = ref<MemberOptions>();
+const fields = ref<FormFieldDef[]>([]);
+const values = ref<Record<string, any>>({});
+const loading = ref(false);
+const loadError = ref('');
 const saving = ref(false);
-const initialForm = (): MemberPayload => ({
-  username: '', mobile: '', email: '', sex: '0', groupIds: [], tagIds: [], levelId: 0, avatar: '', status: 1
-});
-const form = reactive<MemberPayload>(initialForm());
-const rules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 80, message: '长度为 2 至 80 个字符', trigger: 'blur' }
-  ],
-  mobile: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^[0-9+\- ]{6,20}$/, message: '请输入 6 至 20 位有效手机号', trigger: 'blur' }
-  ],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
-  groupIds: [{ type: 'array', required: true, min: 1, message: '请选择会员组', trigger: 'change' }],
-  levelId: [{ required: true, type: 'number', min: 1, message: '请选择会员等级', trigger: 'change' }]
-};
+const generation = ref(0);
+const relationKeys = ['group_ids', 'tag_ids', 'level_id'] as const;
+const unavailable = computed(() => relationKeys.some((key) => {
+  const current = key === 'level_id' ? [values.value[key]] : values.value[key] ?? [];
+  const options = definition.value?.fields?.find((field) => field.field_name === key)?.options_source?.options;
+  return Array.isArray(options) && current.some((id: number) => id > 0 && !options.some((option: any) => option.value === id));
+}));
 
-watch(
-  () => [props.modelValue, props.row] as const,
-  ([opened, row]) => {
-    if (!opened) return;
-    Object.assign(form, initialForm());
+/** 每次打开独立加载，旧请求不得覆盖新会员或已关闭弹窗。 */
+async function loadDefinition() {
+  const token = ++generation.value;
+  const row = props.row;
+  definition.value = undefined;
+  fields.value = [];
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const result = await memberApi.options();
+    if (token !== generation.value || !props.modelValue) return;
+    if (result.schema?.schemaVersion !== 2 || !result.fields?.length) throw new Error('会员表单定义不可用');
+    fields.value = result.fields.map((field) => ({ ...field, options_source: field.options_source ? { ...field.options_source, options: [...(field.options_source.options as any[] ?? [])] } : null }));
+    values.value = Object.fromEntries(result.fields.map((field) => [field.field_name, Array.isArray(field.default_value) ? [...field.default_value] : field.default_value]));
     if (row) {
-      Object.assign(form, {
-        username: row.username,
-        mobile: row.mobile,
-        email: row.email,
-        sex: row.sex,
-        groupIds: [...row.groupIds],
-        tagIds: [...row.tagIds],
-        levelId: row.levelId,
-        avatar: row.avatar,
-        status: row.status
-      });
-    } else {
-      form.groupIds = props.options.groups.length ? [props.options.groups[0].id] : [];
-      form.levelId = props.options.levels[0]?.id ?? 0;
+      values.value = { username: row.username, mobile: row.mobile, email: row.email, sex: row.sex, status: row.status, avatar: row.avatar,
+        group_ids: [...row.groupIds], tag_ids: [...row.tagIds], level_id: row.levelId };
+      for (const key of relationKeys) {
+        const field = fields.value.find((item) => item.field_name === key);
+        const options = field?.options_source?.options as Array<{ label: string; value: number }> | undefined;
+        const ids = key === 'level_id' ? [row.levelId] : key === 'group_ids' ? row.groupIds : row.tagIds;
+        const names = key === 'level_id' ? [row.levelName] : key === 'group_ids' ? row.groupNames : row.tagNames;
+        ids.forEach((id, index) => {
+          if (id > 0 && options && !options.some((option) => option.value === id)) options.push({ value: id, label: `${names[index] || '#' + id}（不可用，请重新选择）` });
+        });
+      }
     }
-  },
-  { immediate: true }
-);
-
-function resetForm() {
-  formRef.value?.resetFields();
-  Object.assign(form, initialForm());
+    definition.value = result;
+  } catch {
+    if (token === generation.value) loadError.value = '会员表单加载失败，请重试';
+  } finally {
+    if (token === generation.value) loading.value = false;
+  }
 }
+watch(() => [props.modelValue, props.row] as const, ([opened]) => {
+  if (opened) void loadDefinition();
+  else { generation.value++; definition.value = undefined; }
+}, { immediate: true });
+onBeforeUnmount(() => { generation.value++; });
 
 async function onSubmit() {
-  if (!(await formRef.value?.validate().catch(() => false))) return;
+  if (saving.value || loading.value || loadError.value || !definition.value || unavailable.value) return;
   saving.value = true;
+  const token = generation.value;
+  const id = props.row?.id;
   try {
-    if (props.row?.id) await memberApi.update(props.row.id, form);
-    else await memberApi.create(form);
-    visible.value = false;
+    if (!(await formRef.value?.validate().catch(() => false)) || token !== generation.value || !props.modelValue) return;
+    const value = values.value;
+    const payload: MemberPayload = { username: value.username, mobile: value.mobile, email: value.email, sex: value.sex,
+      groupIds: [...value.group_ids], tagIds: [...value.tag_ids], levelId: value.level_id, avatar: value.avatar, status: value.status };
+    if (id) await memberApi.update(id, payload);
+    else await memberApi.create(payload);
     emit('success');
+    if (token === generation.value) visible.value = false;
+  } catch {
+    // 请求层已显示业务错误，保留输入以便修正后重试。
   } finally {
     saving.value = false;
   }

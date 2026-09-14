@@ -139,9 +139,7 @@ final class OpenAiCompatibleGateway
         $body = $this->protocol->decode($body);
         $choice = $body['choices'][0] ?? [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
-        foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
-            if (!empty($message[$field])) throw new AiProviderException('unsupported_capability', '暂不支持推理内容往返，请使用非思考模式');
-        }
+        // 私有协议上下文与公开文本分离，调用方不得将其写入事件。
 
         if (!empty($message['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('safety_refusal', '模型安全拒绝');
         $actual = $body['model'] ?? $models[$this->candidate];
@@ -150,6 +148,7 @@ final class OpenAiCompatibleGateway
         return [
             'model' => $actual,
             'requestedModel' => $models[$this->candidate],
+            'protocolContext' => isset($message['protocol_context']) ? $message['protocol_context'] + ['origin'=>$this->contextOrigin()] : null,
             'id' => (string) ($body['id'] ?? ''),
             'content' => $message['content'] ?? null,
             'toolCalls' => $this->normalizeToolCalls((array) ($message['tool_calls'] ?? [])),
@@ -158,7 +157,7 @@ final class OpenAiCompatibleGateway
         ];
     }
 
-    public function stream(array $messages, array $tools = []): iterable
+    public function stream(array $messages, array $tools = [], ?callable $privateContext = null): iterable
     {
         $response = $this->request($this->payload($messages, $tools, true), true);
         $buffer = '';
@@ -179,6 +178,7 @@ final class OpenAiCompatibleGateway
         foreach ($calls as $call) {
             yield $this->normalizeStreamToolCall($call);
         }
+        if ($privateContext !== null && isset($state['protocol_context'])) $privateContext($state['protocol_context'] + ['origin'=>$this->contextOrigin()]);
         yield ['type' => 'done'];
     }
 
@@ -244,8 +244,9 @@ final class OpenAiCompatibleGateway
         $cap = AiModelCapabilities::forModel($this->config, $model);
         $pending = [];
         foreach ($messages as &$message) {
+            if (isset($message['protocol_context']['origin']) && !hash_equals($this->contextOrigin(), (string) $message['protocol_context']['origin'])) throw new InvalidArgumentException('私有协议上下文所属连接已变更，请使用原连接或新建会话');
             foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
-                if (array_key_exists($field, $message)) throw new InvalidArgumentException('暂不支持推理消息往返，禁止静默丢弃');
+                if (array_key_exists($field, $message) && ($this->protocol->name !== 'openai-chat' || ($message['role'] ?? '') !== 'assistant')) throw new InvalidArgumentException('推理字段只能用于 Chat assistant 消息');
             }
             if (($message['role'] ?? '') === 'tool') {
                 $id = $message['tool_call_id'] ?? '';
@@ -315,6 +316,12 @@ final class OpenAiCompatibleGateway
         return $payload;
     }
 
+    private function contextOrigin(): string
+    {
+        // 指纹只用于绑定回传目标，不包含明文凭据，也不进入公开事件。
+        return hash_hmac('sha256', $this->protocol->name . "\0" . $this->baseUrl, $this->apiKey);
+    }
+
     private function normalizeToolCalls(array $calls): array
     {
         return array_map(function (array $call): array {
@@ -377,7 +384,10 @@ final class OpenAiCompatibleGateway
             $choice = $decoded['choices'][0] ?? [];
             $delta = (array) ($choice['delta'] ?? []);
             foreach (['reasoning_content', 'reasoning', 'thinking'] as $field) {
-                if (!empty($delta[$field])) throw new AiProviderException('unsupported_capability', '暂不支持推理内容往返，请使用非思考模式');
+                if (!isset($delta[$field])) continue;
+                if (!is_string($delta[$field])) throw new AiProviderException('invalid_response', 'Chat 推理增量必须为字符串');
+                $state['protocol_context'] ??= ['protocol'=>'openai-chat','data'=>[]];
+                $state['protocol_context']['data'][$field] = ($state['protocol_context']['data'][$field] ?? '') . $delta[$field];
             }
             if (!empty($delta['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('safety_refusal', '模型安全拒绝');
             if (isset($choice['finish_reason']) && !in_array($choice['finish_reason'], ['stop','tool_calls'], true)) throw new AiProviderException('invalid_response', 'Chat 流未完整完成');
