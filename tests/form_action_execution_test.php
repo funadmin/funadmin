@@ -147,4 +147,8 @@ $controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/contro
 actionExpect(str_contains($controller, "#[Post('action/:key/:action')]"), '必须提供 POST action/:key/:action endpoint');
 actionExpect(str_contains($controller, "header('Idempotency-Key'"), 'endpoint 必须读取 Idempotency-Key');
 
+actionExpect(method_exists($service, 'listActionCatalog'), '生产服务必须提供安全列表动作目录');
+actionExpect(method_exists($service, 'executeListButton'), '生产服务必须提供发布列表执行入口');
+actionExpect(str_contains($controller, "#[Get('list-actions/:key')]"), '缺少列表目录 API');
+actionExpect(str_contains($controller, "#[Post('list-action/:key')]"), '缺少列表执行 API');
 echo "form action execution tests: PASS\n";

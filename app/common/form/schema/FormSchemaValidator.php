@@ -154,6 +154,7 @@ final class FormSchemaValidator
             }
         };
         $collect($nodes);
+        (new ListButtonSchemaValidator())->validate($list, $fields);
         if (array_key_exists('leftTree', $list)) $this->validateLeftTree($list['leftTree'], $fields);
         foreach (['category' => 'field', 'tree' => 'parentField'] as $kind => $binding) {
             if (!array_key_exists($kind, $list)) continue;
@@ -186,7 +187,7 @@ final class FormSchemaValidator
     }
 
     /** 左树只声明业务来源；跨业务字段在加载已发布来源后再次验证。 */
-    private function validateLeftTree(mixed $config, array $fields): void
+    public function validateLeftTree(mixed $config, ?array $fields = null): void
     {
         $object = static function (mixed $value, array $keys, string $path): array {
             if (!is_array($value) || ($value !== [] && array_is_list($value)) || array_diff(array_keys($value), $keys)) {
@@ -215,6 +216,7 @@ final class FormSchemaValidator
             if ($field === '' && in_array($name, ['parentField', 'sortField'], true)) continue;
             if (!is_string($field) || !preg_match('/^[a-z_][a-z0-9_]*$/', $field)) throw new FormSchemaException('字段标识不合法', '/list/leftTree/mapping/' . $name);
             if ($name !== 'targetField' && $source['type'] === 'module') continue;
+            if ($fields === null) continue;
             // 创建业务的系统主键不在设计节点中，实际主键在运行时再次校验。
             if ($name === 'valueField' && $field === 'id' && !isset($fields[$field])) continue;
             $node = $fields[$field] ?? null;

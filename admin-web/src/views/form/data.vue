@@ -1,10 +1,10 @@
 <template>
   <PageWrapper :title="meta?.form.name ? `${meta.form.name} 数据` : '表单数据'" subtitle="元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
-    <DataTableShell class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :loading="loading" @refresh="loadData">
-      <template #search>
+    <DataTableShell class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :loading="loading" :show-refresh="meta?.schema.list?.tools?.refresh !== false" :show-density="meta?.schema.list?.tools?.density !== false" :show-fullscreen="meta?.schema.list?.tools?.fullscreen !== false" :show-column-setting="meta?.schema.list?.tools?.columns !== false" @refresh="loadData">
+      <template v-if="meta?.schema.list?.tools?.search !== false" #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label" :prop="field.field_name">
             <template v-if="field.list_filter === 'range'">
@@ -37,10 +37,10 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button type="primary" @click="openDialog()">新增</el-button>
-        <el-button @click="onExport">导出</el-button>
+        <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
-      <el-table v-loading="loading" :data="displayRows" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKeyName" @sort-change="onSortChange">
+      <el-table ref="tableRef" v-loading="loading" :data="displayRows" @selection-change="onSelectionChange" :tree-props="{ children: '__listChildren' }" border :row-key="primaryKeyName" @sort-change="onSortChange">
+        <el-table-column v-if="toolbarButtons.some(button => button.action.type === 'registered')" type="selection" width="48" />
         <el-table-column :prop="primaryKeyName" label="ID" width="120" />
         <el-table-column
           v-for="field in listFields"
@@ -90,11 +90,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="170" sortable="custom" />
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        <el-table-column v-if="hasRowButtons" label="操作" min-width="180" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link @click="openDetail(row)">详情</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="readableButtonFields" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
           </template>
         </el-table-column>
       </el-table>
@@ -132,13 +130,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import type { ListButtonContext } from './runtime/listButtonExecutor';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
+import ListButtonBar from './components/ListButtonBar.vue';
+import { resolveListButtons } from './schema/listButtons';
+import { defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from './runtime/listButtonHost';
+import type { FormListButton } from './schema/types';
+import { useUserStore } from '@/store/modules/user';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
 import ListSourceTree from './components/ListSourceTree.vue';
 import { buildListTree } from './runtime/listPresentation';
@@ -151,8 +155,21 @@ import {
   stableRuntimeValues
 } from './runtime/submissionPolicy';
 
+const user = useUserStore();
+const hasPermission = (code: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === code);
+const buttonLock = reactive({ busy: false });
+const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')));
+const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')));
+const readableButtonFields = computed(() => [primaryKeyName.value, ...formFields.value.filter(field => field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly).map(field => field.field_name)]);
+const buttonAllowed = (button: FormListButton) => {
+  const key = listActionKey(button);
+  const route: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index' };
+  return (!button.permission || hasPermission(button.permission)) && (!route[key] || hasPermission(`console/form.data:${route[key]}`)) && (key !== 'edit' || hasPermission('console/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
+};
+const buttonHandlers: ListButtonHandlers = { create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => onDelete(row!), export: () => onExport(), refresh: () => loadData() };
+const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));
 const route = useRoute();
-const formKey = String(route.params.key ?? '');
+const formKey = computed(() => String(route.params.key ?? ''));
 const loading = ref(false);
 const saving = ref(false);
 const meta = ref<FormDataMeta | null>(null);
@@ -161,9 +178,21 @@ const total = ref(0);
 const query = reactive({ page: 1, pageSize: 20 });
 const filters = reactive<Record<string, string>>({});
 const leftSelection = ref<FormRecordId[]>([]);
+const selectedRows = ref<Record<string, unknown>[]>([]);
+const tableRef = ref<{ clearSelection: () => void }>();
+const buttonContextVersion = ref(0);
+const onSelectionChange = (selection: Record<string, unknown>[]) => { selectedRows.value = selection; buttonContextVersion.value++; };
+const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearSelection(); buttonContextVersion.value++; };
+const closeButtonHost = async () => { if (dialogVisible.value) await requestDialogClose(); detailVisible.value = false; };
+const buttonContext = (location: 'row' | 'toolbar', row?: Record<string, unknown>): ListButtonContext => ({
+  formKey: formKey.value, schemaHash: meta.value?.schemaHash ?? '', location,
+  ids: (row ? [row] : selectedRows.value).map(record => record[primaryKeyName.value] as FormRecordId),
+  filter: Object.fromEntries(Object.entries(filters).filter(([name]) => actionFilterFields.value.has(name)))
+});
 const onLeftTree = (values: FormRecordId[]) => { leftSelection.value = values; onSearch(); };
 const dateFilters = reactive<Record<string, [string, string] | undefined>>({});
 const sort = reactive({ sort: '', order: '' });
+watch(() => JSON.stringify([filters, leftSelection.value, query, sort]), () => clearSelection(), { flush: 'sync' });
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const editingId = ref<FormRecordId | null>(null);
@@ -181,6 +210,7 @@ const onCategory = (value: string | number | undefined) => { if (value === undef
 const listFields = computed(() => formFields.value.filter((f) => f.list_show === 1 && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== '' && f.type !== 'password' && !f.control_props?.sensitive && !f.control_props?.writeOnly));
 
+const actionFilterFields = computed(() => new Set(filterFields.value.filter(field => field.column_type && (!field.relation_type || field.relation_type === 'none')).flatMap(field => ['range', 'date'].includes(field.list_filter) ? [field.field_name + '_from', field.field_name + '_to'] : [field.field_name])));
 const filterPlaceholder = (type: string) => ['in', 'not_in'].includes(type) ? '多个值用英文逗号分隔' : '请输入筛选值';
 const syncDateFilter = (name: string) => {
   const range = dateFilters[name];
@@ -225,16 +255,23 @@ const formatJson = (value: unknown) => {
 };
 
 async function loadMeta() {
-  meta.value = await formDataApi.meta(formKey);
+  const key = formKey.value;
+  const loaded = await formDataApi.meta(key);
+  if (key === formKey.value) meta.value = loaded;
 }
+let dataSequence = 0;
+onBeforeUnmount(() => { dataSequence++; });
 async function loadData() {
+  const sequence = ++dataSequence;
+  clearSelection();
   loading.value = true;
   try {
-    const data = await formDataApi.index(formKey, { ...query, ...sort, filters: { ...filters, __leftTree: leftSelection.value } });
+    const data = await formDataApi.index(formKey.value, { ...query, ...sort, filters: { ...filters, __leftTree: leftSelection.value } });
+    if (sequence !== dataSequence) return;
     rows.value = data.list;
     total.value = data.total;
   } finally {
-    loading.value = false;
+    if (sequence === dataSequence) loading.value = false;
   }
 }
 const onSearch = () => {
@@ -274,7 +311,7 @@ const decodeValue = (field: FormFieldDef, value: unknown) => {
 };
 const openDialog = async (row?: Record<string, unknown>) => {
   editingId.value = row ? row[primaryKeyName.value] as FormRecordId : null;
-  const source = editingId.value !== null ? await formDataApi.detail(formKey, editingId.value) : null;
+  const source = editingId.value !== null ? await formDataApi.detail(formKey.value, editingId.value) : null;
   const record = sanitizeRuntimeRecord(formFields.value, source?.row ?? row ?? {});
   const values = { ...emptyRuntimeValues(formFields.value), ...record };
   for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
@@ -298,8 +335,8 @@ async function onSave() {
     const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
     const schemaHash = meta.value?.schemaHash ?? '';
-    if (editingId.value !== null) await formDataApi.update(formKey, editingId.value, payload, include, schemaHash);
-    else await formDataApi.create(formKey, payload, include, schemaHash);
+    if (editingId.value !== null) await formDataApi.update(formKey.value, editingId.value, payload, include, schemaHash);
+    else await formDataApi.create(formKey.value, payload, include, schemaHash);
     closeDialogAfterSave = true;
     dialogVisible.value = false;
     ElMessage.success('保存成功');
@@ -313,18 +350,21 @@ async function onSave() {
   }
 }
 async function openDetail(row: Record<string, unknown>) {
-  const result = await formDataApi.detail(formKey, row[primaryKeyName.value] as FormRecordId);
+  const result = await formDataApi.detail(formKey.value, row[primaryKeyName.value] as FormRecordId);
   detail.value = { ...result, row: sanitizeRuntimeRecord(formFields.value, result.row) };
   detailVisible.value = true;
 }
 async function onDelete(row: Record<string, unknown>) {
+  const context = JSON.stringify(buttonContext('row', row));
+  const version = buttonContextVersion.value;
   await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
-  await formDataApi.remove(formKey, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
+  if (context !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('console/form.data:remove') || !rows.value.some(record => record[primaryKeyName.value] === row[primaryKeyName.value])) return;
+  await formDataApi.remove(formKey.value, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
   loadData();
 }
 async function onExport() {
-  const data = await formDataApi.export(formKey, { filters: { ...filters, __leftTree: leftSelection.value } });
+  const data = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
   const columns = [primaryKeyName.value, ...listFields.value.map((f) => f.field_name), 'created_at'];
   const lines = [columns.join(',')];
   for (const row of data.list) {
@@ -333,12 +373,13 @@ async function onExport() {
   const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `${formKey}-export.csv`;
+  link.download = `${formKey.value}-export.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
 }
 const childColumns = (list: Record<string, unknown>[]) => (list.length ? Object.keys(list[0]) : []);
 
+watch(formKey, async () => { dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadMeta(); await loadData(); });
 onMounted(async () => {
   await loadMeta();
   await loadData();

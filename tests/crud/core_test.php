@@ -753,7 +753,7 @@ try {
         crudExpect(!str_contains($batchDisabledView, $batchUi), 'batchDelete=false 不得生成批量 UI：' . $batchUi);
     }
     crudExpect(
-        str_contains($batchDisabledView, '@click="removeRow(scope.row as AuditLogModel)"')
+        str_contains($batchDisabledView, 'delete: row => removeRow(resolveButtonRow(row))') && str_contains($batchDisabledView, ':buttons="rowButtons"')
         && str_contains($batchDisabledView, 'await auditLogApi.remove(row.id)'),
         'batchDelete=false 时列表单删按钮和调用必须可用'
     );
@@ -879,7 +879,7 @@ TS
             'paths' => [
                 '@/api/generated/*' => ['src/api/generated/*'],
                 '@/views/generated/*' => ['src/views/generated/*'],
-                '@/*' => ['src/*'],
+                '@/*' => ['src/*', dirname(__DIR__, 2) . '/admin-web/src/*'],
             ],
             'types' => ['node', 'vite/client', 'element-plus/global'],
         ],

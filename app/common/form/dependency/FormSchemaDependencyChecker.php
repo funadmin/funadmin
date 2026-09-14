@@ -33,10 +33,46 @@ final class FormSchemaDependencyChecker
             }
         }
         $this->checkActions((array) ($schema['actions'] ?? []), '/actions', $diagnostics, $dependencies);
+        $this->checkListButtons((array) ($schema['list']['buttons'] ?? []), $diagnostics, $dependencies);
         return [
             'diagnostics' => $diagnostics,
             'dependencyHash' => hash('sha256', CrudDefinition::canonicalJson($dependencies)),
         ];
+    }
+
+    /** 未完成宿主授权与发布绑定的能力不能借旧 request 入口发布。 */
+    private function checkListButtons(array $collections, array &$diagnostics, array &$dependencies): void
+    {
+        foreach ($collections as $location => $buttons) {
+            foreach ((array) $buttons as $index => $button) {
+                if (!is_array($button) || !is_array($button['action'] ?? null)) continue;
+                $action = $button['action'];
+                $path = '/list/buttons/' . $this->escape((string) $location) . '/' . $index;
+                $type = $action['type'] ?? '';
+                if ($type === 'registered') {
+                    $key = (string) ($action['key'] ?? '');
+                    $definition = $this->actions->definitions()[$key] ?? null;
+                    if ($definition === null) {
+                        $this->diagnostic($diagnostics, $path . '/action/key', 'FORM_ACTION_NOT_REGISTERED', '列表动作未注册：' . $key);
+                        continue;
+                    }
+                    $this->checkVersion($action, $definition, $path . '/action', 'FORM_ACTION', $diagnostics);
+                    $permission = $definition['permission'] ?? '';
+                    if ($permission === '' || ($button['permission'] ?? null) !== $permission) {
+                        $this->diagnostic($diagnostics, $path . '/permission', 'FORM_ACTION_PERMISSION_MISMATCH', '权限字段与注册定义不一致');
+                    }
+                    foreach (array_keys((array) ($button['params'] ?? [])) as $parameter) {
+                        if (!in_array($parameter, $definition['parameters'], true)) {
+                            $this->diagnostic($diagnostics, $path . '/params/' . $this->escape((string) $parameter), 'FORM_ACTION_PARAMETER_NOT_ALLOWED', '参数未在注册定义中声明');
+                        }
+                    }
+                    $dependencies['listActions'][$key] = $definition;
+                }
+                if (!empty($button['params']) || in_array($type, ['registered', 'navigate', 'external', 'download', 'copy'], true)) {
+                    $this->diagnostic($diagnostics, $path . '/action', 'FORM_LIST_ACTION_ADAPTER_UNAVAILABLE', '该列表动作尚无完整的安全宿主适配，禁止发布');
+                }
+            }
+        }
     }
 
     private function checkNodes(array $nodes, string $path, array &$diagnostics, array &$dependencies): void

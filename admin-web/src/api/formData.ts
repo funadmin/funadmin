@@ -1,6 +1,6 @@
 import http from '@/utils/http';
 import type { FormDefinition, FormFieldDef } from '@/api/form';
-import type { FormSchemaDocument } from '@/views/form/schema/types';
+import type { FormListButtonLocation, FormSchemaDocument } from '@/views/form/schema/types';
 
 export type FormRecordId = string | number;
 
@@ -44,9 +44,37 @@ export interface FormFieldError {
   message: string;
 }
 
+export interface FormListActionCatalog {
+  schemaHash: string;
+  sourceSchemaHash?: string;
+  sourceKey?: string;
+  actions: Record<string, { permission: string; capabilityVersion: string; locations: string[]; targets: string[]; batch: boolean; effect: string; resultContract: string }>;
+}
+export interface FormListActionRequest {
+  buttonId: string;
+  location: FormListButtonLocation;
+  schemaHash: string;
+  ids: FormRecordId[];
+  idempotencyKey: string;
+  input?: Record<string, unknown>;
+  filter?: Record<string, unknown>;
+  category?: { id: FormRecordId };
+  sourceSchemaHash?: string;
+  confirmation?: string;
+}
+export interface FormListActionReply {
+  status: 'success' | 'confirmation_required';
+  result?: unknown;
+  confirmation?: string;
+}
+
 const PREFIX = '/form/data';
 
 export const formDataApi = {
+  listActions: (key: string, location: FormListButtonLocation, signal?: AbortSignal) =>
+    http.get<FormListActionCatalog>(`${PREFIX}/list-actions/${encodeURIComponent(key)}`, { location }, { signal, requestOptions: { showErrorMsg: false } }),
+  listAction: (key: string, request: FormListActionRequest) =>
+    http.post<FormListActionReply>(`${PREFIX}/list-action/${encodeURIComponent(key)}`, request, { requestOptions: { showErrorMsg: false } }),
   leftTree: (key: string) => http.get<FormLeftTreeResult>(`${PREFIX}/left-tree/${key}`),
     leftTreeForm: (key: string, operation: 'create' | 'addChild' | 'edit', id: FormRecordId, schemaHash: string, optionField = '', context: Record<string, unknown> = {}) =>
       http.get<{ meta: FormDataMeta; row: Record<string, unknown>; options?: Array<{ label: string; value: string | number }>; total?: number }>(`${PREFIX}/left-tree-form/${key}/${operation}`, { id, schemaHash, optionField, context }),

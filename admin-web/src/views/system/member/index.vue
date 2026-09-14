@@ -1,131 +1,44 @@
 <template>
   <PageWrapper title="会员管理" subtitle="维护前台会员资料、分组和等级；后台新建会员默认无登录密码">
-    <DataTableShell storage-key="system-member" :loading="loading" @refresh="loadData">
-      <template #search>
-        <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item label="关键词" prop="keyword">
-            <el-input v-model="query.keyword" placeholder="用户名/手机号/邮箱" clearable />
-          </el-form-item>
-          <el-form-item label="会员组" prop="groupId">
-            <el-select v-model="query.groupId" placeholder="全部" clearable class="!w-36">
-              <el-option v-for="item in options.groups" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="会员等级" prop="levelId">
-            <el-select v-model="query.levelId" placeholder="全部" clearable class="!w-36">
-              <el-option v-for="item in options.levels" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="状态" prop="status">
-            <el-select v-model="query.status" placeholder="全部" clearable class="!w-28">
-              <el-option label="启用" :value="1" />
-              <el-option label="停用" :value="0" />
-            </el-select>
-          </el-form-item>
-        </SearchForm>
-      </template>
-      <template #toolbar-left>
-        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)">正常列表</el-button>
-        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)">回收站</el-button>
-        <template v-if="!recycled">
-          <el-button type="primary" plain v-perm="'system:member:add'" @click="openAdd">
-            <i class="i-ep-plus" /> 新增
-          </el-button>
-          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member:delete'" @click="recycleSelected">
-            <i class="i-ep-delete" /> 移入回收站{{ selection.length ? `(${selection.length})` : '' }}
-          </el-button>
-          <el-button type="info" plain v-perm="'system:member:import'" @click="fileInput?.click()">
-            <i class="i-ep-upload" /> CSV 导入
-          </el-button>
-        </template>
-        <template v-else>
-          <el-button type="success" plain :disabled="!selection.length" v-perm="'system:member:restore'" @click="restoreSelected">
-            <i class="i-ep-refresh-left" /> 恢复{{ selection.length ? `(${selection.length})` : '' }}
-          </el-button>
-          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member:destroy'" @click="destroySelected">
-            <i class="i-ep-delete-filled" /> 永久删除{{ selection.length ? `(${selection.length})` : '' }}
-          </el-button>
-        </template>
-        <el-button type="info" plain v-perm="'system:member:export'" @click="exportRows">
-          <i class="i-ep-download" /> CSV 导出
-        </el-button>
+    <el-skeleton v-if="definitionLoading" :rows="5" animated />
+    <div v-if="definitionError || listError" role="alert" class="mb-3">
+      <el-alert :title="definitionError || listError" type="error" :closable="false" />
+      <el-button @click="definitionError ? initialize() : loadData()">重试</el-button>
+    </div>
+    <SchemaTablePage v-if="pageSchema" storage-key="system-member" :schema="pageSchema" :query="query"
+      :rows="list" :total="total" :loading="loading" :context="actionContext" :formatters="formatters"
+      @refresh="loadData" @search="onSearch" @reset="onReset" @selection-change="selection = $event" @action-error="actionError">
+      <template #toolbar-extra>
         <input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />
       </template>
-      <template #default="{ size, stripe, border, headerCellStyle }">
-        <el-table
-          :data="list"
-          v-loading="loading"
-          :size="size"
-          :stripe="stripe"
-          :border="border"
-          :header-cell-style="headerCellStyle"
-          @selection-change="selection = $event"
-        >
-          <el-table-column type="selection" width="48" align="center" />
-          <el-table-column prop="id" label="ID" width="72" align="center" />
-          <el-table-column label="会员" min-width="180">
-            <template #default="{ row }">
-              <div class="flex items-center gap-2">
-                <el-avatar :size="34" :src="row.avatar">{{ row.username.slice(0, 1).toUpperCase() }}</el-avatar>
-                <div class="min-w-0">
-                  <div class="truncate font-medium">{{ row.username }}</div>
-                  <div class="truncate text-xs text-[var(--el-text-color-secondary)]">{{ row.mobile }}</div>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="email" label="邮箱" min-width="180">
-            <template #default="{ row }">{{ row.email || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="性别" width="80" align="center">
-            <template #default="{ row }">{{ sexText(row.sex) }}</template>
-          </el-table-column>
-          <el-table-column label="会员组" min-width="170">
-            <template #default="{ row }">
-              <el-tag v-for="name in row.groupNames" :key="name" size="small" class="mr-1">{{ name }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="levelName" label="会员等级" min-width="120" />
-          <el-table-column label="状态" width="90" align="center">
-            <template #default="{ row }">
-              <div v-if="!recycled" class="app-status-switch">
-                <el-switch
-                  size="small"
-                  :model-value="row.status === 1"
-                  :disabled="!hasPermission('system:member:status')"
-                  @change="(value: string | number | boolean) => toggleStatus(row as MemberModel, value === true)"
-                />
-              </div>
-              <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="loginCount" label="登录次数" width="95" align="center" />
-          <el-table-column prop="createdAt" label="注册时间" width="170" />
-          <el-table-column v-if="recycled" prop="deletedAt" label="删除时间" width="170" />
-          <el-table-column v-if="!recycled" label="操作" width="120" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-button type="primary" link v-perm="'system:member:edit'" @click="openEdit(row as MemberModel)">编辑</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div class="mt-4 flex justify-end">
-          <el-pagination
-            v-model:current-page="query.page"
-            v-model:page-size="query.pageSize"
-            :total="total"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @change="loadData"
-          />
+      <template #member="{ row }">
+        <div class="flex items-center gap-2">
+          <el-avatar :size="34" :src="row.avatar">{{ row.username.slice(0, 1).toUpperCase() }}</el-avatar>
+          <div class="min-w-0">
+            <div class="truncate font-medium">{{ row.username }}</div>
+            <div class="truncate text-xs text-[var(--el-text-color-secondary)]">{{ row.mobile }}</div>
+          </div>
         </div>
       </template>
-    </DataTableShell>
+      <template #groups="{ row }">
+        <el-tag v-for="name in row.groupNames" :key="name" size="small" class="mr-1">{{ name }}</el-tag>
+      </template>
+      <template #status="{ row }">
+        <div v-if="!recycled" class="app-status-switch">
+          <el-switch size="small" :model-value="row.status === 1" :disabled="!hasPermission('system:member:status')"
+            @change="(value: string | number | boolean) => toggleStatus(row as MemberModel, value === true)" />
+        </div>
+        <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+      </template>
+    </SchemaTablePage>
     <MemberFormDialog v-model="dialogVisible" :row="current" :options="options" @success="loadData" />
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
+import { parsePageSchema, type PageSchema, type PageHandler } from '@/components/DataTable/pageSchema';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   memberApi,
@@ -143,6 +56,12 @@ defineOptions({ name: 'SystemMember' });
 
 const userStore = useUserStore();
 const loading = ref(false);
+const pageSchema = ref<PageSchema | null>(null);
+const definitionLoading = ref(false);
+const definitionError = ref('');
+const listError = ref('');
+let definitionRequest = 0;
+let listRequest = 0;
 const list = ref<MemberModel[]>([]);
 const total = ref(0);
 const selection = ref<MemberModel[]>([]);
@@ -181,22 +100,60 @@ function sexText(sex: MemberModel['sex']) {
   return sex === '1' ? '男' : sex === '2' ? '女' : '保密';
 }
 
-async function loadOptions() {
-  const result = await memberApi.options();
-  options.groups = result.groups;
-  options.levels = result.levels;
-  options.tags = result.tags;
+const formatters = { emptyText: (value: unknown) => value || '-', sexText };
+const handlers: Record<string, PageHandler> = {
+  normal: { version: '1', run: () => switchMode(false) },
+  recycled: { version: '1', run: () => switchMode(true) },
+  add: { version: '1', permission: 'system:member:add', available: () => !recycled.value, run: openAdd },
+  edit: { version: '1', permission: 'system:member:edit', available: (row) => !recycled.value && !!row, run: openEdit },
+  recycle: { version: '1', permission: 'system:member:delete', available: () => !recycled.value && !!selection.value.length, run: recycleSelected },
+  restore: { version: '1', permission: 'system:member:restore', available: () => recycled.value && !!selection.value.length, run: restoreSelected },
+  destroy: { version: '1', permission: 'system:member:destroy', available: () => recycled.value && !!selection.value.length, run: destroySelected },
+  import: { version: '1', permission: 'system:member:import', available: () => !recycled.value, run: () => fileInput.value?.click() },
+  export: { version: '1', permission: 'system:member:export', run: exportRows }
+};
+const actionContext = computed(() => ({ values: { recycled: recycled.value, selectionCount: selection.value.length }, permissions: userStore.permissions, handlers }));
+function actionError(error: unknown) {
+  if (error !== 'cancel' && error !== 'close') ElMessage.error('操作失败，请重试');
+}
+async function initialize() {
+  const request = ++definitionRequest;
+  definitionLoading.value = true;
+  definitionError.value = '';
+  pageSchema.value = null;
+  try {
+    const result = await memberApi.options();
+    if (request !== definitionRequest) return;
+    const schema = parsePageSchema(result.page);
+    Object.assign(options, result);
+    pageSchema.value = schema;
+    query.pageSize = schema.pagination.pageSize;
+    await loadData();
+  } catch {
+    if (request === definitionRequest) definitionError.value = '页面配置加载失败，请重试';
+  } finally {
+    if (request === definitionRequest) definitionLoading.value = false;
+  }
 }
 
 async function loadData() {
+  if (!pageSchema.value) return;
+  const request = ++listRequest;
   loading.value = true;
+  listError.value = '';
+  selection.value = [];
   try {
-    const result = await memberApi.list(query);
+    const result = await memberApi.list({ ...query });
+    if (request !== listRequest) return;
     list.value = result.list;
     total.value = result.total;
-    selection.value = [];
+  } catch {
+    if (request !== listRequest) return;
+    list.value = [];
+    total.value = 0;
+    listError.value = '列表加载失败，请重试';
   } finally {
-    loading.value = false;
+    if (request === listRequest) loading.value = false;
   }
 }
 
@@ -208,7 +165,7 @@ function onSearch() {
 function onReset() {
   Object.assign(query, {
     page: 1,
-    pageSize: 20,
+    pageSize: pageSchema.value?.pagination.pageSize ?? 20,
     keyword: '',
     status: undefined,
     groupId: undefined,
@@ -314,8 +271,6 @@ async function exportRows() {
   downloadCsv(`members-${recycled.value ? 'recycle' : 'active'}`, toCsv(rows, columns));
 }
 
-onMounted(async () => {
-  await loadOptions();
-  await loadData();
-});
+onMounted(initialize);
+onBeforeUnmount(() => { definitionRequest++; listRequest++; });
 </script>

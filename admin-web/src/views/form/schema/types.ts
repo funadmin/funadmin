@@ -76,7 +76,58 @@ export interface FormLeftTreeConfiguration {
   actions?: Partial<Record<'create' | 'addChild' | 'edit' | 'delete', boolean>>;
 }
 
+export type FormListButtonLocation = 'toolbar' | 'row' | 'categoryToolbar' | 'categoryNode';
+export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'batchDelete' | 'import' | 'export' | 'recycle' | 'restore' | 'destroy' | 'addChild';
+export type FormListButtonAction =
+  | { type: 'builtin'; key: FormListBuiltinAction }
+  | { type: 'registered'; key: string; capabilityVersion: string }
+  | { type: 'navigate' | 'external' | 'download'; key: string }
+  | { type: 'form' | 'detail' | 'copy' | 'refresh' };
+export type FormListParameterBinding =
+  | { source: 'literal'; value: string | number | boolean | null }
+  | { source: 'selection'; field: 'ids' }
+  | { source: 'row' | 'filter' | 'category' | 'form'; field: string };
+export interface FormListInputField {
+  name: string;
+  label: string;
+  type: 'input' | 'textarea' | 'number' | 'select' | 'switch' | 'date';
+  required?: boolean;
+  min?: number;
+  max?: number;
+  maxLength?: number;
+  options?: Array<{ label: string; value: string | number }>;
+}
+export interface FormListButtonInteraction {
+  type: 'none' | 'confirm' | 'input' | 'form';
+  presentation?: 'dialog' | 'drawer';
+  title?: string;
+  message?: string;
+  fields?: FormListInputField[];
+}
+export interface FormListButton {
+  id: string;
+  label: string;
+  icon?: string;
+  color?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  size?: 'small' | 'default' | 'large';
+  tips?: string;
+  placement?: 'inline' | 'more';
+  order?: number;
+  hidden?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
+  permission?: string;
+  visibleWhen?: FormSchemaCondition;
+  disabledWhen?: FormSchemaCondition;
+  interaction?: FormListButtonInteraction;
+  action: FormListButtonAction;
+  params?: Record<string, FormListParameterBinding>;
+  success?: { message?: string; refresh?: boolean; clearSelection?: boolean; close?: boolean };
+}
+
 export interface FormListConfiguration {
+  buttons?: Partial<Record<FormListButtonLocation, FormListButton[]>>;
+  tools?: Partial<Record<'refresh' | 'search' | 'columns' | 'density' | 'fullscreen', boolean>>;
   leftTree?: FormLeftTreeConfiguration;
   category?: { enabled: boolean; field?: string };
   tree?: { enabled: boolean; parentField?: string };

@@ -234,6 +234,25 @@ final class Data extends AdminApiController
         ), '更新成功');
     }
 
+    #[Get('list-actions/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function listActions(string $key): Response
+    {
+        return $this->execute(fn (): array => $this->data->listActionCatalog($key,
+            (string) $this->request->get('location', 'row'),
+            \app\common\form\registry\FormRegistryFactory::production()->actions()));
+    }
+
+    #[Post('list-action/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function listAction(string $key): Response
+    {
+        $payload = $this->request->post();
+        $this->request->withPost(['buttonId' => $payload['buttonId'] ?? '', 'input' => '[REDACTED]']);
+        return $this->execute(fn (): array => $this->data->executeListButton($key, $payload,
+            \app\common\form\registry\FormRegistryFactory::production()->listExecutor()));
+    }
+
     #[Post('action/:key/:action')]
     #[Pattern('key', '[a-z][a-z0-9_]*')]
     #[Pattern('action', '[a-z][a-z0-9._-]*')]
@@ -342,6 +361,9 @@ final class Data extends AdminApiController
                 code: 422
             );
         } catch (InvalidArgumentException $exception) {
+            if (in_array($exception->getMessage(), ['FORM_ACTION_FORBIDDEN', 'FORM_LIST_RECORD_FORBIDDEN', 'FORM_LIST_FIELD_FORBIDDEN'], true)) {
+                return $this->fail(msg: $exception->getMessage(), code: 403);
+            }
             if ($exception->getMessage() === 'FORM_SCHEMA_CONFLICT') {
                 return $this->fail(msg: '表单发布版本已更新，请刷新后重试', data: ['code' => 'FORM_SCHEMA_CONFLICT'], code: 409);
             }

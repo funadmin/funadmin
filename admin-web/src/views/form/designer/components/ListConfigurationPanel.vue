@@ -38,6 +38,11 @@
         <el-form-item v-for="action in actions" :key="action.key" :label="action.label"><el-switch :disabled="action.key === 'addChild' && !left.mapping.parentField" :model-value="action.key === 'addChild' && !left.mapping.parentField ? false : left.actions?.[action.key] ?? false" @change="value => updateLeft({ actions: { ...left.actions, [action.key]: Boolean(value) } })" /></el-form-item>
       </template>
       </el-tab-pane>
+      <el-tab-pane label="按钮与工具" name="buttons">
+        <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? [] : scalarFields.map(field => field.field_name)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
+        <el-divider>通用工具</el-divider>
+        <el-form-item v-for="tool in tools" :key="tool.key" :label="tool.label"><el-switch :model-value="modelValue.tools?.[tool.key] !== false" @change="value => emit('update', { tools: { ...modelValue.tools, [tool.key]: Boolean(value) } })" /></el-form-item>
+      </el-tab-pane>
       </el-tabs>
     </el-form>
   </el-card>
@@ -46,11 +51,19 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { formDataApi, type FormSourceMeta, type FormSourceField } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
-import type { FormListConfiguration, FormLeftTreeConfiguration } from '../../schema/types';
+import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation } from '../../schema/types';
+import ListButtonEditor from './ListButtonEditor.vue';
 const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[] }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
 // Tab 仅保存面板显示状态，不进入 Schema 更新通道。
 const activeTab = ref('category');
+const buttonLocations = [{ key: 'toolbar', label: '顶部操作' }, { key: 'row', label: '行操作' }, { key: 'categoryToolbar', label: '分类顶部操作' }, { key: 'categoryNode', label: '分类节点操作' }] as const;
+const tools = [{ key: 'refresh', label: '刷新' }, { key: 'search', label: '搜索' }, { key: 'columns', label: '列设置' }, { key: 'density', label: '密度' }, { key: 'fullscreen', label: '全屏' }] as const;
+const updateButtons = (location: FormListButtonLocation, value: FormListButton[] | undefined) => {
+  const buttons = { ...props.modelValue.buttons };
+  if (value === undefined) delete buttons[location]; else buttons[location] = value;
+  emit('update', { buttons });
+};
 const fieldLabel = (field: FormSourceField): string => {
   const title = field.label?.trim();
   return title && title !== field.field_name ? `${title} (${field.field_name})` : field.field_name;

@@ -120,6 +120,19 @@ final class DefinitionValidator
                 'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['controlProps']['sensitive'] ?? false) || ($field['detail'] ?? true) === false]), 'dataSource' => $source];
         }
         (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
+        foreach ($data['list']['buttons'] ?? [] as $location => $buttons) {
+            foreach ($buttons as $index => $button) {
+                if (!empty($button['params']) || in_array($button['action']['type'], ['registered', 'navigate', 'external', 'download', 'copy'], true)) {
+                    throw new InvalidArgumentException("/list/buttons/{$location}/{$index}/action 尚未接通安全宿主适配，禁止发布或生成");
+                }
+            }
+        }
+        $aliases = [];
+        foreach (array_keys($fieldNames) as $name) {
+            $alias = preg_replace_callback('/_+([a-z0-9])/', static fn (array $match): string => strtoupper($match[1]), $name);
+            if (isset($aliases[$alias])) throw new InvalidArgumentException('列表字段映射冲突：' . $name);
+            $aliases[$alias] = true;
+        }
         if (($data['list']['tree']['enabled'] ?? false) && $data['list']['tree']['parentField'] === $data['primaryKey']) throw new InvalidArgumentException('父级字段不能是主键');
         $this->capabilities($data['capabilities'] ?? null);
         $this->features($data['features'] ?? null, $fieldNames);

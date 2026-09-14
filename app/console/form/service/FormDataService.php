@@ -772,6 +772,169 @@ final class FormDataService
         return $found;
     }
 
+    /** 动态宿主目录仍须满足业务读取权限，不将按钮配置当作授权。 */
+    public function listActionCatalog(string $key, string $location, FormActionRegistry $actions): array
+    {
+        $runtime = $this->listActionRuntime($key);
+        $target = match ($location) {
+            'row' => 'record', 'toolbar' => 'selection', 'categoryNode' => 'category', 'categoryToolbar' => 'none',
+            default => throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE'),
+        };
+        $source = in_array($location, ['categoryToolbar', 'categoryNode'], true) ? $this->listCategoryRuntime($runtime) : null;
+        $catalog = $actions->listCatalog($this->permissionChecker, $location, $target);
+        if ($source) $catalog = array_filter($catalog, static fn (array $action): bool => $action['effect'] === 'read' || in_array($action['permission'], $source['writePermissions'][$location], true));
+        return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog]
+            + ($source ? ['sourceSchemaHash' => $source['schemaHash'], 'sourceKey' => (string) $source['form']->form_key] : []);
+    }
+
+    /** 只接受按钮请求；模块、身份、记录和发布版本均由服务端取得。 */
+    public function executeListButton(string $key, array $request, \app\common\form\action\ListButtonExecutor $executor): array
+    {
+        $adminId = (int) session('admin.id');
+        if ($adminId <= 0) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        $runtime = $this->listActionRuntime($key);
+        if (!is_string($request['schemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+        $this->assertPublishedSchemaHash($request['schemaHash'], $runtime['schemaHash']);
+        $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
+        $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
+        if ($categoryLocation || array_key_exists('category', $request)) {
+            $source = $this->listCategoryRuntime($runtime);
+            if (!is_string($request['sourceSchemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            $this->assertPublishedSchemaHash($request['sourceSchemaHash'], $source['schemaHash']);
+            $category = $request['category'] ?? [];
+            if (!is_array($category) || array_diff(array_keys($category), ['id'])) throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+            $record = [];
+            if (array_key_exists('id', $category)) {
+                $id = $category['id'];
+                if ((!is_int($id) && !is_string($id)) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/D', (string) $id)) throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+                $sourceForm = $source['form'];
+                $primary = $this->primaryKey(Db::connect((string) $sourceForm->connection)->getFields((string) $sourceForm->table_name));
+                $row = $this->baseQuery($sourceForm, $source['fields'])->where($sourceForm->table_name . '.' . $primary['name'], $id)->find();
+                if (!$row) throw new InvalidArgumentException('FORM_LIST_RECORD_FORBIDDEN');
+                $record = $this->listActionRecord($source['fields'], $row, $primary);
+            } elseif (($request['location'] ?? '') !== 'categoryToolbar') throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+            $runtime['categoryContext'] = ['moduleId' => (int) $source['module']->id, 'schemaHash' => $source['schemaHash'], 'record' => $record, 'writePermissions' => $source['writePermissions']];
+        }
+        $form = $runtime['form'];
+        $fields = $runtime['fields'];
+        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        return $executor->execute($runtime, $request, 'admin:' . $adminId . '/module:' . $runtime['module']->id,
+            $this->permissionChecker, function (array $ids) use ($form, $fields, $primary): array {
+                $rows = $this->baseQuery($form, $fields)->whereIn($form->table_name . '.' . $primary['name'], $ids)->select()->toArray();
+                return array_map(fn (array $row): array => $this->listActionRecord($fields, $row, $primary), $rows);
+            });
+    }
+
+    /** 分类来源从宿主发布快照解析，绝不接受客户端指定模块或借用宿主权限。 */
+    private function listCategoryRuntime(array $host): array
+    {
+        $tree = $host['schema']['list']['leftTree'] ?? [];
+        if (($tree['enabled'] ?? false) !== true || !in_array($tree['source']['type'] ?? '', ['current', 'module'], true)) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+        $source = $host;
+        if ($tree['source']['type'] === 'module') {
+            $module = BusinessModule::where('code', $tree['source']['module'])->find();
+            $form = $module ? Form::where('id', (int) $module->form_id)->find() : null;
+            if (!$form) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+            $form = $this->form((string) $form->form_key);
+            $source = $this->publishedRuntime($form) + ['form' => $form];
+        }
+        if (($source['module']->metadata['target']['type'] ?? 'core') !== 'core') throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        if (!($this->permissionChecker)($this->businessPermissionRoute($source['module']) . '/index')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        $primary = $this->primaryKey(Db::connect((string) $source['form']->connection)->getFields((string) $source['form']->table_name));
+        if (($tree['mapping']['valueField'] ?? '') !== $primary['name']) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+        foreach ($tree['mapping'] as $binding => $name) {
+            if ($name === '') continue;
+            $bound = $binding === 'targetField' ? $host : $source;
+            $columns = Db::connect((string) $bound['form']->connection)->getFields((string) $bound['form']->table_name);
+            $field = null;
+            foreach ($bound['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
+            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
+                || ($field['relation_type'] ?? 'none') !== 'none' || empty($field['column_type'])
+                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || !empty($field['control_props']['multiple'])) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
+        }
+        $source['writePermissions'] = ['categoryToolbar' => [], 'categoryNode' => []];
+        $route = $this->businessPermissionRoute($source['module']);
+        foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
+            if (($tree['actions'][$action] ?? false) !== true || ($action === 'addChild' && empty($tree['mapping']['parentField']))) continue;
+            if (($this->permissionChecker)($route . '/' . $operation)) $source['writePermissions'][$action === 'create' ? 'categoryToolbar' : 'categoryNode'][] = $route . '/' . $operation;
+        }
+        return $source;
+    }
+
+    private function listActionRecord(iterable $fields, array $record, array $primary): array
+    {
+        $allowed = [$primary['name'] => true];
+        foreach ($fields as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            $name = $row['field_name'];
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
+                unset($allowed[$name]);
+                if ($name === $primary['name']) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
+            } elseif (($row['relation_type'] ?? 'none') === 'none' && !empty($row['column_type'])) $allowed[$name] = true;
+        }
+        $safe = array_intersect_key($record, $allowed);
+        $safe['id'] = $record[$primary['name']];
+        return $safe;
+    }
+
+    /** 仅接受已发布可读标量筛选；操作符来自快照，不来自请求。 */
+    private function normalizeListActionFilter(iterable $fields, mixed $filter): array
+    {
+        if (!is_array($filter) || ($filter !== [] && array_is_list($filter)) || count($filter) > 100) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+        $allowed = [];
+        foreach ($fields as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read') || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none') continue;
+            $op = $row['list_filter'] ?? '';
+            $name = $row['field_name'];
+            if (in_array($op, ['range', 'date'], true)) {
+                $allowed[$name . '_from'] = $row;
+                $allowed[$name . '_to'] = $row;
+            } elseif (in_array($op, ['eq', 'ne', 'like', 'not_like', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in', 'is_null', 'not_null'], true)) $allowed[$name] = $row;
+        }
+        $result = [];
+        foreach ($filter as $name => $value) {
+            if (!isset($allowed[$name])) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            if ($value === '' || $value === null) continue;
+            if ((!is_scalar($value)) || (is_float($value) && !is_finite($value)) || (is_string($value) && strlen($value) > 10000)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            $row = $allowed[$name];
+            $op = $row['list_filter'];
+            if (in_array($op, ['is_null', 'not_null'], true)) {
+                if (!in_array($value, [true, false, 0, 1, '0', '1'], true)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+                $value = in_array($value, [true, 1, '1'], true);
+            } elseif (in_array($op, ['in', 'not_in'], true)) {
+                if (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+                $value = array_values(array_unique(array_filter(array_map('trim', explode(',', $value)), static fn ($v) => $v !== '')));
+                if (count($value) > 200) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (preg_match('/^(tinyint|smallint|mediumint|int|bigint)\b/', $row['column_type'])) {
+                if (is_string($value) && preg_match('/^-?(0|[1-9][0-9]*)$/D', $value) && filter_var($value, FILTER_VALIDATE_INT) !== false) $value = (int) $value;
+                if (!is_int($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (preg_match('/^(decimal|float|double)/', $row['column_type'])) {
+                if (is_string($value) && is_numeric($value)) $value = (float) $value;
+                if ((!is_int($value) && !is_float($value)) || !is_finite((float) $value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            $result[$name] = $value;
+        }
+        ksort($result);
+        return $result;
+    }
+
+    private function listActionRuntime(string $key): array
+    {
+        $form = $this->form($key);
+        $runtime = $this->publishedRuntime($form);
+        if (($runtime['module']->metadata['target']['type'] ?? 'core') !== 'core'
+            || (string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
+            throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        }
+        if (!($this->permissionChecker)($this->businessPermissionRoute($runtime['module']) . '/index')) {
+            throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        }
+        return $runtime + ['form' => $form];
+    }
+
     /** 执行已发布 Schema 明确引用的生产动作。 */
     public function executeAction(
         string $key,

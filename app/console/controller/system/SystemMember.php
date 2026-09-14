@@ -72,7 +72,9 @@ class SystemMember extends AdminApiController
             'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
             'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
         ];
-        return $this->ok(data: $options + MemberFormDefinition::build($options));
+        return $this->ok(data: $options + MemberFormDefinition::build($options) + [
+            'page' => \app\console\service\MemberPageDefinition::build($options),
+        ]);
     }
 
     #[Post('')]

@@ -33,6 +33,28 @@ final class FormRegistryFactory
         return new FormActionRegistry($this->section('actions'));
     }
 
+    /** 专用非持久 PDO 连接，不复用业务事务，也不自动创建存储表。 */
+    public function listExecutor(): \app\common\form\action\ListButtonExecutor
+    {
+        $secret = $this->config['list_confirmation_secret'] ?? '';
+        if (!is_string($secret) || strlen($secret) < 32) throw new \InvalidArgumentException('FORM_LIST_CONFIRMATION_UNAVAILABLE');
+        $store = $this->section('list_action_store');
+        if (!is_string($store['dsn'] ?? null) || $store['dsn'] === '' || !is_string($store['table'] ?? null)
+            || !preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $store['table'])) throw new \InvalidArgumentException('FORM_LIST_ATOMIC_STORE_UNAVAILABLE');
+        try {
+            $pdo = new \PDO($store['dsn'], $store['username'] ?? null, $store['password'] ?? null, [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_PERSISTENT => false,
+            ]);
+            $pdo->query('SELECT scope, digest, state, result FROM ' . $store['table'] . ' WHERE 1 = 0');
+        } catch (\PDOException) {
+            // 不传播底层连接异常，避免异常链泄露部署连接信息。
+            throw new \InvalidArgumentException('FORM_LIST_ATOMIC_STORE_UNAVAILABLE');
+        }
+        return new \app\common\form\action\ListButtonExecutor($this->actions(), $secret,
+            new \app\common\form\action\ListActionStore($pdo, $store['table']));
+    }
+
     public function dataSources(): FormDataSourceRegistry
     {
         return FormDataSourceRegistry::core($this->section('data_sources'));

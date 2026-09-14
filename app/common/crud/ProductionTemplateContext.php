@@ -579,7 +579,7 @@ final class ProductionTemplateContext
                 : "<el-input v-model=\"query.{$parameter}\" placeholder=\"请输入{$label}\" clearable />";
             $searchItems[] = "<el-form-item label=\"{$label}\">{$control}</el-form-item>";
         }
-        $searchSlot = $enabled['search']
+        $searchSlot = $enabled['search'] && ($data['list']['tools']['search'] ?? true)
             ? "      <template #search><SearchForm :model=\"query\" :loading=\"loading\" @search=\"onSearch\" @reset=\"onReset\">" . implode('', $searchItems) . "</SearchForm></template>\n"
             : '';
         $toolbar = [];
@@ -644,9 +644,49 @@ final class ProductionTemplateContext
             $permissionPrefix = htmlspecialchars($data['permissionPrefix'], ENT_QUOTES);
             $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':left-tree-mutate\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
         }
-        $vueImports = [];
-        if ($enabled['softDelete'] || $tree) $vueImports[] = 'computed';
-        if ($enabled['import'] || $category || $leftTree) $vueImports[] = 'ref';
+        // 生成层只声明宿主适配；交互、锁定及类型分派由共享组件处理。
+        $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
+        if (!$leftTree) $listImports .= "import { useUserStore } from '@/store/modules/user';\n";
+        $listSetup .= 'const listConfig = ' . self::json($data['list'] ?: new \stdClass()) . " as FormListConfiguration;\n";
+        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\n";
+        $listSetup .= 'const buttonFieldMap = buildListFieldMap(' . self::json(array_column($data['fields'], 'name')) . ", 'camel');\n";
+        $listSetup .= "const buttonValues = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(buttonFieldMap).map(([field, alias]) => [field, row[alias]]));\n";
+        $listSetup .= "function resolveButtonRow(row?: Record<string, unknown>): {$type} { const current = list.value.find(item => item.{$primaryName} === row?.['{$primaryName}']); if (!current) throw new Error('记录上下文已失效'); return current; }\n";
+        $defaults = ['toolbar' => [], 'row' => []];
+        $handlers = ['refresh: () => loadData()'];
+        $append = static function (string $location, string $key, string $label, string $handler) use (&$defaults, &$handlers): void {
+            $defaults[$location][] = ['id' => strtolower($key), 'label' => $label, 'action' => ['type' => 'builtin', 'key' => $key]];
+            $handlers[] = $key . ': ' . $handler;
+        };
+        if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()');
+        if ($enabled['export']) $append('toolbar', 'export', '导出', '() => exportRows()');
+        if ($enabled['import']) $append('toolbar', 'import', '导入', '() => fileInput.value?.click()');
+        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '批量删除', '() => onBatchDelete()');
+        if ($enabled['softDelete']) $append('toolbar', 'recycle', '切换回收站', '() => switchMode(!recycled.value)');
+        if ($enabled['update'] && $formEnabled) $append('row', 'edit', '编辑', "row => onEdit(resolveButtonRow(row))");
+        if ($enabled['detail']) $append('row', 'detail', '详情', "row => onOpenDrawer(resolveButtonRow(row))");
+        if ($enabled['delete']) $append('row', 'delete', '删除', "row => removeRow(resolveButtonRow(row))");
+        if ($enabled['softDelete']) {
+            $append('row', 'restore', '恢复', "row => restoreRow(resolveButtonRow(row))");
+            $append('row', 'destroy', '永久删除', "row => forceDeleteRow(resolveButtonRow(row))");
+        }
+        $listSetup .= 'const buttonHandlers: ListButtonHandlers = { ' . implode(', ', $handlers) . " };\n";
+        $listSetup .= "const buttonPermission = (code: string) => buttonUser.permissions.some(value => value === '*' || value === '*:*:*' || value === code);\n";
+        $prefix = self::json($data['permissionPrefix']);
+        $recycledValue = $enabled['softDelete'] ? 'recycled.value' : 'recycled';
+        $selectionGuard = $enabled['batchDelete'] ? "if (key === 'batchDelete' && !selection.value.length) return false;" : '';
+        $listSetup .= "const buttonAllowed = (button: FormListButton) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (!buttonPermission({$prefix} + ':' + (suffix[key] ?? key))) return false; {$selectionGuard} if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
+        foreach ($defaults as $location => $buttons) $listSetup .= "const {$location}Buttons = computed(() => resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]));\n";
+        $listSetup .= "const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));\n";
+        $toolbar = ['<ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" />'];
+        if ($enabled['import']) $toolbar[] = '<input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';
+        $operationColumn = '          <el-table-column v-if="hasRowButtons" label="操作"><template #default="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="loadData" link /></template></el-table-column>' . "\n";
+        if ($leftTree) $categoryPanel = str_replace(':config="leftTreeConfig"', ':config="leftTreeConfig" :list="listConfig" :permission-check="buttonPermission"', $categoryPanel);
+        $vueImports = ['computed', 'ref', 'reactive'];
+        if ($enabled['batchDelete']) {
+            $vueImports[] = 'watch';
+            $listSetup .= "watch(query, () => onSelectionChange([]), { deep: true, flush: 'sync' });\n";
+        }
         if ($category) $vueImports[] = 'onMounted';
         $vueImport = $vueImports === [] ? '' : "import { " . implode(', ', $vueImports) . " } from 'vue';\n";
         $csvImport = $enabled['import'] || $enabled['export']
@@ -654,7 +694,7 @@ final class ProductionTemplateContext
             : '';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
             . (($category || $leftTree) ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
-            . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
+            . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" :show-refresh=\"listConfig.tools?.refresh !== false\" :show-density=\"listConfig.tools?.density !== false\" :show-fullscreen=\"listConfig.tools?.fullscreen !== false\" :show-column-setting=\"listConfig.tools?.columns !== false\" @refresh=\"loadData\">\n"
             . $searchSlot
             . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
             . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table :data=\"" . ($tree ? 'displayRows' : 'list') . "\" row-key=\"{$primaryName}\" :tree-props=\"{ children: '__listChildren' }\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
