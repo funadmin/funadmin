@@ -149,7 +149,9 @@ final class Data extends AdminApiController
     #[Pattern('id', '[A-Za-z0-9_-]+')]
     public function detail(string $key, int|string $id): Response
     {
-        return $this->execute(fn (): array => $this->observe($key, 'detail', fn (): array => $this->data->detail($key, $id)));
+        $copyCreate = (bool) $this->request->get('copyCreate', false);
+        $schemaHash = (string) $this->request->get('schemaHash', '');
+        return $this->execute(fn (): array => $this->observe($key, 'detail', fn (): array => $this->data->detail($key, $id, $copyCreate, $schemaHash)));
     }
 
     #[Get('options/:key/:field')]
@@ -351,6 +353,13 @@ final class Data extends AdminApiController
         if ($permissionAction !== '' && !$this->authorization->nodeAccess('console/form.data/' . $permissionAction)) {
             return $this->fail(msg: '没有访问权限', code: 403);
         }
+        if (in_array(strtolower($action), ['listaction', 'listactions'], true)) {
+            try {
+                return $this->ok($message, $operation());
+            } catch (Throwable $exception) {
+                return $this->listActionFailure($exception);
+            }
+        }
         try {
             return $this->ok($message, $operation());
         } catch (FormAsyncValidationException $exception) {
@@ -368,7 +377,7 @@ final class Data extends AdminApiController
             }
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (Throwable $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 500);
+            return $this->fail(msg: '服务器内部错误', code: 500);
         }
     }
 }

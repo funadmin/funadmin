@@ -29,7 +29,7 @@ import type { FormLeftTreeConfiguration, FormListConfiguration, FormListButton }
 import { buildListTree } from '../runtime/listPresentation';
 import { buildSubmissionPayload, emptyRuntimeValues } from '../runtime/submissionPolicy';
 import SchemaRenderer from './SchemaRenderer.vue';
-const props = withDefaults(defineProps<{ formKey: string; schemaHash: string; config: FormLeftTreeConfiguration; list?: FormListConfiguration; lock?: { busy: boolean }; permissionCheck?: (code: string) => boolean; modelValue?: FormRecordId[]; canReadForm?: boolean; canMutate?: boolean; api?: Pick<typeof formDataApi, 'leftTree' | 'leftTreeForm' | 'mutateLeftTree'> }>(), { canReadForm: true, canMutate: true });
+const props = withDefaults(defineProps<{ formKey: string; schemaHash: string; config: FormLeftTreeConfiguration; list?: FormListConfiguration; lock?: { busy: boolean }; permissionCheck?: (code: string) => boolean; modelValue?: FormRecordId[]; filter?: Record<string, unknown>; canReadForm?: boolean; canMutate?: boolean; api?: Pick<typeof formDataApi, 'leftTree' | 'leftTreeForm' | 'mutateLeftTree'> }>(), { canReadForm: true, canMutate: true });
 const emit = defineEmits<{ change: [values: FormRecordId[]]; mutated: [] }>();
 const adapter = useListButtonAdapter();
 const localButtonLock = reactive({ busy: false });
@@ -55,7 +55,7 @@ const clearSelection = () => select([]);
 const closeButtonHost = () => { visible.value = false; dialogSequence.value++; };
 const refreshButtonHost = async () => { await load(); emit('mutated'); };
 const buttonContext = (location: 'categoryToolbar' | 'categoryNode', row?: Record<string, unknown>): ListButtonContext => ({
-  formKey: props.formKey, schemaHash: props.schemaHash, location, ids: [],
+  formKey: props.formKey, schemaHash: props.schemaHash, location, ids: [], filter: props.filter,
   sourceSchemaHash: result.value?.schemaHash, sourceKey: result.value?.sourceKey,
   ...(row ? { category: { id: row.id as FormRecordId } } : {})
 });

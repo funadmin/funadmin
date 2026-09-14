@@ -29,6 +29,7 @@ final class Page
 
     public static function validate(array $page): void
     {
+        self::validatePageValues($page);
         self::keys($page, ['pageSchemaVersion', 'key', 'search', 'columns', 'toolbar', 'rowActions', 'pagination', 'list', 'primaryKey']);
         if (($page['pageSchemaVersion'] ?? null) !== 1) self::fail();
         self::identifier($page['key'] ?? null);
@@ -71,7 +72,9 @@ final class Page
                     if (isset($item['inactiveColor']) && !in_array($item['inactiveColor'], ['primary', 'info', 'warning', 'danger', 'success'], true)) self::fail();
                     if (($item['action']['type'] ?? '') !== 'registered') self::fail();
                     $base = array_diff_key($item, array_flip(['visibleWhen', 'disabledWhen', 'activeWhen', 'inactiveColor', 'selectionCount']));
-                    (new ListButtonSchemaValidator())->validate(['buttons' => [$section === 'toolbar' ? 'toolbar' : 'row' => [$base]]], []);
+                    try {
+                        (new ListButtonSchemaValidator())->validate(['buttons' => [$section === 'toolbar' ? 'toolbar' : 'row' => [$base]]], []);
+                    } catch (\app\common\form\schema\FormSchemaException $e) { self::fail(); }
                 }
             }
         }
@@ -104,7 +107,14 @@ final class Page
                 }
             } elseif (array_key_exists('category', $list)) self::fail();
             try {
-                if (array_key_exists('leftTree', $list)) (new \app\common\form\schema\FormSchemaValidator())->validateLeftTree($list['leftTree']);
+                if (array_key_exists('leftTree', $list)) {
+                    $leftTree = $list['leftTree'];
+                    if (!is_array($leftTree) || !is_bool($leftTree['enabled'] ?? null)) self::fail();
+                    if ($leftTree['enabled']) foreach (($leftTree['mapping'] ?? []) as $field) {
+                        if (in_array($field, ['constructor', 'prototype', '__proto__'], true)) self::fail();
+                    }
+                    (new \app\common\form\schema\FormSchemaValidator())->validateLeftTree($leftTree);
+                }
                 if (array_key_exists('buttons', $list)) {
                     if (!is_array($list['buttons'])) self::fail();
                     self::keys($list['buttons'], ['categoryToolbar', 'categoryNode']);
@@ -113,11 +123,20 @@ final class Page
             } catch (\app\common\form\schema\FormSchemaException $e) { self::fail(); }
         }
         $pagination = $page['pagination'] ?? [];
+        if (!is_array($pagination)) self::fail();
         self::keys($pagination, ['pageSize', 'pageSizes', 'enabled']);
         if (array_key_exists('enabled', $pagination) && !is_bool($pagination['enabled'])) self::fail();
         if (!is_array($pagination['pageSizes'] ?? null) || !array_is_list($pagination['pageSizes']) || !$pagination['pageSizes']) self::fail();
         foreach ($pagination['pageSizes'] as $size) if (!is_int($size) || $size < 1 || $size > 1000) self::fail();
         if (!in_array($pagination['pageSize'] ?? null, $pagination['pageSizes'], true)) self::fail();
+    }
+    private static function validatePageValues(array $value): void {
+        foreach ($value as $key => $child) {
+            // 页面范围拒绝可选配置中的 null，条件值和常量绑定仍允许 null。
+            if ($child === null && $key !== 'value') self::fail();
+            if (is_int($child) && abs($child) > 9007199254740991) self::fail();
+            if (is_array($child) && $key !== 'value') self::validatePageValues($child);
+        }
     }
     private static function condition(mixed $value): void {
         if (!is_array($value)) self::fail();

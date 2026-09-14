@@ -70,6 +70,14 @@ describe('017 历史命名与会员标签治理', () => {
     expect(controller).toContain("'tagNames'");
     expect(api).toContain('tagIds: number[]');
     expect(api).toContain('tagNames: string[]');
-    expect(form).toContain('v-model="form.tagIds"');
+    expect(form).toContain('<SchemaRenderer');
+    expect(form).toContain('tag_ids: [...row.tagIds]');
+    expect(form).toContain('tagIds: [...value.tag_ids]');
+    expect(form).toMatch(/<SchemaRenderer\b[^>]*:schema="definition.schema!"[^>]*:values="values"[^>]*:options="relationOptions"/);
+    expect(form).toContain("const relationKeys = ['group_ids', 'tag_ids', 'level_id']");
+    expect(form).toContain('return [node.id, Array.isArray(options) ? options : []]');
+    expect(form).toContain('formRef.value?.validate()');
+    expect(form).toContain('memberApi.update(id, payload)');
+    expect(form).toContain('memberApi.create(payload)');
   });
 });

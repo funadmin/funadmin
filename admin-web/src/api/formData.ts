@@ -87,7 +87,7 @@ export const formDataApi = {
   sourceCandidates: () => http.get<{ list: FormSourceMeta[]; total: number }>('/development/business/modules', { source: true }, { requestOptions: { showErrorMsg: false } }),
   index: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[]; total: number }>(`${PREFIX}/index/${key}`, params),
   export: (key: string, params: Record<string, unknown>) => http.get<{ list: Record<string, unknown>[] }>(`${PREFIX}/export/${key}`, params),
-  detail: (key: string, id: string | number) => http.get<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> }>(`${PREFIX}/detail/${key}/${id}`),
+  detail: (key: string, id: string | number, copyCreate = false, schemaHash = '') => http.get<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> }>(`${PREFIX}/detail/${key}/${id}`, copyCreate ? { copyCreate: true, schemaHash } : undefined),
   options: (key: string, field: string, params: Record<string, unknown> = {}, signal?: AbortSignal) =>
     http.get<{ options: Array<{ label: string; value: string | number; disabled?: boolean }>; total?: number }>(
       `${PREFIX}/options/${key}/${field}`,

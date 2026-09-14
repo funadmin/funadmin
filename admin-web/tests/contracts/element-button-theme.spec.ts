@@ -53,8 +53,12 @@ describe('Element Plus 按钮主题契约', () => {
   });
 
   it('回收站入口使用 warning plain', () => {
-    const member = readFileSync(resolve(process.cwd(), 'src/views/system/member/index.vue'), 'utf8');
-    expect(member).toContain(`:type="recycled ? 'warning' : 'info'" plain`);
+    const definition = readFileSync(resolve(process.cwd(), '../app/console/service/MemberPageDefinition.php'), 'utf8');
+    expect(definition).toContain("$action('recycled', '回收站', 'warning'");
+    expect(definition).toContain("'inactiveColor' => 'info'");
+    expect(definition).toContain("'activeWhen' => $recycled");
+    const actions = readFileSync(resolve(process.cwd(), 'src/components/DataTable/PageActions.vue'), 'utf8');
+    expect(actions).toContain("action.activeWhen && !matchesPageCondition(action.activeWhen, props.context.values) ? action.inactiveColor : action.color");
   });
 
   it('保留按钮布局和图标对齐规则', () => {

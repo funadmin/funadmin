@@ -1,10 +1,12 @@
 import { mount, flushPromises } from '@vue/test-utils';
-import { defineComponent } from 'vue';
+import { defineComponent, reactive } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MemberFormDialog from './MemberFormDialog.vue';
 
 const api = vi.hoisted(() => ({ options: vi.fn(), create: vi.fn(), update: vi.fn(), validate: vi.fn(async () => true) }));
 vi.mock('@/api/system/member', () => ({ memberApi: api }));
+const user = reactive({ permissions: [] as string[] });
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 vi.mock('@/views/form/components/SchemaRenderer.vue', () => ({ default: defineComponent({
   name: 'SchemaRenderer', props: ['schema', 'values', 'options'], setup(_, { expose }) { expose({ validate: api.validate }); }, template: '<div />'
 }) }));
@@ -28,8 +30,20 @@ const render = (row: any = null) => mount(MemberFormDialog, {
   } }
 });
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>((r) => { resolve = r; }); return { promise, resolve }; };
-beforeEach(() => { vi.clearAllMocks(); api.options.mockResolvedValue(definition()); api.create.mockResolvedValue({}); api.update.mockResolvedValue({}); });
+beforeEach(() => { user.permissions = ['system:member:add', 'system:member:edit']; vi.clearAllMocks(); api.options.mockResolvedValue(definition()); api.create.mockResolvedValue({}); api.update.mockResolvedValue({}); });
 describe('会员 Builder 弹窗', () => {
+  it.each(['add', 'edit'])('校验期间撤销 %s 权限不得保存，也不借用另一动作权限', async action => {
+    const row = action === 'edit' ? { id: 8, username: '会员', groupIds: [7], groupNames: ['组'], tagIds: [], tagNames: [], levelId: 3, levelName: '等级' } : null;
+    const wrapper = render(row); await flushPromises();
+    const validation = deferred(); api.validate.mockReturnValueOnce(validation.promise);
+    const state = (wrapper.vm as any).$.setupState;
+    const saving = state.onSubmit();
+    expect(api.validate).toHaveBeenCalledTimes(1);
+    user.permissions = [action === 'add' ? 'system:member:edit' : 'system:member:add'];
+    validation.resolve(true); await saving;
+    expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
+    expect(state.saving).toBe(false); wrapper.unmount();
+  });
   it('页面动作持锁时禁止实际保存', async () => {
     const wrapper = render(); await wrapper.setProps({ lock: { busy: true } } as any); await flushPromises();
     await wrapper.findAll('button').find(b => b.text() === '确定')!.trigger('click'); await flushPromises();

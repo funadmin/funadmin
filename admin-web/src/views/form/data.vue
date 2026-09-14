@@ -183,6 +183,9 @@ const detail = ref<{ row: Record<string, unknown>; children: Record<string, { li
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const dialogSnapshot = ref('');
 let closeDialogAfterSave = false;
+let saveSequence = 0;
+let dialogSequence = 0;
+let detailSequence = 0;
 
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const primaryKeyName = computed(() => meta.value?.primaryKey.name ?? 'id');
@@ -248,11 +251,15 @@ const formatJson = (value: unknown) => {
 
 async function loadMeta() {
   const key = formKey.value;
+  const sequence = ++metaSequence;
   const loaded = await formDataApi.meta(key);
-  if (key === formKey.value) meta.value = loaded;
+  if (sequence !== metaSequence || key !== formKey.value) return false;
+  meta.value = loaded;
+  return true;
 }
 let dataSequence = 0;
-onBeforeUnmount(() => { dataSequence++; });
+let metaSequence = 0;
+onBeforeUnmount(() => { metaSequence++; dataSequence++; saveSequence++; dialogSequence++; detailSequence++; });
 async function loadData() {
   const sequence = ++dataSequence;
   clearSelection();
@@ -302,8 +309,11 @@ const decodeValue = (field: FormFieldDef, value: unknown) => {
   }
 };
 const openDialog = async (row?: Record<string, unknown>) => {
-  editingId.value = row ? row[primaryKeyName.value] as FormRecordId : null;
-  const source = editingId.value !== null ? await formDataApi.detail(formKey.value, editingId.value) : null;
+  const sequence = ++dialogSequence;
+  const identity = { formKey: formKey.value, id: row ? row[primaryKeyName.value] as FormRecordId : null, schemaHash: meta.value?.schemaHash ?? '' };
+  const source = identity.id !== null ? await formDataApi.detail(identity.formKey, identity.id) : null;
+  if (sequence !== dialogSequence || identity.formKey !== formKey.value || identity.schemaHash !== (meta.value?.schemaHash ?? '')) return;
+  editingId.value = identity.id;
   const record = sanitizeRuntimeRecord(formFields.value, source?.row ?? row ?? {});
   const values = { ...emptyRuntimeValues(formFields.value), ...record };
   for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
@@ -319,24 +329,34 @@ const responseFieldErrors = (reason: unknown): FormFieldError[] => {
   const response = reason as { data?: { fieldErrors?: FormFieldError[] }; fieldErrors?: FormFieldError[] };
   return response.data?.fieldErrors ?? response.fieldErrors ?? [];
 };
+async function refreshAfterWrite() {
+  try {
+    await loadData();
+  } catch {
+    ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
+  }
+}
 async function onSave() {
   if (saving.value || buttonLock.busy) return;
   saving.value = true;
   buttonLock.busy = true;
+  const saveSequenceValue = ++saveSequence;
   const identity = JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]);
   try {
     await schemaRendererRef.value?.submit();
-    if (identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
+    if (saveSequenceValue !== saveSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
     const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
     const schemaHash = meta.value?.schemaHash ?? '';
     if (editingId.value !== null) await formDataApi.update(formKey.value, editingId.value, payload, include, schemaHash);
     else await formDataApi.create(formKey.value, payload, include, schemaHash);
+    if (saveSequenceValue !== saveSequence) return;
     closeDialogAfterSave = true;
     dialogVisible.value = false;
     ElMessage.success('保存成功');
-    loadData();
+    await refreshAfterWrite();
   } catch (reason) {
+    if (saveSequenceValue !== saveSequence) return;
     const errors = responseFieldErrors(reason);
     if (errors.length) await schemaRendererRef.value?.setFieldErrors(mapFieldErrors(errors));
     else throw reason;
@@ -346,7 +366,10 @@ async function onSave() {
   }
 }
 async function openDetail(row: Record<string, unknown>) {
-  const result = await formDataApi.detail(formKey.value, row[primaryKeyName.value] as FormRecordId);
+  const sequence = ++detailSequence;
+  const identity = { formKey: formKey.value, id: row[primaryKeyName.value] as FormRecordId, schemaHash: meta.value?.schemaHash ?? '' };
+  const result = await formDataApi.detail(identity.formKey, identity.id);
+  if (sequence !== detailSequence || identity.formKey !== formKey.value || identity.schemaHash !== (meta.value?.schemaHash ?? '')) return;
   detail.value = { ...result, row: sanitizeRuntimeRecord(formFields.value, result.row) };
   detailVisible.value = true;
 }
@@ -357,7 +380,7 @@ async function onDelete(row: Record<string, unknown>) {
   if (context !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('console/form.data:remove') || !rows.value.some(record => record[primaryKeyName.value] === row[primaryKeyName.value])) return;
   await formDataApi.remove(formKey.value, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
-  loadData();
+  await refreshAfterWrite();
 }
 async function onExport() {
   const data = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
@@ -375,9 +398,13 @@ async function onExport() {
 }
 const childColumns = (list: Record<string, unknown>[]) => (list.length ? Object.keys(list[0]) : []);
 
-watch(formKey, async () => { dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadMeta(); await loadData(); });
+watch(formKey, async () => { dataSequence++; dialogSequence++; detailSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; if (await loadMeta()) await loadData(); });
+// 同步失效可覆盖同一轮关闭再打开、身份切走再切回。
+watch(dialogVisible, () => { dialogSequence++; saveSequence++; }, { flush: 'sync' });
+watch(detailVisible, () => { detailSequence++; }, { flush: 'sync' });
+watch(formKey, () => { metaSequence++; dataSequence++; }, { flush: 'sync' });
+watch([formKey, () => meta.value?.schemaHash], () => { saveSequence++; dialogSequence++; detailSequence++; }, { flush: 'sync' });
 onMounted(async () => {
-  await loadMeta();
-  await loadData();
+  if (await loadMeta()) await loadData();
 });
 </script>

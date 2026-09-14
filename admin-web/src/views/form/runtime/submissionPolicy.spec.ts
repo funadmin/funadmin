@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { FormFieldDef } from '@/api/form';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
@@ -6,7 +7,6 @@ import {
   sanitizeRuntimeRecord,
   stableRuntimeValues
 } from './submissionPolicy';
-import type { FormFieldDef } from '@/api/form';
 
 const field = (name: string, overrides: Partial<FormFieldDef> = {}): FormFieldDef => ({
   field_name: name, label: name, type: 'input', column_type: 'varchar(255)', nullable: 1,

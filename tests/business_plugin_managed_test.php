@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
+$container = \think\Container::getInstance();
+$container->instance('env', new \think\Env());
+$config = new \think\Config();
+$config->set(['crud' => ['confirm_secret' => 'managed-test-secret']]);
+$container->instance('config', $config);
 
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;

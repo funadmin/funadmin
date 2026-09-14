@@ -36,8 +36,20 @@ describe('公共编辑弹窗视口约束', () => {
   it('普通 CRUD、Schema 生成页与运行时继续复用原生公共弹窗', () => {
     const generator = readFileSync(resolve(process.cwd(), '../app/common/crud/ProductionTemplateContext.php'), 'utf8');
     const runtime = readFileSync(resolve(process.cwd(), 'src/views/form/data.vue'), 'utf8');
-    expect(generator).toContain("? 'el-drawer' : 'el-dialog'");
-    expect(generator).toContain('return "<template><el-dialog');
+    const memberDialog = readFileSync(resolve(process.cwd(), 'src/views/system/member/components/MemberFormDialog.vue'), 'utf8');
+    const sourceDialog = readFileSync(resolve(process.cwd(), 'src/views/form/components/ListSourceTree.vue'), 'utf8');
+    const buttonInteraction = readFileSync(resolve(process.cwd(), 'src/views/form/components/ListButtonInteraction.vue'), 'utf8');
+    expect(generator).toContain("$tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog'");
+    expect(generator).toContain('return "<template><{$tag} v-model=');
+    expect(generator).toMatch(/<SchemaRenderer[^>]*\/><template #footer>[\s\S]*?<\/template><\/\{\$tag\}>/);
+    for (const source of [runtime, memberDialog, sourceDialog]) {
+      const dialogBody = source.match(/<el-dialog\b[^>]*>([\s\S]*?)<\/el-dialog>/)?.[1];
+      expect(dialogBody).toBeDefined();
+      expect(dialogBody).toMatch(/<SchemaRenderer\b[^>]*\/>/);
+      expect(dialogBody).toContain('<template #footer>');
+    }
     expect(runtime).toContain('<el-dialog v-model="dialogVisible"');
+    expect(runtime).toContain('schemaRendererRef.value?.submit()');
+    expect(buttonInteraction).toContain('<component :is="interaction?.presentation === \'drawer\' ? ElDrawer : ElDialog\"');
   });
 });

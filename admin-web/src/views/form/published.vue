@@ -1,7 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" :filter="{ ...filters, __leftTree: leftSelection }" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template #search>
@@ -15,7 +15,7 @@
         </SearchForm>
       </template>
       <template #toolbar>
-        <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" />
+        <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
       <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
             <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ Number(row[field.field_name]) === 1 ? '是' : '否' }}</el-tag>
@@ -30,7 +30,7 @@
             <span v-else>{{ row[field.field_name] }}</span>
       </template>
       <template #actions="{ row }">
-        <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" link />
+        <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
       </template>
     </SchemaTablePage>
     </div>
@@ -84,18 +84,20 @@ const hasPermission = (code: string) => user.permissions.some(p => p === '*' || 
 const buttonLock = reactive({ busy: false });
 const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')));
 const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')));
+const copyAllowed = () => Boolean(meta.value && meta.value.schema.form?.readOnly !== true && hasPermission('console/form.data:create') && hasPermission('console/form.data:detail'));
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
   const routes: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index' };
-  return (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`console/form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('console/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
+  return (key !== 'copyCreate' || copyAllowed()) && (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`console/form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('console/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
 };
-const buttonHandlers: ListButtonHandlers = { create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData() };
+const buttonHandlers: ListButtonHandlers = { copyCreate: row => openDialog(row, true), create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData() };
 const selectedRows = ref<Record<string, unknown>[]>([]);
 const tableRef = ref<{ clearSelection: () => void }>();
 const buttonContextVersion = ref(0);
 const onSelectionChange = (rows: Record<string, unknown>[]) => { selectedRows.value = rows; buttonContextVersion.value++; };
 const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearSelection(); buttonContextVersion.value++; };
-const buttonContext = (location: 'row' | 'toolbar', row?: Record<string, unknown>): ListButtonContext => ({ formKey: formKey.value, schemaHash: meta.value?.schemaHash ?? '', location, ids: (row ? [row] : selectedRows.value).map(row => row[primaryKey.value] as FormRecordId) });
+const buttonContext = (location: 'row' | 'toolbar', row?: Record<string, unknown>): ListButtonContext => ({ formKey: formKey.value, schemaHash: meta.value?.schemaHash ?? '', location, ids: (row ? [row] : selectedRows.value).map(row => row[primaryKey.value] as FormRecordId), filter: { ...filters, __leftTree: leftSelection.value } });
+const closeButtonHost = () => { dialogVisible.value = false; detailVisible.value = false; };
 const route = useRoute();
 const router = useRouter();
 const formKey = computed(() => String(route.params.formKey || route.meta.formKey || route.query.formKey || ''));
@@ -109,6 +111,8 @@ const filters = reactive<Record<string, string>>({});
 const leftSelection = ref<FormRecordId[]>([]);
 const onLeftTree = (values: FormRecordId[]) => { leftSelection.value = values; onSearch(); };
 const dateFilters = reactive<Record<string, string[] | null>>({});
+let dialogSequence = 0;
+let detailSequence = 0;
 const dialogVisible = ref(false);
 const detailVisible = ref(false);
 const detail = ref<{ row: Record<string, unknown> } | null>(null);
@@ -149,21 +153,26 @@ const actionHandlers: Partial<ActionHandlers> = {
   reset: async () => { Object.assign(dialogValues, emptyRuntimeValues(formFields.value)); }
 };
 
-const loadMeta = async () => {
-  if (!formKey.value) return;
+let metaSequence = 0;
+const loadMeta = async (isCurrent: () => boolean = () => true) => {
+  if (!formKey.value) return false;
   const key = formKey.value;
+  const sequence = ++metaSequence;
   const result = await formDataApi.meta(key);
-  if (key === formKey.value) meta.value = result;
+  if (sequence !== metaSequence || key !== formKey.value || !isCurrent()) return false;
+  meta.value = result;
+  return true;
 };
 let dataSequence = 0;
-onBeforeUnmount(() => { dataSequence++; });
+onBeforeUnmount(() => { metaSequence++; dataSequence++; dialogSequence++; detailSequence++; });
 const loadData = async () => {
   if (!formKey.value) return;
   const sequence = ++dataSequence;
   clearSelection();
   loading.value = true;
   try {
-    if (!meta.value) await loadMeta();
+    if (!meta.value && !await loadMeta(() => sequence === dataSequence)) return;
+    if (sequence !== dataSequence) return;
     const result = await formDataApi.index(formKey.value, { ...query, filters: { ...filters, __leftTree: leftSelection.value } });
     if (sequence !== dataSequence) return;
     rows.value = result.list;
@@ -192,8 +201,22 @@ const onExport = async () => {
 const formatDate = (value: unknown, type: string) => value ? dayjs(String(value)).format(type === 'date' ? 'YYYY-MM-DD' : type === 'time' ? 'HH:mm:ss' : 'YYYY-MM-DD HH:mm:ss') : '';
 const formatLink = (type: string, value: unknown) => type === 'email' ? `mailto:${String(value ?? '')}` : type === 'phone' ? `tel:${String(value ?? '')}` : /^https?:\/\//.test(String(value ?? '')) ? String(value) : '#';
 const formatJson = (value: unknown) => { try { return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value); } catch { return String(value ?? ''); } };
-const openDetail = async (row: Record<string, unknown>) => { detail.value = await formDataApi.detail(formKey.value, row[primaryKey.value] as FormRecordId); detailVisible.value = true; };
-const onReset = () => { leftSelection.value = []; Object.keys(filters).forEach((key) => delete filters[key]); onSearch(); };
+const openDetail = async (row: Record<string, unknown>) => {
+  const sequence = ++detailSequence;
+  const identity = { formKey: formKey.value, id: row[primaryKey.value] as FormRecordId, schemaHash: meta.value?.schemaHash ?? '' };
+  const result = await formDataApi.detail(identity.formKey, identity.id);
+  if (sequence !== detailSequence || identity.formKey !== formKey.value || identity.schemaHash !== (meta.value?.schemaHash ?? '')) return;
+  detail.value = result;
+  detailVisible.value = true;
+};
+const onReset = () => { leftSelection.value = []; Object.keys(filters).forEach((key) => delete filters[key]); Object.keys(dateFilters).forEach((key) => delete dateFilters[key]); onSearch(); };
+const refreshAfterWrite = async () => {
+  try {
+    await loadData();
+  } catch {
+    ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
+  }
+};
 const decodeValue = (field: FormFieldDef, value: unknown) => {
   if (field.column_type !== 'json' || typeof value !== 'string' || value === '') return value;
   try {
@@ -202,13 +225,19 @@ const decodeValue = (field: FormFieldDef, value: unknown) => {
     return value;
   }
 };
-const openDialog = async (row?: Record<string, unknown>) => {
-  if (!meta.value) await loadMeta();
-  editingId.value = row ? row[primaryKey.value] as FormRecordId : null;
-  const source = editingId.value !== null ? await formDataApi.detail(formKey.value, editingId.value) : null;
+const openDialog = async (row?: Record<string, unknown>, copyCreate = false) => {
+  if (copyCreate && (!copyAllowed() || !row || !rows.value.some(item => item[primaryKey.value] === row[primaryKey.value]))) return;
+  const sequence = ++dialogSequence;
+  const key = formKey.value;
+  if (!meta.value) await loadMeta(() => sequence === dialogSequence && key === formKey.value);
+  if (sequence !== dialogSequence || key !== formKey.value || !meta.value) return;
+  const identity = { formKey: key, id: row ? row[primaryKey.value] as FormRecordId : null, schemaHash: meta.value.schemaHash };
+  const source = identity.id !== null ? await (copyCreate ? formDataApi.detail(identity.formKey, identity.id, true, identity.schemaHash) : formDataApi.detail(identity.formKey, identity.id)) : null;
+  if (sequence !== dialogSequence || identity.formKey !== formKey.value || identity.schemaHash !== meta.value?.schemaHash || (copyCreate && !copyAllowed())) return;
+  editingId.value = copyCreate ? null : identity.id;
   const record = sanitizeRuntimeRecord(formFields.value, source?.row ?? row ?? {});
   const values = { ...emptyRuntimeValues(formFields.value), ...record };
-  for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
+  if (!copyCreate) for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
   for (const field of formFields.value) values[field.field_name] = decodeValue(field, values[field.field_name]);
   Object.keys(dialogValues).forEach((key) => delete dialogValues[key]);
   Object.assign(dialogValues, values);
@@ -228,19 +257,22 @@ const saveRow = async () => {
   if (saving.value || buttonLock.busy || !meta.value) return;
   saving.value = true;
   buttonLock.busy = true;
+  const sequence = dialogSequence;
   const identity = JSON.stringify([formKey.value, editingId.value, meta.value.schemaHash]);
   try {
     await schemaRendererRef.value?.submit();
-    if (identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
+    if (sequence !== dialogSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
     const include = resolveSubmissionInclude({ schema_document: meta.value.schema });
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
     const schemaHash = meta.value.schemaHash;
     if (editingId.value !== null) await formDataApi.update(formKey.value, editingId.value, payload, include, schemaHash);
     else await formDataApi.create(formKey.value, payload, include, schemaHash);
+    if (sequence !== dialogSequence) return;
     dialogVisible.value = false;
     ElMessage.success('保存成功');
-    await loadData();
+    await refreshAfterWrite();
   } catch (reason) {
+    if (sequence !== dialogSequence) return;
     const errors = responseFieldErrors(reason);
     if (errors.length) await schemaRendererRef.value?.setFieldErrors(mapFieldErrors(errors));
     else if (isSchemaConflict(reason)) {
@@ -260,9 +292,14 @@ const removeRow = async (row: Record<string, unknown>) => {
   if (snapshot !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('console/form.data:remove')) return;
   await formDataApi.remove(formKey.value, row[primaryKey.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
-  await loadData();
+  await refreshAfterWrite();
 };
 
-watch(formKey, async () => { dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadData(); });
+watch(formKey, async () => { metaSequence++; dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadData(); });
+// 初次元数据就绪允许继续打开，其余身份变化同步使旧请求失效。
+watch(formKey, () => { metaSequence++; dataSequence++; dialogSequence++; detailSequence++; }, { flush: 'sync' });
+watch(() => meta.value?.schemaHash, (_, previous) => { if (previous !== undefined) { dialogSequence++; detailSequence++; } }, { flush: 'sync' });
+watch(dialogVisible, () => { dialogSequence++; }, { flush: 'sync' });
+watch(detailVisible, () => { detailSequence++; }, { flush: 'sync' });
 onMounted(loadData);
 </script>

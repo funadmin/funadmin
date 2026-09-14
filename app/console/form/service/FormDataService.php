@@ -497,15 +497,26 @@ final class FormDataService
     }
 
     /** 详情：行 + has_many 子表首屏。 */
-    public function detail(string $key, int|string $id): array
+    public function detail(string $key, int|string $id, bool $copyCreate = false, string $schemaHash = ''): array
     {
         $form = $this->form($key);
-        $fields = $this->fields($key);
+        $published = $this->publishedRuntime($form);
+        if ($copyCreate) {
+            $route = $this->businessPermissionRoute($published['module']);
+            foreach (['detail', 'create'] as $operation) {
+                if (!($this->permissionChecker)($route . '/' . $operation)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            }
+            $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        }
+        $fields = $published['fields'];
         $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
         $primary = $this->primaryKey($schema);
         $row = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
         if (!$row) {
             throw new InvalidArgumentException('数据不存在');
+        }
+        if ($copyCreate) {
+            return ['row' => $this->copyCreateValues(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $this->sanitizeRecord($fields, $row), $primary['name']), 'children' => []];
         }
         $children = [];
         foreach ($fields as $field) {

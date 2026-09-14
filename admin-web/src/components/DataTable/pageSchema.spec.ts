@@ -34,12 +34,75 @@ describe('公共页面声明', () => {
   it('接收 PHP 编译产物，空集合保持为空', () => {
     expect(parsePageSchema(page()).columns).toEqual([]);
     const root = resolve(process.cwd(), '..');
-    const php = process.env.PHP_BINARY || 'php';
+    const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
     const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\console\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output)).columns).toHaveLength(12);
   });
   it.each([null, {}, { ...page(), toolbar: null }, { ...page(), search: [{ field: '__proto__', label: '坏字段', type: 'input' }] }, { ...page(), toolbar: [{ ...action(), url: '/delete' }] }, { ...page(), toolbar: [{ ...action(), action: { type: 'external', key: 'edit' } }] }])('拒绝损坏及可执行声明 %j', (value) => {
     expect(() => parsePageSchema(value)).toThrow();
+  });
+  it('PHP/TS 分类按钮协议矩阵保持标识、文本、整数、null、对象编码与左树一致', () => {
+    const tree = { enabled: true, source: { type: 'current' }, mapping: { valueField: 'id', labelField: 'name', targetField: 'category_id' }, selection: { mode: 'single', includeDescendants: false }, actions: { create: false, addChild: false, edit: false, delete: false } };
+    const button = { id: 'inspect', label: '检查', order: 1, action: { type: 'registered', key: 'inspect', capabilityVersion: '1' }, visibleWhen: { field: 'id', op: 'eq', value: null } };
+    const value = { ...page(), list: { leftTree: tree, buttons: { categoryToolbar: [button], categoryNode: [] } } };
+    expect(() => parsePageSchema(value)).not.toThrow();
+    expect(parsePageSchema(value).list?.buttons?.categoryToolbar).toEqual([button]);
+    for (const invalid of [
+      { ...button, id: 'BadId' },
+      { ...button, label: 1 },
+      { ...button, visibleWhen: { field: 'status', op: 'eq', value: {} } },
+      { ...button, order: 1.5 },
+      { ...button, action: { type: 'registered', key: 'inspect', capabilityVersion: 1 } },
+    ]) expect(() => parsePageSchema({ ...page(), list: { leftTree: tree, buttons: { categoryToolbar: [invalid] } } })).toThrow('PAGE_SCHEMA_INVALID');
+  });
+  it('同一 JSON 输入由 PHP 与 TS 共同执行正反例矩阵', () => {
+    const cases: { name: string; valid: boolean; value: unknown }[] = [];
+    const add = (name: string, valid: boolean, patch: object) => cases.push({ name, valid, value: { ...page(), ...patch } });
+    const category = (patch: object, location = 'categoryToolbar') => ({ list: { buttons: { [location]: [{ ...action(), ...patch }] } } });
+    add('页面基础', true, {});
+    add('页面上下文条件不参与基础字段可读验证', true, { toolbar: [{ ...action(), visibleWhen: { field: 'recycled', op: 'eq', value: false }, activeWhen: { field: 'selectionCount', op: 'neq', value: 0 } }] });
+    for (const key of ['order', 'size', 'tips', 'placement', 'disabledReason', 'interaction', 'params', 'success', 'selection']) add(`顶部闭合-${key}`, false, { toolbar: [{ ...action(), [key]: 1 }] });
+    for (const location of ['categoryToolbar', 'categoryNode']) {
+      for (const [name, valid, patch] of [
+        ['order1', true, { order: 1 }], ['order小数', false, { order: 1.5 }], ['order越界', false, { order: 10001 }],
+        ['id条件', true, { visibleWhen: { field: 'id', op: 'eq', value: null } }],
+        ['status不可读', false, { visibleWhen: { field: 'status', op: 'eq', value: null } }],
+        ['嵌套条件', true, { disabledWhen: { op: 'and', conditions: [{ op: 'not', condition: { op: 'in', field: 'id', value: [1, null] } }] } }],
+        ['坏条件', false, { visibleWhen: { op: 'exec', field: 'id', value: 1 } }],
+        ['大写ID', false, { id: 'BadId' }], ['点号ID', true, { id: 'inspect.node' }], ['危险ID', false, { id: 'a.constructor' }],
+        ['中文长度', false, { label: '中'.repeat(34) }], ['控制字符', false, { label: 'bad\ntext' }], ['空文本', false, { label: ' ' }],
+        ['icon', true, { icon: 'inspect' }], ['iconNull', false, { icon: null }], ['color', false, { color: 'unknown' }], ['selection', false, { selection: { min: 1 } }],
+        ['注册版本', false, { action: { type: 'registered', key: 'edit', capabilityVersion: 1 } }],
+        ['空版本', false, { action: { type: 'registered', key: 'edit', capabilityVersion: '' } }],
+        ['刷新', true, { action: { type: 'refresh' } }], ['刷新key', false, { action: { type: 'refresh', key: 'edit' } }],
+        ['交互输入', true, { interaction: { type: 'input', fields: [{ name: 'reason', label: '原因', type: 'input', maxLength: 20 }] }, params: { reason: { source: 'form', field: 'reason' } } }],
+        ['交互缺字段', false, { interaction: { type: 'input' } }], ['交互null', false, { interaction: null }], ['交互fieldsNull', false, { interaction: { type: 'form', fields: null } }],
+        ['参数id', true, { params: { target: { source: 'row', field: 'id' } } }], ['参数status', false, { params: { target: { source: 'row', field: 'status' } } }],
+        ['常量null', true, { params: { target: { source: 'literal', value: null } } }], ['常量对象', false, { params: { target: { source: 'literal', value: {} } } }],
+        ['空对象', true, { params: {}, success: {} }], ['PHP空对象编码', true, { params: [], success: [] }], ['参数null', false, { params: null }],
+        ['成功效果', true, { success: { refresh: true, message: '完成' } }], ['坏成功效果', false, { success: { refresh: 1 } }], ['未知字段', false, { url: '/bad' }],
+      ] as const) add(`${location}-${name}`, valid, category(patch, location));
+    }
+    const tree = { enabled: true, source: { type: 'current' }, mapping: { valueField: 'id', labelField: 'name', targetField: 'category_id' } };
+    add('左树', true, { list: { leftTree: tree } });
+    add('左树缺开关', false, { list: { leftTree: {} } });
+    add('左树危险标识', false, { list: { leftTree: { ...tree, mapping: { ...tree.mapping, labelField: 'constructor' } } } });
+    add('左树null', false, { list: { leftTree: { ...tree, selection: null } } });
+    add('左树禁用', true, { list: { leftTree: { enabled: false } } });
+    add('搜索整数', true, { search: [{ field: 'id', label: '编号', type: 'select', options: [{ label: '一', value: 1 }] }] });
+    add('搜索小数', false, { search: [{ field: 'id', label: '编号', type: 'select', options: [{ label: '一', value: 1.5 }] }] });
+    add('列null', false, { columns: [{ key: 'id', label: '编号', width: null }] });
+    const json = JSON.stringify(cases);
+    const phpResults = JSON.parse(execFileSync(process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php', ['-r',
+      "require 'vendor/autoload.php'; $results=[]; foreach(json_decode(stream_get_contents(STDIN),true) as $case) { try { \\app\\common\\form\\builder\\Page::validate($case['value']); $results[]=true; } catch (InvalidArgumentException $e) { $results[]=$e->getMessage(); } } echo json_encode($results);"
+    ], { cwd: resolve(process.cwd(), '..'), input: json, encoding: 'utf8' }));
+    JSON.parse(json).forEach((test: typeof cases[number], index: number) => {
+      let result: true | string = true;
+      try { parsePageSchema(test.value); } catch (error) { result = (error as Error).message; }
+      const expected = test.valid ? true : 'PAGE_SCHEMA_INVALID';
+      expect(phpResults[index], `PHP: ${test.name}`).toBe(expected);
+      expect(result, `TS: ${test.name}`).toBe(expected);
+    });
   });
   it('分类协议拒绝缺失选项、未知来源、任意地址与非法操作开关', () => {
     const tree = { enabled: true, source: { type: 'module', module: 'categories' }, mapping: { valueField: 'id', labelField: 'name', targetField: 'category_id' } };

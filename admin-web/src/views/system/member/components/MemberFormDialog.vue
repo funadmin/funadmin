@@ -24,10 +24,13 @@ import { memberApi, type MemberModel, type MemberOptions, type MemberPayload } f
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
 import { flattenSchemaNodes } from '@/views/form/schema/types';
+import { useUserStore } from '@/store/modules/user';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions; lock?: { busy: boolean } }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
+const userStore = useUserStore();
+const userCanSubmit = (permission: string) => userStore.permissions.some(item => item === '*' || item === '*:*:*' || item === permission);
 const formRef = ref<InstanceType<typeof SchemaRenderer>>();
 const definition = ref<MemberOptions>();
 const fields = ref<FormFieldDef[]>([]);
@@ -95,7 +98,7 @@ async function onSubmit() {
   const token = generation.value;
   const id = props.row?.id;
   try {
-    if (!(await formRef.value?.validate().catch(() => false)) || token !== generation.value || !props.modelValue) return;
+    if (!(await formRef.value?.validate().catch(() => false)) || token !== generation.value || !props.modelValue || !userCanSubmit(id ? 'system:member:edit' : 'system:member:add')) return;
     const value = values.value;
     const payload: MemberPayload = { username: value.username, mobile: value.mobile, email: value.email, sex: value.sex,
       groupIds: [...value.group_ids], tagIds: [...value.tag_ids], levelId: value.level_id, avatar: value.avatar, status: value.status };
