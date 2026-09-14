@@ -166,6 +166,8 @@ final class AiConfigurationProfileService
         if ($data['fallback_enabled'] && !$data['fallback_models']) throw new InvalidArgumentException('启用备用时必须配置模型', 400);
         if (in_array($data['model'], $data['fallback_models'], true)) throw new InvalidArgumentException('备用模型不得包含主模型', 400);
         if ($data['reasoning_effort'] === 'default') $data['reasoning_effort'] = null;
+        if ($data['protocol'] !== 'openai-chat' && $data['reasoning_effort'] !== null) throw new InvalidArgumentException('当前协议暂不支持显式推理模式', 400);
+        if ($data['protocol'] === 'anthropic-messages' && $data['max_output_tokens'] === null) throw new InvalidArgumentException('Messages 必须明确设置输出 Token 预算', 400);
         $data['model_capabilities'] = \app\common\ai\provider\AiModelCapabilities::normalize($data['model_capabilities']);
         \app\common\ai\provider\AiModelCapabilities::validateSelection($data);
         if (!in_array($data['reasoning_effort'], [null, ...\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);

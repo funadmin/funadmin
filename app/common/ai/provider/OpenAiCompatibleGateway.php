@@ -259,7 +259,7 @@ final class OpenAiCompatibleGateway
                 if ($id === '' || isset($pending[$id]) || ($message['role'] ?? '') !== 'assistant') throw new InvalidArgumentException('工具调用配对无效');
                 $pending[$id] = true;
                 if (isset($call['name'])) {
-                    $message['tool_calls'][$index] = ['id'=>$id, 'type'=>'function', 'function'=>['name'=>$call['name'], 'arguments'=>json_encode($call['arguments'] ?? new \stdClass(), JSON_THROW_ON_ERROR)]];
+                    $message['tool_calls'][$index] = ['id'=>$id, 'type'=>'function', 'function'=>['name'=>$call['name'], 'arguments'=>json_encode((object) ($call['arguments'] ?? []), JSON_THROW_ON_ERROR)]];
                 }
             }
         }
@@ -292,6 +292,9 @@ final class OpenAiCompatibleGateway
             throw new AiProviderException('budget_exceeded', '保守输入估算超过预算，或上下文预算缺少明确输出预留');
         }
         if ($cap['context_window'] !== null && ($output === null || $estimate + $output > $cap['context_window'])) throw new AiProviderException('budget_exceeded', '候选模型上下文预算不匹配');
+        foreach (['thinking','reasoning','reasoning_budget','thinking_budget','enable_thinking'] as $field) {
+            if (array_key_exists($field, $this->config)) throw new InvalidArgumentException('暂不支持 ' . $field . ' 配置，禁止静默丢弃');
+        }
         $payload = ['model' => $model, 'messages' => $messages, 'stream' => $stream];
         if ($output !== null) $payload[$cap['output_token_parameter']] = $output;
         $effort = $this->config['reasoning_effort'] ?? null;

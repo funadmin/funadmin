@@ -37,10 +37,12 @@ profileExpect($known['source'] === 'administrator' && $known['reasoning_efforts'
 foreach ([['name'=>''], ['provider'=>[]], ['protocol'=>'bogus'], ['base_url'=>'https://user:pass@example.com'], ['base_url'=>'https://example.com?api_key=secret'], ['model'=>false], ['max_iterations'=>'3'], ['max_retries'=>-1], ['stream_usage'=>1], ['fallback_enabled'=>true], ['fallback_models'=>['a','a']], ['favorite_models'=>['x'=> 'a']], ['reasoning_effort'=>'guess'], ['context_window'=>100,'max_input_tokens'=>90,'max_output_tokens'=>20], ['connect_timeout'=>61,'request_timeout'=>60], ['admin_id'=>9], ['api_key'=>[]]] as $patch) {
     profileReject(fn () => Profiles::validate(array_replace($input, $patch)));
 }
-foreach (['anthropic-messages','openai-responses'] as $protocol) profileExpect(Profiles::validate(array_replace($input, ['protocol'=>$protocol]))['protocol'] === $protocol, '接受已实现协议');
+foreach (['anthropic-messages','openai-responses'] as $protocol) profileExpect(Profiles::validate(array_replace($input, ['protocol'=>$protocol,'max_output_tokens'=>100]))['protocol'] === $protocol, '接受已实现协议');
 foreach ([['protocol'=>'gemini'], ['connect_timeout'=>31], ['request_timeout'=>301], ['max_retries'=>4], ['base_url'=>'http://example.com/v1'], ['base_url'=>'https://127.0.0.1/v1']] as $patch) {
     profileReject(fn () => Profiles::validate(array_replace($input, $patch)));
 }
+profileReject(fn () => Profiles::validate(array_replace($input, ['protocol'=>'anthropic-messages'])));
+foreach (['anthropic-messages','openai-responses'] as $protocol) profileReject(fn () => Profiles::validate(array_replace($declared, ['protocol'=>$protocol,'reasoning_effort'=>'high'])));
 $secret = new AiProfileSecret(Key::createNewRandomKey()->saveToAsciiSafeString());
 $cipher = $secret->seal('test-key', 7);
 profileExpect(!str_contains($cipher, 'test-key') && $secret->open($cipher, 7) === 'test-key', '可信加密往返');
