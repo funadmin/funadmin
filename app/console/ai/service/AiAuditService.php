@@ -40,6 +40,8 @@ final class AiAuditService
             return $result;
         }
         if (!is_string($value)) return $value;
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) return json_encode($this->redact($decoded), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         return preg_replace([
             '/\b(?:Bearer\s+)?(?:sk-|ghp_|github_pat_)[A-Za-z0-9_.-]{8,}\b/i',
             '/\b(token|secret|password|api[_-]?key)\s*[=:]\s*[^\s]+/i',
