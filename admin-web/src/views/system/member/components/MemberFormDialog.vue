@@ -8,7 +8,7 @@
     </template>
     <template v-else-if="definition">
       <el-alert v-if="unavailable" title="存在已停用、已删除或不可用的会员关系，原值已保留，请重新选择后保存。" type="warning" :closable="false" class="mb-4" />
-      <SchemaForm :key="generation" ref="formRef" :form-key="definition.schema!.key" :fields="fields" :values="values" />
+      <SchemaRenderer :key="generation" ref="formRef" :schema="definition.schema!" :values="values" :options="relationOptions" />
       <p class="text-xs text-[var(--el-text-color-secondary)]">头像支持常见图片格式，最大 2MB</p>
     </template>
     <template #footer>
@@ -22,12 +22,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { memberApi, type MemberModel, type MemberOptions, type MemberPayload } from '@/api/system/member';
 import type { FormFieldDef } from '@/api/form';
-import SchemaForm from '@/views/form/components/SchemaForm.vue';
+import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
+import { flattenSchemaNodes } from '@/views/form/schema/types';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
-const formRef = ref<InstanceType<typeof SchemaForm>>();
+const formRef = ref<InstanceType<typeof SchemaRenderer>>();
 const definition = ref<MemberOptions>();
 const fields = ref<FormFieldDef[]>([]);
 const values = ref<Record<string, any>>({});
@@ -36,6 +37,10 @@ const loadError = ref('');
 const saving = ref(false);
 const generation = ref(0);
 const relationKeys = ['group_ids', 'tag_ids', 'level_id'] as const;
+const relationOptions = computed<Record<string, Array<{ label: string; value: unknown }>>>(() => Object.fromEntries(flattenSchemaNodes(definition.value?.schema?.nodes ?? []).filter(({ node }) => node.field && relationKeys.includes(node.field as typeof relationKeys[number])).map(({ node }) => {
+  const options = fields.value.find(field => field.field_name === node.field)?.options_source?.options;
+  return [node.id, Array.isArray(options) ? options : []];
+})));
 const unavailable = computed(() => relationKeys.some((key) => {
   const current = key === 'level_id' ? [values.value[key]] : values.value[key] ?? [];
   const options = definition.value?.fields?.find((field) => field.field_name === key)?.options_source?.options;
@@ -53,9 +58,9 @@ async function loadDefinition() {
   try {
     const result = await memberApi.options();
     if (token !== generation.value || !props.modelValue) return;
-    if (result.schema?.schemaVersion !== 2 || !result.fields?.length) throw new Error('会员表单定义不可用');
+    if (result.schema?.schemaVersion !== 2 || !Array.isArray(result.schema.nodes) || !result.fields?.length) throw new Error('会员表单定义不可用');
     fields.value = result.fields.map((field) => ({ ...field, options_source: field.options_source ? { ...field.options_source, options: [...(field.options_source.options as any[] ?? [])] } : null }));
-    values.value = Object.fromEntries(result.fields.map((field) => [field.field_name, Array.isArray(field.default_value) ? [...field.default_value] : field.default_value]));
+    values.value = Object.fromEntries(flattenSchemaNodes(result.schema.nodes).filter(({ node }) => node.field).map(({ node }) => [node.field!, Array.isArray(node.defaultValue) ? [...node.defaultValue] : node.defaultValue]));
     if (row) {
       values.value = { username: row.username, mobile: row.mobile, email: row.email, sex: row.sex, status: row.status, avatar: row.avatar,
         group_ids: [...row.groupIds], tag_ids: [...row.tagIds], level_id: row.levelId };
@@ -94,8 +99,7 @@ async function onSubmit() {
       groupIds: [...value.group_ids], tagIds: [...value.tag_ids], levelId: value.level_id, avatar: value.avatar, status: value.status };
     if (id) await memberApi.update(id, payload);
     else await memberApi.create(payload);
-    emit('success');
-    if (token === generation.value) visible.value = false;
+    if (token === generation.value && props.modelValue) { emit('success'); visible.value = false; }
   } catch {
     // 请求层已显示业务错误，保留输入以便修正后重试。
   } finally {
