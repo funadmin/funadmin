@@ -57,4 +57,23 @@ foreach ($fixture['unsafePatterns'] as $pattern) {
     validationExpect(($errors[0]['rule'] ?? null) === 'pattern', '不安全或不兼容正则必须快速拒绝：' . $pattern);
 }
 
+$member = \app\console\service\MemberFormDefinition::build([
+    'groups' => [['id' => 1, 'name' => '默认组']],
+    'levels' => [['id' => 1, 'name' => '默认等级']],
+    'tags' => [],
+]);
+$memberValues = [];
+$memberRules = [];
+foreach ($member['schema']['nodes'] as $node) {
+    $memberValues[$node['field']] = $node['defaultValue'];
+    $memberRules[$node['field']] = $node['validation'] ?? [];
+}
+$memberValues['username'] = 'tester';
+$memberValues['mobile'] = '13800138000';
+$memberValues['email'] = 'tester@example.com';
+validationExpect(count($memberValues) === 9, '会员完整定义保留九字段');
+validationExpect($validator->validate($memberValues, $memberRules) === [], '真实会员 v2 邮箱和数组边界必须通过统一校验');
+$memberValues['tag_ids'] = range(1, 33);
+validationExpect(($validator->validate($memberValues, $memberRules)[0]['field'] ?? '') === 'tag_ids', '会员标签长度上限必须生效');
+
 echo "form schema v2 validation backend tests: PASS\n";

@@ -141,6 +141,9 @@ final class CrudDefinition implements JsonSerializable
             if ($condition) $actions[] = [$action, $suffix, $label];
         };
         $append($enabled('list'), 'index', 'list', '查看列表');
+        $listActions = $enabled('list') && !empty($data['formSchema']['key']) && ($data['target']['type'] ?? 'core') === 'core';
+        $append($listActions, 'listactions', 'list-actions', '读取列表动作目录');
+        $append($listActions, 'listaction', 'list-action', '执行列表动作');
         $leftTree = $enabled('list') && ($data['list']['leftTree']['enabled'] ?? false) === true;
         $append($leftTree, 'lefttree', 'left-tree', '读取来源树');
         $append($leftTree, 'lefttreeform', 'left-tree-form', '读取来源表单');

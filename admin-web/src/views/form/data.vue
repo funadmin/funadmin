@@ -140,7 +140,7 @@ import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListButtonBar from './components/ListButtonBar.vue';
 import { resolveListButtons } from './schema/listButtons';
-import { defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from './runtime/listButtonHost';
+import { provideListButtonAdapter, defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { FormListButton } from './schema/types';
 import { useUserStore } from '@/store/modules/user';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
@@ -155,6 +155,7 @@ import {
   stableRuntimeValues
 } from './runtime/submissionPolicy';
 
+provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'console/form.data:listactions', executePermission: 'console/form.data:listaction' } });
 const user = useUserStore();
 const hasPermission = (code: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === code);
 const buttonLock = reactive({ busy: false });

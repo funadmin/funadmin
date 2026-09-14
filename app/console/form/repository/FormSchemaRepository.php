@@ -46,7 +46,11 @@ final class FormSchemaRepository
             $registries->actions(),
             $registries->dataSources(),
             $registries->asyncValidators(),
-            $this->pluginComponents
+            $this->pluginComponents,
+            static function () use ($registries): bool {
+                try { $registries->listExecutor(); return true; }
+                catch (\InvalidArgumentException) { return false; }
+            }
         );
     }
 
@@ -75,9 +79,9 @@ final class FormSchemaRepository
     }
 
     /** 返回发布所需生产能力依赖诊断与稳定版本哈希。 */
-    public function checkDependencies(FormSchema|array $schema): array
+    public function checkDependencies(FormSchema|array $schema, string $listHost = ''): array
     {
-        return $this->dependencyChecker->check($schema instanceof FormSchema ? $schema->document() : $schema);
+        return $this->dependencyChecker->check($schema instanceof FormSchema ? $schema->document() : $schema, $listHost);
     }
 
     /**

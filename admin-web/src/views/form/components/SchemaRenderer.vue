@@ -66,7 +66,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ change: [field: string, value: unknown] }>();
 const registryReady = ref(false);
 const registryError = ref('');
-const registryLoading = loadPluginFormComponents()
+const registryLoading = (flattenSchemaNodes(props.schema.nodes).some(({ node }) => node.type.includes(':'))
+  ? loadPluginFormComponents() : Promise.resolve())
   .then(() => { registryReady.value = true; })
   .catch((error: unknown) => { registryError.value = error instanceof Error ? error.message : String(error); });
 const resolvedOptions = ref<Record<string, Array<{ label: string; value: unknown }>>>({ ...props.options });

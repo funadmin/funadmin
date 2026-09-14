@@ -17,12 +17,13 @@ final class FormSchemaDependencyChecker
         private readonly FormActionRegistry $actions,
         private readonly FormDataSourceRegistry $dataSources,
         private readonly FormAsyncValidatorRegistry $asyncValidators,
-        private readonly PluginFormComponentRegistry $pluginComponents
+        private readonly PluginFormComponentRegistry $pluginComponents,
+        private readonly mixed $listAdapterReady = null
     ) {
     }
 
     /** @return array{diagnostics: array<int, array{path: string, code: string, message: string}>, dependencyHash: string} */
-    public function check(array $schema): array
+    public function check(array $schema, string $listHost = ''): array
     {
         $diagnostics = [];
         $dependencies = ['components' => [], 'dataSources' => [], 'validators' => [], 'actions' => []];
@@ -33,7 +34,7 @@ final class FormSchemaDependencyChecker
             }
         }
         $this->checkActions((array) ($schema['actions'] ?? []), '/actions', $diagnostics, $dependencies);
-        $this->checkListButtons((array) ($schema['list']['buttons'] ?? []), $diagnostics, $dependencies);
+        $this->checkListButtons((array) ($schema['list']['buttons'] ?? []), $diagnostics, $dependencies, $listHost);
         return [
             'diagnostics' => $diagnostics,
             'dependencyHash' => hash('sha256', CrudDefinition::canonicalJson($dependencies)),
@@ -41,7 +42,7 @@ final class FormSchemaDependencyChecker
     }
 
     /** 未完成宿主授权与发布绑定的能力不能借旧 request 入口发布。 */
-    private function checkListButtons(array $collections, array &$diagnostics, array &$dependencies): void
+    private function checkListButtons(array $collections, array &$diagnostics, array &$dependencies, string $host): void
     {
         foreach ($collections as $location => $buttons) {
             foreach ((array) $buttons as $index => $button) {
@@ -66,7 +67,14 @@ final class FormSchemaDependencyChecker
                             $this->diagnostic($diagnostics, $path . '/params/' . $this->escape((string) $parameter), 'FORM_ACTION_PARAMETER_NOT_ALLOWED', '参数未在注册定义中声明');
                         }
                     }
+                    $target = match ($location) { 'row' => 'record', 'toolbar' => 'selection', 'categoryNode' => 'category', 'categoryToolbar' => 'none', default => '' };
+                    $contract = isset($this->actions->listCatalog(static fn (): bool => true, (string) $location, $target)[$key])
+                        && ($location !== 'toolbar' || $definition['batch'])
+                        && !array_diff($definition['parameters'], array_keys((array) ($button['params'] ?? [])));
+                    $ready = in_array($host, ['core-dynamic', 'core-generated'], true) && $contract && is_callable($this->listAdapterReady) && ($this->listAdapterReady)();
                     $dependencies['listActions'][$key] = $definition;
+                    $dependencies['listHost'] = ['host' => $host, 'ready' => $ready, 'version' => '2'];
+                    if ($ready) continue;
                 }
                 if (!empty($button['params']) || in_array($type, ['registered', 'navigate', 'external', 'download', 'copy'], true)) {
                     $this->diagnostic($diagnostics, $path . '/action', 'FORM_LIST_ACTION_ADAPTER_UNAVAILABLE', '该列表动作尚无完整的安全宿主适配，禁止发布');

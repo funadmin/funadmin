@@ -410,7 +410,7 @@ final class ManagedGenerationService
             }
             $this->targetService->assertSelection($target, $database['connection'], $database['table'], (bool) ($target['locked'] ?? false));
         }
-        $registryHash = $this->registryHash($schema);
+        $registryHash = $this->registryHash($schema, $plugin ? 'plugin' : 'core-generated');
         $definition = $this->definitions->createFromSchema($schema, $form, (array) ($form['publish_config'] ?? []), $this->adoptedDatabaseSchema($schema, $form));
         $definition = $this->definitions->forBusinessTarget($definition, $target);
         return ['definition' => $this->withDependencyHash($definition, $registryHash), 'schemaHash' => $schema->hash(), 'registryHash' => $registryHash, 'target' => $target];
@@ -620,9 +620,14 @@ final class ManagedGenerationService
         return ($this->databaseSchemaReader)($connection, $table);
     }
 
-    private function registryHash(FormSchema $schema): string
+    private function registryHash(FormSchema $schema, string $host = 'core-generated'): string
     {
-        $dependencies = $this->schemas->checkDependencies($schema);
+        $dependencies = $this->schemas->checkDependencies($schema, $host);
+        foreach ($dependencies['diagnostics'] as $diagnostic) {
+            if (str_starts_with($diagnostic['path'], '/list/buttons/')) {
+                throw new \app\common\form\schema\FormSchemaException($diagnostic['message'], $diagnostic['path'], $diagnostic['code']);
+            }
+        }
         $hash = (string) ($dependencies['dependencyHash'] ?? '');
         if (preg_match('/^[a-f0-9]{64}$/', $hash) !== 1) {
             throw new RuntimeException('FormSchema registry hash 无效');

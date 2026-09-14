@@ -40,7 +40,8 @@ final class FormDataService
         ?FormAsyncValidatorRegistry $asyncValidators = null,
         ?FormDataSourceRegistry $dataSources = null,
         ?callable $permissionChecker = null,
-        ?PluginFormComponentRegistry $pluginComponents = null
+        ?PluginFormComponentRegistry $pluginComponents = null,
+        private readonly ?array $productionBinding = null
     ) {
         $this->asyncValidators = $asyncValidators ?? new FormAsyncValidatorRegistry();
         $this->dataSources = $dataSources ?? FormDataSourceRegistry::core();
@@ -775,7 +776,7 @@ final class FormDataService
     /** 动态宿主目录仍须满足业务读取权限，不将按钮配置当作授权。 */
     public function listActionCatalog(string $key, string $location, FormActionRegistry $actions): array
     {
-        $runtime = $this->listActionRuntime($key);
+        $runtime = $this->listActionRuntime($key, 'listactions');
         $target = match ($location) {
             'row' => 'record', 'toolbar' => 'selection', 'categoryNode' => 'category', 'categoryToolbar' => 'none',
             default => throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE'),
@@ -792,7 +793,7 @@ final class FormDataService
     {
         $adminId = (int) session('admin.id');
         if ($adminId <= 0) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
-        $runtime = $this->listActionRuntime($key);
+        $runtime = $this->listActionRuntime($key, 'listaction');
         if (!is_string($request['schemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
         $this->assertPublishedSchemaHash($request['schemaHash'], $runtime['schemaHash']);
         $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
@@ -921,15 +922,29 @@ final class FormDataService
         return $result;
     }
 
-    private function listActionRuntime(string $key): array
+    private function listActionRuntime(string $key, string $entry): array
     {
         $form = $this->form($key);
         $runtime = $this->publishedRuntime($form);
-        if (($runtime['module']->metadata['target']['type'] ?? 'core') !== 'core'
-            || (string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
+        if (($runtime['module']->metadata['target']['type'] ?? 'core') !== 'core') {
             throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         }
-        if (!($this->permissionChecker)($this->businessPermissionRoute($runtime['module']) . '/index')) {
+        $route = $this->businessPermissionRoute($runtime['module']);
+        if ($this->productionBinding !== null) {
+            // 注入仅增加约束，不允许替换发布加载、字段过滤、身份或数据范围查询。
+            $binding = $this->productionBinding;
+            if ((string) $runtime['module']->lifecycle_status !== 'published'
+                || ($binding['formKey'] ?? '') !== $key || ($binding['route'] ?? '') !== $route
+                || ($binding['table'] ?? '') !== (string) $form->table_name
+                || ($binding['connection'] ?? '') !== (string) $form->connection) {
+                throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+            }
+            $this->assertPublishedSchemaHash((string) ($binding['schemaHash'] ?? ''), $runtime['schemaHash']);
+            if (!($this->permissionChecker)($route . '/' . $entry)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        } elseif ((string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
+            throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        }
+        if (!($this->permissionChecker)($route . '/index')) {
             throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         }
         return $runtime + ['form' => $form];

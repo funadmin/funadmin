@@ -193,7 +193,7 @@ final class FormPublishService
 
     private function dependencies(FormSchema $compiled): array
     {
-        $dependencies = $this->schemas->checkDependencies($compiled);
+        $dependencies = $this->schemas->checkDependencies($compiled, 'core-dynamic');
         if ($dependencies['diagnostics'] !== []) {
             $diagnostic = $dependencies['diagnostics'][0];
             throw new FormSchemaException($diagnostic['message'], $diagnostic['path'], $diagnostic['code']);

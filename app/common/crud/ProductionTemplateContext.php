@@ -20,6 +20,8 @@ final class ProductionTemplateContext
         $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? 'use app\\console\\model\\BackendModel;');
         $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
         $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
+        $data['_listActionHost'] = ($target['type'] ?? $data['target']['type'] ?? 'core') === 'core'
+            && $data['_consoleController'] && ($data['capabilities']['list'] ?? true) && !empty($data['formSchema']['key']);
         $data['_modelNamespace'] = (string) ($target['modelNamespace'] ?? $data['_namespace'] . '\\model');
         $data['_validateNamespace'] = (string) ($target['validateNamespace'] ?? $data['_namespace'] . '\\validate');
         $data['_serviceNamespace'] = (string) ($target['serviceNamespace'] ?? $data['_namespace'] . '\\service');
@@ -313,6 +315,14 @@ final class ProductionTemplateContext
         }
         $statusTraitAlias = ($enabled['status'] || !$data['_consoleController']) ? "        status as private crudStatus; status as private;\n" : '';
         $methods = $leftMethods === '' ? [] : [$leftMethods];
+        if ($data['_listActionHost']) {
+            $key = $data['formSchema']['key'];
+            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'console/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
+            $methods[] = "    private function listButtonService(): \\app\\console\\form\\service\\FormDataService\n    {\n        return new \\app\\console\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\console\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
+                . "    #[Get('list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
+                . "    #[Post('list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->withPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload, \\app\\common\\form\\registry\\FormRegistryFactory::production()->listExecutor()));\n    }\n"
+                . "    private function listButtonResponse(callable \$operation): Response\n    {\n        try { return \$this->ok(data: \$operation()); }\n        catch (\\InvalidArgumentException \$error) {\n            \$code = \$error->getMessage();\n            return \$this->fail(msg: \$code, code: \$code === 'FORM_SCHEMA_CONFLICT' ? 409 : (in_array(\$code, ['FORM_ACTION_FORBIDDEN', 'FORM_LIST_RECORD_FORBIDDEN', 'FORM_LIST_FIELD_FORBIDDEN'], true) ? 403 : 422));\n        }\n    }";
+        }
         if ($enabled['list']) {
             $methods[] = ($data['list']['tree']['enabled'] ?? false)
                 ? "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }"
@@ -510,6 +520,17 @@ final class ProductionTemplateContext
             $methods[] = "  leftTreeForm: (_key: string, operation: 'create' | 'addChild' | 'edit', id: string | number, schemaHash: string, optionField = '', context: Record<string, unknown> = {}) => request.get<{ meta: import('@/api/formData').FormDataMeta; row: Record<string, unknown>; options?: Array<{ label: string; value: string | number }>; total?: number }>(`{$base}/left-tree-form/\${operation}`, { id, schemaHash, optionField, context })";
             $methods[] = "  mutateLeftTree: (_key: string, operation: 'create' | 'addChild' | 'edit' | 'delete', id: string | number, data: Record<string, unknown>, schemaHash: string, sourceSchemaHash: string) => request.post(`{$base}/left-tree/\${operation}`, { id, data, schemaHash, sourceSchemaHash })";
         }
+        if ($data['_listActionHost']) {
+            $methods[] = "  listActions: (_key: string, location: import('@/views/form/schema/types').FormListButtonLocation, signal?: AbortSignal) => request.get<import('@/api/formData').FormListActionCatalog>('{$base}/list-actions', { location }, { signal, requestOptions: { showErrorMsg: false } })";
+            $methods[] = "  listAction: (_key: string, payload: import('@/api/formData').FormListActionRequest) => request.post<import('@/api/formData').FormListActionReply>('{$base}/list-action', payload, { requestOptions: { showErrorMsg: false } })";
+            $map = [];
+            foreach ($data['fields'] as $field) {
+                $alias = self::camel($field['name']);
+                if (in_array($alias, $map, true)) throw new \InvalidArgumentException('列表字段 snake/camel 映射冲突');
+                $map[$field['name']] = $alias;
+            }
+            $methods[] = '  listButtonAdapter: ' . self::json(['formKey' => $data['formSchema']['key'], 'schemaHash' => $data['formSchemaHash'], 'catalogPermission' => $data['permissionPrefix'] . ':list-actions', 'executePermission' => $data['permissionPrefix'] . ':list-action', 'fieldMap' => $map]) . ' as const';
+        }
         if ($enabled['list']) $methods[] = "  list: (params: {$type}Query) => request.get<API.PageResult<{$type}>>('{$base}', params)";
         if ($enabled['detail']) $methods[] = "  detail: (id: {$type}Id) => request.get<{$type}>(`{$base}/\${id}`)";
         if ($enabled['create']) $methods[] = "  create: (data: {$type}Payload) => request.post<{$type}>('{$base}', data)";
@@ -645,11 +666,34 @@ final class ProductionTemplateContext
             $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':left-tree-mutate\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
         }
         // 生成层只声明宿主适配；交互、锁定及类型分派由共享组件处理。
-        $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
+        $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
         if (!$leftTree) $listImports .= "import { useUserStore } from '@/store/modules/user';\n";
         $listSetup .= 'const listConfig = ' . self::json($data['list'] ?: new \stdClass()) . " as FormListConfiguration;\n";
         $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\n";
-        $listSetup .= 'const buttonFieldMap = buildListFieldMap(' . self::json(array_column($data['fields'], 'name')) . ", 'camel');\n";
+        if ($data['_listActionHost']) {
+            $listSetup .= "const buttonAdapter = { api: {$camel}Api, declaration: {$camel}Api.listButtonAdapter };\nprovideListButtonAdapter(buttonAdapter);\nconst buttonFieldMap = buttonAdapter.declaration.fieldMap;\n";
+        } else {
+            $listSetup .= "const buttonAdapter = undefined;\n";
+            $listSetup .= 'const buttonFieldMap = buildListFieldMap(' . self::json(array_column($data['fields'], 'name')) . ", 'camel');\n";
+        }
+        $listSetup .= "const buttonSelection = ref<{$type}[]>([]);\nconst buttonContextVersion = ref(0);\nconst buttonTable = ref<{ clearSelection: () => void }>();\nconst clearButtonSelection = () => { buttonSelection.value = []; buttonTable.value?.clearSelection(); buttonContextVersion.value++; };\n";
+        $filterBindings = [];
+        foreach ($data['fields'] as $field) {
+            if (!($field['search'] ?? false) || ($field['controlProps']['sensitive'] ?? false) || ($field['controlProps']['writeOnly'] ?? false)
+                || ($field['component'] ?? '') === 'password' || ($field['detail'] ?? true) === false || !empty($field['relation'])) continue;
+            $name = $field['name'];
+            $alias = self::camel($name);
+            if (in_array($field['searchOperator'] ?? 'eq', ['range', 'date'], true)) {
+                $filterBindings[] = "...String(query.{$alias}Range ?? '').split(',').slice(0, 2).map((value, index) => [index === 0 ? '{$name}_from' : '{$name}_to', value])";
+            } else {
+                $filterBindings[] = "['{$name}', query.{$alias}]";
+            }
+        }
+        $listSetup .= "const buttonFilter = () => Object.fromEntries(([" . implode(', ', $filterBindings) . "] as unknown[][]).filter((entry): entry is [string, string | number] => typeof entry[0] === 'string' && (typeof entry[1] === 'string' || typeof entry[1] === 'number') && entry[1] !== ''));\n";
+        $buttonIdentity = $data['_listActionHost'] ? 'formKey: buttonAdapter.declaration.formKey, schemaHash: buttonAdapter.declaration.schemaHash' : "formKey: '', schemaHash: ''";
+        $listSetup .= "const buttonContext = (location: 'row' | 'toolbar', row?: Record<string, unknown>): ListButtonContext => ({ {$buttonIdentity}, location, filter: buttonFilter(), ids: (row ? [row] : buttonSelection.value).map(record => record['{$primaryName}'] as string | number) });\n";
+        $close = ($formEnabled ? 'dialogVisible.value = false; ' : '') . ($enabled['detail'] ? 'drawerVisible.value = false; ' : '');
+        $listSetup .= "const closeButtonHost = () => { {$close} };\n";
         $listSetup .= "const buttonValues = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(buttonFieldMap).map(([field, alias]) => [field, row[alias]]));\n";
         $listSetup .= "function resolveButtonRow(row?: Record<string, unknown>): {$type} { const current = list.value.find(item => item.{$primaryName} === row?.['{$primaryName}']); if (!current) throw new Error('记录上下文已失效'); return current; }\n";
         $defaults = ['toolbar' => [], 'row' => []];
@@ -670,21 +714,33 @@ final class ProductionTemplateContext
             $append('row', 'restore', '恢复', "row => restoreRow(resolveButtonRow(row))");
             $append('row', 'destroy', '永久删除', "row => forceDeleteRow(resolveButtonRow(row))");
         }
+        if ($enabled['batchSoftDelete']) {
+            $defaults['toolbar'][] = ['id' => 'restoreselected', 'label' => '批量恢复', 'action' => ['type' => 'builtin', 'key' => 'restore']];
+            $defaults['toolbar'][] = ['id' => 'destroyselected', 'label' => '批量永久删除', 'action' => ['type' => 'builtin', 'key' => 'destroy']];
+            $handlers = array_map(static fn (string $handler): string => str_starts_with($handler, 'restore:')
+                ? 'restore: row => row ? restoreRow(resolveButtonRow(row)) : restoreSelected()'
+                : (str_starts_with($handler, 'destroy:') ? 'destroy: row => row ? forceDeleteRow(resolveButtonRow(row)) : forceDeleteSelected()' : $handler), $handlers);
+        }
         $listSetup .= 'const buttonHandlers: ListButtonHandlers = { ' . implode(', ', $handlers) . " };\n";
         $listSetup .= "const buttonPermission = (code: string) => buttonUser.permissions.some(value => value === '*' || value === '*:*:*' || value === code);\n";
+        $listSetup .= "const toolbarButtonAllowed = (button: FormListButton) => buttonAllowed(button, true) && (!['restore', 'destroy'].includes(listActionKey(button)) || buttonSelection.value.length > 0);\n";
         $prefix = self::json($data['permissionPrefix']);
         $recycledValue = $enabled['softDelete'] ? 'recycled.value' : 'recycled';
         $selectionGuard = $enabled['batchDelete'] ? "if (key === 'batchDelete' && !selection.value.length) return false;" : '';
-        $listSetup .= "const buttonAllowed = (button: FormListButton) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (!buttonPermission({$prefix} + ':' + (suffix[key] ?? key))) return false; {$selectionGuard} if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
+        $batchRestoreGuard = $enabled['batchSoftDelete'] ? '' : "if (toolbar && ['restore', 'destroy'].includes(key)) return false;";
+        $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (button.action.type === 'registered') return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? 'batch-' + key : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; {$selectionGuard} if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
         foreach ($defaults as $location => $buttons) $listSetup .= "const {$location}Buttons = computed(() => resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]));\n";
         $listSetup .= "const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));\n";
-        $toolbar = ['<ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" />'];
+        $toolbar = ['<ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="toolbarButtonAllowed" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'toolbar\')" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" />'];
         if ($enabled['import']) $toolbar[] = '<input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';
-        $operationColumn = '          <el-table-column v-if="hasRowButtons" label="操作"><template #default="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="loadData" link /></template></el-table-column>' . "\n";
-        if ($leftTree) $categoryPanel = str_replace(':config="leftTreeConfig"', ':config="leftTreeConfig" :list="listConfig" :permission-check="buttonPermission"', $categoryPanel);
-        $vueImports = ['computed', 'ref', 'reactive'];
+        $operationColumn = '          <el-table-column v-if="hasRowButtons" label="操作"><template #default="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template></el-table-column>' . "\n";
+        if ($leftTree) $categoryPanel = str_replace(':config="leftTreeConfig"', ':config="leftTreeConfig" :list="listConfig" :permission-check="buttonPermission" :lock="buttonLock"', $categoryPanel);
+        $selectionColumn = '          <el-table-column v-if="toolbarButtons.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . '" type="selection" width="48" />' . "\n";
+        $selectionChange = ' @selection-change="handleSelectionChange"';
+        $listSetup .= "const refreshButtonHost = async () => { clearButtonSelection(); await loadData(); };\nwatch(query, clearButtonSelection, { deep: true, flush: 'sync' });\nwatch(list, clearButtonSelection);\n";
+        $listSetup .= "const handleSelectionChange = (rows: {$type}[]) => { buttonSelection.value = rows; buttonContextVersion.value++; " . ($enabled['batchDelete'] ? 'onSelectionChange(rows);' : '') . " };\n";
+        $vueImports = ['computed', 'ref', 'reactive', 'watch'];
         if ($enabled['batchDelete']) {
-            $vueImports[] = 'watch';
             $listSetup .= "watch(query, () => onSelectionChange([]), { deep: true, flush: 'sync' });\n";
         }
         if ($category) $vueImports[] = 'onMounted';
@@ -697,7 +753,7 @@ final class ProductionTemplateContext
             . "    <DataTableShell class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" :show-refresh=\"listConfig.tools?.refresh !== false\" :show-density=\"listConfig.tools?.density !== false\" :show-fullscreen=\"listConfig.tools?.fullscreen !== false\" :show-column-setting=\"listConfig.tools?.columns !== false\" @refresh=\"loadData\">\n"
             . $searchSlot
             . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
-            . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table :data=\"" . ($tree ? 'displayRows' : 'list') . "\" row-key=\"{$primaryName}\" :tree-props=\"{ children: '__listChildren' }\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
+            . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table ref=\"buttonTable\" :data=\"" . ($tree ? 'displayRows' : 'list') . "\" row-key=\"{$primaryName}\" :tree-props=\"{ children: '__listChildren' }\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
             . $selectionColumn . implode("\n", $columns) . "\n" . $statusColumn
             . $operationColumn
             . '        </el-table>' . ($tree ? '' : '<el-pagination v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" @change="loadData" />') . "</template>\n"
@@ -713,7 +769,7 @@ final class ProductionTemplateContext
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
             . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
-            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: {$type}[]) => onSelectionChange(rows);\n" : '')
+            . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')

@@ -1,131 +1,62 @@
 <template>
-  <el-form ref="formRef" :model="values" :rules="rules" label-width="110px">
-    <el-row :gutter="16">
-      <el-col v-for="field in visibleFields" :key="field.field_name" :span="field.form_span || 24">
-        <RegisteredControlRenderer
-          v-if="controlMeta(field.type).kind === 'layout'"
-          :node="fieldNode(field)"
-          :field="field"
-          design-mode
-        />
-        <el-form-item v-else :label="field.type === 'hidden' ? undefined : field.label" :prop="validationProp(field)">
-          <RegisteredControlRenderer
-            v-model="values[field.field_name]"
-            :node="fieldNode(field)"
-            :field="field"
-            :options="optionsOf(field)"
-            :disabled="disabled(field)"
-          />
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+  <SchemaRenderer :key="definitionKey" ref="renderer" :schema="schema" :form-key="formKey" :values="values" :options-request="optionsRequest" />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import type { FormInstance, FormRules } from 'element-plus';
+import { computed, ref, watch } from 'vue';
 import type { FormFieldDef } from '@/api/form';
-import type { FormSchemaNode } from '../schema/types';
+import type { FormSchemaDocument, FormSchemaNode, FormSchemaValidationRule } from '../schema/types';
 import { formDataApi } from '@/api/formData';
 import { evaluateLinkRules } from '../linkRules';
 import { controlMeta } from '../registry';
-import { assertFieldComponents } from '../schema/runtimeGuard';
-import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
-import RegisteredControlRenderer from './RegisteredControlRenderer.vue';
+import SchemaRenderer from './SchemaRenderer.vue';
 
 const props = defineProps<{ formKey: string; fields: FormFieldDef[]; values: Record<string, any> }>();
-
-const formRef = ref<FormInstance>();
-const remoteOptions = ref<Record<string, Array<{ label: string; value: string | number }>>>({});
-
+const renderer = ref<InstanceType<typeof SchemaRenderer>>();
 const linkState = computed(() => evaluateLinkRules(props.fields, props.values));
-const visibleFields = computed(() => props.fields.filter((field) => !linkState.value.effects[field.field_name]?.hidden));
-const disabled = (field: FormFieldDef) => Boolean(linkState.value.effects[field.field_name]?.disabled) || field.form_readonly === 1;
-const validationProp = (field: FormFieldDef) => controlMeta(field.type).kind === 'layout' ? undefined : field.field_name;
-const fieldNode = (field: FormFieldDef): FormSchemaNode => ({
-  id: field.field_name,
-  kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
-  type: field.type,
-  field: field.field_name,
-  title: field.label,
-  defaultValue: field.default_value,
-  props: field.control_props ?? {},
-  children: []
-});
+const definitionKey = computed(() => JSON.stringify([props.formKey, props.fields, linkState.value.effects]));
 
-const needsRemote = (field: FormFieldDef) =>
-  ['select', 'selectV2', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user'].includes(field.type) &&
-  ((field.options_source?.kind ?? field.options_source?.mode) !== 'static');
-
-const optionsOf = (field: FormFieldDef) => {
-  if (needsRemote(field)) return remoteOptions.value[field.field_name] ?? [];
-  const options = field.options_source?.options;
-  return Array.isArray(options) ? (options as Array<{ label: string; value: string | number }>) : [];
-};
-
-const rules = computed<FormRules>(() => {
-  const result: FormRules = {};
-  for (const field of props.fields) {
-    if (controlMeta(field.type).kind === 'layout') continue;
-    const items: Array<Record<string, unknown>> = [];
-    if (field.form_required === 1) {
-      items.push({ required: true, message: `${field.label}不能为空`, trigger: ['blur', 'change'] });
-    }
-    const extra = (field.validate_rules ?? {}) as Record<string, unknown>;
-    if (typeof extra.pattern === 'string' && extra.pattern) {
-      items.push({ pattern: new RegExp(extra.pattern), message: `${field.label}格式不正确`, trigger: 'blur' });
-    }
-    const type = extra.email === true ? 'email' : extra.type;
-    const bounds: Record<string, unknown> = {};
-    if (typeof type === 'string' && ['string', 'number', 'array', 'email', 'url', 'integer', 'boolean', 'object'].includes(type)) bounds.type = type;
-    for (const [source, target] of Object.entries({ min: 'min', max: 'max', minLength: 'min', maxLength: 'max', minlen: 'min', maxlen: 'max', length: 'len' })) {
-      if (typeof extra[source] === 'number') bounds[target] = extra[source];
-    }
-    if (Object.keys(bounds).length) items.push({ ...bounds, message: `${field.label}格式或长度不正确`, trigger: ['blur', 'change'] });
-    if (items.length) result[field.field_name] = items;
+/** 旧投影只转换协议；渲染、校验及错误定位均由统一渲染器负责。 */
+function validation(field: FormFieldDef): FormSchemaValidationRule[] {
+  const extra = field.validate_rules ?? {};
+  const rules: FormSchemaValidationRule[] = [];
+  if (field.form_required === 1) rules.push({ type: 'required', message: `${field.label}不能为空` });
+  for (const [key, value] of Object.entries(extra)) {
+    let type = key;
+    let argument = value;
+    if (key === 'email') { if (value !== true) continue; type = 'format'; argument = 'email'; }
+    if (key === 'type' && ['email', 'url'].includes(String(value))) type = 'format';
+    if (key === 'minlen') type = 'minLength';
+    if (key === 'maxlen') type = 'maxLength';
+    if (extra.type === 'array' && ['min', 'max'].includes(key)) type = key === 'min' ? 'minLength' : 'maxLength';
+    if (type === 'minLength' && Number(argument) > 0 && extra.type === 'array' && field.form_required !== 1) rules.push({ type: 'required' });
+    rules.push({ type, value: argument, message: `${field.label}格式或长度不正确` });
   }
-  return result;
-});
-
-// 联动回写值
-watch(
-  () => linkState.value.writes,
-  (writes) => {
-    for (const [key, value] of Object.entries(writes)) {
-      if (props.values[key] !== value) props.values[key] = value;
-    }
-  },
-  { deep: true }
-);
-
-onMounted(async () => {
-  const targets = props.fields.filter(needsRemote);
-  await Promise.all(
-    targets.map(async (field) => {
-      const data = await formDataApi.options(props.formKey, field.field_name);
-      remoteOptions.value[field.field_name] = data.options;
-    })
-  );
-});
-
-const validate = async () => {
-  if (props.fields.some((field) => field.type.includes(':'))) await loadPluginFormComponents();
-  assertFieldComponents(props.fields);
-  return formRef.value?.validate();
-};
-const setFieldErrors = (errors: Record<string, string>) => {
-  formRef.value?.clearValidate();
-  for (const [field, message] of Object.entries(errors)) {
-    const context = formRef.value?.fields.find((item) => item.prop === field);
-    if (context) {
-      context.validateState = 'error';
-      context.validateMessage = message;
-    }
-  }
-  const first = Object.keys(errors)[0];
-  if (first) formRef.value?.scrollToField(first);
-  formRef.value?.fields.find((item) => item.prop === first)?.$el?.querySelector<HTMLElement>('input, textarea, select, [tabindex]')?.focus();
-};
+  return rules;
+}
+const schema = computed<FormSchemaDocument>(() => ({
+  schemaVersion: 2, key: props.formKey, title: '',
+  nodes: props.fields.map((field): FormSchemaNode => ({
+    id: field.field_name,
+    kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
+    type: field.type,
+    field: controlMeta(field.type).kind === 'layout' ? null : field.field_name,
+    title: field.label,
+    defaultValue: field.default_value,
+    props: field.control_props ?? {},
+    children: [],
+    layout: { span: field.form_span || 24 },
+    hidden: linkState.value.effects[field.field_name]?.hidden,
+    disabled: linkState.value.effects[field.field_name]?.disabled,
+    validation: validation(field),
+    dataSource: field.options_source ?? null
+  }))
+}));
+const optionsRequest = async (key: string, field: string) => formDataApi.options(key, field);
+watch(() => linkState.value.writes, writes => {
+  for (const [key, value] of Object.entries(writes)) if (props.values[key] !== value) props.values[key] = value;
+}, { deep: true });
+const validate = () => renderer.value?.validate();
+const setFieldErrors = (errors: Record<string, string>) => renderer.value?.setFieldErrors(errors);
 defineExpose({ validate, setFieldErrors });
 </script>

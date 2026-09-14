@@ -13,6 +13,8 @@ use InvalidArgumentException;
  */
 final class DefinitionValidator
 {
+    public function __construct(private readonly ?\app\common\form\dependency\FormSchemaDependencyChecker $listDependencies = null) {}
+
     private const ROOT_KEYS = [
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
@@ -122,6 +124,18 @@ final class DefinitionValidator
         (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
         foreach ($data['list']['buttons'] ?? [] as $location => $buttons) {
             foreach ($buttons as $index => $button) {
+                if ($button['action']['type'] === 'registered' && ($data['target']['type'] ?? 'core') === 'core'
+                    && !empty($data['formSchema']['key']) && ($data['capabilities']['list'] ?? true)) {
+                    $schema = ['list' => ['buttons' => [$location => [$button]]]];
+                    try {
+                        $result = $this->listDependencies !== null
+                            ? $this->listDependencies->check($schema, 'core-generated')
+                            : (new \app\console\form\repository\FormSchemaRepository())->checkDependencies($schema, 'core-generated');
+                        if ($result['diagnostics'] === []) continue;
+                    } catch (\Throwable) {
+                        // CLI 未初始化生产注册表或安全存储不可用时保持阻断，不泄露连接信息。
+                    }
+                }
                 if (!empty($button['params']) || in_array($button['action']['type'], ['registered', 'navigate', 'external', 'download', 'copy'], true)) {
                     throw new InvalidArgumentException("/list/buttons/{$location}/{$index}/action 尚未接通安全宿主适配，禁止发布或生成");
                 }

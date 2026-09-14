@@ -19,7 +19,7 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import ListButtonBar from './ListButtonBar.vue';
 import type { ListButtonContext } from '../runtime/listButtonExecutor';
-import { defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from '../runtime/listButtonHost';
+import { useListButtonAdapter, listButtonAdapterAllowed, defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from '../runtime/listButtonHost';
 import { resolveListButtons } from '../schema/listButtons';
 import { flattenSchemaNodes } from '../schema/types';
 import type { FormDataSourceRequest } from '../dataSource/useFormDataSource';
@@ -31,6 +31,7 @@ import { buildSubmissionPayload, emptyRuntimeValues } from '../runtime/submissio
 import SchemaRenderer from './SchemaRenderer.vue';
 const props = withDefaults(defineProps<{ formKey: string; schemaHash: string; config: FormLeftTreeConfiguration; list?: FormListConfiguration; lock?: { busy: boolean }; permissionCheck?: (code: string) => boolean; modelValue?: FormRecordId[]; canReadForm?: boolean; canMutate?: boolean; api?: Pick<typeof formDataApi, 'leftTree' | 'leftTreeForm' | 'mutateLeftTree'> }>(), { canReadForm: true, canMutate: true });
 const emit = defineEmits<{ change: [values: FormRecordId[]]; mutated: [] }>();
+const adapter = useListButtonAdapter();
 const localButtonLock = reactive({ busy: false });
 const buttonLock = computed(() => props.lock ?? localButtonLock);
 const toolbarButtons = computed(() => resolveListButtons(props.list, 'categoryToolbar', defaultListButtons('categoryToolbar')));
@@ -38,7 +39,7 @@ const nodeButtons = computed(() => resolveListButtons(props.list, 'categoryNode'
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
   if (button.permission && !props.permissionCheck?.(button.permission)) return false;
-  if (button.action.type === 'registered') return Boolean(props.permissionCheck?.('console/form.data:listactions') && props.permissionCheck?.('console/form.data:listaction'));
+  if (button.action.type === 'registered') return listButtonAdapterAllowed(adapter, code => props.permissionCheck?.(code) === true, buttonContext('categoryToolbar'));
   if (key === 'refresh') return true;
   return props.canMutate && (key === 'delete' || props.canReadForm) && Boolean(props.config.actions?.[key as 'create'] ?? true) && Boolean(result.value?.actions[key as 'create']) && (key !== 'addChild' || Boolean(props.config.mapping.parentField));
 };
