@@ -1,0 +1,60 @@
+import { defineComponent } from 'vue';
+import { mount, flushPromises } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import Panel from './ListConfigurationPanel.vue';
+import ElementPlus from 'element-plus';
+
+const api = vi.hoisted(() => ({ modules: vi.fn(), module: vi.fn(), meta: vi.fn(), sourceCandidates: vi.fn(), sourceMeta: vi.fn() }));
+const safeSource = { moduleId: 1, moduleCode: 'allowed', formKey: 'allowed_form', primaryKey: { name: 'code', type: 'string' }, fields: [{ field_name: 'title', label: '标题' }] };
+vi.mock('@/api/development/business', () => ({ businessDevelopmentApi: api }));
+vi.mock('@/api/formData', () => ({ formDataApi: api }));
+const box = defineComponent({ template: '<div><slot /></div>' });
+const switchStub = defineComponent({ props: ['modelValue', 'disabled'], emits: ['change'], template: '<button :disabled="disabled" @click="$emit(\'change\', !modelValue)">{{ modelValue }}</button>' });
+const item = defineComponent({ props: ['label'], template: '<section :data-label="label"><slot /></section>' });
+const config = () => ({ category: { enabled: true, field: 'mention' }, leftTree: { enabled: true, source: { type: 'module' as const }, mapping: { valueField: '', labelField: '', targetField: 'category_id' }, actions: { addChild: true } } });
+const render = () => mount(Panel, { props: { modelValue: config(), fields: [] }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElForm: box, ElTabs: box, ElTabPane: box, ElFormItem: item, ElSwitch: switchStub, ElAlert: defineComponent({ props: ['title'], template: '<p>{{ title }}</p>' }), ElSelect: box, ElOption: true, ElRadioGroup: box, ElRadio: box } } });
+beforeEach(() => { vi.clearAllMocks(); api.sourceCandidates.mockResolvedValue({ list: [safeSource], total: 1 }); api.sourceMeta.mockResolvedValue(safeSource); api.modules.mockResolvedValue({ list: [{ id: 1, code: 'allowed', name: '分类', lifecycle_status: 'published' }, { id: 2, code: 'denied', lifecycle_status: 'published' }], total: 2 }); api.module.mockImplementation(async (id: number) => ({ form: { form_key: id === 1 ? 'allowed' : 'denied' } })); api.meta.mockImplementation(async (key: string) => { if (key === 'denied') throw Error('拒绝'); return { primaryKey: { name: 'code' }, fields: [] }; }); });
+describe('独立分类配置入口', () => {
+  it('右表允许选择真实 belongs_to 外键，但选项筛选仍排除关系字段', async () => {
+    const wrapper = render();
+    await wrapper.setProps({ fields: [{ field_name: 'category_id', label: '分类', column_type: 'bigint', relation_type: 'belongs_to', type: 'relation' }] as never });
+    const state = (wrapper.vm as any).$.setupState;
+    expect(state.targetFields?.map((field: any) => field.field_name)).toEqual(['category_id']);
+    expect(state.scalarFields).toEqual([]);
+    wrapper.unmount();
+  });
+  it('配置面板提供四个共享按钮编辑器和工具开关', () => { const wrapper = render(); expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4); expect(wrapper.text()).toContain('通用工具'); wrapper.unmount(); });
+  it('明确说明独立记录与选项筛选的区别', () => { const wrapper = render(); expect(wrapper.text()).toContain('独立分类'); expect(wrapper.text()).toContain('选项筛选'); wrapper.unmount(); });
+  it('没有父级字段时禁用新增子节点，并在更新时清除旧开关', async () => { const wrapper = render(); expect(wrapper.get('[data-label="新增子节点"] button').attributes('disabled')).toBeDefined(); const state = (wrapper.vm as any).$.setupState; state.updateLeft({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { actions: { addChild: false } }, category: { enabled: false } }); wrapper.unmount(); });
+  it('开启选项筛选会关闭可管理分类，保留原映射', () => { const wrapper = render(); (wrapper.vm as any).$.setupState.category({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { enabled: false, mapping: { targetField: 'category_id' } } }); wrapper.unmount(); });
+  it('候选与选择只使用专用安全元数据，绝不请求完整模块详情或运行态 meta', async () => {
+    const wrapper = render();
+    const state = (wrapper.vm as any).$.setupState;
+    await state.loadModules();
+    await flushPromises();
+    expect(api.module).not.toHaveBeenCalled();
+    expect(api.modules).not.toHaveBeenCalled();
+    expect(api.meta).not.toHaveBeenCalled();
+    expect(api.sourceCandidates).toHaveBeenCalledOnce();
+    expect(state.modules.map((value: any) => value.moduleCode)).toEqual(['allowed']);
+    await state.chooseModule('allowed');
+    expect(api.sourceMeta).toHaveBeenCalledWith('allowed_form');
+    expect(api.module).not.toHaveBeenCalled();
+    expect(state.externalFields.map((field: any) => field.field_name)).toEqual(['code', 'title']);
+    expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { source: { type: 'module', module: 'allowed' }, mapping: { valueField: 'code', targetField: 'category_id' } } });
+    wrapper.unmount();
+  });
+  it('恢复已保存来源也不读取草稿，撤销授权时清空字段但不改写配置', async () => {
+    const wrapper = render();
+    await wrapper.setProps({ modelValue: { ...config(), leftTree: { ...config().leftTree, source: { type: 'module', module: 'allowed' } } } });
+    await flushPromises();
+    expect(api.sourceMeta).toHaveBeenCalledWith('allowed_form');
+    expect(api.module).not.toHaveBeenCalled();
+    expect(wrapper.emitted('update')).toBeUndefined();
+    api.sourceMeta.mockRejectedValueOnce(Error('拒绝'));
+    await (wrapper.vm as any).$.setupState.chooseModule('allowed');
+    expect((wrapper.vm as any).$.setupState.externalFields).toEqual([]);
+    expect(wrapper.emitted('update')).toBeUndefined();
+    wrapper.unmount();
+  });
+});
