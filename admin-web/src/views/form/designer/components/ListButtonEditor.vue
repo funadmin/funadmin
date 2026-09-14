@@ -2,17 +2,17 @@
   <section class="mb-4">
     <div class="flex flex-wrap gap-2 items-center"><strong>{{ title }}</strong><el-button size="small" @click="add">添加按钮</el-button><el-button size="small" @click="emit('update', [])">全部隐藏</el-button><el-button size="small" @click="emit('update', undefined)">恢复默认</el-button></div>
     <p class="text-xs text-[var(--el-text-color-secondary)]">{{ modelValue === undefined ? '继承宿主默认按钮' : modelValue.length ? '使用自定义按钮' : '空集合：全部隐藏' }}；显示配置不会授予权限或开启业务能力。</p>
-    <div v-for="(button, index) in buttons" :key="button.id" class="flex gap-2 items-center my-2">
+    <div class="list-button-items"><div v-for="(button, index) in buttons" :key="button.id" class="flex gap-2 items-center my-2">
       <span>{{ button.label }} · {{ button.action.type === 'builtin' ? button.action.key : button.action.type }}</span>
       <el-button size="small" @click="edit(index)">配置</el-button><el-button size="small" :disabled="index === 0" @click="move(index, -1)">上移</el-button><el-button size="small" :disabled="index === buttons.length - 1" @click="move(index, 1)">下移</el-button><el-button size="small" type="danger" @click="remove(index)">移除</el-button>
-    </div>
+    </div></div>
     <el-drawer v-model="visible" :title="`${title}配置`" size="min(560px, 96vw)" append-to-body>
       <el-form v-if="draft" label-width="100px" size="small" class="button-form">
         <el-alert v-if="unsupported" title="未注册、无权限或目录不可用：保留原配置，不代表可执行或可发布。" type="warning" :closable="false" />
         <el-alert v-if="catalogError" :title="catalogError" type="warning" :closable="false" />
         <el-form-item label="动作"><el-select aria-label="动作" :model-value="actionValue" @change="changeAction"><el-option v-for="option in actionOptions" :key="option.value" :value="option.value" :label="option.label" /><el-option v-if="unsupported && actionValue" :value="actionValue" :label="`${actionValue}（不可用，已保留）`" disabled /></el-select></el-form-item>
         <el-form-item v-if="'capabilityVersion' in draft.action" label="目录版本"><el-input :model-value="draft.action.capabilityVersion" readonly /></el-form-item>
-        <p class="text-xs">{{ selectionNotice }}；数量约束仅收紧实际能力与权限，不授予批量能力。</p>
+        <p class="text-xs parameter-notice">{{ selectionNotice }}；数量约束仅收紧实际能力与权限，不授予批量能力。</p>
         <template v-if="location === 'toolbar'">
           <el-form-item label="最少选择"><el-input-number aria-label="最少选择数量" :model-value="draft.selection?.min" :min="0" :max="200" :precision="0" @update:model-value="value => setSelection('min', value)" /></el-form-item>
           <el-form-item label="最多选择"><el-input-number aria-label="最多选择数量" :model-value="draft.selection?.max" :min="0" :max="200" :precision="0" @update:model-value="value => setSelection('max', value)" /></el-form-item>
@@ -207,6 +207,10 @@ function save() {
 <style scoped>
 .button-form :deep(.el-form-item) { margin-bottom: 12px; }
 .button-form :deep(.el-select) { width: 100%; }
-.parameter-row { display: grid; gap: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid var(--el-border-color); border-radius: 4px; }
+.parameter-row { display: grid; grid-template-columns: minmax(120px, 0.7fr) minmax(140px, 1fr) minmax(120px, 1fr) auto; gap: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid var(--el-border-color); border-radius: 4px; }
+.list-button-items { display: grid; gap: 4px; }
+.parameter-notice { margin: 8px 0; }
+@media (max-width: 900px) { .parameter-row { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .parameter-row { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .button-form :deep(.el-form-item) { display: block; } .button-form :deep(.el-form-item__content) { margin-left: 0 !important; } }
 </style>

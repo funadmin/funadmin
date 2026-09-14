@@ -43,6 +43,36 @@ final class OrderTestController extends AdminApiController
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
     protected string $model = OrderTest::class;
 
+    private function listButtonService(): \app\console\form\service\FormDataService
+    {
+        return new \app\console\form\service\FormDataService(permissionChecker: fn (string $route): bool => (new \app\console\authorization\service\AdminAuthorizationService())->nodeAccess($route), productionBinding: array (
+  'formKey' => 'order_test',
+  'schemaHash' => '2d35f76d667148372df68c9c738e66e94e3c5506ec41c7d5687af0b0469a4305',
+  'route' => 'console/generated.ordertestcontroller',
+  'table' => 'fun_test',
+  'connection' => 'mysql',
+));
+    }
+    #[Get('list-actions')]
+    public function listActions(): Response
+    {
+        return $this->listButtonResponse(fn (): array => $this->listButtonService()->listActionCatalog('order_test', (string) $this->request->get('location', 'row'), \app\common\form\registry\FormRegistryFactory::production()->actions()));
+    }
+    #[Post('list-action')]
+    public function listAction(): Response
+    {
+        $payload = $this->request->post();
+        $this->request->withPost(['buttonId' => $payload['buttonId'] ?? '', 'input' => '[REDACTED]']);
+        return $this->listButtonResponse(fn (): array => $this->listButtonService()->executeListButton('order_test', $payload));
+    }
+    private function listButtonResponse(callable $operation): Response
+    {
+        try { return $this->ok(data: $operation()); }
+        catch (\Throwable $error) {
+            return $this->listActionFailure($error);
+        }
+    }
+
     #[Get('')]
     public function index(): Response { return $this->crudIndex(); }
 
@@ -92,9 +122,9 @@ final class OrderTestController extends AdminApiController
     public function export(): Response { return $this->crudExport(); }
 
     protected function searchFields(): array { return array (
+  'field1' => 'field_1',
 ); }
     protected function exactFilters(): array { return array (
-  '__category' => 'field_2',
 ); }
     protected function rangeFilters(): array { return array (
 ); }

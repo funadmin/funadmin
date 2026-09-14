@@ -39,10 +39,12 @@
       </template>
       </el-tab-pane>
       <el-tab-pane label="按钮与工具" name="buttons">
-        <el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog">重新加载动作目录</el-button>
+        <div class="list-button-section">
+          <div class="list-button-actions"><el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog">重新加载动作目录</el-button></div>
         <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? categoryButtonFields : buttonFields" :filter-fields="scalarFields.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name)" :category-fields="categoryButtonFields" :resources="resources" :actions="actionCatalogs[location.key]" :catalog-error="catalogErrors[location.key]" :builtin-keys="builtinKeys(location.key)" :resource-enabled="!pluginTarget && (!location.key.startsWith('category') || left.enabled)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
+        </div>
         <el-divider>通用工具</el-divider>
-        <el-form-item v-for="tool in tools" :key="tool.key" :label="tool.label"><el-switch :model-value="modelValue.tools?.[tool.key] !== false" @change="value => emit('update', { tools: { ...modelValue.tools, [tool.key]: Boolean(value) } })" /></el-form-item>
+        <div class="list-tools-grid"><el-form-item v-for="tool in tools" :key="tool.key" :label="tool.label"><el-switch :model-value="modelValue.tools?.[tool.key] !== false" @change="value => emit('update', { tools: { ...modelValue.tools, [tool.key]: Boolean(value) } })" /></el-form-item></div>
       </el-tab-pane>
       </el-tabs>
     </el-form>
@@ -158,3 +160,11 @@ const categoryFields = computed(() => scalarFields.value.filter(field => ['stati
 const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>) => emit('update', { category: { enabled: false, ...props.modelValue.category, ...patch }, ...(patch.enabled ? { leftTree: { ...left.value, enabled: false } } : {}) });
 const tree = (patch: Partial<NonNullable<FormListConfiguration['tree']>>) => emit('update', { tree: { enabled: false, ...props.modelValue.tree, ...patch } });
 </script>
+<style scoped>
+.list-button-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.list-tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 16px; }
+@media (max-width: 600px) { .list-tools-grid { grid-template-columns: 1fr; } }
+.list-tools-grid :deep(.el-form-item) { margin-bottom: 8px; }
+.list-tools-grid :deep(.el-form-item__label) { width: auto !important; }
+.list-tools-grid :deep(.el-form-item__content) { flex: 0 0 auto; }
+</style>

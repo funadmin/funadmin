@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\console\model\generated;
 
+use app\console\model\BackendModel;
 use app\common\model\concern\LaravelSoftDelete;
 use app\console\model\BackendModel;
 

@@ -20,9 +20,7 @@
           <h3>连接与模型</h3>
           <el-form-item class="profile-wide" label="供应商预设"><div class="model-control"><el-select v-model="presetId" data-testid="provider-preset"><el-option v-for="preset in presets" :key="preset.id" :value="preset.id" :label="preset.label" /></el-select><el-button data-testid="apply-preset" @click="applyPreset">应用到连接</el-button></div></el-form-item>
           <el-form-item class="profile-wide" label="API 协议"><el-select v-model="form.protocol" data-testid="provider-protocol"><el-option value="openai-chat" label="Chat Completions" /><el-option value="openai-responses" label="Responses" /><el-option value="anthropic-messages" label="Anthropic Messages" /></el-select></el-form-item>
-          <p class="profile-wide">预设仅在点击应用后替换供应商、协议和地址，不预置密钥；应用到已有档案需再次确认。协议与地址可独立修改。</p>
           <p v-if="presetId === 'ollama'" class="profile-wide">Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。</p>
-          <p class="profile-wide">当前支持文本、function 工具及 usage；不支持 thinking 内容、签名和 reasoning item 的往返，收到此类内容将明确报错。Responses / Messages 请选择默认推理档位及非思考模型；Messages 必须设置输出 Token 预算。</p>
           <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
           <el-form-item label="供应商标识">
             <el-input v-model="form.provider" required pattern="[a-z0-9][a-z0-9._-]*" maxlength="64" placeholder="例如 openai-compatible" />

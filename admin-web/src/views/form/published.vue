@@ -211,10 +211,12 @@ const openDetail = async (row: Record<string, unknown>) => {
 };
 const onReset = () => { leftSelection.value = []; Object.keys(filters).forEach((key) => delete filters[key]); Object.keys(dateFilters).forEach((key) => delete dateFilters[key]); onSearch(); };
 const refreshAfterWrite = async () => {
+  const identity = formKey.value;
+  const sequence = dataSequence + 1;
   try {
     await loadData();
   } catch {
-    ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
+    if (identity === formKey.value && sequence === dataSequence) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
   }
 };
 const decodeValue = (field: FormFieldDef, value: unknown) => {

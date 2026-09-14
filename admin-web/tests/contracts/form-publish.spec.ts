@@ -84,6 +84,17 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).not.toContain('formFullPublishApi.');
   });
 
+  it('表单设计器仅保留基础模式，移除高级模式专属入口和状态', () => {
+    const designer = read('admin-web/src/views/form/designer/index.vue');
+    expect(designer).not.toContain('designerMode');
+    expect(designer).not.toContain('高级模式');
+    expect(designer).not.toContain('SchemaJsonEditor');
+    expect(designer).not.toContain('SchemaStructurePanel');
+    expect(designer).not.toContain('VersionHistoryDrawer');
+    expect(designer).not.toContain('buildDesignerDebugState');
+    expect(designer).not.toContain('buildSchemaDebugSummary');
+  });
+
   it('正式生成复用服务端 operation，并在响应不确定时按 generationId 收敛', () => {
     const designer = read('admin-web/src/views/form/designer/index.vue');
     expect(designer).toContain('const formalGenerationNonce = ref(crypto.randomUUID())');

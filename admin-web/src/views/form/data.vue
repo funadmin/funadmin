@@ -330,10 +330,12 @@ const responseFieldErrors = (reason: unknown): FormFieldError[] => {
   return response.data?.fieldErrors ?? response.fieldErrors ?? [];
 };
 async function refreshAfterWrite() {
+  const identity = formKey.value;
+  const sequence = dataSequence + 1;
   try {
     await loadData();
   } catch {
-    ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
+    if (identity === formKey.value && sequence === dataSequence) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
   }
 }
 async function onSave() {

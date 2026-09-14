@@ -2,10 +2,6 @@
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <div class="designer-command-bar designer-toolbar mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color-light)] bg-[var(--el-bg-color)] p-3">
         <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
-        <el-radio-group v-model="designerMode" aria-label="设计器功能模式">
-          <el-radio-button value="basic">基础模式</el-radio-button>
-          <el-radio-button value="advanced">高级模式</el-radio-button>
-        </el-radio-group>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
         <el-radio-group v-model="workspaceMode">
@@ -18,9 +14,6 @@
           <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
         </el-select>
         <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">预览数据</el-button>
-        <el-button v-if="designerMode === 'advanced'" @click="jsonEditorVisible = true">{{ t('formDesigner.advancedJson', '高级 JSON') }}</el-button>
-        <el-button v-if="designerMode === 'advanced'" @click="onExportSchema">{{ t('formDesigner.exportSchema', '导出 Schema') }}</el-button>
-        <el-button v-if="designerMode === 'advanced'" :disabled="!store.form.value.id" @click="versionVisible = true">{{ t('formDesigner.versionHistory', '版本历史') }}</el-button>
         <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
         <el-button
           :type="store.dirty.value ? 'primary' : 'default'"
@@ -202,10 +195,6 @@
         <div>
           <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
           <el-empty v-else description="点选画布字段编辑参数" />
-          <template v-if="designerMode === 'advanced' && store.selectedNode.value">
-            <el-divider content-position="left">高级配置</el-divider>
-            <SchemaStructurePanel :node="store.selectedNode.value" :permission-options="permissionOptions" @update="store.updateNode" />
-          </template>
         </div>
       </el-card>
     </div>
@@ -298,28 +287,6 @@
       <template #footer><el-button @click="previewSettingsVisible = false">取消</el-button><el-button type="primary" @click="applyPreviewSettings">应用预览</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="jsonEditorVisible" title="FormSchema v2 高级 JSON 编辑" width="860px" :close-on-click-modal="false">
-      <SchemaJsonEditor :schema="store.schemaDocument.value" @apply="onApplySchemaJson" />
-    </el-dialog>
-
-    <VersionHistoryDrawer v-model="versionVisible" :module-id="moduleId" :schema-hash="String(store.form.value.schema_hash ?? '')" @rollback="onRollback" />
-
-    <el-card v-if="designerMode === 'advanced' && debugEnabled" shadow="never" class="mt-3">
-      <template #header>{{ t('formDesigner.debugPanel', '调试面板') }}</template>
-      <el-descriptions :column="4" border size="small">
-        <el-descriptions-item :label="t('formDesigner.nodes', '节点')">{{ debugSummary.nodes }}</el-descriptions-item>
-        <el-descriptions-item :label="t('formDesigner.fields', '字段')">{{ debugSummary.fields }}</el-descriptions-item>
-        <el-descriptions-item :label="t('formDesigner.containers', '容器')">{{ debugSummary.containers }}</el-descriptions-item>
-        <el-descriptions-item :label="t('formDesigner.maxDepth', '最大深度')">{{ debugSummary.maxDepth }}</el-descriptions-item>
-      </el-descriptions>
-      <el-collapse class="mt-3">
-        <el-collapse-item :title="t('formDesigner.debugValues', '当前预览值')" name="values"><pre>{{ formatDebug(debugState.previewValues) }}</pre></el-collapse-item>
-        <el-collapse-item :title="t('formDesigner.debugConditions', '条件命中')" name="conditions"><pre>{{ formatDebug(debugState.conditionHits) }}</pre></el-collapse-item>
-        <el-collapse-item :title="t('formDesigner.debugActions', '动作轨迹')" name="actions"><pre>{{ formatDebug(debugState.actionTrace) }}</pre></el-collapse-item>
-        <el-collapse-item :title="t('formDesigner.debugDataSources', '数据源状态')" name="dataSources"><pre>{{ formatDebug(debugState.dataSources) }}</pre></el-collapse-item>
-        <el-collapse-item :title="t('formDesigner.debugValidation', '验证结果')" name="validation"><pre>{{ formatDebug(debugState.validationResults) }}</pre></el-collapse-item>
-      </el-collapse>
-    </el-card>
 
   </PageWrapper>
 </template>
@@ -330,24 +297,19 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
-import type { FormPublishConfig, FormSchemaVersion } from '@/api/form';
+import type { FormPublishConfig } from '@/api/form';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessModule, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
-import { permissionApi, type PermissionModel } from '@/api/system/permission';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { controlIcon, paletteContainers } from './controlPalette';
 import { useDesigner } from '../composables/useDesigner';
 import { pluginCatalog } from './pluginCatalog';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
-import { buildDesignerDebugState, buildSchemaDebugSummary } from './schemaEditor';
 import SchemaRenderer from '../components/SchemaRenderer.vue';
 import DesignerCanvas from './components/DesignerCanvas.vue';
 import PropsPanel from './components/PropsPanel.vue';
 import ListConfigurationPanel from './components/ListConfigurationPanel.vue';
 import { useUserStore } from '@/store/modules/user';
-import SchemaJsonEditor from './components/SchemaJsonEditor.vue';
 import SchemaNodeTree from './components/SchemaNodeTree.vue';
-import SchemaStructurePanel from './components/SchemaStructurePanel.vue';
-import VersionHistoryDrawer from './components/VersionHistoryDrawer.vue';
 import { useBusinessMenuRefresh } from '../../development/business/composables/useBusinessMenuRefresh';
 import GenerationPlanView from '../../development/business/components/GenerationPlanView.vue';
 
@@ -363,7 +325,6 @@ const store = useDesigner();
 const businessModule = ref<BusinessModule | null>(null);
 const businessTarget = computed(() => businessModule.value?.metadata?.target);
 const isPluginTarget = computed(() => businessTarget.value?.type === 'plugin');
-const designerMode = ref<'basic' | 'advanced'>('basic');
 // 区域切换仅改变显示，不进入 Schema、历史和自动保存通道。
 const activeTab = ref<'basic' | 'design' | 'list'>('basic');
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
@@ -380,8 +341,6 @@ const previewSettingsVisible = ref(false);
 const previewValuesJson = ref('{}');
 const previewErrorsJson = ref('{}');
 const previewRenderer = ref<{ setFieldErrors: (errors: Record<string, string>) => Promise<void> }>();
-const jsonEditorVisible = ref(false);
-const versionVisible = ref(false);
 const publishVisible = ref(false);
 const publishStep = ref(0);
 const previewingPublish = ref(false);
@@ -407,7 +366,6 @@ const parentMenus = ref<Array<Record<string, unknown>>>([]);
 const databaseTables = ref<BusinessDatabaseTable[]>([]);
 const tableLoading = ref(false);
 const tableLoadError = ref('');
-const permissionOptions = ref<Array<{ label: string; value: string }>>([]);
 const icons = ref<string[]>([]);
 const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
 const publishConfig = ref<FormPublishConfig>({
@@ -426,17 +384,6 @@ watch(() => store.fields.value.map((field) => [field.field_name, field.default_v
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
 const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
 let paletteSortables: Sortable[] = [];
-const permissionEntries = (nodes: PermissionModel[]): Array<{ label: string; value: string }> => nodes.flatMap((node) => [
-  ...(node.status === 1 && node.resourceType === 'route' && node.code ? [{ label: node.name || node.code, value: node.code }] : []),
-  ...permissionEntries(node.children ?? [])
-]);
-const loadPermissionOptions = async () => {
-  try {
-    permissionOptions.value = permissionEntries(await permissionApi.tree());
-  } catch {
-    permissionOptions.value = [];
-  }
-};
 const initializePalette = () => {
   paletteSortables.forEach((sortable) => sortable.destroy());
   paletteSortables = [];
@@ -518,9 +465,6 @@ const applyPreviewSettings = async () => {
     previewSettingsVisible.value = false;
   } catch { ElMessage.warning('请输入合法 JSON'); }
 };
-const debugEnabled = import.meta.env.DEV && import.meta.env.VITE_FORM_DESIGNER_DEBUG !== 'false';
-const debugSummary = computed(() => buildSchemaDebugSummary(store.schemaDocument.value));
-const debugState = computed(() => buildDesignerDebugState(store.schemaDocument.value, previewValues));
 const formatDebug = (value: unknown) => JSON.stringify(value, null, 2);
 const saveStatusLabel = computed(() => ({
   unsaved: t('formDesigner.unsaved', '未保存'),
@@ -529,33 +473,6 @@ const saveStatusLabel = computed(() => ({
   saved: t('formDesigner.saved', '已保存')
 }[store.saveStatus.value]));
 const saveStatusType = computed(() => ({ unsaved: 'warning', saving: 'info', failed: 'danger', saved: 'success' } as const)[store.saveStatus.value]);
-const onApplySchemaJson = async (schema: import('@/api/form').FormSchemaDocument) => {
-  if (!moduleId.value) throw new Error('业务模块 ID 缺失');
-  const compiled = await businessDevelopmentApi.compileSchema(moduleId.value, schema);
-  const result = store.replaceSchema(compiled.document);
-  if (!result.ok) {
-    ElMessage.warning(result.error);
-    return;
-  }
-  store.updateForm({ schema_origin: 'import' });
-  jsonEditorVisible.value = false;
-  ElMessage.success('FormSchema v2 已通过服务端校验并应用');
-};
-const onExportSchema = async () => {
-  if (!moduleId.value) throw new Error('业务模块 ID 缺失');
-  const { document: exportedDocument } = await businessDevelopmentApi.exportSchema(moduleId.value, store.schemaDocument.value);
-  const blob = new Blob([exportedDocument], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = window.document.createElement('a');
-  link.href = url;
-  link.download = `${store.form.value.form_key || 'form-schema'}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-};
-const onRollback = (version: FormSchemaVersion) => {
-  const result = store.replaceSchema(version.schema_document);
-  if (result.ok) store.updateForm({ schema_origin: 'rollback', schema_hash: version.schema_hash });
-};
 const controlGroups = computed(() => [...new Set(designerControls.value.map((control) => control.group))]);
 const controlsOf = (group: string) => designerControls.value.filter((control) => control.group === group);
 const normalizeIdentifier = (value: string) => value
@@ -984,7 +901,7 @@ onMounted(async () => {
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
   initializePalette();
-  await Promise.allSettled([loadPluginFormComponents(), loadPermissionOptions()]);
+  await Promise.allSettled([loadPluginFormComponents()]);
   await load();
   localDraftRestorePending = true;
   restoreLocalDraft();

@@ -1,5 +1,5 @@
 <template>
-  <div class="condition-editor">
+  <div class="condition-editor condition-grid">
     <el-select :aria-label="`${label}规则`" :model-value="mode" @change="changeMode">
       <el-option value="none" label="不限制" /><el-option value="field" label="字段比较" />
       <el-option value="and" label="全部满足" /><el-option value="or" label="任一满足" /><el-option value="not" label="取反" />
@@ -40,5 +40,7 @@ function updateChild(index: number, value?: FormSchemaCondition) { const conditi
 </script>
 <style scoped>
 .condition-editor { display: grid; gap: 8px; padding: 8px; border-left: 2px solid var(--el-border-color); min-width: 0; }
-.value-row { display: flex; gap: 8px; }
+.value-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.condition-grid :deep(.el-input), .condition-grid :deep(.el-select) { min-width: 0; width: 100%; }
+@media (max-width: 600px) { .condition-editor { padding: 6px; } }
 </style>

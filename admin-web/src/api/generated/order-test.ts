@@ -18,6 +18,9 @@ export interface OrderTestModelQuery { page: number; pageSize: number; recycled?
 export type OrderTestModelPayload = Partial<Omit<OrderTestModel, 'id'>>;
 
 export const orderTestApi = {
+  listActions: (_key: string, location: import('@/views/form/schema/types').FormListButtonLocation, signal?: AbortSignal) => request.get<import('@/api/formData').FormListActionCatalog>('/generated/order-test/list-actions', { location }, { signal, requestOptions: { showErrorMsg: false } }),
+  listAction: (_key: string, payload: import('@/api/formData').FormListActionRequest) => request.post<import('@/api/formData').FormListActionReply>('/generated/order-test/list-action', payload, { requestOptions: { showErrorMsg: false } }),
+  listButtonAdapter: {"formKey":"order_test","schemaHash":"2d35f76d667148372df68c9c738e66e94e3c5506ec41c7d5687af0b0469a4305","catalogPermission":"generated:order-test:list-actions","executePermission":"generated:order-test:list-action","fieldMap":{"id":"id","field_1":"field1","field_7":"field7","field_2":"field2","field_3":"field3","field_4":"field4","field_5":"field5","field_6":"field6","created_at":"createdAt","updated_at":"updatedAt","deleted_at":"deletedAt"}} as const,
   list: (params: OrderTestModelQuery) => request.get<API.PageResult<OrderTestModel>>('/generated/order-test', params),
   detail: (id: OrderTestModelId) => request.get<OrderTestModel>(`/generated/order-test/${id}`),
   create: (data: OrderTestModelPayload) => request.post<OrderTestModel>('/generated/order-test', data),
