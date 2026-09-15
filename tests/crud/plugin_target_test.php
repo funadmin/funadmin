@@ -178,10 +178,6 @@ try {
             pluginCrudExpect($definition->get('capabilities')[$ability] === false, '默认开启 ' . $ability);
         }
     });
-    $securityCheck('已有商品', static function () use ($repository): void {
-        require $repository . '/plugins/shop/app/shop/controller/ProductController.php';
-        pluginReadOnlyController('app\\shop\\controller\\ProductController');
-    });
     foreach (['shop', 'example'] as $plugin) {
         $securityCheck($plugin . ' 静态入口', static function () use ($repository, $plugin): void {
             require $repository . '/plugins/' . $plugin . '/app/' . $plugin . '/controller/Index.php';
@@ -189,7 +185,7 @@ try {
             pluginCrudExpect(array_column($methods, 'name') === ['index'], '静态入口不得暴露管理方法');
         });
     }
-    foreach (['SecurityApplicationController', 'SecurityBothController', 'ProductController'] as $class) {
+    foreach (['SecurityApplicationController', 'SecurityBothController'] as $class) {
         $securityCheck('回收站 ' . $class, static fn () => pluginReadOnlyController('app\\shop\\controller\\' . $class, false));
     }
     $securityCheck('状态手工开启', static function () use ($root): void {

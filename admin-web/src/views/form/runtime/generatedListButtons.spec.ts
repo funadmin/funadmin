@@ -99,14 +99,27 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     }
   });
   it('安全元数据不重新引入敏感字段或关闭的列表详情字段', () => {
-    for (const presentation of [{ component: 'password' }, { controlProps: { sensitive: true } }, { controlProps: { writeOnly: true } }, { controlProps: { schemaAccess: 'private' } }, { list: false, detail: false }]) {
+    for (const presentation of [{ component: 'password' }, { controlProps: { sensitive: true } }, { controlProps: { writeOnly: true } }, { controlProps: { schemaAccess: 'private' } }]) {
       const generated = generate(false, true, true, false, true, presentation);
       for (const content of [generated.viewContent, generated.detailContent]) {
         const { descriptor } = parse(content);
         expect(descriptor.template!.content).not.toContain('fieldPresentations.orderTitle');
         expect(descriptor.scriptSetup!.content.match(/const fieldPresentations = .*;/)?.[0]).not.toContain('orderTitle');
+        expect(generated.controllerContent).not.toContain("'orderTitle' =>");
       }
     }
+  });
+  it('关闭列表和详情仅影响展示，不作为 DTO 访问授权', () => {
+    const generated = generate(false, true, true, false, true, { component: 'hidden', list: false, detail: false });
+    for (const content of [generated.viewContent, generated.detailContent]) {
+      expect(parse(content).descriptor.template!.content).not.toContain('fieldPresentations.orderTitle');
+    }
+    expect(generated.controllerContent).toContain("'orderTitle' =>");
+  });
+  it('hidden 字段即使配置 search 也不生成搜索绑定', () => {
+    const generated = generate(false, true, true, false, true, { component: 'hidden', list: true });
+    expect(generated.viewContent).not.toContain('query.orderTitle');
+    expect(generated.viewContent).not.toContain("['order_title', query.orderTitle]");
   });
   it('正式生成默认工具栏按正常列表、回收站、新增、移入回收站、导入、导出顺序并保留样式元数据', () => {
     const generated = generate('defaults', true, true);

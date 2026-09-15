@@ -1,7 +1,7 @@
 <template>
   <div class="schema-table-page">
     <template v-if="definition.list?.leftTree?.enabled">
-      <ListSourceTree v-if="sourceBinding?.formKey && sourceBinding?.schemaHash" :form-key="sourceBinding.formKey" :schema-hash="sourceBinding.schemaHash" :lock="pageLock" :config="definition.list.leftTree" :list="definition.list" :permission-check="permitted" :can-read-form="permitted('console/form.data:lefttreeform')" :can-mutate="permitted('console/form.data:mutatelefttree')" :model-value="query.filters?.__leftTree ?? []" @change="onLeftTree" @mutated="emit('refresh')" />
+      <ListSourceTree v-if="sourceBinding?.formKey && sourceBinding?.schemaHash" :form-key="sourceBinding.formKey" :schema-hash="sourceBinding.schemaHash" :lock="pageLock" :config="definition.list.leftTree" :list="definition.list" :permission-check="permitted" :can-read-form="permitted('admin/form.data:lefttreeform')" :can-mutate="permitted('admin/form.data:mutatelefttree')" :model-value="query.filters?.__leftTree ?? []" @change="onLeftTree" @mutated="emit('refresh')" />
       <div v-else role="alert">业务分类需要绑定已发布表单；未启用来源操作。</div>
     </template>
     <ListCategoryPanel v-else-if="category" :options="category.options ?? []" :model-value="query[category.field]" @change="onCategory" />

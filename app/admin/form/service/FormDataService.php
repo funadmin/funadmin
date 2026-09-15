@@ -1,0 +1,1683 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\admin\form\service;
+
+use app\common\form\action\FormActionRegistry;
+use app\common\form\component\PluginFormComponentRegistry;
+use app\common\form\dataSource\FormDataSourceRegistry;
+use app\common\form\validation\FormAsyncValidationException;
+use app\common\form\validation\FormAsyncValidatorRegistry;
+use app\common\form\validation\FormSchemaDataValidator;
+use app\common\model\DictItem;
+use app\common\model\DictType;
+use app\admin\form\model\Form;
+use app\admin\form\model\FormField;
+use app\admin\form\model\FormSchemaVersion;
+use app\admin\form\repository\FormSchemaRepository;
+use app\admin\development\model\BusinessModule;
+use app\admin\authentication\model\Admin;
+use app\admin\model\Department;
+use app\admin\authorization\service\DataScopeService;
+use Closure;
+use InvalidArgumentException;
+use think\facade\Db;
+use think\facade\Validate;
+
+/**
+ * 表单数据运行态服务（M3）：元数据驱动的通用读写/校验/选项/子表。
+ * 所有列名经元数据白名单约束，禁止任意列读写。
+ */
+final class FormDataService
+{
+    private readonly FormAsyncValidatorRegistry $asyncValidators;
+    private readonly FormDataSourceRegistry $dataSources;
+    private readonly PluginFormComponentRegistry $pluginComponents;
+    private readonly Closure $permissionChecker;
+
+    public function __construct(
+        ?FormAsyncValidatorRegistry $asyncValidators = null,
+        ?FormDataSourceRegistry $dataSources = null,
+        ?callable $permissionChecker = null,
+        ?PluginFormComponentRegistry $pluginComponents = null,
+        private readonly ?array $productionBinding = null
+    ) {
+        $this->asyncValidators = $asyncValidators ?? new FormAsyncValidatorRegistry();
+        $this->dataSources = $dataSources ?? FormDataSourceRegistry::core();
+        $this->permissionChecker = Closure::fromCallable($permissionChecker ?? static fn (string $permission): bool => false);
+        $this->pluginComponents = $pluginComponents ?? new PluginFormComponentRegistry();
+    }
+
+    private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
+    private const EXPORT_LIMIT = 5000;
+    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
+
+    /** 表单元数据只使用不可变的已发布 FormSchema 快照，禁止当前草稿污染运行态。 */
+    public function meta(string $key): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $safeFields = array_map(function ($field): array {
+            $row = $field->toArray();
+            if ($this->isSensitiveField($row)) $row['default_value'] = '';
+            return $row;
+        }, $published['fields']->all());
+        $formData = $form->toArray();
+        unset($formData['schema_document'], $formData['schema_hash']);
+        return [
+            'form' => $formData,
+            'fields' => $safeFields,
+            'primaryKey' => $this->primaryKey($schema),
+            'schema' => $published['schema'],
+            'schemaHash' => $published['schemaHash'],
+            'etag' => '"' . $published['schemaHash'] . '"',
+            'categoryOptions' => ($published['schema']['list']['category']['enabled'] ?? false)
+                ? $this->options($key, $published['schema']['list']['category']['field']) : [],
+        ];
+    }
+
+    /** 来源配置只读取已发布且获业务读取授权的字段，不读取记录或草稿。 */
+    public function sourceMeta(string $key): array
+    {
+        $form = $this->form($key);
+        $runtime = $this->publishedRuntime($form);
+        if (!($this->permissionChecker)($this->businessPermissionRoute($runtime['module']) . '/index')) {
+            throw new InvalidArgumentException('没有来源业务读取权限');
+        }
+        $fields = [];
+        foreach ($runtime['fields'] as $field) {
+            $row = $field->toArray();
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')
+                || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none'
+                || in_array($row['type'] ?? '', ['repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
+                || !empty($row['control_props']['multiple'])) continue;
+            $fields[] = ['field_name' => (string) $row['field_name'], 'label' => (string) ($row['label'] ?? '')];
+        }
+        // 独立白名单 DTO，不复用运行态 meta，避免 AST、默认值及选项查询旁路泄露。
+        return [
+            'moduleId' => (int) $runtime['module']->id,
+            'moduleCode' => (string) $runtime['module']->code,
+            'formKey' => (string) $form->form_key,
+            'primaryKey' => $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name)),
+            'fields' => $fields,
+        ];
+    }
+
+    /** 服务端筛选来源；未授权、插件和无有效发布快照的模块不进入响应或总数。 */
+    public function sourceCandidates(): array
+    {
+        $list = [];
+        $modules = BusinessModule::whereIn('lifecycle_status', ['published', 'dynamic_published'])
+            ->field('id,form_id,code,lifecycle_status,metadata')->order('id', 'asc')->select();
+        foreach ($modules as $module) {
+            try {
+                if (!($this->permissionChecker)($this->businessPermissionRoute($module) . '/index')) continue;
+                $form = Form::where('id', (int) $module->form_id)->field('id,form_key')->find();
+                if (!$form) continue;
+                $meta = $this->sourceMeta((string) $form->form_key);
+                if ($meta['moduleId'] === (int) $module->id) $list[] = $meta;
+            } catch (InvalidArgumentException) {
+                // 无效或已撤销授权的来源不应打断其他合法候选。
+            }
+        }
+        return ['list' => $list, 'total' => count($list)];
+    }
+
+    /** 返回不含业务值的已发布运行态观测上下文。 */
+    public function runtimeContext(string $key, string $nodeId = '', string $dataSource = '', string $actionKey = ''): array
+    {
+        $published = $this->publishedRuntime($this->form($key));
+        if ($actionKey !== '') {
+            $reference = $this->publishedActionReference($published['schema'], $actionKey);
+            $nodeId = $reference['nodeId'];
+        }
+        return [
+            'schemaHash' => $published['schemaHash'],
+            'nodeId' => $nodeId,
+            'dataSource' => $dataSource,
+        ];
+    }
+
+    /** 校验提交基于当前已发布快照，防止旧页面向新 schema 写入数据。 */
+    public function assertPublishedSchemaHash(string $actual, string $expected): string
+    {
+        if ($actual === '' || !hash_equals($expected, $actual)) {
+            throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+        }
+        return $actual;
+    }
+
+    /** 列表：筛选/排序/分页/关联标签 LEFT JOIN。 */
+    public function listing(string $key, array $filters, string $sort, string $order, int $page, int $pageSize): array
+    {
+        $fields = $this->fields($key);
+        $form = $this->form($key);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $list = (array) ($this->publishedRuntime($form)['schema']['list'] ?? []);
+        $tree = ($list['tree']['enabled'] ?? false) === true;
+        if ($tree && (!isset($schema[$list['tree']['parentField']]) || $list['tree']['parentField'] === $primary['name'])) throw new InvalidArgumentException('树父级字段不存在或与主键相同');
+        $query = $this->filteredQuery($form, $fields, $list, $filters);
+        $sortable = $this->sortableColumns($fields);
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
+        $result = $this->readListQuery($query, $tree, $page, $pageSize);
+        $result['list'] = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $result['list']);
+        return $result;
+    }
+
+    /** 列表与导出共用分类、普通过滤及基础权限查询，不绑定展示读取策略。 */
+    private function filteredQuery(Form $form, $fields, array $list, array $filters)
+    {
+        $query = $this->baseQuery($form, $fields);
+        if (($list['leftTree']['enabled'] ?? false) === true && array_key_exists('__leftTree', $filters)) {
+            $selected = $filters['__leftTree'];
+            if (!is_array($selected)) throw new InvalidArgumentException('左树选择必须为数组');
+            $tree = $this->leftTree((string) $form->form_key);
+            $config = $list['leftTree'];
+            $values = (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $tree['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
+            if ($values !== []) {
+                $column = $form->table_name . '.' . $config['mapping']['targetField'];
+                count($values) === 1 ? $query->where($column, '=', $values[0]) : $query->whereIn($column, $values);
+            }
+        }
+        if (($list['category']['enabled'] ?? false) && array_key_exists('__category', $filters) && $filters['__category'] !== '' && $filters['__category'] !== null) {
+            if (!is_string($filters['__category']) && !is_int($filters['__category'])) throw new InvalidArgumentException('分类值必须是字符串或整数');
+            $query->where($form->table_name . '.' . $list['category']['field'], '=', $filters['__category']);
+        }
+        foreach ($fields as $field) {
+            $filterType = (string) $field->list_filter;
+            $name = (string) $field->field_name;
+            $value = $filters[$name] ?? '';
+            if ($filterType === 'eq' && $value !== '') {
+                $query->where($name, $value);
+            } elseif ($filterType === 'ne' && $value !== '') {
+                $query->where($name, '<>', $value);
+            } elseif ($filterType === 'like' && $value !== '') {
+                $query->whereLike($name, '%' . $value . '%');
+            } elseif ($filterType === 'not_like' && $value !== '') {
+                $query->where($name, 'not like', '%' . $value . '%');
+            } elseif ($filterType === 'starts_with' && $value !== '') {
+                $query->whereLike($name, $value . '%');
+            } elseif ($filterType === 'ends_with' && $value !== '') {
+                $query->whereLike($name, '%' . $value);
+            } elseif (in_array($filterType, ['gt', 'gte', 'lt', 'lte'], true) && $value !== '') {
+                $operators = ['gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
+                $query->where($name, $operators[$filterType], $value);
+            } elseif (in_array($filterType, ['range', 'date'], true)) {
+                $from = (string) ($filters[$name . '_from'] ?? '');
+                $to = (string) ($filters[$name . '_to'] ?? '');
+                if ($from !== '' && $to !== '') {
+                    $query->whereBetween($name, [$from, $to]);
+                } elseif ($from !== '') {
+                    $query->where($name, '>=', $from);
+                } elseif ($to !== '') {
+                    $query->where($name, '<=', $to);
+                }
+            } elseif (in_array($filterType, ['in', 'not_in'], true) && $value !== '') {
+                $values = array_values(array_filter(array_map('trim', explode(',', (string) $value)), static fn (string $item): bool => $item !== ''));
+                if ($values !== []) {
+                    $filterType === 'in' ? $query->whereIn($name, $values) : $query->whereNotIn($name, $values);
+                }
+            } elseif ($filterType === 'is_null' && (string) $value === '1') {
+                $query->whereNull($name);
+            } elseif ($filterType === 'not_null' && (string) $value === '1') {
+                $query->whereNotNull($name);
+            }
+        }
+        return $query;
+    }
+
+    /** 左树仅从已发布业务快照读取，字段及行权限均在查询前校验。 */
+    public function leftTree(string $key): array
+    {
+        $target = $this->form($key);
+        $targetRuntime = $this->publishedRuntime($target);
+        $config = $targetRuntime['schema']['list']['leftTree'] ?? [];
+        if (($config['enabled'] ?? false) !== true) throw new InvalidArgumentException('左树未启用');
+        $sourceKey = $key;
+        if (($config['source']['type'] ?? '') === 'module') {
+            $module = BusinessModule::where('code', $config['source']['module'])->find();
+            if (!$module) throw new InvalidArgumentException('来源业务不存在');
+            $sourceForm = Form::where('id', (int) $module->form_id)->find();
+            if (!$sourceForm) throw new InvalidArgumentException('来源业务未绑定表单');
+            $sourceKey = (string) $sourceForm->form_key;
+        }
+        $source = $this->form($sourceKey);
+        $runtime = $this->publishedRuntime($source);
+        $permission = $this->businessPermissionRoute($runtime['module']);
+        if (!($this->permissionChecker)($permission . '/index')) throw new InvalidArgumentException('没有来源业务读取权限');
+        $mapping = $config['mapping'];
+        $schema = Db::connect((string) $source->connection)->getFields((string) $source->table_name);
+        $primary = $this->primaryKey($schema);
+        foreach ($mapping as $binding => $name) {
+            if ($name === '') continue;
+            $boundFields = $binding === 'targetField' ? $targetRuntime['fields'] : $runtime['fields'];
+            $boundForm = $binding === 'targetField' ? $target : $source;
+            $columns = Db::connect((string) $boundForm->connection)->getFields((string) $boundForm->table_name);
+            $field = null;
+            foreach ($boundFields as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
+            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
+                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || ($field['control_props']['multiple'] ?? false)) throw new InvalidArgumentException('左树映射字段不存在或无读取权限');
+        }
+        if ($mapping['valueField'] !== $primary['name']) throw new InvalidArgumentException('左树节点值必须映射来源业务主键');
+        $query = $this->baseQuery($source, $runtime['fields']);
+        $query->order($source->table_name . '.' . (($mapping['sortField'] ?? '') !== '' ? $mapping['sortField'] : $primary['name']), 'asc');
+        $rows = $query->limit(1001)->select()->toArray();
+        if (count($rows) > 1000) throw new InvalidArgumentException('左树超过 1000 条授权节点');
+        $nodes = array_map(static fn (array $row): array => [
+            'id' => $row[$primary['name']], 'value' => $row[$mapping['valueField']],
+            'label' => (string) $row[$mapping['labelField']], 'parent' => $row[$mapping['parentField'] ?? ''] ?? null,
+        ], $rows);
+        $actions = [];
+        foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
+            $actions[$action] = ($config['actions'][$action] ?? false) === true
+                            && ($action !== 'addChild' || ($mapping['parentField'] ?? '') !== '')
+                            && ($this->permissionChecker)($permission . '/' . $operation);
+        }
+        return ['nodes' => $nodes, 'sourceKey' => $sourceKey, 'schemaHash' => $runtime['schemaHash'], 'actions' => $actions];
+    }
+
+    /** 正式生成与动态列表复用同一授权选择算法，版本不匹配时拒绝旧代码。 */
+    public function resolveLeftTreeFilter(string $key, array $selected, string $schemaHash): array
+    {
+        $runtime = $this->publishedRuntime($this->form($key));
+        $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
+        $config = $runtime['schema']['list']['leftTree'];
+        return (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $this->leftTree($key)['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
+    }
+
+    public function leftTreeForm(string $key, string $action, int|string $id, string $schemaHash, string $optionField = '', array $context = []): array
+    {
+        $runtime = $this->publishedRuntime($this->form($key));
+        $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
+        $tree = $this->leftTree($key);
+        if (!in_array($action, ['create', 'addChild', 'edit'], true) || !($tree['actions'][$action] ?? false)) {
+            throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
+        }
+        $row = $action === 'create' ? [] : $this->detail($tree['sourceKey'], $id)['row'];
+        $meta = $this->meta($tree['sourceKey']);
+        $this->assertPublishedSchemaHash($tree['schemaHash'], $meta['schemaHash']);
+        $result = ['meta' => $meta, 'row' => $action === 'edit' ? $row : []];
+        if ($optionField !== '') {
+            $field = null;
+            foreach ($meta['fields'] as $candidate) if ($candidate['field_name'] === $optionField) $field = $candidate;
+            if (!$field || !$this->fieldAccessAllowed($field, 'read') || !$this->fieldSubmissionAllowed($field, []) || $this->isSensitiveField($field)) throw new InvalidArgumentException('来源选项字段不可访问');
+            $result += $this->paginateOptions($this->options($tree['sourceKey'], $optionField, $context), (string) ($context['keyword'] ?? ''), max(1, (int) ($context['page'] ?? 1)), min(100, max(1, (int) ($context['pageSize'] ?? 20))));
+        }
+        return $result;
+    }
+
+    /** 来源写操作在来源连接事务中完成；锁定完整节点集合以串行化父级变更。 */
+    public function mutateLeftTree(string $key, string $action, int|string $id, array $data, string $schemaHash, string $sourceSchemaHash): array
+    {
+        $target = $this->form($key);
+        $published = $this->publishedRuntime($target);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $tree = $this->leftTree($key);
+        if (!($tree['actions'][$action] ?? false)) throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
+        $this->assertPublishedSchemaHash($sourceSchemaHash, $tree['schemaHash']);
+        $source = $this->form($tree['sourceKey']);
+        $runtime = $this->publishedRuntime($source);
+        $mapping = $published['schema']['list']['leftTree']['mapping'];
+        $connection = Db::connect((string) $source->connection);
+        $columns = $connection->getFields((string) $source->table_name);
+        $primary = $this->primaryKey($columns)['name'];
+        $parent = (string) ($mapping['parentField'] ?? '');
+        return $connection->transaction(function () use ($connection, $source, $runtime, $tree, $action, $id, $data, $parent, $primary, $sourceSchemaHash, $columns): array {
+            // 不加用户范围：不可见节点同样参与环检测和删除保护，值不返回客户端。
+            $all = $connection->table((string) $source->table_name)->field(array_values(array_unique(array_filter([$primary, $parent]))))->order($primary)->lock(true)->select()->toArray();
+            if ($action !== 'create') {
+                $this->detail($tree['sourceKey'], $id);
+            }
+            if ($action === 'delete') {
+                if ($parent !== '' && $connection->table((string) $source->table_name)->where($parent, $id)->lock(true)->find()) {
+                    throw new InvalidArgumentException('节点仍有子节点，不能删除');
+                }
+                $this->assertLeftTreeUnreferenced($source, $primary, $id);
+                return $this->remove($tree['sourceKey'], $id, $sourceSchemaHash);
+            }
+            if ($action === 'create' && $parent !== '') {
+                if (isset($data[$parent]) && !in_array($data[$parent], ['', 0, '0'], true)) {
+                    throw new InvalidArgumentException('新增根节点不能指定父级');
+                }
+                // 显式覆盖数据库非空默认父级，避免省略字段创建出伪根。
+                $data[$parent] = ($columns[$parent]['notnull'] ?? false) ? 0 : null;
+            }
+            if ($action === 'addChild') {
+                if ($parent === '') throw new InvalidArgumentException('未配置父级字段');
+                $data[$parent] = $id;
+            }
+            $updating = $action === 'edit';
+            if ($updating && array_key_exists($primary, $data) && (string) $data[$primary] !== (string) $id) throw new InvalidArgumentException('不能修改节点主键');
+            if ($updating) unset($data[$primary]);
+            foreach ($data as $name => $_value) {
+                $field = null;
+                foreach ($runtime['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+                if (!$field || !$this->fieldSubmissionAllowed($field, [])) throw new InvalidArgumentException('字段不可写：' . $name);
+            }
+            if ($parent !== '' && array_key_exists($parent, $data) && $data[$parent] !== null && $data[$parent] !== '' && (string) $data[$parent] !== '0') {
+                $this->detail($tree['sourceKey'], $data[$parent]);
+                $parents = array_column($all, $parent, $primary);
+                $cursor = (string) $data[$parent];
+                $seen = [];
+                $own = (string) ($updating ? $id : ($data[$primary] ?? ''));
+                while ($cursor !== '' && $cursor !== '0') {
+                    if ($cursor === $own || isset($seen[$cursor])) throw new InvalidArgumentException('父级存在循环');
+                    $seen[$cursor] = true;
+                    $cursor = (string) ($parents[$cursor] ?? '');
+                }
+            }
+            return $updating
+                ? $this->update($tree['sourceKey'], $id, $data, [], $sourceSchemaHash)
+                : $this->create($tree['sourceKey'], $data, [], $sourceSchemaHash);
+        });
+    }
+
+    /** 所有来源写入口共用；调用方必须在同连接事务内调用并完成写入。 */
+    public function guardTreeWrite(string $key, int|string $id, array $data = [], bool $deleting = false): void
+    {
+        $source = $this->form($key);
+        $runtime = $this->publishedRuntime($source);
+        $connection = Db::connect((string) $source->connection);
+        $primary = $this->primaryKey($connection->getFields((string) $source->table_name))['name'];
+        $parents = [];
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+            if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝写入');
+            $document = (new FormSchemaRepository())->compile((array) $version->schema_document)->document();
+            $left = $document['list']['leftTree'] ?? [];
+            if (!($left['enabled'] ?? false)) continue;
+            $matches = ($left['source']['type'] ?? '') === 'current'
+                ? (int) $module->form_id === (int) $source->id
+                : ($left['source']['module'] ?? '') === (string) $runtime['module']->code;
+            if ($matches && ($left['mapping']['parentField'] ?? '') !== '') $parents[] = $left['mapping']['parentField'];
+        }
+        foreach (array_unique($parents) as $parent) {
+            $all = $connection->table((string) $source->table_name)->field([$primary, $parent])->order($primary)->lock(true)->select()->toArray();
+            if ($deleting) {
+                foreach ($all as $row) if ((string) ($row[$parent] ?? '') === (string) $id) throw new InvalidArgumentException('节点仍有子节点，不能删除');
+                continue;
+            }
+            if (!array_key_exists($parent, $data)) continue;
+            $cursor = (string) ($data[$parent] ?? '');
+            $own = (string) ($id !== '' ? $id : ($data[$primary] ?? ''));
+            $links = array_column($all, $parent, $primary);
+            $seen = [];
+            while ($cursor !== '' && $cursor !== '0') {
+                if ($cursor === $own || isset($seen[$cursor])) throw new InvalidArgumentException('父级存在循环');
+                $seen[$cursor] = true;
+                $cursor = (string) ($links[$cursor] ?? '');
+            }
+            $parentId = (string) ($data[$parent] ?? '');
+            if ($parentId !== '' && $parentId !== '0') $this->detail($key, $parentId);
+        }
+        if ($deleting) $this->assertLeftTreeUnreferenced($source, $primary, $id);
+    }
+
+    /** 完整已发布快照的引用检查不受字段、行和来源启用状态影响。 */
+    private function assertLeftTreeUnreferenced(Form $source, string $primary, int|string $id): void
+    {
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+            if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝删除');
+            $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
+            $document = $compiled->document();
+            $database = (array) ($document['database'] ?? []);
+            $table = (string) ($database['table'] ?? '');
+            $connectionName = (string) ($database['connection'] ?? 'mysql');
+            $references = [];
+            $left = $document['list']['leftTree'] ?? [];
+            if (($left['enabled'] ?? false) && (($left['source']['type'] ?? '') === 'current' ? $table === (string) $source->table_name : ($left['source']['module'] ?? '') === (string) $this->publishedRuntime($source)['module']->code)) {
+                if ($connectionName !== (string) $source->connection || $table !== (string) $source->table_name || $left['mapping']['targetField'] !== $primary) {
+                    $references[] = $left['mapping']['targetField'];
+                }
+            }
+            foreach ($compiled->fieldProjection() as $field) {
+                if ($table === (string) $source->table_name && $connectionName === (string) $source->connection && ($field['relation_type'] ?? '') === 'has_many') {
+                    $childTable = (string) ($field['relation_table'] ?? '');
+                    $childField = (string) ($field['relation_value_field'] ?? '');
+                    $this->assertIdentifier($childTable, '引用表');
+                    $this->assertIdentifier($childField, '引用字段');
+                    if (Db::connect($connectionName)->table($childTable)->where($childField, $id)->lock(true)->find()) {
+                        throw new InvalidArgumentException('节点仍被关联子表引用，不能删除');
+                    }
+                }
+                if (($field['relation_type'] ?? '') === 'belongs_to' && ($field['relation_table'] ?? '') === (string) $source->table_name && ($field['relation_value_field'] ?? '') === $primary) $references[] = $field['field_name'];
+            }
+            if ($references === []) continue;
+            if ($connectionName !== (string) $source->connection) throw new InvalidArgumentException('跨连接引用无法原子检查，拒绝删除');
+            $this->assertIdentifier($table, '引用表');
+            foreach (array_unique($references) as $field) {
+                $this->assertIdentifier($field, '引用字段');
+                if (Db::connect($connectionName)->table($table)->where($field, $id)->lock(true)->find()) throw new InvalidArgumentException('节点仍被业务数据引用，不能删除');
+            }
+        }
+    }
+
+    /** nodeAccess 接受路由资源，不接受前端 generated:* 能力码。 */
+    private function businessPermissionRoute(BusinessModule $module): string
+    {
+        // 插件使用独立 manifest 权限，不能回退到同名核心路由授权。
+        if (($module->metadata['target']['type'] ?? 'core') !== 'core') {
+            throw new InvalidArgumentException('插件来源暂不支持快捷分类，请使用插件正式表单');
+        }
+        if ((string) $module->lifecycle_status === 'dynamic_published') return 'admin/form.data';
+        $form = Form::where('id', (int) $module->form_id)->find();
+        if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
+        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', (string) $form->form_key)));
+        return 'admin/generated.' . strtolower($class) . 'controller';
+    }
+
+    /** 在行权限和软删除过滤之后读取；多取一条用于检测并发增加，绝不静默截断树。 */
+    private function readListQuery($query, bool $tree, int $page, int $pageSize): array
+    {
+        $total = (int) (clone $query)->count();
+        if ($tree && $total > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
+        $rows = ($tree ? $query->limit(1001) : $query->page($page, $pageSize))->select()->toArray();
+        if ($tree && count($rows) > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
+        return ['list' => $rows, 'total' => $tree ? count($rows) : $total, 'page' => $tree ? 1 : $page, 'pageSize' => $tree ? 1000 : $pageSize];
+    }
+
+    /** 导出：上限 5000 行。 */
+    public function export(string $key, array $filters): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $fields = $published['fields'];
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $query = $this->filteredQuery($form, $fields, (array) ($published['schema']['list'] ?? []), $filters);
+        $rows = $query->order($primary['name'], 'asc')->limit(self::EXPORT_LIMIT)->select()->toArray();
+        return array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $rows);
+    }
+
+    /** 详情：行 + has_many 子表首屏。 */
+    public function detail(string $key, int|string $id, bool $copyCreate = false, string $schemaHash = ''): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        if ($copyCreate) {
+            $route = $this->businessPermissionRoute($published['module']);
+            foreach (['detail', 'create'] as $operation) {
+                if (!($this->permissionChecker)($route . '/' . $operation)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            }
+            $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        }
+        $fields = $published['fields'];
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $row = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
+        if (!$row) {
+            throw new InvalidArgumentException('数据不存在');
+        }
+        if ($copyCreate) {
+            return ['row' => $this->copyCreateValues(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $this->sanitizeRecord($fields, $row), $primary['name']), 'children' => []];
+        }
+        $children = [];
+        foreach ($fields as $field) {
+            if ((string) $field->relation_type === 'has_many' && $this->relationReadable($field)) {
+                $children[(string) $field->field_name] = $this->subRows($field, $id, 1, 20);
+            }
+        }
+        return ['row' => $this->sanitizeRecord($fields, $row), 'children' => $children];
+    }
+
+    /** 复制新增预填：仅复制当前授权下可创建的普通字段，主键、审计、关系、敏感和唯一值必须重新生成。 */
+    public function copyCreateValues(array $fields, array $record, string $primary = 'id'): array
+    {
+        $result = [];
+        foreach ($fields as $field) {
+            $name = (string) ($field['field_name'] ?? '');
+            if ($name === '' || $name === $primary || in_array($name, ['created_at', 'updated_at', 'deleted_at'], true)
+                || ($field['relation_type'] ?? 'none') !== 'none' || ($field['index_type'] ?? 'none') === 'unique'
+                || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'write') || $this->isExcludedFromSubmission($field)) continue;
+            if (array_key_exists($name, $record)) $result[$name] = $record[$name];
+        }
+        return $result;
+    }
+
+    /** 新增：白名单过滤 + 动态校验。 */
+    public function create(string $key, array $data, array $include = [], string $schemaHash = ''): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $fields = $published['fields'];
+        $this->assertSchemaValid($published['schema'], $data);
+        $this->assertValid($fields, $data, false);
+        $this->assertAsyncValid($published['schema'], $data);
+        $split = $this->splitPayload($fields, $data, false, $include);
+        $connection = Db::connect((string) $form->connection);
+        $schema = $connection->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary, $published): array {
+            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns);
+            $this->guardTreeWrite((string) $form->form_key, '', $payload);
+            $now = date('Y-m-d H:i:s');
+            if (in_array('created_at', $columns, true)) $payload['created_at'] = $now;
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = $now;
+            if ($primary['type'] === 'string') {
+                $provided = $data[$primary['name']] ?? null;
+                if (!is_scalar($provided) || trim((string) $provided) === '') throw new InvalidArgumentException('字符串主键创建时必须提供：' . $primary['name']);
+                $payload[$primary['name']] = (string) $provided;
+                $connection->table((string) $form->table_name)->insert($payload);
+                $id = (string) $provided;
+            } else {
+                $id = (int) $connection->table((string) $form->table_name)->insertGetId($payload, $primary['name']);
+            }
+            $this->syncRelations($connection, $form, $fields, $id, $split['relations'], false);
+            return ['id' => $id, 'primaryKey' => $primary['name']];
+        });
+    }
+
+    /** 更新：禁改字段剔除 + 动态校验。 */
+    public function update(string $key, int|string $id, array $data, array $include = [], string $schemaHash = ''): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $fields = $published['fields'];
+        $this->assertSchemaValid($published['schema'], $data);
+        $this->assertValid($fields, $data, true);
+        $this->assertAsyncValid($published['schema'], $data);
+        $split = $this->splitPayload($fields, $data, true, $include);
+        $connection = Db::connect((string) $form->connection);
+        $schema = $connection->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
+        return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id, $published): array {
+            $this->guardTreeWrite((string) $form->form_key, $id, $split['parent']);
+            $query = $this->applyDataScope(
+                $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true),
+                $form,
+                $columns,
+                (string) $form->table_name
+            );
+            if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
+            if (!$query->find()) throw new InvalidArgumentException('数据不存在');
+            $payload = $this->applyWriteDataScope($split['parent'], $form, $columns, true);
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = date('Y-m-d H:i:s');
+            if ($payload !== []) {
+                $this->applyDataScope(
+                    $connection->table((string) $form->table_name)->where($primary['name'], $id),
+                    $form,
+                    $columns,
+                    (string) $form->table_name
+                )->update($payload);
+            }
+            $this->syncRelations($connection, $form, $fields, $id, $split['relations'], true);
+            return ['id' => $id, 'primaryKey' => $primary['name']];
+        });
+    }
+
+    /** 删除：含 deleted_at 列则软删。 */
+    public function remove(string $key, int|string $id, string $schemaHash = ''): array
+    {
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($database, $form, $columns, $primary, $id, $published): array {
+            $connection = $this->applyDataScope(
+                $database->table((string) $form->table_name), $form, $columns, (string) $form->table_name
+            )->where($primary['name'], $id);
+            if (in_array('deleted_at', $columns, true)) $connection->whereNull('deleted_at');
+            if (!(clone $connection)->lock(true)->find()) throw new InvalidArgumentException('数据不存在');
+            $this->guardTreeWrite((string) $form->form_key, $id, [], true);
+            if (in_array('deleted_at', $columns, true)) {
+                $connection->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                return ['removed' => 1, 'mode' => 'soft'];
+            }
+            $connection->delete();
+            return ['removed' => 1, 'mode' => 'hard'];
+        });
+    }
+
+    /** 选项源：static / 关联表（belongs_to 或 options_source.mode=relation）。 */
+    public function options(string $key, string $fieldName, array $context = []): array
+    {
+        $field = null;
+        foreach ($this->fields($key) as $candidate) {
+            if ((string) $candidate->field_name === $fieldName) { $field = $candidate; break; }
+        }
+        if (!$field) {
+            throw new InvalidArgumentException('字段不存在：' . $fieldName);
+        }
+        $source = is_array($field->options_source) ? $field->options_source : [];
+        $mode = (string) ($source['kind'] ?? $source['mode'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
+        $source['kind'] = $mode;
+        $source['mode'] = $mode;
+        if (in_array($mode, ['endpoint', 'computed'], true)) {
+            return $this->executeOptionsSource($source, [
+                'form' => ['key' => $key],
+                'context' => $context,
+                'search' => (string) ($context['keyword'] ?? ''),
+            ]);
+        }
+        if ($mode === 'static') {
+            $options = $source['options'] ?? [];
+            return is_array($options) ? array_values($options) : [];
+        }
+        if ($mode === 'dictionary') {
+            $code = (string) ($source['dictionary'] ?? '');
+            if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', $code)) {
+                return [];
+            }
+            $type = DictType::where('code', $code)->where('status', 1)->find();
+            if (!$type) {
+                return [];
+            }
+            return DictItem::where('type_id', (int) $type->id)
+                ->where('status', 1)
+                ->order('sort_order', 'asc')
+                ->order('id', 'asc')
+                ->field('value,label')
+                ->select()
+                ->toArray();
+        }
+        if ($mode === 'department') {
+            $scope = (new DataScopeService())->resolve();
+            $query = Department::where('status', 1);
+            if (!$scope['all']) $query->whereIn('id', $scope['departmentIds'] ?: [0]);
+            return $query->order('sort_order', 'asc')->field('id as value,name as label,pid')->select()->toArray();
+        }
+        if ($mode === 'user') {
+            $ids = (new DataScopeService())->visibleAdminIds();
+            return Admin::where('status', 1)->whereIn('id', $ids ?: [0])->order('id', 'asc')->field('id as value,nickname as label')->limit(500)->select()->toArray();
+        }
+        if ($mode === 'relation') {
+            $table = (string) ($source['table'] ?? $field->relation_table);
+            $label = (string) ($source['label_field'] ?? $field->relation_label_field);
+            $value = (string) ($source['value_field'] ?? $field->relation_value_field);
+            if ($table === '' || $label === '' || $value === '') {
+                throw new InvalidArgumentException('关联选项源配置不完整');
+            }
+            $this->assertIdentifier($table, '关联选项表');
+            $this->assertIdentifier($label, '关联选项显示字段');
+            $this->assertIdentifier($value, '关联选项值字段');
+            $form = $this->form($key);
+            $connection = Db::connect((string) $form->connection);
+            $columns = array_keys($connection->getFields($table));
+            $query = $connection->table($table)->field($value . ' as value,' . $label . ' as label');
+            $scopeField = trim((string) ($source['department_field'] ?? $source['departmentField'] ?? ''));
+            if ($scopeField !== '') {
+                $this->assertIdentifier($scopeField, '关联选项部门字段');
+                if (!in_array($scopeField, $columns, true)) throw new InvalidArgumentException('关联选项部门字段不存在');
+                $scope = (new DataScopeService())->resolve();
+                if (!$scope['all']) $query->whereIn($scopeField, $scope['departmentIds'] ?: [0]);
+            }
+            $tenantField = trim((string) ($source['tenant_field'] ?? $source['tenantField'] ?? ''));
+            if ($tenantField !== '') {
+                $this->assertIdentifier($tenantField, '关联选项租户字段');
+                if (!in_array($tenantField, $columns, true)) throw new InvalidArgumentException('关联选项租户字段不存在');
+                $tenantId = (int) session('tenant.id');
+                if ($tenantId < 1) throw new InvalidArgumentException('当前租户上下文不可用');
+                $query->where($tenantField, $tenantId);
+            }
+            return $query->limit(200)->select()->toArray();
+        }
+        return [];
+    }
+
+    /**
+     * 对已受控加载的选项执行搜索与分页。
+     *
+     * @param array<int, array<string, mixed>> $options
+     * @return array{options: array<int, array<string, mixed>>, total: int}
+     */
+    public function paginateOptions(array $options, string $keyword, int $page, int $pageSize): array
+    {
+        $filtered = $keyword === '' ? array_values($options) : array_values(array_filter(
+            $options,
+            static fn (array $option): bool => str_contains((string) ($option['label'] ?? ''), $keyword)
+        ));
+        $size = max(1, min(200, $pageSize));
+        $offset = (max(1, $page) - 1) * $size;
+        return ['options' => array_slice($filtered, $offset, $size), 'total' => count($filtered)];
+    }
+
+    /** 将列表或分页结果归一为 v2 list/total，并保留旧 options 契约。 */
+    public function normalizeOptionsResult(array $result): array
+    {
+        $list = array_is_list($result) ? $result : (array) ($result['list'] ?? $result['options'] ?? []);
+        return [
+            'list' => array_values($list),
+            'options' => array_values($list),
+            'total' => (int) ($result['total'] ?? count($list)),
+        ];
+    }
+
+    /** 执行已归一的数据源定义，供运行态与独立契约测试复用。 */
+    public function executeOptionsSource(array $source, array $context = []): array
+    {
+        return $this->dataSources->execute($source, $context, $this->permissionChecker);
+    }
+
+    /**
+     * 在已发布快照中定位 request 动作，返回节点与声明链深度。
+     *
+     * @return array{nodeId: string, chainDepth: int}
+     */
+    public function publishedActionReference(array $schema, string $actionKey): array
+    {
+        $found = $this->findActionReference((array) ($schema['actions'] ?? []), $actionKey, '', 0);
+        if ($found !== null) {
+            return $found;
+        }
+        $visit = function (array $nodes) use (&$visit, $actionKey): ?array {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) {
+                    continue;
+                }
+                foreach ((array) ($node['events'] ?? []) as $actions) {
+                    $found = $this->findActionReference((array) $actions, $actionKey, (string) ($node['id'] ?? ''), 0);
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+                $found = $visit((array) ($node['children'] ?? []));
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+            return null;
+        };
+        $found = $visit((array) ($schema['nodes'] ?? []));
+        if ($found === null) {
+            throw new InvalidArgumentException('FORM_ACTION_NOT_DECLARED');
+        }
+        return $found;
+    }
+
+    /** 动态宿主目录仍须满足业务读取权限，不将按钮配置当作授权。 */
+    public function listActionCatalog(string $key, string $location, FormActionRegistry $actions): array
+    {
+        $runtime = $this->listActionRuntime($key, 'listactions');
+        $target = match ($location) {
+            'row' => 'record', 'toolbar' => 'selection', 'categoryNode' => 'category', 'categoryToolbar' => 'none',
+            default => throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE'),
+        };
+        $source = in_array($location, ['categoryToolbar', 'categoryNode'], true) ? $this->listCategoryRuntime($runtime) : null;
+        $catalog = $actions->listCatalog($this->permissionChecker, $location, $target);
+        if ($source) $catalog = array_filter($catalog, static fn (array $action): bool => $action['effect'] === 'read' || in_array($action['permission'], $source['writePermissions'][$location], true));
+        $resources = \app\common\form\registry\FormRegistryFactory::production()->listResources();
+                return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog, 'resources' => (object) $resources->catalog($this->permissionChecker), 'resourceHash' => $resources->hash()]
+            + ($source ? ['sourceSchemaHash' => $source['schemaHash'], 'sourceKey' => (string) $source['form']->form_key] : []);
+    }
+
+    /** 只接受按钮请求；模块、身份、记录和发布版本均由服务端取得。 */
+    public function executeListButton(string $key, array $request, ?\app\common\form\action\ListButtonExecutor $executor = null): array
+    {
+        $adminId = (int) session('admin.id');
+        if ($adminId <= 0) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        $runtime = $this->listActionRuntime($key, 'listaction');
+        if (!is_string($request['schemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+        $this->assertPublishedSchemaHash($request['schemaHash'], $runtime['schemaHash']);
+        $buttons = $runtime['schema']['list']['buttons'][$request['location'] ?? ''] ?? [];
+        $button = array_values(array_filter($buttons, static fn (array $b): bool => ($b['id'] ?? '') === ($request['buttonId'] ?? null)))[0] ?? [];
+        $factory = \app\common\form\registry\FormRegistryFactory::production();
+        $executor ??= ($button['action']['type'] ?? '') === 'registered' ? $factory->listExecutor() : $factory->resourceExecutor();
+        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->productionBinding['route'] . '/export' : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
+        $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
+        if ($categoryLocation || array_key_exists('category', $request)) {
+            $source = $this->listCategoryRuntime($runtime);
+            if (!is_string($request['sourceSchemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            $this->assertPublishedSchemaHash($request['sourceSchemaHash'], $source['schemaHash']);
+            $category = $request['category'] ?? [];
+            if (!is_array($category) || array_diff(array_keys($category), ['id'])) throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+            $record = [];
+            if (array_key_exists('id', $category)) {
+                $id = $category['id'];
+                if ((!is_int($id) && !is_string($id)) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/D', (string) $id)) throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+                $sourceForm = $source['form'];
+                $primary = $this->primaryKey(Db::connect((string) $sourceForm->connection)->getFields((string) $sourceForm->table_name));
+                $row = $this->baseQuery($sourceForm, $source['fields'])->where($sourceForm->table_name . '.' . $primary['name'], $id)->find();
+                if (!$row) throw new InvalidArgumentException('FORM_LIST_RECORD_FORBIDDEN');
+                $record = $this->listActionRecord($source['fields'], $row, $primary);
+            } elseif (($request['location'] ?? '') !== 'categoryToolbar') throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
+            $runtime['categoryContext'] = ['moduleId' => (int) $source['module']->id, 'schemaHash' => $source['schemaHash'], 'record' => $record, 'writePermissions' => $source['writePermissions']];
+        }
+        $form = $runtime['form'];
+        $fields = $runtime['fields'];
+        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        return $executor->execute($runtime, $request, 'admin:' . $adminId . '/module:' . $runtime['module']->id,
+            $this->permissionChecker, function (array $ids) use ($form, $fields, $primary): array {
+                $rows = $this->baseQuery($form, $fields)->whereIn($form->table_name . '.' . $primary['name'], $ids)->select()->toArray();
+                return array_map(fn (array $row): array => $this->listActionRecord($fields, $row, $primary), $rows);
+            });
+    }
+
+    /** 分类来源从宿主发布快照解析，绝不接受客户端指定模块或借用宿主权限。 */
+    private function listCategoryRuntime(array $host): array
+    {
+        $tree = $host['schema']['list']['leftTree'] ?? [];
+        if (($tree['enabled'] ?? false) !== true || !in_array($tree['source']['type'] ?? '', ['current', 'module'], true)) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+        $source = $host;
+        if ($tree['source']['type'] === 'module') {
+            $module = BusinessModule::where('code', $tree['source']['module'])->find();
+            $form = $module ? Form::where('id', (int) $module->form_id)->find() : null;
+            if (!$form) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+            $form = $this->form((string) $form->form_key);
+            $source = $this->publishedRuntime($form) + ['form' => $form];
+        }
+        if (($source['module']->metadata['target']['type'] ?? 'core') !== 'core') throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        if (!($this->permissionChecker)($this->businessPermissionRoute($source['module']) . '/index')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        $primary = $this->primaryKey(Db::connect((string) $source['form']->connection)->getFields((string) $source['form']->table_name));
+        if (($tree['mapping']['valueField'] ?? '') !== $primary['name']) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
+        foreach ($tree['mapping'] as $binding => $name) {
+            if ($name === '') continue;
+            $bound = $binding === 'targetField' ? $host : $source;
+            $columns = Db::connect((string) $bound['form']->connection)->getFields((string) $bound['form']->table_name);
+            $field = null;
+            foreach ($bound['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
+            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
+                || ($field['relation_type'] ?? 'none') !== 'none' || empty($field['column_type'])
+                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || !empty($field['control_props']['multiple'])) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
+        }
+        $source['writePermissions'] = ['categoryToolbar' => [], 'categoryNode' => []];
+        $route = $this->businessPermissionRoute($source['module']);
+        foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
+            if (($tree['actions'][$action] ?? false) !== true || ($action === 'addChild' && empty($tree['mapping']['parentField']))) continue;
+            if (($this->permissionChecker)($route . '/' . $operation)) $source['writePermissions'][$action === 'create' ? 'categoryToolbar' : 'categoryNode'][] = $route . '/' . $operation;
+        }
+        return $source;
+    }
+
+    private function listActionRecord(iterable $fields, array $record, array $primary): array
+    {
+        $allowed = [$primary['name'] => true];
+        foreach ($fields as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            $name = $row['field_name'];
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
+                unset($allowed[$name]);
+                if ($name === $primary['name']) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
+            } elseif (($row['relation_type'] ?? 'none') === 'none' && !empty($row['column_type'])) $allowed[$name] = true;
+        }
+        $safe = array_intersect_key($record, $allowed);
+        $safe['id'] = $record[$primary['name']];
+        return $safe;
+    }
+
+    /** 仅接受已发布可读标量筛选；操作符来自快照，不来自请求。 */
+    private function normalizeListActionFilter(iterable $fields, mixed $filter): array
+    {
+        if (!is_array($filter) || ($filter !== [] && array_is_list($filter)) || count($filter) > 100) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+        $allowed = [];
+        foreach ($fields as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read') || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none') continue;
+            $op = $row['list_filter'] ?? '';
+            $name = $row['field_name'];
+            if (in_array($op, ['range', 'date'], true)) {
+                $allowed[$name . '_from'] = $row;
+                $allowed[$name . '_to'] = $row;
+            } elseif (in_array($op, ['eq', 'ne', 'like', 'not_like', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in', 'is_null', 'not_null'], true)) $allowed[$name] = $row;
+        }
+        $result = [];
+        foreach ($filter as $name => $value) {
+            if (!isset($allowed[$name])) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            if ($value === '' || $value === null) continue;
+            if ((!is_scalar($value)) || (is_float($value) && !is_finite($value)) || (is_string($value) && strlen($value) > 10000)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            $row = $allowed[$name];
+            $op = $row['list_filter'];
+            if (in_array($op, ['is_null', 'not_null'], true)) {
+                if (!in_array($value, [true, false, 0, 1, '0', '1'], true)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+                $value = in_array($value, [true, 1, '1'], true);
+            } elseif (in_array($op, ['in', 'not_in'], true)) {
+                if (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+                $value = array_values(array_unique(array_filter(array_map('trim', explode(',', $value)), static fn ($v) => $v !== '')));
+                if (count($value) > 200) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (preg_match('/^(tinyint|smallint|mediumint|int|bigint)\b/', $row['column_type'])) {
+                if (is_string($value) && preg_match('/^-?(0|[1-9][0-9]*)$/D', $value) && filter_var($value, FILTER_VALIDATE_INT) !== false) $value = (int) $value;
+                if (!is_int($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (preg_match('/^(decimal|float|double)/', $row['column_type'])) {
+                if (is_string($value) && is_numeric($value)) $value = (float) $value;
+                if ((!is_int($value) && !is_float($value)) || !is_finite((float) $value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            } elseif (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
+            $result[$name] = $value;
+        }
+        ksort($result);
+        return $result;
+    }
+
+    private function listActionRuntime(string $key, string $entry): array
+    {
+        $form = $this->form($key);
+        $runtime = $this->publishedRuntime($form);
+        if (($runtime['module']->metadata['target']['type'] ?? 'core') !== 'core') {
+            throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        }
+        $route = $this->businessPermissionRoute($runtime['module']);
+        if ($this->productionBinding !== null) {
+            // 注入仅增加约束，不允许替换发布加载、字段过滤、身份或数据范围查询。
+            $binding = $this->productionBinding;
+            if ((string) $runtime['module']->lifecycle_status !== 'published'
+                || ($binding['formKey'] ?? '') !== $key || ($binding['route'] ?? '') !== $route
+                || ($binding['table'] ?? '') !== (string) $form->table_name
+                || ($binding['connection'] ?? '') !== (string) $form->connection) {
+                throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+            }
+            $this->assertPublishedSchemaHash((string) ($binding['schemaHash'] ?? ''), $runtime['schemaHash']);
+            if (!($this->permissionChecker)($route . '/' . $entry)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        } elseif ((string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
+            throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
+        }
+        if (!($this->permissionChecker)($route . '/index')) {
+            throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        }
+        return $runtime + ['form' => $form];
+    }
+
+    /** 执行已发布 Schema 明确引用的生产动作。 */
+    public function executeAction(
+        string $key,
+        string $actionKey,
+        array $parameters,
+        string $idempotencyKey,
+        int $chainDepth,
+        FormActionRegistry $actions
+    ): array {
+        $published = $this->publishedRuntime($this->form($key));
+        $reference = $this->publishedActionReference($published['schema'], $actionKey);
+        $result = $actions->execute($actionKey, $parameters, $this->permissionChecker, [
+            'formKey' => $key,
+            'idempotencyKey' => $idempotencyKey,
+            'chainDepth' => max($chainDepth, $reference['chainDepth']),
+        ]);
+        return [
+            'result' => $result,
+            'schemaHash' => $published['schemaHash'],
+            'nodeId' => $reference['nodeId'],
+        ];
+    }
+
+    /** 子表分页（has_many）。 */
+    public function sub(string $key, string $relation, int|string $id, int $page, int $pageSize): array
+    {
+        $form = $this->form($key);
+        $fields = $this->fields($key);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $primary = $this->primaryKey($schema);
+        $parent = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
+        if (!$parent) throw new InvalidArgumentException('父数据不存在或无访问权限');
+        $field = null;
+        foreach ($fields as $candidate) {
+            if ((string) $candidate->field_name === $relation) {
+                $field = $candidate;
+                break;
+            }
+        }
+        if (!$field || (string) $field->relation_type !== 'has_many') {
+            throw new InvalidArgumentException('子表不存在：' . $relation);
+        }
+        return $this->subRows($field, $id, $page, $pageSize);
+    }
+
+    /** 动态校验规则构建（纯函数，供契约测试）。 */
+    public function buildRules(array $fieldRows): array
+    {
+        $rules = [];
+        $messages = [];
+        foreach ($fieldRows as $field) {
+            if ($this->isLayoutField($field)) {
+                continue;
+            }
+            $name = (string) ($field['field_name'] ?? '');
+            $label = (string) ($field['label'] ?? $name);
+            $parts = [];
+            if ((int) ($field['form_required'] ?? 0) === 1) {
+                $parts[] = 'require';
+                $messages[$name . '.require'] = $label . '不能为空';
+            }
+            $type = (string) ($field['type'] ?? 'input');
+            $columnType = (string) ($field['column_type'] ?? '');
+            if ($type === 'number' || preg_match('/^(int|bigint|decimal)/', $columnType)) {
+                $parts[] = 'number';
+            } elseif ($type === 'switch') {
+                $parts[] = 'in:0,1';
+            } elseif ($type === 'date' || preg_match('/^(date|datetime)/', $columnType)) {
+                $parts[] = str_starts_with($columnType, 'datetime')
+                    ? 'dateFormat:Y-m-d H:i:s'
+                    : 'dateFormat:Y-m-d';
+            }
+            $extra = is_array($field['validate_rules'] ?? null) ? $field['validate_rules'] : [];
+            if (isset($extra['minlen'], $extra['maxlen'])) {
+                $parts[] = 'length:' . (int) $extra['minlen'] . ',' . (int) $extra['maxlen'];
+            } elseif (isset($extra['minlen'])) {
+                $parts[] = 'length:' . (int) $extra['minlen'];
+            }
+            if (isset($extra['min'])) {
+                $parts[] = 'egt:' . $extra['min'];
+            }
+            if (isset($extra['max'])) {
+                $parts[] = 'elt:' . $extra['max'];
+            }
+            if (isset($extra['pattern']) && is_string($extra['pattern']) && $extra['pattern'] !== '') {
+                $parts[] = 'regex:' . $extra['pattern'];
+            }
+            if ($parts !== []) {
+                $rules[$name] = implode('|', $parts);
+            }
+        }
+        return ['rules' => $rules, 'messages' => $messages];
+    }
+
+    /**
+     * 服务端复验字段声明的异步验证器。
+     *
+     * @param iterable<int, mixed> $fieldRows
+     * @param array<string, mixed> $data
+     * @return array<int, array{path: string, message: string}>
+     */
+    public function revalidateAsync(iterable $fieldRows, array $data): array
+    {
+        $errors = [];
+        foreach ($fieldRows as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
+            $rules = is_array($row['validate_rules'] ?? null) ? $row['validate_rules'] : [];
+            $declarations = $rules['async'] ?? [];
+            if (isset($declarations['key'])) {
+                $declarations = [$declarations];
+            }
+            if ($name === '' || !is_array($declarations) || !array_key_exists($name, $data)) {
+                continue;
+            }
+            foreach ($declarations as $declaration) {
+                if (!is_array($declaration)) {
+                    continue;
+                }
+                $message = $this->asyncValidators->validate(
+                    (string) ($declaration['key'] ?? ''),
+                    $data[$name],
+                    $data,
+                    is_array($declaration['params'] ?? null) ? $declaration['params'] : []
+                );
+                if ($message !== null) {
+                    $errors[] = ['path' => $name, 'message' => $message];
+                    break;
+                }
+            }
+        }
+        return $errors;
+    }
+
+    /** 返回已发布 FormSchema AST 中字段声明的全部同 key 异步规则。 */
+    public function schemaAsyncDeclarations(array $schema, string $field, string $validator): array
+    {
+        $declarations = [];
+        $visit = function (array $nodes) use (&$visit, &$declarations, $field, $validator): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                if (($node['field'] ?? null) === $field) {
+                    foreach ((array) ($node['validation'] ?? []) as $rule) {
+                        if (!is_array($rule) || ($rule['type'] ?? '') !== 'async' || !is_array($rule['validator'] ?? null)) continue;
+                        if (($rule['validator']['key'] ?? null) === $validator) $declarations[] = $rule;
+                    }
+                }
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        return $declarations;
+    }
+
+    /** 直接按已发布 FormSchema AST 原序复验异步规则。 */
+    public function revalidateSchemaAsync(array $schema, array $data): array
+    {
+        $errors = [];
+        $dataValidator = new FormSchemaDataValidator();
+        $visit = function (array $nodes) use (&$visit, &$errors, $data, $dataValidator): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                $field = (string) ($node['field'] ?? '');
+                if ($field !== '' && array_key_exists($field, $data) && !$dataValidator->valueIsEmpty($data[$field])) {
+                    foreach ((array) ($node['validation'] ?? []) as $rule) {
+                        if (!is_array($rule) || ($rule['type'] ?? '') !== 'async' || !is_array($rule['validator'] ?? null)) continue;
+                        if (!$dataValidator->conditionMatches($rule['when'] ?? null, $data)) continue;
+                        $validator = $rule['validator'];
+                        $message = $this->asyncValidators->validate(
+                            (string) ($validator['key'] ?? ''), $data[$field], $data,
+                            is_array($validator['params'] ?? null) ? $validator['params'] : []
+                        );
+                        if ($message === null) continue;
+                        $errors[] = ['path' => $field, 'message' => $message];
+                        if (($rule['bail'] ?? true) === true) break;
+                    }
+                }
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        return $errors;
+    }
+
+    /**
+     * 执行单字段受控异步验证，供前端即时反馈；提交仍会再次整表复验。
+     *
+     * @param array<string, mixed> $values
+     * @param array<string, mixed> $params
+     * @return array{valid: bool, fieldErrors: array<int, array{path: string, message: string}>}
+     */
+    public function validateAsync(string $key, string $field, string $validator, mixed $value, array $values, array $params = []): array
+    {
+        $published = $this->publishedRuntime($this->form($key));
+        $declarations = $this->schemaAsyncDeclarations($published['schema'], $field, $validator);
+        if ($declarations === []) {
+            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATOR_NOT_DECLARED');
+        }
+        $values[$field] = $value;
+        $dataValidator = new FormSchemaDataValidator();
+        if ($dataValidator->valueIsEmpty($value)) {
+            return ['valid' => true, 'fieldErrors' => []];
+        }
+        $errors = [];
+        foreach ($declarations as $rule) {
+            if (!$dataValidator->conditionMatches($rule['when'] ?? null, $values)) continue;
+            $declaration = $rule['validator'];
+            $message = $this->asyncValidators->validate(
+                $validator,
+                $value,
+                $values,
+                is_array($declaration['params'] ?? null) ? $declaration['params'] : []
+            );
+            if ($message === null) continue;
+            $errors[] = ['path' => $field, 'message' => $message];
+            if (($rule['bail'] ?? true) === true) break;
+        }
+        return ['valid' => $errors === [], 'fieldErrors' => $errors];
+    }
+
+    /** 白名单过滤写入载荷（纯函数，供契约测试）。 */
+    public function splitPayload($fieldRows, array $data, bool $isUpdate, array $include = []): array
+    {
+        $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fieldRows) ? $fieldRows : $fieldRows->all());
+        $relations = [];
+        foreach ($rows as $field) {
+            if ((string) ($field['relation_type'] ?? 'none') !== 'has_many') continue;
+            $name = (string) ($field['field_name'] ?? '');
+            if (!array_key_exists($name, $data) || !$this->fieldSubmissionAllowed($field, $include)) continue;
+            if (!is_array($data[$name]) || !array_is_list($data[$name])) throw new InvalidArgumentException($name . ' 必须为子表行数组');
+            $relations[$name] = $data[$name];
+        }
+        return ['parent' => $this->filterPayload($rows, $data, $isUpdate, $include), 'relations' => $relations];
+    }
+
+    public function filterPayload(array $fieldRows, array $data, bool $isUpdate, array $include = []): array
+    {
+        $payload = [];
+        foreach ($fieldRows as $field) {
+            if ($this->isLayoutField($field) || (string) ($field['relation_type'] ?? 'none') === 'has_many') {
+                continue;
+            }
+            $name = (string) ($field['field_name'] ?? '');
+            if ($name === '' || !array_key_exists($name, $data)) {
+                continue;
+            }
+            if (!$this->fieldSubmissionAllowed($field, $include)) {
+                continue;
+            }
+            $value = $data[$name];
+            $type = (string) ($field['type'] ?? '');
+            if (str_contains($type, ':')) {
+                $message = $this->pluginComponents->validateValue($type, $value, $data, (array) ($field['control_props'] ?? []));
+                if ($message !== null) {
+                    throw new InvalidArgumentException($message);
+                }
+                $value = $this->pluginComponents->encode($type, $value);
+            }
+            if ((int) ($field['relation_multiple'] ?? 0) === 1 && is_array($value)) {
+                $value = implode(',', array_map('strval', $value));
+            } elseif (strtolower((string) ($field['column_type'] ?? '')) === 'json' && (is_array($value) || is_object($value))) {
+                $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            }
+            $payload[$name] = $value;
+        }
+        return $payload;
+    }
+
+    /**
+     * 移除任何不能回显到列表、详情、默认值或客户端缓存的敏感字段。
+     *
+     * @param iterable<int, mixed> $fieldRows
+     * @param array<string, mixed> $record
+     * @return array<string, mixed>
+     */
+    public function sanitizeRecord(iterable $fieldRows, array $record): array
+    {
+        foreach ($fieldRows as $field) {
+            $row = is_array($field) ? $field : $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
+            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
+                unset($record[$name]);
+                continue;
+            }
+            $type = (string) ($row['type'] ?? '');
+            if ($name !== '' && array_key_exists($name, $record) && str_contains($type, ':')) {
+                $record[$name] = $this->pluginComponents->decode($type, $record[$name]);
+            }
+        }
+        return $record;
+    }
+
+    /** 将写入请求中的敏感字段替换为审计占位符。 */
+    public function redactRequestPayload(string $key, array $data): array
+    {
+        foreach ($this->fields($key) as $field) {
+            $row = $field->toArray();
+            $name = (string) ($row['field_name'] ?? '');
+            if ($name !== '' && array_key_exists($name, $data) && $this->isSensitiveField($row)) {
+                $data[$name] = '[REDACTED]';
+            }
+        }
+        return $data;
+    }
+
+    private function form(string $key): Form
+    {
+        $form = Form::where('form_key', $key)->where('status', 1)->find();
+        if (!$form) {
+            throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
+        }
+        $published = $this->publishedRuntime($form);
+        $database = (array) ($published['schema']['database'] ?? []);
+        $form->name = (string) ($published['schema']['title'] ?? $form->name);
+        $form->table_name = (string) ($database['table'] ?? $form->table_name);
+        $form->connection = (string) ($database['connection'] ?? $form->connection);
+        $form->source_type = (string) ($database['source'] ?? $form->source_type);
+        return $form;
+    }
+
+    private function fields(string $key)
+    {
+        return $this->publishedRuntime($this->form($key))['fields'];
+    }
+
+    /**
+     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \think\Collection, module: BusinessModule}
+     */
+    private function publishedRuntime(Form $form): array
+    {
+        try {
+            $module = BusinessModule::where(function ($query) use ($form): void {
+                $query->where('form_id', (int) $form->id)->whereOr('code', (string) $form->form_key);
+            })->find();
+        } catch (\Throwable $exception) {
+            throw new InvalidArgumentException('业务模块存储不可用，请先执行 077_business_development_center 迁移', 0, $exception);
+        }
+        if (!$module || !in_array((string) $module->lifecycle_status, ['published', 'dynamic_published'], true)) {
+            throw new InvalidArgumentException('业务模块尚未发布');
+        }
+        $publishedHash = trim((string) ($module->published_schema_hash ?? ''));
+        $publishedVersion = (int) ($module->published_schema_version ?? 0);
+        if ($publishedHash === '' || $publishedVersion < 1) {
+            throw new InvalidArgumentException('业务模块已发布 Schema 绑定不完整');
+        }
+        $version = FormSchemaVersion::where('form_id', (int) $module->form_id)
+            ->where('version', $publishedVersion)
+            ->where('schema_hash', $publishedHash)
+            ->find();
+        if (!$version) {
+            throw new InvalidArgumentException('业务模块已发布 FormSchema 快照不存在');
+        }
+        $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
+        if (!hash_equals($publishedHash, $compiled->hash())) {
+            throw new InvalidArgumentException('已发布表单快照校验失败');
+        }
+        $fields = new \think\Collection(array_map(
+            static fn (array $field): FormField => new FormField($field),
+            $compiled->fieldProjection()
+        ));
+        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields, 'module' => $module];
+    }
+
+    private function baseQuery(Form $form, $fields)
+    {
+        $table = (string) $form->table_name;
+        $this->assertIdentifier($table, '绑定表');
+        $columns = array_keys(Db::connect((string) $form->connection)->getFields($table));
+        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields($table));
+        $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
+        foreach ($fields as $field) {
+            if (in_array((string) $field->type, self::LAYOUT_TYPES, true)
+                || $this->isSensitiveField($field->toArray())
+                || !$this->fieldAccessAllowed($field->toArray(), 'read')) {
+                continue;
+            }
+            $name = (string) $field->field_name;
+            $this->assertIdentifier($name, '表单字段');
+            if (in_array($name, $columns, true)) {
+                $readable[] = $name;
+            }
+        }
+        $select = array_map(static fn (string $column): string => $table . '.' . $column, array_values(array_unique($readable)));
+        $query = Db::connect((string) $form->connection)->table($table)->field($select);
+        if (in_array('deleted_at', $columns, true)) {
+            $query->whereNull($table . '.deleted_at');
+        }
+        $query = $this->applyDataScope($query, $form, $columns, $table);
+        $aliasIndex = 0;
+        foreach ($fields as $field) {
+            if ((string) $field->relation_type !== 'belongs_to' || (int) $field->list_show !== 1 || $this->isSensitiveField($field->toArray())) {
+                continue;
+            }
+            $relationTable = (string) $field->relation_table;
+            $label = (string) $field->relation_label_field;
+            $value = (string) $field->relation_value_field;
+            if ($relationTable === '' || $label === '' || $value === '') {
+                continue;
+            }
+            $this->assertIdentifier($relationTable, '关联表');
+            $this->assertIdentifier($label, '关联显示字段');
+            $this->assertIdentifier($value, '关联值字段');
+            $alias = 'rel_' . $aliasIndex;
+            $aliasIndex++;
+            $query->leftJoin($relationTable . ' ' . $alias, $alias . '.' . $value . ' = ' . $table . '.' . $field->field_name);
+            $query->addField($alias . '.' . $label . ' as __label_' . $field->field_name);
+        }
+        return $query;
+    }
+
+    private function dataScopeField(Form $form, array $columns): string
+    {
+        $published = $this->publishedRuntime($form);
+        $publish = (array) ($published['module']->metadata['publishConfig'] ?? []);
+        $enabled = (bool) ($publish['dataScopeEnabled'] ?? false);
+        $field = trim((string) ($publish['dataScopeField'] ?? ''));
+        if (!$enabled) return '';
+        if ($field === '' || !in_array($field, $columns, true)) {
+            throw new InvalidArgumentException('已发布数据权限字段不存在，拒绝无范围访问');
+        }
+        $this->assertIdentifier($field, '数据权限字段');
+        return $field;
+    }
+
+    private function applyDataScope($query, Form $form, array $columns, string $table)
+    {
+        $field = $this->dataScopeField($form, $columns);
+        if ($field === '') return $query;
+        $scope = (new DataScopeService())->resolve();
+        if ($scope['all']) return $query;
+        return $query->whereIn($table . '.' . $field, $scope['departmentIds'] ?: [0]);
+    }
+
+    private function applyWriteDataScope(array $payload, Form $form, array $columns, bool $isUpdate = false): array
+    {
+        $field = $this->dataScopeField($form, $columns);
+        if ($field === '') return $payload;
+        $scope = (new DataScopeService())->resolve();
+        if ($scope['all']) return $payload;
+        // 已通过行级范围验证的更新，省略部门字段表示保留原值。
+        if ($isUpdate && !array_key_exists($field, $payload)) return $payload;
+        $requested = (int) ($payload[$field] ?? 0);
+        if (!in_array($requested, $scope['departmentIds'], true)) {
+            throw new InvalidArgumentException('数据不在当前部门权限范围内');
+        }
+        return $payload;
+    }
+
+    private function primaryKey(array $schema): array
+    {
+        $primary = array_filter($schema, static fn (array $field): bool => ($field['primary'] ?? false) === true);
+        if (count($primary) !== 1) throw new InvalidArgumentException('业务表必须且只能包含一个主键');
+        $name = (string) array_key_first($primary);
+        $type = strtolower((string) ($primary[$name]['type'] ?? ''));
+        return ['name' => $name, 'type' => preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', $type) ? 'integer' : 'string'];
+    }
+
+    private function sortableColumns($fields): array
+    {
+        $columns = self::SORT_WHITELIST_EXTRA;
+        foreach ($fields as $field) {
+            if ((int) $field->list_sort === 1) {
+                $columns[] = (string) $field->field_name;
+            }
+        }
+        return $columns;
+    }
+
+    private function subRows(FormField $field, int|string $id, int $page, int $pageSize): array
+    {
+        if (!$this->relationReadable($field)) throw new InvalidArgumentException('无子表读取权限');
+        $context = $this->childContext($field);
+        $columns = array_keys($context['schema']);
+        $readable = array_values(array_intersect([$context['primary']['name'], $context['foreignKey'], 'created_at', 'updated_at'], $columns));
+        $configured = array_values(array_filter(
+            array_map(static fn ($field): array => $field->toArray(), $context['fields']->all()),
+            fn (array $field): bool => !$this->isSensitiveField($field) && $this->fieldAccessAllowed($field, 'read')
+        ));
+        $configuredNames = array_column($configured, 'field_name');
+        $readable = array_values(array_unique(array_merge($readable, array_intersect($configuredNames, $columns))));
+        $query = $this->childQuery(Db::connect((string) $context['form']->connection), $context)
+            ->field($readable)->where($context['foreignKey'], $id);
+        $total = (clone $query)->count();
+        $rows = $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray();
+        $rows = array_map(fn (array $row): array => $this->sanitizeRecord($context['fields'], $row), $rows);
+        return ['list' => $rows, 'total' => (int) $total];
+    }
+
+    private function syncRelations($connection, Form $parentForm, $fields, int|string $parentId, array $relations, bool $isUpdate): void
+    {
+        foreach ($fields as $field) {
+            $name = (string) $field->field_name;
+            if ((string) $field->relation_type !== 'has_many' || !array_key_exists($name, $relations)) continue;
+            $context = $this->childContext($field);
+            if ((string) $context['form']->connection !== (string) $parentForm->connection) throw new InvalidArgumentException('父子表必须使用同一数据库连接');
+            $primaryName = $context['primary']['name'];
+            $existing = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->lock(true);
+            $existingIds = array_map('strval', $existing->column($primaryName));
+            $submitted = [];
+            foreach ($relations[$name] as $row) {
+                if (!is_array($row)) throw new InvalidArgumentException($name . ' 子表行必须为对象');
+                $rowId = $row[$primaryName] ?? null;
+                $hasRowId = $rowId !== null && $rowId !== '';
+                $updatesExisting = $hasRowId && in_array((string) $rowId, $existingIds, true);
+                if ($hasRowId) {
+                    $key = (string) $rowId;
+                    if (isset($submitted[$key])) throw new InvalidArgumentException($name . ' 子表主键重复：' . $key);
+                    if (!$updatesExisting && $this->childQuery($connection, $context)->where($primaryName, $rowId)->find()) {
+                        throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    }
+                    if (!$updatesExisting && $context['primary']['type'] !== 'string') {
+                        throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
+                    }
+                    $submitted[$key] = true;
+                }
+                $payload = $this->filterChildPayload($context['fields'], $row, $updatesExisting);
+                $payload[$context['foreignKey']] = $parentId;
+                $payload = $this->applyWriteDataScope($payload, $context['form'], array_keys($context['schema']), $updatesExisting);
+                if (!$updatesExisting) {
+                    if ($hasRowId) $payload[$primaryName] = (string) $rowId;
+                    // 仅执行普通 INSERT；不可见或已删除的字符串主键冲突由唯一约束拒绝，禁止覆盖。
+                    $connection->table($context['table'])->insert($payload);
+                } else {
+                    unset($payload[$primaryName]);
+                    $this->childQuery($connection, $context)->where($primaryName, $rowId)->where($context['foreignKey'], $parentId)->update($payload);
+                }
+            }
+            if ($isUpdate) {
+                $removed = array_values(array_diff($existingIds, array_keys($submitted)));
+                if ($removed !== []) {
+                    $query = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
+                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                    else $query->delete();
+                }
+            }
+        }
+    }
+
+    /** 所有子表查询、更新及删除共用已发布范围，且排除已软删除行。 */
+    private function childQuery($connection, array $context)
+    {
+        $columns = array_keys($context['schema']);
+        $query = $this->applyDataScope($connection->table($context['table']), $context['form'], $columns, $context['table']);
+        if (in_array('deleted_at', $columns, true)) $query->whereNull($context['table'] . '.deleted_at');
+        return $query;
+    }
+
+    private function childContext(FormField $field): array
+    {
+        $table = (string) $field->relation_table;
+        $foreignKey = (string) $field->relation_value_field;
+        $this->assertIdentifier($table, '子表');
+        $this->assertIdentifier($foreignKey, '子表外键字段');
+        $form = Form::where('table_name', $table)->where('status', 1)->find();
+        if (!$form) throw new InvalidArgumentException('子表必须配置启用的表单元数据：' . $table);
+        $published = $this->publishedRuntime($form);
+        $database = (array) ($published['schema']['database'] ?? []);
+        $publishedTable = (string) ($database['table'] ?? $table);
+        if ($publishedTable !== $table) throw new InvalidArgumentException('已发布子表快照与关系配置不一致');
+        $form->connection = (string) ($database['connection'] ?? $form->connection);
+        $schema = Db::connect((string) $form->connection)->getFields($publishedTable);
+        return [
+            'table' => $publishedTable,
+            'foreignKey' => $foreignKey,
+            'form' => $form,
+            'schema' => $schema,
+            'primary' => $this->primaryKey($schema),
+            'fields' => $published['fields'],
+        ];
+    }
+
+    private function filterChildPayload($fields, array $row, bool $isUpdate): array
+    {
+        $payload = $this->filterPayload(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $row, $isUpdate);
+        return $payload;
+    }
+
+    private function findActionReference(array $actions, string $actionKey, string $nodeId, int $depth): ?array
+    {
+        foreach ($actions as $action) {
+            if (!is_array($action)) {
+                continue;
+            }
+            $currentDepth = array_key_exists('type', $action) ? $depth + 1 : $depth;
+            if (($action['type'] ?? '') === 'request' && ($action['key'] ?? '') === $actionKey) {
+                return ['nodeId' => $nodeId, 'chainDepth' => $currentDepth];
+            }
+            $found = $this->findActionReference((array) ($action['steps'] ?? []), $actionKey, $nodeId, $currentDepth);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+        return null;
+    }
+
+    private function isLayoutField(array $field): bool
+    {
+        return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
+    }
+
+    /** 普通字段和关系集合遵循同一提交规则，显式 include 不得越过写权限。 */
+    private function fieldSubmissionAllowed(array $field, array $include): bool
+    {
+        if (!$this->fieldAccessAllowed($field, 'write')) return false;
+        $access = (array) ($field['control_props']['schemaAccess'] ?? []);
+        return !$this->isExcludedFromSubmission($field)
+            || ($access['include'] ?? 'auto') === 'always'
+            || in_array((string) ($field['field_name'] ?? ''), array_map('strval', $include), true);
+    }
+
+    /** 详情和分页必须先校验父关系，不能只过滤子表自身字段。 */
+    private function relationReadable(FormField $field): bool
+    {
+        $row = $field->toArray();
+        return !$this->isSensitiveField($row) && $this->fieldAccessAllowed($row, 'read');
+    }
+
+    private function fieldAccessAllowed(array $field, string $operation): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        $access = is_array($props['schemaAccess'] ?? null) ? $props['schemaAccess'] : [];
+        if ($operation === 'write' && ($access['include'] ?? 'auto') === 'never') return false;
+        $permissions = is_array($access[$operation] ?? null) ? $access[$operation] : [];
+        foreach ($permissions as $permission) {
+            if (!is_string($permission) || !($this->permissionChecker)($permission)) return false;
+        }
+        return true;
+    }
+
+    private function isExcludedFromSubmission(array $field): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        $source = is_array($field['options_source'] ?? null) ? $field['options_source'] : [];
+        return (string) ($field['type'] ?? '') === 'hidden'
+            || filter_var($props['disabled'] ?? false, FILTER_VALIDATE_BOOL)
+            || (int) ($field['form_readonly'] ?? 0) === 1
+            || (string) ($source['kind'] ?? $source['mode'] ?? '') === 'computed'
+            || filter_var($props['computed'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['primary'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['system'] ?? false, FILTER_VALIDATE_BOOL);
+    }
+
+    private function isSensitiveField(array $field): bool
+    {
+        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
+        return (string) ($field['type'] ?? '') === 'password'
+            || filter_var($props['sensitive'] ?? false, FILTER_VALIDATE_BOOL)
+            || filter_var($props['writeOnly'] ?? false, FILTER_VALIDATE_BOOL);
+    }
+
+    private function assertIdentifier(string $identifier, string $label): void
+    {
+        if (!preg_match('/^[a-z_][a-z0-9_]*$/', $identifier)) {
+            throw new InvalidArgumentException($label . '不合法');
+        }
+    }
+
+    private function assertSchemaValid(array $schema, array $data): void
+    {
+        $rules = [];
+        $visit = function (array $nodes) use (&$visit, &$rules): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                $field = (string) ($node['field'] ?? '');
+                if ($field !== '' && is_array($node['validation'] ?? null)) $rules[$field] = $node['validation'];
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+        $visit((array) ($schema['nodes'] ?? []));
+        $errors = (new FormSchemaDataValidator())->validate($data, $rules);
+        if ($errors !== []) {
+            throw new FormAsyncValidationException('FORM_SCHEMA_VALIDATION_FAILED', array_map(
+                static fn (array $error): array => ['path' => '/' . $error['field'], 'message' => $error['message']],
+                $errors
+            ));
+        }
+    }
+
+    private function assertAsyncValid(array $schema, array $data): void
+    {
+        $errors = $this->revalidateSchemaAsync($schema, $data);
+        if ($errors !== []) {
+            throw new FormAsyncValidationException('FORM_ASYNC_VALIDATION_FAILED', $errors);
+        }
+    }
+
+    private function assertValid($fields, array $data, bool $isUpdate): void
+    {
+        $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fields) ? $fields : $fields->all());
+        $built = $this->buildRules($rows);
+        if ($built['rules'] === []) {
+            return;
+        }
+        $validate = Validate::rule($built['rules'])->message($built['messages']);
+        $payload = $isUpdate ? $data : array_intersect_key($data, $built['rules']) + array_fill_keys(array_keys($built['rules']), '');
+        if (!$validate->check($payload)) {
+            throw new InvalidArgumentException((string) $validate->getError());
+        }
+    }
+}

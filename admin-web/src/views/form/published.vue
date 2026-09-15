@@ -1,7 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('console/form.data:lefttreeform')" :can-mutate="hasPermission('console/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" :filter="{ ...filters, __leftTree: leftSelection }" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('admin/form.data:lefttreeform')" :can-mutate="hasPermission('admin/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" :filter="{ ...filters, __leftTree: leftSelection }" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template #search>
@@ -71,21 +71,22 @@ import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
+  isSensitiveField,
   resolveSubmissionInclude,
   sanitizeRuntimeRecord
 } from './runtime/submissionPolicy';
 
-provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'console/form.data:listactions', executePermission: 'console/form.data:listaction' } });
+provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'admin/form.data:listactions', executePermission: 'admin/form.data:listaction' } });
 const user = useUserStore();
 const hasPermission = (code: string) => user.permissions.some(p => p === '*' || p === '*:*:*' || p === code);
 const buttonLock = reactive({ busy: false });
 const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')));
 const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')));
-const copyAllowed = () => Boolean(meta.value && meta.value.schema.form?.readOnly !== true && hasPermission('console/form.data:create') && hasPermission('console/form.data:detail'));
+const copyAllowed = () => Boolean(meta.value && meta.value.schema.form?.readOnly !== true && hasPermission('admin/form.data:create') && hasPermission('admin/form.data:detail'));
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
   const routes: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index' };
-  return (key !== 'copyCreate' || copyAllowed()) && (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`console/form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('console/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
+  return (key !== 'copyCreate' || copyAllowed()) && (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`admin/form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('admin/form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
 };
 const buttonHandlers: ListButtonHandlers = { copyCreate: row => openDialog(row, true), create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData() };
 const selectedRows = ref<Record<string, unknown>[]>([]);
@@ -117,9 +118,9 @@ const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, unknown>>({});
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
-const readableFields = computed(() => formFields.value.filter(field => field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly));
-const listFields = computed(() => readableFields.value.filter(field => field.list_show === 1));
-const filterFields = computed(() => readableFields.value.filter(field => field.list_filter !== ''));
+const readableFields = computed(() => formFields.value.filter(field => field.form_show !== 0 && !['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly));
+const listFields = computed(() => formFields.value.filter(field => field.list_show === 1 && !isSensitiveField(field)));
+const filterFields = computed(() => formFields.value.filter(field => field.list_filter !== '' && field.type !== 'hidden' && !isSensitiveField(field)));
 const primaryKey = computed(() => meta.value?.primaryKey.name || 'id');
 const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
 const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'published_form', primaryKey: primaryKey.value, search: [], toolbar: [], rowActions: [],
@@ -261,9 +262,9 @@ const saveRow = async () => {
   const identity = JSON.stringify([formKey.value, editingId.value, meta.value.schemaHash]);
   try {
     await schemaRendererRef.value?.submit();
-    if (sequence !== dialogSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'console/form.data:create' : 'console/form.data:update')) return;
+    if (sequence !== dialogSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'admin/form.data:create' : 'admin/form.data:update')) return;
     const include = resolveSubmissionInclude({ schema_document: meta.value.schema });
-    const payload = buildSubmissionPayload(formFields.value, dialogValues, include);
+    const payload = buildSubmissionPayload(formFields.value, dialogValues, include, hasPermission);
     const schemaHash = meta.value.schemaHash;
     if (editingId.value !== null) await formDataApi.update(formKey.value, editingId.value, payload, include, schemaHash);
     else await formDataApi.create(formKey.value, payload, include, schemaHash);
@@ -289,7 +290,7 @@ const saveRow = async () => {
 const removeRow = async (row: Record<string, unknown>) => {
   const snapshot = JSON.stringify(buttonContext('row', row)); const version = buttonContextVersion.value;
   await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
-  if (snapshot !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('console/form.data:remove')) return;
+  if (snapshot !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('admin/form.data:remove')) return;
   await formDataApi.remove(formKey.value, row[primaryKey.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success('删除成功');
   await refreshAfterWrite();

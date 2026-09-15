@@ -182,7 +182,7 @@ beforeEach(() => {
 describe('BusinessMine', () => {
   it('插件业务展示归属、待发布及冲突恢复状态，不暴露动态运行时', async () => {
     mocks.modules.mockResolvedValue(result([
-      { ...sampleRows[0], metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', locked: true } } },
+      { ...sampleRows[0], metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'admin', locked: true } } },
       { ...sampleRows[1], generation_status: 'failed', recovery_status: 'recovery_required' },
       { ...sampleRows[1], id: 3, generation_status: 'running', recovery_status: 'recovering' }
     ]));

@@ -65,8 +65,23 @@
         <IconSelect v-model="form.icon" />
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'C'" label="权限标识" prop="permission">
-        <el-input v-model="form.permission" placeholder="如 system:user:add" />
+      <el-form-item v-if="form.type === 'C'" label="权限资源" prop="permissionId">
+        <el-select
+          v-model="form.permissionId"
+          filterable
+          clearable
+          class="w-full"
+          :loading="permissionLoading"
+          placeholder="搜索并选择已启用路由权限"
+        >
+          <el-option
+            v-for="option in permissionOptions"
+            :key="option.id"
+            :label="`${option.name} (${option.code})`"
+            :value="option.id"
+          />
+        </el-select>
+        <div class="mt-1 text-xs text-gray-400">仅可绑定权限资源中的已启用路由，保存后以资源 ID 稳定关联。</div>
       </el-form-item>
 
       <el-row :gutter="16">
@@ -99,6 +114,8 @@
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { menuApi } from '@/api/system/menu';
+import type { PermissionModel } from '@/api/system/permission';
+import { treeToList } from '@/utils/tree';
 import IconSelect from '@/components/IconSelect/index.vue';
 
 interface Props {
@@ -121,6 +138,8 @@ const emit = defineEmits<{
 const visible = ref(false);
 const isEdit = ref(false);
 const saving = ref(false);
+const permissionLoading = ref(false);
+const permissionTree = ref<PermissionModel[]>([]);
 const formRef = ref<FormInstance>();
 
 const initialForm = (): Partial<API.MenuItem> => ({
@@ -132,6 +151,7 @@ const initialForm = (): Partial<API.MenuItem> => ({
   component: '',
   redirect: '',
   icon: '',
+  permissionId: undefined,
   permission: '',
   sort: 0,
   hidden: false,
@@ -145,8 +165,14 @@ const rules = computed<FormRules>(() => ({
   type: [{ required: true, message: '请选择类型', trigger: 'change' }],
   path: [{ required: true, message: '请输入 path', trigger: 'blur' }],
   component: form.type === 'C' ? [{ required: true, message: '请输入组件', trigger: 'blur' }] : [],
-  permission: form.type === 'C' ? [{ required: true, message: '请输入权限标识', trigger: 'blur' }] : []
+  permissionId: form.type === 'C' ? [{ required: true, message: '请选择权限资源', trigger: 'change' }] : []
 }));
+
+const permissionOptions = computed(() =>
+  treeToList(permissionTree.value)
+    .filter((item) => item.resourceType === 'route' && item.status === 1 && item.code)
+    .map((item) => ({ id: item.id, name: item.name, code: item.code }))
+);
 
 const parentOptions = computed<API.MenuItem[]>(() => {
   const onlyDir = (list: API.MenuItem[]): API.MenuItem[] =>
@@ -163,10 +189,22 @@ watch(
   () => props.modelValue,
   (v) => {
     visible.value = v;
-    if (v) initForm();
+    if (v) {
+      initForm();
+      void loadPermissions();
+    }
   }
 );
 watch(visible, (v) => emit('update:modelValue', v));
+
+async function loadPermissions() {
+  permissionLoading.value = true;
+  try {
+    permissionTree.value = await menuApi.permissionOptions();
+  } finally {
+    permissionLoading.value = false;
+  }
+}
 
 function initForm() {
   Object.assign(form, initialForm());

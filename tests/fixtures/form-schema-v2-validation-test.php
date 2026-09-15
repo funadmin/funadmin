@@ -57,7 +57,7 @@ foreach ($fixture['unsafePatterns'] as $pattern) {
     validationExpect(($errors[0]['rule'] ?? null) === 'pattern', '不安全或不兼容正则必须快速拒绝：' . $pattern);
 }
 
-$member = \app\console\service\MemberFormDefinition::build([
+$member = \app\admin\service\MemberFormDefinition::build([
     'groups' => [['id' => 1, 'name' => '默认组']],
     'levels' => [['id' => 1, 'name' => '默认等级']],
     'tags' => [],

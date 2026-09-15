@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\admin\traits;
+
+use app\admin\authorization\service\DataScopeService;
+
+/**
+ * 后台 CRUD 数据范围应用。
+ */
+trait AdminDataScope
+{
+    protected function applyDataScope($query, string $adminField = 'admin_id', string $departmentField = 'dept_id')
+    {
+        return (new DataScopeService())->apply($query, $adminField, $departmentField);
+    }
+}

@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { formatFieldValue, resolveFieldOptions } from './fieldPresentation';
+import { describe, expect, it, vi } from 'vitest';
+import { formatFieldValue, resolveFieldOptions, resolveFieldOptionsAsync, clearFieldOptionsCache } from './fieldPresentation';
+
+const dynamicRequest = async (_key: string, _field: string) => ({ options: [{ label: '动态标签', value: 7 }] });
 
 describe('共享字段展示运行时', () => {
   it('列表和详情使用同一组选项解析与值格式化规则', () => {
@@ -33,6 +35,20 @@ describe('共享字段展示运行时', () => {
       expect(formatFieldValue(value, [], formatter, 'data')).toBe(expected);
       expect(formatFieldValue(value, [], formatter, 'published')).toBe(expected);
     }
+  });
+
+  it('跨宿主解析动态 options 并缓存并发请求，失败不伪造静态标签', async () => {
+    clearFieldOptionsCache();
+    const request = vi.fn(dynamicRequest);
+    const node = { field: 'owner', dataSource: { kind: 'remote' } } as any;
+    const [first, second] = await Promise.all([
+      resolveFieldOptionsAsync('orders', node, {}, request),
+      resolveFieldOptionsAsync('orders', node, {}, request)
+    ]);
+    expect(first).toEqual([{ label: '动态标签', value: 7 }]);
+    expect(second).toEqual(first);
+    expect(request).toHaveBeenCalledTimes(1);
+    await expect(resolveFieldOptionsAsync('orders', node, {}, async () => { throw new Error('forbidden'); })).rejects.toThrow('forbidden');
   });
 
   it('保留树形选项与扩展属性，不接受非法选项', () => {

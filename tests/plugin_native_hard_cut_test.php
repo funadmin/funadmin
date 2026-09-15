@@ -87,8 +87,9 @@ nativeHardCutExpect(
     'Attribute 扫描必须递归覆盖发布后的 console/controller/plugin/code'
 );
 
-$consoleController = (string) file_get_contents($root . '/plugins/shop/app/console/controller/ProductController.php');
-nativeHardCutExpect(str_contains($consoleController, "#[Group('plugin/shop/product')]"), '发布后的 Console controller 必须保留 Attribute 路由');
+$definition = \app\common\crud\CrudDefinition::fromArray(['entity' => 'native-fixture', 'table' => 'shop_native_fixture']);
+$consoleController = \app\common\crud\PluginTemplateContext::build($definition, 'shop', true)['controllerContent'];
+nativeHardCutExpect(str_contains($consoleController, "#[Group('plugin/shop/native-fixture')]"), '隔离生成的 Console controller 必须保留 Attribute 路由');
 foreach (['routes/plugin.php', 'config/services.php', 'config/events.php'] as $legacyRuntimeSource) {
     nativeHardCutExpect(
         !is_file($root . '/plugins/example/' . $legacyRuntimeSource),

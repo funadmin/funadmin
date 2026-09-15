@@ -22,13 +22,16 @@ const isExcludedByDefault = (field: FormFieldDef): boolean => {
 export const buildSubmissionPayload = (
   fields: FormFieldDef[],
   values: Record<string, unknown>,
-  include: string[] = []
+  include: string[] = [],
+  permissionCheck: (permission: string) => boolean = () => false
 ): Record<string, unknown> => {
   const included = new Set(include);
   return Object.fromEntries(fields.flatMap((field) => {
     const name = field.field_name;
     if (!Object.prototype.hasOwnProperty.call(values, name)) return [];
-    if (isExcludedByDefault(field) && !included.has(name)) return [];
+    const access = field.control_props?.schemaAccess as { write?: string[]; include?: string } | undefined;
+    if (access?.include === 'never' || (access?.write ?? []).some(permission => !permissionCheck(permission))) return [];
+    if (isExcludedByDefault(field) && access?.include !== 'always' && !included.has(name)) return [];
     return [[name, values[name]]];
   }));
 };

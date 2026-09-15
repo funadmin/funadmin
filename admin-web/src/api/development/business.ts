@@ -25,7 +25,7 @@ export type BusinessTargetSelection = { type: 'core' } | { type: 'plugin'; plugi
 export interface BusinessTarget {
   type: 'core' | 'plugin';
   pluginCode: string | null;
-  scope: 'console';
+  scope: 'admin';
   tableStrategy?: 'owned' | 'external';
   locked?: boolean;
 }

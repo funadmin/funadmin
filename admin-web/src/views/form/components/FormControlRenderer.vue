@@ -248,7 +248,7 @@ const uploadType = computed<'image' | 'images' | 'file' | null>(() => {
   return props.field.type === 'file' || props.field.type === 'files' ? 'file' : null;
 });
 const stringValue = computed(() => typeof props.modelValue === 'string' ? props.modelValue : '');
-const numberValue = computed(() => typeof props.modelValue === 'number' ? props.modelValue : 0);
+const numberValue = computed(() => typeof props.modelValue === 'number' ? props.modelValue : undefined);
 const arrayValue = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
 const arrayObjectValue = computed(() => arrayValue.value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item)));
 const formattedValue = computed(() => formatFieldValue(props.modelValue === undefined ? props.field.default_value : props.modelValue, props.options, props.field.list_formatter || undefined));

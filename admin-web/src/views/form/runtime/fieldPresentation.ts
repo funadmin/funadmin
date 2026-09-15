@@ -1,8 +1,20 @@
 import dayjs from 'dayjs';
+import { formDataApi } from '@/api/formData';
 
-export type PresentationOption = { label: string; value: unknown };
+export type PresentationOption = { label: string; value: unknown; [key: string]: unknown };
+export type FieldOptionsRequest = (formKey: string, field: string, params: Record<string, unknown>, signal?: AbortSignal) => Promise<{ options: unknown[]; total?: number }>;
 
-type PresentationNode = { id?: string | null; field?: string | null; dataSource?: { options?: unknown } | null; listFormatter?: string; formatter?: string };
+const fieldOptionsCache = new Map<string, Promise<PresentationOption[]>>();
+const requestScopes = new WeakMap<FieldOptionsRequest, number>();
+let nextRequestScope = 0;
+const defaultRequest: FieldOptionsRequest = (key, field, params, signal) => formDataApi.options(key, field, params, signal);
+const stableKey = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(stableKey).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableKey(item)}`).join(',')}}`;
+  return JSON.stringify(value);
+};
+
+type PresentationNode = { id?: string | null; field?: string | null; dataSource?: { options?: unknown; params?: Record<string, unknown> } | null; listFormatter?: string; formatter?: string };
 
 type RawOption = { label: unknown; value: unknown; [key: string]: unknown };
 
@@ -12,6 +24,21 @@ const displayValue = (value: unknown): string => {
   if (typeof value === 'object') { try { return JSON.stringify(value); } catch { return ''; } }
   return String(value);
 };
+
+export function clearFieldOptionsCache(): void { fieldOptionsCache.clear(); }
+
+export async function resolveFieldOptionsAsync(formKey: string, node: PresentationNode, params: Record<string, unknown> = {}, request: FieldOptionsRequest = defaultRequest): Promise<PresentationOption[]> {
+  const field = node.field ?? node.id ?? '';
+  const requestParams = { ...(node.dataSource?.params ?? {}), ...params };
+  if (!requestScopes.has(request)) requestScopes.set(request, ++nextRequestScope);
+  const key = stableKey([requestScopes.get(request), formKey, field, requestParams]);
+  const existing = fieldOptionsCache.get(key);
+  if (existing) return existing;
+  const pending = request(formKey, field, requestParams).then(result => result.options.filter(isOption).map(item => ({ ...item, label: String(item.label) })));
+  fieldOptionsCache.set(key, pending);
+  pending.catch(() => { if (fieldOptionsCache.get(key) === pending) fieldOptionsCache.delete(key); });
+  return pending;
+}
 
 export function resolveFieldOptions(node: PresentationNode, supplied: Record<string, PresentationOption[]> = {}): PresentationOption[] {
   const options = (node.id ? supplied[node.id] : undefined) ?? (node.field ? supplied[node.field] : undefined);

@@ -175,7 +175,8 @@ final class ProductionTemplateContext
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse think\\Validate;\n\n"
             . "final class {$class}Validate extends Validate\n{\n"
             . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
-            . "    public function forUpdate(int|string \$id): self\n    {\n"
+            . "    public function forUpdate(int|string \$id, array \$data = []): self\n    {\n"
+            . '        foreach (' . self::phpArray(array_values(array_map(static fn (array $field): string => $field['name'], array_filter($data['fields'], static fn (array $field): bool => self::sensitiveField($field))))) . " as \$field) {\n            if (!array_key_exists(\$field, \$data)) unset(\$this->rule[\$field]);\n        }\n"
             . "        foreach (\$this->rule as &\$rule) {\n"
             . "            \$rule = str_replace('{{$primary['name']}}', (string) \$id, \$rule);\n"
             . "        }\n        return \$this;\n    }\n}\n";
@@ -268,7 +269,7 @@ final class ProductionTemplateContext
     {
         $search = $exact = $range = $operators = $sort = [];
         foreach ($data['fields'] as $field) {
-            if (($field['search'] ?? false) === true) {
+            if (($field['search'] ?? false) === true && ($field['component'] ?? '') !== 'hidden' && !self::sensitiveField($field)) {
                 $operator = $field['searchOperator'] ?? 'eq';
                 $parameter = self::camel($field['name']) . (in_array($operator, ['range', 'date'], true) ? 'Range' : '');
                 if ($operator === 'like') $search[$parameter] = $field['name'];
@@ -276,12 +277,12 @@ final class ProductionTemplateContext
                 elseif ($operator === 'eq') $exact[$parameter] = $field['name'];
                 else $operators[$parameter] = ['field' => $field['name'], 'operator' => $operator];
             }
-            if (($field['sortable'] ?? false) === true) $sort[self::camel($field['name'])] = $field['name'];
+            if (($field['sortable'] ?? false) === true && !self::sensitiveField($field)) $sort[self::camel($field['name'])] = $field['name'];
         }
         if (($data['list']['category']['enabled'] ?? false) === true) $exact['__category'] = $data['list']['category']['field'];
         $dto = [];
         foreach ($data['fields'] as $field) {
-            if (($field['detail'] ?? true) === false) continue;
+            if (self::sensitiveField($field)) continue;
             $dto[] = "            '" . self::camel($field['name']) . "' => "
                 . self::dtoValue($field, "\$model->{$field['name']}") . ',';
         }
@@ -396,7 +397,7 @@ final class ProductionTemplateContext
                 : '')
             . "    protected function importFields(): array { return array_combine({$class}Service::WRITABLE_FIELDS, {$class}Service::WRITABLE_FIELDS); }\n"
             . "    protected function importPayload(array \$row): array { return (new {$class}Service())->prepareCreatePayload(\$this->mapImportRow(\$row)); }\n"
-            . "    protected function exportFields(): array { return " . self::phpArray(array_values(array_map(static fn (array $field): string => self::camel($field['name']), array_filter($data['fields'], static fn (array $field): bool => ($field['detail'] ?? true) === true && ($field['component'] ?? '') !== 'password' && empty($field['controlProps']['sensitive']) && empty($field['controlProps']['writeOnly']) && empty($field['controlProps']['schemaAccess'])))) ?: ['__no_export_fields__']) . "; }\n"
+            . "    protected function exportFields(): array { return " . self::phpArray(array_values(array_map(static fn (array $field): string => self::camel($field['name']), array_filter($data['fields'], static fn (array $field): bool => ($field['detail'] ?? true) === true && !self::sensitiveField($field)))) ?: ['__no_export_fields__']) . "; }\n"
             . "    protected function importLimit(): int { return {$features['importLimit']}; }\n"
             . "    protected function exportLimit(): int { return {$features['exportLimit']}; }\n"
             . "    protected function payload(?Model \$model = null): array\n    {\n"
@@ -407,7 +408,7 @@ final class ProductionTemplateContext
                 ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return '数据范围字段 {$data['dataScope']['field']} 必填';\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return '无权写入指定数据范围';\n            }\n        }\n"
                 : '')
             . "        \$validate = new {$class}Validate();\n"
-            . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']});\n"
+            . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
             . "        return \$validate->check(\$data) ? null : \$validate->getError();\n    }\n"
             . "    protected function beforeDelete(iterable \$models, bool \$force): ?Response\n    {\n"
             . "        \$error = (new {$class}Service())->assertNotReferenced(\$models, \$force);\n"
@@ -427,10 +428,10 @@ final class ProductionTemplateContext
         if ($permission['enabled']) {
             $groupName = self::sqlLiteral($permission['groupName']);
             $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-                . "SELECT 0,'console',NULL,'','',{$groupName},'group',1,0,0,'generated',{$sourceName},NOW(),NOW(),0,NULL\n"
+                . "SELECT 0,'admin',NULL,'','',{$groupName},'group',1,0,0,'generated',{$sourceName},NOW(),NOW(),0,NULL\n"
                 . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group');\n"
                 . "SET @permission_group_id = (SELECT `id` FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group' ORDER BY `id` LIMIT 1);\n"
-                . "UPDATE `fun_permission` SET `pid`=0,`app_name`='console',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
+                . "UPDATE `fun_permission` SET `pid`=0,`app_name`='admin',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
             $groupId = '@permission_group_id';
             $controller = self::sqlLiteral('admin/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
             $codes = [];
@@ -441,9 +442,9 @@ final class ProductionTemplateContext
                 $act = self::sqlLiteral($action['action']);
                 $sort = ($index + 1) * 10;
                 $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-                    . "SELECT @permission_group_id, 'console', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, {$sort}, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
+                    . "SELECT @permission_group_id, 'admin', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, {$sort}, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
                     . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'route' AND `code` = {$code});\n"
-                    . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='console',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
+                    . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='admin',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
             }
             $sql .= $codes === []
                 ? "UPDATE `fun_permission` SET `status`=0,`updated_at`=NOW() WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route';\n"
@@ -461,9 +462,9 @@ final class ProductionTemplateContext
         $sort = (int) $menu['sortOrder'];
         return $sql
             . "INSERT INTO `fun_admin_menu` (pid, permission_id, app_name, name, href, query, target, icon, status, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-            . "SELECT {$parent},{$groupId},'console',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+            . "SELECT {$parent},{$groupId},'admin',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
             . "WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
-            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`={$groupId},`app_name`='console',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName};\n";
+            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`={$groupId},`app_name`='admin',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName};\n";
     }
 
     /** SQL 模板与受管资源事务共享菜单元数据，避免正式生成丢失组件身份。 */
@@ -569,14 +570,14 @@ final class ProductionTemplateContext
         foreach ($data['fields'] as $field) {
             $key = self::camel($field['name']);
             $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
-            if (($field['list'] ?? false) === true) {
+            if (($field['list'] ?? false) === true && !self::sensitiveField($field)) {
                 $width = (int) ($field['listWidth'] ?? 0);
                 $widthAttribute = $width > 0 ? " width=\"{$width}\"" : '';
                 $formatter = (string) ($field['listFormatter'] ?? '');
                 $columns[] = "          <el-table-column prop=\"{$key}\" label=\"" . htmlspecialchars($labelText, ENT_QUOTES) . "\"{$widthAttribute}>"
                     . self::listCell($key, $formatter) . '</el-table-column>';
             }
-            if (($field['writable'] ?? true) && !($field['primary'] ?? false)) {
+            if (($field['writable'] ?? true) && !($field['primary'] ?? false) && !self::sensitiveField($field)) {
                 $csvColumns[] = ['key' => $key, 'label' => $labelText];
             }
         }
@@ -590,7 +591,7 @@ final class ProductionTemplateContext
             : '';
         $searchItems = [];
         foreach ($data['fields'] as $field) {
-            if (($field['search'] ?? false) !== true) continue;
+            if (($field['search'] ?? false) !== true || ($field['component'] ?? '') === 'hidden' || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
             $operator = (string) ($field['searchOperator'] ?? 'eq');
             $parameter = $key . (in_array($operator, ['range', 'date'], true) ? 'Range' : '');
@@ -679,8 +680,8 @@ final class ProductionTemplateContext
         $listSetup .= "const buttonSelection = ref<{$type}[]>([]);\nconst buttonContextVersion = ref(0);\nconst buttonTable = ref<{ clearSelection: () => void }>();\nconst clearButtonSelection = () => { buttonSelection.value = []; buttonTable.value?.clearSelection(); buttonContextVersion.value++; };\n";
         $filterBindings = [];
         foreach ($data['fields'] as $field) {
-            if (!($field['search'] ?? false) || ($field['controlProps']['sensitive'] ?? false) || ($field['controlProps']['writeOnly'] ?? false)
-                || ($field['component'] ?? '') === 'password' || ($field['detail'] ?? true) === false || !empty($field['relation'])) continue;
+            if (!($field['search'] ?? false) || ($field['component'] ?? '') === 'hidden' || self::sensitiveField($field)
+                || !empty($field['relation'])) continue;
             $name = $field['name'];
             $alias = self::camel($name);
             if (in_array($field['searchOperator'] ?? 'eq', ['range', 'date'], true)) {
@@ -873,9 +874,25 @@ final class ProductionTemplateContext
             $formFields
         )));
         $fieldMap = self::json(array_values(array_map(
-            static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
+            static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name'], 'sensitive' => self::sensitiveField($field)],
             $writable
         )));
+        $submissionFields = [];
+        $collectSubmission = static function (array $nodes) use (&$collectSubmission, &$submissionFields): void {
+            foreach ($nodes as $node) {
+                if (($node['kind'] ?? '') === 'field') {
+                    $submissionFields[] = [
+                        'field_name' => $node['field'], 'type' => $node['type'],
+                        'form_readonly' => ($node['disabled'] ?? false) ? 1 : 0,
+                        'control_props' => array_replace((array) ($node['props'] ?? []), ['schemaAccess' => (array) ($node['access'] ?? [])]),
+                        'options_source' => $node['dataSource'] ?? null,
+                    ];
+                }
+                if (!in_array($node['type'] ?? '', ['repeatable', 'subform'], true)) $collectSubmission((array) ($node['children'] ?? []));
+            }
+        };
+        $collectSubmission($document['nodes']);
+        $submissionFields = self::json($submissionFields);
         $defaults = self::json((object) array_column($formFields, 'default', 'name'));
         $formKey = str_replace('-', '_', (string) $data['entity']);
         // 选项映射仅来自裁剪后真正交给 renderer 的节点。
@@ -884,16 +901,17 @@ final class ProductionTemplateContext
             . ($enabled['options'] ? "return {options:await {$camel}Api.options(source)};" : "throw Error('选项能力未启用');") . " };\n";
         $permissionPrefix = self::json($data['permissionPrefix']);
         $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error('编辑能力未启用');") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error('新增能力未启用');") . ' }';
-        return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
+        return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
-            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
+            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>;\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const changed=reactive(new Set<string>()); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const sourceSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>; const submissionFields={$submissionFields} as unknown as FormFieldDef[];\n"
+            . "const formSchema=computed(()=>{const project=(nodes:FormSchemaDocument['nodes']):FormSchemaDocument['nodes']=>nodes.map(node=>({...node,...(props.row && fieldMap.some(item=>item.target===node.field && item.sensitive) && !changed.has(node.field ?? '')?{validation:[]}:{}),children:project(node.children ?? [])}));return {...sourceSchema,nodes:project(sourceSchema.nodes)};});\n"
             . $optionsSetup
             . "const user=useUserStore(); const permitted=(edit:boolean)=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code==={$permissionPrefix}+':'+(edit?'update':'create'));\n"
             . "const saving=ref(false); const generation=ref(0); let active=true; onBeforeUnmount(()=>{active=false; generation.value++;});\n"
-            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
-            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
+            . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;changed.clear();Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row && fieldMap.some(field=>field.target===item.target && field.sensitive)?'':row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
+            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const submitted=buildSubmissionPayload(submissionFields,form,resolveSubmissionInclude({schema_document:sourceSchema}),permission=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code===permission));const payload=Object.fromEntries(fieldMap.filter(item=>Object.hasOwn(submitted,item.target)&&(!item.sensitive || !row || changed.has(item.target))).map(item=>[item.source,submitted[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string

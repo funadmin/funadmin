@@ -27,7 +27,7 @@ const operationLogs: OperationLog[] = [
   {
     id: 1,
     username: 'admin',
-    appName: 'console',
+    appName: 'admin',
     sourceType: 'system',
     sourceName: 'core',
     controller: 'SystemRole',

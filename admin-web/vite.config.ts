@@ -11,6 +11,8 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isProd = mode === 'production';
+  const apiBase = (env.VITE_APP_BASE_API || '/admin').replace(/\/$/, '');
+  const apiProxyPattern = `^${apiBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$|\\?)`;
 
   return {
     base: env.VITE_APP_BASE || '/admin-web/',
@@ -37,7 +39,7 @@ export default defineConfig(({ mode }) => {
       open: env.VITE_APP_OPEN === 'true',
       proxy: env.VITE_APP_PROXY_TARGET
         ? {
-            [env.VITE_APP_BASE_API || '/console']: {
+            [apiProxyPattern]: {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true,
               ws: true

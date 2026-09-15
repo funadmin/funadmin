@@ -73,6 +73,7 @@ declare namespace API {
     hidden: boolean;
     keepAlive: boolean;
     affix: boolean;
+    permissionId?: number;
     permission?: string;
     formKey?: string;
     children?: MenuItem[];

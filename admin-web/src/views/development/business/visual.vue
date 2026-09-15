@@ -103,7 +103,7 @@ const router = useRouter();
 const route = useRoute();
 const user = useUserStore();
 // 合并的 save/inspect 别名不能推导后台独立动作授权。
-const hasAction = (action: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === `console/development.business:${action}`);
+const hasAction = (action: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === `admin/development.business:${action}`);
 const canInspect = computed(() => hasAction('inspectdatabase'));
 const canListTables = computed(() => hasAction('databasetables'));
 const canCreate = computed(() => hasAction('createvisual'));

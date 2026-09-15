@@ -55,7 +55,8 @@
           @selection-change="onSelectionChange"
         >
           <el-table-column type="selection" width="48" align="center" />
-          <el-table-column label="" width="52" align="center" fixed="left">
+          <el-table-column prop="name" label="名称" min-width="200" />
+          <el-table-column label="" width="52" align="center">
             <template #default="{ row }">
               <span
                 v-if="dragEnabled"
@@ -68,7 +69,6 @@
               <span v-else class="text-xs text-[var(--el-text-color-secondary)]">—</span>
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="名称" min-width="200" />
           <el-table-column label="图标" width="80" align="center">
             <template #default="{ row }">
               <SvgIcon v-if="row.icon" :name="row.icon" :size="18" />

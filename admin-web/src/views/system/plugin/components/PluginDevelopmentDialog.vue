@@ -6,7 +6,7 @@
           <el-form-item label="插件标识"><el-input v-model="createForm.name" placeholder="小写字母开头，仅字母和数字" /></el-form-item>
           <el-form-item label="插件名称"><el-input v-model="createForm.title" /></el-form-item>
           <el-form-item label="独立应用"><el-switch v-model="createForm.application" /></el-form-item>
-          <el-form-item label="管理后台"><el-switch v-model="createForm.console" /></el-form-item>
+          <el-form-item label="Admin 后台"><el-switch v-model="createForm.admin" /></el-form-item>
           <el-form-item label="管理前端"><el-switch v-model="createForm.adminWeb" /></el-form-item>
         </el-form>
         <el-alert v-if="preview?.conflicts.length" type="error" :title="`冲突：${preview.conflicts.join(', ')}`" :closable="false" />
@@ -38,7 +38,7 @@ const plugins = ref<DevelopmentPluginOption[]>([]);
 const selectedCode = ref('');
 const preview = ref<PluginDevelopmentResult | null>(null);
 const result = ref<PluginDevelopmentResult | null>(null);
-const createForm = reactive<PluginCreateInput>({ name: '', title: '', application: true, console: true, adminWeb: true });
+const createForm = reactive<PluginCreateInput>({ name: '', title: '', application: true, admin: true, adminWeb: true });
 const message = (value: unknown) => value instanceof Error ? value.message : String(value);
 const planFiles = (files: PluginDevelopmentPlan['files']) => files.map((file) => typeof file === 'string' ? { path: file } : file);
 const fileStatusLabel = (status?: string) => ({ create: '新建', unchanged: '未变化', overwrite: '覆盖', conflict: '冲突' }[status || ''] || '待处理');

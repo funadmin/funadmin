@@ -37,6 +37,25 @@ describe('表单运行时提交与敏感字段治理', () => {
     });
   });
 
+  it('普通 form_show 隐藏保留默认值和提交，metadata 不改写业务字段名', () => {
+    const hidden = field('hidden_default', { form_show: 0, default_value: '隐藏默认值' });
+    expect(emptyRuntimeValues([hidden])).toEqual({ hidden_default: '隐藏默认值' });
+    expect(buildSubmissionPayload([hidden], { hidden_default: '联动值', hiddenDefault: '错误别名' })).toEqual({ hidden_default: '联动值' });
+  });
+
+  it('snake_case metadata 中 camelCase schemaAccess 策略不能被显式 include 绕过', () => {
+    const policyFields = [
+      field('hidden_include', { type: 'hidden' }),
+      field('hidden_always', { type: 'hidden', control_props: { schemaAccess: { include: 'always' } } }),
+      field('hidden_never', { type: 'hidden', control_props: { schemaAccess: { include: 'never' } } }),
+      field('hidden_denied', { type: 'hidden', control_props: { schemaAccess: { write: ['secret:write'] } } })
+    ];
+    const values = Object.fromEntries(policyFields.map(item => [item.field_name, item.field_name]));
+    const include = policyFields.map(item => item.field_name);
+    expect(buildSubmissionPayload(policyFields, values, include)).toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always' });
+    expect(buildSubmissionPayload(policyFields, values, include, permission => permission === 'secret:write')).toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always', hidden_denied: 'hidden_denied' });
+  });
+
   it('敏感字段不从记录回显且不使用默认值', () => {
     expect(sanitizeRuntimeRecord(fields, { title: 'ok', secret: 'stored' })).toEqual({ title: 'ok' });
     expect(emptyRuntimeValues(fields)).toMatchObject({ title: '', secret: '' });

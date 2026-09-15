@@ -6,7 +6,7 @@ export interface PluginCreateInput {
   name: string;
   title: string;
   application: boolean;
-  console: boolean;
+  admin: boolean;
   adminWeb: boolean;
 }
 
@@ -35,7 +35,7 @@ export interface DevelopmentPluginOption {
   name: string;
   manifestVersion: 2;
   version: string;
-  scopes: Array<'application' | 'console' | 'both'>;
+  scopes: Array<'application' | 'admin' | 'both'>;
 }
 
 export const pluginDevelopmentApi = {

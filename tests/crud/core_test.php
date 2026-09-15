@@ -16,7 +16,7 @@ use app\common\crud\GenerationPlanner;
 use app\common\crud\SafeCommit;
 use app\common\crud\SchemaInspector;
 use app\common\crud\TemplateRenderer;
-use app\console\authorization\service\PermissionResource;
+use app\admin\authorization\service\PermissionResource;
 
 function crudExpect(bool $condition, string $message): void
 {
@@ -28,7 +28,7 @@ function crudExpect(bool $condition, string $message): void
 function crudFormSchema(string $source): array
 {
     crudExpect(str_contains($source, ':schema="formSchema"') && str_contains($source, ':options-request="optionsRequest"'), '生成表单必须绑定真实 schema 和选项请求');
-    crudExpect(preg_match('/const formSchema=(.*?) as unknown as FormSchemaDocument;/', $source, $matches) === 1, '缺少生成的 schema 文档');
+    crudExpect(preg_match('/const sourceSchema=(.*?) as unknown as FormSchemaDocument;/', $source, $matches) === 1, '缺少生成的 schema 文档');
     $schema = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
     crudExpect($schema['schemaVersion'] === 2, '必须生成 v2 schema');
     return $schema;
@@ -87,10 +87,10 @@ function validDefinition(array $overrides = []): array
         'title' => '审计日志',
         'paths' => [
             'migration' => 'database/generated/audit_log.sql',
-            'model' => 'app/console/model/AuditLog.php',
-            'validate' => 'app/console/validate/AuditLogValidate.php',
-            'service' => 'app/console/service/AuditLogService.php',
-            'controller' => 'app/console/controller/generated/AuditLogController.php',
+            'model' => 'app/admin/model/AuditLog.php',
+            'validate' => 'app/admin/validate/AuditLogValidate.php',
+            'service' => 'app/admin/service/AuditLogService.php',
+            'controller' => 'app/admin/controller/generated/AuditLogController.php',
             'permissionMigration' => 'database/generated/audit_log_permissions.sql',
             'api' => 'admin-web/src/api/generated/audit-log.ts',
             'view' => 'admin-web/src/views/generated/audit-log/index.vue',
@@ -106,9 +106,9 @@ function validDefinition(array $overrides = []): array
         'relations' => [],
         'optionsSource' => [],
         'templates' => [
-            'migration' => 'database/migration.sql.tpl', 'model' => 'console/model.php.tpl',
-            'validate' => 'console/validate.php.tpl', 'service' => 'console/service.php.tpl',
-            'controller' => 'console/controller.php.tpl',
+            'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
+            'validate' => 'admin/validate.php.tpl', 'service' => 'admin/service.php.tpl',
+            'controller' => 'admin/controller.php.tpl',
             'permissionMigration' => 'database/permissions.sql.tpl',
             'api' => 'frontend/api.ts.tpl', 'view' => 'frontend/index.vue.tpl',
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
@@ -125,7 +125,7 @@ mkdir($root, 0755, true);
 try {
     $app = new \think\App($root);
     \think\Container::setInstance($app);
-    $loader = new class { use \app\console\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
+    $loader = new class { use \app\admin\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
     foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'wrong_'], 'archive' => ['prefix' => $prefix]]], 'database');
         foreach (['audit_log', $prefix . 'audit_log'] as $table) {
@@ -133,7 +133,7 @@ try {
             file_put_contents($root . '/definition.json', json_encode($input));
             $loaded = $loader->load($root . '/definition.json');
             crudExpect($loaded->get('table') === $prefix . 'audit_log', '核心 CLI 新建必须遵循连接前缀一次');
-            $workbench = new \app\console\development\service\DevCrudService($root, ['archive'], auditWriter: static fn (): int => 1);
+            $workbench = new \app\admin\development\service\DevCrudService($root, ['archive'], auditWriter: static fn (): int => 1);
             $validated = $workbench->validate($input);
             crudExpect($validated['definition']['table'] === $prefix . 'audit_log', 'Workbench Definition 输入必须与 CLI 使用相同逻辑表边界');
         }
@@ -299,9 +299,9 @@ try {
     crudExpect($byName['price']['valueType'] === 'decimal', '类型兜底必须稳定');
 
     $renderer = new TemplateRenderer($root . '/templates');
-    mkdir($root . '/templates/console', 0755, true);
-    file_put_contents($root . '/templates/console/fixture.tpl', "{{title}}|{{phpClass}}\n");
-    crudExpect($renderer->render('console/fixture.tpl', ['title' => '<日志>', 'phpClass' => 'AuditLog']) === '&lt;日志&gt;|AuditLog' . "\n", '模板文本必须按上下文转义');
+    mkdir($root . '/templates/admin', 0755, true);
+    file_put_contents($root . '/templates/admin/fixture.tpl', "{{title}}|{{phpClass}}\n");
+    crudExpect($renderer->render('admin/fixture.tpl', ['title' => '<日志>', 'phpClass' => 'AuditLog']) === '&lt;日志&gt;|AuditLog' . "\n", '模板文本必须按上下文转义');
     crudReject(static fn () => $renderer->render('../secret', []), '模板');
 
     $now = 1_800_000_000;
@@ -637,7 +637,7 @@ try {
     $migrationPath = 'fixture/database/generated/audit_log.sql';
     crudExpect(str_contains($generatedByPath[$migrationPath], '`uk_fun_audit_log_name`'), '生成唯一索引名必须严格 snake_case');
     crudExpect(!str_contains($generatedByPath[$migrationPath], '`uk_audit-log_name`'), '生成 SQL 标识符不得包含模块 slug 连字符');
-    $controllerPath = 'fixture/app/console/controller/generated/AuditLogController.php';
+    $controllerPath = 'fixture/app/admin/controller/generated/AuditLogController.php';
     crudExpect(str_contains($generatedByPath[$controllerPath], "#[Group('system/audit-log')]"), '控制器必须声明 Attribute 路由组');
     foreach (['detail', 'update', 'status', 'remove', 'restore', 'destroy'] as $idAction) {
         crudExpect(
@@ -645,14 +645,14 @@ try {
             "{$idAction} 的 :id 路由必须紧邻统一 Pattern"
         );
     }
-    $validateSource = $generatedByPath['fixture/app/console/validate/AuditLogValidate.php'];
+    $validateSource = $generatedByPath['fixture/app/admin/validate/AuditLogValidate.php'];
     crudExpect(str_contains($validateSource, 'forUpdate(') && str_contains($validateSource, 'unique:'), '唯一校验 update 必须排除参数化主键');
     crudExpect(
         str_contains($generatedByPath[$controllerPath], "protected function primaryKeyType(): string { return 'uuid'; }")
         && str_contains($generatedByPath[$controllerPath], "protected function primaryKeyPattern(): ?string { return '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iD'; }"),
         '生成控制器必须按 Definition 主键类型声明严格 UUID 归一化规则'
     );
-    $generatedService = $generatedByPath['fixture/app/console/service/AuditLogService.php'];
+    $generatedService = $generatedByPath['fixture/app/admin/service/AuditLogService.php'];
     crudExpect(str_contains($generatedService, "whereIn('department_id'"), '必须生成 dataScope 约束');
     crudExpect(
         str_contains($generatedService, 'public function options(string $source, ?array $departmentIds = null): array')
@@ -664,22 +664,22 @@ try {
         && str_contains($generatedByPath[$controllerPath], "->options(\$source, \$scope['all'] ? null : \$scope['departmentIds'])"),
         'options controller 必须将与写入校验相同的当前数据范围传入 service'
     );
-    crudExpect(str_contains($generatedByPath['fixture/app/console/model/AuditLog.php'], 'function department()'), '必须生成模型关系');
+    crudExpect(str_contains($generatedByPath['fixture/app/admin/model/AuditLog.php'], 'function department()'), '必须生成模型关系');
     crudExpect(str_contains($generatedByPath['fixture/admin-web/src/api/generated/audit-log.ts'], 'amount: string'), '金额前端类型必须为 string');
     crudExpect(str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'useCrud'), '前端列表必须复用 useCrud');
     crudExpect(str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'SearchForm') && str_contains($generatedByPath['fixture/admin-web/src/views/generated/audit-log/index.vue'], 'SchemaTablePage'), '列表必须复用 SearchForm/DataTableShell');
     $permissionMigration = $generatedByPath['fixture/database/generated/audit_log_permissions.sql'];
     crudExpect(str_contains($permissionMigration, 'Generated forward permission/menu migration'), '权限菜单必须为独立 forward migration');
     crudExpect(str_contains($permissionMigration, 'fun_admin_menu'), '权限迁移必须同时注册菜单');
-    $runtimePermission = PermissionResource::fromParts('console', 'generated\\AuditLogController', 'detail');
+    $runtimePermission = PermissionResource::fromParts('admin', 'generated\\AuditLogController', 'detail');
     crudExpect(
-        $runtimePermission === ['obj' => 'console/generated.auditlogcontroller', 'act' => 'detail', 'code' => 'console/generated.auditlogcontroller:detail']
-        && str_contains($permissionMigration, "'console/generated.auditlogcontroller', 'detail'")
-        && str_contains($permissionMigration, "'console/generated.auditlogcontroller', 'index'"),
+        $runtimePermission === ['obj' => 'admin/generated.auditlogcontroller', 'act' => 'detail', 'code' => 'admin/generated.auditlogcontroller:detail']
+        && str_contains($permissionMigration, "'admin/generated.auditlogcontroller', 'detail'")
+        && str_contains($permissionMigration, "'admin/generated.auditlogcontroller', 'index'"),
         '权限迁移 controller/action 必须与 PermissionResource 运行时资源一致'
     );
     crudExpect(
-        str_contains($permissionMigration, "'system:audit-log:options', 'console/generated.auditlogcontroller', 'options'"),
+        str_contains($permissionMigration, "'system:audit-log:options', 'admin/generated.auditlogcontroller', 'options'"),
         '启用 options 时必须生成与前端 code、运行时 obj/act 一致的权限'
     );
     crudExpect(str_contains($generatedByPath[$controllerPath], "options/:source"), '关系与字典必须生成受控 options endpoint');
@@ -713,15 +713,15 @@ try {
     ]));
     $limitedPlan = $generator->plan($limitedDefinition);
     $limitedByPath = array_column($limitedPlan['files'], 'content', 'path');
-    $limitedController = $limitedByPath['limited/app/console/controller/generated/AuditLogController.php'];
+    $limitedController = $limitedByPath['limited/app/admin/controller/generated/AuditLogController.php'];
     foreach (['detail', 'create', 'update', 'status', 'recycle', 'restore', 'destroy', 'import', 'export'] as $disabledAction) {
         crudExpect(!str_contains($limitedController, "public function {$disabledAction}("), 'capability=false 不得暴露控制器动作：' . $disabledAction);
     }
     crudExpect(str_contains($limitedController, 'public function index()'), 'list capability 必须保留 index 动作');
     $limitedPermission = $limitedByPath['limited/database/generated/audit_log_permissions.sql'];
-    crudExpect(str_contains($limitedPermission, "'console/generated.auditlogcontroller', 'index'"), 'list 权限必须映射运行时 index action');
+    crudExpect(str_contains($limitedPermission, "'admin/generated.auditlogcontroller', 'index'"), 'list 权限必须映射运行时 index action');
     foreach (['detail', 'create', 'update', 'status', 'recycle', 'restore', 'destroy', 'import', 'export'] as $disabledAction) {
-        crudExpect(!str_contains($limitedPermission, "'console/generated.auditlogcontroller', '{$disabledAction}'"), 'capability=false 不得生成权限动作：' . $disabledAction);
+        crudExpect(!str_contains($limitedPermission, "'admin/generated.auditlogcontroller', '{$disabledAction}'"), 'capability=false 不得生成权限动作：' . $disabledAction);
     }
     $limitedApi = $limitedByPath['limited/admin-web/src/api/generated/audit-log.ts'];
     crudExpect(str_contains($limitedApi, '  list:'), '启用的 list API 必须保留');
@@ -738,7 +738,7 @@ try {
     ]));
     $batchDisabledPlan = $generator->plan($batchDisabledDefinition);
     $batchDisabledByPath = array_column($batchDisabledPlan['files'], 'content', 'path');
-    $batchDisabledController = $batchDisabledByPath['batch-disabled/app/console/controller/generated/AuditLogController.php'];
+    $batchDisabledController = $batchDisabledByPath['batch-disabled/app/admin/controller/generated/AuditLogController.php'];
     crudExpect(!str_contains($batchDisabledController, 'public function recycle()'), 'batchDelete=false 不得生成批量 recycle 路由');
     crudExpect(
         str_contains($batchDisabledController, "#[Delete(':id')]")
@@ -774,8 +774,8 @@ try {
     );
     $batchDisabledPermission = $batchDisabledByPath['batch-disabled/database/generated/audit_log_permissions.sql'];
     crudExpect(
-        str_contains($batchDisabledPermission, "'system:audit-log:delete', 'console/generated.auditlogcontroller', 'remove'")
-        && !str_contains($batchDisabledPermission, "'console/generated.auditlogcontroller', 'recycle'"),
+        str_contains($batchDisabledPermission, "'system:audit-log:delete', 'admin/generated.auditlogcontroller', 'remove'")
+        && !str_contains($batchDisabledPermission, "'admin/generated.auditlogcontroller', 'recycle'"),
         'batchDelete=false 必须仅生成单删运行时权限资源'
     );
 
@@ -801,14 +801,14 @@ try {
     ]));
     $featureDisabledPlan = $generator->plan($featureDisabledDefinition);
     $featureDisabledByPath = array_column($featureDisabledPlan['files'], 'content', 'path');
-    $featureDisabledService = $featureDisabledByPath['feature-disabled/app/console/service/AuditLogService.php'];
+    $featureDisabledService = $featureDisabledByPath['feature-disabled/app/admin/service/AuditLogService.php'];
     crudExpect(
         !str_contains($featureDisabledService, 'dictionaryOptions')
         && !str_contains($featureDisabledService, 'dictionary_options')
         && str_contains($featureDisabledService, "'owner_options' =>"),
         'dictionary=false 仅禁用字典 optionsSource，relation options 必须保留'
     );
-    $featureDisabledController = $featureDisabledByPath['feature-disabled/app/console/controller/generated/AuditLogController.php'];
+    $featureDisabledController = $featureDisabledByPath['feature-disabled/app/admin/controller/generated/AuditLogController.php'];
     crudExpect(str_contains($featureDisabledController, 'public function options('), 'dictionary=false 不得影响 relation options 控制器');
     $featureDisabledApi = $featureDisabledByPath['feature-disabled/admin-web/src/api/generated/audit-log.ts'];
     crudExpect(
@@ -967,8 +967,8 @@ TS
     crudRun([dirname(__DIR__, 2) . '/admin-web/node_modules/.bin/vitest', 'run', '--root', $temporaryWeb, 'tests/generated.spec.ts'], $temporaryWeb);
     crudExpect(!is_file(dirname(__DIR__, 2) . '/app/common/service/AdminWebCrudGenerator.php'), '旧 AdminWebCrudGenerator 兼容适配器不得恢复');
     crudExpect(!is_file(dirname(__DIR__, 2) . '/extend/fun/crud/AdminWebCrud.php'), '旧 CRUD CLI 兼容入口不得恢复');
-    $generateSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/console/command/CrudGenerate.php');
-    $supportSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/console/command/CrudCommandSupport.php');
+    $generateSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/admin/command/CrudGenerate.php');
+    $supportSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/admin/command/CrudCommandSupport.php');
     crudExpect(!str_contains($generateSource, "getOption('confirm-token')"), 'crud:generate 不得接受 argv confirm token');
     crudExpect(str_contains($supportSource, 'stream_get_contents(STDIN)') && str_contains($supportSource, '0600'), 'crud:generate token 必须从 stdin 或 0600 文件读取');
     $mcpSource = (string) file_get_contents(dirname(__DIR__, 2) . '/app/common/service/McpService.php');

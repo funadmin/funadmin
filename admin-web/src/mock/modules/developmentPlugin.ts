@@ -2,7 +2,7 @@ import type { MockRoute } from '../types';
 import { ok } from '../types';
 
 const plugins = [
-  { code: 'demo', name: '演示插件', manifestVersion: 2 as const, version: '1.0.0', scopes: ['application', 'console', 'both'] }
+  { code: 'demo', name: '演示插件', manifestVersion: 2 as const, version: '1.0.0', scopes: ['application', 'admin', 'both'] }
 ];
 
 export const developmentPluginMockHandlers: MockRoute[] = [

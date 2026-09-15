@@ -1,0 +1,211 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\admin\ai\job;
+
+use app\common\ai\provider\OpenAiCompatibleGateway;
+use app\admin\ai\contract\AiConversationStore;
+use app\admin\ai\contract\AiSecurityStore;
+use app\admin\ai\infrastructure\ContainerAiToolExecutor;
+use app\admin\ai\infrastructure\NativeDockerProcessRunner;
+use app\admin\ai\model\AiChangeSet;
+use app\admin\ai\repository\DatabaseAiConversationStore;
+use app\admin\ai\repository\DatabaseAiSecurityStore;
+use app\admin\ai\service\AgentSandboxManager;
+use app\admin\ai\service\AgentToolRegistry;
+use app\admin\ai\service\AiAgentOrchestrator;
+use app\admin\ai\service\AiApprovalService;
+use app\admin\ai\service\AiAuditService;
+use app\admin\ai\service\AiChangeSetService;
+use app\admin\ai\service\ApprovalPolicyEngine;
+use GuzzleHttp\Client;
+use RuntimeException;
+use think\queue\Job;
+use Throwable;
+
+/** 幂等 AI 队列消费者；Provider 重试由网关有限执行，副作用工具不在 Job 层重试。 */
+final class AiAgentJob
+{
+    private readonly AiConversationStore $store;
+    private readonly ?AiAgentOrchestrator $orchestrator;
+    private readonly ?\Closure $orchestratorFactory;
+    private readonly ?AgentSandboxManager $sandboxManager;
+    private readonly ?AiSecurityStore $securityStore;
+
+    public function __construct(?AiConversationStore $store = null, ?AiAgentOrchestrator $orchestrator = null, ?AgentSandboxManager $sandboxManager = null, ?AiSecurityStore $securityStore = null, ?\Closure $orchestratorFactory = null, private readonly ?\app\admin\ai\service\AiConfigurationProfileService $profiles = null, private readonly ?\app\admin\ai\service\AiAttachmentService $attachments = null)
+    {
+        $this->store = $store ?? new DatabaseAiConversationStore();
+        if ($orchestrator !== null) {
+            $this->orchestrator = $orchestrator;
+            $this->orchestratorFactory = $orchestratorFactory;
+            $this->sandboxManager = $sandboxManager;
+            $this->securityStore = $securityStore;
+            return;
+        }
+        $sandboxConfig = (array) config('ai.sandbox', []);
+        if (trim((string) ($sandboxConfig['image'] ?? '')) === '') {
+            throw new RuntimeException('AI Docker sandbox image 未配置');
+        }
+        $security = new DatabaseAiSecurityStore();
+        $this->securityStore = $security;
+        $this->sandboxManager = new AgentSandboxManager(new NativeDockerProcessRunner(), root_path(), (string) config('ai.storage.private_path'), $sandboxConfig);
+        $tools = new ContainerAiToolExecutor(new AgentToolRegistry((array) config('ai.tools.allowlist', [])), new ApprovalPolicyEngine(), new AiApprovalService($security), new AiAuditService((string) config('ai.storage.log_path'), (int) config('ai.storage.log_max_bytes')), $security, $this->sandboxManager, $sandboxConfig);
+        $this->orchestrator = null;
+        $this->orchestratorFactory = static fn (array $providerConfig): AiAgentOrchestrator => new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(), $providerConfig), $tools);
+    }
+
+    public function fire(Job $job, array $data): void
+    {
+        $taskId = (int) ($data['taskId'] ?? 0);
+        $operationToken = (string) ($data['operationToken'] ?? '');
+        $task = $this->store->task($taskId);
+        if (!$task || $operationToken === '' || !hash_equals((string) $task['operation_token'], $operationToken)) {
+            throw new RuntimeException('AI task operation token 无效');
+        }
+        if (in_array($task['status'], ['succeeded', 'failed', 'cancelled'], true)) {
+            $job->delete();
+            return;
+        }
+        $retainedSandbox = in_array(($task['status'] ?? ''), ['paused', 'resume_pending'], true);
+        $wasPaused = $retainedSandbox && ($task['status'] ?? '') === 'resume_pending';
+        if (!$this->store->compareAndSetTaskOperation($taskId, $operationToken, ['pending', 'resume_pending'], ['status' => 'running', 'started_at' => date('Y-m-d H:i:s')])) {
+            $job->delete();
+            return;
+        }
+
+        $heartbeatAt = date('Y-m-d H:i:s');
+        $this->store->updateTask($taskId, ['heartbeat_at' => $heartbeatAt]);
+        $this->store->appendEvent($taskId, 'task.heartbeat', ['at' => date(DATE_ATOM)]);
+        $sandbox = null;
+        try {
+            // 先接管并检查已有恢复信息，确保后续配置读取或网关工厂异常也进入安全导出收尾。
+            if ($this->sandboxManager !== null && $retainedSandbox) {
+                $containerId = (string)($task['container_task_id'] ?? '');
+                $workspace = (string)($task['workspace_path'] ?? '');
+                if ($containerId === '' || $workspace === '') throw new RuntimeException('paused 任务缺少 retained sandbox');
+                $sandbox = ['containerId' => $containerId, 'volume' => (string)($task['sandbox_volume'] ?? ''), 'workspace' => $workspace];
+            }
+            $orchestrator = $this->orchestrator;
+            if ($this->orchestratorFactory !== null) {
+                if (array_key_exists('profile_snapshot', (array) ($task['input'] ?? []))) {
+                    $adminId = (int) ($task['input']['admin_id'] ?? 0);
+                    if (!$this->store->conversation((int) $task['conversation_id'], $adminId)) throw new RuntimeException('任务管理员无效', 404);
+                    $providerConfig = ($this->profiles ?? \app\admin\ai\service\AiConfigurationProfileService::production())->resolveSnapshot($adminId, $task['input']['profile_snapshot']);
+                    if ($task['model'] !== $providerConfig['model'] || $task['provider'] !== $providerConfig['provider']) throw new RuntimeException('任务档案快照不一致', 409);
+                } else {
+                // 首次与审批恢复共用任务模型；凭据每次从服务端读取，不写入快照。
+                $providerConfig = (array) \think\facade\Config::get('ai.provider', []);
+                $provider = trim((string) ($providerConfig['name'] ?? ''));
+                $model = $task['model'] ?? null;
+                $snapshotProvider = $task['provider'] ?? null;
+                $block = null;
+                if ($snapshotProvider === null || $snapshotProvider === '' || $model === null || (is_string($model) && trim($model) === '')) {
+                    $block = ['code' => 'model_snapshot_missing', 'message' => '任务缺少供应商或模型快照，需人工确认配置；禁止使用当前全局配置补全旧快照'];
+                } elseif ($provider === '' || $snapshotProvider !== $provider) {
+                    $block = ['code' => 'provider_snapshot_mismatch', 'message' => '任务供应商与当前配置不匹配，需确认服务端配置；禁止跨供应商执行'];
+                } elseif (!is_string($model) || !mb_check_encoding($model, 'UTF-8') || mb_strlen($model) > 100 || preg_match('/[\x00-\x1f\x7f]/u', $model)) {
+                    $block = ['code' => 'model_snapshot_invalid', 'message' => '任务模型快照无效，需人工确认配置；禁止自动替换任务模型'];
+                }
+                if ($block !== null) {
+                    // paused 是现有非终态，清理器会跳过；保留审批上下文与原始执行阶段，不猜测历史模型。
+                    $block += ['category' => 'configuration_required', 'from_status' => $task['status']];
+                    $output = (array) ($task['output'] ?? []);
+                    $output['configuration_block'] = $block;
+                    if ($this->store->compareAndSetTask($taskId, ['running'], ['status' => 'paused', 'error' => $block, 'output' => $output])) {
+                        $this->store->appendEvent($taskId, 'task.paused', $block);
+                    }
+                    $job->delete();
+                    return;
+                }
+                $providerConfig['model'] = $model;
+                }
+                $providerConfig['_image_resolver'] = fn (array $reference): array => ($this->attachments ?? \app\admin\ai\service\AiAttachmentService::production())->resolveImage((int) $task['conversation_id'], (int) ($task['input']['admin_id'] ?? 0), $reference);
+                $providerConfig['_runtime_state'] = (array) ($task['output']['provider_state'] ?? []);
+                $orchestrator = ($this->orchestratorFactory)($providerConfig);
+            }
+            if ($this->sandboxManager !== null && !$retainedSandbox) {
+                $sandbox = $this->sandboxManager->create($taskId, (int) $task['conversation_id']);
+                $this->sandboxManager->start($sandbox['containerId']);
+                $this->store->updateTask($taskId, ['container_task_id'=>$sandbox['containerId'],'sandbox_volume'=>$sandbox['volume'],'workspace_path'=>$sandbox['workspace'],'sandbox_status'=>'running','sandbox_retained'=>0,'heartbeat_at'=>date('Y-m-d H:i:s')]);
+            }
+            $context = ['conversation_id'=>(int)$task['conversation_id'],'task_id'=>$taskId,'admin_id'=>(int)($task['input']['admin_id'] ?? 0),'approval_mode'=>$task['approval_mode'],'container_id'=>$sandbox['containerId'] ?? 'injected-test','workspace'=>$sandbox['workspace'] ?? dirname(__DIR__, 3)];
+            $messages = (array)($task['input']['messages'] ?? []);
+            if ($wasPaused) {
+                $record = $this->securityStore?->awaitingToolCall($taskId, (int)$task['conversation_id']);
+                if ($record === null) throw new RuntimeException('paused 任务缺少可信 awaiting_approval 工具调用');
+                $resumed = $orchestrator->resume($record, $context);
+                $messages = (array)($task['output']['resume']['messages'] ?? $messages);
+                $messages[] = ['role'=>'tool','tool_call_id'=>(string)$record['idempotency_key'],'content'=>json_encode($resumed, JSON_THROW_ON_ERROR)];
+            }
+            $privateMetadata = [];
+            $result = $orchestrator->run(
+                $messages,
+                (array) (($task['input']['tools'] ?? [])),
+                ['maxRounds' => (int) $task['max_rounds'], 'totalTokenBudget' => (int) $task['total_token_budget'], 'usedTokens'=>(int) ($task['output']['usage']['totalTokens'] ?? 0), 'usedRounds'=>(int) ($task['output']['rounds'] ?? 0)],
+                fn (): bool => ($this->store->task($taskId)['status'] ?? '') === 'cancelled',
+                function (string $type, array $payload) use ($taskId, $task, &$privateMetadata): array {
+                    if ($type === 'provider.request') {
+                        $latest = $this->store->task($taskId);
+                        if (($latest['status'] ?? '') !== 'running') throw new \app\common\ai\provider\AiProviderException('cancelled', '任务已取消');
+                        $output = (array) ($latest['output'] ?? []);
+                        $output['provider_state'] = array_intersect_key($payload, array_flip(['requests','reserved_seconds','candidate']));
+                        $this->store->updateTask($taskId, ['output'=>$output]);
+                    }
+                    if ($type === 'assistant.message') {
+                        $this->store->appendMessage((int) $task['conversation_id'], [
+                            'role' => 'assistant',
+                            'content' => [['type' => 'text', 'text' => $payload['content'] ?? '']],
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null] + $privateMetadata,
+                        ]);
+                    }
+                    return $this->store->appendEvent($taskId, $type, $payload);
+                },
+                $context,
+                static function (array $message, array $history) use (&$privateMetadata): void {
+                    $privateMetadata = [];
+                    if (isset($message['protocol_context'])) $privateMetadata['protocol_context'] = $message['protocol_context'];
+                    if (empty($message['tool_calls']) && array_filter($history, static fn (array $item): bool => isset($item['protocol_context']))) $privateMetadata['protocol_history'] = $history;
+                }
+            );
+            $result['provider_state'] = (array) ($this->store->task($taskId)['output']['provider_state'] ?? []);
+            if ($result['status'] === 'awaiting_approval') {
+                $this->store->compareAndSetTask($taskId, ['running'], ['status'=>'paused','output'=>$result,'sandbox_retained'=>1,'heartbeat_at'=>date('Y-m-d H:i:s')]);
+            } elseif ($result['status'] === 'cancelled') {
+                $this->store->compareAndSetTask($taskId, ['running'], ['status' => 'cancelled', 'completed_at' => date('Y-m-d H:i:s')]);
+            } else {
+                $completed = $this->store->compareAndSetTask($taskId, ['running'], ['status' => 'succeeded', 'output' => $result, 'usage' => $result['usage'], 'completed_at' => date('Y-m-d H:i:s')]);
+                if ($completed) {
+                    $this->store->appendEvent($taskId, 'task.succeeded', ['usage' => $result['usage']]);
+                }
+            }
+            $job->delete();
+        } catch (Throwable $exception) {
+            $category = method_exists($exception, 'category') ? $exception->category() : 'internal';
+            $failed = $this->store->compareAndSetTask($taskId, ['running'], ['status' => 'failed', 'error' => ['category' => $category], 'completed_at' => date('Y-m-d H:i:s')]);
+            if ($failed) {
+                $this->store->appendEvent($taskId, 'task.failed', ['category' => $category]);
+            }
+            throw $exception;
+        } finally {
+            if ($sandbox !== null && $this->sandboxManager !== null) {
+                $latest = $this->store->task($taskId) ?? [];
+                if (($latest['status'] ?? '') !== 'paused') {
+                    try {
+                        $artifact = $this->sandboxManager->exportChanges($sandbox['containerId'], $sandbox['workspace']);
+                        $changeSet = AiChangeSet::create(array_merge(
+                            AiChangeSetService::attributes($task, $artifact, (int)($task['input']['admin_id'] ?? 0)),
+                            ['created_at' => date('Y-m-d H:i:s')]
+                        ));
+                        $this->store->updateTask($taskId, ['change_set_id'=>$changeSet->id, 'sandbox_status'=>'exported']);
+                    } catch (Throwable $exportException) {
+                        $this->store->updateTask($taskId, ['sandbox_status'=>'failed', 'error'=>['category'=>'artifact_export_failed']]);
+                        throw $exportException;
+                    }
+                    $this->sandboxManager->cleanup($sandbox['containerId'], $sandbox['workspace'], $taskId, (int)$task['conversation_id'], (string)($task['sandbox_volume'] ?? $sandbox['volume'] ?? ''));
+                    $this->store->updateTask($taskId, ['sandbox_status'=>'cleaned','sandbox_retained'=>0,'cleanup_at'=>date('Y-m-d H:i:s')]);
+                }
+            }
+        }
+    }
+}

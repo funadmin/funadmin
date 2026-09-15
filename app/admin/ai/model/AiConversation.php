@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\admin\ai\model;
+
+use app\common\model\concern\LaravelSoftDelete;
+use app\admin\model\BackendModel;
+
+/** AI 开发助手会话。 */
+final class AiConversation extends BackendModel
+{
+    use LaravelSoftDelete;
+
+    protected $name = 'ai_conversation';
+
+    protected $type = ['id' => 'integer', 'admin_id' => 'integer', 'is_archived' => 'boolean', 'is_unread' => 'boolean', 'group_id' => 'integer', 'profile_id' => 'integer'];
+
+    protected $json = ['context'];
+
+    protected $jsonAssoc = true;
+
+    public function messages()
+    {
+        return $this->hasMany(AiMessage::class, 'conversation_id', 'id');
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(AiTask::class, 'conversation_id', 'id');
+    }
+}

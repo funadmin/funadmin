@@ -109,8 +109,8 @@ const route = useRoute();
 const user = useUserStore();
 const creationPath = computed(() => {
   const permissions = user.permissions;
-  if (permissions.some(permission => ['*', '*:*:*', 'console/development.business:createvisual'].includes(permission))) return '/development/business/visual';
-  if (permissions.includes('console/development.business:inspectdatabase')) return '/development/business/database';
+  if (permissions.some(permission => ['*', '*:*:*', 'admin/development.business:createvisual'].includes(permission))) return '/development/business/visual';
+  if (permissions.includes('admin/development.business:inspectdatabase')) return '/development/business/database';
   return '';
 });
 const { t } = useI18n();

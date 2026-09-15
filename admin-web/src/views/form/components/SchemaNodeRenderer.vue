@@ -97,7 +97,9 @@ const columnProps = computed(() => {
 });
 const state = computed(() => {
   void props.runtimeVersion;
-  return props.stateOf?.(props.node.id) ?? { hidden: Boolean(props.node.hidden), disabled: Boolean(props.node.disabled), required: false };
+  const runtime = props.stateOf?.(props.node.id) ?? { hidden: Boolean(props.node.hidden), disabled: Boolean(props.node.disabled), required: false };
+  const protectedRead = props.readOnly && (props.node.type === 'password' || props.node.props?.sensitive || props.node.props?.writeOnly);
+  return { ...runtime, hidden: runtime.hidden || props.node.type === 'hidden' || Boolean(protectedRead) };
 });
 const dataSourceState = computed(() => props.dataSources[props.node.id]);
 const nodeOptions = computed(() => resolveFieldOptions(props.node, props.options));
@@ -109,7 +111,7 @@ const legacyField = computed<FormFieldDef>(() => ({
   index_type: 'none', placeholder: String(props.node.props?.placeholder ?? ''), options_source: props.node.dataSource,
   control_props: props.node.props, validate_rules: null, link_rules: null, relation_type: 'none', relation_table: '',
   relation_label_field: '', relation_value_field: '', relation_multiple: 0, relation_on_delete: 'restrict', list_show: 0,
-  list_sort: 0, list_filter: '', list_formatter: '', list_width: 0, form_show: props.node.hidden ? 0 : 1,
+  list_sort: 0, list_filter: String(props.node.list?.filter ?? ''), list_formatter: String(props.node.list?.formatter ?? ''), list_width: Number(props.node.list?.width ?? 0), form_show: props.node.hidden ? 0 : 1,
   form_required: 0, form_group: '', form_span: typeof props.node.layout?.span === 'number' ? props.node.layout.span : 24, form_readonly: props.node.disabled ? 1 : 0, sort_order: 0
 }));
 const updateValue = (value: unknown) => {
