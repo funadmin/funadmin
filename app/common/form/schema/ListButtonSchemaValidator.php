@@ -10,7 +10,7 @@ final class ListButtonSchemaValidator
     public const LOCATIONS = ['toolbar', 'row', 'categoryToolbar', 'categoryNode'];
     public const TOOLS = ['refresh', 'search', 'columns', 'density', 'fullscreen'];
     private const BUILTINS = [
-        'toolbar' => ['create', 'batchDelete', 'import', 'export', 'recycle'],
+        'toolbar' => ['create', 'batchDelete', 'import', 'export', 'recycle', 'normal'],
         'row' => ['detail', 'edit', 'delete', 'restore', 'destroy', 'copyCreate'],
         'categoryToolbar' => ['create'],
         'categoryNode' => ['addChild', 'edit', 'delete'],
@@ -30,7 +30,7 @@ final class ListButtonSchemaValidator
             $ids = [];
             foreach ($buttons as $index => $button) {
                 $at = $path . '/' . $index;
-                $button = $this->object($button, ['id', 'label', 'icon', 'color', 'size', 'tips', 'placement', 'order', 'hidden', 'disabled', 'disabledReason', 'permission', 'visibleWhen', 'disabledWhen', 'interaction', 'action', 'params', 'success', 'selection'], $at);
+                $button = $this->object($button, ['id', 'label', 'icon', 'color', 'size', 'tips', 'placement', 'order', 'hidden', 'disabled', 'disabledReason', 'permission', 'visibleWhen', 'disabledWhen', 'interaction', 'action', 'params', 'success', 'selection', 'plain'], $at);
                 if (array_key_exists('selection', $button)) {
                     if ($location !== 'toolbar') $this->fail('数量约束仅支持列表顶部选择', $at . '/selection');
                     $selection = $this->object($button['selection'], ['min', 'max'], $at . '/selection');
@@ -47,7 +47,7 @@ final class ListButtonSchemaValidator
                 foreach (['color' => ['default', 'primary', 'success', 'warning', 'danger', 'info'], 'size' => ['small', 'default', 'large'], 'placement' => ['inline', 'more']] as $key => $allowed) {
                     if (array_key_exists($key, $button)) $this->oneOf($button[$key], $allowed, $at . '/' . $key);
                 }
-                foreach (['hidden', 'disabled'] as $key) if (array_key_exists($key, $button) && !is_bool($button[$key])) $this->fail('开关必须为布尔值', $at . '/' . $key);
+                foreach (['hidden', 'disabled', 'plain'] as $key) if (array_key_exists($key, $button) && !is_bool($button[$key])) $this->fail('开关必须为布尔值', $at . '/' . $key);
                 if (array_key_exists('order', $button) && (!is_int($button['order']) || abs($button['order']) > 10000)) $this->fail('排序值不合法', $at . '/order');
                 foreach (['visibleWhen', 'disabledWhen'] as $key) {
                     if (array_key_exists($key, $button)) {

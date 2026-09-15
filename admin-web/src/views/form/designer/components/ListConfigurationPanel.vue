@@ -4,7 +4,7 @@
     <el-alert title="独立分类请选择“可管理分类”，绑定已发布分类业务的真实记录；“选项筛选”仅展示静态选项或字典，不提供分类增删改。两种左侧栏互斥，均可配合树形列表。" type="info" :closable="false" />
     <el-form label-width="110px" class="mt-3">
       <el-tabs v-model="activeTab">
-      <el-tab-pane label="选项筛选" name="category">
+      <el-tab-pane v-show="props.mode !== 'buttons'" label="选项筛选" name="category">
       <el-form-item label="选项筛选"><el-switch :model-value="modelValue.category?.enabled ?? false" @change="enabled => category({ enabled: Boolean(enabled) })" /></el-form-item>
       <el-form-item v-if="modelValue.category?.enabled" label="分类绑定字段">
         <el-select :model-value="modelValue.category.field" filterable placeholder="选择已有静态选项或字典字段" @change="field => category({ field })">
@@ -12,7 +12,7 @@
         </el-select>
       </el-form-item>
       </el-tab-pane>
-      <el-tab-pane label="树形列表" name="tree">
+      <el-tab-pane v-show="props.mode !== 'buttons'" label="树形列表" name="tree">
       <el-form-item label="树形列表"><el-switch :model-value="modelValue.tree?.enabled ?? false" @change="enabled => tree({ enabled: Boolean(enabled) })" /></el-form-item>
       <el-form-item v-if="modelValue.tree?.enabled" label="父级字段">
         <el-select :model-value="modelValue.tree.parentField" filterable placeholder="选择存储父记录主键的字段" @change="parentField => tree({ parentField })">
@@ -21,7 +21,7 @@
         <div class="text-xs text-[var(--el-text-color-secondary)]">主键自动读取实际表主键；树列表不分页，最多 1000 条授权记录，超限需缩小筛选范围。</div>
       </el-form-item>
       </el-tab-pane>
-      <el-tab-pane label="可管理分类" name="leftTree">
+      <el-tab-pane v-show="props.mode !== 'buttons'" label="可管理分类" name="leftTree">
       <el-form-item label="可管理分类"><el-switch :model-value="left.enabled" @change="value => updateLeft({ enabled: Boolean(value) })" /></el-form-item>
       <template v-if="left.enabled">
         <el-alert title="独立分类请选择已发布业务，右表关联字段保存分类主键。来源须有读取权限；新增、子级、编辑、删除还需对应权限。父级可留空（平面分类）；插件来源暂不支持快捷管理。" :closable="false" />
@@ -38,7 +38,7 @@
         <el-form-item v-for="action in actions" :key="action.key" :label="action.label"><el-switch :disabled="action.key === 'addChild' && !left.mapping.parentField" :model-value="action.key === 'addChild' && !left.mapping.parentField ? false : left.actions?.[action.key] ?? false" @change="value => updateLeft({ actions: { ...left.actions, [action.key]: Boolean(value) } })" /></el-form-item>
       </template>
       </el-tab-pane>
-      <el-tab-pane label="按钮与工具" name="buttons">
+      <el-tab-pane v-show="props.mode !== 'categories'" label="按钮与工具" name="buttons">
         <div class="list-button-section">
           <div class="list-button-actions"><el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog">重新加载动作目录</el-button></div>
         <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? categoryButtonFields : buttonFields" :filter-fields="scalarFields.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name)" :category-fields="categoryButtonFields" :resources="resources" :actions="actionCatalogs[location.key]" :catalog-error="catalogErrors[location.key]" :builtin-keys="builtinKeys(location.key)" :resource-enabled="!pluginTarget && (!location.key.startsWith('category') || left.enabled)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
@@ -60,10 +60,10 @@ import { listButtonKeys } from '../../runtime/listButtonHost';
 import type { FormListActionMetadata, FormListBuiltinAction } from '../../schema/types';
 import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation } from '../../schema/types';
 import ListButtonEditor from './ListButtonEditor.vue';
-const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean }>();
+const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories' }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
 // Tab 仅保存面板显示状态，不进入 Schema 更新通道。
-const activeTab = ref('category');
+const activeTab = ref(props.mode === 'buttons' ? 'buttons' : 'category');
 const buttonLocations = [{ key: 'toolbar', label: '顶部操作' }, { key: 'row', label: '行操作' }, { key: 'categoryToolbar', label: '分类顶部操作' }, { key: 'categoryNode', label: '分类节点操作' }] as const;
 const tools = [{ key: 'refresh', label: '刷新' }, { key: 'search', label: '搜索' }, { key: 'columns', label: '列设置' }, { key: 'density', label: '密度' }, { key: 'fullscreen', label: '全屏' }] as const;
 const updateButtons = (location: FormListButtonLocation, value: FormListButton[] | undefined) => {

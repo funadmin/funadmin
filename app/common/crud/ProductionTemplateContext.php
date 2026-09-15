@@ -698,16 +698,18 @@ final class ProductionTemplateContext
         $listSetup .= "function resolveButtonRow(row?: Record<string, unknown>): {$type} { const current = list.value.find(item => item.{$primaryName} === row?.['{$primaryName}']); if (!current) throw new Error('记录上下文已失效'); return current; }\n";
         $defaults = ['toolbar' => [], 'row' => []];
         $handlers = ['refresh: () => loadData()'];
-        $append = static function (string $location, string $key, string $label, string $handler) use (&$defaults, &$handlers): void {
+        $append = static function (string $location, string $key, string $label, string $handler, array $presentation = []) use (&$defaults, &$handlers): void {
             $defaults[$location][] = ['id' => strtolower($key), 'label' => $label, 'action' => ['type' => 'builtin', 'key' => $key]]
+                + $presentation
                 + (in_array($key, ['delete', 'batchDelete', 'destroy'], true) ? ['interaction' => ['type' => 'confirm', 'message' => '确认' . $label . '？此操作可能不可恢复。']] : []);
             $handlers[] = $key . ': ' . $handler;
         };
-        if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()');
-        if ($enabled['export']) $append('toolbar', 'export', '导出', '() => exportRows()');
-        if ($enabled['import']) $append('toolbar', 'import', '导入', '() => fileInput.value?.click()');
-        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '批量删除', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshButtonHost(); }");
-        if ($enabled['softDelete']) $append('toolbar', 'recycle', '切换回收站', '() => switchMode(!recycled.value)');
+        if ($enabled['softDelete']) $append('toolbar', 'normal', '正常列表', '() => switchMode(false)', ['color' => 'primary', 'plain' => true, 'placement' => 'inline', 'order' => 10]);
+        if ($enabled['softDelete']) $append('toolbar', 'recycle', '回收站', '() => switchMode(true)', ['color' => 'warning', 'plain' => true, 'placement' => 'inline', 'order' => 20]);
+        if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()', ['color' => 'primary', 'plain' => true, 'icon' => 'plus', 'placement' => 'inline', 'order' => 30]);
+        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '移入回收站', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshButtonHost(); }", ['color' => 'danger', 'plain' => true, 'icon' => 'delete', 'selection' => ['min' => 1], 'placement' => 'inline', 'order' => 40]);
+        if ($enabled['import']) $append('toolbar', 'import', 'CSV 导入', '() => fileInput.value?.click()', ['color' => 'success', 'plain' => true, 'icon' => 'upload', 'placement' => 'inline', 'order' => 50]);
+        if ($enabled['export']) $append('toolbar', 'export', 'CSV 导出', '() => exportRows()', ['color' => 'default', 'plain' => true, 'icon' => 'download', 'placement' => 'inline', 'order' => 60]);
         if ($enabled['update'] && $formEnabled) $append('row', 'edit', '编辑', "row => onEdit(resolveButtonRow(row))");
         if ($enabled['detail']) $append('row', 'detail', '详情', "row => onOpenDrawer(resolveButtonRow(row))");
         if ($enabled['delete']) $append('row', 'delete', '删除', "row => removeRow(resolveButtonRow(row))");
@@ -727,10 +729,14 @@ final class ProductionTemplateContext
         $listSetup .= "const toolbarButtonAllowed = (button: FormListButton) => buttonAllowed(button, true) && (!['restore', 'destroy'].includes(listActionKey(button)) || buttonSelection.value.length > 0);\n";
         $prefix = self::json($data['permissionPrefix']);
         $recycledValue = $enabled['softDelete'] ? 'recycled.value' : 'recycled';
-        $selectionGuard = $enabled['batchDelete'] ? "if (key === 'batchDelete' && !selection.value.length) return false;" : '';
         $batchRestoreGuard = $enabled['batchSoftDelete'] ? '' : "if (toolbar && ['restore', 'destroy'].includes(key)) return false;";
-        $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? 'batch-' + key : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; {$selectionGuard} if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
-        foreach ($defaults as $location => $buttons) $listSetup .= "const {$location}Buttons = computed(() => resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]));\n";
+        $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', normal: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? 'batch-' + key : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
+        foreach ($defaults as $location => $buttons) {
+            $presentation = $location === 'toolbar'
+                ? ".map(button => { const key = listActionKey(button); if (key === 'batchDelete') return { ...button, selection: { ...button.selection, min: Math.max(1, button.selection?.min ?? 0) } }; if (['normal', 'recycle'].includes(key)) return { ...button, color: (key === 'normal' ? (!{$recycledValue} ? 'primary' : 'info') : ({$recycledValue} ? 'warning' : 'info')) as FormListButton['color'] }; return button; })"
+                : '';
+            $listSetup .= "const {$location}Buttons = computed(() => resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]){$presentation});\n";
+        }
         $listSetup .= "const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));\n";
         $toolbar = ['<ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="toolbarButtonAllowed" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'toolbar\')" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" />'];
         if ($enabled['import']) $toolbar[] = '<input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';

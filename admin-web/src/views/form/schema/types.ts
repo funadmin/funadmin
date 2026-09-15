@@ -77,7 +77,7 @@ export interface FormLeftTreeConfiguration {
 }
 
 export type FormListButtonLocation = 'toolbar' | 'row' | 'categoryToolbar' | 'categoryNode';
-export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'batchDelete' | 'import' | 'export' | 'recycle' | 'restore' | 'destroy' | 'addChild' | 'copyCreate';
+export type FormListBuiltinAction = 'create' | 'edit' | 'detail' | 'delete' | 'batchDelete' | 'import' | 'export' | 'recycle' | 'normal' | 'restore' | 'destroy' | 'addChild' | 'copyCreate';
 export type FormListButtonAction =
   | { type: 'builtin'; key: FormListBuiltinAction }
   | { type: 'registered'; key: string; capabilityVersion: string }
@@ -122,6 +122,7 @@ export interface FormListButton {
   label: string;
   icon?: string;
   color?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  plain?: boolean;
   size?: 'small' | 'default' | 'large';
   tips?: string;
   placement?: 'inline' | 'more';

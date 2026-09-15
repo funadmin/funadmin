@@ -29,7 +29,7 @@ export function listButtonAdapterAllowed(adapter: ListButtonAdapter | undefined,
     && (!declaration.schemaHash || declaration.schemaHash === context?.schemaHash));
 }
 export type ListButtonHandlers = Partial<Record<string, (row?: Record<string, unknown>, input?: Record<string, unknown>) => unknown | Promise<unknown>>>;
-export const listButtonLabels: Record<FormListBuiltinAction, string> = { create: '新增', edit: '编辑', detail: '详情', delete: '删除', batchDelete: '批量删除', import: '导入', export: '导出', recycle: '回收站', restore: '恢复', destroy: '永久删除', addChild: '加子级', copyCreate: '复制新增' };
+export const listButtonLabels: Record<FormListBuiltinAction, string> = { create: '新增', edit: '编辑', detail: '详情', delete: '删除', batchDelete: '批量删除', import: '导入', export: '导出', recycle: '回收站', normal: '正常列表', restore: '恢复', destroy: '永久删除', addChild: '加子级', copyCreate: '复制新增' };
 export const listButtonKeys: Record<FormListButtonLocation, FormListBuiltinAction[]> = { toolbar: ['create', 'export'], row: ['edit', 'detail', 'delete', 'copyCreate'], categoryToolbar: ['create'], categoryNode: ['addChild', 'edit', 'delete'] };
 export function defaultListButtons(location: FormListButtonLocation): FormListButton[] {
   return listButtonKeys[location].map(key => ({ id: key.toLowerCase(), label: listButtonLabels[key], color: key === 'delete' ? 'danger' : 'primary', action: { type: 'builtin', key } }));

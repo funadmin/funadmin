@@ -1,7 +1,7 @@
 <template>
   <span v-if="items.length" class="inline-flex flex-wrap items-center gap-2" @click.stop>
     <template v-for="item in inline" :key="item.button.id">
-      <span :title="item.state.reason || item.button.tips"><el-button :link="link" :type="item.button.color === 'default' ? undefined : item.button.color" :size="item.button.size" :disabled="busy || lock?.busy || item.state.disabled" @click="execute(item.button)"><el-icon v-if="icons[item.button.icon ?? '']"><component :is="icons[item.button.icon ?? '']" /></el-icon>{{ item.button.label }}</el-button></span>
+      <span :title="item.state.reason || item.button.tips"><el-button :link="link" :type="item.button.color === 'default' ? undefined : item.button.color" :plain="item.button.plain" :size="item.button.size" :disabled="busy || lock?.busy || item.state.disabled" @click="execute(item.button)"><el-icon v-if="icons[item.button.icon ?? '']"><component :is="icons[item.button.icon ?? '']" /></el-icon>{{ item.button.label }}</el-button></span>
     </template>
     <el-dropdown v-if="more.length" trigger="click" @command="button => execute(button)"><el-button :disabled="busy || lock?.busy">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-for="item in more" :key="item.button.id" :command="item.button" :disabled="busy || lock?.busy || item.state.disabled" :title="item.state.reason || item.button.tips">{{ item.button.label }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
   </span>

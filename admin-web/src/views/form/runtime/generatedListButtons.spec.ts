@@ -62,6 +62,27 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
 }
 afterEach(() => { vi.restoreAllMocks(); });
 describe('PHP 真实生成页面消费正式宿主', () => {
+  it('正式生成默认工具栏按正常列表、回收站、新增、移入回收站、导入、导出顺序并保留样式元数据', () => {
+    const generated = generate('defaults', true, true);
+    const defaults = JSON.parse(generated.viewContent.match(/resolveListButtons\(listConfig, 'toolbar', (\[.*\]) as FormListButton\[\]/)[1]);
+    expect(defaults.slice(0, 6).map((button: any) => button.label)).toEqual(['正常列表', '回收站', '新增', '移入回收站', 'CSV 导入', 'CSV 导出']);
+    expect(defaults[2]).toMatchObject({ color: 'primary', plain: true, icon: 'plus' });
+    expect(defaults[3]).toMatchObject({ color: 'danger', plain: true, icon: 'delete', selection: { min: 1 } });
+    expect(defaults[4]).toMatchObject({ color: 'success', plain: true, icon: 'upload' });
+    expect(defaults[5]).toMatchObject({ color: 'default', plain: true, icon: 'download' });
+  });
+  it('后端 schema 接受 normal 和布尔 plain，拒绝错误类型和错误位置', () => {
+    const result = execFileSync(php, ['-r', `require 'vendor/autoload.php';
+$v = new app\\common\\form\\schema\\ListButtonSchemaValidator();
+foreach ([true, false] as $plain) $v->validate(['buttons'=>['toolbar'=>[['id'=>'normal','label'=>'正常列表','plain'=>$plain,'action'=>['type'=>'builtin','key'=>'normal']]]]], []);
+$count = 0;
+foreach ([['toolbar', 'true'], ['toolbar', 1], ['toolbar', null], ['row', true], ['categoryToolbar', true], ['categoryNode', true]] as [$location, $plain]) {
+  try { $v->validate(['buttons'=>[$location=>[['id'=>'normal','label'=>'正常列表','plain'=>$plain,'action'=>['type'=>'builtin','key'=>'normal']]]]], []); }
+  catch (app\\common\\form\\schema\\FormSchemaException $e) { $count++; }
+}
+echo $count;`], { cwd: root, encoding: 'utf8' });
+    expect(result).toBe('6');
+  });
   it('真实生成脚本与 API 在无批删、无软删和插件降级时通过类型检查', () => {
     for (const [batch, soft, plugin, search] of [[true, true, false, true], [false, false, false, true], [false, false, true, true], [true, true, false, false]]) {
       const generated = generate(false, batch, soft, plugin, search);
@@ -81,12 +102,37 @@ describe('PHP 真实生成页面消费正式宿主', () => {
       expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
     }
   }, 30000);
+  it('默认按钮真实渲染 plain、图标和禁用选择，状态入口重复点击不反转', async () => {
+    const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
+    const bar = wrapper.findAllComponents(Bar).find(item => item.props('context')?.location === 'toolbar')!;
+    expect(bar.findAll('button').slice(0, 6).map(item => item.text())).toEqual(['正常列表', '回收站', '新增', '移入回收站', 'CSV 导入', 'CSV 导出']);
+    const remove = bar.findAll('button').find(item => item.text() === '移入回收站')!;
+    expect(remove.attributes('disabled')).toBeDefined();
+    expect(remove.classes()).toContain('is-plain');
+    expect(remove.find('svg').exists()).toBe(true);
+    expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain('el-button--primary');
+    expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain('el-button--info');
+    await remove.trigger('click'); await flushPromises();
+    expect(http.delete).not.toHaveBeenCalled();
+    const table = wrapper.findComponent({ name: 'ElTable' });
+    table.vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
+    expect(remove.attributes('disabled')).toBeUndefined();
+    table.vm.$emit('selection-change', []); await flushPromises();
+    expect(remove.attributes('disabled')).toBeDefined();
+    for (const label of ['回收站', '回收站', '正常列表', '正常列表']) {
+      await bar.findAll('button').find(item => item.text() === label)!.trigger('click'); await flushPromises();
+      expect(http.get).toHaveBeenLastCalledWith('/generated/host-demo', expect.objectContaining({ recycled: label === '回收站' ? 1 : 0 }));
+      expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain(label === '正常列表' ? 'el-button--primary' : 'el-button--info');
+      expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain(label === '回收站' ? 'el-button--warning' : 'el-button--info');
+    }
+    wrapper.unmount();
+  });
   it('批删确认中选择或权限变化时取消，不使用确认后的新选择', async () => {
     const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
     const table = wrapper.findComponent({ name: 'ElTable' });
     table.vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
-    await wrapper.findAll('button').find(button => button.text() === '批量删除')!.trigger('click'); await flushPromises();
-    expect(document.body.textContent).toContain('确认批量删除');
+    await wrapper.findAll('button').find(button => button.text() === '移入回收站')!.trigger('click'); await flushPromises();
+    expect(document.body.textContent).toContain('确认移入回收站');
     table.vm.$emit('selection-change', [{ orderId: 'order-99' }]); await flushPromises();
     expect(http.delete).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -125,7 +171,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
   });
   it('回收站仅在能力启用时出现，恢复命中生成 API，显式空不补默认', async () => {
     const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
-    await wrapper.findAll('button').find(button => button.text() === '切换回收站')!.trigger('click'); await flushPromises();
+    await wrapper.findAll('button').find(button => button.text() === '回收站')!.trigger('click'); await flushPromises();
     const rowBar = wrapper.findAllComponents(Bar).find(bar => bar.props('context')?.location === 'row' && bar.props('row')?.orderId === 'order-42')!;
     expect(rowBar.props('row')).toEqual({ orderId: 'order-42', orderTitle: '可批准' });
     const restore = rowBar.findAll('button').find(button => button.text() === '恢复')!;
@@ -137,12 +183,12 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     expect(batchRestore).toBeDefined(); await batchRestore!.trigger('click'); await flushPromises();
     expect(http.post).toHaveBeenCalledWith('/generated/host-demo/restore', { ids: ['order-42'] }); wrapper.unmount();
     const disabled = render('defaults', false, false); permission.permissions = ['*']; await flushPromises();
-    expect(disabled.wrapper.findAll('button').some(button => ['切换回收站', '恢复', '永久删除'].includes(button.text()))).toBe(false); disabled.wrapper.unmount();
+    expect(disabled.wrapper.findAll('button').some(button => ['回收站', '恢复', '永久删除'].includes(button.text()))).toBe(false); disabled.wrapper.unmount();
   });
   it('批量回收站按钮使用独立批量权限而非单条权限', async () => {
     const { wrapper, http } = render('defaults');
     permission.permissions = ['generated:host-demo:list', 'generated:host-demo:batch-restore', 'generated:host-demo:batch-destroy']; await flushPromises();
-    await wrapper.findAll('button').find(button => button.text() === '切换回收站')!.trigger('click'); await flushPromises();
+    await wrapper.findAll('button').find(button => button.text() === '回收站')!.trigger('click'); await flushPromises();
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const restore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
     expect(restore).toBeDefined(); expect(restore!.attributes('disabled')).toBeUndefined();

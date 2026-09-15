@@ -200,10 +200,10 @@
     </div>
 
       </el-tab-pane>
-      <el-tab-pane label="列表展示" name="list" :lazy="false">
-    <ListConfigurationPanel :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" @update="store.updateList" />
-      </el-tab-pane>
+      <el-tab-pane label="按钮与工具" name="buttons" :lazy="false" />
+      <el-tab-pane label="分类管理" name="list" :lazy="false" />
     </el-tabs>
+    <ListConfigurationPanel v-if="activeTab === 'buttons' || activeTab === 'list'" :mode="activeTab === 'buttons' ? 'buttons' : 'categories'" :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" @update="store.updateList" />
 
     <el-drawer v-model="outlineVisible" title="表单大纲" size="min(480px, 100vw)" append-to-body destroy-on-close>
       <el-button size="small" @click="store.addNode('group')">添加布局分组</el-button>
@@ -326,7 +326,7 @@ const businessModule = ref<BusinessModule | null>(null);
 const businessTarget = computed(() => businessModule.value?.metadata?.target);
 const isPluginTarget = computed(() => businessTarget.value?.type === 'plugin');
 // 区域切换仅改变显示，不进入 Schema、历史和自动保存通道。
-const activeTab = ref<'basic' | 'design' | 'list'>('basic');
+const activeTab = ref<'basic' | 'design' | 'buttons' | 'list'>('basic');
 const workspaceMode = ref<'edit' | 'desktop' | 'tablet' | 'mobile'>('edit');
 // 大纲仅为临时视图状态，不进入草稿与自动保存通道。
 const outlineVisible = ref(false);
