@@ -3,9 +3,9 @@
     <div class="mb-4 flex flex-wrap gap-2">
       <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">市场账号</el-button>
       <el-button type="success" plain v-perm="'system:plugin:install'" @click="installVisible = true">上传本地 ZIP</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
+      <el-button type="info" plain v-perm="'admin/development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
+      <el-button type="info" plain v-perm="'admin/development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
+      <el-button type="info" plain v-perm="'admin/development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
       <el-button type="info" plain @click="load">刷新</el-button>
     </div>
@@ -48,7 +48,7 @@
           <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">迁移</el-button>
           <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">启用</el-button>
           <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">禁用</el-button>
-          <el-button type="primary" link v-perm="'development:business:save'" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || '进入统一业务设计器，目标可用性由服务端再次校验'" @click="developBusiness(row as PluginItem)">开发业务</el-button>
+          <el-button type="primary" link v-perm="'admin/development:business:save'" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || '进入统一业务设计器，目标可用性由服务端再次校验'" @click="developBusiness(row as PluginItem)">开发业务</el-button>
           <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row as PluginItem)">配置</el-button>
           <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row as PluginItem)">历史</el-button>
           <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">卸载</el-button>

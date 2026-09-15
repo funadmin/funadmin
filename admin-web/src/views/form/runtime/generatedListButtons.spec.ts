@@ -27,7 +27,7 @@ $a = $d->toArray(); $a['fields'][0]['name']='order_id'; $a['primaryKey']='order_
 $a['fields'][1]['search']=${search ? 'true' : 'false'}; $a['fields'][1]['searchOperator']='eq';
 $a['fields'][1] = array_replace($a['fields'][1], json_decode(base64_decode('${Buffer.from(JSON.stringify(presentation)).toString('base64')}'), true));
 $a['features']['batchDelete']=${batch ? 'true' : 'false'}; $a['softDeletes']=${soft ? 'true' : 'false'};
-$a['list']['buttons'] = ${empty ? "['toolbar'=>[], 'row'=>[], 'categoryToolbar'=>[], 'categoryNode'=>[]]" : "['row'=>[['id'=>'approve','label'=>'批准','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1'],'visibleWhen'=>['op'=>'eq','field'=>'order_title','value'=>'可批准'],'success'=>['refresh'=>true,'clearSelection'=>true]]], 'toolbar'=>[['id'=>'approve_many','label'=>'批量批准','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]], 'categoryNode'=>[['id'=>'approve_category','label'=>'批准分类','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]]]"};
+$a['list']['buttons'] = ${empty ? "['toolbar'=>[], 'row'=>[], 'categoryToolbar'=>[], 'categoryNode'=>[]]" : "['row'=>[['id'=>'approve','label'=>'批准','permission'=>'admin/business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1'],'visibleWhen'=>['op'=>'eq','field'=>'order_title','value'=>'可批准'],'success'=>['refresh'=>true,'clearSelection'=>true]]], 'toolbar'=>[['id'=>'approve_many','label'=>'批量批准','permission'=>'admin/business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]], 'categoryNode'=>[['id'=>'approve_category','label'=>'批准分类','permission'=>'admin/business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]]]"};
 $a['list']['leftTree']=['enabled'=>true,'source'=>['type'=>'module','module'=>'categories'],'mapping'=>['valueField'=>'id','labelField'=>'title','targetField'=>'order_id']];
 ${empty === 'defaults' ? "unset($a['list']['buttons']);" : ''}
 $a['formSchema']['list']=$a['list'];
@@ -50,7 +50,7 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const generated = generate(empty, batch, soft);
   const declaration = JSON.parse(generated.apiContent.match(/listButtonAdapter: (\{[\s\S]*?\}) as const/)[1]);
   const http = { get: vi.fn(async (url: string) => {
-    if (url.endsWith('/list-actions')) return { schemaHash: declaration.schemaHash, sourceSchemaHash: 'source-hash', sourceKey: 'categories', actions: { approve: { permission: 'business:approve', capabilityVersion: 'v1', locations: ['row', 'toolbar', 'categoryNode'], targets: ['record', 'selection', 'category'], batch: true, effect: 'read', resultContract: 'json' } } };
+    if (url.endsWith('/list-actions')) return { schemaHash: declaration.schemaHash, sourceSchemaHash: 'source-hash', sourceKey: 'categories', actions: { approve: { permission: 'admin/business:approve', capabilityVersion: 'v1', locations: ['row', 'toolbar', 'categoryNode'], targets: ['record', 'selection', 'category'], batch: true, effect: 'read', resultContract: 'json' } } };
     if (url.endsWith('/left-tree')) return { nodes: [{ id: 'cat-7', value: 'cat-7', label: '分类', parent: null }], actions: {}, schemaHash: 'source-hash', sourceKey: 'categories' };
     return { list: [{ orderId: 'order-42', orderTitle: '可批准' }], total: 1 };
   }), post: vi.fn(async () => ({ status: 'success' })), delete: vi.fn() };
@@ -58,7 +58,7 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
   const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
-  permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
+  permission.permissions = ['admin/business:approve', declaration.catalogPermission, declaration.executePermission, 'admin/generated:host-demo:left-tree'];
   const wrapper = mount(page, { global: { plugins: [ElementPlus], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
 }
@@ -203,7 +203,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     await approve!.trigger('click'); await flushPromises();
     expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], schemaHash: declaration.schemaHash, location: 'row' }), expect.anything());
     expect(http.get.mock.calls.some(([url]) => url.includes('/form/data'))).toBe(false);
-    permission.permissions = ['business:approve', 'admin/form.data:listactions', 'admin/form.data:listaction']; await flushPromises();
+    permission.permissions = ['admin/business:approve', 'admin/form.data:listactions', 'admin/form.data:listaction']; await flushPromises();
     const revoked = wrapper.findAll('button').find(button => button.text() === '批准');
     expect(!revoked || revoked.attributes('disabled') !== undefined).toBe(true);
     http.post.mockClear(); http.get.mockClear();
@@ -246,7 +246,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
   });
   it('批量回收站按钮使用独立批量权限而非单条权限', async () => {
     const { wrapper, http } = render('defaults');
-    permission.permissions = ['generated:host-demo:list', 'generated:host-demo:batch-restore', 'generated:host-demo:batch-destroy']; await flushPromises();
+    permission.permissions = ['admin/generated:host-demo:list', 'admin/generated:host-demo:batch-restore', 'admin/generated:host-demo:batch-destroy']; await flushPromises();
     await wrapper.findAll('button').find(button => button.text() === '回收站')!.trigger('click'); await flushPromises();
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const restore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
@@ -261,7 +261,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const confirmation = [...document.querySelectorAll('.el-dialog button')].find(button => button.textContent?.trim() === '确定') as HTMLButtonElement;
     expect(confirmation).toBeDefined(); confirmation.click(); await flushPromises();
     expect(http.delete).toHaveBeenCalledWith('/generated/host-demo/destroy', { ids: ['order-42'] });
-    permission.permissions = ['generated:host-demo:list', 'generated:host-demo:restore', 'generated:host-demo:destroy'];
+    permission.permissions = ['admin/generated:host-demo:list', 'admin/generated:host-demo:restore', 'admin/generated:host-demo:destroy'];
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     for (const label of ['批量恢复', '批量永久删除']) {
       const button = wrapper.findAll('button').find(item => item.text() === label);

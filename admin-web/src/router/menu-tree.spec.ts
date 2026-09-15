@@ -9,7 +9,7 @@ import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
 const guardStores = vi.hoisted(() => ({
-  user: { isLoggedIn: true, userInfo: {}, permissions: ['development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
+  user: { isLoggedIn: true, userInfo: {}, permissions: ['admin/development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
   permission: { mounted: false, fetchMenus: vi.fn(), setMounted: vi.fn(), reset: vi.fn() }
 }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => guardStores.user }));
@@ -90,7 +90,7 @@ describe('混合布局菜单全树路由', () => {
     await router.push('/development/business/designer?moduleId=42');
 
     expect(router.currentRoute.value.name).toBe('Forbidden');
-    guardStores.user.permissions = ['development:business:save'];
+    guardStores.user.permissions = ['admin/development:business:save'];
   });
 
   it('首次深链启动前由 bootstrap catch-all 消除未匹配，并在动态路由加载后落到正式路由', async () => {
@@ -116,7 +116,7 @@ describe('混合布局菜单全树路由', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
     const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
-    expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'development:business:view' });
+    expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'admin/development:business:view' });
     expect(business?.redirect).toBeUndefined();
     expect(business?.children?.every((item) => item.hidden)).toBe(true);
     expect(business?.children?.map((item) => item.routeName)).toEqual(['BusinessMine', 'BusinessVisual', 'BusinessDatabase', 'BusinessRecords']);
@@ -160,7 +160,7 @@ describe('混合布局菜单全树路由', () => {
       expect(resolved.matched.at(-1)?.components?.default).toBeTypeOf('function');
     }
     expect(router.resolve('/development/business/mine').name).toBe('BusinessDevelopment');
-    expect(router.resolve('/development/business/mine').meta.permission).toBe('development:business:view');
+    expect(router.resolve('/development/business/mine').meta.permission).toBe('admin/development:business:view');
   });
 
   it('业务列表菜单与兼容入口中英文标题统一', () => {

@@ -24,7 +24,7 @@
         <el-tag v-if="businessModule" data-business-target>{{ isPluginTarget ? `所属插件：${businessTarget?.pluginCode}` : '核心后台' }} · {{ businessTarget?.locked ? '目标已锁定' : '首次成功生成后锁定' }}</el-tag>
         <span v-if="isPluginTarget">使用已保存草稿生成源码，不动态发布；安装／更新后生效。</span>
         <el-button v-if="businessModule && !isPluginTarget" type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">生成正式模块</el-button>
+        <el-button v-perm="'admin/development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">生成正式模块</el-button>
       <div v-if="saveBlocked" data-testid="save-conflict-alert" role="alert" class="w-full">
         <strong>保存已暂停。</strong>本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。
         <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">核对版本</el-button>
@@ -275,7 +275,7 @@
         <el-button v-if="publishStep === 2" @click="publishStep = 1">上一步</el-button>
         <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
-        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">确认生成</el-button>
+        <el-button v-else-if="publishStep === 2" v-perm="'admin/development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">确认生成</el-button>
       </template>
     </el-dialog>
 
