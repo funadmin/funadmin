@@ -14,7 +14,7 @@ use think\exception\HttpException;
 /** 在 MultiApp 解析前阻断不可用插件应用。 */
 final class PluginApplicationGuard
 {
-    private const CORE_APPLICATIONS = ['app', 'console', 'api', 'index', 'install', 'common'];
+    private const CORE_APPLICATIONS = ['app', 'admin', 'api', 'index', 'install', 'common'];
 
     public function __construct(private readonly ?PluginActivationReader $reader = null)
     {
@@ -57,9 +57,9 @@ final class PluginApplicationGuard
     private function target(string $path): ?array
     {
         $segments = array_values(array_filter(explode('/', trim($path, '/')), static fn (string $segment): bool => $segment !== ''));
-        if (($segments[0] ?? '') === 'console' && ($segments[1] ?? '') === 'plugin') {
+        if (($segments[0] ?? '') === 'admin' && ($segments[1] ?? '') === 'plugin') {
             $code = (string) ($segments[2] ?? '');
-            return preg_match('/^[a-z][a-z0-9]*$/', $code) === 1 ? [$code, 'console', true] : null;
+            return preg_match('/^[a-z][a-z0-9]*$/', $code) === 1 ? [$code, 'admin', true] : null;
         }
         $code = (string) ($segments[0] ?? '');
         if ($code === '' || in_array($code, self::CORE_APPLICATIONS, true) || preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {

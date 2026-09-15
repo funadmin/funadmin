@@ -29,7 +29,7 @@ final class PluginActivationContext
         $class = trim($descriptor['class']);
         $generation = $descriptor['generation'] ?? null;
         if (preg_match('/^[a-z][a-z0-9]*$/', $pluginCode) !== 1
-            || !in_array($application, ['app', 'console'], true)
+            || !in_array($application, ['app', 'admin'], true)
             || preg_match('/^[A-Za-z_][A-Za-z0-9_\\\\]*$/', $class) !== 1
             || ($generation !== null && (!is_string($generation) || preg_match('/^[a-f0-9]{32}$/', $generation) !== 1))) {
             throw new InvalidArgumentException('插件执行 descriptor 无效');

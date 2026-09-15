@@ -38,10 +38,10 @@ final class MarketplaceDtoValidator
 
     public static function applications(array $applications): void
     {
-        if (array_keys($applications) !== ['app', 'console']
+        if (array_keys($applications) !== ['app', 'admin']
             || !is_bool($applications['app'])
-            || !is_bool($applications['console'])) {
-            throw new InvalidArgumentException('applications 必须严格包含 app 与 console 布尔值');
+            || !is_bool($applications['admin'])) {
+            throw new InvalidArgumentException('applications 必须严格包含 app 与 admin 布尔值');
         }
     }
 

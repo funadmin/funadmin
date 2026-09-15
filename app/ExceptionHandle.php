@@ -13,7 +13,7 @@ namespace app;
 
 use app\common\service\identity\IdentityValidationException;
 use app\common\service\identity\IdentityResourceException;
-use app\console\http\AdminResponse;
+use app\admin\http\AdminResponse;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\Handle;
@@ -66,7 +66,7 @@ class ExceptionHandle extends Handle
         if ($e instanceof HttpResponseException) {
             return $e->getResponse();
         }
-        if ($this->app->http->getName() === 'console') {
+        if ($this->app->http->getName() === 'admin') {
             if ($e instanceof ValidateException || $e instanceof IdentityValidationException) {
                 $httpStatus = str_contains(strtolower((string) $request->header('accept', '')), 'text/event-stream') ? 422 : null;
                 return AdminResponse::create($e->getMessage(), null, 422, $httpStatus);

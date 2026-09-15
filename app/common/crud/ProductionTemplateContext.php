@@ -12,12 +12,12 @@ final class ProductionTemplateContext
     public static function build(CrudDefinition $definition, array $target = []): array
     {
         $data = $definition->toArray();
-        $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\console');
+        $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\admin');
         $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim((string) $data['apiPrefix'], '/'));
         $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? $data['apiPrefix']);
         $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/generated/{$data['entity']}");
         $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
-        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? 'use app\\console\\model\\BackendModel;');
+        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? 'use app\\admin\\model\\BackendModel;');
         $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
         $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
         $data['_listActionHost'] = ($target['type'] ?? $data['target']['type'] ?? 'core') === 'core'
@@ -129,9 +129,9 @@ final class ProductionTemplateContext
             $connection = var_export((string) ($data['connection'] ?? 'mysql'), true);
             if ($data['softDeletes']) $softTrait = "    use LaravelSoftDelete { delete as private treeDelete; restore as private treeRestore; }\n\n";
             $delete = $data['softDeletes'] ? '$this->treeDelete()' : 'parent::delete()';
-            $methods[] = "    public function save(array|object \$data = [], \$where = [], bool \$refresh = false): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$data, \$where, \$refresh): bool {\n            \$payload = array_replace(\$this->getData(), (array) \$data);\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) (\$payload['{$primary['name']}'] ?? ''), \$payload);\n            return parent::save(\$data, \$where, \$refresh);\n        });\n    }";
-            $methods[] = "    public function delete(): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function (): bool {\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), [], true);\n            return {$delete};\n        });\n    }";
-            if ($data['softDeletes']) $methods[] = "    public function restore(array \$where = []): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$where): bool {\n            (new \\app\\console\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), \$this->getData());\n            return \$this->treeRestore(\$where);\n        });\n    }";
+            $methods[] = "    public function save(array|object \$data = [], \$where = [], bool \$refresh = false): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$data, \$where, \$refresh): bool {\n            \$payload = array_replace(\$this->getData(), (array) \$data);\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) (\$payload['{$primary['name']}'] ?? ''), \$payload);\n            return parent::save(\$data, \$where, \$refresh);\n        });\n    }";
+            $methods[] = "    public function delete(): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function (): bool {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), [], true);\n            return {$delete};\n        });\n    }";
+            if ($data['softDeletes']) $methods[] = "    public function restore(array \$where = []): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$where): bool {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), \$this->getData());\n            return \$this->treeRestore(\$where);\n        });\n    }";
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_modelNamespace']};\n\n"
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
@@ -307,7 +307,7 @@ final class ProductionTemplateContext
             $hash = $data['formSchemaHash'] ?? '';
             $field = $data['list']['leftTree']['mapping']['targetField'];
             $leftAlias = "        applyFilters as private crudOriginalFilters;\n";
-            $leftMethods = "\n    private function treeService(): \\app\\console\\form\\service\\FormDataService\n    {\n        return new \\app\\console\\form\\service\\FormDataService(new \\app\\common\\form\\validation\\FormAsyncValidatorRegistry((array) config('form.validators', [])), \\app\\common\\form\\dataSource\\FormDataSourceRegistry::core((array) config('form.data_sources', [])), permissionChecker: fn (string \$route): bool => (new \\app\\console\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route));\n    }\n"
+            $leftMethods = "\n    private function treeService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(new \\app\\common\\form\\validation\\FormAsyncValidatorRegistry((array) config('form.validators', [])), \\app\\common\\form\\dataSource\\FormDataSourceRegistry::core((array) config('form.data_sources', [])), permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route));\n    }\n"
                 . "    #[Get('left-tree')]\n    public function leftTree(): Response { return \$this->ok(data: \$this->treeService()->leftTree('{$key}')); }\n"
                 . "    #[Get('left-tree-form/:operation')]\n    #[Pattern('operation', 'create|addChild|edit')]\n    public function leftTreeForm(string \$operation): Response { return \$this->ok(data: \$this->treeService()->leftTreeForm('{$key}', \$operation, (string) \$this->request->get('id', ''), '{$hash}', (string) \$this->request->get('optionField', ''), (array) \$this->request->get('context', []))); }\n"
                 . "    #[Post('left-tree/:operation')]\n    #[Pattern('operation', 'create|addChild|edit|delete')]\n    public function mutateLeftTree(string \$operation): Response\n    {\n        \$payload = \$this->request->post('data', []);\n        if (!is_array(\$payload)) throw new \\InvalidArgumentException('data 必须为对象');\n        \$post = \$this->request->post();\n        \$post['data'] = '[REDACTED]';\n        \$this->request->withPost(\$post);\n        return \$this->ok(data: \$this->treeService()->mutateLeftTree('{$key}', \$operation, (string) \$this->request->post('id', ''), \$payload, '{$hash}', (string) \$this->request->post('sourceSchemaHash', '')));\n    }\n"
@@ -317,8 +317,8 @@ final class ProductionTemplateContext
         $methods = $leftMethods === '' ? [] : [$leftMethods];
         if ($data['_listActionHost']) {
             $key = $data['formSchema']['key'];
-            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'console/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
-            $methods[] = "    private function listButtonService(): \\app\\console\\form\\service\\FormDataService\n    {\n        return new \\app\\console\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\console\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
+            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
+            $methods[] = "    private function listButtonService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
                 . "    #[Get('list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
                 . "    #[Post('list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->withPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
                 . "    private function listButtonResponse(callable \$operation): Response\n    {\n        try { return \$this->ok(data: \$operation()); }\n        catch (\\Throwable \$error) {\n            return \$this->listActionFailure(\$error);\n        }\n    }";
@@ -358,9 +358,9 @@ final class ProductionTemplateContext
         if ($enabled['import']) $methods[] = "    #[Post('import')]\n    public function import(): Response { return \$this->crudImport(); }";
         if ($enabled['export']) $methods[] = "    #[Get('export')]\n    public function export(): Response { return \$this->crudExport(); }";
         $controllerImports = $data['_consoleController']
-            ? "use app\\console\\controller\\base\\AdminApiController;\nuse app\\console\\middleware\\CheckAdminApiCsrf;\n"
-                . "use app\\console\\middleware\\CheckAdminApiRole;\nuse app\\console\\middleware\\SystemLog;\n"
-            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\console\\traits\\AdminCrudRequest;\nuse app\\console\\traits\\AdminPagination;\n"
+            ? "use app\\admin\\controller\\base\\AdminApiController;\nuse app\\admin\\middleware\\CheckAdminApiCsrf;\n"
+                . "use app\\admin\\middleware\\CheckAdminApiRole;\nuse app\\admin\\middleware\\SystemLog;\n"
+            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\traits\\AdminCrudRequest;\nuse app\\admin\\traits\\AdminPagination;\n"
                 . "use app\\common\\traits\\JsonResponse;\n";
         $controllerDeclaration = $data['_consoleController']
             ? "final class {$class}Controller extends AdminApiController"
@@ -371,7 +371,7 @@ final class ProductionTemplateContext
             : "    protected array \$middleware = [MApi::class];\n";
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
-            . "use {$data['_modelNamespace']}\\{$class};\nuse app\\console\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
+            . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
@@ -432,7 +432,7 @@ final class ProductionTemplateContext
                 . "SET @permission_group_id = (SELECT `id` FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group' ORDER BY `id` LIMIT 1);\n"
                 . "UPDATE `fun_permission` SET `pid`=0,`app_name`='console',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
             $groupId = '@permission_group_id';
-            $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
+            $controller = self::sqlLiteral('admin/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
             $codes = [];
             foreach ($permission['actions'] as $index => $action) {
                 $code = self::sqlLiteral($data['permissionPrefix'] . ':' . $action['codeSuffix']);
@@ -624,7 +624,7 @@ final class ProductionTemplateContext
             : '';
         $operationColumn = $editButton . $detailButton . $deleteButtons === '' ? '' : "          <el-table-column label=\"操作\"><template #default=\"scope\">{$editButton}{$detailButton}{$deleteButtons}</template></el-table-column>\n";
         $formEnabled = ($enabled['create'] || $enabled['update']) && ($data['capabilities']['form'] ?? true);
-        $formComponent = $formEnabled ? "<{$class}Form :lock=\"buttonLock\" v-model=\"dialogVisible\" :row=\"current\" @success=\"loadData\" />" : '';
+        $formComponent = $formEnabled ? "<{$class}Form :lock=\"buttonLock\" v-model=\"dialogVisible\" :row=\"current\" @success=\"refreshAfterSave\" />" : '';
         $detailComponent = $enabled['detail'] ? "<{$class}Detail v-model=\"drawerVisible\" :row=\"current\" />" : '';
         $crudBindings = ['loading', 'list', 'total', 'query', 'loadData'];
         if ($enabled['search']) array_push($crudBindings, 'onSearch', 'onReset');
@@ -669,7 +669,7 @@ final class ProductionTemplateContext
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
         if (!$leftTree) $listImports .= "import { useUserStore } from '@/store/modules/user';\n";
         $listSetup .= 'const listConfig = ' . self::json($data['list'] ?: new \stdClass()) . " as FormListConfiguration;\n";
-        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\n";
+        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\nlet hostActive = true;\nonBeforeUnmount(() => { hostActive = false; });\nasync function refreshAfterSave() { try { await refreshButtonHost(); } catch { if (hostActive) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交'); } }\n";
         if ($data['_listActionHost']) {
             $listSetup .= "const buttonAdapter = { api: {$camel}Api, declaration: {$camel}Api.listButtonAdapter };\nprovideListButtonAdapter(buttonAdapter);\nconst buttonFieldMap = buttonAdapter.declaration.fieldMap;\n";
         } else {
@@ -746,7 +746,7 @@ final class ProductionTemplateContext
         $selectionChange = ' @selection-change="handleSelectionChange"';
         $listSetup .= "const refreshButtonHost = async () => { clearButtonSelection(); await loadData(); };\nwatch(query, clearButtonSelection, { deep: true, flush: 'sync' });\nwatch(list, clearButtonSelection);\n";
         $listSetup .= "const handleSelectionChange = (rows: {$type}[]) => { buttonSelection.value = rows; buttonContextVersion.value++; " . ($enabled['batchDelete'] ? 'onSelectionChange(rows);' : '') . " };\n";
-        $vueImports = ['computed', 'ref', 'reactive', 'watch'];
+        $vueImports = ['computed', 'onBeforeUnmount', 'ref', 'reactive', 'watch'];
         if ($enabled['batchDelete']) {
             $listSetup .= "watch(query, () => onSelectionChange([]), { deep: true, flush: 'sync' });\n";
         }
@@ -782,7 +782,7 @@ final class ProductionTemplateContext
             . $searchSlot . '<template #toolbar>' . implode('', $toolbar) . '</template>' . $cellSlots . $actionSlot
             . '</SchemaTablePage>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
-            . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
+            . "import { ElMessage } from 'element-plus';\n"
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport . $listImports
             . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '{$data['_frontendApiImport']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
@@ -885,15 +885,15 @@ final class ProductionTemplateContext
         $permissionPrefix = self::json($data['permissionPrefix']);
         $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error('编辑能力未启用');") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error('新增能力未启用');") . ' }';
         return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
-            . "<script setup lang=\"ts\">\nimport { computed, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
+            . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
             . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
             . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const formSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>;\n"
             . $optionsSetup
             . "const user=useUserStore(); const permitted=(edit:boolean)=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code==={$permissionPrefix}+':'+(edit?'update':'create'));\n"
-            . "const saving=ref(false); const generation=ref(0);\n"
+            . "const saving=ref(false); const generation=ref(0); let active=true; onBeforeUnmount(()=>{active=false; generation.value++;});\n"
             . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
-            . "async function submit(){const lock=props.lock;if(saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||token!==generation.value||!props.modelValue||!permitted(!!row))return;const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
+            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const payload=Object.fromEntries(fieldMap.map(item=>[item.source,form[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string
@@ -1013,7 +1013,7 @@ final class ProductionTemplateContext
 
     private static function phpTest(array $data, string $class): string
     {
-        return "<?php\n\ndeclare(strict_types=1);\n\nuse app\\console\\model\\{$class};\n\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nuse app\\admin\\model\\{$class};\n\n"
             . "if (!is_subclass_of({$class}::class, \\think\\Model::class)) {\n"
             . "    throw new RuntimeException('生成模型必须继承 ThinkPHP Model');\n}\n"
             . "echo 'generated {$data['entity']} PHP contract: PASS' . PHP_EOL;\n";

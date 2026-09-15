@@ -222,16 +222,16 @@ final class Manifest
             return;
         }
         $application = $appRoot . DIRECTORY_SEPARATOR . $code;
-        $console = $appRoot . DIRECTORY_SEPARATOR . 'console';
-        if (!is_dir($application) && !is_dir($console)) {
-            throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/console');
+        $admin = $appRoot . DIRECTORY_SEPARATOR . 'admin';
+        if (!is_dir($application) && !is_dir($admin)) {
+            throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/admin');
         }
         if (is_dir($application)) {
             self::validatePhpNamespaces($application, 'app\\' . $code . '\\');
         }
-        if (is_dir($console)) {
-            self::validateConsoleNamespaces($console, $code);
-            self::validateConsoleGroups($console, $code);
+        if (is_dir($admin)) {
+            self::validateConsoleNamespaces($admin, $code);
+            self::validateConsoleGroups($admin, $code);
         }
     }
 
@@ -262,7 +262,7 @@ final class Manifest
         foreach (['controller', 'model', 'service', 'validate', 'middleware'] as $layer) {
             $directory = $console . DIRECTORY_SEPARATOR . $layer;
             if (is_dir($directory)) {
-                self::validatePhpNamespaces($directory, 'app\\console\\' . $layer . '\\plugin\\' . $code);
+                self::validatePhpNamespaces($directory, 'app\\admin\\' . $layer . '\\plugin\\' . $code);
             }
         }
     }

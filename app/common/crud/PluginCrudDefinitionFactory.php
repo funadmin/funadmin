@@ -54,9 +54,9 @@ final class PluginCrudDefinitionFactory
     private static function templates(): array
     {
         return [
-            'migration' => 'database/migration.sql.tpl', 'model' => 'console/model.php.tpl',
-            'validate' => 'console/validate.php.tpl', 'service' => 'console/service.php.tpl',
-            'controller' => 'console/controller.php.tpl', 'api' => 'frontend/api.ts.tpl',
+            'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
+            'validate' => 'admin/validate.php.tpl', 'service' => 'admin/service.php.tpl',
+            'controller' => 'admin/controller.php.tpl', 'api' => 'frontend/api.ts.tpl',
             'view' => 'frontend/index.vue.tpl', 'form' => 'frontend/form.vue.tpl',
             'detail' => 'frontend/detail.vue.tpl',
         ];

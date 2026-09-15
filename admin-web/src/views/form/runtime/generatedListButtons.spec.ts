@@ -22,7 +22,7 @@ function generate(empty: boolean | 'defaults' = false, batch = true, soft = true
   return JSON.parse(execFileSync(php, ['-r', `require 'vendor/autoload.php';
 $s = ['schemaVersion'=>2,'key'=>'host_demo','title'=>'宿主测试','nodes'=>[['id'=>'title','kind'=>'field','type'=>'input','field'=>'order_title','title'=>'标题','database'=>['columnType'=>'varchar','length'=>100]]]];
 $c = (new app\\common\\form\\schema\\FormSchemaCompiler(new app\\common\\form\\schema\\FormSchemaValidator()))->compile($s);
-$d = (new app\\console\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c, ['table_name'=>'fun_host_demo']);
+$d = (new app\\admin\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c, ['table_name'=>'fun_host_demo']);
 $a = $d->toArray(); $a['fields'][0]['name']='order_id'; $a['primaryKey']='order_id';
 $a['fields'][1]['search']=${search ? 'true' : 'false'}; $a['fields'][1]['searchOperator']='eq';
 $a['fields'][1] = array_replace($a['fields'][1], json_decode(base64_decode('${Buffer.from(JSON.stringify(presentation)).toString('base64')}'), true));

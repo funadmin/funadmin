@@ -173,7 +173,7 @@ if (!function_exists('node')) {
         $currentRequestIdentity = spl_object_id($request) . ':' . $request->pathinfo();
         if ($service === null || $requestIdentity !== $currentRequestIdentity) {
             $requestIdentity = $currentRequestIdentity;
-            $service = new \app\console\authorization\service\AdminAuthorizationService($request);
+            $service = new \app\admin\authorization\service\AdminAuthorizationService($request);
         }
         return $service->nodeAccess($url);
     }

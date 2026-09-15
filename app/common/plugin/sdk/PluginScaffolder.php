@@ -10,7 +10,7 @@ use Throwable;
 /** 原子生成 Manifest v2 插件开发骨架。 */
 final class PluginScaffolder
 {
-    private const RESERVED_NAMES = ['console', 'api', 'index', 'frontend', 'install', 'common'];
+    private const RESERVED_NAMES = ['admin', 'api', 'index', 'frontend', 'install', 'common'];
 
     public function __construct(private readonly string $pluginsDirectory)
     {
@@ -29,8 +29,8 @@ final class PluginScaffolder
             foreach (['model', 'service', 'middleware', 'view'] as $layer) $files[] = "app/{$name}/{$layer}/.gitkeep";
         }
         if ($console) {
-            $files[] = 'app/console/controller/Index.php';
-            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/console/{$layer}/.gitkeep";
+            $files[] = 'app/admin/controller/Index.php';
+            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/admin/{$layer}/.gitkeep";
         }
         if ($adminWeb) array_push($files, 'admin-web/api.ts', 'admin-web/types.ts', 'admin-web/pages/Index.vue', 'admin-web/pages/components/EditDialog.vue');
         sort($files, SORT_STRING);
@@ -155,9 +155,9 @@ final class PluginScaffolder
             $this->write($applicationRoot . '/provider.php', $this->returnArraySource());
         }
         if ($console) {
-            $this->write($directory . '/app/console/controller/Index.php', $this->consoleControllerSource($name));
+            $this->write($directory . '/app/admin/controller/Index.php', $this->consoleControllerSource($name));
             foreach (['model', 'service', 'validate', 'middleware'] as $layer) {
-                $this->keep($directory . '/app/console/' . $layer);
+                $this->keep($directory . '/app/admin/' . $layer);
             }
         }
         if ($adminWeb) {
@@ -223,12 +223,12 @@ PHP;
 
 declare(strict_types=1);
 
-namespace app\\console\\controller\\plugin\\{$name};
+namespace app\\admin\\controller\\plugin\\{$name};
 
-use app\\console\\controller\\base\\AdminApiController;
-use app\\console\\middleware\\CheckAdminApiCsrf;
-use app\\console\\middleware\\CheckAdminApiRole;
-use app\\console\\middleware\\SystemLog;
+use app\\admin\\controller\\base\\AdminApiController;
+use app\\admin\\middleware\\CheckAdminApiCsrf;
+use app\\admin\\middleware\\CheckAdminApiRole;
+use app\\admin\\middleware\\SystemLog;
 use think\\annotation\\route\\Get;
 use think\\annotation\\route\\Group;
 use think\\Response;

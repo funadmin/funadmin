@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\plugin\sdk;
 
-use app\console\middleware\CheckAdminApiCsrf;
-use app\console\middleware\CheckPluginPermission;
+use app\admin\middleware\CheckAdminApiCsrf;
+use app\admin\middleware\CheckPluginPermission;
 use app\common\middleware\MApi;
 use Closure;
 use InvalidArgumentException;

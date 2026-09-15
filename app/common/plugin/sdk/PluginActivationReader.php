@@ -147,9 +147,9 @@ class PluginActivationReader
     private function validApplications(mixed $applications): bool
     {
         return is_array($applications)
-            && array_keys($applications) === ['app', 'console']
+            && array_keys($applications) === ['app', 'admin']
             && is_bool($applications['app'])
-            && is_bool($applications['console']);
+            && is_bool($applications['admin']);
     }
 
     private function validSectionHash(array $payload, string $hashKey, string $sectionKey): bool

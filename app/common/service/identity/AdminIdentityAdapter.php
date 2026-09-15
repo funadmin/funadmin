@@ -7,7 +7,7 @@ namespace app\common\service\identity;
 use app\common\model\identity\IdentityCredential;
 use app\common\model\identity\IdentityUser;
 use app\common\model\identity\IdentityUserDepartment;
-use app\console\authorization\model\AdminDepartment;
+use app\admin\authorization\model\AdminDepartment;
 use app\identity\service\IdentityAuditService;
 
 class AdminIdentityAdapter

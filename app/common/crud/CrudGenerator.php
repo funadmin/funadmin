@@ -90,8 +90,8 @@ final class CrudGenerator
     {
         $this->validator->validate($definition, $this->projectRoot);
         $target = (array) $definition->get('target', ['type' => 'core']);
-        if (($target['type'] ?? 'core') === 'plugin' && ($target['scope'] ?? '') !== 'console') {
-            throw new InvalidArgumentException('managed 插件仅支持 console');
+        if (($target['type'] ?? 'core') === 'plugin' && ($target['scope'] ?? '') !== 'admin') {
+            throw new InvalidArgumentException('managed 插件仅支持 admin');
         }
         return $this->renderFiles($definition, $this->manifestBase($definition, $baselines), true);
     }
@@ -150,7 +150,7 @@ final class CrudGenerator
     private function planManagedPlugin(CrudDefinition $definition, array $baselines): array
     {
         $target = $definition->get('target');
-        if (($target['scope'] ?? '') !== 'console') throw new InvalidArgumentException('managed 插件仅支持 console');
+        if (($target['scope'] ?? '') !== 'admin') throw new InvalidArgumentException('managed 插件仅支持 admin');
         $precondition = (new PluginCrudTarget($this->projectRoot))->migrationPrecondition($definition);
         $remote = $this->renderManagedBundle($definition, $baselines);
         $manifest = 'plugins/' . $target['plugin'] . '/plugin.json';

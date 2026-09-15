@@ -15,7 +15,7 @@ use app\common\model\identity\OAuthClient;
 use app\common\model\identity\OAuthScope;
 use app\common\model\identity\EnterpriseApplication;
 use app\common\service\identity\ApplicationCatalogService;
-use app\console\authorization\service\RoleScopeService;
+use app\admin\authorization\service\RoleScopeService;
 use app\identity\oauth\PkceService;
 use DomainException;
 use think\facade\Db;

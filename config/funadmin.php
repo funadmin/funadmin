@@ -27,14 +27,14 @@ return [
     ],
     // 复用已有权限节点，避免同一能力出现多个授权口径。
     'auth_route_aliases'=>[
-            'console/development.business:designactioncatalog' => 'development.business/saveschema',
+            'admin/development.business:designactioncatalog' => 'development.business/saveschema',
         'plugin/localinstall' => 'plugin/install',
         'plugin/uninstall' => 'plugin/install',
         'system/role/all' => 'systemrole/index',
         'system/role/parent-options' => 'systemrole/index',
         'system/role/permission-tree' => 'systemrole/permissions',
-        'console/systemoperationlog:detail' => 'console/systemoperationlog/index',
-        'console/systempermission:detail' => 'console/systempermission/tree',
+        'admin/systemoperationlog:detail' => 'admin/systemoperationlog/index',
+        'admin/systempermission:detail' => 'admin/systempermission/tree',
         'system/role/:id' => 'systemrole/delete',
         'system/dept/:id' => 'systemdepartment/delete',
         'system/user/:id' => 'systemadmin/delete',
@@ -44,7 +44,7 @@ return [
         'system/log/operation/:id' => 'systemoperationlog/delete',
     ],
 
-    'sys_app'=>['console','api','index','common','install'],
+    'sys_app'=>['admin','api','index','common','install'],
 
     'crud_deny_app'=>['common','install'],
     //接口域名

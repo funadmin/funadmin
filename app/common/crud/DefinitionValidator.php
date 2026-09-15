@@ -130,7 +130,7 @@ final class DefinitionValidator
                     try {
                         $result = $this->listDependencies !== null
                             ? $this->listDependencies->check($schema, 'core-generated')
-                            : (new \app\console\form\repository\FormSchemaRepository())->checkDependencies($schema, 'core-generated');
+                            : (new \app\admin\form\repository\FormSchemaRepository())->checkDependencies($schema, 'core-generated');
                         if ($result['diagnostics'] === [] && ($button['action']['type'] !== 'download' || ($data['features']['export'] ?? false))) continue;
                     } catch (\Throwable) {
                         // CLI 未初始化生产注册表或安全存储不可用时保持阻断，不泄露连接信息。
@@ -164,7 +164,7 @@ final class DefinitionValidator
                 }
             }
             if ($data['dataScope']['enabled']) {
-                throw new InvalidArgumentException('application 不支持 console 数据范围策略');
+                throw new InvalidArgumentException('application 不支持 admin 数据范围策略');
             }
         }
         $this->menu($data['menu'] ?? null);
@@ -194,7 +194,7 @@ final class DefinitionValidator
             throw new InvalidArgumentException('插件无效：' . $exception->getMessage(), 0, $exception);
         }
         $scope = (string) $target['scope'];
-        if (!in_array($scope, ['application', 'console', 'both'], true)) {
+        if (!in_array($scope, ['application', 'admin', 'both'], true)) {
             throw new InvalidArgumentException('插件 target scope 不合法');
         }
         return ['type' => 'plugin', 'plugin' => $plugin, 'scope' => $scope];
@@ -225,7 +225,7 @@ final class DefinitionValidator
         }
         foreach ($templates as $type => $path) {
             if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)
-                || !preg_match('#^(console|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#', $path)
+                || !preg_match('#^(admin|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#', $path)
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
             }

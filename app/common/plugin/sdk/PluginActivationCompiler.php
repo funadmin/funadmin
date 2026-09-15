@@ -107,7 +107,7 @@ final class PluginActivationCompiler
                 'dependencies' => $dependencies,
                 'applications' => [
                     'app' => is_dir($base . DIRECTORY_SEPARATOR . $code),
-                    'console' => is_dir($base . DIRECTORY_SEPARATOR . 'console'),
+                    'admin' => is_dir($base . DIRECTORY_SEPARATOR . 'admin'),
                 ],
             ];
         }

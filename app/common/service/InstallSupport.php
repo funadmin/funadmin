@@ -2,7 +2,7 @@
 
 namespace app\common\service;
 
-use app\console\authentication\model\Admin;
+use app\admin\authentication\model\Admin;
 use RuntimeException;
 use think\facade\Db;
 
