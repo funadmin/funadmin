@@ -26,7 +26,7 @@
     @click="emitEvent('click', $event)"
   />
   <input v-else-if="field.type === 'hidden'" type="hidden" :value="modelValue" @click="emitEvent('click', $event)" />
-  <el-text v-else-if="field.type === 'readonly'">{{ displayValue }}</el-text>
+  <el-text v-else-if="field.type === 'readonly'">{{ formattedValue }}</el-text>
   <Upload
     v-else-if="uploadType"
     :model-value="modelValue"
@@ -36,6 +36,7 @@
     v-bind="controlAttrs"
     @update:model-value="updateValue"
   />
+  <el-text v-else-if="readonly">{{ formattedValue }}</el-text>
   <el-input
     v-else-if="['input', 'password', 'textarea', 'richtext', 'json'].includes(field.type)"
     :model-value="modelValue"
@@ -186,6 +187,7 @@ import type { FormSchemaNode } from '../schema/types';
 import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
 import RepeatableField from './RepeatableField.vue';
+import { formatFieldValue } from '../runtime/fieldPresentation';
 
 interface ControlOption {
   [key: string]: any;
@@ -249,7 +251,7 @@ const stringValue = computed(() => typeof props.modelValue === 'string' ? props.
 const numberValue = computed(() => typeof props.modelValue === 'number' ? props.modelValue : 0);
 const arrayValue = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
 const arrayObjectValue = computed(() => arrayValue.value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item)));
-const displayValue = computed(() => String(props.modelValue ?? props.field.default_value ?? ''));
+const formattedValue = computed(() => formatFieldValue(props.modelValue === undefined ? props.field.default_value : props.modelValue, props.options, props.field.list_formatter || undefined));
 const transferOptions = computed(() => props.options.map((option) => ({ key: option.value, label: option.label })));
 const tabs = computed(() => {
   const value = controlProps.value.tabs;

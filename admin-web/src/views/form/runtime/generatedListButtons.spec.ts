@@ -13,17 +13,19 @@ import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import * as host from './listButtonHost';
 import * as buttons from '../schema/listButtons';
 import { useCrud } from '@/composables/useCrud';
+import * as fieldPresentation from './fieldPresentation';
 
 const root = resolve(process.cwd(), '..');
 const permission = Vue.reactive({ permissions: [] as string[] });
 const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
-function generate(empty: boolean | 'defaults' = false, batch = true, soft = true, plugin = false, search = true) {
+function generate(empty: boolean | 'defaults' = false, batch = true, soft = true, plugin = false, search = true, presentation: Record<string, unknown> = {}) {
   return JSON.parse(execFileSync(php, ['-r', `require 'vendor/autoload.php';
 $s = ['schemaVersion'=>2,'key'=>'host_demo','title'=>'宿主测试','nodes'=>[['id'=>'title','kind'=>'field','type'=>'input','field'=>'order_title','title'=>'标题','database'=>['columnType'=>'varchar','length'=>100]]]];
 $c = (new app\\common\\form\\schema\\FormSchemaCompiler(new app\\common\\form\\schema\\FormSchemaValidator()))->compile($s);
 $d = (new app\\console\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c, ['table_name'=>'fun_host_demo']);
 $a = $d->toArray(); $a['fields'][0]['name']='order_id'; $a['primaryKey']='order_id';
 $a['fields'][1]['search']=${search ? 'true' : 'false'}; $a['fields'][1]['searchOperator']='eq';
+$a['fields'][1] = array_replace($a['fields'][1], json_decode(base64_decode('${Buffer.from(JSON.stringify(presentation)).toString('base64')}'), true));
 $a['features']['batchDelete']=${batch ? 'true' : 'false'}; $a['softDeletes']=${soft ? 'true' : 'false'};
 $a['list']['buttons'] = ${empty ? "['toolbar'=>[], 'row'=>[], 'categoryToolbar'=>[], 'categoryNode'=>[]]" : "['row'=>[['id'=>'approve','label'=>'批准','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1'],'visibleWhen'=>['op'=>'eq','field'=>'order_title','value'=>'可批准'],'success'=>['refresh'=>true,'clearSelection'=>true]]], 'toolbar'=>[['id'=>'approve_many','label'=>'批量批准','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]], 'categoryNode'=>[['id'=>'approve_category','label'=>'批准分类','permission'=>'business:approve','action'=>['type'=>'registered','key'=>'approve','capabilityVersion'=>'v1']]]]"};
 $a['list']['leftTree']=['enabled'=>true,'source'=>['type'=>'module','module'=>'categories'],'mapping'=>['valueField'=>'id','labelField'=>'title','targetField'=>'order_id']];
@@ -55,13 +57,57 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const api = evaluate(generated.apiContent, { '@/utils/http': { default: http } });
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
-  const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
+  const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
   permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
   const wrapper = mount(page, { global: { plugins: [ElementPlus], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
 }
 afterEach(() => { vi.restoreAllMocks(); });
 describe('PHP 真实生成页面消费正式宿主', () => {
+  it('正式生成列表和详情接入共享字段展示 helper', () => {
+    const generated = generate(false, true, true);
+    expect(generated.viewContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
+    expect(generated.viewContent).toContain('formatFieldValue(scope.row.orderId');
+    expect(generated.detailContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
+    expect(generated.detailContent).toContain('formatFieldValue(row.orderId');
+    for (const content of [generated.viewContent, generated.detailContent]) {
+      const { descriptor, errors } = parse(content);
+      expect(errors).toEqual([]);
+      expect(descriptor.template!.content).not.toContain('JSON.parse');
+      expect(descriptor.template!.content).not.toContain('resolveFieldOptions');
+      expect(descriptor.scriptSetup!.content).toContain('const fieldPresentations =');
+      expect(() => compileScript(descriptor, { id: 'presentation', inlineTemplate: true })).not.toThrow();
+    }
+  });
+  it('列表和详情特殊展示均可编译，详情选项中的插值符号与引号原样显示', () => {
+    const label = `嵌套 }} {{ "引号" '单引号' \\ & </script> scope.row.`;
+    for (const formatter of ['', 'tag', 'switch', 'boolean', 'image', 'images', 'money', 'percent', 'number', 'link', 'email', 'phone', 'json', 'date', 'datetime', 'time']) {
+      const generated = generate(false, true, true, false, true, { listFormatter: formatter, options: [{ label, value: 'chosen' }] });
+      for (const content of [generated.viewContent, generated.detailContent]) {
+        const { descriptor, errors } = parse(content);
+        expect(errors).toEqual([]);
+        expect(() => compileScript(descriptor, { id: 'special-presentation', inlineTemplate: true })).not.toThrow();
+      }
+      if (formatter === 'tag') {
+        const { descriptor } = parse(generated.detailContent);
+        const script = compileScript(descriptor, { id: 'detail-presentation', inlineTemplate: true });
+        const page = evaluate(script.content, { vue: Vue, '@/views/form/runtime/fieldPresentation': fieldPresentation }).default;
+        const wrapper = mount(page, { props: { modelValue: true, row: { orderId: 42, orderTitle: 'chosen' } }, global: { stubs: { ElDrawer: box, ElDescriptions: box, ElDescriptionsItem: box, ElTag: box } } });
+        expect(wrapper.text()).toContain(label);
+        wrapper.unmount();
+      }
+    }
+  });
+  it('安全元数据不重新引入敏感字段或关闭的列表详情字段', () => {
+    for (const presentation of [{ component: 'password' }, { controlProps: { sensitive: true } }, { controlProps: { writeOnly: true } }, { controlProps: { schemaAccess: 'private' } }, { list: false, detail: false }]) {
+      const generated = generate(false, true, true, false, true, presentation);
+      for (const content of [generated.viewContent, generated.detailContent]) {
+        const { descriptor } = parse(content);
+        expect(descriptor.template!.content).not.toContain('fieldPresentations.orderTitle');
+        expect(descriptor.scriptSetup!.content.match(/const fieldPresentations = .*;/)?.[0]).not.toContain('orderTitle');
+      }
+    }
+  });
   it('正式生成默认工具栏按正常列表、回收站、新增、移入回收站、导入、导出顺序并保留样式元数据', () => {
     const generated = generate('defaults', true, true);
     const defaults = JSON.parse(generated.viewContent.match(/resolveListButtons\(listConfig, 'toolbar', (\[.*\]) as FormListButton\[\]/)[1]);

@@ -42,9 +42,9 @@
       <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
             <template v-if="field.relation_type === 'belongs_to'">{{ row['__label_' + field.field_name] ?? row[field.field_name] }}</template>
             <el-tag v-else-if="field.list_formatter === 'switch' || field.list_formatter === 'boolean'" :type="isTruthy(row[field.field_name]) ? 'success' : 'info'" size="small">
-              {{ isTruthy(row[field.field_name]) ? '是' : '否' }}
+              {{ presentField(field, row) }}
             </el-tag>
-            <el-tag v-else-if="field.list_formatter === 'tag'" size="small">{{ row[field.field_name] }}</el-tag>
+            <el-tag v-else-if="field.list_formatter === 'tag'" size="small">{{ presentField(field, row) }}</el-tag>
             <el-image
               v-else-if="field.list_formatter === 'image' && imageUrls(row[field.field_name]).length"
               :src="imageUrls(row[field.field_name])[0]"
@@ -64,17 +64,17 @@
                 class="h-10 w-10 rounded"
               />
             </div>
-            <span v-else-if="field.list_formatter === 'date'">{{ formatDate(row[field.field_name], 'YYYY-MM-DD') }}</span>
-            <span v-else-if="field.list_formatter === 'datetime'">{{ formatDate(row[field.field_name], 'YYYY-MM-DD HH:mm:ss') }}</span>
-            <span v-else-if="field.list_formatter === 'time'">{{ formatDate(row[field.field_name], 'HH:mm:ss') }}</span>
-            <span v-else-if="field.list_formatter === 'money'">{{ formatNumber(row[field.field_name], 2, '￥') }}</span>
-            <span v-else-if="field.list_formatter === 'number'">{{ formatNumber(row[field.field_name]) }}</span>
-            <span v-else-if="field.list_formatter === 'percent'">{{ formatNumber(row[field.field_name], 2, '', '%') }}</span>
-            <el-link v-else-if="field.list_formatter === 'link'" :href="safeUrl(row[field.field_name])" target="_blank" type="primary">{{ row[field.field_name] }}</el-link>
-            <el-link v-else-if="field.list_formatter === 'email'" :href="`mailto:${String(row[field.field_name] ?? '')}`" type="primary">{{ row[field.field_name] }}</el-link>
-            <el-link v-else-if="field.list_formatter === 'phone'" :href="`tel:${String(row[field.field_name] ?? '')}`" type="primary">{{ row[field.field_name] }}</el-link>
-            <code v-else-if="field.list_formatter === 'json'">{{ formatJson(row[field.field_name]) }}</code>
-            <span v-else>{{ row[field.field_name] }}</span>
+            <span v-else-if="field.list_formatter === 'date'">{{ presentField(field, row) }}</span>
+            <span v-else-if="field.list_formatter === 'datetime'">{{ presentField(field, row) }}</span>
+            <span v-else-if="field.list_formatter === 'time'">{{ presentField(field, row) }}</span>
+            <span v-else-if="field.list_formatter === 'money'">{{ presentField(field, row) }}</span>
+            <span v-else-if="field.list_formatter === 'number'">{{ presentField(field, row) }}</span>
+            <span v-else-if="field.list_formatter === 'percent'">{{ presentField(field, row) }}</span>
+            <el-link v-else-if="field.list_formatter === 'link'" :href="safeUrl(row[field.field_name])" target="_blank" type="primary">{{ presentField(field, row) }}</el-link>
+            <el-link v-else-if="field.list_formatter === 'email'" :href="`mailto:${String(row[field.field_name] ?? '')}`" type="primary">{{ presentField(field, row) }}</el-link>
+            <el-link v-else-if="field.list_formatter === 'phone'" :href="`tel:${String(row[field.field_name] ?? '')}`" type="primary">{{ presentField(field, row) }}</el-link>
+            <code v-else-if="field.list_formatter === 'json'">{{ presentField(field, row) }}</code>
+            <span v-else>{{ presentField(field, row) }}</span>
       </template>
       <template #actions="{ row }">
             <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="readableButtonFields" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
@@ -94,8 +94,8 @@
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="详情" size="52%">
       <el-descriptions :column="1" border>
-        <el-descriptions-item v-for="field in meta?.fields ?? []" :key="field.field_name" :label="field.label">
-          {{ detail?.row?.[field.field_name] ?? '-' }}
+        <el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">
+          {{ presentField(field, detail?.row ?? {}) }}
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detail?.row?.created_at ?? '-' }}</el-descriptions-item>
       </el-descriptions>
@@ -114,7 +114,6 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import dayjs from 'dayjs';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
@@ -128,6 +127,7 @@ import ListSourceTree from './components/ListSourceTree.vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import type { PageSchema } from '@/components/DataTable/pageSchema';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
+import { formatFieldValue, resolveFieldOptions } from './runtime/fieldPresentation';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
@@ -212,17 +212,12 @@ const syncDateFilter = (name: string) => {
   filters[name + '_from'] = range?.[0] ?? '';
   filters[name + '_to'] = range?.[1] ?? '';
 };
+const readableFields = computed(() => formFields.value.filter(field => field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly));
+const presentField = (field: FormFieldDef, row: Record<string, unknown>) => formatFieldValue(row[field.field_name], resolveFieldOptions({ field: field.field_name, dataSource: field.options_source }), field.list_formatter);
 const isTruthy = (value: unknown) => ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
-const formatDate = (value: unknown, format: string) => {
-  if (!value) return '-';
-  if (format === 'HH:mm:ss' && /^\d{2}:\d{2}(?::\d{2})?$/.test(String(value))) return String(value);
-  return dayjs(value as string).isValid() ? dayjs(value as string).format(format) : '-';
-};
-const formatNumber = (value: unknown, digits?: number, prefix = '', suffix = '') => {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return '-';
-  return `${prefix}${number.toLocaleString('zh-CN', digits === undefined ? undefined : { minimumFractionDigits: digits, maximumFractionDigits: digits })}${suffix}`;
-};
+const formatDate = (value: unknown, format: string) => formatFieldValue(value, [], format === 'YYYY-MM-DD' ? 'date' : format === 'HH:mm:ss' ? 'time' : 'datetime', 'data');
+const formatNumber = (value: unknown, digits?: number, prefix = '', suffix = '') => formatFieldValue(value, [], prefix ? 'money' : suffix ? 'percent' : 'number', 'data');
+const formatJson = (value: unknown) => formatFieldValue(value, [], 'json', 'data');
 const parseArray = (value: unknown): unknown[] => {
   if (Array.isArray(value)) return value;
   if (typeof value !== 'string' || value === '') return [];
@@ -239,14 +234,6 @@ const imageUrls = (value: unknown) => parseArray(value)
 const safeUrl = (value: unknown) => {
   const url = String(value ?? '').trim();
   return /^(https?:\/\/|\/)/i.test(url) ? url : '#';
-};
-const formatJson = (value: unknown) => {
-  if (typeof value !== 'string') return JSON.stringify(value);
-  try {
-    return JSON.stringify(JSON.parse(value));
-  } catch {
-    return value;
-  }
 };
 
 async function loadMeta() {

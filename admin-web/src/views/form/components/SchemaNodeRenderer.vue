@@ -54,6 +54,7 @@ import { componentRegistry, sanitizeComponentBindings } from '../schema/componen
 import type { FormSchemaNode } from '../schema/types';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import RegisteredControlRenderer from './RegisteredControlRenderer.vue';
+import { resolveFieldOptions } from '../runtime/fieldPresentation';
 
 const props = withDefaults(defineProps<{
   node: FormSchemaNode;
@@ -99,12 +100,7 @@ const state = computed(() => {
   return props.stateOf?.(props.node.id) ?? { hidden: Boolean(props.node.hidden), disabled: Boolean(props.node.disabled), required: false };
 });
 const dataSourceState = computed(() => props.dataSources[props.node.id]);
-const nodeOptions = computed(() => {
-  const supplied = props.options[props.node.id];
-  if (supplied) return supplied;
-  const staticOptions = props.node.dataSource?.options;
-  return Array.isArray(staticOptions) ? staticOptions as Array<{ label: string; value: unknown }> : [];
-});
+const nodeOptions = computed(() => resolveFieldOptions(props.node, props.options));
 const legacyField = computed<FormFieldDef>(() => ({
   field_name: props.node.field ?? props.node.id,
   label: props.node.title,

@@ -70,7 +70,8 @@ const mountControl = (type: string, dataSourceState?: FormDataSourceControlState
     stubs: {
       ElSelect: Selection, ElSelectV2: Selection, ElTreeSelect: Selection, ElCascader: Selection,
       ElOption: defineComponent({ setup() { return () => h('span'); } }), ElAlert: Alert, ElButton: Button,
-      ElPagination: Pagination
+      ElPagination: Pagination, Upload: true,
+      ElText: defineComponent({ template: '<span class="readonly-value"><slot /></span>' })
     }
   }
 });
@@ -107,5 +108,50 @@ describe('数据源选择控件 UI', () => {
   it('错误对象和字符串都转换为可读提示', () => {
     const wrapper = mountControl('select', state({ error: '服务不可用' }));
     expect(wrapper.get('[role="alert"]').text()).toContain('服务不可用');
+  });
+
+  it.each([...selectionTypes, 'readonly'])('%s 只读时展示选项标签且响应选项更新', async (type) => {
+    const wrapper = mountControl(type);
+    await wrapper.setProps({ readonly: type !== 'readonly', modelValue: ['1', 0, 9], options: [{ label: '用户', value: 1 }, { label: '停用', value: 0 }] });
+    expect(wrapper.get('.readonly-value').text()).toBe('用户, 停用, 9');
+    expect(wrapper.find('.selection').exists()).toBe(false);
+    await wrapper.setProps({ options: [{ label: '新用户', value: 1 }] });
+    expect(wrapper.get('.readonly-value').text()).toBe('新用户, 0, 9');
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+  });
+
+  it('只读展示支持 formatter、树形选项和空字符串', async () => {
+    const wrapper = mountControl('readonly');
+    await wrapper.setProps({ field: { ...field('readonly'), list_formatter: 'money' }, modelValue: 12.5 });
+    expect(wrapper.text()).toBe('￥12.50');
+    await wrapper.setProps({ field: { ...field('readonly'), default_value: '2' }, modelValue: '2', options: [{ label: '父', value: 1, children: [{ label: '子', value: 2 }] }] });
+    expect(wrapper.text()).toBe('子');
+    await wrapper.setProps({ modelValue: '' });
+    expect(wrapper.text()).toBe('');
+  });
+
+  it.each(['image', 'images', 'file', 'files'])('%s 只读时保留上传专用分支', async (type) => {
+    const wrapper = mountControl(type);
+    await wrapper.setProps({ readonly: true, modelValue: '/test.png' });
+    const upload = wrapper.getComponent({ name: 'Upload' });
+    expect(upload.props('modelValue')).toBe('/test.png');
+    expect(upload.props('disabled')).toBe(true);
+    expect(wrapper.find('.readonly-value').exists()).toBe(false);
+  });
+
+  it('显式空值不被默认值替换，避免详情与列表展示不同记录值', async () => {
+    const wrapper = mountControl('readonly');
+    await wrapper.setProps({ field: { ...field('readonly'), default_value: '99', list_formatter: 'money' }, modelValue: null });
+    expect(wrapper.text()).toBe('');
+    wrapper.unmount();
+  });
+
+  it('可编辑选择控件保留值更新与选择事件', async () => {
+    const wrapper = mountControl('select');
+    wrapper.getComponent(Selection).vm.$emit('update:modelValue', 1);
+    wrapper.getComponent(Selection).vm.$emit('change', 1);
+    await nextTick();
+    expect(wrapper.emitted('update:modelValue')).toEqual([[1]]);
+    expect(wrapper.emitted('event')).toEqual([['select', 1]]);
   });
 });

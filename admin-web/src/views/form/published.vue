@@ -18,16 +18,13 @@
         <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
       <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
-            <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ Number(row[field.field_name]) === 1 ? '是' : '否' }}</el-tag>
-            <el-tag v-else-if="field.list_formatter === 'tag'">{{ row[field.field_name] }}</el-tag>
+            <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ presentField(field, row) }}</el-tag>
+            <el-tag v-else-if="field.list_formatter === 'tag'">{{ presentField(field, row) }}</el-tag>
             <el-image v-else-if="field.list_formatter === 'image'" :src="String(row[field.field_name] || '')" fit="cover" class="h-10 w-10 rounded" />
-            <span v-else-if="['date', 'datetime', 'time'].includes(field.list_formatter)">{{ formatDate(row[field.field_name], field.list_formatter) }}</span>
-            <span v-else-if="field.list_formatter === 'money'">￥{{ Number(row[field.field_name] || 0).toFixed(2) }}</span>
-            <span v-else-if="field.list_formatter === 'number'">{{ Number(row[field.field_name] || 0).toLocaleString() }}</span>
-            <el-link v-else-if="['link', 'email', 'phone'].includes(field.list_formatter)" :href="formatLink(field.list_formatter, row[field.field_name])" target="_blank">{{ row[field.field_name] }}</el-link>
-            <code v-else-if="field.list_formatter === 'json'">{{ formatJson(row[field.field_name]) }}</code>
-            <span v-else-if="field.list_formatter === 'percent'">{{ Number(row[field.field_name] || 0).toFixed(2) }}%</span>
-            <span v-else>{{ row[field.field_name] }}</span>
+            <span v-else-if="['date', 'datetime', 'time', 'money', 'number', 'percent'].includes(field.list_formatter)">{{ presentField(field, row) }}</span>
+            <el-link v-else-if="['link', 'email', 'phone'].includes(field.list_formatter)" :href="formatLink(field.list_formatter, row[field.field_name])" target="_blank">{{ presentField(field, row) }}</el-link>
+            <code v-else-if="field.list_formatter === 'json'">{{ presentField(field, row) }}</code>
+            <span v-else>{{ presentField(field, row) }}</span>
       </template>
       <template #actions="{ row }">
         <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
@@ -47,13 +44,12 @@
       />
       <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="saveRow">保存</el-button></template>
     </el-dialog>
-    <el-drawer v-model="detailVisible" title="详情" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in listFields" :key="field.field_name" :label="field.label">{{ detail.row[field.field_name] ?? '-' }}</el-descriptions-item></el-descriptions></el-drawer>
+    <el-drawer v-model="detailVisible" title="详情" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">{{ presentField(field, detail?.row ?? {}) }}</el-descriptions-item></el-descriptions></el-drawer>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
@@ -69,6 +65,7 @@ import { resolveListButtons } from './schema/listButtons';
 import { provideListButtonAdapter, defaultListButtons, listActionKey, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import type { FormListButton } from './schema/types';
+import { formatFieldValue, resolveFieldOptions } from './runtime/fieldPresentation';
 import { useUserStore } from '@/store/modules/user';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
@@ -198,9 +195,10 @@ const onExport = async () => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${formKey.value}.json`; anchor.click(); URL.revokeObjectURL(url);
 };
-const formatDate = (value: unknown, type: string) => value ? dayjs(String(value)).format(type === 'date' ? 'YYYY-MM-DD' : type === 'time' ? 'HH:mm:ss' : 'YYYY-MM-DD HH:mm:ss') : '';
+const presentField = (field: FormFieldDef, row: Record<string, unknown>) => formatFieldValue(row[field.field_name], resolveFieldOptions({ field: field.field_name, dataSource: field.options_source }), field.list_formatter, 'published');
+const formatDate = (value: unknown, type: string) => formatFieldValue(value, [], type, 'published');
+const formatJson = (value: unknown) => formatFieldValue(value, [], 'json', 'published');
 const formatLink = (type: string, value: unknown) => type === 'email' ? `mailto:${String(value ?? '')}` : type === 'phone' ? `tel:${String(value ?? '')}` : /^https?:\/\//.test(String(value ?? '')) ? String(value) : '#';
-const formatJson = (value: unknown) => { try { return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value); } catch { return String(value ?? ''); } };
 const openDetail = async (row: Record<string, unknown>) => {
   const sequence = ++detailSequence;
   const identity = { formKey: formKey.value, id: row[primaryKey.value] as FormRecordId, schemaHash: meta.value?.schemaHash ?? '' };

@@ -758,7 +758,7 @@ final class ProductionTemplateContext
         $pageColumns = [];
         $cellSlots = '';
         foreach ($data['fields'] as $field) {
-            if (!($field['list'] ?? false)) continue;
+            if (!($field['list'] ?? false) || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
             $column = ['key' => $key, 'prop' => $key, 'slot' => $key, 'label' => (string) ($field['label'] ?? $field['name'])];
             if (($field['listWidth'] ?? 0) > 0) $column['width'] = (int) $field['listWidth'];
@@ -773,7 +773,7 @@ final class ProductionTemplateContext
         $pageList = ['tools' => (object) ($data['list']['tools'] ?? [])];
         if ($tree) $pageList['tree'] = ['enabled' => true, 'parentField' => self::camel($data['list']['tree']['parentField'])];
         $page = ['pageSchemaVersion' => 1, 'key' => str_replace('-', '_', $data['entity']), 'primaryKey' => $primaryName, 'search' => [], 'toolbar' => [], 'rowActions' => [], 'list' => $pageList, 'pagination' => ['pageSize' => 20, 'pageSizes' => [10, 20, 50, 100], 'enabled' => !$tree]];
-        $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\n";
+        $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\nimport { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';\n";
         $listSetup .= 'const tableSchema = computed<PageSchema>(() => ({ ...' . self::json($page) . ', columns: [...(toolbarButtons.value.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . ' ? [{ key: \'selection\', label: \'\', type: \'selection\' as const, width: 48 }] : []), ...' . self::json($pageColumns) . ', ...(hasRowButtons.value ? [{ key: \'actions\', label: \'操作\', slot: \'actions\' }] : [])] } as PageSchema));' . "\n";
         $actionSlot = '<template #actions="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template>';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
@@ -790,6 +790,7 @@ final class ProductionTemplateContext
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
+            . self::fieldPresentationSetup($data['fields'], 'list')
             . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
             . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\n" : '')
@@ -956,31 +957,58 @@ final class ProductionTemplateContext
         };
     }
 
+    private static function fieldPresentationSetup(array $fields, string $view): string
+    {
+        $entries = [];
+        foreach ($fields as $field) {
+            if (!($field[$view] ?? ($view === 'detail')) || self::sensitiveField($field)) continue;
+            $key = self::json(self::camel($field['name']));
+            $formatter = (string) ($field['listFormatter'] ?? '');
+            $options = array_map(static fn ($option) => is_array($option) ? $option : ['label' => (string) $option, 'value' => $option], array_values((array) ($field['options'] ?? $field['enum'] ?? [])));
+            if ($options === [] && in_array($formatter, ['switch', 'boolean'], true)) $options = [['label' => '是', 'value' => 1], ['label' => '否', 'value' => 0]];
+            $node = self::json(['dataSource' => ['options' => $options]]);
+            $entries[] = "{$key}: { options: resolveFieldOptions({$node}), formatter: " . self::json($formatter) . ' }';
+        }
+        return 'const fieldPresentations = { ' . implode(', ', $entries) . " };\n";
+    }
+
     private static function listCell(string $key, string $formatter): string
     {
         $value = "scope.row.{$key}";
+        $shared = "formatFieldValue({$value}, fieldPresentations.{$key}.options, fieldPresentations.{$key}.formatter, 'published')";
         return match ($formatter) {
-            'tag' => "<template #default=\"scope\"><el-tag>{{ String({$value} ?? '') }}</el-tag></template>",
-            'switch', 'boolean' => "<template #default=\"scope\"><el-tag :type=\"Number({$value}) === 1 ? 'success' : 'info'\">{{ Number({$value}) === 1 ? '是' : '否' }}</el-tag></template>",
+            'tag' => "<template #default=\"scope\"><el-tag>{{ {$shared} }}</el-tag></template>",
+            'switch', 'boolean' => "<template #default=\"scope\"><el-tag :type=\"Number({$value}) === 1 ? 'success' : 'info'\">{{ {$shared} }}</el-tag></template>",
             'image' => "<template #default=\"scope\"><el-image :src=\"String({$value} ?? '')\" fit=\"cover\" class=\"h-10 w-10 rounded\" /></template>",
             'images' => "<template #default=\"scope\"><span>{{ Array.isArray({$value}) ? {$value}.length + ' 张' : '' }}</span></template>",
-            'money' => "<template #default=\"scope\"><span>￥{{ Number({$value} ?? 0).toFixed(2) }}</span></template>",
-            'percent' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toFixed(2) }}%</span></template>",
-            'number' => "<template #default=\"scope\"><span>{{ Number({$value} ?? 0).toLocaleString('zh-CN') }}</span></template>",
+            'money', 'percent', 'number' => "<template #default=\"scope\"><span>{{ {$shared} }}</span></template>",
             'link' => "<template #default=\"scope\"><el-link :href=\"String({$value} ?? '')\" target=\"_blank\">{{ String({$value} ?? '') }}</el-link></template>",
             'email' => "<template #default=\"scope\"><el-link :href=\"'mailto:' + String({$value} ?? '')\">{{ String({$value} ?? '') }}</el-link></template>",
             'phone' => "<template #default=\"scope\"><el-link :href=\"'tel:' + String({$value} ?? '')\">{{ String({$value} ?? '') }}</el-link></template>",
-            'json' => "<template #default=\"scope\"><code>{{ JSON.stringify({$value}) }}</code></template>",
-            'date', 'datetime', 'time' => "<template #default=\"scope\"><span>{{ String({$value} ?? '-') }}</span></template>",
-            default => "<template #default=\"scope\"><span>{{ String({$value} ?? '') }}</span></template>",
+            'json' => "<template #default=\"scope\"><code>{{ {$shared} }}</code></template>",
+            default => "<template #default=\"scope\"><span>{{ {$shared} }}</span></template>",
         };
+    }
+
+    private static function sensitiveField(array $field): bool
+    {
+        return ($field['component'] ?? '') === 'password' || !empty($field['controlProps']['sensitive']) || !empty($field['controlProps']['writeOnly']) || !empty($field['controlProps']['schemaAccess']);
     }
 
     private static function detail(array $data, string $class): string
     {
         $type = self::tsTypeName($class);
-        return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\"><el-descriptions-item v-for=\"(value, key) in row\" :key=\"key\" :label=\"String(key)\"><span v-text=\"String(value ?? '')\" /></el-descriptions-item></el-descriptions></el-drawer></template>\n"
-            . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
+        $items = [];
+        foreach ($data['fields'] as $field) {
+            if (($field['detail'] ?? true) === false || self::sensitiveField($field)) continue;
+            $key = self::camel($field['name']);
+            $label = htmlspecialchars((string) ($field['label'] ?? $field['name']), ENT_QUOTES);
+            $cell = self::listCell($key, (string) ($field['listFormatter'] ?? ''));
+            $cell = str_replace(['<template #default="scope">', '</template>', 'scope.row.'], ['', '', 'row.'], $cell);
+            $items[] = "<el-descriptions-item label=\"{$label}\">{$cell}</el-descriptions-item>";
+        }
+        return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\">" . implode('', $items) . "</el-descriptions></el-drawer></template>\n"
+            . "<script setup lang=\"ts\">import { computed } from 'vue'; import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation'; import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});\n" . self::fieldPresentationSetup($data['fields'], 'detail') . "</script>\n";
     }
 
     private static function phpTest(array $data, string $class): string
