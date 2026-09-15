@@ -31,7 +31,15 @@ export function setupRouterGuard(router: Router) {
       return next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });
     }
     if (to.path === LOGIN_PATH) return next({ path: HOME_PATH });
-    if (permissionStore.mounted) return next();
+    const hasRoutePermission = (permission: unknown): boolean => {
+      if (!permission) return true;
+      const required = Array.isArray(permission) ? permission.map(String) : [String(permission)];
+      const granted = userStore.permissions || [];
+      return granted.some((code) => code === '*' || code === '*:*:*') || required.some((code) => granted.includes(code));
+    };
+    if (permissionStore.mounted) {
+      return hasRoutePermission(to.meta?.permission) ? next() : next({ path: '/403', replace: true });
+    }
 
     try {
       const [, dynamicRoutes] = await Promise.all([
@@ -50,7 +58,10 @@ export function setupRouterGuard(router: Router) {
         });
       }
       permissionStore.setMounted(true);
-      next({ path: to.path, query: to.query, hash: to.hash, replace: true });
+      const resolved = router.resolve({ path: to.path, query: to.query, hash: to.hash });
+      next(hasRoutePermission(resolved.meta?.permission)
+        ? { path: to.path, query: to.query, hash: to.hash, replace: true }
+        : { path: '/403', replace: true });
     } catch (e: any) {
       ElMessage.error(e?.message || (i18n.global.t('common.fetchPermissionFailed') as string));
       userStore.resetState();

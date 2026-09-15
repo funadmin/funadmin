@@ -106,7 +106,7 @@ class AdminAuth extends BaseController
     {
         $roleScope = new RoleScopeService();
         $permissionIds = $roleScope->permissionIdsForRoles($roleScope->currentRoleIds());
-        $menus = AdminMenu::whereIn('source_type', ['admin_web', 'generated'])
+        $menus = AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])
             ->where('status', 1)
             ->order('sort_order', 'asc')
             ->order('id', 'asc')
@@ -115,14 +115,15 @@ class AdminAuth extends BaseController
         $allById = [];
         foreach ($menus as $menu) {
             $allById[(int) $menu->id] = $menu;
-            if ($roleScope->isSuperAdmin() || (int) $menu->permission_id === 0 || in_array((int) $menu->permission_id, $permissionIds, true)) {
-                $allowed[(int) $menu->id] = $this->menuData($menu);
+            $isAllowed = $roleScope->isSuperAdmin() || (int) $menu->permission_id === 0 || in_array((int) $menu->permission_id, $permissionIds, true);
+            if ($isAllowed || (string) $menu->href !== '') {
+                $allowed[(int) $menu->id] = $this->menuData($menu, $isAllowed);
             }
         }
         foreach (array_keys($allowed) as $id) {
             $parentId = (int) ($allById[$id]->pid ?? 0);
             while ($parentId > 0 && isset($allById[$parentId])) {
-                $allowed[$parentId] = $this->menuData($allById[$parentId]);
+                $allowed[$parentId] = $this->menuData($allById[$parentId], true);
                 $parentId = (int) $allById[$parentId]->pid;
             }
         }
@@ -136,7 +137,7 @@ class AdminAuth extends BaseController
         return $this->ok('退出成功');
     }
 
-    private function menuData(AdminMenu $menu): array
+    private function menuData(AdminMenu $menu, bool $isAllowed = true): array
     {
         parse_str((string) $menu->query, $meta);
         // 旧受管生成曾漏写 query；仅恢复身份完全匹配且元数据为空的生成菜单，不写库、不覆盖二开。
@@ -162,7 +163,7 @@ class AdminAuth extends BaseController
             'icon' => (string) $menu->icon,
             'name' => (string) $menu->name,
             'sort' => (int) $menu->sort_order,
-            'hidden' => filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOL),
+            'hidden' => !$isAllowed || filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOL),
             'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOL),
             'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOL),
             'permission' => (string) ($permission->code ?? ''),
@@ -179,32 +180,32 @@ class AdminAuth extends BaseController
     private function webPermissions(array $permissionCodes, bool $isSuperAdmin): array
     {
         $mapping = [
-            'admin/development.business:modules' => 'development:business:view',
-            'admin/development.business:module' => 'development:business:view',
-            'admin/development.business:createvisual' => 'development:business:save',
-            'admin/development.business:inspectdatabase' => 'development:business:inspect',
-            'admin/development.business:createfromdatabase' => 'development:business:save',
-            'admin/development.business:validateschema' => 'development:business:save',
-            'admin/development.business:saveschema' => 'development:business:save',
-            'admin/development.business:compileschema' => 'development:business:save',
-            'admin/development.business:exportschema' => 'development:business:view',
-            'admin/development.business:schemaversions' => 'development:business:view',
-            'admin/development.business:schemaversion' => 'development:business:view',
-            'admin/development.business:schemadiff' => 'development:business:view',
-            'admin/development.business:rollbackschema' => 'development:business:save',
-            'admin/development.business:databasetables' => 'development:business:inspect',
-            'admin/development.business:databasetableschema' => 'development:business:inspect',
-            'admin/development.business:previewpublish' => 'development:business:publish',
-            'admin/development.business:publish' => 'development:business:publish',
-            'admin/development.business:runtimemeta' => 'development:business:view',
-            'admin/development.business:previewformalgeneration' => 'development:business:generate',
-            'admin/development.business:formalgeneration' => 'development:business:generate',
-            'admin/development.business:generations' => 'development:business:records',
-            'admin/development.business:generation' => 'development:business:records',
-            'admin/development.business:recovergeneration' => 'development:business:recover',
-            'admin/development.business:retryresources' => 'development:business:apply-resources',
-            'admin/development.business:adoptresolvedbaseline' => 'development:business:save',
-            'admin/development.business:fieldcapabilities' => 'development:business:view',
+            'admin/development.business:modules' => 'admin/development:business:view',
+            'admin/development.business:module' => 'admin/development:business:view',
+            'admin/development.business:createvisual' => 'admin/development:business:save',
+            'admin/development.business:inspectdatabase' => 'admin/development:business:inspect',
+            'admin/development.business:createfromdatabase' => 'admin/development:business:save',
+            'admin/development.business:validateschema' => 'admin/development:business:save',
+            'admin/development.business:saveschema' => 'admin/development:business:save',
+            'admin/development.business:compileschema' => 'admin/development:business:save',
+            'admin/development.business:exportschema' => 'admin/development:business:view',
+            'admin/development.business:schemaversions' => 'admin/development:business:view',
+            'admin/development.business:schemaversion' => 'admin/development:business:view',
+            'admin/development.business:schemadiff' => 'admin/development:business:view',
+            'admin/development.business:rollbackschema' => 'admin/development:business:save',
+            'admin/development.business:databasetables' => 'admin/development:business:inspect',
+            'admin/development.business:databasetableschema' => 'admin/development:business:inspect',
+            'admin/development.business:previewpublish' => 'admin/development:business:publish',
+            'admin/development.business:publish' => 'admin/development:business:publish',
+            'admin/development.business:runtimemeta' => 'admin/development:business:view',
+            'admin/development.business:previewformalgeneration' => 'admin/development:business:generate',
+            'admin/development.business:formalgeneration' => 'admin/development:business:generate',
+            'admin/development.business:generations' => 'admin/development:business:records',
+            'admin/development.business:generation' => 'admin/development:business:records',
+            'admin/development.business:recovergeneration' => 'admin/development:business:recover',
+            'admin/development.business:retryresources' => 'admin/development:business:apply-resources',
+            'admin/development.business:adoptresolvedbaseline' => 'admin/development:business:save',
+            'admin/development.business:fieldcapabilities' => 'admin/development:business:view',
             'admin/systemdict:types' => 'system:dict:list',
             'admin/systemdict:items' => 'system:dict:list',
             'admin/systemdict:options' => 'system:dict:list',
@@ -238,11 +239,11 @@ class AdminAuth extends BaseController
             'admin/systemadmin:delete' => 'system:user:delete',
             'admin/systemadmin:resetpassword' => 'system:user:reset',
             'admin/systemadmin:status' => 'system:user:status',
-            'admin/systemmenu:tree' => 'system:menu:list',
-            'admin/systemmenu:detail' => 'system:menu:list',
-            'admin/systemmenu:create' => 'system:menu:add',
-            'admin/systemmenu:update' => 'system:menu:edit',
-            'admin/systemmenu:delete' => 'system:menu:delete',
+            'admin/systemmenu:tree' => 'admin/systemmenu:tree',
+            'admin/systemmenu:detail' => 'admin/systemmenu:detail',
+            'admin/systemmenu:create' => 'admin/systemmenu:create',
+            'admin/systemmenu:update' => 'admin/systemmenu:update',
+            'admin/systemmenu:delete' => 'admin/systemmenu:delete',
             'admin/systempermission:tree' => 'system:permission:list',
             'admin/systempermission:create' => 'system:permission:add',
             'admin/systempermission:update' => 'system:permission:edit',
@@ -365,7 +366,7 @@ class AdminAuth extends BaseController
         foreach ($permissionCodes as $code) {
             // 保留业务独立动作供前端精确控制；合并别名不代表获得其他动作授权。
             $normalizedCode = strtolower((string) $code);
-            if (str_starts_with($normalizedCode, 'admin/')) {
+            if ($normalizedCode !== '' && !str_starts_with($normalizedCode, 'console/') && !str_starts_with($normalizedCode, 'backend/')) {
                 $result[$normalizedCode] = true;
             }
             $webCode = $mapping[$normalizedCode] ?? null;

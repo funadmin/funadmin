@@ -15,6 +15,8 @@
 /public/static/mocms
 /public/static/crud
 /public/static/storage
+/.playwright-cli
+/output/*
 /.trae
 /.cursor
 /.qoder
@@ -52,6 +54,7 @@
 !/tests/form_action_execution_test.php
 !/tests/form_action_permission_migration_test.php
 !/tests/form_data_observability_contract_test.php
+!/tests/admin_menu_permission_unification_contract_test.php
 !/tests/form_observability_test.php
 !/tests/form_schema_api_test.php
 !/tests/form_publish_test.php

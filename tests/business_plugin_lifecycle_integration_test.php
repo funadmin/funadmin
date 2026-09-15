@@ -238,13 +238,14 @@ try {
         foreach (['list', 'create', 'update', 'delete'] as $action) {
             $permission = Db::name('permission')->where('code', $code . ':' . $entity . ':' . $action)->find();
             lifecycleExpect($permission !== null && $permission['source_type'] === 'plugin' && $permission['source_name'] === $code
-                && $permission['app_name'] === 'console' && $permission['obj'] === $entity && $permission['act'] === $action,
-                '具体权限归属或资源动作不符：' . $entity . ':' . $action);
+                && $permission['app_name'] === 'admin' && $permission['obj'] === $code . '/' . $entity
+                && $permission['act'] === $action && $permission['resource_type'] === 'capability',
+                '具体 capability 归属或资源动作不符：' . $entity . ':' . $action);
         }
         $listPermission = Db::name('permission')->where('code', $code . ':' . $entity . ':list')->find();
         $menus = Db::name('admin_menu')->where('href', '/plugin/' . $code . '/' . $entity)->select()->toArray();
         lifecycleExpect(count($menus) === 1 && $menus[0]['name'] === $entity && $menus[0]['source_type'] === 'plugin'
-            && $menus[0]['source_name'] === $code && $menus[0]['app_name'] === 'console'
+            && $menus[0]['source_name'] === $code && $menus[0]['app_name'] === 'admin'
             && (int) $menus[0]['permission_id'] === (int) $listPermission['id'], '具体菜单及列表权限绑定错误：' . $entity);
     }
     echo "TWO MODULES PASS: both models published; entry/detail list/create/update/delete permissions and menu permission bindings verified\n";

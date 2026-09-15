@@ -1735,51 +1735,6 @@ html.dark .el-progress-bar__outer {
  *  - notification 标题 14px/600，正文 13px/--app-text-secondary
  * ============================================================ */
 
-/* —— el-message —— */
-.el-message {
-  min-width: 320px;
-  padding: 10px 14px;
-  background-color: var(--app-card-bg) !important;
-  border: 1px solid var(--app-border) !important;
-  border-radius: var(--app-radius) !important;
-  box-shadow: var(--app-shadow-lg);
-  color: var(--app-text) !important;
-}
-.el-message .el-message__content {
-  font-size: 13px;
-  color: var(--app-text);
-}
-.el-message--info {
-  border-left: 3px solid var(--el-color-info) !important;
-}
-.el-message--info .el-message__icon {
-  color: var(--el-color-info);
-}
-.el-message--success {
-  border-left: 3px solid var(--el-color-success) !important;
-}
-.el-message--success .el-message__icon {
-  color: var(--el-color-success);
-}
-.el-message--warning {
-  border-left: 3px solid var(--el-color-warning) !important;
-}
-.el-message--warning .el-message__icon {
-  color: var(--el-color-warning);
-}
-.el-message--error {
-  border-left: 3px solid var(--el-color-danger) !important;
-}
-.el-message--error .el-message__icon {
-  color: var(--el-color-danger);
-}
-.el-message .el-message__closeBtn {
-  color: var(--app-text-secondary);
-}
-.el-message .el-message__closeBtn:hover {
-  color: var(--el-color-primary);
-}
-
 /* —— el-notification —— */
 .el-notification {
   width: 360px;

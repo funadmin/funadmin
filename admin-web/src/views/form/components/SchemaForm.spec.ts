@@ -29,13 +29,13 @@ foreach (['dictionary_value'=>'dictionary', 'owner'=>'select', 'attachment'=>'fi
     $nodes[] = ['id'=>$field,'kind'=>'field','field'=>$field,'type'=>$type,'title'=>$field,'database'=>['columnType'=>'varchar'], 'props'=>$type==='date'?['valueFormat'=>'YYYY-MM-DD']:[], 'dataSource'=>$type==='dictionary'?['kind'=>'dictionary','dictionary'=>'status']:['kind'=>'static','options'=>[]]];
 }
 $c=(new app\\common\\form\\schema\\FormSchemaCompiler(new app\\common\\form\\schema\\FormSchemaValidator()))->compile(['schemaVersion'=>2,'key'=>'capability','title'=>'能力','nodes'=>$nodes]);
-$d=(new app\\console\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c,['table_name'=>'fun_capability'])->toArray();
+$d=(new app\\admin\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c,['table_name'=>'fun_capability'])->toArray();
 $d['features']['dictionary']=${enabled ? 'true' : 'false'}; $d['features']['upload']=${enabled ? 'true' : 'false'};
 $d['optionsSource'][]=['name'=>'owner_options','type'=>'endpoint','endpoint'=>'/owners','labelField'=>'label','valueField'=>'value'];
 foreach($d['fields'] as &$field) if($field['name']==='owner') $field['optionsSource']='owner_options'; unset($field);
 echo json_encode(app\\common\\crud\\ProductionTemplateContext::build(app\\common\\crud\\CrudDefinition::fromArray($d)));
 `], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' }));
-    const schema = JSON.parse(output.formContent.match(/const formSchema=(.*?) as unknown as FormSchemaDocument;/)[1]);
+    const schema = JSON.parse(output.formContent.match(/const sourceSchema=(.*?) as unknown as FormSchemaDocument;/)[1]);
     const request = vi.fn(async () => ({ options: [{ label: '关联值', value: 7 }] }));
     const wrapper = mount(SchemaRenderer, {
       props: { schema, formKey: 'capability', values: { owner: 7, read_value: '只读值' }, optionsRequest: request },
@@ -97,9 +97,16 @@ describe('轻量 SchemaForm 的 Builder 兼容', () => {
     await expect(new Validator(rules).validate({ value })).rejects.toBeTruthy();
     wrapper.unmount();
   });
+  it('旧包装透传 schema 参数及取消信号', async () => {
+    const wrapper = render([field({ type: 'select', options_source: { kind: 'endpoint', params: { parent_id: '$form.parent' } } })], { value: '', parent: '甲' });
+    await vi.waitFor(() => expect(mocks.options).toHaveBeenCalledWith('system_member', 'value', expect.objectContaining({ parent_id: '甲' }), expect.any(AbortSignal)));
+    const signal = (mocks.options.mock.calls[0] as unknown as unknown[])[3] as AbortSignal;
+    wrapper.unmount();
+    expect(signal.aborted).toBe(true);
+  });
   it('继续支持旧远程 mode', async () => {
     const wrapper = render([field({ type: 'select', options_source: { mode: 'relation' } })], { value: '' });
-    await vi.waitFor(() => expect(mocks.options).toHaveBeenCalledWith('system_member', 'value'));
+    await vi.waitFor(() => expect(mocks.options).toHaveBeenCalledWith('system_member', 'value', expect.any(Object), expect.any(AbortSignal)));
     wrapper.unmount();
   });
 });

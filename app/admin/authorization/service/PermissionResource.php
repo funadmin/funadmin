@@ -60,6 +60,15 @@ class PermissionResource
         return self::fromParts($appName, $segments[0], $segments[1]);
     }
 
+    public static function canonicalCode(string $code): string
+    {
+        $code = strtolower(trim($code));
+        if ($code === '' || str_starts_with($code, 'admin/')) {
+            return $code;
+        }
+        return 'admin/' . $code;
+    }
+
     public static function fromParts(string $appName, string $controller, string $action): array
     {
         $appName = self::normalizeSegment($appName);
@@ -87,7 +96,7 @@ class PermissionResource
         return [
             'obj' => $appName . '/' . $controller,
             'act' => $action,
-            'code' => $appName . '/' . $controller . ':' . $action,
+            'code' => self::canonicalCode($appName . '/' . $controller . ':' . $action),
         ];
     }
 

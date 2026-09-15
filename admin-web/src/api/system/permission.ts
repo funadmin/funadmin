@@ -10,12 +10,13 @@ export interface PermissionModel {
   object: string;
   action: string;
   name: string;
-  resourceType: 'group' | 'route';
+  resourceType: 'group' | 'route' | 'capability';
   status: 0 | 1;
   isPublic: 0 | 1;
   sort: number;
   sourceType: string;
   sourceName: string;
+  readOnly?: boolean;
   createdAt?: string;
   updatedAt?: string;
   children?: PermissionModel[];

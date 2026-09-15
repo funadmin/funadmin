@@ -10,6 +10,7 @@ class Permission extends BackendModel
 
     public const TYPE_GROUP = 'group';
     public const TYPE_ROUTE = 'route';
+    public const TYPE_CAPABILITY = 'capability';
 
     public static function childIds(int $id): array
     {

@@ -76,6 +76,9 @@ final class GenerationResourceTransaction
             if ($type === 'permission') {
                 $groups[$sourceName]['permissions'][] = [
                     'code' => (string) ($resource['code'] ?? $identity),
+                    'obj' => (string) ($resource['obj'] ?? ''),
+                    'act' => (string) ($resource['act'] ?? ''),
+                    'permissionType' => (string) ($resource['permissionType'] ?? 'route'),
                     'name' => (string) ($resource['name'] ?? $identity),
                     'sort' => (int) ($resource['sortOrder'] ?? $resource['sort'] ?? 999),
                 ];

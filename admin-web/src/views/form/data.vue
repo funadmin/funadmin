@@ -1,7 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name ? `${meta.form.name} 数据` : '表单数据'" subtitle="元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('admin/form.data:lefttreeform')" :can-mutate="hasPermission('admin/form.data:mutatelefttree')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('admin/form.data:index')" :can-mutate="hasPermission('admin/form.data:index')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template v-if="meta?.schema.list?.tools?.search !== false" #search>
@@ -31,6 +31,9 @@
               class="w-[160px]"
             >
               <el-option label="启用" value="1" />
+            </el-select>
+            <el-select v-else-if="isDynamicFieldOptions(optionNode(field)) && ['eq', 'neq', '='].includes(field.list_filter)" v-model="filters[field.field_name]" :loading="filterOptions.pending.value[field.field_name]" :placeholder="filterOptions.placeholder(field.field_name) || '请选择'" clearable>
+              <el-option v-for="option in resolveFieldOptions(optionNode(field), filterOptions.supplied.value)" :key="String(option.value)" :label="option.label" :value="option.value as string | number" />
             </el-select>
             <el-input v-else v-model="filters[field.field_name]" :placeholder="filterPlaceholder(field.list_filter)" clearable class="w-[180px]" />
           </el-form-item>
@@ -95,7 +98,7 @@
     <el-drawer v-model="detailVisible" title="详情" size="52%">
       <el-descriptions :column="1" border>
         <el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">
-          {{ presentField(field, detail?.row ?? {}) }}
+          {{ presentField(field, detail?.row ?? {}, detailOptions) }}
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detail?.row?.created_at ?? '-' }}</el-descriptions-item>
       </el-descriptions>
@@ -127,7 +130,7 @@ import ListSourceTree from './components/ListSourceTree.vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import type { PageSchema } from '@/components/DataTable/pageSchema';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
-import { formatFieldValue, resolveFieldOptions } from './runtime/fieldPresentation';
+import { formatFieldValue, resolveFieldOptions, useSuppliedFieldOptions, presentationNodes, isDynamicFieldOptions } from './runtime/fieldPresentation';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
@@ -181,6 +184,17 @@ const detailVisible = ref(false);
 const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, any>>({});
 const detail = ref<{ row: Record<string, unknown>; children: Record<string, { list: Record<string, unknown>[]; total: number }> } | null>(null);
+const fieldOptions = useSuppliedFieldOptions(rows);
+const filterOptions = useSuppliedFieldOptions(filters);
+const detailOptions = useSuppliedFieldOptions(() => detailVisible.value && detail.value ? [detail.value.row] : []);
+const optionNodes = computed(() => presentationNodes(formFields.value, meta.value?.schema.nodes));
+const optionNode = (field: FormFieldDef) => optionNodes.value.find(node => node.field === field.field_name)!;
+const loadOptions = () => {
+  void fieldOptions.load(formKey.value, optionNodes.value.filter(node => listFields.value.some(field => field.field_name === node.field)));
+  void filterOptions.load(formKey.value, optionNodes.value.filter(node => filterFields.value.some(field => field.field_name === node.field)));
+  void detailOptions.load(formKey.value, optionNodes.value.filter(node => readableFields.value.some(field => field.field_name === node.field)));
+};
+const invalidateOptions = () => { fieldOptions.invalidate(); filterOptions.invalidate(); detailOptions.invalidate(); };
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const dialogSnapshot = ref('');
 let closeDialogAfterSave = false;
@@ -214,7 +228,7 @@ const syncDateFilter = (name: string) => {
   filters[name + '_to'] = range?.[1] ?? '';
 };
 const readableFields = computed(() => formFields.value.filter(field => field.form_show !== 0 && !['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly));
-const presentField = (field: FormFieldDef, row: Record<string, unknown>) => formatFieldValue(row[field.field_name], resolveFieldOptions({ field: field.field_name, dataSource: field.options_source }), field.list_formatter);
+const presentField = (field: FormFieldDef, row: Record<string, unknown>, state = fieldOptions) => state.placeholder(field.field_name, row) || formatFieldValue(row[field.field_name], resolveFieldOptions(optionNode(field), state.forContext(row)), field.list_formatter);
 const isTruthy = (value: unknown) => ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
 const formatDate = (value: unknown, format: string) => formatFieldValue(value, [], format === 'YYYY-MM-DD' ? 'date' : format === 'HH:mm:ss' ? 'time' : 'datetime', 'data');
 const formatNumber = (value: unknown, digits?: number, prefix = '', suffix = '') => formatFieldValue(value, [], prefix ? 'money' : suffix ? 'percent' : 'number', 'data');
@@ -240,9 +254,11 @@ const safeUrl = (value: unknown) => {
 async function loadMeta() {
   const key = formKey.value;
   const sequence = ++metaSequence;
+  invalidateOptions();
   const loaded = await formDataApi.meta(key);
   if (sequence !== metaSequence || key !== formKey.value) return false;
   meta.value = loaded;
+  loadOptions();
   return true;
 }
 let dataSequence = 0;
@@ -392,7 +408,7 @@ watch(formKey, async () => { dataSequence++; dialogSequence++; detailSequence++;
 // 同步失效可覆盖同一轮关闭再打开、身份切走再切回。
 watch(dialogVisible, () => { dialogSequence++; saveSequence++; }, { flush: 'sync' });
 watch(detailVisible, () => { detailSequence++; }, { flush: 'sync' });
-watch(formKey, () => { metaSequence++; dataSequence++; }, { flush: 'sync' });
+watch(formKey, () => { invalidateOptions(); metaSequence++; dataSequence++; }, { flush: 'sync' });
 watch([formKey, () => meta.value?.schemaHash], () => { saveSequence++; dialogSequence++; detailSequence++; }, { flush: 'sync' });
 onMounted(async () => {
   if (await loadMeta()) await loadData();

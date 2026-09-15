@@ -22,14 +22,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:menu:add'" @click="onAdd()">
+        <el-button type="primary" plain v-perm="'admin/systemmenu:create'" @click="onAdd()">
           <i class="i-ep-plus" /> 新增
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'system:menu:delete'"
+          v-perm="'admin/systemmenu:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
@@ -54,12 +54,12 @@
           :default-expand-all="expandAll"
           @selection-change="onSelectionChange"
         >
-          <el-table-column type="selection" width="48" align="center" />
+          <el-table-column type="selection" width="48" align="center" :selectable="(row: API.MenuItem) => !row.readOnly" />
           <el-table-column prop="name" label="名称" min-width="200" />
           <el-table-column label="" width="52" align="center">
             <template #default="{ row }">
               <span
-                v-if="dragEnabled"
+                v-if="dragEnabled && !row.readOnly"
                 class="menu-drag-handle inline-flex cursor-grab items-center justify-center text-[var(--el-text-color-secondary)] active:cursor-grabbing"
                 :data-menu-id="row.id"
                 title="拖动调整同级顺序"
@@ -75,7 +75,12 @@
             </template>
           </el-table-column>
           <el-table-column prop="path" label="路由" min-width="180" />
-          <el-table-column prop="permission" label="权限标识" min-width="180" />
+          <el-table-column prop="permission" label="权限标识" min-width="220">
+            <template #default="{ row }">
+              <span>{{ row.permission || '—' }}</span>
+              <el-tag v-if="row.readOnly" class="ml-2" size="small" type="info">受管</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="类型" width="90" align="center">
             <template #default="{ row }">
               <el-tag size="small" :type="typeTag(row.type)">{{ typeText(row.type) }}</el-tag>
@@ -84,6 +89,7 @@
           <el-table-column prop="sort" label="排序" width="100" align="center">
             <template #default="{ row }">
               <InlineEdit
+                v-if="!row.readOnly"
                 :model-value="row.sort"
                 type="number"
                 :min="0"
@@ -91,18 +97,19 @@
                 :save="(v: number) => menuApi.update(row.id, { sort: v })"
                 @update:model-value="row.sort = $event"
               />
+              <span v-else>{{ row.sort }}</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="320" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button size="small" type="primary" link v-perm="'system:menu:add'" @click="onAdd(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'admin/systemmenu:create'" @click="onAdd(row as API.MenuItem)">
                   <i class="i-ep-plus" /> 新增子项
                 </el-button>
-                <el-button size="small" type="primary" link v-perm="'system:menu:edit'" @click="onEdit(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'admin/systemmenu:update'" @click="onEdit(row as API.MenuItem)">
                   <i class="i-ep-edit" /> 编辑
                 </el-button>
-                <el-button size="small" type="danger" link v-perm="'system:menu:delete'" @click="onDelete(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'admin/systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
                   <i class="i-ep-delete" /> 删除
                 </el-button>
               </div>
@@ -219,7 +226,7 @@ async function onMenuRowSortEnd() {
   parentToOrderedIds.forEach((ids) => {
     ids.forEach((id, idx) => {
       const node = map.get(id);
-      if (!node) return;
+      if (!node || node.readOnly) return;
       if ((node.sort ?? 0) !== idx) toUpdate.push({ id, sort: idx });
     });
   });
@@ -257,7 +264,7 @@ function initMenuRowSortable() {
       if (dragId == null || relatedId == null) return false;
       const a = map.get(dragId);
       const b = map.get(relatedId);
-      if (!a || !b) return false;
+      if (!a || !b || a.readOnly || b.readOnly) return false;
       return a.parentId === b.parentId;
     },
     onEnd: () => {
@@ -308,6 +315,7 @@ function typeText(type: API.MenuItem['type']) {
 }
 
 function onAdd(parent?: API.MenuItem) {
+  if (parent?.readOnly) return;
   current.value = null;
   defaultParentId.value = parent?.id || 0;
   dialogVisible.value = true;
@@ -326,7 +334,7 @@ async function onDelete(row: API.MenuItem) {
 }
 
 function onSelectionChange(rows: API.MenuItem[]) {
-  selection.value = rows;
+  selection.value = rows.filter((row) => !row.readOnly);
 }
 
 /**
@@ -339,7 +347,8 @@ async function onBatchDelete() {
     ElMessage.warning('请至少选择一项');
     return;
   }
-  const selectedIds = new Set(selection.value.map((r) => r.id));
+  const rows = selection.value.filter((row) => !row.readOnly);
+  const selectedIds = new Set(rows.map((r) => r.id));
   const idMap = new Map<number, number>();
   treeToList(tree.value).forEach((n: any) => idMap.set(n.id, n.parentId));
 
@@ -352,7 +361,7 @@ async function onBatchDelete() {
     return false;
   }
 
-  const topIds = selection.value.map((r) => r.id).filter((id) => !hasSelectedAncestor(id));
+  const topIds = rows.map((r) => r.id).filter((id) => !hasSelectedAncestor(id));
 
   await ElMessageBox.confirm(
     `已选中 ${selection.value.length} 项，去重后将删除 ${topIds.length} 个顶层节点（含其子节点）。是否继续？`,

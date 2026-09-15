@@ -228,16 +228,16 @@ $response = $app->http->run();
 $response->send();
 $app->http->end($response);
 PHP);
-    fixtureWrite($root . '/admin-web/.env', "VITE_APP_BASE=/admin-web/\nVITE_APP_BASE_API=/console\nVITE_APP_PROXY_TARGET=http://127.0.0.1:" . $state['backendPort'] . "\nVITE_APP_PORT=" . $state['frontendPort'] . "\nVITE_APP_MOCK=false\n");
+    fixtureWrite($root . '/admin-web/.env', "VITE_APP_BASE=/admin-web/\nVITE_APP_BASE_API=/admin\nVITE_APP_PROXY_TARGET=http://127.0.0.1:" . $state['backendPort'] . "\nVITE_APP_PORT=" . $state['frontendPort'] . "\nVITE_APP_MOCK=false\n");
     // 原 Vite 配置仅在快照中执行，其 public 输出和 d.ts 均落在独占根目录。
     fixtureWrite($root . '/admin-web/fixture-vite.mjs', "import original from './vite.config.ts';\nexport default (context) => { const config = original(context); config.server.host = '127.0.0.1'; config.server.strictPort = true; config.cacheDir = '../runtime/vite'; return config; };\n");
     $app = fixtureBoot($root, $repository, $loader);
-    $casbin = new app\console\authorization\service\CasbinService();
+    $casbin = new app\admin\authorization\service\CasbinService();
     $casbin->syncAdminRoles(1, [1]);
     $casbin->syncAdminRoles(2, [2]);
     $permissions = [];
     foreach (['modules', 'module', 'targets', 'fieldcapabilities', 'createvisual', 'databasetables', 'databasetableschema', 'previewformalgeneration', 'formalgeneration', 'generations'] as $action) {
-        $permission = app\console\authorization\model\Permission::create(['app_name' => 'console', 'code' => 'console/development.business:' . $action, 'obj' => 'console/development.business', 'act' => $action, 'name' => $action, 'resource_type' => 'route', 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture']);
+        $permission = app\admin\authorization\model\Permission::create(['app_name' => 'admin', 'code' => 'admin/development.business:' . $action, 'obj' => 'admin/development.business', 'act' => $action, 'name' => $action, 'resource_type' => 'route', 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture']);
         $permissions[$action] = (int) $permission->id;
     }
     $casbin->syncRolePermissions(2, [$permissions['modules'], $permissions['module'], $permissions['fieldcapabilities']]);
@@ -253,7 +253,7 @@ PHP);
         [301, 300, 'plugin', '插件管理', 'system/plugin/index', 'SystemPlugin', $permissions['formalgeneration'], ''],
     ];
     foreach ($menus as [$id, $pid, $href, $name, $component, $routeName, $permissionId, $redirect]) {
-        app\console\authorization\model\AdminMenu::create(['id' => $id, 'pid' => $pid, 'app_name' => 'console', 'href' => $href, 'name' => $name, 'permission_id' => $permissionId, 'query' => http_build_query(['name' => $routeName, 'component' => $component, 'type' => $redirect ? 'M' : 'C', 'redirect' => $redirect, 'hidden' => $id === 206 ? 'true' : 'false']), 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture', 'sort_order' => $id]);
+        app\admin\authorization\model\AdminMenu::create(['id' => $id, 'pid' => $pid, 'app_name' => 'admin', 'href' => $href, 'name' => $name, 'permission_id' => $permissionId, 'query' => http_build_query(['name' => $routeName, 'component' => $component, 'type' => $redirect ? 'M' : 'C', 'redirect' => $redirect, 'hidden' => $id === 206 ? 'true' : 'false']), 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture', 'sort_order' => $id]);
     }
     $pluginCode = 'browser' . substr($nonce, 0, 8);
     (new app\common\plugin\sdk\PluginScaffolder($root . '/plugins'))->scaffold($pluginCode, '隔离验收插件', false, true, true);

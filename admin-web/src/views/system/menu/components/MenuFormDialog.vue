@@ -72,7 +72,7 @@
           clearable
           class="w-full"
           :loading="permissionLoading"
-          placeholder="搜索并选择已启用路由权限"
+          placeholder="搜索并选择已启用权限资源"
         >
           <el-option
             v-for="option in permissionOptions"
@@ -81,7 +81,7 @@
             :value="option.id"
           />
         </el-select>
-        <div class="mt-1 text-xs text-gray-400">仅可绑定权限资源中的已启用路由，保存后以资源 ID 稳定关联。</div>
+        <div class="mt-1 text-xs text-gray-400">可绑定已启用的路由或能力资源，保存后以资源 ID 稳定关联。</div>
       </el-form-item>
 
       <el-row :gutter="16">
@@ -170,7 +170,7 @@ const rules = computed<FormRules>(() => ({
 
 const permissionOptions = computed(() =>
   treeToList(permissionTree.value)
-    .filter((item) => item.resourceType === 'route' && item.status === 1 && item.code)
+    .filter((item) => ['route', 'capability'].includes(item.resourceType) && item.status === 1 && item.code)
     .map((item) => ({ id: item.id, name: item.name, code: item.code }))
 );
 

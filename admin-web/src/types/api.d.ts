@@ -75,6 +75,9 @@ declare namespace API {
     affix: boolean;
     permissionId?: number;
     permission?: string;
+    sourceType?: 'admin_web' | 'generated' | 'plugin';
+    sourceName?: string;
+    readOnly?: boolean;
     formKey?: string;
     children?: MenuItem[];
   }

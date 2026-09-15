@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\development\service\GenerationResourceTransaction;
-use app\console\service\ResourceRegistryService;
+use app\admin\development\service\GenerationResourceTransaction;
+use app\admin\service\ResourceRegistryService;
 
 // 仅替换资源持久化边界，不启动数据库事务或连接。
 $registry = new class extends ResourceRegistryService {
@@ -24,7 +24,7 @@ try {
         'entity' => 'order-test', 'title' => '测试可视化', 'routePath' => '/generated/order-test',
         'permissionPrefix' => 'generated:order-test', 'menu' => ['hidden' => true, 'affix' => true],
     ]);
-    $service = (new ReflectionClass(\app\console\development\service\ManagedGenerationService::class))->newInstanceWithoutConstructor();
+    $service = (new ReflectionClass(\app\admin\development\service\ManagedGenerationService::class))->newInstanceWithoutConstructor();
     $resources = (new ReflectionMethod($service, 'resourcesFromDefinition'))->invoke($service, $definition);
     $menu = array_values(array_filter($resources, static fn (array $item): bool => $item['resourceType'] === 'menu'))[0];
     parse_str($menu['query'] ?? '', $meta);
@@ -37,9 +37,9 @@ try {
     if (($group['order-test']['menus'][0]['query'] ?? '') !== $menu['query']) throw new RuntimeException('资源事务丢失菜单 query');
 
     (new \think\App())->initialize();
-    $auth = (new ReflectionClass(\app\console\controller\authentication\AdminAuth::class))->newInstanceWithoutConstructor();
+    $auth = (new ReflectionClass(\app\admin\controller\authentication\AdminAuth::class))->newInstanceWithoutConstructor();
     $projection = new ReflectionMethod($auth, 'menuData');
-    $row = new \app\console\authorization\model\AdminMenu([
+    $row = new \app\admin\authorization\model\AdminMenu([
         'id' => 55, 'pid' => 0, 'permission_id' => 0, 'source_type' => 'generated',
         'source_name' => 'order-test', 'href' => '/generated/order-test', 'query' => '', 'name' => '测试可视化',
     ]);

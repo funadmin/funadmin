@@ -26,7 +26,11 @@ class SystemMenu extends AdminApiController
     #[Get('tree')]
     public function tree(): Response
     {
-        $query = AdminMenu::where('source_type', 'admin_web')->where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
+        $query = AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])
+            ->where('app_name', 'admin')
+            ->where('status', 1)
+            ->order('sort_order', 'asc')
+            ->order('id', 'asc');
         $name = trim((string) $this->request->get('name', ''));
         $path = trim((string) $this->request->get('path', ''));
         if ($name !== '') {
@@ -42,7 +46,9 @@ class SystemMenu extends AdminApiController
     #[Get('permission-options')]
     public function permissionOptions(): Response
     {
-        $permissions = Permission::where('resource_type', Permission::TYPE_ROUTE)
+        $permissions = Permission::where('app_name', 'admin')
+            ->whereNull('deleted_at')
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('status', 1)
             ->where('code', '<>', '')
             ->order('sort_order', 'asc')
@@ -83,8 +89,14 @@ class SystemMenu extends AdminApiController
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['pid'] > 0 && !$this->findMenu($data['pid'])) {
-            return $this->fail(msg: '上级菜单不存在', code: 422);
+        if ($data['pid'] > 0) {
+            $parent = $this->findMenu($data['pid']);
+            if (!$parent) {
+                return $this->fail(msg: '上级菜单不存在', code: 422);
+            }
+            if ((string) $parent->source_type !== 'admin_web') {
+                return $this->fail(msg: '受管菜单不能作为自定义菜单的父级', code: 422);
+            }
         }
         $menu = AdminMenu::create($data);
         return $this->ok('创建成功', $this->menuData($menu));
@@ -98,12 +110,24 @@ class SystemMenu extends AdminApiController
         if (!$menu) {
             return $this->fail(msg: '菜单不存在', code: 404);
         }
+        if ((string) $menu->source_type !== 'admin_web') {
+            return $this->fail(msg: '受管菜单只能由对应生成器或插件维护', code: 422);
+        }
         $data = $this->payload(false, $menu);
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (in_array($data['pid'], $this->descendantIds($id), true) || $data['pid'] === $id) {
             return $this->fail(msg: '不能将菜单移动到自身或下级菜单', code: 422);
+        }
+        if ($data['pid'] > 0) {
+            $parent = $this->findMenu($data['pid']);
+            if (!$parent) {
+                return $this->fail(msg: '上级菜单不存在', code: 422);
+            }
+            if ((string) $parent->source_type !== 'admin_web') {
+                return $this->fail(msg: '受管菜单不能作为自定义菜单的父级', code: 422);
+            }
         }
         $menu->save($data);
         return $this->ok('保存成功', $this->menuData($menu));
@@ -126,10 +150,13 @@ class SystemMenu extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要删除的菜单', code: 422);
         }
-        if (AdminMenu::where('source_type', 'admin_web')->whereIn('pid', $ids)->count() > 0) {
+        if (AdminMenu::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->count() > 0) {
+            return $this->fail(msg: '受管菜单只能由对应生成器或插件维护', code: 422);
+        }
+        if (AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('pid', $ids)->count() > 0) {
             return $this->fail(msg: '请先删除下级菜单', code: 422);
         }
-        $menus = AdminMenu::where('source_type', 'admin_web')->whereIn('id', $ids)->select();
+        $menus = AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('id', $ids)->select();
         foreach ($menus as $menu) {
             $menu->delete();
         }
@@ -143,11 +170,12 @@ class SystemMenu extends AdminApiController
         $permissionId = max(0, (int) $this->request->post('permissionId', $current['permissionId'] ?? 0));
         if ($permissionId > 0) {
             $permissionId = (int) Permission::where('id', $permissionId)
-                ->where('resource_type', Permission::TYPE_ROUTE)
+                ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
                 ->where('status', 1)
                 ->where('code', '<>', '')
                 ->value('id');
         }
+        $permissionCode = $permissionId > 0 ? (string) Permission::where('id', $permissionId)->value('code') : '';
         $meta = [
             'type' => $type,
             'name' => trim((string) $this->request->post('routeName', $current['routeName'] ?? '')),
@@ -157,6 +185,9 @@ class SystemMenu extends AdminApiController
             'keepAlive' => $this->booleanValue($this->request->post('keepAlive', $current['keepAlive'] ?? false)),
             'affix' => $this->booleanValue($this->request->post('affix', $current['affix'] ?? false)),
         ];
+        if ($type === 'C' && $permissionCode !== '') {
+            $meta['permission'] = $permissionCode;
+        }
         return [
             'pid' => max(0, (int) $this->request->post('parentId', $current['parentId'] ?? 0)),
             'permission_id' => $permissionId,
@@ -205,6 +236,9 @@ class SystemMenu extends AdminApiController
         $permission = $menu->permission_id > 0 ? Permission::find((int) $menu->permission_id) : null;
         return [
             'id' => (int) $menu->id,
+            'sourceType' => (string) $menu->source_type,
+            'sourceName' => (string) $menu->source_name,
+            'readOnly' => in_array((string) $menu->source_type, ['generated', 'plugin'], true),
             'parentId' => (int) $menu->pid,
             'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
             'path' => (string) $menu->href,
@@ -224,7 +258,10 @@ class SystemMenu extends AdminApiController
 
     private function findMenu(int $id): ?AdminMenu
     {
-        return AdminMenu::where('source_type', 'admin_web')->where('id', $id)->find();
+        return AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])
+            ->where('app_name', 'admin')
+            ->where('id', $id)
+            ->find();
     }
 
     private function descendantIds(int $id): array
@@ -232,7 +269,7 @@ class SystemMenu extends AdminApiController
         $result = [];
         $queue = [$id];
         while ($queue) {
-            $children = AdminMenu::where('source_type', 'admin_web')->whereIn('pid', $queue)->column('id');
+            $children = AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('pid', $queue)->column('id');
             $queue = [];
             foreach (array_map('intval', $children) as $childId) {
                 if (!in_array($childId, $result, true)) {

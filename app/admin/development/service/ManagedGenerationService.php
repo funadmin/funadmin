@@ -582,13 +582,16 @@ final class ManagedGenerationService
         $data = $definition->toArray();
         $source = (string) $data['entity'];
         if (($data['target']['type'] ?? 'core') === 'plugin') return [];
+        $controller = 'admin/generated.' . strtolower(str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $source)))) . 'controller';
         $resources = [];
         if (($data['permission']['enabled'] ?? false) === true) {
             foreach ((array) $data['permission']['actions'] as $action) {
                 $code = (string) $data['permissionPrefix'] . ':' . (string) $action['codeSuffix'];
                 $resources[] = [
                     'resourceKey' => "permission|{$source}|{$code}", 'resourceType' => 'permission',
-                    'sourceName' => $source, 'code' => $code, 'name' => (string) $action['label'],
+                    'sourceName' => $source, 'code' => $code, 'obj' => $controller,
+                    'act' => (string) $action['action'], 'permissionType' => 'route',
+                    'name' => (string) $action['label'],
                 ];
             }
         }

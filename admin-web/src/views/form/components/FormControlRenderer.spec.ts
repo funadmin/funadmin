@@ -1,5 +1,8 @@
 import { defineComponent, h, nextTick } from 'vue';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
+import ElementPlus from 'element-plus';
+import SchemaRenderer from './SchemaRenderer.vue';
+import { formatFieldValue } from '../runtime/fieldPresentation';
 import { describe, expect, it, vi } from 'vitest';
 import FormControlRenderer from './FormControlRenderer.vue';
 import type { FormFieldDef } from '@/api/form';
@@ -74,6 +77,99 @@ const mountControl = (type: string, dataSourceState?: FormDataSourceControlState
       ElText: defineComponent({ template: '<span class="readonly-value"><slot /></span>' })
     }
   }
+});
+
+describe('真实选择控件标签与值语义', () => {
+  const options = [{ label: '启用', value: 1 }, { label: '停用', value: '0' },
+    { label: '父', value: 'p', children: [{ label: '子', value: 'c' },
+      { label: '禁用组', value: 'g', disabled: true, children: [{ label: '不可选', value: 'x' }] }] }];
+  it.each([
+    { value: '1', label: '启用' }, { value: 0, label: '停用' },
+    { value: ['c', '1', 0], label: '子, 启用, 停用' }
+  ])('编辑 $value 展示标签，打开与保存不转换原始类型', async ({ value, label }) => {
+    const values = { status: value };
+    const wrapper = mount(SchemaRenderer, {
+      props: { schema: { schemaVersion: 2, key: 'labels', title: '标签', nodes: [{
+        id: 'status', kind: 'field', field: 'status', title: '状态', type: 'select', children: [],
+        props: { multiple: Array.isArray(value) }, dataSource: { kind: 'static', options }
+      }] }, values }, global: { plugins: [ElementPlus] }
+    });
+    try {
+      await flushPromises();
+      await vi.waitFor(() => expect(wrapper.find('.el-select').exists()).toBe(true));
+      await flushPromises();
+      const labels = wrapper.findAll('.el-select__selected-item')
+        .filter(node => !node.classes().includes('el-select__input-wrapper') && !node.classes().includes('is-transparent'))
+        .map(node => node.text()).filter(Boolean).join(', ');
+      expect.soft(labels).toBe(label);
+      const save = vi.fn(() => ({ ...values }));
+      await wrapper.vm.submit(save);
+      expect(save).toHaveReturnedWith({ status: value });
+      expect(wrapper.emitted('change')).toBeUndefined();
+      expect(values.status).toEqual(value);
+    } finally { wrapper.unmount(); }
+  });
+
+  it('嵌套分组保留 disabled，主动点击提交选项的原始值', async () => {
+    const wrapper = mount(FormControlRenderer, {
+      props: { field: field('select'), modelValue: '1', options },
+      global: { plugins: [ElementPlus] }, attachTo: document.body
+    });
+    try {
+      await flushPromises();
+      await wrapper.get('.el-select__wrapper').trigger('click');
+      await flushPromises();
+      const items = () => Array.from(document.querySelectorAll<HTMLElement>('.el-select-dropdown__item'));
+      const disabled = items().find(node => node.textContent === '不可选');
+      expect.soft(disabled?.classList.contains('is-disabled')).toBe(true);
+      disabled?.click();
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+      items().find(node => node.textContent === '停用')!.click();
+      await flushPromises();
+      expect(wrapper.emitted('update:modelValue')).toEqual([['0']]);
+      await wrapper.setProps({ modelValue: '0' });
+      await wrapper.get('.el-select__wrapper').trigger('click');
+      await flushPromises();
+      items().find(node => node.textContent === '启用')!.click();
+      await flushPromises();
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([1]);
+    } finally { wrapper.unmount(); }
+  });
+
+  it('迟到的嵌套选项更新标签但不回写模型，父选项和分组均保留', async () => {
+    const wrapper = mount(FormControlRenderer, {
+      props: { field: field('select'), modelValue: '2', options: [] }, global: { plugins: [ElementPlus] }
+    });
+    try {
+      await flushPromises();
+      expect(wrapper.get('.el-select__selected-item:not(.el-select__input-wrapper)').text()).toBe('2');
+      const nested = [{ label: '父', value: 'p', children: [{ label: '子', value: 2, disabled: true }] }];
+      await wrapper.setProps({ options: nested });
+      await flushPromises();
+      expect(wrapper.get('.el-select__selected-item:not(.el-select__input-wrapper)').text()).toBe('子');
+      expect(wrapper.findAllComponents({ name: 'ElOptionGroup' }).map(group => group.props('label'))).toContain('父');
+      expect(wrapper.findAllComponents({ name: 'ElOption' }).map(option => option.props('value'))).toEqual(['p', 2]);
+      expect(wrapper.findAllComponents({ name: 'ElOption' })[1]!.props('disabled')).toBe(true);
+      expect(nested[0]!.children[0]!.value).toBe(2);
+      expect(wrapper.props('modelValue')).toBe('2');
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    } finally { wrapper.unmount(); }
+  });
+
+  it('精确类型优先，兼容匹配不吞并 boolean 或未知值', async () => {
+    const mixed = [{ label: '数字', value: 1 }, { label: '字符串', value: '1' }];
+    expect(formatFieldValue('1', mixed)).toBe('字符串');
+    expect(formatFieldValue(true, [{ label: '字符串真', value: 'true' }])).toBe('true');
+    const wrapper = mount(FormControlRenderer, { props: { field: field('select'), modelValue: '1', options: mixed }, global: { plugins: [ElementPlus] } });
+    try {
+      await flushPromises();
+      expect(wrapper.get('.el-select__selected-item:not(.el-select__input-wrapper)').text()).toBe('字符串');
+      await wrapper.setProps({ modelValue: 'missing' });
+      await flushPromises();
+      expect(wrapper.get('.el-select__selected-item:not(.el-select__input-wrapper)').text()).toBe('missing');
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    } finally { wrapper.unmount(); }
+  });
 });
 
 describe('数据源选择控件 UI', () => {

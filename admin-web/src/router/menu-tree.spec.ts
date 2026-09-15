@@ -9,7 +9,7 @@ import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
 const guardStores = vi.hoisted(() => ({
-  user: { isLoggedIn: true, userInfo: {}, fetchUserInfo: vi.fn(), resetState: vi.fn() },
+  user: { isLoggedIn: true, userInfo: {}, permissions: ['development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
   permission: { mounted: false, fetchMenus: vi.fn(), setMounted: vi.fn(), reset: vi.fn() }
 }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => guardStores.user }));
@@ -79,6 +79,18 @@ describe('混合布局菜单全树路由', () => {
     expect(router.currentRoute.value.fullPath).toBe(expected.fullPath);
     expect(router.hasRoute('BootstrapNotFound')).toBe(false);
     expect(guardStores.permission.mounted).toBe(true);
+  });
+
+  it('已挂载路由拒绝缺少 meta.permission 的直接深链访问', async () => {
+    guardStores.permission.mounted = true;
+    guardStores.user.permissions = [];
+    const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });
+    setupRouterGuard(router);
+
+    await router.push('/development/business/designer?moduleId=42');
+
+    expect(router.currentRoute.value.name).toBe('Forbidden');
+    guardStores.user.permissions = ['development:business:save'];
   });
 
   it('首次深链启动前由 bootstrap catch-all 消除未匹配，并在动态路由加载后落到正式路由', async () => {

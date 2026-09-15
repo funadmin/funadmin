@@ -115,7 +115,7 @@ class CasbinService extends AbstractService
         $permissionIds = $this->normalizeIds($permissionIds);
         $permissions = Permission::where('status', 1)
             ->whereIn('id', $permissionIds ?: [0])
-            ->where('resource_type', Permission::TYPE_ROUTE)
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('obj', '<>', '')
             ->where('act', '<>', '')
             ->field('obj,act')
@@ -123,7 +123,7 @@ class CasbinService extends AbstractService
             ->toArray();
         $publicPermissions = Permission::where('status', 1)
             ->where('is_public', 1)
-            ->where('resource_type', Permission::TYPE_ROUTE)
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->field('obj,act')
             ->select()
             ->toArray();
@@ -184,7 +184,7 @@ class CasbinService extends AbstractService
             return [];
         }
         $ids = [];
-        foreach (Permission::where('status', 1)->where('resource_type', Permission::TYPE_ROUTE)->field('id,pid,obj,act')->select()->toArray() as $permission) {
+        foreach (Permission::where('status', 1)->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->field('id,pid,obj,act')->select()->toArray() as $permission) {
             if (isset($pairs[$permission['obj'] . "\0" . $permission['act']])) {
                 $ids[] = (int) $permission['id'];
                 $ids = array_merge($ids, $this->parentPermissionIds((int) $permission['pid']));

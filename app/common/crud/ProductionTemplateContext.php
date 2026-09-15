@@ -236,9 +236,9 @@ final class ProductionTemplateContext
         $dictionaryMethod = $usesDictionary
             ? "\n    private function dictionaryOptions(string \$code): array\n    {\n        \$type = \\app\\common\\model\\DictType::where('code', \$code)->where('status', 1)->find();\n        if (!\$type) return [];\n        return \\app\\common\\model\\DictItem::where('type_id', \$type->id)->where('status', 1)->order('sort_order', 'asc')->field('value,label')->select()->toArray();\n    }\n"
             : '';
-        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null): array\n    {\n        return match (\$source) {\n"
+        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException('optionsSource 参数未声明');\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException('keyword 必须为字符串');\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException('分页参数不合法');\n        }\n        \$options = match (\$source) {\n"
             . implode("\n", $optionArms)
-            . "\n            default => throw new \\InvalidArgumentException('未知 optionsSource'),\n        };\n    }\n"
+            . "\n            default => throw new \\InvalidArgumentException('未知 optionsSource'),\n        };\n        \$keyword = \$params['keyword'] ?? '';\n        if (\$keyword !== '') \$options = array_values(array_filter(\$options, static fn (array \$item): bool => str_contains((string) \$item['label'], \$keyword)));\n        if (isset(\$params['page']) || isset(\$params['pageSize'])) {\n            \$size = min(200, (int) (\$params['pageSize'] ?? 20));\n            \$options = array_slice(\$options, ((int) (\$params['page'] ?? 1) - 1) * \$size, \$size);\n        }\n        return \$options;\n    }\n"
             . implode('', $relationOptionMethods)
             . $dictionaryMethod;
         $referenceMethod = ($data['features']['referenceProtection'] ?? false) === true
@@ -340,6 +340,8 @@ final class ProductionTemplateContext
                 $optionsScope = "        \$scope = (new DataScopeService())->resolve();\n";
                 $optionsArguments .= ", \$scope['all'] ? null : \$scope['departmentIds']";
             }
+            if (!$data['dataScope']['enabled']) $optionsArguments .= ', null';
+            $optionsArguments .= ', $this->request->get()';
             $methods[] = "    #[Get('options/:source')]\n    #[Pattern('source', '[a-z][a-z0-9_]*')]\n    public function options(string \$source): Response\n    {\n{$optionsScope}        return \$this->ok(data: (new {$class}Service())->options({$optionsArguments}));\n    }";
         }
         if ($enabled['delete']) {
@@ -452,8 +454,14 @@ final class ProductionTemplateContext
         }
         if (!$menu['enabled']) return $sql;
 
+        $listPermission = $permission['enabled'] ? self::listPermissionCode($data) : '';
+        if ($listPermission === '') {
+            throw new InvalidArgumentException('启用菜单时必须同时启用列表权限');
+        }
+        $listPermissionCode = self::sqlLiteral($listPermission);
+        $sql .= "SET @menu_permission_id = (SELECT `id` FROM `fun_permission` WHERE `code`={$listPermissionCode} AND `resource_type` IN ('route','capability') AND `status`=1 AND `deleted_at` IS NULL ORDER BY `id` LIMIT 1);\n";
         $parent = $menu['parentSourceName'] !== ''
-            ? "COALESCE((SELECT `id` FROM `fun_admin_menu` WHERE `source_type` IN ('admin_web','generated') AND `source_name` = " . self::sqlLiteral($menu['parentSourceName']) . " ORDER BY `id` LIMIT 1),0)"
+            ? "COALESCE((SELECT `id` FROM `fun_admin_menu` WHERE `source_type` IN ('admin_web','generated','plugin') AND `source_name` = " . self::sqlLiteral($menu['parentSourceName']) . " ORDER BY `id` LIMIT 1),0)"
             : (string) ($menu['parentId'] ?? 0);
         $href = '/' . ltrim((string) $data['routePath'], '/');
         $query = self::menuQuery($data);
@@ -462,9 +470,9 @@ final class ProductionTemplateContext
         $sort = (int) $menu['sortOrder'];
         return $sql
             . "INSERT INTO `fun_admin_menu` (pid, permission_id, app_name, name, href, query, target, icon, status, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-            . "SELECT {$parent},{$groupId},'admin',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
-            . "WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
-            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`={$groupId},`app_name`='admin',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName};\n";
+            . "SELECT {$parent},@menu_permission_id,'admin',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+            . "WHERE @menu_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
+            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`=@menu_permission_id,`app_name`='admin',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE @menu_permission_id IS NOT NULL AND `source_type`='generated' AND `source_name`={$sourceName};\n";
     }
 
     /** SQL 模板与受管资源事务共享菜单元数据，避免正式生成丢失组件身份。 */
@@ -507,14 +515,14 @@ final class ProductionTemplateContext
             }
             $endpointOptions[] = "    case '{$source['name']}': {\n"
                 . "      const rows = await request.get<Array<{ {$source['labelField']}: unknown; {$source['valueField']}: string | number }>>("
-                . self::json($source['endpoint']) . ");\n"
+                . self::json($source['endpoint']) . ", params, { signal });\n"
                 . "      return rows.map(item => ({ label: String(item.{$source['labelField']} ?? ''), value: item.{$source['valueField']} }));\n"
                 . "    }";
         }
         $optionsBody = $endpointOptions === []
-            ? "request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`)"
+            ? "request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`, params, { signal })"
             : "(async () => {\n  switch (source) {\n" . implode("\n", $endpointOptions)
-                . "\n    default:\n      return request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`);\n  }\n})()";
+                . "\n    default:\n      return request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`, params, { signal });\n  }\n})()";
         $methods = [];
         if (($data['list']['leftTree']['enabled'] ?? false) === true) {
             $methods[] = "  leftTree: (_key?: string) => request.get<import('@/api/formData').FormLeftTreeResult>('{$base}/left-tree')";
@@ -551,7 +559,7 @@ final class ProductionTemplateContext
             $methods[] = "  forceDeleteMany: (ids: {$type}Id[]) => request.delete('{$base}/destroy', { ids })";
         }
         if ($enabled['status']) $methods[] = "  status: (id: {$type}Id, status: number) => request.post(`{$base}/\${id}/status`, { status })";
-        if ($enabled['options']) $methods[] = "  options: (source: string) => {$optionsBody}";
+        if ($enabled['options']) $methods[] = "  options: (source: string, params: Record<string, unknown> = {}, signal?: AbortSignal) => {$optionsBody}";
         if ($enabled['import']) $methods[] = "  importRows: (rows: {$type}Payload[]) => request.post('{$base}/import', { rows })";
         if ($enabled['export']) $methods[] = "  exportRows: (params: Partial<{$type}Query>) => request.get<{$type}[]>('{$base}/export', params)";
         return "import request from '@/utils/http';\n\nexport interface {$type} {\n"
@@ -599,6 +607,9 @@ final class ProductionTemplateContext
             $control = in_array($operator, ['range', 'date'], true)
                 ? "<el-input v-model=\"query.{$parameter}\" placeholder=\"起,止\" clearable />"
                 : "<el-input v-model=\"query.{$parameter}\" placeholder=\"请输入{$label}\" clearable />";
+            if (in_array($operator, ['eq', 'neq'], true)) {
+                $control = "<el-select v-if=\"filterNodes.some(node => node.id === '{$key}' && node.dataSource?.kind && node.dataSource.kind !== 'static')\" v-model=\"query.{$parameter}\" :placeholder=\"filterOptions.placeholder('{$key}') || '请选择'\" :loading=\"filterOptions.pending.value.{$key}\" clearable><el-option v-for=\"option in filterOptions.supplied.value.{$key} ?? []\" :key=\"String(option.value)\" :label=\"option.label\" :value=\"option.value as string | number\" /></el-select>" . str_replace('<el-input ', '<el-input v-else ', $control);
+            }
             $searchItems[] = "<el-form-item label=\"{$label}\">{$control}</el-form-item>";
         }
         $searchSlot = $enabled['search'] && ($data['list']['tools']['search'] ?? true)
@@ -670,7 +681,7 @@ final class ProductionTemplateContext
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
         if (!$leftTree) $listImports .= "import { useUserStore } from '@/store/modules/user';\n";
         $listSetup .= 'const listConfig = ' . self::json($data['list'] ?: new \stdClass()) . " as FormListConfiguration;\n";
-        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\nlet hostActive = true;\nonBeforeUnmount(() => { hostActive = false; });\nasync function refreshAfterSave() { try { await refreshButtonHost(); } catch { if (hostActive) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交'); } }\n";
+        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\nlet hostActive = true;\nonBeforeUnmount(() => { hostActive = false; });\nasync function refreshAfterSave() { if (!hostActive) return; try { await refreshButtonHost(); } catch { if (hostActive) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交'); } }\n";
         if ($data['_listActionHost']) {
             $listSetup .= "const buttonAdapter = { api: {$camel}Api, declaration: {$camel}Api.listButtonAdapter };\nprovideListButtonAdapter(buttonAdapter);\nconst buttonFieldMap = buttonAdapter.declaration.fieldMap;\n";
         } else {
@@ -708,7 +719,7 @@ final class ProductionTemplateContext
         if ($enabled['softDelete']) $append('toolbar', 'normal', '正常列表', '() => switchMode(false)', ['color' => 'primary', 'plain' => true, 'placement' => 'inline', 'order' => 10]);
         if ($enabled['softDelete']) $append('toolbar', 'recycle', '回收站', '() => switchMode(true)', ['color' => 'warning', 'plain' => true, 'placement' => 'inline', 'order' => 20]);
         if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()', ['color' => 'primary', 'plain' => true, 'icon' => 'plus', 'placement' => 'inline', 'order' => 30]);
-        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '移入回收站', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshButtonHost(); }", ['color' => 'danger', 'plain' => true, 'icon' => 'delete', 'selection' => ['min' => 1], 'placement' => 'inline', 'order' => 40]);
+        if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '移入回收站', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshAfterSave(); }", ['color' => 'danger', 'plain' => true, 'icon' => 'delete', 'selection' => ['min' => 1], 'placement' => 'inline', 'order' => 40]);
         if ($enabled['import']) $append('toolbar', 'import', 'CSV 导入', '() => fileInput.value?.click()', ['color' => 'success', 'plain' => true, 'icon' => 'upload', 'placement' => 'inline', 'order' => 50]);
         if ($enabled['export']) $append('toolbar', 'export', 'CSV 导出', '() => exportRows()', ['color' => 'default', 'plain' => true, 'icon' => 'download', 'placement' => 'inline', 'order' => 60]);
         if ($enabled['update'] && $formEnabled) $append('row', 'edit', '编辑', "row => onEdit(resolveButtonRow(row))");
@@ -774,7 +785,8 @@ final class ProductionTemplateContext
         $pageList = ['tools' => (object) ($data['list']['tools'] ?? [])];
         if ($tree) $pageList['tree'] = ['enabled' => true, 'parentField' => self::camel($data['list']['tree']['parentField'])];
         $page = ['pageSchemaVersion' => 1, 'key' => str_replace('-', '_', $data['entity']), 'primaryKey' => $primaryName, 'search' => [], 'toolbar' => [], 'rowActions' => [], 'list' => $pageList, 'pagination' => ['pageSize' => 20, 'pageSizes' => [10, 20, 50, 100], 'enabled' => !$tree]];
-        $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\nimport { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';\n";
+        $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\nimport { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';
+import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation';\n";
         $listSetup .= 'const tableSchema = computed<PageSchema>(() => ({ ...' . self::json($page) . ', columns: [...(toolbarButtons.value.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . ' ? [{ key: \'selection\', label: \'\', type: \'selection\' as const, width: 48 }] : []), ...' . self::json($pageColumns) . ', ...(hasRowButtons.value ? [{ key: \'actions\', label: \'操作\', slot: \'actions\' }] : [])] } as PageSchema));' . "\n";
         $actionSlot = '<template #actions="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template>';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
@@ -791,18 +803,18 @@ final class ProductionTemplateContext
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
-            . self::fieldPresentationSetup($data['fields'], 'list')
+            . self::fieldPresentationSetup($data, 'list')
             . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
             . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
-            . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\n" : '')
-            . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
-            . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
-            . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { if (buttonLock.busy || {$recycledValue} || !buttonPermission({$prefix} + ':status')) return; buttonLock.busy = true; try { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); } finally { buttonLock.busy = false; } }\n" : '')
-            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file || buttonLock.busy || !buttonPermission({$prefix} + ':import')) return; buttonLock.busy = true; try { const version = buttonContextVersion.value; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); if (version !== buttonContextVersion.value || !buttonPermission({$prefix} + ':import')) return; await {$camel}Api.importRows(rows); await loadData(); } finally { buttonLock.busy = false; } }\n" : '')
+            . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await {$camel}Api.remove(row.{$primaryName}); await refreshAfterSave(); }\n" : '')
+            . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await refreshAfterSave(); }\nasync function forceDeleteRow(row: {$type}) { await {$camel}Api.forceDelete(row.{$primaryName}); await refreshAfterSave(); }\n" : '')
+            . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await refreshAfterSave(); }\nasync function forceDeleteSelected() { await {$camel}Api.forceDeleteMany(selectedIds()); await refreshAfterSave(); }\n" : '')
+            . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { if (buttonLock.busy || {$recycledValue} || !buttonPermission({$prefix} + ':status')) return; buttonLock.busy = true; try { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await refreshAfterSave(); } finally { buttonLock.busy = false; } }\n" : '')
+            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file || buttonLock.busy || !buttonPermission({$prefix} + ':import')) return; buttonLock.busy = true; try { const version = buttonContextVersion.value; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); if (version !== buttonContextVersion.value || !buttonPermission({$prefix} + ':import')) return; await {$camel}Api.importRows(rows); await refreshAfterSave(); } finally { buttonLock.busy = false; } }\n" : '')
             . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
             . "</script>\n";
     }
@@ -897,13 +909,13 @@ final class ProductionTemplateContext
         $formKey = str_replace('-', '_', (string) $data['entity']);
         // 选项映射仅来自裁剪后真正交给 renderer 的节点。
         $optionsSetup = 'const optionSources = ' . self::json((object) $optionMap) . " as Record<string,string>;\n"
-            . "const optionsRequest = async (_key:string, field:string) => { const source=Object.hasOwn(optionSources,field)?optionSources[field]:undefined; if(!source) throw Error('选项来源未注册'); "
-            . ($enabled['options'] ? "return {options:await {$camel}Api.options(source)};" : "throw Error('选项能力未启用');") . " };\n";
+            . "const optionsRequest = async (_key:string, field:string, params: Record<string, unknown>, signal?: AbortSignal) => { const source=Object.hasOwn(optionSources,field)?optionSources[field]:undefined; if(!source) throw Error('选项来源未注册'); "
+            . ($enabled['options'] ? "return {options:await {$camel}Api.options(source, params, signal)};" : "throw Error('选项能力未启用');") . " };\n";
         $permissionPrefix = self::json($data['permissionPrefix']);
         $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error('编辑能力未启用');") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error('新增能力未启用');") . ' }';
         return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
-            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
+            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { mapFieldErrors } from '@/views/form/validation/asyncValidatorRegistry';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
             . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const changed=reactive(new Set<string>()); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const sourceSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>; const submissionFields={$submissionFields} as unknown as FormFieldDef[];\n"
             . "const formSchema=computed(()=>{const project=(nodes:FormSchemaDocument['nodes']):FormSchemaDocument['nodes']=>nodes.map(node=>({...node,...(props.row && fieldMap.some(item=>item.target===node.field && item.sensitive) && !changed.has(node.field ?? '')?{validation:[]}:{}),children:project(node.children ?? [])}));return {...sourceSchema,nodes:project(sourceSchema.nodes)};});\n"
@@ -911,7 +923,7 @@ final class ProductionTemplateContext
             . "const user=useUserStore(); const permitted=(edit:boolean)=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code==={$permissionPrefix}+':'+(edit?'update':'create'));\n"
             . "const saving=ref(false); const generation=ref(0); let active=true; onBeforeUnmount(()=>{active=false; generation.value++;});\n"
             . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;changed.clear();Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row && fieldMap.some(field=>field.target===item.target && field.sensitive)?'':row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
-            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!await schemaFormRef.value?.validate()||!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const submitted=buildSubmissionPayload(submissionFields,form,resolveSubmissionInclude({schema_document:sourceSchema}),permission=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code===permission));const payload=Object.fromEntries(fieldMap.filter(item=>Object.hasOwn(submitted,item.target)&&(!item.sensitive || !row || changed.has(item.target))).map(item=>[item.source,submitted[item.target]])) as {$type}Payload;{$write}if(token===generation.value){visible.value=false;emit('success');}}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
+            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const renderer=schemaFormRef.value;if(!renderer)return;await renderer.submit();if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const submitted=buildSubmissionPayload(submissionFields,form,resolveSubmissionInclude({schema_document:sourceSchema}),permission=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code===permission));const payload=Object.fromEntries(fieldMap.filter(item=>Object.hasOwn(submitted,item.target)&&(!item.sensitive || !row || changed.has(item.target))).map(item=>[item.source,submitted[item.target]])) as {$type}Payload;{$write}if(active&&token===generation.value&&props.modelValue){visible.value=false;emit('success');}}catch(reason){const response=reason&&typeof reason==='object'?reason as {data?:{fieldErrors?:Array<{path:string;message:string}>};fieldErrors?:Array<{path:string;message:string}>}:null;const errors=response?.data?.fieldErrors??response?.fieldErrors??[];if(Array.isArray(errors)&&errors.length){if(!active||token!==generation.value||!props.modelValue)return;const mapped=mapFieldErrors(errors);const normalized=Object.fromEntries(Object.entries(mapped).map(([key,message])=>[valueMap.find(item=>item.target===key)?.target??valueMap.find(item=>item.source===key)?.target??key,message]));await schemaFormRef.value?.setFieldErrors(normalized);return;}throw reason;}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string
@@ -975,25 +987,65 @@ final class ProductionTemplateContext
         };
     }
 
-    private static function fieldPresentationSetup(array $fields, string $view): string
+    private static function fieldPresentationSetup(array $data, string $view): string
     {
         $entries = [];
-        foreach ($fields as $field) {
-            if (!($field[$view] ?? ($view === 'detail')) || self::sensitiveField($field)) continue;
+        $nodes = [];
+        $sources = [];
+        $schemaSources = [];
+        $collect = static function (array $items) use (&$collect, &$schemaSources): void {
+            foreach ($items as $node) {
+                if (isset($node['field'], $node['dataSource'])) $schemaSources[$node['field']] = $node['dataSource'];
+                $collect((array) ($node['children'] ?? []));
+            }
+        };
+        $collect((array) ($data['formSchema']['nodes'] ?? []));
+        foreach ($data['fields'] as $field) {
+            if (!(($field[$view] ?? ($view === 'detail')) || ($view === 'list' && ($field['search'] ?? false))) || self::sensitiveField($field)) continue;
             $key = self::json(self::camel($field['name']));
             $formatter = (string) ($field['listFormatter'] ?? '');
             $options = array_map(static fn ($option) => is_array($option) ? $option : ['label' => (string) $option, 'value' => $option], array_values((array) ($field['options'] ?? $field['enum'] ?? [])));
             if ($options === [] && in_array($formatter, ['switch', 'boolean'], true)) $options = [['label' => '是', 'value' => 1], ['label' => '否', 'value' => 0]];
-            $node = self::json(['dataSource' => ['options' => $options]]);
-            $entries[] = "{$key}: { options: resolveFieldOptions({$node}), formatter: " . self::json($formatter) . ' }';
+            $source = $schemaSources[$field['name']] ?? ['kind' => 'static', 'options' => $options];
+            if (isset($field['optionsSource'])) {
+                $source['kind'] = 'remote';
+                $sources[$field['name']] = $field['optionsSource'];
+            }
+            $nodeData = ['id' => self::camel($field['name']), 'field' => $field['name'], 'dataSource' => $source];
+            $nodes[] = $nodeData;
+            $node = self::json($nodeData);
+            $entries[] = "{$key}: { node: {$node}, formatter: " . self::json($formatter) . ' }';
         }
-        return 'const fieldPresentations = { ' . implode(', ', $entries) . " };\n";
+        $key = self::json($data['formSchema']['key'] ?? str_replace('-', '_', $data['entity']));
+        $contextFields = [];
+        foreach ($data['fields'] as $field) {
+            if (self::sensitiveField($field)) continue;
+            $contextFields[] = self::json($field['name']) . ': values[' . self::json(self::camel($field['name'])) . ']';
+        }
+        $camel = self::camel($data['entity']);
+        $setup = 'const presentationValues = (values: Record<string, unknown>) => ({ ' . implode(', ', $contextFields) . " });\n";
+        $context = $view === 'detail' ? '(props.modelValue && props.row ? [props.row] : [])' : 'list.value';
+        $setup .= 'const fieldOptions = useSuppliedFieldOptions(() => ' . $context . ".map(row => presentationValues({ ...row })));\n";
+        $setup .= 'const presentationSources: Record<string, string> = ' . self::json((object) $sources) . ";\n";
+        $request = $sources === [] ? '' : ", async (_key, field, params, signal) => { if (!presentationSources[field]) return formDataApi.options(_key, field, params, signal); return { options: await {$camel}Api.options(presentationSources[field], params, signal) }; }";
+        if ($sources !== []) $setup .= "import { formDataApi } from '@/api/formData';\n";
+        $listNodes = $view === 'list' ? array_values(array_filter($nodes, static fn (array $node): bool => count(array_filter($data['fields'], static fn (array $field): bool => $field['name'] === $node['field'] && ($field['list'] ?? false))) > 0)) : $nodes;
+        $setup .= 'void fieldOptions.load(' . $key . ', ' . self::json($listNodes) . $request . ");\n";
+        if ($view === 'list') {
+            $filterNodes = array_values(array_filter($nodes, static fn (array $node): bool => count(array_filter($data['fields'], static fn (array $field): bool => $field['name'] === $node['field'] && ($field['search'] ?? false) && ($field['component'] ?? '') !== 'hidden')) > 0));
+            $setup .= 'const filterNodes = ' . self::json($filterNodes) . " as import('@/views/form/runtime/fieldPresentation').PresentationNode[];\n";
+            $setup .= "const filterOptions = useSuppliedFieldOptions(() => presentationValues(query as Record<string, unknown>));\n";
+            $setup .= 'void filterOptions.load(' . $key . ', filterNodes' . $request . ");\n";
+        }
+        $setup .= 'const fieldPresentations = { ' . implode(', ', $entries) . " };\n";
+        $setup .= "const presentField = (field: keyof typeof fieldPresentations, row: Record<string, unknown>) => { const values = presentationValues(row); const item = fieldPresentations[field]; return fieldOptions.placeholder(field, values) || formatFieldValue(row[field], resolveFieldOptions(item.node, fieldOptions.forContext(values)), item.formatter, 'published'); };\n";
+        return $setup;
     }
 
     private static function listCell(string $key, string $formatter): string
     {
         $value = "scope.row.{$key}";
-        $shared = "formatFieldValue({$value}, fieldPresentations.{$key}.options, fieldPresentations.{$key}.formatter, 'published')";
+        $shared = "presentField('{$key}', scope.row)";
         return match ($formatter) {
             'tag' => "<template #default=\"scope\"><el-tag>{{ {$shared} }}</el-tag></template>",
             'switch', 'boolean' => "<template #default=\"scope\"><el-tag :type=\"Number({$value}) === 1 ? 'success' : 'info'\">{{ {$shared} }}</el-tag></template>",
@@ -1016,17 +1068,21 @@ final class ProductionTemplateContext
     private static function detail(array $data, string $class): string
     {
         $type = self::tsTypeName($class);
+        $camel = self::camel($data['entity']);
+        $hasSources = count(array_filter($data['fields'], static fn (array $field): bool => isset($field['optionsSource']))) > 0;
+        $apiImport = $hasSources ? "import { {$camel}Api } from '{$data['_frontendComponentApiImport']}';" : '';
         $items = [];
         foreach ($data['fields'] as $field) {
             if (($field['detail'] ?? true) === false || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
             $label = htmlspecialchars((string) ($field['label'] ?? $field['name']), ENT_QUOTES);
             $cell = self::listCell($key, (string) ($field['listFormatter'] ?? ''));
-            $cell = str_replace(['<template #default="scope">', '</template>', 'scope.row.'], ['', '', 'row.'], $cell);
+            $cell = str_replace(['<template #default="scope">', '</template>', 'scope.row.', 'scope.row)'], ['', '', 'row.', 'row)'], $cell);
             $items[] = "<el-descriptions-item label=\"{$label}\">{$cell}</el-descriptions-item>";
         }
         return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\">" . implode('', $items) . "</el-descriptions></el-drawer></template>\n"
-            . "<script setup lang=\"ts\">import { computed } from 'vue'; import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation'; import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});\n" . self::fieldPresentationSetup($data['fields'], 'detail') . "</script>\n";
+            . "<script setup lang=\"ts\">import { computed, watch } from 'vue'; import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';
+import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'; {$apiImport} import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});\n" . self::fieldPresentationSetup($data, 'detail') . "</script>\n";
     }
 
     private static function phpTest(array $data, string $class): string

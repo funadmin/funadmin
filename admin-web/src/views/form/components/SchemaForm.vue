@@ -52,7 +52,7 @@ const schema = computed<FormSchemaDocument>(() => ({
     dataSource: field.options_source ?? null
   }))
 }));
-const optionsRequest = async (key: string, field: string) => formDataApi.options(key, field);
+const optionsRequest = (key: string, field: string, params: Record<string, unknown>, signal?: AbortSignal) => formDataApi.options(key, field, params, signal);
 watch(() => linkState.value.writes, writes => {
   for (const [key, value] of Object.entries(writes)) if (props.values[key] !== value) props.values[key] = value;
 }, { deep: true });

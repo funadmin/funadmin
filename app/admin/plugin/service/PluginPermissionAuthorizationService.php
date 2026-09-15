@@ -31,7 +31,7 @@ class PluginPermissionAuthorizationService
             ->where('source_name', $plugin)
             ->where('code', $permission)
             ->where('status', 1)
-            ->where('resource_type', Permission::TYPE_ROUTE)
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('obj', '<>', '')
             ->where('act', '<>', '')
             ->field('obj,act')

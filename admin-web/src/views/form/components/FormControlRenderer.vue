@@ -72,7 +72,7 @@
     <el-select
       v-if="selectTypes.includes(field.type)"
       v-bind="controlAttrs"
-      :model-value="modelValue"
+      :model-value="selectionValue"
       :multiple="multiple"
       :placeholder="placeholder"
       :disabled="disabled || readonly"
@@ -87,7 +87,7 @@
       @blur="emitEvent('blur', $event)"
       @focus="emitEvent('focus', $event)"
     >
-      <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
+      <SelectOptions :options="options" />
     </el-select>
     <el-select-v2
       v-else-if="field.type === 'selectV2'"
@@ -180,14 +180,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, defineComponent, h, type PropType, type VNode } from 'vue';
+import { ElOption, ElOptionGroup } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import type { FormSchemaNode } from '../schema/types';
 import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
 import RepeatableField from './RepeatableField.vue';
-import { formatFieldValue } from '../runtime/fieldPresentation';
+import { adaptFieldSelection, formatFieldValue } from '../runtime/fieldPresentation';
 
 interface ControlOption {
   [key: string]: any;
@@ -195,6 +196,22 @@ interface ControlOption {
   value: any;
   children?: ControlOption[];
 }
+
+const SelectOptions = defineComponent({
+  props: { options: { type: Array as PropType<ControlOption[]>, required: true } },
+  setup(props) {
+    const renderOptions = (options: ControlOption[], inheritedDisabled = false): VNode[] => options.map((option, index) => {
+      const disabled = inheritedDisabled || Boolean(option.disabled);
+      const item = () => h(ElOption, { key: `${index}-value`, label: option.label, value: option.value, disabled });
+      return option.children?.length
+        ? h(ElOptionGroup, { key: index, label: option.label, disabled }, () => [
+          ...('value' in option ? [item()] : []), ...renderOptions(option.children!, disabled)
+        ])
+        : item();
+    });
+    return () => renderOptions(props.options);
+  }
+});
 
 const props = withDefaults(defineProps<{
   field: FormFieldDef;
@@ -225,6 +242,7 @@ const controlProps = computed(() => props.controlProps ?? props.field.control_pr
 const controlAttrs = computed(() => ({ ...controlProps.value, ...props.inputAttrs }));
 const placeholder = computed(() => props.field.placeholder || props.field.label);
 const multiple = computed(() => props.field.relation_multiple === 1 || Boolean(controlProps.value.multiple));
+const selectionValue = computed(() => adaptFieldSelection(props.modelValue, props.options) as any);
 const selectTypes = ['select', 'dictionary', 'relation', 'user'];
 const dataSourceSelectionTypes = [...selectTypes, 'selectV2', 'treeSelect', 'cascader', 'department'];
 const remoteSearchable = computed(() => Boolean(props.dataSourceState?.searchable));

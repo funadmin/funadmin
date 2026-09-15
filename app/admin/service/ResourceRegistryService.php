@@ -15,7 +15,7 @@ use think\facade\Db;
  */
 class ResourceRegistryService extends AbstractService
 {
-    private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['system:plugin:list'];
+    private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['admin/system:plugin:list'];
 
     public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $appName = 'admin', string $sourceType = 'system', string $sourceName = ''): void
     {
@@ -101,14 +101,19 @@ class ResourceRegistryService extends AbstractService
         }
         Db::transaction(function () use ($permissions, $sourceType, $sourceName): void {
             foreach ($permissions as $item) {
-                $code = strtolower(trim((string) ($item['code'] ?? '')));
-                if ($code === '' || !preg_match('/^[a-z][a-z0-9]*:[a-z][a-z0-9:-]*$/', $code)) {
+                $code = PermissionResource::canonicalCode((string) ($item['code'] ?? ''));
+                if ($code === '' || !preg_match('/^admin\/[a-z][a-z0-9]*:[a-z][a-z0-9:-]*$/', $code)) {
                     continue;
                 }
-                $segments = explode(':', $code);
+                $segments = explode(':', substr($code, strlen('admin/')));
                 $namespace = (string) array_shift($segments);
-                $act = count($segments) > 1 ? (string) array_pop($segments) : '';
-                $obj = implode(':', $segments);
+                $act = strtolower(trim((string) ($item['act'] ?? (count($segments) > 1 ? array_pop($segments) : ''))));
+                $derivedObj = implode('/', array_merge([$namespace], $segments));
+                $obj = strtolower(trim((string) ($item['obj'] ?? $derivedObj)));
+                $permissionType = strtolower(trim((string) ($item['permissionType'] ?? Permission::TYPE_CAPABILITY)));
+                if (!in_array($permissionType, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || $obj === '' || $act === '') {
+                    throw new RuntimeException('权限资源类型或 obj/act 无效：' . $code);
+                }
                 $permission = Permission::where('code', $code)->find();
                 if ($permission && (
                     (string) $permission->source_type !== $sourceType
@@ -128,7 +133,7 @@ class ResourceRegistryService extends AbstractService
                     'obj' => $obj,
                     'act' => $act,
                     'name' => (string) ($item['name'] ?? $code),
-                    'resource_type' => $act === '' ? Permission::TYPE_GROUP : Permission::TYPE_ROUTE,
+                    'resource_type' => $permissionType,
                     'status' => 1,
                     'is_public' => 0,
                     'sort_order' => (int) ($item['sort'] ?? 999),
@@ -176,8 +181,10 @@ class ResourceRegistryService extends AbstractService
             $children = !empty($item['menulist']) && is_array($item['menulist']) ? $item['menulist'] : [];
             $href = trim((string) ($item['href'] ?? $item['path'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
-            $itemAppName = strtolower(trim((string) ($item['appName'] ?? $appName))) ?: 'admin';
-            $referencedCode = strtolower(trim((string) ($item['permission'] ?? '')));
+            $itemAppName = in_array($sourceType, ['admin_web', 'generated', 'plugin'], true)
+                ? 'admin'
+                : (strtolower(trim((string) ($item['appName'] ?? $appName))) ?: 'admin');
+            $referencedCode = PermissionResource::canonicalCode((string) ($item['permission'] ?? ''));
             $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemAppName, $href);
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;
             if ($referencedCode !== '') {
@@ -185,7 +192,12 @@ class ResourceRegistryService extends AbstractService
                 if (!$permission) {
                     throw new RuntimeException('菜单引用的权限不存在：' . $referencedCode);
                 }
-                $isOwnedPluginPermission = str_starts_with($referencedCode, strtolower($sourceName) . ':')
+                if (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
+                    || (int) $permission->status !== 1
+                    || $permission->deleted_at !== null) {
+                    throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . $referencedCode);
+                }
+                $isOwnedPluginPermission = str_starts_with($referencedCode, 'admin/' . strtolower($sourceName) . ':')
                     && (string) $permission->source_type === $sourceType
                     && (string) $permission->source_name === $sourceName;
                 $isAllowedCorePermission = in_array($referencedCode, self::PLUGIN_CORE_READ_ONLY_PERMISSIONS, true);
@@ -229,7 +241,28 @@ class ResourceRegistryService extends AbstractService
 
             $menuId = $parentMenuId;
             if ($isMenu) {
-                $menu = AdminMenu::where('href', $href)->where('query', (string) ($item['query'] ?? ''))->find();
+                if (!$children && (int) ($item['status'] ?? 1) === 1 && (
+                    !in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
+                    || (int) $permission->status !== 1
+                    || $permission->deleted_at !== null
+                    || (string) $permission->code === ''
+                )) {
+                    throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . (string) ($item['name'] ?? $href));
+                }
+                $menuQuery = $this->queryWithPermission(
+                    (string) ($item['query'] ?? ''),
+                    in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
+                        ? (string) $permission->code
+                        : ''
+                );
+                $menu = AdminMenu::where('href', $href)->where('query', $menuQuery)->find();
+                $sameRouteMenu = AdminMenu::where('href', $href)
+                    ->where('source_type', '<>', $sourceType)
+                    ->where('source_name', '<>', $sourceName)
+                    ->find();
+                if ($sameRouteMenu) {
+                    throw new RuntimeException('菜单记录归属冲突：' . (string) ($item['name'] ?? $href));
+                }
                 if (!$menu) {
                     $menu = AdminMenu::where('permission_id', $permission->id)
                         ->where('app_name', $itemAppName)
@@ -251,7 +284,7 @@ class ResourceRegistryService extends AbstractService
                     'app_name' => $itemAppName,
                     'name' => (string) ($item['name'] ?? ''),
                     'href' => $href,
-                    'query' => (string) ($item['query'] ?? ''),
+                    'query' => $menuQuery,
                     'target' => (string) ($item['target'] ?? '_self'),
                     'icon' => (string) ($item['icon'] ?? 'i-ep-menu'),
                     'status' => (int) ($item['status'] ?? 1),
@@ -265,6 +298,17 @@ class ResourceRegistryService extends AbstractService
                 $this->registerItems($children, (int) $permission->id, $menuId, $itemAppName, $sourceType, $sourceName);
             }
         }
+    }
+
+    private function queryWithPermission(string $query, string $permissionCode): string
+    {
+        parse_str($query, $parameters);
+        if ($permissionCode === '') {
+            unset($parameters['permission']);
+        } else {
+            $parameters['permission'] = $permissionCode;
+        }
+        return http_build_query($parameters);
     }
 
 }

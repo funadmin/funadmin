@@ -46,7 +46,7 @@ const permissionList: PermissionModel[] = [
     parentId: 227,
     appName: 'admin',
     code: `admin/systempermission:${action}`,
-    object: 'systempermission',
+    object: 'admin/systempermission',
     action: String(action),
     name: String(name),
     resourceType: 'route' as const,
@@ -60,17 +60,23 @@ const permissionList: PermissionModel[] = [
 
 function normalize(body: Record<string, any>, current?: PermissionModel): PermissionModel {
   const appName = String(body.appName ?? current?.appName ?? 'admin').trim().toLowerCase();
-  const resourceType = body.resourceType === 'group' ? 'group' : 'route';
-  const object = resourceType === 'route'
+  const resourceType = ['group', 'route', 'capability'].includes(String(body.resourceType))
+    ? body.resourceType as PermissionModel['resourceType']
+    : current?.resourceType ?? 'route';
+  const object = resourceType !== 'group'
     ? String(body.object ?? current?.object ?? '').trim().toLowerCase().replace(new RegExp(`^${appName}[\\/.]`, 'i'), '')
     : '';
-  const action = resourceType === 'route' ? String(body.action ?? current?.action ?? '').trim().toLowerCase() : '';
+  const action = resourceType !== 'group' ? String(body.action ?? current?.action ?? '').trim().toLowerCase() : '';
   return {
     id: current?.id ?? Math.max(0, ...permissionList.map((item) => item.id)) + 1,
     parentId: Math.max(0, Number(body.parentId ?? current?.parentId ?? 0)),
     appName,
-    code: resourceType === 'route' && object && action ? `${appName}/${object.replace(/[\\/]/g, '.')}:${action}` : '',
-    object: object.replace(/[\\/]/g, '.'),
+    code: object && action
+      ? resourceType === 'route'
+        ? `${appName}/${object.replace(/[\\/]/g, '.')}:${action}`
+        : `${object.replace(/\//g, ':')}:${action}`
+      : '',
+    object: resourceType === 'route' ? object.replace(/[\\/]/g, '.') : object,
     action,
     name: String(body.name ?? current?.name ?? '').trim(),
     resourceType,
@@ -91,7 +97,7 @@ function validate(item: PermissionModel, currentId = 0): string | null {
   if (item.parentId === currentId || descendantIds(currentId).includes(item.parentId)) {
     return '不能将权限资源移动到自身或下级节点';
   }
-  if (item.resourceType === 'route' && (!item.object || !item.action)) return '路由资源必须填写控制器和动作';
+  if (item.resourceType !== 'group' && (!item.object || !item.action)) return '路由或能力资源必须填写资源对象和动作';
   if (item.code && permissionList.some((row) => row.id !== currentId && row.code === item.code)) return '权限标识已存在';
   return null;
 }

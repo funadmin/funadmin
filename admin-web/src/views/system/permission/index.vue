@@ -54,8 +54,8 @@
           <el-table-column prop="name" label="资源名称" min-width="210" />
           <el-table-column label="类型" width="85" align="center">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.resourceType === 'group' ? 'info' : 'primary'">
-                {{ row.resourceType === 'group' ? '目录' : '路由' }}
+              <el-tag size="small" :type="row.resourceType === 'group' ? 'info' : row.resourceType === 'capability' ? 'warning' : 'primary'">
+                {{ ({ group: '目录', route: '路由', capability: '能力' } as const)[row.resourceType] }}
               </el-tag>
             </template>
           </el-table-column>
@@ -81,13 +81,13 @@
           <el-table-column label="操作" width="290" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button type="primary" link v-perm="'system:permission:add'" @click="onAdd(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:add'" @click="onAdd(asPermission(row))">
                   <i class="i-ep-plus" /> 新增子项
                 </el-button>
-                <el-button type="primary" link v-perm="'system:permission:edit'" @click="onEdit(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:edit'" @click="onEdit(asPermission(row))">
                   <i class="i-ep-edit" /> 编辑
                 </el-button>
-                <el-button type="danger" link v-perm="'system:permission:delete'" @click="onDelete(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="danger" link v-perm="'system:permission:delete'" @click="onDelete(asPermission(row))">
                   <i class="i-ep-delete" /> 删除
                 </el-button>
               </div>

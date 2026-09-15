@@ -1,7 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name || '已发布表单'" subtitle="当前构建使用已发布 FormSchema 运行时；生成源码将在下次前端构建后接管独立页面">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('admin/form.data:lefttreeform')" :can-mutate="hasPermission('admin/form.data:mutatelefttree')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" :filter="{ ...filters, __leftTree: leftSelection }" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('admin/form.data:index')" :can-mutate="hasPermission('admin/form.data:index')" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :model-value="leftSelection" :filter="{ ...filters, __leftTree: leftSelection }" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template #search>
@@ -10,6 +10,9 @@
             <div v-if="field.list_filter === 'range'" class="flex gap-1"><el-input v-model="filters[field.field_name + '_from']" placeholder="最小值" /><el-input v-model="filters[field.field_name + '_to']" placeholder="最大值" /></div>
             <el-date-picker v-else-if="field.list_filter === 'date'" v-model="dateFilters[field.field_name]" type="daterange" value-format="YYYY-MM-DD" @change="syncDateFilter(field.field_name)" />
             <el-select v-else-if="['is_null', 'not_null'].includes(field.list_filter)" v-model="filters[field.field_name]" clearable><el-option label="启用" value="1" /></el-select>
+            <el-select v-else-if="isDynamicFieldOptions(optionNode(field)) && ['eq', 'neq', '='].includes(field.list_filter)" v-model="filters[field.field_name]" :loading="filterOptions.pending.value[field.field_name]" :placeholder="filterOptions.placeholder(field.field_name) || '请选择'" clearable>
+              <el-option v-for="option in resolveFieldOptions(optionNode(field), filterOptions.supplied.value)" :key="String(option.value)" :label="option.label" :value="option.value as string | number" />
+            </el-select>
             <el-input v-else v-model="filters[field.field_name]" clearable placeholder="请输入筛选值" />
           </el-form-item>
         </SearchForm>
@@ -44,7 +47,7 @@
       />
       <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="saveRow">保存</el-button></template>
     </el-dialog>
-    <el-drawer v-model="detailVisible" title="详情" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">{{ presentField(field, detail?.row ?? {}) }}</el-descriptions-item></el-descriptions></el-drawer>
+    <el-drawer v-model="detailVisible" title="详情" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">{{ presentField(field, detail?.row ?? {}, detailOptions) }}</el-descriptions-item></el-descriptions></el-drawer>
   </PageWrapper>
 </template>
 
@@ -65,7 +68,7 @@ import { resolveListButtons } from './schema/listButtons';
 import { provideListButtonAdapter, defaultListButtons, listActionKey, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import type { FormListButton } from './schema/types';
-import { formatFieldValue, resolveFieldOptions } from './runtime/fieldPresentation';
+import { formatFieldValue, resolveFieldOptions, useSuppliedFieldOptions, presentationNodes, isDynamicFieldOptions } from './runtime/fieldPresentation';
 import { useUserStore } from '@/store/modules/user';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
@@ -116,6 +119,17 @@ const detailVisible = ref(false);
 const detail = ref<{ row: Record<string, unknown> } | null>(null);
 const editingId = ref<FormRecordId | null>(null);
 const dialogValues = reactive<Record<string, unknown>>({});
+const fieldOptions = useSuppliedFieldOptions(rows);
+const filterOptions = useSuppliedFieldOptions(filters);
+const detailOptions = useSuppliedFieldOptions(() => detailVisible.value && detail.value ? [detail.value.row] : []);
+const optionNodes = computed(() => presentationNodes(formFields.value, meta.value?.schema.nodes));
+const optionNode = (field: FormFieldDef) => optionNodes.value.find(node => node.field === field.field_name)!;
+const loadOptions = () => {
+  void fieldOptions.load(formKey.value, optionNodes.value.filter(node => listFields.value.some(field => field.field_name === node.field)));
+  void filterOptions.load(formKey.value, optionNodes.value.filter(node => filterFields.value.some(field => field.field_name === node.field)));
+  void detailOptions.load(formKey.value, optionNodes.value.filter(node => readableFields.value.some(field => field.field_name === node.field)));
+};
+const invalidateOptions = () => { fieldOptions.invalidate(); filterOptions.invalidate(); detailOptions.invalidate(); };
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
 const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
 const readableFields = computed(() => formFields.value.filter(field => field.form_show !== 0 && !['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly));
@@ -156,9 +170,11 @@ const loadMeta = async (isCurrent: () => boolean = () => true) => {
   if (!formKey.value) return false;
   const key = formKey.value;
   const sequence = ++metaSequence;
+  invalidateOptions();
   const result = await formDataApi.meta(key);
   if (sequence !== metaSequence || key !== formKey.value || !isCurrent()) return false;
   meta.value = result;
+  loadOptions();
   return true;
 };
 let dataSequence = 0;
@@ -196,7 +212,7 @@ const onExport = async () => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${formKey.value}.json`; anchor.click(); URL.revokeObjectURL(url);
 };
-const presentField = (field: FormFieldDef, row: Record<string, unknown>) => formatFieldValue(row[field.field_name], resolveFieldOptions({ field: field.field_name, dataSource: field.options_source }), field.list_formatter, 'published');
+const presentField = (field: FormFieldDef, row: Record<string, unknown>, state = fieldOptions) => state.placeholder(field.field_name, row) || formatFieldValue(row[field.field_name], resolveFieldOptions(optionNode(field), state.forContext(row)), field.list_formatter, 'published');
 const formatDate = (value: unknown, type: string) => formatFieldValue(value, [], type, 'published');
 const formatJson = (value: unknown) => formatFieldValue(value, [], 'json', 'published');
 const formatLink = (type: string, value: unknown) => type === 'email' ? `mailto:${String(value ?? '')}` : type === 'phone' ? `tel:${String(value ?? '')}` : /^https?:\/\//.test(String(value ?? '')) ? String(value) : '#';
@@ -298,7 +314,7 @@ const removeRow = async (row: Record<string, unknown>) => {
 
 watch(formKey, async () => { metaSequence++; dataSequence++; clearSelection(); meta.value = null; rows.value = []; dialogVisible.value = false; detailVisible.value = false; await loadData(); });
 // 初次元数据就绪允许继续打开，其余身份变化同步使旧请求失效。
-watch(formKey, () => { metaSequence++; dataSequence++; dialogSequence++; detailSequence++; }, { flush: 'sync' });
+watch(formKey, () => { invalidateOptions(); metaSequence++; dataSequence++; dialogSequence++; detailSequence++; }, { flush: 'sync' });
 watch(() => meta.value?.schemaHash, (_, previous) => { if (previous !== undefined) { dialogSequence++; detailSequence++; } }, { flush: 'sync' });
 watch(dialogVisible, () => { dialogSequence++; }, { flush: 'sync' });
 watch(detailVisible, () => { detailSequence++; }, { flush: 'sync' });

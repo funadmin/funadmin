@@ -6,7 +6,7 @@ const PREFIX = '/system/menu';
 export const menuApi = {
   /** 树形菜单 */
   tree: () => http.get<API.MenuItem[]>(`${PREFIX}/tree`),
-  /** 菜单可绑定的已启用路由权限资源 */
+  /** 菜单可绑定的已启用路由或能力权限资源 */
   permissionOptions: () => http.get<PermissionModel[]>(`${PREFIX}/permission-options`),
   detail: (id: number) => http.get<API.MenuItem>(`${PREFIX}/${id}`),
   create: (data: Partial<API.MenuItem>) =>

@@ -51,6 +51,17 @@ describe('共享字段展示运行时', () => {
     await expect(resolveFieldOptionsAsync('orders', node, {}, async () => { throw new Error('forbidden'); })).rejects.toThrow('forbidden');
   });
 
+  it('合并 dataSource.params 与 runtime context，并在失败时使用固定脱敏提示', async () => {
+    clearFieldOptionsCache();
+    const request = vi.fn(async (_key: string, _field: string, params: Record<string, unknown>) => {
+      expect(params).toEqual({ tenant: 'data', status: 'active' });
+      throw new Error('敏感后端异常');
+    });
+    const node = { field: 'owner', dataSource: { kind: 'remote', params: { tenant: 'data' }, options: [{ label: '原始', value: 1 }] } } as any;
+    await expect(resolveFieldOptionsAsync('orders', node, { status: 'active' }, request)).rejects.toThrow('敏感后端异常');
+    expect(request).toHaveBeenCalledWith('orders', 'owner', { tenant: 'data', status: 'active' }, undefined);
+  });
+
   it('保留树形选项与扩展属性，不接受非法选项', () => {
     const node = { id: 'tree', dataSource: { options: [null, [], { label: '父', value: 1, disabled: true, children: [{ label: '子', value: 2 }] }] } };
     const options = resolveFieldOptions(node);

@@ -24,7 +24,7 @@ final class RoleAuthorizationService
     {
         $this->guardRole($role);
         $roleId = (int) $role->id;
-        $directPermissionIds = $this->routePermissionIds((new RoleScopeService())->rolePermissionIds($roleId));
+        $directPermissionIds = $this->assignableResourceIds((new RoleScopeService())->rolePermissionIds($roleId));
         $inherited = $this->inheritedPermissions($roleId);
         $effectivePermissionIds = $this->ids(array_merge($directPermissionIds, array_keys($inherited)));
 
@@ -44,7 +44,7 @@ final class RoleAuthorizationService
     public function save(AuthGroup $role, array $payload): void
     {
         $this->guardRole($role);
-        $permissionIds = $this->routePermissionIds($payload['permissionIds'] ?? []);
+        $permissionIds = $this->assignableResourceIds($payload['permissionIds'] ?? []);
         $fieldGrants = $this->normalizeFieldGrants($payload['fieldPermissions'] ?? []);
         $dataScope = trim((string) ($payload['dataScope'] ?? $role->data_scope));
         $departmentIds = $this->ids($payload['departmentIds'] ?? []);
@@ -135,7 +135,10 @@ final class RoleAuthorizationService
         $byId = array_column($permissions, null, 'id');
         $groups = [];
         foreach ($permissions as $permission) {
-            if ((string) $permission['resource_type'] !== Permission::TYPE_ROUTE) {
+            if (!in_array((string) $permission['resource_type'], [
+                Permission::TYPE_ROUTE,
+                Permission::TYPE_CAPABILITY,
+            ], true)) {
                 continue;
             }
             $group = $this->permissionGroup($permission, $byId);
@@ -229,7 +232,7 @@ final class RoleAuthorizationService
         $result = [];
         $scope = new RoleScopeService();
         foreach ($parents as $parentId) {
-            foreach ($this->routePermissionIds($scope->rolePermissionIds($parentId)) as $permissionId) {
+            foreach ($this->assignableResourceIds($scope->rolePermissionIds($parentId)) as $permissionId) {
                 $result[$permissionId][] = ['roleId' => $parentId, 'roleName' => (string) ($roles[$parentId] ?? $parentId)];
             }
         }
@@ -409,11 +412,13 @@ final class RoleAuthorizationService
         return $this->ids($scope->permissionIdsForRoles($scope->currentRoleIds()));
     }
 
-    private function routePermissionIds(mixed $ids): array
+    private function assignableResourceIds(mixed $ids): array
     {
         $ids = $this->ids($ids);
         return $this->ids(Permission::whereIn('id', $ids ?: [0])
-            ->where('status', 1)->where('resource_type', Permission::TYPE_ROUTE)->column('id'));
+            ->where('status', 1)
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
+            ->column('id'));
     }
 
     private function departmentIds(int $roleId): array

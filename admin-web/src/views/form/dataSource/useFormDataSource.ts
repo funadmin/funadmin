@@ -80,6 +80,11 @@ const resolveParameter = (value: unknown, values: Record<string, unknown>): unkn
   ), values);
 };
 
+export const resolveDataSourceParameters = (definition: FormDataSourceDefinition, values: Record<string, unknown>): Record<string, unknown> => ({
+  ...Object.fromEntries(Object.entries(definition.params ?? {}).map(([name, value]) => [name, resolveParameter(value, values)])),
+  ...Object.fromEntries((definition.dependsOn ?? []).map(field => [field, values[field]]))
+});
+
 const cachedRequest = (
   key: string,
   ttl: number,
@@ -132,9 +137,7 @@ export const useFormDataSource = (config: UseFormDataSourceOptions): {
   let activeRefresh: Promise<void> | null = null;
 
   const parameters = (): Record<string, unknown> => {
-    const declared = Object.fromEntries(Object.entries(config.definition.params ?? {}).map(([name, value]) => [name, resolveParameter(value, config.values)]));
-    const dependencyValues = Object.fromEntries((config.definition.dependsOn ?? []).map((field) => [field, config.values[field]]));
-    return { ...declared, ...dependencyValues, keyword: keyword.value, page: page.value, pageSize };
+    return { ...resolveDataSourceParameters(config.definition, config.values), keyword: keyword.value, page: page.value, pageSize };
   };
 
   const refresh = (): Promise<void> => {

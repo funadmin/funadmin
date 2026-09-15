@@ -73,5 +73,31 @@ foreach (['password' => ['component' => 'password'], 'sensitive' => ['controlPro
         $expect((new $validator())->forUpdate(42, ['title' => 'valid'])->check(['title' => 'valid']), '有效修改应通过');
     });
 }
+$test('真实生成 options 控制器透传参数，服务拒绝未声明 SQL 条件', static function () use ($definition, $expect): void {
+    $data = $definition->toArray();
+    $data['entity'] = 'options_contract_fixture';
+    $data['optionsSource'] = [['name' => 'owner_options', 'type' => 'relation', 'labelField' => 'name', 'valueField' => 'id']];
+    $data['relations'] = [['name' => 'owner', 'type' => 'belongsTo', 'field' => 'title', 'target' => 'OptionsOwnerFixture', 'targetField' => 'id', 'optionsSource' => 'owner_options']];
+    $generated = ProductionTemplateContext::build(app\common\crud\CrudDefinition::fromArray($data));
+    eval('namespace app\\admin\\model\\generated; class OptionsOwnerFixture { public static function order(...$args) { return new class { public function field(...$args) { return $this; } public function select() { return $this; } public function toArray() { return [["id"=>1,"name"=>"甲"],["id"=>2,"name"=>"乙"]]; } }; } }');
+    eval(substr($generated['serviceContent'], 5));
+    preg_match('/public function options\(string \$source\): Response\s*\{(.*?)\n    \}/s', $generated['controllerContent'], $match);
+    $expect(isset($match[1]), '未生成 options 控制器');
+    eval('namespace app\\admin\\service\\generated; class OptionsControllerFixture { public $request; public function ok($data) { return $data; } public function options(string $source) {' . $match[1] . '} }');
+    $controller = new app\admin\service\generated\OptionsControllerFixture();
+    $controller->request = new class {
+        public array $params = ['keyword' => '乙', 'page' => 1, 'pageSize' => 20];
+        public function get() { return $this->params; }
+    };
+    $expect($controller->options('owner_options') === [['label' => '乙', 'value' => 2]], '控制器丢失 keyword 或服务未执行受控搜索');
+    foreach ([['tenant_id' => 99], ['where' => ['id' => 2]], ['keyword' => ['sql']], ['page' => 'bad']] as $params) {
+        $controller->request->params = $params;
+        try { $controller->options('owner_options'); } catch (InvalidArgumentException $error) { continue; }
+        throw new RuntimeException('未声明或非法参数必须拒绝');
+    }
+    $controller->request->params = [];
+    try { $controller->options('unknown'); } catch (InvalidArgumentException $error) { return; }
+    throw new RuntimeException('未知来源必须拒绝');
+});
 echo "结果：{$checks} 通过，" . count($failures) . " 失败\n";
 exit($failures === [] ? 0 : 1);

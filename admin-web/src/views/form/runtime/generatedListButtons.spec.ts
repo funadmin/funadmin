@@ -67,9 +67,9 @@ describe('PHP 真实生成页面消费正式宿主', () => {
   it('正式生成列表和详情接入共享字段展示 helper', () => {
     const generated = generate(false, true, true);
     expect(generated.viewContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
-    expect(generated.viewContent).toContain('formatFieldValue(scope.row.orderId');
+    expect(generated.viewContent).toContain("presentField('orderId', scope.row)");
     expect(generated.detailContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
-    expect(generated.detailContent).toContain('formatFieldValue(row.orderId');
+    expect(generated.detailContent).toContain("presentField('orderId', row)");
     for (const content of [generated.viewContent, generated.detailContent]) {
       const { descriptor, errors } = parse(content);
       expect(errors).toEqual([]);
@@ -203,7 +203,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     await approve!.trigger('click'); await flushPromises();
     expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], schemaHash: declaration.schemaHash, location: 'row' }), expect.anything());
     expect(http.get.mock.calls.some(([url]) => url.includes('/form/data'))).toBe(false);
-    permission.permissions = ['business:approve', 'console/form.data:listactions', 'console/form.data:listaction']; await flushPromises();
+    permission.permissions = ['business:approve', 'admin/form.data:listactions', 'admin/form.data:listaction']; await flushPromises();
     const revoked = wrapper.findAll('button').find(button => button.text() === '批准');
     expect(!revoked || revoked.attributes('disabled') !== undefined).toBe(true);
     http.post.mockClear(); http.get.mockClear();

@@ -86,9 +86,17 @@ const rootRef = ref<HTMLElement | null>(null);
 const isFullscreen = ref(false);
 
 const display = ref<DataTableDisplayState>({ ...defaultDisplayState() });
-const columnKeys = ref<string[]>([]);
+// null 表示默认全选；数组保留完整偏好，不随异步列裁剪。
+const preferredColumnKeys = ref<string[] | null>(null);
 
 const cols = computed(() => props.columnOptions ?? []);
+const columnKeys = computed(() => {
+  const available = cols.value.map((column) => column.key);
+  const preferred = preferredColumnKeys.value;
+  if (preferred === null) return available;
+  const valid = new Set(available);
+  return preferred.filter((key) => valid.has(key));
+});
 
 const headerCellStyle = computed(() => {
   if (display.value.headerBg) return undefined;
@@ -102,24 +110,16 @@ function hydrate() {
   const key = props.storageKey;
   const d = loadDisplayState(key);
   if (d) display.value = { ...defaultDisplayState(), ...d };
-  if (cols.value.length) {
-    const fallback = cols.value.map((c) => c.key);
-    const saved = loadColumnKeys(key);
-    if (saved?.length) {
-      const valid = new Set(fallback);
-      columnKeys.value = saved.filter((k) => valid.has(k));
-      if (columnKeys.value.length === 0) columnKeys.value = [...fallback];
-    } else {
-      columnKeys.value = [...fallback];
-    }
-  } else {
-    columnKeys.value = [];
-  }
+  const saved = loadColumnKeys(key);
+  preferredColumnKeys.value = saved?.length ? [...saved] : null;
 }
 
 function onColumnKeys(keys: string[]) {
-  columnKeys.value = keys;
-  saveColumnKeys(props.storageKey, keys);
+  const available = new Set(cols.value.map((c) => c.key));
+  preferredColumnKeys.value = (preferredColumnKeys.value ?? cols.value.map((c) => c.key))
+    .filter((key) => !available.has(key))
+    .concat(keys);
+  saveColumnKeys(props.storageKey, preferredColumnKeys.value);
 }
 
 watch(
@@ -133,21 +133,6 @@ watch(
 watch(
   () => props.storageKey,
   () => hydrate()
-);
-
-watch(
-  cols,
-  () => {
-    if (!cols.value.length) {
-      columnKeys.value = [];
-      return;
-    }
-    const fallback = cols.value.map((c) => c.key);
-    const valid = new Set(fallback);
-    columnKeys.value = columnKeys.value.filter((k) => valid.has(k));
-    if (columnKeys.value.length === 0) columnKeys.value = [...fallback];
-  },
-  { deep: true }
 );
 
 function onFsChange() {

@@ -12,6 +12,7 @@
         <el-radio-group v-model="form.resourceType">
           <el-radio-button value="group">目录</el-radio-button>
           <el-radio-button value="route">路由</el-radio-button>
+          <el-radio-button value="capability">能力</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
@@ -37,12 +38,12 @@
         <el-input v-model="form.appName" maxlength="50" placeholder="如 admin" />
       </el-form-item>
 
-      <template v-if="form.resourceType === 'route'">
-        <el-form-item label="控制器" prop="object">
-          <el-input v-model="form.object" maxlength="190" placeholder="如 systempermission" />
+      <template v-if="form.resourceType !== 'group'">
+        <el-form-item :label="form.resourceType === 'route' ? '控制器' : '资源对象'" prop="object">
+          <el-input v-model="form.object" maxlength="190" :placeholder="form.resourceType === 'route' ? '如 systempermission' : '如 development/business'" />
         </el-form-item>
         <el-form-item label="动作" prop="action">
-          <el-input v-model="form.action" maxlength="100" placeholder="如 tree" />
+          <el-input v-model="form.action" maxlength="100" :placeholder="form.resourceType === 'route' ? '如 tree' : '如 view'" />
         </el-form-item>
       </template>
 
@@ -65,7 +66,7 @@
       <el-form-item label="登录后共享" prop="isPublic">
         <el-switch v-model="form.isPublic" :active-value="1" :inactive-value="0" />
         <span class="ml-3 text-xs text-[var(--el-text-color-secondary)]">
-          开启后所有已登录管理员都可访问该路由，请谨慎使用
+          开启后所有已登录管理员都可访问该资源，请谨慎使用
         </span>
       </el-form-item>
     </el-form>
@@ -126,11 +127,11 @@ const rules = computed<FormRules>(() => ({
     { pattern: /^[a-z][a-z0-9_]{0,49}$/, message: '仅支持小写字母、数字和下划线', trigger: 'blur' }
   ],
   object:
-    form.resourceType === 'route'
-      ? [{ required: true, message: '请输入控制器', trigger: 'blur' }]
+    form.resourceType !== 'group'
+      ? [{ required: true, message: '请输入资源对象', trigger: 'blur' }]
       : [],
   action:
-    form.resourceType === 'route'
+    form.resourceType !== 'group'
       ? [{ required: true, message: '请输入动作', trigger: 'blur' }]
       : []
 }));

@@ -4,6 +4,19 @@ import { describe, expect, it } from 'vitest';
 
 const styles = readFileSync(resolve(process.cwd(), 'src/styles/index.scss'), 'utf8');
 
+describe('Element Plus Message 原生外观契约', () => {
+  it('全局样式不覆盖 Message 容器、状态、内容、图标或关闭按钮', () => {
+    const css = styles.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css.match(/\.el-message(?=--|__|[^\w-]|$)/g) ?? []).toEqual([]);
+    expect(css).not.toMatch(/--el-message-[\w-]+\s*:/);
+  });
+
+  it('保留 Element Plus 原生 Message 样式入口', () => {
+    const main = readFileSync(resolve(process.cwd(), 'src/main.ts'), 'utf8');
+    expect(main).toContain("import 'element-plus/es/components/message/style/css'");
+  });
+});
+
 describe('Element Plus 按钮主题契约', () => {
   it('默认按钮沿用 Element Plus 配色', () => {
     expect(styles).not.toMatch(/\.el-button--default\s*\{/);

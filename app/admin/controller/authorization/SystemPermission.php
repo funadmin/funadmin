@@ -105,6 +105,9 @@ class SystemPermission extends AdminApiController
         if (!$permission) {
             return $this->fail(msg: '权限资源不存在', code: 404);
         }
+        if (in_array((string) $permission->source_type, ['generated', 'plugin'], true)) {
+            return $this->fail(msg: '受管权限资源只能由对应生成器或插件维护', code: 422);
+        }
         try {
             $data = $this->payload($permission);
         } catch (InvalidArgumentException $exception) {
@@ -129,12 +132,16 @@ class SystemPermission extends AdminApiController
 
         Db::transaction(function () use ($permission, $data, $id, $oldObj, $oldAct, $resourceChanged): void {
             $permission->save($data);
-            AdminMenu::where('permission_id', $id)->update([
-                'app_name' => $data['app_name'],
-                'name' => $data['name'],
-                'status' => $data['status'],
-                'sort_order' => $data['sort_order'],
-            ]);
+            $menus = AdminMenu::where('permission_id', $id)->select();
+            foreach ($menus as $menu) {
+                $menu->save([
+                    'app_name' => $data['app_name'],
+                    'name' => $data['name'],
+                    'status' => $data['status'],
+                    'sort_order' => $data['sort_order'],
+                    'query' => $this->queryWithPermission((string) $menu->query, (string) ($data['code'] ?? '')),
+                ]);
+            }
             if ($resourceChanged && $oldObj !== '' && $oldAct !== '') {
                 CasbinRule::where('ptype', 'p')->where('v2', $oldObj)->where('v3', $oldAct)->delete();
             }
@@ -176,6 +183,9 @@ class SystemPermission extends AdminApiController
         }
         if (Permission::whereIn('pid', $ids)->count() > 0) {
             return $this->fail(msg: '请先删除下级权限资源', code: 422);
+        }
+        if (Permission::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->count() > 0) {
+            return $this->fail(msg: '受管权限资源只能由对应生成器或插件维护', code: 422);
         }
         if (AdminMenu::whereIn('permission_id', $ids)->count() > 0) {
             return $this->fail(msg: '权限资源已绑定菜单，不能删除', code: 422);
@@ -223,6 +233,10 @@ class SystemPermission extends AdminApiController
             $obj = $resource['obj'];
             $act = $resource['act'];
             $code = $resource['code'];
+        } elseif ($resourceType === Permission::TYPE_CAPABILITY && $objInput !== '' && $actionInput !== '') {
+            $obj = strtolower($objInput);
+            $act = strtolower($actionInput);
+            $code = str_replace('/', ':', $obj) . ':' . $act;
         }
 
         return [
@@ -249,11 +263,12 @@ class SystemPermission extends AdminApiController
         if ($data['app_name'] === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $data['app_name'])) {
             return '应用标识格式不正确';
         }
-        if (!in_array($data['resource_type'], [Permission::TYPE_GROUP, Permission::TYPE_ROUTE], true)) {
+        if (!in_array($data['resource_type'], [Permission::TYPE_GROUP, Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) {
             return '权限资源类型不正确';
         }
-        if ($data['resource_type'] === Permission::TYPE_ROUTE && ($data['obj'] === '' || $data['act'] === '')) {
-            return '路由资源必须填写控制器和动作';
+        if (in_array($data['resource_type'], [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
+            && ($data['obj'] === '' || $data['act'] === '')) {
+            return '路由或能力资源必须填写资源对象和动作';
         }
         if ($data['resource_type'] === Permission::TYPE_GROUP && ($data['obj'] !== '' || $data['act'] !== '' || $data['code'] !== null)) {
             return '目录资源不能包含控制器或动作';
@@ -291,6 +306,17 @@ class SystemPermission extends AdminApiController
         ));
     }
 
+    private function queryWithPermission(string $query, string $permissionCode): string
+    {
+        parse_str($query, $parameters);
+        if ($permissionCode === '') {
+            unset($parameters['permission']);
+        } else {
+            $parameters['permission'] = $permissionCode;
+        }
+        return http_build_query($parameters);
+    }
+
     private function permissionData(Permission $permission): array
     {
         $object = (string) $permission->obj;
@@ -312,6 +338,7 @@ class SystemPermission extends AdminApiController
             'sort' => (int) $permission->sort_order,
             'sourceType' => (string) $permission->source_type,
             'sourceName' => (string) $permission->source_name,
+            'readOnly' => in_array((string) $permission->source_type, ['generated', 'plugin'], true),
             'createdAt' => $this->formatTime($permission->created_at),
             'updatedAt' => $this->formatTime($permission->updated_at),
         ];
