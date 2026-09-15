@@ -119,7 +119,7 @@ describe('BusinessVisual', () => {
     ['仅检查', ['admin/development.business:inspectdatabase'], true, false, false],
     ['仅创建', ['admin/development.business:createvisual'], false, true, false],
     ['仅采纳', ['admin/development.business:createfromdatabase'], false, false, true],
-    ['只有合并别名', ['development:business:save', 'development:business:inspect'], false, false, false],
+    ['只有合并别名', ['admin/development:business:save', 'admin/development:business:inspect'], false, false, false],
     ['无权限', [], false, false, false]
   ] as const)('%s 不从合并别名扩大独立动作权限', async (_label, permissions, inspect, create, adopt) => {
     mocks.permissions = [...permissions];

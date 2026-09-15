@@ -40,7 +40,7 @@ import BusinessMine from './mine.vue';
 it.each([
   [['*'], '/development/business/visual'],
   [['admin/development.business:inspectdatabase'], '/development/business/database'],
-  [['development:business:save'], null],
+  [['admin/development:business:save'], null],
   [[], null]
 ] as [string[], string | null][])('统一入口按独立动作选择现有路由并保留 query：%j', async (permissions, path) => {
   mocks.permissions = permissions;

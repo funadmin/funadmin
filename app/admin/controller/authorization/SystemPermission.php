@@ -236,7 +236,7 @@ class SystemPermission extends AdminApiController
         } elseif ($resourceType === Permission::TYPE_CAPABILITY && $objInput !== '' && $actionInput !== '') {
             $obj = strtolower($objInput);
             $act = strtolower($actionInput);
-            $code = str_replace('/', ':', $obj) . ':' . $act;
+            $code = PermissionResource::canonicalCode(str_replace('/', ':', $obj) . ':' . $act);
         }
 
         return [

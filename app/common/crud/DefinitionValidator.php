@@ -89,7 +89,7 @@ final class DefinitionValidator
                 throw new InvalidArgumentException($flag . ' 必须是布尔值');
             }
         }
-        if (!preg_match('/^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/', (string) ($data['permissionPrefix'] ?? ''))) {
+        if (!preg_match('/^admin\/[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/', (string) ($data['permissionPrefix'] ?? ''))) {
             throw new InvalidArgumentException('权限前缀不合法');
         }
         $target = $this->target($data['target'] ?? null, $projectRoot);
@@ -97,7 +97,7 @@ final class DefinitionValidator
             if (array_key_exists('generationTargets', $data)) {
                 throw new InvalidArgumentException('插件 target 禁止提供 generationTargets，所有目标由服务安全派生');
             }
-            if (!str_starts_with((string) $data['permissionPrefix'], $target['plugin'] . ':')) {
+            if (!str_starts_with((string) $data['permissionPrefix'], 'admin/' . $target['plugin'] . ':')) {
                 throw new InvalidArgumentException('插件权限前缀必须属于插件命名空间');
             }
         } else {
