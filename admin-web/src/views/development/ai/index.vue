@@ -62,7 +62,7 @@
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
           </template>
-          <template #approval><ApprovalModeSelector :model-value="selectedConversation?.approval_mode || 'request_approval'" :can-agent-approve="hasCapability('development:ai:approve')" :can-full-access="hasCapability('development:ai:full-access')" @update:model-value="updateApprovalMode" /></template>
+          <template #approval><ApprovalModeSelector :model-value="selectedConversation?.approval_mode || 'request_approval'" :can-agent-approve="hasCapability('admin/development:ai:approve')" :can-full-access="hasCapability('admin/development:ai:full-access')" @update:model-value="updateApprovalMode" /></template>
         </AiComposer>
       </main>
 
@@ -336,7 +336,7 @@ const ContextPanel = defineComponent({
     return () => h('div', { class: 'context-panel' }, [
       h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-approval-heading' }, [
         h('h3', { id: 'ai-approval-heading' }, t('aiComposer.approval')),
-        h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } })
+        h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('admin/development:ai:approve'), canFullAccess: hasCapability('admin/development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } })
       ]),
       h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-task-heading' }, [
         h('h3', { id: 'ai-task-heading' }, t('aiDevelopment.taskOverview')),
@@ -461,7 +461,7 @@ const approvalSaving = ref(false);
 async function updateApprovalMode(mode: AiApprovalMode) {
   const conversation = selectedConversation.value;
   if (!conversation || approvalSaving.value || mode === conversation.approval_mode) return;
-  if ((mode === 'agent_approval' && !hasCapability('development:ai:approve')) || (mode === 'full_access' && !hasCapability('development:ai:full-access'))) return;
+  if ((mode === 'agent_approval' && !hasCapability('admin/development:ai:approve')) || (mode === 'full_access' && !hasCapability('admin/development:ai:full-access'))) return;
   const generation = store.selectionGeneration;
   approvalSaving.value = true;
   try {

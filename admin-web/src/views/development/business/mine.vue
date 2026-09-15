@@ -43,7 +43,7 @@
                   <el-button
                     link
                     type="primary"
-                    v-perm="'development:business:save'"
+                    v-perm="'admin/development:business:save'"
                     :data-design="row.id"
                     :disabled="!row.form_id"
                     :title="row.form_id ? '设计业务模块' : '缺少表单定义，无法进入设计器'"
@@ -52,13 +52,13 @@
                   <el-button v-if="row.runtime_route && row.metadata?.target?.type !== 'plugin'" link :data-runtime="row.id" @click="openRuntime(row as BusinessModule)">运行时</el-button>
                   <el-button
                     link
-                    v-perm="'development:business:generate'"
+                    v-perm="'admin/development:business:generate'"
                     :data-preview="row.id"
                     :loading="previewingIds.has(row.id)"
                     :aria-label="`${row.name}生成预览`"
                     @click="previewGeneration(row as BusinessModule)"
                   >生成预览</el-button>
-                  <el-button link v-perm="'development:business:records'" @click="router.push({ path: '/development/business/records', query: { moduleId: row.id } })">记录</el-button>
+                  <el-button link v-perm="'admin/development:business:records'" @click="router.push({ path: '/development/business/records', query: { moduleId: row.id } })">记录</el-button>
                 </div>
               </template>
             </el-table-column>
