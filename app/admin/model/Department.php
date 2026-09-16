@@ -50,7 +50,7 @@ class Department extends BackendModel
         return [
             'id' => (int) $this->id,
             'parentId' => (int) $this->pid,
-            'name' => (string) $this->name,
+            'name' => (string) $this->getAttr('name'),
             'leader' => (string) $this->leader,
             'phone' => (string) $this->phone,
             'email' => (string) $this->email,

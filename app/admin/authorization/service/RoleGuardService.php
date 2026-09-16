@@ -51,6 +51,22 @@ class RoleGuardService
         }
     }
 
+    /**
+     * 管理员写入 payload 的授权边界：角色可分配性与部门数据范围。
+     */
+    public function assertAdminPayload(array $data): void
+    {
+        $this->assertAssignableRoles($data['roleIds']);
+        $departmentIds = array_values(array_unique(array_merge([$data['deptId']], $data['departmentIds'])));
+        if (Department::whereIn('id', $departmentIds)->where('status', 1)->count() !== count($departmentIds)) {
+            throw new InvalidArgumentException('任职部门包含不存在或已停用的部门');
+        }
+        $scope = (new DataScopeService())->resolve();
+        if (!$scope['all'] && array_diff($departmentIds, $scope['departmentIds'])) {
+            throw new InvalidArgumentException('不能将管理员分配到数据范围外的部门');
+        }
+    }
+
     public function assertManageAdmin(Admin $admin, bool $allowSelf = false): void
     {
         $roleScope = new RoleScopeService();

@@ -31,14 +31,14 @@ class Language extends BaseModel
      */
     public function isDefaultLanguage(): bool
     {
-        return (int) $this->is_default === 1 || strtolower((string) $this->name) === 'zh-cn';
+        return (int) $this->is_default === 1 || strtolower((string) $this->getAttr('name')) === 'zh-cn';
     }
 
     public function toApiData(): array
     {
         return [
             'id' => (int) $this->id,
-            'name' => (string) $this->name,
+            'name' => (string) $this->getAttr('name'),
             'isDefault' => (int) $this->is_default,
             'status' => (int) $this->status,
             'createdAt' => $this->formatTime($this->created_at),
