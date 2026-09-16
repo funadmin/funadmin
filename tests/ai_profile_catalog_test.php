@@ -106,7 +106,7 @@ namespace {
     $method = new \ReflectionMethod(\app\console\controller\ai\Profiles::class, 'models');
     $route = $method->getAttributes(\think\annotation\route\Post::class)[0]->newInstance();
     catalogExpect($route->rule === ':id/models', '目录 API 使用 POST id/models');
-    $migration = dirname(__DIR__) . '/database/migrations/119_ai_profile_catalog_permission.sql';
+    $migration = dirname(__DIR__) . '/database/migrations/archive/119_ai_profile_catalog_permission.sql';
     catalogExpect(is_file($migration), '模型目录需要新增权限迁移，不得修改 118');
     $sql = file_get_contents($migration);
     catalogExpect(str_contains($sql, 'console/ai.profiles') && str_contains($sql, "'models'") && str_contains($sql, "'configure'"), '仅向 configure 授权目录 action');

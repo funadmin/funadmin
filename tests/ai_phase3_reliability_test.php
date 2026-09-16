@@ -92,7 +92,7 @@ $staleDispatcher = new AiOutboxDispatcher(
 aiReliabilityExpect($staleDispatcher->dispatch() === 0 && $rows[4]['status'] === 'dispatched' && $rows[4]['lease_owner'] === null, '旧 lease owner 不得覆盖接管者的 dispatched 结果');
 
 $root = dirname(__DIR__);
-$migration = $root . '/database/migrations/106_ai_outbox_dispatch_leases.sql';
+$migration = $root . '/database/migrations/archive/106_ai_outbox_dispatch_leases.sql';
 aiReliabilityExpect(is_file($migration), '必须使用最大编号加一新增 106 outbox lease migration');
 $migrationSql = (string)file_get_contents($migration);
 foreach (['processing', 'lease_owner', 'lease_expires_at', 'idx_ai_outbox_claim'] as $contract) {

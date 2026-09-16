@@ -8,7 +8,7 @@ const service = readProjectFile('app/common/service/AdminLogService.php');
 const controller = readProjectFile('app/console/controller/system/SystemOperationLog.php');
 const api = readProjectFile('admin-web/src/api/system/log.ts');
 const view = readProjectFile('admin-web/src/views/system/log/operation.vue');
-const migration = readProjectFile('database/migrations/012_admin_log_audit.sql');
+const migration = readProjectFile('database/migrations/archive/012_admin_log_audit.sql');
 
 describe('操作日志中间件契约', () => {
   it('控制器执行完成后根据响应状态写日志', () => {

@@ -11,7 +11,7 @@ const topMenu = readFileSync(resolve(process.cwd(), 'src/layout/components/TopMe
 const topSubItem = readFileSync(resolve(process.cwd(), 'src/layout/components/TopSubItem.vue'), 'utf8');
 const iconGenerator = readFileSync(resolve(process.cwd(), 'scripts/generate-ep-icons.mjs'), 'utf8');
 const iconStyles = readFileSync(resolve(process.cwd(), 'src/styles/ep-icons.css'), 'utf8');
-const iconMigrationPath = resolve(process.cwd(), '../database/migrations/048_admin_menu_icon_completion.sql');
+const iconMigrationPath = resolve(process.cwd(), '../database/migrations/archive/048_admin_menu_icon_completion.sql');
 
 describe('菜单表单图标字段', () => {
   it('图标选择器不能放在无指令的原生 template 中', () => {

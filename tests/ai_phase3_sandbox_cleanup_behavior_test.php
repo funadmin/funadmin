@@ -58,7 +58,7 @@ cleanupBehaviorExpect(substr_count($controller, "where('cleanup_lease_owner', \$
 cleanupBehaviorExpect(substr_count($command, "where('cleanup_lease_owner', \$owner)") >= 1, 'CLI 完成 cleanup 必须校验 lease owner');
 cleanupBehaviorExpect(!str_contains($command, "where('admin_id'"), 'CLI 不得限制单个管理员');
 cleanupBehaviorExpect(str_contains($console, "'ai:sandbox-cleanup'"), 'CLI 清理命令必须注册');
-$migrationPath = $root . '/database/migrations/103_ai_sandbox_cleanup_leases.sql';
+$migrationPath = $root . '/database/migrations/archive/103_ai_sandbox_cleanup_leases.sql';
 cleanupBehaviorExpect(is_file($migrationPath), '缺少当前最大编号加一的 103 cleanup lease migration');
 $migration = (string) file_get_contents($migrationPath);
 foreach (['heartbeat_at', 'sandbox_retained'] as $column) cleanupBehaviorExpect(str_contains($migration, "`{$column}`"), "103 缺少 {$column}");

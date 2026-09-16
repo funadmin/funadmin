@@ -85,7 +85,7 @@ $app = new App($root);
 $app->initialize();
 $original = (array) config('database');
 $database = 'funadmin_identity_phase4_http_' . bin2hex(random_bytes(5));
-$migrations = phase4HttpMigrationDirectory($root . '/database/migrations');
+$migrations = phase4HttpMigrationDirectory($root . '/database/migrations/archive');
 $keyDirectory = sys_get_temp_dir() . '/funadmin-phase4-http-keys-' . bin2hex(random_bytes(4));
 $serverConfig = $original;
 $serverConfig['connections']['mysql']['database'] = '';

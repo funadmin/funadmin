@@ -22,7 +22,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     for (const file of productionPhp) {
       expect(read(file), file).not.toContain('app\\\\backend\\\\');
     }
-    const cutover = read('database/migrations/050_backend_to_console_cutover.sql');
+    const cutover = read('database/migrations/archive/050_backend_to_console_cutover.sql');
     expect(cutover).toContain("SET `module` = 'console'");
     expect(cutover).toContain("REPLACE(`code`, 'backend/', 'console/')");
     expect(cutover).toContain("REPLACE(`obj`, 'backend/', 'console/')");
@@ -78,9 +78,9 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     const service = read('app/common/service/MigrationService.php');
     expect(service).toContain("DIRECTORY_SEPARATOR . '*.sql'");
     expect(service).not.toMatch(/maintenance/i);
-    expect(existsSync(resolve(root, 'database/migrations/034_drop_legacy_time_columns.sql'))).toBe(false);
+    expect(existsSync(resolve(root, 'database/migrations/archive/034_drop_legacy_time_columns.sql'))).toBe(false);
     expect(existsSync(resolve(root, 'database/maintenance/001_drop_legacy_time_columns.sql'))).toBe(true);
     expect(read('database/maintenance/001_drop_legacy_time_columns.sql')).toMatch(/DROP COLUMN/i);
-    expect(read('database/migrations/039_plugin_resource_schema_convergence.sql')).not.toMatch(/DROP\s+(?:COLUMN|TABLE)/i);
+    expect(read('database/migrations/archive/039_plugin_resource_schema_convergence.sql')).not.toMatch(/DROP\s+(?:COLUMN|TABLE)/i);
   });
 });

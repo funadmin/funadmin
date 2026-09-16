@@ -45,7 +45,7 @@ function phase2MigrationDirectoryThrough096(string $source): string
 }
 
 $root = dirname(__DIR__); $app = new App($root); $app->initialize();
-$phase2Migrations = phase2MigrationDirectoryThrough096($root . '/database/migrations');
+$phase2Migrations = phase2MigrationDirectoryThrough096($root . '/database/migrations/archive');
 $original = (array) config('database'); $database = 'funadmin_identity_phase2_' . bin2hex(random_bytes(5));
 $serverConfig = $original; $serverConfig['connections']['mysql']['database'] = ''; $app->config->set($serverConfig, 'database');
 $server = Db::connect('mysql', true);

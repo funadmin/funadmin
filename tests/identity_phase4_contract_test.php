@@ -32,9 +32,9 @@ function phase4Rejects(callable $callback, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrations = glob($root . '/database/migrations/099_*.sql') ?: [];
+$migrations = glob($root . '/database/migrations/archive/099_*.sql') ?: [];
 phase4Expect(count($migrations) === 1 && basename($migrations[0]) === '099_oauth_protocol_core.sql', 'Phase 4 必须唯一占用 migration 099');
-$migration = $root . '/database/migrations/099_oauth_protocol_core.sql';
+$migration = $root . '/database/migrations/archive/099_oauth_protocol_core.sql';
 phase4Expect(is_file($migration), '缺少 099 OAuth 协议核心 migration');
 $sql = (string) file_get_contents($migration);
 $withoutComments = preg_replace('/--[^\r\n]*/', '', $sql) ?? $sql;

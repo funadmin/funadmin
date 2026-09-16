@@ -26,7 +26,7 @@ try {
     $isolated['connections']['mysql']['database'] = $database;
     $app->config->set($isolated, 'database');
     Db::connect('mysql', true);
-    $sql = file_get_contents(dirname(__DIR__) . '/database/migrations/117_ai_configuration_profiles.sql');
+    $sql = file_get_contents(dirname(__DIR__) . '/database/migrations/archive/117_ai_configuration_profiles.sql');
     $parser = new ReflectionMethod(app\common\service\MigrationService::class, 'statements');
     foreach ([1,2] as $_) foreach ($parser->invoke(new app\common\service\MigrationService(), $sql) as $statement) Db::execute($statement);
     // 权限迁移只复制结构到隔离库，不读取现有权限数据。
@@ -34,7 +34,7 @@ try {
     profileExpect(preg_match('/^[a-zA-Z0-9_]+$/', $source) === 1, '源库标识符');
     foreach (['permission','casbin_rule'] as $table) $server->execute("CREATE TABLE `{$database}`.`fun_{$table}` LIKE `{$source}`.`fun_{$table}`");
     foreach (['configure','view'] as $capability) Db::name('casbin_rule')->insert(['ptype'=>'p','v0'=>'role:' . $capability,'v1'=>'console','v2'=>'development/ai','v3'=>$capability,'v4'=>'','v5'=>'','rule_hash'=>hash('sha256', $capability)]);
-    $permissions = file_get_contents(dirname(__DIR__) . '/database/migrations/118_ai_profile_permissions.sql');
+    $permissions = file_get_contents(dirname(__DIR__) . '/database/migrations/archive/118_ai_profile_permissions.sql');
     foreach ([1,2] as $_) foreach ($parser->invoke(new app\common\service\MigrationService(), $permissions) as $statement) Db::execute($statement);
     profileExpect(Db::name('permission')->where('obj', 'console/ai.profiles')->count() === 8, '路由登记幂等');
     profileExpect(Db::name('casbin_rule')->where('v0', 'role:configure')->where('v2', 'console/ai.profiles')->count() === 8, 'configure 迁移授权');

@@ -157,9 +157,9 @@ foreach (['../escape.php','.env','.git/config','runtime/private/x','vendor/cache
 mkdir($root . '/outside', 0755, true);
 symlink($root . '/outside', $root . '/linked');
 phase4Reject(fn () => $service->validatePath('linked/file.php'), '符号链接');
-phase4Reject(fn () => $service->validateMigrationPath('database/migrations/106_changed.sql'), '已登记');
-phase4Reject(fn () => $service->validateMigrationPath('database/migrations/001_core_schema.sql', true), '修改或删除');
-phase4Expect($service->validateMigrationPath('database/migrations/107_ai_change.sql') === 107, '新 migration 必须严格大于最大登记编号');
+phase4Reject(fn () => $service->validateMigrationPath('database/migrations/archive/106_changed.sql'), '已登记');
+phase4Reject(fn () => $service->validateMigrationPath('database/migrations/archive/001_core_schema.sql', true), '修改或删除');
+phase4Expect($service->validateMigrationPath('database/migrations/archive/107_ai_change.sql') === 107, '新 migration 必须严格大于最大登记编号');
 
 $badApproval = array_replace($approval, ['status'=>'pending']);
 $clock = 1000;
@@ -241,8 +241,8 @@ phase4Expect(str_contains($controller, 'changeSetApplication()->recover(') && st
 phase4Expect(str_contains($controller, 'publicChangeSetRecord('), 'ChangeSet detail 必须通过公开记录脱敏');
 phase4Expect(str_contains($controller, 'SystemMigration::where(') && str_contains($controller, 'databaseMaximumMigration('), 'ChangeSet 生产服务必须同时读取数据库最大登记 migration');
 phase4Expect(str_contains((string)file_get_contents(dirname(__DIR__) . '/app/console/ai/model/AiChangeSet.php'), "'selection'"), 'ChangeSet selection 必须持久化为 JSON 字段');
-phase4Expect(is_file(dirname(__DIR__) . '/database/migrations/109_ai_phase4_change_sets.sql'), '阶段四 migration 必须使用初始最大 108 加一的 109');
-$permissionCompensation = dirname(__DIR__) . '/database/migrations/110_ai_phase4_preview_permission.sql';
+phase4Expect(is_file(dirname(__DIR__) . '/database/migrations/archive/109_ai_phase4_change_sets.sql'), '阶段四 migration 必须使用初始最大 108 加一的 109');
+$permissionCompensation = dirname(__DIR__) . '/database/migrations/archive/110_ai_phase4_preview_permission.sql';
 phase4Expect(is_file($permissionCompensation), '109 执行后发现的 preview 权限缺口必须使用当前最大 109 加一的 110 补偿，不得修改已执行 migration');
 phase4Expect(str_contains((string) file_get_contents($permissionCompensation), 'changesetpreview'), '补偿 migration 必须登记 ChangeSet preview 权限');
 phase4Expect(str_contains((string)file_get_contents(dirname(__DIR__) . '/config/console.php'), "'ai:change-set-recover'"), '必须注册恢复命令');

@@ -103,7 +103,7 @@ $serverConfig['connections']['mysql'] = $mysql;
 $serverConfig['connections']['mysql']['database'] = '';
 $app->config->set($serverConfig, 'database');
 $server = Db::connect('mysql', true);
-$migrations = phase4MigrationDirectory($root . '/database/migrations');
+$migrations = phase4MigrationDirectory($root . '/database/migrations/archive');
 $databases = [];
 
 try {

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
-const migrationPath = resolve(root, 'database/migrations/017_legacy_naming_and_member_tags.sql');
+const migrationPath = resolve(root, 'database/migrations/archive/017_legacy_naming_and_member_tags.sql');
 
 describe('017 历史命名与会员标签治理', () => {
   it('新增规范管理员字段并回填旧数据', () => {

@@ -81,7 +81,7 @@ foreach ([EnterpriseApplication::class, OAuthClient::class, OidcSigningKey::clas
 $oauthSource = (string) file_get_contents((new ReflectionClass(OAuthClient::class))->getFileName());
 phase3ApiExpect(str_contains($oauthSource, "code: 501"), 'P4 前 revoke tokens 必须明确返回 501');
 
-$migration = dirname(__DIR__) . '/database/migrations/098_oauth_client_console.sql';
+$migration = dirname(__DIR__) . '/database/migrations/archive/098_oauth_client_console.sql';
 phase3ApiExpect(is_file($migration), '权限与菜单必须使用下一个空闲 forward migration 098');
 $sql = (string) file_get_contents($migration);
 $withoutComments = preg_replace('/--[^\r\n]*/', '', $sql) ?? $sql;

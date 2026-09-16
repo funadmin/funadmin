@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const read = (relativePath: string) => readFileSync(resolve(process.cwd(), '..', relativePath), 'utf8');
 
-const migration = read('database/migrations/021_time_columns_no_default.sql');
+const migration = read('database/migrations/archive/021_time_columns_no_default.sql');
 
 /* 当前库中仍存在 DEFAULT 0 的时间列，迁移必须逐列移除默认值 */
 const targets: Array<[string, string]> = [

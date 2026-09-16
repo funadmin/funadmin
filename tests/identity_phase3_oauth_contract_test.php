@@ -12,9 +12,9 @@ function phase3OauthExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrations = glob($root . '/database/migrations/098_*.sql') ?: [];
+$migrations = glob($root . '/database/migrations/archive/098_*.sql') ?: [];
 phase3OauthExpect(count($migrations) === 1 && basename($migrations[0]) === '098_oauth_client_console.sql', 'SSO Phase 3 Console 权限必须唯一占用 migration 098');
-$migration = $root . '/database/migrations/097_oauth_client_foundation.sql';
+$migration = $root . '/database/migrations/archive/097_oauth_client_foundation.sql';
 phase3OauthExpect(is_file($migration), '缺少 OAuth client foundation 097 migration');
 $sql = (string) file_get_contents($migration);
 $withoutComments = preg_replace('/--[^\r\n]*/', '', $sql) ?? $sql;

@@ -46,7 +46,7 @@ $updated = $service->updateConversation($conversation['id'], 7, ['profile_id'=>2
 phase2Expect($updated['model'] === 'selected', '会话更新档案模型');
 $next = $service->createTask($conversation['id'], 7, ['idempotency_key'=>'limits']);
 phase2Expect($next['max_rounds'] === 10 && $next['output_token_budget'] === 42 && $next['input_token_budget'] === 4000, '任务列同步冻结档案预算');
-phase2Expect(is_file(dirname(__DIR__) . '/database/migrations/120_ai_conversation_profile.sql'), '会话引用需要新增迁移');
+phase2Expect(is_file(dirname(__DIR__) . '/database/migrations/archive/120_ai_conversation_profile.sql'), '会话引用需要新增迁移');
 $model = new ReflectionClass(\app\console\ai\model\AiConversation::class);
 phase2Expect(($model->getDefaultProperties()['type']['profile_id'] ?? '') === 'integer', 'ORM 档案引用整数转换');
 $repository->rows[2]->configuration = ['provider'=>'custom','protocol'=>'openai-chat','base_url'=>'https://example.com/v1','model'=>'primary','fallback_enabled'=>true,'fallback_models'=>['backup'],'max_output_tokens'=>100,'max_retries'=>0,'reasoning_effort'=>'high','model_capabilities'=>array_map(static fn ($model) => ['model'=>$model,'reasoning_efforts'=>['high'],'output_token_parameter'=>'max_completion_tokens','context_window'=>8000,'max_output_tokens'=>500], ['primary','backup'])];
@@ -102,7 +102,7 @@ $repository->rows[2]->configuration['model_capabilities'][1]['reasoning_efforts'
 try { $service->updateConversation($override['id'], 7, ['reasoning_effort'=>'low']); throw new LogicException('备用不兼容必须拒绝'); } catch (InvalidArgumentException) {}
 try { $service->createTask($override['id'], 7, ['idempotency_key'=>'capability-changed']); throw new LogicException('新任务必须重新校验覆盖能力'); } catch (InvalidArgumentException) {}
 try { $service->updateConversation($override['id'], 7, ['model'=>'unknown']); throw new LogicException('切模型保留覆盖并拒绝未知能力'); } catch (InvalidArgumentException) {}
-$sql = file_get_contents(dirname(__DIR__) . '/database/migrations/121_ai_conversation_reasoning_effort.sql');
+$sql = file_get_contents(dirname(__DIR__) . '/database/migrations/archive/121_ai_conversation_reasoning_effort.sql');
 phase2Expect(str_contains($sql, 'ADD COLUMN `reasoning_effort` varchar(10) NULL DEFAULT NULL'), '独立新增迁移，旧会话默认继承');
 try { $service->createConversation(7, ['reasoning_effort'=>'low']); throw new LogicException('无档案不得覆盖'); } catch (InvalidArgumentException) {}
 foreach (['xhigh','max','ultra'] as $effort) {

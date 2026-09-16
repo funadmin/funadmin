@@ -116,11 +116,11 @@ try {
         devPluginExpect(str_contains($controller, $marker), 'DevPlugin 控制器契约缺少：' . $marker);
     }
 
-    $migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/067_plugin_development_permissions.sql');
+    $migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/067_plugin_development_permissions.sql');
     foreach (['previewcreate', 'create', 'validate', 'package', 'options'] as $action) {
         devPluginExpect(str_contains($migration, "'console/development.devplugin','{$action}'"), '插件开发权限资源必须匹配控制器：' . $action);
     }
-    $downloadMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/071_plugin_admin_web_registry_naming.sql');
+    $downloadMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/071_plugin_admin_web_registry_naming.sql');
     devPluginExpect(str_contains($downloadMigration, "'console/development.devplugin','packagedownload'"), '插件包下载权限必须通过新 migration 向前补充');
 
     // 普通角色仅持有旧种子授予的 options；使用真实 Casbin 模型，无数据库适配器。
@@ -132,7 +132,7 @@ try {
     devPluginExpect(!$enforcer->enforce('admin:43', 'default', $resource['obj'], $resource['act']), '无授权普通角色必须拒绝');
     devPluginExpect(!$enforcer->enforce('admin:42', 'default', $resource['obj'], 'create'), 'options 不得扩大为 create');
 
-    $retirementMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/087_legacy_form_crud_retirement.sql');
+    $retirementMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/087_legacy_form_crud_retirement.sql');
     devPluginExpect(str_contains($retirementMigration, "'development:plugin:options'") && str_contains($retirementMigration, "`source_name`='plugin_center'"), '插件 options 权限必须迁回插件中心');
 } finally {
     devPluginRemove($root);

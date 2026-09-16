@@ -34,11 +34,11 @@ try {
     $parser = new ReflectionMethod(MigrationService::class, 'statements');
     $migrations = new MigrationService();
     $execute = static function (string $file) use ($parser, $migrations): void {
-        foreach ($parser->invoke($migrations, file_get_contents(dirname(__DIR__) . '/database/migrations/' . $file)) as $sql) Db::execute($sql);
+        foreach ($parser->invoke($migrations, file_get_contents(dirname(__DIR__) . '/database/migrations/archive/' . $file)) as $sql) Db::execute($sql);
     };
     $execute('115_ai_conversation_groups.sql');
     $execute('115_ai_conversation_groups.sql');
-    $forward = dirname(__DIR__) . '/database/migrations/116_ai_conversation_group_active_name.sql';
+    $forward = dirname(__DIR__) . '/database/migrations/archive/116_ai_conversation_group_active_name.sql';
     if (is_file($forward)) {
         $execute(basename($forward));
         $execute(basename($forward));

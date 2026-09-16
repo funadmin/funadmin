@@ -12,8 +12,8 @@ function roleAuthorizationExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrationPath = $root . '/database/migrations/081_role_authorization.sql';
-$followupMigrationPath = $root . '/database/migrations/082_role_authorization_compatibility.sql';
+$migrationPath = $root . '/database/migrations/archive/081_role_authorization.sql';
+$followupMigrationPath = $root . '/database/migrations/archive/082_role_authorization_compatibility.sql';
 $servicePath = $root . '/app/console/authorization/service/RoleAuthorizationService.php';
 $fieldPath = $root . '/app/console/authorization/model/PermissionField.php';
 $grantPath = $root . '/app/console/authorization/model/AuthGroupFieldPermission.php';

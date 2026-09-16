@@ -418,7 +418,7 @@ final class PluginCenterService extends AbstractService
         $prefix = (string) config('database.connections.mysql.prefix');
         $table = str_replace('`', '``', $prefix . 'plugin');
         if (Db::query("SHOW COLUMNS FROM `{$table}` LIKE 'config'") === []) {
-            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/005_plugin_lifecycle_schema.sql');
+            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/001_baseline.sql');
         }
     }
 

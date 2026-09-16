@@ -11,7 +11,7 @@ function phase6Expect(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $files = [
-    'database/migrations/108_identity_oidc_claims.sql',
+    'database/migrations/archive/108_identity_oidc_claims.sql',
     'app/identity/service/SubjectService.php',
     'app/identity/service/OidcClaimService.php',
     'app/identity/middleware/IdentityBearerMiddleware.php',
@@ -20,7 +20,7 @@ $files = [
 ];
 foreach ($files as $file) phase6Expect(is_file($root . '/' . $file), '缺少 Phase 6 文件：' . $file);
 
-$migration = (string) file_get_contents($root . '/database/migrations/108_identity_oidc_claims.sql');
+$migration = (string) file_get_contents($root . '/database/migrations/archive/108_identity_oidc_claims.sql');
 foreach (['application_role', 'user_role', 'application_permission', 'user_permission', 'password_version', 'session_version', 'claim_policy', 'sector'] as $needle) {
     phase6Expect(str_contains($migration, $needle), 'Phase 6 schema 缺少：' . $needle);
 }

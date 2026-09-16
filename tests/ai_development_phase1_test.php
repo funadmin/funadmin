@@ -31,12 +31,12 @@ function aiPhase1Protected(object $object, string $property): mixed
 }
 
 $root = dirname(__DIR__);
-$migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 aiPhase1Expect(array_values(array_filter($migrations, static fn (string $name): bool => str_starts_with($name, '090_'))) === ['090_ai_development_assistant.sql'], '090 migration 名称必须严格符合批准计划');
 aiPhase1Expect(array_values(array_filter($migrations, static fn (string $name): bool => str_starts_with($name, '091_'))) === ['091_ai_development_permissions.sql'], '091 migration 必须保留编号且唯一');
 
-$schemaPath = $root . '/database/migrations/090_ai_development_assistant.sql';
+$schemaPath = $root . '/database/migrations/archive/090_ai_development_assistant.sql';
 aiPhase1Expect(is_file($schemaPath), '缺少 090_ai_development_assistant.sql');
 $schemaSql = (string) file_get_contents($schemaPath);
 $schemaWithoutComments = preg_replace('/^\s*--.*$/m', '', $schemaSql) ?? $schemaSql;
@@ -159,7 +159,7 @@ foreach (['private_path', 'log_path'] as $key) {
     aiPhase1Expect(isset($aiConfig['storage'][$key]) && str_contains($aiConfig['storage'][$key], 'runtime/'), 'storage 缺少私有路径：' . $key);
 }
 
-$permissionSql = (string) file_get_contents($root . '/database/migrations/091_ai_development_permissions.sql');
+$permissionSql = (string) file_get_contents($root . '/database/migrations/archive/091_ai_development_permissions.sql');
 $permissionWithoutComments = preg_replace('/^\s*--.*$/m', '', $permissionSql) ?? $permissionSql;
 aiPhase1Expect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME)\b/i', $permissionWithoutComments), '091 必须 forward-only');
 aiPhase1Expect(!preg_match('/[\x{4e00}-\x{9fff}]/u', $permissionWithoutComments), '091 SQL 中文必须使用 HEX');

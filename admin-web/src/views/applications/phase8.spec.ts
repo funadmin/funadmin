@@ -46,7 +46,7 @@ describe('SSO Phase 8 管理控制台与应用门户', () => {
   });
 
   it('migration 菜单复用既有权限并匹配真实控制器 action', () => {
-    const migration = readProject('database/migrations/114_sso_phase8_admin_portal.sql');
+    const migration = readProject('database/migrations/archive/114_sso_phase8_admin_portal.sql');
     for (const routeName of ['ApplicationList', 'DomainManagement', 'SsoConfiguration', 'OAuthClientManagement', 'ScopeClaimManagement', 'IdentityUsers', 'IdentitySessions', 'SigningKeys', 'IdentityAudit']) expect(migration).toContain(`name=${routeName}`);
     expect(migration).toContain('console/identity.ssoconfiguration:config');
     expect(migration).toContain('console/identity.identityaudit:index');

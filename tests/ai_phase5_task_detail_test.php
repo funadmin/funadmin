@@ -14,7 +14,7 @@ function phase5TaskExpect(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $controller = (string) file_get_contents($root . '/app/console/controller/ai/Ai.php');
 $api = (string) file_get_contents($root . '/admin-web/src/api/development/ai.ts');
-$migration = (string) file_get_contents($root . '/database/migrations/112_ai_admin_web_menu.sql');
+$migration = (string) file_get_contents($root . '/database/migrations/archive/112_ai_admin_web_menu.sql');
 
 phase5TaskExpect(str_contains($controller, "#[Get('tasks/:id')]"), '缺少管理员任务详情 GET 路由');
 phase5TaskExpect(str_contains($controller, 'function taskRead('), '缺少管理员任务详情控制器方法');

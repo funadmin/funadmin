@@ -10,15 +10,15 @@ function aiPhase2ContractExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrations = array_map('basename', glob($root . '/database/migrations/092_*.sql') ?: []);
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/092_*.sql') ?: []);
 sort($migrations);
 aiPhase2ContractExpect($migrations === ['092_ai_task_events_queue.sql'], '092 必须以唯一 forward-only migration 新增事件、队列与权限');
 foreach ($migrations as $migration) {
-    $sql = (string) file_get_contents($root . '/database/migrations/' . $migration);
+    $sql = (string) file_get_contents($root . '/database/migrations/archive/' . $migration);
     $withoutComments = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
     aiPhase2ContractExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME)\b/i', $withoutComments), $migration . ' 必须 forward-only');
 }
-$schema = (string) file_get_contents($root . '/database/migrations/092_ai_task_events_queue.sql');
+$schema = (string) file_get_contents($root . '/database/migrations/archive/092_ai_task_events_queue.sql');
 foreach (['fun_ai_task_event', 'fun_ai_stream_nonce', 'fun_jobs', 'fun_failed_jobs'] as $table) aiPhase2ContractExpect(str_contains($schema, $table), '092 缺少表：' . $table);
 foreach (['uk_ai_task_event_sequence', 'idx_ai_task_event_cursor', 'uk_ai_stream_nonce', 'fk_ai_task_event_task'] as $key) aiPhase2ContractExpect(str_contains($schema, $key), '092 缺少约束：' . $key);
 $permissions = $schema;
@@ -82,7 +82,7 @@ if ($host === false || $host === '') {
         $statements->setAccessible(true);
         $migrationService = new app\common\service\MigrationService();
         foreach (['090_ai_development_assistant.sql', '091_ai_development_permissions.sql', '092_ai_task_events_queue.sql'] as $file) {
-            foreach ([1, 2] as $_run) foreach ($statements->invoke($migrationService, (string) file_get_contents($root . '/database/migrations/' . $file)) as $statement) $database->exec($statement);
+            foreach ([1, 2] as $_run) foreach ($statements->invoke($migrationService, (string) file_get_contents($root . '/database/migrations/archive/' . $file)) as $statement) $database->exec($statement);
         }
         foreach (['fun_ai_task_event', 'fun_ai_stream_nonce', 'fun_jobs', 'fun_failed_jobs'] as $table) aiPhase2ContractExpect((int) $database->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='{$databaseName}' AND TABLE_NAME='{$table}'")->fetchColumn() === 1, '真实 092 migration 未幂等创建：' . $table);
         aiPhase2ContractExpect((int) $database->query("SELECT COUNT(*) FROM fun_permission WHERE source_name='ai_development' AND resource_type='group'")->fetchColumn() === 1, '真实 091→092 权限组链路错误');

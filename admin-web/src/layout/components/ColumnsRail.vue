@@ -190,8 +190,8 @@ function onSelect(item: RouteRecordRaw) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   margin: 0 auto;
 }

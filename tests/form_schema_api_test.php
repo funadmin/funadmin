@@ -122,11 +122,11 @@ $errorMapperSource = (string) file_get_contents(dirname(__DIR__) . '/app/console
 schemaApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), 'Business Schema API 必须委托统一错误映射器');
 schemaApiExpect(str_contains($errorMapperSource, 'FormSchemaException') && str_contains($errorMapperSource, 'InvalidArgumentException'), 'Business 错误映射器必须统一处理 Schema 错误');
 
-$migrations = array_map('basename', glob(dirname(__DIR__) . '/database/migrations/*.sql') ?: []);
+$migrations = array_map('basename', glob(dirname(__DIR__) . '/database/migrations/archive/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 $permissionMigrationName = '076_form_schema_api_permissions.sql';
 schemaApiExpect(in_array($permissionMigrationName, $migrations, true), 'FormSchema API 权限迁移必须保留独立的 076 编号');
-$permissionMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/' . $permissionMigrationName);
+$permissionMigration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/' . $permissionMigrationName);
 foreach (['compile', 'import', 'export', 'versions', 'version', 'diff', 'rollback', 'componentcatalog'] as $action) {
     schemaApiExpect(str_contains($permissionMigration, "'console/form.designer:{$action}'"), '权限迁移缺少动作：' . $action);
 }

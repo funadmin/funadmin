@@ -12,7 +12,7 @@ function phase8Expect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrations = glob($root . '/database/migrations/114_*.sql') ?: [];
+$migrations = glob($root . '/database/migrations/archive/114_*.sql') ?: [];
 phase8Expect(count($migrations) === 1, 'Phase 8 必须唯一占用 migration 114');
 $sql = (string) file_get_contents($migrations[0]);
 $withoutComments = preg_replace('/--[^\r\n]*/', '', $sql) ?? $sql;

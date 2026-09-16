@@ -3,12 +3,12 @@ import { createHash } from 'node:crypto';
 import { basename, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = resolve(process.cwd(), '../database/migrations/013_field_hygiene.sql');
+const migrationPath = resolve(process.cwd(), '../database/migrations/archive/013_field_hygiene.sql');
 const sql = readFileSync(migrationPath, 'utf8');
 const migrationService = readFileSync(resolve(process.cwd(), '../app/common/service/MigrationService.php'), 'utf8');
 const fieldVerifyModel = readFileSync(resolve(process.cwd(), '../app/common/model/FieldVerify.php'), 'utf8');
 const projectRoot = resolve(process.cwd(), '..');
-const migrationDir = resolve(projectRoot, 'database/migrations');
+const migrationDir = resolve(projectRoot, 'database/migrations/archive');
 const followupPath = resolve(migrationDir, '020_schema_integrity_finalize.sql');
 const convergencePath = resolve(migrationDir, '030_laravel_schema_convergence.sql');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');

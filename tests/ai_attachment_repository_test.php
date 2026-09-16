@@ -54,7 +54,7 @@ repoReject(fn () => $service->append(1, 7, [['type'=>'attachment','attachment_id
 repoExpect($service->content(1, 7, $a['id'])['body'] === '<?php dangerous();', '绑定文件不受草稿 TTL 影响');
 $source = file_get_contents(dirname(__DIR__) . '/app/console/controller/ai/Ai.php');
 foreach (['attachments', 'attachmentCreate', 'attachmentContent', 'attachmentDelete'] as $symbol) repoExpect(str_contains($source, $symbol), '缺少附件路由: ' . $symbol);
-$migrations = glob(dirname(__DIR__) . '/database/migrations/*_ai_private_attachments.sql');
+$migrations = glob(dirname(__DIR__) . '/database/migrations/archive/*_ai_private_attachments.sql');
 repoExpect(count($migrations) === 1 && (int) basename($migrations[0]) > 121, '新迁移必须大于121');
 $sql = file_get_contents($migrations[0]);
 foreach (['fun_ai_attachment','storage_path','expires_at','console/development.ai','attachmentcreate','attachmentcontent','attachmentdelete'] as $field) repoExpect(str_contains($sql, $field), '迁移缺少: ' . $field);

@@ -30,12 +30,12 @@ if (getenv('BUSINESS_PERMISSION_READ_ONLY') === '1') {
 }
 
 $root = dirname(__DIR__);
-$migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 $names = array_values(array_filter($migrations, static fn (string $name): bool => str_starts_with($name, '083_')));
 businessPermissionExpect($names === ['083_business_development_permissions.sql'], '必须使用下一个空闲编号 083 且唯一');
 
-$file = $root . '/database/migrations/083_business_development_permissions.sql';
+$file = $root . '/database/migrations/archive/083_business_development_permissions.sql';
 businessPermissionExpect(is_file($file), '缺少 083 Business 权限 migration');
 $sql = (string) file_get_contents($file);
 businessPermissionExpect(!preg_match('/[\x{4e00}-\x{9fff}]/u', preg_replace('/^--.*$/m', '', $sql)), 'SQL 中文必须使用 HEX');
@@ -55,7 +55,7 @@ businessPermissionExpect(substr_count($sql, "'console/development.business'") >=
 businessPermissionExpect(str_contains($sql, "source_name` IN ('form_management','development_crud')") || str_contains($sql, "source_name IN ('form_management','development_crud')"), '旧角色授权映射必须严格限定来源');
 businessPermissionExpect(!preg_match('/UPDATE\s+`fun_permission`[\s\S]*?WHERE[\s\S]*?source_name`\s*<>\s*\x27(?:form_management|development_crud)/i', $sql), '不得跨来源扩大或覆盖旧权限');
 
-$remainingFile = $root . '/database/migrations/086_business_remaining_capabilities.sql';
+$remainingFile = $root . '/database/migrations/archive/086_business_remaining_capabilities.sql';
 businessPermissionExpect(is_file($remainingFile), '缺少 086 剩余能力迁移');
 $remainingSql = (string) file_get_contents($remainingFile);
 businessPermissionExpect(!preg_match('/[\x{4e00}-\x{9fff}]/u', preg_replace('/^--.*$/m', '', $remainingSql)), '086 SQL 中文必须使用 HEX');
@@ -74,14 +74,14 @@ businessPermissionExpect(str_contains($auth, "'development:business:"), 'AdminAu
 businessPermissionExpect(!str_contains($auth, "'console/devcrud:"), 'AdminAuth 不得保留 DevCrud aliases');
 businessPermissionExpect(str_contains($auth, "'console/development.business:recovergeneration' => 'development:business:recover'"), 'AdminAuth 缺少 recover 独立权限 alias');
 
-$recoverFile = $root . '/database/migrations/089_business_generation_recover_permission.sql';
+$recoverFile = $root . '/database/migrations/archive/089_business_generation_recover_permission.sql';
 businessPermissionExpect(is_file($recoverFile), '缺少 089 recover 权限 migration');
 $recoverSql = (string) file_get_contents($recoverFile);
 businessPermissionExpect(!preg_match('/\b(?:DROP|TRUNCATE|DELETE|RENAME|UPDATE)\b/i', preg_replace('/^--.*$/m', '', $recoverSql)), '089 必须 forward-only');
 businessPermissionExpect(str_contains($recoverSql, "'development:business:recover'") && str_contains($recoverSql, "'console/development.business:recovergeneration'"), '089 必须新增独立 recover 权限与 action');
 businessPermissionExpect(!str_contains($recoverSql, 'allowOverwrite') && !str_contains($recoverSql, 'development:business:generate'), '089 不得引入 overwrite 或复用 generate 权限');
 
-$retirementFile = $root . '/database/migrations/087_legacy_form_crud_retirement.sql';
+$retirementFile = $root . '/database/migrations/archive/087_legacy_form_crud_retirement.sql';
 businessPermissionExpect(is_file($retirementFile), '缺少 087 旧产品入口退役 migration');
 $retirementSql = (string) file_get_contents($retirementFile);
 businessPermissionExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME)\b/i', preg_replace('/^--.*$/m', '', $retirementSql)), '087 不得删除或重命名 schema');
@@ -156,7 +156,7 @@ SQL);
 }
 
 // 使用内存数据库执行真实 SQL，验证只隐藏两个入口且重复执行无副作用。
-$hideFile = $root . '/database/migrations/124_business_creation_menu_hidden.sql';
+$hideFile = $root . '/database/migrations/archive/124_business_creation_menu_hidden.sql';
 businessPermissionExpect(is_file($hideFile), '缺少仅隐藏两个业务入口的 forward-only migration');
 $hideSql = (string) file_get_contents($hideFile);
 $hideStatements = (new ReflectionMethod(MigrationService::class, 'statements'))->invoke(new MigrationService(), $hideSql);
@@ -193,7 +193,7 @@ businessPermissionExpect(str_contains($mine, 'console/development.business:creat
 businessPermissionExpect(str_contains($auth, "in_array((int) \$menu->permission_id, \$permissionIds, true)"), '非管理员仍按原权限绑定过滤，不能补授查看权限');
 businessPermissionExpect(!str_contains($hideSql, 'fun_permission') && !str_contains($hideSql, 'fun_casbin_rule'), '隐藏操作不得修改权限或角色授权');
 
-$leafFile = $root . '/database/migrations/125_business_development_leaf_menu.sql';
+$leafFile = $root . '/database/migrations/archive/125_business_development_leaf_menu.sql';
 businessPermissionExpect(is_file($leafFile), '缺少业务开发单叶子菜单迁移');
 $leafSql = (string) file_get_contents($leafFile);
 $leafStatements = (new ReflectionMethod(MigrationService::class, 'statements'))->invoke(new MigrationService(), $leafSql);

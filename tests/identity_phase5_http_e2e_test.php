@@ -94,7 +94,7 @@ $app = new App($root);
 $app->initialize();
 $original = (array) config('database');
 $database = 'funadmin_identity_phase5_http_' . bin2hex(random_bytes(5));
-$migrations = phase5MigrationDirectory($root . '/database/migrations');
+$migrations = phase5MigrationDirectory($root . '/database/migrations/archive');
 $serverConfig = $original;
 $serverConfig['connections']['mysql']['database'] = '';
 $app->config->set($serverConfig, 'database');

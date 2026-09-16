@@ -14,7 +14,7 @@ $expect = static function (bool $condition, string $message) use (&$failures): v
         $failures[] = $message;
     }
 };
-$migration = (string) @file_get_contents($root . '/database/migrations/130_admin_web_route_permission_canonical.sql');
+$migration = (string) @file_get_contents($root . '/database/migrations/archive/130_admin_web_route_permission_canonical.sql');
 $seed = (string) file_get_contents($root . '/admin-web/src/mock/data/adminSeed.ts');
 $businessController = (string) file_get_contents($root . '/app/admin/controller/development/Business.php');
 $expect(str_contains($businessController, "nodeAccess('admin/development.business/saveschema')"), '删除业务模块必须按内部资源路径校验 saveschema 权限');

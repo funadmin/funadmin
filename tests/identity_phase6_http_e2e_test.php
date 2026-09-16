@@ -71,7 +71,7 @@ $app = new App($root);
 $app->initialize();
 $original = (array) config('database');
 $database = 'funadmin_identity_phase6_http_' . bin2hex(random_bytes(5));
-$migrations = phase6HttpMigrationDirectory($root . '/database/migrations');
+$migrations = phase6HttpMigrationDirectory($root . '/database/migrations/archive');
 $serverConfig = $original;
 $serverConfig['connections']['mysql']['database'] = '';
 $app->config->set($serverConfig, 'database');

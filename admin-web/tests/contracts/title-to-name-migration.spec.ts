@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const projectRoot = resolve(process.cwd(), '..');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
-const migration = readProjectFile('database/migrations/015_title_to_name.sql');
+const migration = readProjectFile('database/migrations/archive/015_title_to_name.sql');
 
 describe('015 title→name 改名迁移契约', () => {
   const tables = ['fun_admin_log', 'fun_admin_menu', 'fun_attach_group', 'fun_auth_group', 'fun_permission'];
@@ -29,7 +29,7 @@ describe('015 title→name 改名迁移契约', () => {
     const laterMigrations = ['027_plugin_purge_permission.sql'];
 
     for (const migrationName of laterMigrations) {
-      const laterMigration = readProjectFile(`database/migrations/${migrationName}`);
+      const laterMigration = readProjectFile(`database/migrations/archive/${migrationName}`);
       const permissionInsertColumns = laterMigration.match(
         /INSERT\s+INTO\s+`fun_permission`\s*\(([^)]+)\)/i
       )?.[1] ?? '';

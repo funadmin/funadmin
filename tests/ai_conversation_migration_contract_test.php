@@ -5,7 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__);
-$files = glob($root . '/database/migrations/116_*.sql');
+$files = glob($root . '/database/migrations/archive/116_*.sql');
 if (array_map('basename', $files) !== ['116_ai_conversation_group_active_name.sql']) throw new RuntimeException('116 编号必须唯一');
 $sql = file_get_contents($files[0]);
 if (preg_match('/\b(?:DROP\s+TABLE|TRUNCATE|DELETE\s+FROM|UPDATE\s+`?fun_)\b/i', $sql)) throw new RuntimeException('不得删除或改写历史记录');

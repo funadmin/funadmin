@@ -12,7 +12,7 @@ function phase5Expect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migration = $root . '/database/migrations/104_identity_interaction.sql';
+$migration = $root . '/database/migrations/archive/104_identity_interaction.sql';
 phase5Expect(is_file($migration), '缺少下一个空闲编号 104 的 Phase 5 migration');
 $sql = (string) file_get_contents($migration);
 foreach (['identity_login_attempt', 'identity_consent', 'brand_config', 'csrf_token_hash', 'transaction_hash', 'granted_scope_hash'] as $field) {

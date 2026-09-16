@@ -7,9 +7,9 @@ const readProjectFile = (relativePath: string) => readFileSync(
   'utf8'
 );
 
-const migration = readProjectFile('../database/migrations/006_schema_integrity.sql');
-const integrityFollowup = readProjectFile('../database/migrations/018_schema_integrity_followup.sql');
-const followup = readProjectFile('../database/migrations/020_schema_integrity_finalize.sql');
+const migration = readProjectFile('../database/migrations/archive/006_schema_integrity.sql');
+const integrityFollowup = readProjectFile('../database/migrations/archive/018_schema_integrity_followup.sql');
+const followup = readProjectFile('../database/migrations/archive/020_schema_integrity_finalize.sql');
 const migrationService = readProjectFile('../app/common/service/MigrationService.php');
 const systemMember = readProjectFile('../app/console/controller/system/SystemMember.php');
 

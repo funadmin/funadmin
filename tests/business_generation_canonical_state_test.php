@@ -25,8 +25,8 @@ function canonicalStateIdentifier(string $identifier): string
 
 $root = dirname(__DIR__);
 $migrationName = '088_generation_canonical_state.sql';
-$migrationPath = $root . '/database/migrations/' . $migrationName;
-$migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$migrationPath = $root . '/database/migrations/archive/' . $migrationName;
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 $numbered = array_values(array_filter($migrations, static fn (string $name): bool => str_starts_with($name, '088_')));
 canonicalStateExpect($numbered === [$migrationName], '088 migration 必须唯一且不得修改 086/087');
 

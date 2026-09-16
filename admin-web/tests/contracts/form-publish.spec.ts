@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('统一表单发布引擎契约', () => {
   it('提供发布状态迁移与模型 JSON 配置', () => {
-    const migrationPath = resolve(root, 'database/migrations/066_form_publish_engine.sql');
+    const migrationPath = resolve(root, 'database/migrations/archive/066_form_publish_engine.sql');
     expect(existsSync(migrationPath)).toBe(true);
     const migration = readFileSync(migrationPath, 'utf8');
     for (const column of ['publish_config', 'publish_status', 'published_at', 'crud_generation_id', 'published_definition_hash']) {
@@ -49,13 +49,13 @@ describe('统一表单发布引擎契约', () => {
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
     const authorization = read('app/console/authorization/service/AdminAuthorizationService.php');
     expect(authorization).toContain("preg_match('/^[a-z][a-z0-9_.-]*$/', $object)");
-    const migration = read('database/migrations/066_form_publish_engine.sql');
+    const migration = read('database/migrations/archive/066_form_publish_engine.sql');
     for (const code of ['console/form.designer:previewpublish', 'console/form.designer:publish', 'console/form.designer:publishstatus', 'console/form.designer:retryresources', 'form:publish:overwrite', 'form:publish:apply-resources']) {
       expect(migration).toContain(code);
     }
     expect(migration).toContain('CONVERT(X\'');
     expect(migration).not.toMatch(/'[\u4e00-\u9fff]+(?:[\u4e00-\u9fff/ ]*)'/);
-    const fullMigration = read('database/migrations/079_form_full_publish_permissions.sql');
+    const fullMigration = read('database/migrations/archive/079_form_full_publish_permissions.sql');
     for (const action of ['preview', 'publish', 'status', 'generation', 'retryresources']) {
       expect(fullMigration).toContain(`console/form.full-publish:${action}`);
     }

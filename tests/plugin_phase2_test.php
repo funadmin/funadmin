@@ -622,7 +622,7 @@ foreach (['login', 'refreshToken', 'logout', 'currentAccount', 'categories', 'se
     phase2Expect(in_array($method, $marketplaceMethods, true), 'Controller 可调用 service API 缺失：' . $method);
 }
 
-$migrationFile = dirname(__DIR__) . '/database/migrations/009_plugin_package_history.sql';
+$migrationFile = dirname(__DIR__) . '/database/migrations/archive/009_plugin_package_history.sql';
 phase2Expect(is_file($migrationFile), '阶段二必须使用新的 009 migration，不得覆盖现有 008');
 $migration = (string) file_get_contents($migrationFile);
 phase2Expect(str_contains($migration, 'plugin_version_history') && str_contains($migration, 'plugin_operation'), '必须建立版本与操作历史表');

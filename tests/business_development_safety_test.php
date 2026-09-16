@@ -113,7 +113,7 @@ businessSafetyExpect($serviceReflection->hasMethod('recoverGeneration'), 'Busine
 $hardCutTest = $root . '/tests/legacy_write_api_gone_test.php';
 businessSafetyExpect(is_file($hardCutTest), '缺少旧控制器和旧写入口不再注册且新业务路由存在的契约测试');
 
-$permissionMigration = $root . '/database/migrations/089_business_generation_recover_permission.sql';
+$permissionMigration = $root . '/database/migrations/archive/089_business_generation_recover_permission.sql';
 businessSafetyExpect(is_file($permissionMigration), '缺少 089 recover 权限 migration');
 
  echo "business development safety tests: PASS\n";

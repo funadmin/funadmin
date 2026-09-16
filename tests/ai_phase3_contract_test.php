@@ -30,10 +30,10 @@ phase3ContractExpect(str_contains($job, "['paused', 'resume_pending']") && str_c
 phase3ContractExpect(str_contains($job, 'awaitingToolCall(') && str_contains($job, 'resume('), '恢复必须由数据库 awaiting_approval 工具调用驱动，不依赖模型携带 approvalId');
 $securityStore = (string)file_get_contents($root.'/app/console/ai/repository/DatabaseAiSecurityStore.php');
 phase3ContractExpect(str_contains($securityStore, "where('status', 'approved')->update(['status' => 'consumed'])") && !str_contains($securityStore, 'lock(true)'), 'once 审批必须以单条条件 UPDATE 原子消费');
-$migrations = glob($root.'/database/migrations/094_*.sql') ?: [];
+$migrations = glob($root.'/database/migrations/archive/094_*.sql') ?: [];
 phase3ContractExpect(count($migrations) === 1 && basename($migrations[0]) === '094_ai_agent_runtime.sql', '已有 093 时阶段三迁移必须顺延为唯一 094');
-$latest = (string)file_get_contents($root.'/database/migrations/100_ai_phase3_security_hardening.sql');
-$compensationPath = $root.'/database/migrations/101_ai_phase3_access_and_permission_compensation.sql';
+$latest = (string)file_get_contents($root.'/database/migrations/archive/100_ai_phase3_security_hardening.sql');
+$compensationPath = $root.'/database/migrations/archive/101_ai_phase3_access_and_permission_compensation.sql';
 phase3ContractExpect(is_file($compensationPath), '必须使用最大编号后的 101 forward-only 补偿 migration');
 $compensation = (string)file_get_contents($compensationPath);
 phase3ContractExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME|DELETE)\b/i', preg_replace('/^\s*--.*$/m','',$compensation) ?? $compensation), '101 必须 forward-only');
@@ -50,17 +50,17 @@ foreach (['approvalIndex','approvalDecide','taskToolCalls','toolCallLog','sandbo
 }
 phase3ContractExpect(!str_contains($compensation, 'console/ai.ai') && str_contains($compensation, "`obj`='console/development.ai'") && str_contains($compensation, '`status`=1'), '101 必须沿用稳定权限资源并启用现有权限');
 foreach (['workspace_path','sandbox_status','cleanup_at'] as $column) phase3ContractExpect(str_contains($sql,"`{$column}`"),"094 缺少字段 {$column}");
-$reliability = (string)file_get_contents($root.'/database/migrations/105_ai_phase3_reliability.sql');
+$reliability = (string)file_get_contents($root.'/database/migrations/archive/105_ai_phase3_reliability.sql');
 foreach (['base_digest','cleanup_lease_owner','cleanup_lease_expires_at','sandbox_volume','fun_ai_outbox'] as $contract) phase3ContractExpect(str_contains($reliability, $contract), "105 缺少可靠性契约 {$contract}");
 phase3ContractExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME|DELETE)\b/i', preg_replace('/^\s*--.*$/m','',$reliability) ?? $reliability), '105 必须 forward-only');
 $migrationService = new \app\common\service\MigrationService();
 $hexCompatibility = new ReflectionMethod($migrationService, 'prepareAiPermissionHexCompatibility');
 $hexCompatibility->setAccessible(true);
-$legacy101 = (string)file_get_contents($root.'/database/migrations/101_ai_phase3_access_and_permission_compensation.sql');
+$legacy101 = (string)file_get_contents($root.'/database/migrations/archive/101_ai_phase3_access_and_permission_compensation.sql');
 $prepared101 = $hexCompatibility->invoke($migrationService, 'core', '101_ai_phase3_access_and_permission_compensation', $legacy101);
 phase3ContractExpect(!str_contains($prepared101, "X'E585A8E9809AE8AEFE5968E'") && str_contains($prepared101, "X'E585A8E9809AE69D83E99990'"), '迁移执行器必须在不改历史 101 checksum 的前提下修复畸形 capability hex');
 foreach (['091_ai_development_permissions.sql','092_ai_task_events_queue.sql','094_ai_agent_runtime.sql'] as $migrationName) {
-    $permissionSql = (string)file_get_contents($root.'/database/migrations/'.$migrationName);
+    $permissionSql = (string)file_get_contents($root.'/database/migrations/archive/'.$migrationName);
     phase3ContractExpect(!preg_match("/'console\\/development\\.ai:[^']*[A-Z][^']*'/", $permissionSql) && !preg_match("/'console\\/development\\.ai','[^']*[A-Z][^']*'/", $permissionSql), "{$migrationName} 权限必须使用运行时 lowercase");
 }
 phase3ContractExpect(str_contains($latest, 'LOWER(`act`)') && str_contains($latest, 'LOWER(`code`)'), '100 必须修复已部署 camelCase 权限数据');

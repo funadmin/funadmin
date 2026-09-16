@@ -38,8 +38,8 @@ function businessDevelopmentIdentifier(string $identifier): string
 
 $root = dirname(__DIR__);
 $migrationName = '077_business_development_center.sql';
-$migrationPath = $root . '/database/migrations/' . $migrationName;
-$migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$migrationPath = $root . '/database/migrations/archive/' . $migrationName;
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 
 businessDevelopmentExpect(in_array($migrationName, $migrations, true), '缺少业务开发中心 077 migration');

@@ -43,7 +43,7 @@ enterpriseApiExpect(!str_contains($source, 'Db::'), 'Controller 禁止直接访�
 enterpriseApiExpect(str_contains($source, 'private function tenantId(): int'), 'Controller 必须显式解析 tenant');
 enterpriseApiExpect(!str_contains($source, "header('X-Tenant-Id'"), 'tenant 禁止由客户端请求头任意覆盖');
 enterpriseApiExpect(str_contains($source, 'AdminIdentityAdapter::TENANT_ID'), '当前管理端必须使用服务端固定租户上下文');
-$permission = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/096_enterprise_application_center.sql');
+$permission = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/096_enterprise_application_center.sql');
 foreach (['index','detail','save','update','delete','publish','disable','launch','assignments','saveassignments','domains','savedomains','database','savedatabase','health'] as $action) {
     enterpriseApiExpect(str_contains($permission, "console/identity.enterpriseapplication:{$action}"), '缺少 API 权限：' . $action);
 }

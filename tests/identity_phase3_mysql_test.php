@@ -30,8 +30,8 @@ function phase3MigrationDirectoryThrough(string $source, int $lastVersion): stri
 $root = dirname(__DIR__); $app = new App($root); $app->initialize();
 $original = (array) config('database'); $database = 'funadmin_identity_phase3_' . bin2hex(random_bytes(5));
 $upgradeDatabase = 'funadmin_identity_phase3_upgrade_' . bin2hex(random_bytes(5));
-$upgradeMigrations = phase3MigrationDirectoryThrough($root . '/database/migrations', 96);
-$phase3Migrations = phase3MigrationDirectoryThrough($root . '/database/migrations', 98);
+$upgradeMigrations = phase3MigrationDirectoryThrough($root . '/database/migrations/archive', 96);
+$phase3Migrations = phase3MigrationDirectoryThrough($root . '/database/migrations/archive', 98);
 $serverConfig = $original; $serverConfig['connections']['mysql']['database'] = ''; $app->config->set($serverConfig, 'database');
 $server = Db::connect('mysql', true); $keyDirectory = sys_get_temp_dir() . '/funadmin-phase3-keys-' . bin2hex(random_bytes(4));
 try {

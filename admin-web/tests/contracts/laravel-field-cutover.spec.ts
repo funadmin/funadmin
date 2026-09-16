@@ -3,7 +3,7 @@ import { extname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '..');
-const migrationDir = resolve(root, 'database/migrations');
+const migrationDir = resolve(root, 'database/migrations/archive');
 const migrations = readdirSync(migrationDir).filter((name) => name.endsWith('.sql')).sort();
 const cutoverName = migrations.find((name) => name.endsWith('_laravel_field_cutover.sql')) ?? '';
 const cutover = cutoverName ? readFileSync(resolve(migrationDir, cutoverName), 'utf8') : '';

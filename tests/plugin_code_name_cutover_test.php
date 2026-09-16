@@ -72,14 +72,14 @@ foreach ($dtoFiles as $file) {
     cutoverExpect(!preg_match('/public readonly string \$(?:title|pluginName)/', $source), basename($file) . ' 业务 DTO 仍暴露旧标识字段');
 }
 
-$migration = (string) file_get_contents($root . '/database/migrations/061_plugin_code_name.sql');
+$migration = (string) file_get_contents($root . '/database/migrations/archive/061_plugin_code_name.sql');
 cutoverExpect(str_contains($migration, 'information_schema'), '061 必须使用 information_schema 双态守卫');
 cutoverExpect(str_contains($migration, 'plugin_code'), '061 必须迁移关联表 plugin_code');
 cutoverExpect(str_contains($migration, 'source_name'), '061 必须明确保留通用 source_name 语义');
 
-$allMigrationFiles = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$allMigrationFiles = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 cutoverExpect(in_array('062_plugin_code_unique_index.sql', $allMigrationFiles, true), '061 后必须存在 062 索引补偿 migration');
-$indexCompensation = (string) file_get_contents($root . '/database/migrations/062_plugin_code_unique_index.sql');
+$indexCompensation = (string) file_get_contents($root . '/database/migrations/archive/062_plugin_code_unique_index.sql');
 cutoverExpect(str_contains($indexCompensation, "INDEX_NAME <> 'uk_plugin_code'"), '062 必须清理 code 上其他 legacy 唯一索引');
 cutoverExpect(str_contains($indexCompensation, 'NON_UNIQUE = 0'), '062 只能清理唯一索引，不得删除合理非唯一索引');
 

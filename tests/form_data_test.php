@@ -250,7 +250,7 @@ try {
 }
 
 // 057 迁移：守卫式权限插入。
-$migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/057_form_data_permissions.sql');
+$migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/archive/057_form_data_permissions.sql');
 dataExpect(str_contains($migration, 'console/formdata:create'), '057 必须包含 formdata 路由权限');
 dataExpect(str_contains($migration, 'WHERE NOT EXISTS'), '057 权限组必须守卫式');
 dataExpect(str_contains($migration, 'INSERT IGNORE INTO `fun_permission`'), '057 路由权限必须 IGNORE 守卫');

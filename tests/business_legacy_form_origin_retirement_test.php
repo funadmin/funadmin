@@ -13,8 +13,8 @@ function legacyFormOriginExpect(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $migrationName = '093_retire_legacy_form_origin.sql';
-$migrationPath = $root . '/database/migrations/' . $migrationName;
-$migrations = array_map('basename', glob($root . '/database/migrations/*.sql') ?: []);
+$migrationPath = $root . '/database/migrations/archive/' . $migrationName;
+$migrations = array_map('basename', glob($root . '/database/migrations/archive/*.sql') ?: []);
 sort($migrations, SORT_STRING);
 
 legacyFormOriginExpect(is_file($migrationPath), '缺少 legacy_form 来源退役 migration');

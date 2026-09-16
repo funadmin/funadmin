@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$migration = $root . '/database/migrations/078_form_action_permission.sql';
+$migration = $root . '/database/migrations/archive/078_form_action_permission.sql';
 if (!is_file($migration)) {
     throw new RuntimeException('动作权限迁移必须使用未占用的下一序号 078，隔离现有 077');
 }
@@ -20,7 +20,7 @@ if (str_contains($sql, 'CREATE TABLE') || str_contains($sql, 'ALTER TABLE')) {
     throw new RuntimeException('动作权限迁移必须与业务表结构隔离');
 }
 
-$listMigration = $root . '/database/migrations/128_form_list_action_permissions.sql';
+$listMigration = $root . '/database/migrations/archive/128_form_list_action_permissions.sql';
 if (!is_file($listMigration)) throw new RuntimeException('缺少独立列表动作入口迁移');
 $listSql = (string) file_get_contents($listMigration);
 foreach (['console/form.data:listactions', 'console/form.data:listaction', '@form_data_group_id IS NOT NULL', "'route', 1, 0"] as $required) {

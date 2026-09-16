@@ -9,7 +9,7 @@ const migration = readProjectFile(maintenancePath);
 
 describe('legacy 时间列 maintenance contract 契约', () => {
   it('普通 migration 目录不包含 contract drop 文件', () => {
-    expect(existsSync(resolve(projectRoot, 'database/migrations/034_drop_legacy_time_columns.sql'))).toBe(false);
+    expect(existsSync(resolve(projectRoot, 'database/migrations/archive/034_drop_legacy_time_columns.sql'))).toBe(false);
     expect(existsSync(resolve(projectRoot, maintenancePath))).toBe(true);
   });
 

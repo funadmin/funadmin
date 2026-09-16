@@ -14,7 +14,7 @@ function identityPhase1Expect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$migrationFiles = glob($root . '/database/migrations/*.sql') ?: [];
+$migrationFiles = glob($root . '/database/migrations/archive/*.sql') ?: [];
 $numbers = [];
 foreach ($migrationFiles as $file) {
     if (preg_match('/\/(\d+)_/', $file, $matches)) {
@@ -24,7 +24,7 @@ foreach ($migrationFiles as $file) {
 sort($numbers);
 identityPhase1Expect(in_array(95, $numbers, true), 'Phase 1 必须保留首个连续空闲编号 095');
 
-$migration = $root . '/database/migrations/095_identity_foundation.sql';
+$migration = $root . '/database/migrations/archive/095_identity_foundation.sql';
 identityPhase1Expect(is_file($migration), '缺少 095 identity foundation migration');
 $sql = (string) file_get_contents($migration);
 foreach (['identity_tenant', 'identity_user', 'identity_credential', 'identity_admin_link', 'identity_member_link', 'identity_user_department'] as $table) {

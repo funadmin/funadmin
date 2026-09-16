@@ -10,8 +10,8 @@ $support = (string) file_get_contents($root . '/app/console/plugin/service/conce
 $infrastructure = (string) file_get_contents($root . '/app/console/plugin/service/PluginInfrastructureService.php');
 $resourcePublisher = (string) file_get_contents($root . '/app/console/plugin/service/PluginResourcePublisher.php');
 $databaseRepository = (string) file_get_contents($root . '/app/console/plugin/repository/DatabasePluginResourceRepository.php');
-$migration = $root . '/database/migrations/065_plugin_app_publication.sql';
-$registryNamingMigration = $root . '/database/migrations/068_plugin_publication_registry_naming.sql';
+$migration = $root . '/database/migrations/archive/065_plugin_app_publication.sql';
+$registryNamingMigration = $root . '/database/migrations/archive/068_plugin_publication_registry_naming.sql';
 
 $expect = static function (bool $condition, string $message): void {
     if (!$condition) {
@@ -122,7 +122,7 @@ foreach (['public:', 'application:', 'console-plugin:'] as $prefix) {
 $console = require $root . '/config/console.php';
 $expect(isset($console['commands']['plugin:publication-recover']), '必须注册 plugin:publication-recover 恢复命令');
 
-$allMigrations = glob($root . '/database/migrations/*.sql') ?: [];
+$allMigrations = glob($root . '/database/migrations/archive/*.sql') ?: [];
 $numbers = array_map(static fn (string $file): int => (int) basename($file), $allMigrations);
 sort($numbers, SORT_NUMERIC);
 $expect(in_array(65, $numbers, true), '原生 App publication migration 必须保持编号 065 且不得改写后续 migration 边界');

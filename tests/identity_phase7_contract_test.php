@@ -11,10 +11,10 @@ function phase7ContractExpect(bool $condition, string $message): void
     }
 }
 
-$migration = $root . '/database/migrations/111_oidc_session_logout.sql';
+$migration = $root . '/database/migrations/archive/111_oidc_session_logout.sql';
 phase7ContractExpect(is_file($migration), 'Phase7 基础 migration 111 必须保留');
 $sql = (string) file_get_contents($migration);
-$forwardMigration = $root . '/database/migrations/113_oidc_logout_reliability.sql';
+$forwardMigration = $root . '/database/migrations/archive/113_oidc_logout_reliability.sql';
 phase7ContractExpect(is_file($forwardMigration), 'Phase7 阻断修复必须新增 migration 113，禁止修改已执行的 111');
 $forwardSql = (string) file_get_contents($forwardMigration);
 foreach (['oidc_session_id', 'client_session_id', 'worker_id', 'lock_token', 'lease_expires_at'] as $column) {

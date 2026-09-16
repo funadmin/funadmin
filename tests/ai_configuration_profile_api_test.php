@@ -54,6 +54,6 @@ profileExpect($redacted['api_key'] === '[REDACTED]', '复用项目审计脱敏')
 $source = file_get_contents($reflection->getFileName());
 profileExpect(str_contains($source, "development/ai/configure") && str_contains($source, 'CheckAdminApiCsrf::class') && str_contains($source, 'CheckAdminApiRole::class'), '生产权限和 CSRF');
 foreach ($methods as $name) profileExpect(str_contains($reflection->getMethod($name)->getDocComment() ?: '', '@profile'), '每个 API 标识契约');
-$sql = file_get_contents(dirname(__DIR__) . '/database/migrations/118_ai_profile_permissions.sql');
+$sql = file_get_contents(dirname(__DIR__) . '/database/migrations/archive/118_ai_profile_permissions.sql');
 foreach ($methods as $name) profileExpect(str_contains($sql, "'" . strtolower($name) . "'"), '迁移登记 action');
 echo "AI configuration profile API: PASS\n";
