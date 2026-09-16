@@ -37,7 +37,7 @@ class SystemRole extends AdminApiController
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = $this->manageableQuery();
+        $query = AuthGroup::manageableQuery();
         $name = trim((string) $this->request->get('name', $this->request->get('keyword', '')));
         $code = trim((string) $this->request->get('code', ''));
         $status = $this->request->get('status', null);
@@ -55,7 +55,7 @@ class SystemRole extends AdminApiController
             'page' => $page,
         ]);
         return $this->ok(data: $this->paginationData(
-            array_map(fn (AuthGroup $role): array => $this->roleData($role), $result->items()),
+            array_map(fn (AuthGroup $role): array => $role->toRoleData(), $result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -65,8 +65,8 @@ class SystemRole extends AdminApiController
     #[Get('all')]
     public function all(): Response
     {
-        $roles = $this->manageableQuery()->where('status', 1)->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
+        $roles = AuthGroup::manageableQuery()->where('status', 1)->order('level', 'asc')->order('id', 'asc')->select();
+        return $this->ok(data: array_map(fn (AuthGroup $role): array => $role->toRoleData(), $roles->all()));
     }
 
     #[Get('parent-options')]
@@ -83,7 +83,7 @@ class SystemRole extends AdminApiController
         }
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])->where('status', 1)
             ->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
+        return $this->ok(data: array_map(fn (AuthGroup $role): array => $role->toRoleData(), $roles->all()));
     }
 
     #[Get(':id/authorization')]
@@ -147,7 +147,7 @@ class SystemRole extends AdminApiController
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);
         }
-        return $this->ok(data: $this->roleData($role));
+        return $this->ok(data: $role->toRoleData());
     }
 
     #[Get('permission-tree')]
@@ -180,14 +180,14 @@ class SystemRole extends AdminApiController
     public function create(): Response
     {
         $data = $this->payload();
-        if ($error = $this->validatePayload($data)) {
+        if ($error = AuthGroup::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (AuthGroup::withTrashed()->where('name', $data['name'])->find() || AuthGroup::withTrashed()->where('code', $data['code'])->find()) {
             return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
-            $this->assertRolePayload(0, $data);
+            (new RoleGuardService())->assertRolePayload(0, $data);
             $role = Db::transaction(function () use ($data): AuthGroup {
                 $role = AuthGroup::create([
                     'pid' => $data['parentId'],
@@ -198,11 +198,11 @@ class SystemRole extends AdminApiController
                     'remark' => $data['remark'],
                     'status' => $data['status'],
                 ]);
-                $this->syncRelations((int) $role->id, $data);
+                AuthGroup::syncRelations((int) $role->id, $data);
                 return $role;
             });
             Cache::clear();
-            return $this->ok('创建成功', $this->roleData($role));
+            return $this->ok('创建成功', $role->toRoleData());
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
@@ -224,7 +224,7 @@ class SystemRole extends AdminApiController
             return $this->fail(msg: '角色不存在', code: 404);
         }
         $data = $this->payload(false, $role);
-        if ($error = $this->validatePayload($data)) {
+        if ($error = AuthGroup::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (AuthGroup::withTrashed()->where('id', '<>', $id)->where(function ($query) use ($data) {
@@ -235,7 +235,7 @@ class SystemRole extends AdminApiController
         try {
             $guard = new RoleGuardService();
             $guard->assertManageRole($role);
-            $this->assertRolePayload($id, $data);
+            $guard->assertRolePayload($id, $data);
             Db::transaction(function () use ($role, $data): void {
                 $role->save([
                     'pid' => $data['parentId'],
@@ -246,10 +246,10 @@ class SystemRole extends AdminApiController
                     'remark' => $data['remark'],
                     'status' => $data['status'],
                 ]);
-                $this->syncRelations((int) $role->id, $data);
+                AuthGroup::syncRelations((int) $role->id, $data);
             });
             Cache::clear();
-            return $this->ok('保存成功', $this->roleData($role));
+            return $this->ok('保存成功', $role->toRoleData());
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
@@ -333,17 +333,6 @@ class SystemRole extends AdminApiController
         }
     }
 
-    private function manageableQuery()
-    {
-        $query = AuthGroup::where('id', '<>', (int) config('funadmin.superRoleId'));
-        $roleScope = new RoleScopeService();
-        if (!$roleScope->isSuperAdmin()) {
-            $query->whereIn('id', $roleScope->manageableRoleIds() ?: [0])
-                ->where('level', '>', (new RoleGuardService())->currentLevel());
-        }
-        return $query;
-    }
-
     private function payload(bool $create = true, ?AuthGroup $role = null): array
     {
         $defaults = [
@@ -367,84 +356,6 @@ class SystemRole extends AdminApiController
             'parentId' => max(0, (int) $this->request->post('parentId', $defaults['parentId'])),
             'parentRoleIds' => $this->normalizeIds($this->request->post('parentRoleIds', $defaults['parentRoleIds'])),
             'departmentIds' => $this->normalizeIds($this->request->post('departmentIds', $defaults['departmentIds'])),
-        ];
-    }
-
-    private function validatePayload(array $data): ?string
-    {
-        if ($data['name'] === '' || mb_strlen($data['name']) > 100) {
-            return '角色名称不能为空且不能超过 100 个字符';
-        }
-        if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{1,49}$/', $data['code'])) {
-            return '角色标识需以字母开头，只能包含字母、数字和下划线';
-        }
-        if (mb_strlen($data['remark']) > 255) {
-            return '备注不能超过 255 个字符';
-        }
-        return null;
-    }
-
-    private function assertRolePayload(int $roleId, array $data): void
-    {
-        $guard = new RoleGuardService();
-        $guard->assertRoleLevel($data['level']);
-        $inheritRoleIds = array_values(array_unique(array_filter(array_merge(
-            $data['parentRoleIds'],
-            $data['parentId'] > 0 ? [$data['parentId']] : []
-        ))));
-        $guard->assertInheritance($roleId, $data['level'], $inheritRoleIds);
-        $guard->assertDataScope($data['dataScope'], $data['departmentIds']);
-        $guard->assertDataScopeWithinParents($data['dataScope'], $data['departmentIds'], $inheritRoleIds);
-    }
-
-    private function syncRelations(int $roleId, array $data): void
-    {
-        AuthGroupInherit::where('role_id', $roleId)->delete();
-        $parentRoleIds = array_values(array_unique(array_filter(array_merge(
-            $data['parentRoleIds'],
-            $data['parentId'] > 0 ? [$data['parentId']] : []
-        ))));
-        $inheritRows = array_map(static fn (int $parentId): array => [
-            'role_id' => $roleId,
-            'parent_role_id' => $parentId,
-            'created_at' => time()
-        ], $parentRoleIds);
-        if ($inheritRows) {
-            (new AuthGroupInherit())->saveAll($inheritRows);
-        }
-
-        AuthGroupDepartment::where('role_id', $roleId)->delete();
-        if ($data['dataScope'] === 'custom') {
-            $departmentRows = array_map(static fn (int $departmentId): array => [
-                'role_id' => $roleId,
-                'dept_id' => $departmentId,
-                'created_at' => time()
-            ], $data['departmentIds']);
-            (new AuthGroupDepartment())->saveAll($departmentRows);
-        }
-        CasbinService::instance()->syncRoleInheritance($roleId, $parentRoleIds);
-    }
-
-    private function roleData(AuthGroup $role): array
-    {
-        $roleId = (int) $role->id;
-        $roleScope = new RoleScopeService();
-        return [
-            'id' => $roleId,
-            'name' => (string) $role->name,
-            'code' => (string) $role->code,
-            'level' => (int) $role->level,
-            'dataScope' => (string) $role->data_scope,
-            'remark' => (string) $role->remark,
-            'status' => (int) $role->status,
-            'parentId' => (int) $role->pid,
-            'parentRoleIds' => array_values(array_filter(
-                array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
-                static fn (int $parentRoleId): bool => $parentRoleId !== (int) $role->pid
-            )),
-            'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->column('dept_id')),
-            'permissionIds' => $roleScope->rolePermissionIds($roleId),
-            'createdAt' => $this->formatTime($role->created_at),
         ];
     }
 

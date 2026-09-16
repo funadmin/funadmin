@@ -40,23 +40,21 @@ try {
     if (($group['order-test']['menus'][0]['query'] ?? '') !== $menu['query']) throw new RuntimeException('资源事务丢失菜单 query');
 
     (new \think\App())->initialize();
-    $auth = (new ReflectionClass(\app\admin\controller\authentication\AdminAuth::class))->newInstanceWithoutConstructor();
-    $projection = new ReflectionMethod($auth, 'menuData');
     $row = new \app\admin\authorization\model\AdminMenu([
         'id' => 55, 'pid' => 0, 'permission_id' => 0, 'source_type' => 'generated',
         'source_name' => 'order-test', 'href' => '/generated/order-test', 'query' => '', 'name' => '测试可视化',
     ]);
-    $dto = $projection->invoke($auth, $row);
+    $dto = $row->toWebMenuData();
     if ($dto['component'] !== 'generated/order-test/index' || $dto['formKey'] !== 'order_test') throw new RuntimeException('旧生成菜单空 query 必须只读恢复页面身份');
     if ($row->query !== '') throw new RuntimeException('兼容投影不能修改持久化模型');
     $row->query = 'component=custom/page&name=Custom&type=C&formKey=custom';
-    if ($projection->invoke($auth, $row)['component'] !== 'custom/page') throw new RuntimeException('不得覆盖二开菜单元数据');
+    if ($row->toWebMenuData()['component'] !== 'custom/page') throw new RuntimeException('不得覆盖二开菜单元数据');
     $row->query = '';
     $row->source_type = 'admin_web';
-    if ($projection->invoke($auth, $row)['component'] !== '') throw new RuntimeException('不得推断非生成菜单');
+    if ($row->toWebMenuData()['component'] !== '') throw new RuntimeException('不得推断非生成菜单');
     $row->source_type = 'generated';
     $row->href = '/custom/path';
-    if ($projection->invoke($auth, $row)['component'] !== '') throw new RuntimeException('不得推断不匹配的生成路由');
+    if ($row->toWebMenuData()['component'] !== '') throw new RuntimeException('不得推断不匹配的生成路由');
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . "\n");
     exit(1);

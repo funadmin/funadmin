@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\PermissionResource;
-use app\admin\controller\authentication\AdminAuth;
 
 $root = dirname(__DIR__);
 $failures = [];
@@ -19,8 +19,7 @@ $seed = (string) file_get_contents($root . '/admin-web/src/mock/data/adminSeed.t
 $businessController = (string) file_get_contents($root . '/app/admin/controller/development/Business.php');
 $expect(str_contains($businessController, "nodeAccess('admin/development.business/saveschema')"), '删除业务模块必须按内部资源路径校验 saveschema 权限');
 $expect(!str_contains($businessController, "nodeAccess('admin/development.business:saveschema')"), '删除业务模块不得把内部资源路径写成权限 code');
-$auth = (new ReflectionClass(AdminAuth::class))->newInstanceWithoutConstructor();
-$webPermissions = (new ReflectionClass(AdminAuth::class))->getMethod('webPermissions');
+$webPermissions = (new ReflectionClass(Permission::class))->getMethod('webPermissions');
 $resources = [
     ['user', 'system.SystemAdmin', 'index', 'system:user:list', true],
     ['role', 'authorization.SystemRole', 'index', 'system:role:list', true],
@@ -48,7 +47,7 @@ foreach ($resources as [$sourceName, $controller, $action, $webCode, $hasMockMen
     $expect(str_contains($migration, "'{$legacyObj}'"), "130 缺少旧资源 {$legacyObj}");
     $expect(str_contains($migration, "'{$resource['obj']}'"), "130 缺少 canonical {$resource['obj']}");
     if (str_starts_with($webCode, 'system:')) {
-        $codes = $webPermissions->invoke($auth, [$resource['code']], false);
+        $codes = $webPermissions->invoke(null, [$resource['code']], false);
         $expect(in_array($webCode, $codes, true), "{$resource['code']} 必须继续下发 {$webCode}");
     }
     if ($hasMockMenu) {
@@ -67,7 +66,7 @@ $expect(!(bool) preg_match('/(?:INSERT|UPDATE|DELETE)[\s\S]{0,120}`ptype`\s*=\s*
 foreach (['development/', 'identity/', 'form.data', 'system:upgrade'] as $excluded) {
     $expect(!str_contains($migration, $excluded), "130 不得迁移 {$excluded}");
 }
-$developmentCodes = $webPermissions->invoke($auth, ['development.business:modules'], false);
+$developmentCodes = $webPermissions->invoke(null, ['development.business:modules'], false);
 $expect(in_array('development:business:view', $developmentCodes, true), 'development 按钮码必须按 canonical 格式下发');
 $authConfig = (string) file_get_contents($root . '/config/funadmin.php');
 foreach (['development.business:designactioncatalog', 'systemoperationlog:detail', 'systempermission:detail', 'systemmenu:permissionoptions'] as $code) {

@@ -11,7 +11,6 @@ use app\admin\middleware\SystemLog;
 use app\admin\authentication\model\Admin;
 use app\admin\authentication\service\AdminSessionService;
 use app\common\service\identity\AdminIdentityAdapter;
-use app\admin\authorization\model\AdminDepartment;
 use app\common\helper\SignHelper;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -34,7 +33,7 @@ class AdminProfile extends AdminApiController
     public function index(): Response
     {
         $admin = $this->currentAdmin();
-        return $admin ? $this->ok(data: $this->profileData($admin)) : $this->fail(msg: '管理员不存在', code: 404);
+        return $admin ? $this->ok(data: $admin->toProfileData()) : $this->fail(msg: '管理员不存在', code: 404);
     }
 
     #[Put('')]
@@ -74,7 +73,7 @@ class AdminProfile extends AdminApiController
 
         Db::transaction(function () use ($admin, $data): void {
             $admin->save($data);
-            (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds($admin));
+            (new AdminIdentityAdapter())->sync($admin, $admin->departmentIds());
         });
         $sessionAdmin = Session::get('admin', []);
         foreach ($data as $field => $value) {
@@ -82,7 +81,7 @@ class AdminProfile extends AdminApiController
         }
         Session::set('admin', $sessionAdmin);
         Cache::clear();
-        return $this->ok('资料已更新', $this->profileData($admin));
+        return $this->ok('资料已更新', $admin->toProfileData());
     }
 
     #[Post('password')]
@@ -109,7 +108,7 @@ class AdminProfile extends AdminApiController
                 'password' => password($newPassword),
                 'token' => SignHelper::salt(20),
             ]);
-            (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds($admin));
+            (new AdminIdentityAdapter())->sync($admin, $admin->departmentIds());
         });
         Cache::clear();
         (new AdminSessionService())->logout();
@@ -120,26 +119,5 @@ class AdminProfile extends AdminApiController
     {
         $adminId = (int) Session::get('admin.id', 0);
         return $adminId > 0 ? Admin::find($adminId) : null;
-    }
-
-    private function adminDepartmentIds(Admin $admin): array
-    {
-        return array_values(array_unique(array_filter(array_merge(
-            [(int) $admin->dept_id],
-            array_map('intval', AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
-        ))));
-    }
-
-    private function profileData(Admin $admin): array
-    {
-        return [
-            'id' => (int) $admin->id,
-            'username' => (string) $admin->username,
-            'nickname' => (string) (($admin->real_name ?: $admin->username)),
-            'avatar' => (string) $admin->avatar,
-            'email' => (string) $admin->email,
-            'mobile' => (string) $admin->mobile,
-            'lastLoginIp' => (string) $admin->last_login_ip,
-        ];
     }
 }

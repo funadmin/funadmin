@@ -133,6 +133,21 @@ class RoleGuardService
         }
     }
 
+    /**
+     * 角色写入 payload 的组合校验：等级、继承与数据范围边界一次完成。
+     */
+    public function assertRolePayload(int $roleId, array $data): void
+    {
+        $this->assertRoleLevel($data['level']);
+        $inheritRoleIds = array_values(array_unique(array_filter(array_merge(
+            $data['parentRoleIds'],
+            $data['parentId'] > 0 ? [$data['parentId']] : []
+        ))));
+        $this->assertInheritance($roleId, $data['level'], $inheritRoleIds);
+        $this->assertDataScope($data['dataScope'], $data['departmentIds']);
+        $this->assertDataScopeWithinParents($data['dataScope'], $data['departmentIds'], $inheritRoleIds);
+    }
+
     public function assertDataScope(string $scope, array $departmentIds): void
     {
         if (!in_array($scope, self::DATA_SCOPES, true)) {

@@ -41,7 +41,7 @@ class SystemPermission extends AdminApiController
         }
         $permissions = Permission::order('sort_order', 'asc')->order('id', 'asc')->select()->all();
         $rows = array_map(
-            fn (Permission $permission): array => $this->permissionData($permission),
+            fn (Permission $permission): array => $permission->toApiData(),
             $permissions
         );
 
@@ -49,7 +49,13 @@ class SystemPermission extends AdminApiController
         $resource = strtolower(trim((string) $this->request->get('resource', '')));
         $status = $this->request->get('status', null);
         if ($name !== '' || $resource !== '' || ($status !== null && $status !== '')) {
-            $rows = $this->filterWithAncestors($rows, $name, $resource, $status);
+            $rows = $this->filterTreeWithAncestors($rows, static function (array $row) use ($name, $resource, $status): bool {
+                $matchesTitle = $name === '' || str_contains((string) $row['name'], $name);
+                $resourceText = strtolower(implode(' ', [$row['code'], $row['object'], $row['action']]));
+                $matchesResource = $resource === '' || str_contains($resourceText, $resource);
+                $matchesStatus = ($status === null || $status === '') || (int) $row['status'] === (int) $status;
+                return $matchesTitle && $matchesResource && $matchesStatus;
+            });
         }
 
         return $this->ok(data: $this->buildTree($rows));
@@ -64,7 +70,7 @@ class SystemPermission extends AdminApiController
         }
         $permission = Permission::find($id);
         return $permission
-            ? $this->ok(data: $this->permissionData($permission))
+            ? $this->ok(data: $permission->toApiData())
             : $this->fail(msg: '权限资源不存在', code: 404);
     }
 
@@ -79,7 +85,7 @@ class SystemPermission extends AdminApiController
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
         }
-        if ($error = $this->validatePayload($data)) {
+        if ($error = Permission::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
@@ -91,7 +97,7 @@ class SystemPermission extends AdminApiController
 
         $permission = Permission::create($data);
         Cache::clear();
-        return $this->ok('创建成功', $this->permissionData($permission));
+        return $this->ok('创建成功', $permission->toApiData());
     }
 
     #[Put(':id')]
@@ -113,7 +119,7 @@ class SystemPermission extends AdminApiController
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
         }
-        if ($error = $this->validatePayload($data)) {
+        if ($error = Permission::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
@@ -139,7 +145,7 @@ class SystemPermission extends AdminApiController
                     'name' => $data['name'],
                     'status' => $data['status'],
                     'sort_order' => $data['sort_order'],
-                    'query' => $this->queryWithPermission((string) $menu->query, (string) ($data['code'] ?? '')),
+                    'query' => AdminMenu::buildPermissionQuery((string) $menu->query, (string) ($data['code'] ?? '')),
                 ]);
             }
             if ($resourceChanged && $oldObj !== '' && $oldAct !== '') {
@@ -150,7 +156,7 @@ class SystemPermission extends AdminApiController
             CasbinService::instance()->reload();
         }
         Cache::clear();
-        return $this->ok('保存成功', $this->permissionData($permission));
+        return $this->ok('保存成功', $permission->toApiData());
     }
 
     #[Delete(':id')]
@@ -217,7 +223,7 @@ class SystemPermission extends AdminApiController
 
     private function payload(?Permission $permission = null): array
     {
-        $current = $permission ? $this->permissionData($permission) : [];
+        $current = $permission ? $permission->toApiData() : [];
         $appName = strtolower(trim((string) $this->request->post('appName', $current['appName'] ?? 'admin')));
         $resourceType = strtolower(trim((string) $this->request->post('resourceType', $current['resourceType'] ?? Permission::TYPE_ROUTE)));
         $objInput = trim((string) $this->request->post('object', $current['object'] ?? ''));
@@ -255,92 +261,4 @@ class SystemPermission extends AdminApiController
         ];
     }
 
-    private function validatePayload(array $data): ?string
-    {
-        if ($data['name'] === '') {
-            return '权限资源名称不能为空';
-        }
-        if ($data['app_name'] === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $data['app_name'])) {
-            return '应用标识格式不正确';
-        }
-        if (!in_array($data['resource_type'], [Permission::TYPE_GROUP, Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) {
-            return '权限资源类型不正确';
-        }
-        if (in_array($data['resource_type'], [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
-            && ($data['obj'] === '' || $data['act'] === '')) {
-            return '路由或能力资源必须填写资源对象和动作';
-        }
-        if ($data['resource_type'] === Permission::TYPE_GROUP && ($data['obj'] !== '' || $data['act'] !== '' || $data['code'] !== null)) {
-            return '目录资源不能包含控制器或动作';
-        }
-        return null;
-    }
-
-    private function filterWithAncestors(array $rows, string $name, string $resource, $status): array
-    {
-        $byId = [];
-        foreach ($rows as $row) {
-            $byId[(int) $row['id']] = $row;
-        }
-
-        $keep = [];
-        foreach ($rows as $row) {
-            $matchesTitle = $name === '' || str_contains((string) $row['name'], $name);
-            $resourceText = strtolower(implode(' ', [$row['code'], $row['object'], $row['action']]));
-            $matchesResource = $resource === '' || str_contains($resourceText, $resource);
-            $matchesStatus = ($status === null || $status === '') || (int) $row['status'] === (int) $status;
-            if (!$matchesTitle || !$matchesResource || !$matchesStatus) {
-                continue;
-            }
-
-            $currentId = (int) $row['id'];
-            while ($currentId > 0 && isset($byId[$currentId]) && !isset($keep[$currentId])) {
-                $keep[$currentId] = true;
-                $currentId = (int) $byId[$currentId]['parentId'];
-            }
-        }
-
-        return array_values(array_filter(
-            $rows,
-            static fn (array $row): bool => isset($keep[(int) $row['id']])
-        ));
-    }
-
-    private function queryWithPermission(string $query, string $permissionCode): string
-    {
-        parse_str($query, $parameters);
-        if ($permissionCode === '') {
-            unset($parameters['permission']);
-        } else {
-            $parameters['permission'] = $permissionCode;
-        }
-        return http_build_query($parameters);
-    }
-
-    private function permissionData(Permission $permission): array
-    {
-        $object = (string) $permission->obj;
-        $appNamePrefix = strtolower((string) $permission->app_name) . '/';
-        if ($object !== '' && str_starts_with(strtolower($object), $appNamePrefix)) {
-            $object = substr($object, strlen($appNamePrefix));
-        }
-        return [
-            'id' => (int) $permission->id,
-            'parentId' => (int) $permission->pid,
-            'appName' => (string) $permission->app_name,
-            'code' => (string) ($permission->code ?? ''),
-            'object' => $object,
-            'action' => (string) $permission->act,
-            'name' => (string) $permission->name,
-            'resourceType' => (string) $permission->resource_type,
-            'status' => (int) $permission->status,
-            'isPublic' => (int) $permission->is_public,
-            'sort' => (int) $permission->sort_order,
-            'sourceType' => (string) $permission->source_type,
-            'sourceName' => (string) $permission->source_name,
-            'readOnly' => in_array((string) $permission->source_type, ['generated', 'plugin'], true),
-            'createdAt' => $this->formatTime($permission->created_at),
-            'updatedAt' => $this->formatTime($permission->updated_at),
-        ];
-    }
 }
