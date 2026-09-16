@@ -31,11 +31,11 @@ class SystemBlacklist extends AdminApiController
         $page = $this->page();
         $pageSize = $this->pageSize();
         $recycled = (int) $this->request->get('recycled', 0) === 1;
-        $query = $this->filteredQuery($recycled);
+        $query = Blacklist::filteredQuery($recycled, trim((string) $this->request->get('ip', '')), $this->request->get('status', null));
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
         return $this->ok(data: $this->paginationData(
-            array_map(fn (Blacklist $item): array => $this->itemData($item), $result->items()),
+            array_map(fn (Blacklist $item): array => $item->toApiData(), $result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -48,7 +48,7 @@ class SystemBlacklist extends AdminApiController
     {
         $item = Blacklist::withTrashed()->find($id);
         return $item
-            ? $this->ok(data: $this->itemData($item))
+            ? $this->ok(data: $item->toApiData())
             : $this->fail(msg: '黑名单记录不存在', code: 404);
     }
 
@@ -56,12 +56,12 @@ class SystemBlacklist extends AdminApiController
     public function create(): Response
     {
         $data = $this->payload();
-        if ($error = $this->validatePayload($data)) {
+        if ($error = Blacklist::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
 
         $item = Blacklist::create($data);
-        return $this->ok('创建成功', $this->itemData($item));
+        return $this->ok('创建成功', $item->toApiData());
     }
 
     #[Put(':id')]
@@ -73,12 +73,12 @@ class SystemBlacklist extends AdminApiController
             return $this->fail(msg: '黑名单记录不存在', code: 404);
         }
         $data = $this->payload($item);
-        if ($error = $this->validatePayload($data)) {
+        if ($error = Blacklist::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
 
         $item->save($data);
-        return $this->ok('保存成功', $this->itemData($item));
+        return $this->ok('保存成功', $item->toApiData());
     }
 
     #[Post(':id/status')]
@@ -90,7 +90,7 @@ class SystemBlacklist extends AdminApiController
             return $this->fail(msg: '黑名单记录不存在', code: 404);
         }
         $item->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        return $this->ok('状态更新成功', $this->itemData($item));
+        return $this->ok('状态更新成功', $item->toApiData());
     }
 
     #[Delete('')]
@@ -167,7 +167,7 @@ class SystemBlacklist extends AdminApiController
                 'remark' => trim((string) ($row['remark'] ?? '')),
                 'status' => $this->binaryStatus($row['status'] ?? 1),
             ];
-            if ($error = $this->validatePayload($data)) {
+            if ($error = Blacklist::validateAttributes($data)) {
                 $errors[] = '第 ' . ($index + 2) . ' 行：' . $error;
                 continue;
             }
@@ -190,26 +190,12 @@ class SystemBlacklist extends AdminApiController
     public function export(): Response
     {
         $recycled = (int) $this->request->get('recycled', 0) === 1;
-        $query = $this->filteredQuery($recycled);
+        $query = Blacklist::filteredQuery($recycled, trim((string) $this->request->get('ip', '')), $this->request->get('status', null));
         if ((clone $query)->count() > 10000) {
             return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
         $items = $query->order('id', 'desc')->select();
-        return $this->ok(data: array_map(fn (Blacklist $item): array => $this->itemData($item), $items->all()));
-    }
-
-    private function filteredQuery(bool $recycled)
-    {
-        $query = $recycled ? Blacklist::onlyTrashed() : Blacklist::order('id', 'desc');
-        $ip = trim((string) $this->request->get('ip', ''));
-        $status = $this->request->get('status', null);
-        if ($ip !== '') {
-            $query->whereLike('ip', '%' . $ip . '%');
-        }
-        if ($status !== null && $status !== '') {
-            $query->where('status', (int) $status);
-        }
-        return $query;
+        return $this->ok(data: array_map(fn (Blacklist $item): array => $item->toApiData(), $items->all()));
     }
 
     private function payload(?Blacklist $item = null): array
@@ -221,32 +207,4 @@ class SystemBlacklist extends AdminApiController
         ];
     }
 
-    private function validatePayload(array $data): ?string
-    {
-        $ipLength = function_exists('mb_strlen') ? mb_strlen($data['ip']) : strlen($data['ip']);
-        $remarkLength = function_exists('mb_strlen') ? mb_strlen($data['remark']) : strlen($data['remark']);
-        if ($data['ip'] === '') {
-            return 'IP/规则不能为空';
-        }
-        if ($ipLength > 50) {
-            return 'IP/规则不能超过 50 个字符';
-        }
-        if ($remarkLength > 200) {
-            return '备注不能超过 200 个字符';
-        }
-        return null;
-    }
-
-    private function itemData(Blacklist $item): array
-    {
-        return [
-            'id' => (int) $item->id,
-            'ip' => (string) $item->ip,
-            'remark' => (string) ($item->remark ?? ''),
-            'status' => (int) $item->status,
-            'createdAt' => $this->formatTime($item->created_at),
-            'updatedAt' => $this->formatTime($item->updated_at),
-            'deletedAt' => $this->formatTime($item->deleted_at),
-        ];
-    }
 }

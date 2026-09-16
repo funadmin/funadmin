@@ -28,7 +28,7 @@ class SystemOperationLog extends AdminApiController
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = $this->scopedQuery();
+        $query = AdminLog::scopedQuery();
         $username = trim((string) $this->request->get('username', ''));
         $appName = trim((string) $this->request->get('appName', ''));
         $sourceType = trim((string) $this->request->get('sourceType', ''));
@@ -59,7 +59,7 @@ class SystemOperationLog extends AdminApiController
         }
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
         return $this->ok(data: $this->paginationData(
-            array_map(fn (AdminLog $log): array => $this->logData($log), $result->items()),
+            array_map(fn (AdminLog $log): array => $log->toApiData(), $result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -70,8 +70,8 @@ class SystemOperationLog extends AdminApiController
     #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
-        $log = $this->scopedQuery()->where('id', $id)->find();
-        return $log ? $this->ok(data: $this->logData($log, true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
+        $log = AdminLog::scopedQuery()->where('id', $id)->find();
+        return $log ? $this->ok(data: $log->toApiData(true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
     }
 
     #[Delete(':id')]
@@ -91,7 +91,7 @@ class SystemOperationLog extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要删除的日志', code: 422);
         }
-        $logs = $this->scopedQuery()->whereIn('id', $ids)->select();
+        $logs = AdminLog::scopedQuery()->whereIn('id', $ids)->select();
         if (count($logs) !== count($ids)) {
             return $this->fail(msg: '包含不存在或无权删除的日志', code: 403);
         }
@@ -101,41 +101,4 @@ class SystemOperationLog extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($logs)]);
     }
 
-    private function scopedQuery()
-    {
-        $scope = (new DataScopeService())->resolve();
-        if ($scope['all']) {
-            return AdminLog::where('id', '>', 0);
-        }
-        return AdminLog::whereIn('admin_id', (new DataScopeService())->visibleAdminIds() ?: [0]);
-    }
-
-    private function logData(AdminLog $log, bool $detail = false): array
-    {
-        $data = [
-            'id' => (int) $log->id,
-            'username' => (string) $log->username,
-            'appName' => (string) $log->app_name,
-            'sourceType' => (string) $log->source_type,
-            'sourceName' => (string) $log->source_name,
-            'controller' => (string) $log->controller,
-            'action' => (string) $log->action,
-            'name' => (string) $log->name,
-            'method' => strtoupper((string) $log->method),
-            'url' => (string) $log->url,
-            'ip' => (string) $log->ip,
-            'status' => (int) $log->status,
-            'responseCode' => (int) $log->response_code,
-            'durationMs' => (int) $log->duration_ms,
-            'requestId' => (string) $log->request_id,
-            'createdAt' => $this->formatTime($log->created_at),
-        ];
-        if ($detail) {
-            $data['getData'] = (string) $log->get_data;
-            $data['postData'] = (string) $log->post_data;
-            $data['agent'] = (string) $log->agent;
-            $data['errorMessage'] = (string) $log->error_message;
-        }
-        return $data;
-    }
 }
