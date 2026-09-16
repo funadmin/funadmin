@@ -13,6 +13,7 @@ use app\admin\authorization\service\AdminAuthorizationService;
 use app\admin\development\http\BusinessApiErrorMapper;
 use app\admin\development\service\BusinessDevelopmentService;
 use InvalidArgumentException;
+use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
@@ -69,6 +70,16 @@ final class Business extends AdminApiController
     public function module(int $id): Response
     {
         return $this->execute(fn (): array => $this->business->module($id));
+    }
+
+    #[Delete('modules/:id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteModule(int $id): Response
+    {
+        if (!(new AdminAuthorizationService())->nodeAccess('admin/development.business:saveschema')) {
+            return $this->fail(msg: '缺少业务模块管理权限', code: 403);
+        }
+        return $this->execute(fn (): array => $this->business->deleteModule($id), '业务模块已删除');
     }
 
     #[Post('modules/visual')]

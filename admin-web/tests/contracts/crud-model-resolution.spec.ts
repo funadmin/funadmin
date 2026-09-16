@@ -3,11 +3,11 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const crudSource = readFileSync(resolve(process.cwd(), '../app/common/traits/Crud.php'), 'utf8');
-const groupController = readFileSync(resolve(process.cwd(), '../app/console/controller/system/SystemMemberGroup.php'), 'utf8');
-const levelController = readFileSync(resolve(process.cwd(), '../app/console/controller/system/SystemMemberLevel.php'), 'utf8');
+const groupController = readFileSync(resolve(process.cwd(), '../app/admin/controller/system/SystemMemberGroup.php'), 'utf8');
+const levelController = readFileSync(resolve(process.cwd(), '../app/admin/controller/system/SystemMemberLevel.php'), 'utf8');
 const groupApi = readFileSync(resolve(process.cwd(), 'src/api/system/memberGroup.ts'), 'utf8');
 const levelApi = readFileSync(resolve(process.cwd(), 'src/api/system/memberLevel.ts'), 'utf8');
-const authController = readFileSync(resolve(process.cwd(), '../app/console/controller/authentication/AdminAuth.php'), 'utf8');
+const authController = readFileSync(resolve(process.cwd(), '../app/admin/controller/authentication/AdminAuth.php'), 'utf8');
 const permissionMigrationPath = resolve(process.cwd(), '../database/migrations/036_crud_import_permissions.sql');
 const permissionMigration = existsSync(permissionMigrationPath) ? readFileSync(permissionMigrationPath, 'utf8') : '';
 const groupPage = readFileSync(resolve(process.cwd(), 'src/views/system/member-group/index.vue'), 'utf8');
@@ -69,8 +69,8 @@ describe('CRUD 模型类公共解析契约', () => {
     expect(levelApi).toContain('list: (params: MemberLevelQuery) => http.get<API.PageResult<MemberLevelModel>>(PREFIX, params)');
     expect(groupApi).toContain('importRows: (rows:');
     expect(levelApi).toContain('importRows: (rows:');
-    expect(authController).toContain("'console/systemmembergroup:import' => 'system:member-group:import'");
-    expect(authController).toContain("'console/systemmemberlevel:import' => 'system:member-level:import'");
+    expect(authController).toContain("'systemmembergroup:import' => 'system:member-group:import'");
+    expect(authController).toContain("'systemmemberlevel:import' => 'system:member-level:import'");
     expect(permissionMigration).toContain('backend/systemmembergroup:import');
     expect(permissionMigration).toContain('backend/systemmemberlevel:import');
     expect(groupPage).toContain("v-perm=\"'system:member-group:import'\"");

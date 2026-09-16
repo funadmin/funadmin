@@ -13,7 +13,7 @@ use RuntimeException;
 final class Manifest
 {
     private const CORE_READ_ONLY_PERMISSIONS = [
-        'system:plugin:list',
+        'system:plugin:list'
     ];
 
     private function __construct(
@@ -167,7 +167,7 @@ final class Manifest
         foreach ((array) ($adminWeb['permissions'] ?? []) as $permission) {
             $code = (string) ($permission['code'] ?? '');
             if (preg_match('/^' . preg_quote($pluginCode, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
-                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须属于插件命名空间并使用 code:resource:action 格式：' . $code);
+                throw new RuntimeException('plugin.json adminWeb.permissions.code 必须使用插件命名空间并使用 code:resource:action 格式：' . $code);
             }
             $declared[$code] = true;
         }

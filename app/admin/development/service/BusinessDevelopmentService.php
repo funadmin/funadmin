@@ -15,7 +15,11 @@ use app\admin\form\repository\FormSchemaRepository;
 use app\admin\form\service\FormDataService;
 use app\admin\form\service\FormDesignerService;
 use app\admin\form\service\FormPublishService;
+use app\admin\service\ResourceRegistryService;
+use app\admin\development\model\BusinessModule;
+use app\admin\development\model\CrudGeneration;
 use InvalidArgumentException;
+use think\facade\Db;
 
 /** 统一业务开发 API 的应用编排层。 */
 final class BusinessDevelopmentService
@@ -66,6 +70,26 @@ final class BusinessDevelopmentService
     {
         self::assertPositiveId($id);
         return $this->modules->detail($id);
+    }
+
+    public function deleteModule(int $id): array
+    {
+        self::assertPositiveId($id);
+        $result = Db::transaction(function () use ($id): array {
+            $module = BusinessModule::where('id', $id)->lock(true)->find();
+            if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
+            $pending = CrudGeneration::where('business_module_id', $id)
+                ->where(function ($query): void {
+                    $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+                })
+                ->find();
+            if ($pending) throw new BusinessOperationException('GENERATION_IN_PROGRESS');
+            $sourceName = str_replace('_', '-', (string) $module->code);
+            $module->delete();
+            return ['removed' => 1, 'sourceName' => $sourceName];
+        });
+        ResourceRegistryService::instance()->removeSource('generated', $result['sourceName']);
+        return $result;
     }
 
     public function createVisual(array $input, string $actor): array

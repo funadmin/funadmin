@@ -4,9 +4,12 @@ namespace app\admin\service;
 
 use RuntimeException;
 use app\admin\authorization\model\AdminMenu;
+use app\admin\authorization\model\AuthGroupFieldPermission;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
+use app\admin\authorization\model\PermissionField;
 use app\admin\authorization\service\CasbinService;
+use app\admin\authorization\service\PermissionResource;
 use app\common\service\AbstractService;
 use think\facade\Db;
 
@@ -15,7 +18,7 @@ use think\facade\Db;
  */
 class ResourceRegistryService extends AbstractService
 {
-    private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['admin/system:plugin:list'];
+    private const PLUGIN_CORE_READ_ONLY_PERMISSIONS = ['system:plugin:list'];
 
     public function registerTree(array $items, int $parentPermissionId = 0, int $parentMenuId = 0, string $appName = 'admin', string $sourceType = 'system', string $sourceName = ''): void
     {
@@ -42,6 +45,7 @@ class ResourceRegistryService extends AbstractService
                 CasbinRule::where('ptype', 'p')->where('v2', $item['obj'])->where('v3', $item['act'])->delete();
             }
             AdminMenu::whereIn('permission_id', $ids)->delete();
+            $this->removePermissionFields($ids);
             Permission::whereIn('id', $ids)->delete();
         });
         CasbinService::instance()->reload();
@@ -67,6 +71,7 @@ class ResourceRegistryService extends AbstractService
             if ($permissionIds) {
                 AdminMenu::whereIn('permission_id', $permissionIds)->update(['pid' => 0]);
                 Permission::whereIn('pid', $permissionIds)->update(['pid' => 0]);
+                $this->removePermissionFields($permissionIds);
             }
             Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->delete();
         });
@@ -77,14 +82,16 @@ class ResourceRegistryService extends AbstractService
     public function removeApplication(string $appName): void
     {
         $appName = strtolower(trim($appName));
+        $permissionIds = array_map('intval', Permission::where('app_name', $appName)->column('id'));
         $permissions = Permission::where('app_name', $appName)->field('obj,act')->select()->toArray();
-        Db::transaction(function () use ($appName, $permissions) {
+        Db::transaction(function () use ($appName, $permissionIds, $permissions) {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
                     CasbinRule::where('ptype', 'p')->where('v2', $permission['obj'])->where('v3', $permission['act'])->delete();
                 }
             }
             AdminMenu::where('app_name', $appName)->delete();
+            $this->removePermissionFields($permissionIds);
             Permission::where('app_name', $appName)->delete();
         });
         CasbinService::instance()->reload();
@@ -102,10 +109,10 @@ class ResourceRegistryService extends AbstractService
         Db::transaction(function () use ($permissions, $sourceType, $sourceName): void {
             foreach ($permissions as $item) {
                 $code = PermissionResource::canonicalCode((string) ($item['code'] ?? ''));
-                if ($code === '' || !preg_match('/^admin\/[a-z][a-z0-9]*:[a-z][a-z0-9:-]*$/', $code)) {
+                if ($code === '' || !preg_match('/^[a-z][a-z0-9]*:[a-z][a-z0-9:-]*$/', $code)) {
                     continue;
                 }
-                $segments = explode(':', substr($code, strlen('admin/')));
+                $segments = explode(':', $code);
                 $namespace = (string) array_shift($segments);
                 $act = strtolower(trim((string) ($item['act'] ?? (count($segments) > 1 ? array_pop($segments) : ''))));
                 $derivedObj = implode('/', array_merge([$namespace], $segments));
@@ -155,12 +162,14 @@ class ResourceRegistryService extends AbstractService
 
     public function removePermissions(string $sourceType, string $sourceName): void
     {
+        $permissionIds = array_map('intval', Permission::where('source_type', $sourceType)
+            ->where('source_name', $sourceName)->column('id'));
         $permissions = Permission::where('source_type', $sourceType)
             ->where('source_name', $sourceName)
             ->field('obj,act')
             ->select()
             ->toArray();
-        Db::transaction(function () use ($permissions, $sourceType, $sourceName): void {
+        Db::transaction(function () use ($permissionIds, $permissions, $sourceType, $sourceName): void {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
                     CasbinRule::where('ptype', 'p')
@@ -169,10 +178,24 @@ class ResourceRegistryService extends AbstractService
                         ->delete();
                 }
             }
+            $this->removePermissionFields($permissionIds);
             Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->delete();
         });
         CasbinService::instance()->reload();
         $this->clearApplicationCache();
+    }
+
+    private function removePermissionFields(array $permissionIds): void
+    {
+        if (!$permissionIds) {
+            return;
+        }
+        $fieldIds = array_map('intval', PermissionField::whereIn('permission_id', $permissionIds)->column('id'));
+        if (!$fieldIds) {
+            return;
+        }
+        AuthGroupFieldPermission::whereIn('field_id', $fieldIds)->delete();
+        PermissionField::whereIn('id', $fieldIds)->delete();
     }
 
     private function registerItems(array $items, int $parentPermissionId, int $parentMenuId, string $appName, string $sourceType, string $sourceName): void
@@ -197,7 +220,7 @@ class ResourceRegistryService extends AbstractService
                     || $permission->deleted_at !== null) {
                     throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . $referencedCode);
                 }
-                $isOwnedPluginPermission = str_starts_with($referencedCode, 'admin/' . strtolower($sourceName) . ':')
+                $isOwnedPluginPermission = str_starts_with($referencedCode, strtolower($sourceName) . ':')
                     && (string) $permission->source_type === $sourceType
                     && (string) $permission->source_name === $sourceName;
                 $isAllowedCorePermission = in_array($referencedCode, self::PLUGIN_CORE_READ_ONLY_PERMISSIONS, true);

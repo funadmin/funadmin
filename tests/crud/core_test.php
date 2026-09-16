@@ -98,7 +98,7 @@ function validDefinition(array $overrides = []): array
             'detail' => 'admin-web/src/views/generated/audit-log/components/AuditLogDetail.vue',
         ],
         'apiPrefix' => '/system/audit-log',
-        'permissionPrefix' => 'system:audit-log',
+        'permissionPrefix' => 'admin/system:audit-log',
         'fields' => [
             ['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true],
             ['name' => 'status', 'dbType' => 'tinyint(1)', 'nullable' => false, 'comment' => '状态:0=禁用,1=启用', 'list' => true, 'search' => true, 'searchOperator' => 'eq', 'form' => true, 'detail' => true],
@@ -159,7 +159,7 @@ try {
     crudExpect(str_contains($generatedMigration, '`deleted_at` datetime NULL'), '软删除建表制品必须生成 nullable datetime');
     crudExpect(preg_match('/`(?:created|updated|deleted)_at`[^\'\n]*DEFAULT\s+0/', $generatedMigration) !== 1, '生成时间列不得使用 DEFAULT 0');
     crudExpect(str_contains($generatedPermissionMigration, 'component=generated/audit-log/index'), '生成菜单必须指向独立 generated 源码');
-    crudExpect(str_contains($generatedPermissionMigration, 'permission=system:audit-log:list'), '生成菜单必须声明真实页面访问权限');
+    crudExpect(str_contains($generatedPermissionMigration, 'permission=admin/system:audit-log:list'), '生成菜单必须声明真实页面访问权限');
     crudExpect(str_contains($generatedView, 'handleSelectionChange = (rows: AuditLogModel[])'), 'selection 回调必须接受表格实际模型数组，不能要求模型具有字符串索引签名');
     crudExpect(str_contains($generatedView, 'onSelectionChange(rows);') && str_contains($generatedView, 'buttonContextVersion.value++'), 'selection 回调必须直接传递模型数组，不需要双重类型断言');
     crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');
@@ -679,7 +679,7 @@ try {
         '权限迁移 controller/action 必须与 PermissionResource 运行时资源一致'
     );
     crudExpect(
-        str_contains($permissionMigration, "'system:audit-log:options', 'admin/generated.auditlogcontroller', 'options'"),
+        str_contains($permissionMigration, "'admin/system:audit-log:options', 'admin/generated.auditlogcontroller', 'options'"),
         '启用 options 时必须生成与前端 code、运行时 obj/act 一致的权限'
     );
     crudExpect(str_contains($generatedByPath[$controllerPath], "options/:source"), '关系与字典必须生成受控 options endpoint');
@@ -774,7 +774,7 @@ try {
     );
     $batchDisabledPermission = $batchDisabledByPath['batch-disabled/database/generated/audit_log_permissions.sql'];
     crudExpect(
-        str_contains($batchDisabledPermission, "'system:audit-log:delete', 'admin/generated.auditlogcontroller', 'remove'")
+        str_contains($batchDisabledPermission, "'admin/system:audit-log:delete', 'admin/generated.auditlogcontroller', 'remove'")
         && !str_contains($batchDisabledPermission, "'admin/generated.auditlogcontroller', 'recycle'"),
         'batchDelete=false 必须仅生成单删运行时权限资源'
     );

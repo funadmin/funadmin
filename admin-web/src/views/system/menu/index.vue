@@ -22,14 +22,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'admin/systemmenu:create'" @click="onAdd()">
+        <el-button type="primary" plain v-perm="'systemmenu:create'" @click="onAdd()">
           <i class="i-ep-plus" /> 新增
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'admin/systemmenu:delete'"
+          v-perm="'systemmenu:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
@@ -54,9 +54,7 @@
           :default-expand-all="expandAll"
           @selection-change="onSelectionChange"
         >
-          <el-table-column type="selection" width="48" align="center" :selectable="(row: API.MenuItem) => !row.readOnly" />
-          <el-table-column prop="name" label="名称" min-width="200" />
-          <el-table-column label="" width="52" align="center">
+          <el-table-column type="index" label="" width="52" align="center">
             <template #default="{ row }">
               <span
                 v-if="dragEnabled && !row.readOnly"
@@ -69,6 +67,8 @@
               <span v-else class="text-xs text-[var(--el-text-color-secondary)]">—</span>
             </template>
           </el-table-column>
+          <el-table-column type="selection" width="48" align="center" :selectable="(row: API.MenuItem) => !row.readOnly" />
+          <el-table-column prop="name" label="名称" min-width="200" />
           <el-table-column label="图标" width="80" align="center">
             <template #default="{ row }">
               <SvgIcon v-if="row.icon" :name="row.icon" :size="18" />
@@ -78,7 +78,8 @@
           <el-table-column prop="permission" label="权限标识" min-width="220">
             <template #default="{ row }">
               <span>{{ row.permission || '—' }}</span>
-              <el-tag v-if="row.readOnly" class="ml-2" size="small" type="info">受管</el-tag>
+              <el-tag v-if="row.orphaned" class="ml-2" size="small" type="danger">孤儿资源</el-tag>
+              <el-tag v-else-if="row.readOnly" class="ml-2" size="small" type="info">受管</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="类型" width="90" align="center">
@@ -103,14 +104,17 @@
           <el-table-column label="操作" width="320" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'admin/systemmenu:create'" @click="onAdd(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:create'" @click="onAdd(row as API.MenuItem)">
                   <i class="i-ep-plus" /> 新增子项
                 </el-button>
-                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'admin/systemmenu:update'" @click="onEdit(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:update'" @click="onEdit(row as API.MenuItem)">
                   <i class="i-ep-edit" /> 编辑
                 </el-button>
-                <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'admin/systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
                   <i class="i-ep-delete" /> 删除
+                </el-button>
+                <el-button v-else-if="row.orphaned && row.removable" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
+                  <i class="i-ep-delete" /> 清理孤儿资源
                 </el-button>
               </div>
             </template>
@@ -328,9 +332,13 @@ function onEdit(row: API.MenuItem) {
 }
 
 async function onDelete(row: API.MenuItem) {
-  await ElMessageBox.confirm(`确认删除 ${row.name} ?`, '提示', { type: 'warning' });
+  const orphaned = row.orphaned && row.sourceType === 'generated';
+  const message = orphaned
+    ? `确认清理孤儿资源 ${row.name}？同一生成来源的菜单、权限与授权规则将一并删除。`
+    : `确认删除 ${row.name} ?`;
+  await ElMessageBox.confirm(message, orphaned ? '清理孤儿资源' : '提示', { type: 'warning' });
   await menuApi.remove(row.id);
-  loadData();
+  await loadData();
 }
 
 function onSelectionChange(rows: API.MenuItem[]) {

@@ -209,7 +209,7 @@ try {
     }
     $definition = CrudDefinition::fromArray([
         'schemaVersion' => '1.0', 'entity' => 'sample', 'table' => 'fun_sample', 'title' => '示例',
-        'apiPrefix' => '/sample', 'permissionPrefix' => 'sample:item',
+        'apiPrefix' => '/sample', 'permissionPrefix' => 'admin/sample:item',
         'fields' => [['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true]],
         'relations' => [], 'optionsSource' => [],
         'features' => ['batchDelete' => false, 'status' => false, 'detail' => false, 'import' => false, 'export' => false, 'upload' => false, 'dictionary' => false, 'referenceProtection' => false, 'formMode' => 'dialog', 'importLimit' => 100, 'exportLimit' => 100],

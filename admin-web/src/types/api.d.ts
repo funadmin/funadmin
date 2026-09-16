@@ -78,6 +78,8 @@ declare namespace API {
     sourceType?: 'admin_web' | 'generated' | 'plugin';
     sourceName?: string;
     readOnly?: boolean;
+    orphaned?: boolean;
+    removable?: boolean;
     formKey?: string;
     children?: MenuItem[];
   }

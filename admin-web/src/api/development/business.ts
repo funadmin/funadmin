@@ -200,6 +200,7 @@ export const businessDevelopmentApi = {
   modules: (params: { page?: number; pageSize?: number; keyword?: string; status?: string; origin?: string } = {}) =>
     http.get<BusinessPageResult<BusinessModule>>(`${PREFIX}/modules`, params),
   module: (id: number) => http.get<BusinessModuleDetail>(`${PREFIX}/modules/${id}`),
+  removeModule: (id: number) => http.delete<{ removed: number }>(`${PREFIX}/modules/${id}`, undefined, { requestOptions: { showSuccessMsg: true } }),
   createVisual: (payload: Record<string, unknown>) => http.post<BusinessModuleDetail>(`${PREFIX}/modules/visual`, payload),
   inspectDatabase: (connection: string, table: string) =>
     http.post<BusinessFieldInspection>(`${PREFIX}/modules/from-database/inspect`, { connection, table }),

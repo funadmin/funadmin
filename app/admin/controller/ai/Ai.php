@@ -79,13 +79,13 @@ final class Ai extends AdminApiController
     public function conversationGroupDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversationGroup($id, $this->adminId())]); }
 
     #[Post('conversations')]
-    public function conversationCreate(): Response { return $this->run(fn () => $this->ai->createConversation($this->adminId(), $this->input(), $this->can('admin/development:ai:full-access'), $this->can('admin/development:ai:approve'))); }
+    public function conversationCreate(): Response { return $this->run(fn () => $this->ai->createConversation($this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
     #[Get('conversations/:id')]
     #[Pattern('id', '\d+')]
     public function conversationRead(int $id): Response { return $this->run(fn () => $this->ai->getConversation($id, $this->adminId())); }
     #[Put('conversations/:id')]
     #[Pattern('id', '\d+')]
-    public function conversationUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversation($id, $this->adminId(), $this->input(), $this->can('admin/development:ai:full-access'), $this->can('admin/development:ai:approve'))); }
+    public function conversationUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversation($id, $this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
     #[Patch('conversations/:id/state')]
     #[Pattern('id', '\d+')]
     public function conversationStateUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversationState($id, $this->adminId(), $this->input())); }
@@ -279,9 +279,9 @@ final class Ai extends AdminApiController
     {
         return $this->run(function () use ($id): array {
             $adminId = $this->adminId();
-            if (!$this->can('admin/development:ai:changesetpreview')) throw new RuntimeException('无权预览 ChangeSet', 403);
+            if (!$this->can('development:ai:changesetpreview')) throw new RuntimeException('无权预览 ChangeSet', 403);
             $record = $this->changeSetRecord($id, $adminId);
-            $result = $this->changeSetService()->preview($record, $adminId, (array) $this->input()['selection'] ?? [], $this->can('admin/development:ai:changesetapply'), (int) $record['conversation_id'], (int) $record['task_id']);
+            $result = $this->changeSetService()->preview($record, $adminId, (array) $this->input()['selection'] ?? [], $this->can('development:ai:changesetapply'), (int) $record['conversation_id'], (int) $record['task_id']);
             $this->changeSetApplication()->recordPreview($id, $adminId, (array) ($result['selection'] ?? []), (string) ($result['planDigest'] ?? ''));
             $this->securityAudit('ai.change_set.preview', ['admin_id'=>$adminId,'conversation_id'=>(int)$record['conversation_id'],'task_id'=>(int)$record['task_id'],'change_set_id'=>$id,'plan_digest'=>$result['planDigest'] ?? null]);
             return $result;
@@ -294,7 +294,7 @@ final class Ai extends AdminApiController
     {
         return $this->run(function () use ($id): array {
             $adminId = $this->adminId();
-            if (!$this->can('admin/development:ai:changesetapply')) throw new RuntimeException('无权应用 ChangeSet', 403);
+            if (!$this->can('development:ai:changesetapply')) throw new RuntimeException('无权应用 ChangeSet', 403);
             $record = $this->changeSetRecord($id, $adminId);
             $input = $this->input();
             $approvalId = (int) ($input['finalApprovalId'] ?? $record['final_approval_id'] ?? 0);
@@ -316,7 +316,7 @@ final class Ai extends AdminApiController
     {
         return $this->run(function () use ($id): array {
             $adminId = $this->adminId();
-            if (!$this->can('admin/development:ai:changesetrecover')) throw new RuntimeException('无权恢复 ChangeSet', 403);
+            if (!$this->can('development:ai:changesetrecover')) throw new RuntimeException('无权恢复 ChangeSet', 403);
             $record = $this->changeSetRecord($id, $adminId);
             $transactionId = (string) ($record['transaction_id'] ?? '');
             if ($transactionId === '') throw new RuntimeException('ChangeSet 缺少 transaction', 409);
@@ -339,7 +339,7 @@ final class Ai extends AdminApiController
             $input = $this->input();
             $moduleId = (int) ($input['moduleId'] ?? 0);
             $task = $this->assertOwnedTask((int) ($input['taskId'] ?? 0), (int) ($input['conversationId'] ?? 0), $adminId);
-            $result = $this->crudProposalService()->preview((array) ($input['proposal'] ?? $input), $moduleId, $adminId, (int) $task['conversation_id'], $this->can('admin/development:ai:crudproposalapply'), isset($input['nonce']) ? (string) $input['nonce'] : null);
+            $result = $this->crudProposalService()->preview((array) ($input['proposal'] ?? $input), $moduleId, $adminId, (int) $task['conversation_id'], $this->can('development:ai:crudproposalapply'), isset($input['nonce']) ? (string) $input['nonce'] : null);
             $this->securityAudit('ai.crud_proposal.preview', ['admin_id'=>$adminId,'conversation_id'=>(int)$task['conversation_id'],'task_id'=>(int)$task['id'],'module_id'=>$moduleId,'generation_id'=>$result['generationId'] ?? null]);
             return $result;
         });
@@ -350,7 +350,7 @@ final class Ai extends AdminApiController
     {
         return $this->run(function (): array {
             $adminId = $this->adminId();
-            if (!$this->can('admin/development:ai:crudproposalapply')) throw new RuntimeException('无权应用 CRUD proposal', 403);
+            if (!$this->can('development:ai:crudproposalapply')) throw new RuntimeException('无权应用 CRUD proposal', 403);
             $input = $this->input();
             $conversationId = (int) ($input['conversationId'] ?? 0);
             $task = $this->assertOwnedTask((int) ($input['taskId'] ?? 0), $conversationId, $adminId);

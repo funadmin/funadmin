@@ -43,7 +43,7 @@
                   <el-button
                     link
                     type="primary"
-                    v-perm="'admin/development:business:save'"
+                    v-perm="'development:business:save'"
                     :data-design="row.id"
                     :disabled="!row.form_id"
                     :title="row.form_id ? '设计业务模块' : '缺少表单定义，无法进入设计器'"
@@ -52,13 +52,14 @@
                   <el-button v-if="row.runtime_route && row.metadata?.target?.type !== 'plugin'" link :data-runtime="row.id" @click="openRuntime(row as BusinessModule)">运行时</el-button>
                   <el-button
                     link
-                    v-perm="'admin/development:business:generate'"
+                    v-perm="'development:business:generate'"
                     :data-preview="row.id"
                     :loading="previewingIds.has(row.id)"
                     :aria-label="`${row.name}生成预览`"
                     @click="previewGeneration(row as BusinessModule)"
                   >生成预览</el-button>
-                  <el-button link v-perm="'admin/development:business:records'" @click="router.push({ path: '/development/business/records', query: { moduleId: row.id } })">记录</el-button>
+                  <el-button link v-perm="'development:business:records'" @click="router.push({ path: '/development/business/records', query: { moduleId: row.id } })">记录</el-button>
+                  <el-button link type="danger" v-perm="'development:business:save'" :loading="deletingIds.has(row.id)" @click="removeModule(row as BusinessModule)">删除</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -94,6 +95,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/store/modules/user';
+import { ElMessageBox } from 'element-plus';
 import type { TagProps } from 'element-plus';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessFormalGenerationPreview, type BusinessModule } from '@/api/development/business';
 import BusinessPageState from './components/BusinessPageState.vue';
@@ -109,8 +111,8 @@ const route = useRoute();
 const user = useUserStore();
 const creationPath = computed(() => {
   const permissions = user.permissions;
-  if (permissions.some(permission => ['*', '*:*:*', 'admin/development.business:createvisual'].includes(permission))) return '/development/business/visual';
-  if (permissions.includes('admin/development.business:inspectdatabase')) return '/development/business/database';
+  if (permissions.some(permission => ['*', '*:*:*', 'development.business:createvisual'].includes(permission))) return '/development/business/visual';
+  if (permissions.includes('development.business:inspectdatabase')) return '/development/business/database';
   return '';
 });
 const { t } = useI18n();
@@ -123,6 +125,7 @@ const previewVisible = ref(false);
 const preview = ref<BusinessFormalGenerationPreview | null>(null);
 const previewError = ref('');
 const previewingIds = reactive(new Set<number>());
+const deletingIds = reactive(new Set<number>());
 const activePreviewModuleId = ref<number | null>(null);
 const previewNonce = crypto.randomUUID();
 const listRequest = useLatestRequest(() => businessDevelopmentApi.modules({ ...query }));
@@ -170,6 +173,23 @@ async function openRuntime(row: BusinessModule) {
   if (!row.runtime_route || row.metadata?.target?.type === 'plugin') return;
   await refreshBusinessMenu();
   await router.push(row.runtime_route);
+}
+
+async function removeModule(row: BusinessModule) {
+  if (deletingIds.has(row.id)) return;
+  await ElMessageBox.confirm(
+    `确认删除业务“${row.name}”？对应的生成菜单和权限将同时清理，已生成源码与数据表不会自动删除。`,
+    '删除业务',
+    { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+  );
+  deletingIds.add(row.id);
+  try {
+    await businessDevelopmentApi.removeModule(row.id);
+    await loadData();
+    await refreshBusinessMenu();
+  } finally {
+    deletingIds.delete(row.id);
+  }
 }
 
 async function previewGeneration(row: BusinessModule) {

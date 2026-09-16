@@ -63,10 +63,7 @@ class PermissionResource
     public static function canonicalCode(string $code): string
     {
         $code = strtolower(trim($code));
-        if ($code === '' || str_starts_with($code, 'admin/')) {
-            return $code;
-        }
-        return 'admin/' . $code;
+        return str_starts_with($code, 'admin/') ? substr($code, 6) : $code;
     }
 
     public static function fromParts(string $appName, string $controller, string $action): array
@@ -96,7 +93,7 @@ class PermissionResource
         return [
             'obj' => $appName . '/' . $controller,
             'act' => $action,
-            'code' => self::canonicalCode($appName . '/' . $controller . ':' . $action),
+            'code' => self::canonicalCode($controller . ':' . $action),
         ];
     }
 

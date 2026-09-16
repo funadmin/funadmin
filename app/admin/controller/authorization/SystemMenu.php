@@ -10,6 +10,10 @@ use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\Permission;
+use app\admin\development\model\BusinessModule;
+use app\admin\development\model\CrudGeneration;
+use app\admin\form\model\FormSchemaVersion;
+use app\admin\service\ResourceRegistryService;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -150,17 +154,29 @@ class SystemMenu extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要删除的菜单', code: 422);
         }
-        if (AdminMenu::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->count() > 0) {
-            return $this->fail(msg: '受管菜单只能由对应生成器或插件维护', code: 422);
+        $managed = AdminMenu::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->select()->all();
+        $managedIds = array_map(static fn (AdminMenu $menu): int => (int) $menu->id, $managed);
+        $customIds = array_values(array_diff($ids, $managedIds));
+        $orphanSources = [];
+        foreach ($managed as $menu) {
+            $sourceType = (string) $menu->source_type;
+            $sourceName = (string) $menu->source_name;
+            if ($sourceType === 'plugin' || !$this->isOrphanedGeneratedSource($sourceType, $sourceName)) {
+                return $this->fail(msg: '受管菜单只能由对应生成器或插件维护', code: 422);
+            }
+            $orphanSources[$sourceName] = true;
         }
-        if (AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('pid', $ids)->count() > 0) {
+        if ($customIds && AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('pid', $customIds)->count() > 0) {
             return $this->fail(msg: '请先删除下级菜单', code: 422);
         }
-        $menus = AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('id', $ids)->select();
+        $menus = $customIds ? AdminMenu::whereIn('source_type', ['admin_web', 'generated', 'plugin'])->whereIn('id', $customIds)->select() : [];
         foreach ($menus as $menu) {
             $menu->delete();
         }
-        return $this->ok('删除成功', ['removed' => count($menus)]);
+        foreach (array_keys($orphanSources) as $sourceName) {
+            ResourceRegistryService::instance()->removeSource('generated', $sourceName);
+        }
+        return $this->ok('删除成功', ['removed' => count($menus) + count($managed)]);
     }
 
     private function payload(bool $create = true, ?AdminMenu $menu = null): array
@@ -239,6 +255,8 @@ class SystemMenu extends AdminApiController
             'sourceType' => (string) $menu->source_type,
             'sourceName' => (string) $menu->source_name,
             'readOnly' => in_array((string) $menu->source_type, ['generated', 'plugin'], true),
+            'orphaned' => $this->isOrphanedGeneratedSource((string) $menu->source_type, (string) $menu->source_name),
+            'removable' => (string) $menu->source_type === 'admin_web' || $this->isOrphanedGeneratedSource((string) $menu->source_type, (string) $menu->source_name),
             'parentId' => (int) $menu->pid,
             'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
             'path' => (string) $menu->href,
@@ -254,6 +272,35 @@ class SystemMenu extends AdminApiController
             'permissionId' => (int) ($permission->id ?? 0),
             'permission' => (string) ($permission->code ?? ''),
         ];
+    }
+
+    private function isOrphanedGeneratedSource(string $sourceType, string $sourceName): bool
+    {
+        if ($sourceType !== 'generated' || $sourceName === '') return false;
+        $code = str_replace('-', '_', $sourceName);
+        $module = BusinessModule::withTrashed()->where('code', $code)->find();
+        if (!$module) return true;
+        if (!$module->trashed()) {
+            $publishedVersion = (int) ($module->published_schema_version ?? 0);
+            $publishedHash = trim((string) ($module->published_schema_hash ?? ''));
+            if (in_array((string) $module->lifecycle_status, ['published', 'dynamic_published'], true) && $publishedVersion > 0 && $publishedHash !== '') {
+                return CrudGeneration::where('business_module_id', (int) $module->id)
+                    ->where(function ($query): void {
+                        $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+                    })
+                    ->find() === null
+                    && FormSchemaVersion::where('form_id', (int) $module->form_id)
+                        ->where('version', $publishedVersion)
+                        ->where('schema_hash', $publishedHash)
+                        ->find() === null;
+            }
+            return false;
+        }
+        return CrudGeneration::where('business_module_id', (int) $module->id)
+            ->where(function ($query): void {
+                $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+            })
+            ->find() === null;
     }
 
     private function findMenu(int $id): ?AdminMenu

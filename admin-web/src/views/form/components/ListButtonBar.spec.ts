@@ -9,7 +9,7 @@ import type { FormListButton } from '../schema/types';
 import PageActions from '@/components/DataTable/PageActions.vue';
 import type { PageAction, PageContext } from '@/components/DataTable/pageSchema';
 import { afterEach } from 'vitest';
-const provide = { [listButtonAdapterKey as symbol]: { api: formDataApi, declaration: { catalogPermission: 'admin/form.data:listactions', executePermission: 'admin/form.data:listaction' } } };
+const provide = { [listButtonAdapterKey as symbol]: { api: formDataApi, declaration: { catalogPermission: 'form.data:listactions', executePermission: 'form.data:listaction' } } };
 const edit: FormListButton = { id: 'edit', label: '修改名称', action: { type: 'builtin', key: 'edit' } };
 describe('PageActions 本地确认真实挂载反证', () => {
   afterEach(() => vi.restoreAllMocks());

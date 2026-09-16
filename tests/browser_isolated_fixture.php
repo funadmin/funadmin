@@ -15,6 +15,24 @@ function fixtureWrite(string $path, string $content): void
     chmod($path, 0600);
 }
 
+function fixtureAvailablePorts(): array
+{
+    for ($attempt = 0; $attempt < 50; $attempt++) {
+        $backendPort = random_int(20000, 45000);
+        $frontendPort = $backendPort + 1;
+        $backend = @stream_socket_server('tcp://127.0.0.1:' . $backendPort, $backendError, $backendMessage);
+        $frontend = @stream_socket_server('tcp://127.0.0.1:' . $frontendPort, $frontendError, $frontendMessage);
+        if (is_resource($backend) && is_resource($frontend)) {
+            fclose($backend);
+            fclose($frontend);
+            return [$backendPort, $frontendPort];
+        }
+        if (is_resource($backend)) fclose($backend);
+        if (is_resource($frontend)) fclose($frontend);
+    }
+    throw new RuntimeException('无法分配隔离验收端口');
+}
+
 function fixtureCopy(string $from, string $to, array $exclude = []): void
 {
     fixtureAssert(!is_link($from), '拒绝复制符号链接');
@@ -146,12 +164,8 @@ try {
     $clientIdentity = (string) $server->query('SELECT USER()')->fetchColumn();
     $host = substr($clientIdentity, strrpos($clientIdentity, '@') + 1);
     fixtureAssert($host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP) !== false, '无法确定安全的 MySQL 客户端地址');
-    $state = ['nonce' => $nonce, 'database' => 'funadmin_browser_test_' . $nonce, 'user' => 'fabrowser_' . $nonce, 'clientHost' => $host, 'backendPort' => 18763, 'frontendPort' => 18764];
-    foreach (['backendPort', 'frontendPort'] as $key) {
-        $socket = @stream_socket_server('tcp://127.0.0.1:' . $state[$key], $errno, $error);
-        fixtureAssert(is_resource($socket), '隔离端口已占用');
-        fclose($socket);
-    }
+    [$backendPort, $frontendPort] = fixtureAvailablePorts();
+    $state = ['nonce' => $nonce, 'database' => 'funadmin_browser_test_' . $nonce, 'user' => 'fabrowser_' . $nonce, 'clientHost' => $host, 'backendPort' => $backendPort, 'frontendPort' => $frontendPort];
     fixtureWrite($root . '/fixture.json', json_encode($state, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
     // 白名单空表 + 外键依赖闭包。所有源库操作仅为结构元数据查询。
     $tables = ['admin', 'auth_group', 'auth_group_inherit', 'auth_group_department', 'auth_group_field_permission', 'admin_department', 'permission', 'admin_menu', 'casbin_rule', 'blacklist', 'config', 'admin_log', 'form', 'form_field', 'form_schema_version', 'business_module', 'crud_generation', 'generated_file_baseline', 'plugin', 'plugin_operation', 'plugin_version_history', 'plugin_resource', 'system_migration', 'identity_tenant', 'identity_user', 'identity_credential', 'identity_admin_link', 'identity_user_department'];

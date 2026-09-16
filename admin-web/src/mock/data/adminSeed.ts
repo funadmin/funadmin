@@ -180,7 +180,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemadmin:index'
+          permission: 'systemadmin:index'
         },
         {
           id: 102,
@@ -195,7 +195,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemrole:index'
+          permission: 'systemrole:index'
         },
         {
           id: 103,
@@ -210,7 +210,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemmenu:tree'
+          permission: 'systemmenu:tree'
         },
         {
           id: 107,
@@ -225,7 +225,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemdepartment:tree'
+          permission: 'systemdepartment:tree'
         },
         {
           id: 108,
@@ -240,7 +240,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemdict:types'
+          permission: 'systemdict:types'
         },
         {
           id: 118,
@@ -255,7 +255,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemconfig:index'
+          permission: 'systemconfig:index'
         },
         {
           id: 117,
@@ -270,7 +270,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemattachment:index'
+          permission: 'systemattachment:index'
         },
         {
           id: 116,
@@ -285,7 +285,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemmember:index'
+          permission: 'systemmember:index'
         },
         {
           id: 115,
@@ -300,7 +300,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemmemberlevel:index'
+          permission: 'systemmemberlevel:index'
         },
         {
           id: 120,
@@ -315,7 +315,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemplugin:installed'
+          permission: 'systemplugin:installed'
         },
         {
           id: 119,
@@ -330,7 +330,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemupgrade:status'
+          permission: 'systemupgrade:status'
         },
         {
           id: 114,
@@ -345,7 +345,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemmembergroup:index'
+          permission: 'systemmembergroup:index'
         },
         {
           id: 113,
@@ -360,7 +360,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systemlanguage:index'
+          permission: 'systemlanguage:index'
         },
         {
           id: 109,
@@ -375,7 +375,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/systempermission:tree'
+          permission: 'systempermission:tree'
         },
         {
           id: 110,
@@ -403,7 +403,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
               hidden: false,
               keepAlive: true,
               affix: false,
-              permission: 'admin/systemoperationlog:index'
+              permission: 'systemoperationlog:index'
             }
 ]
         }
@@ -423,18 +423,18 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
       hidden: false,
       keepAlive: false,
       affix: false,
-      permission: 'admin/identity:application:view',
+      permission: 'identity:application:view',
       children: [
-        { id: 301, parentId: 300, routeName: 'ApplicationList', path: 'center', component: 'applications/index', type: 'C', name: '应用列表', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'admin/identity:application:view' },
-        { id: 302, parentId: 300, routeName: 'DomainManagement', path: 'domains', component: 'applications/identity-management', type: 'C', name: '域名管理', sort: 20, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity:application:manage' },
-        { id: 303, parentId: 300, routeName: 'SsoConfiguration', path: 'sso', component: 'applications/sso/index', type: 'C', name: '单点登录', sort: 30, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.ssoconfiguration:config' },
-        { id: 304, parentId: 300, routeName: 'OAuthClientManagement', path: 'oauth-client', component: 'applications/oauth/index', type: 'C', name: 'OAuth 客户端', sort: 40, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.oauthclient:index' },
-        { id: 305, parentId: 300, routeName: 'ScopeClaimManagement', path: 'scopes', component: 'applications/identity-management', type: 'C', name: 'Scope 与 Claim', sort: 50, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.scopeclaim:index' },
-        { id: 306, parentId: 300, routeName: 'IdentityUsers', path: 'users', component: 'applications/identity-management', type: 'C', name: '身份用户', sort: 60, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.identityuser:index' },
-        { id: 307, parentId: 300, routeName: 'IdentitySessions', path: 'sessions', component: 'applications/identity-management', type: 'C', name: '会话与授权', sort: 70, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.oidcsession:index' },
-        { id: 308, parentId: 300, routeName: 'SigningKeys', path: 'signing-keys', component: 'applications/identity-management', type: 'C', name: '签名密钥', sort: 80, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.oidcsigningkey:index' },
-        { id: 309, parentId: 300, routeName: 'IdentityAudit', path: 'audit', component: 'applications/identity-management', type: 'C', name: '登录审计', sort: 90, hidden: false, keepAlive: false, affix: false, permission: 'admin/identity.identityaudit:index' },
-        { id: 310, parentId: 300, routeName: 'ApplicationPortal', path: 'portal', component: 'applications/portal', type: 'C', name: '应用门户', sort: 100, hidden: false, keepAlive: true, affix: false, permission: 'admin/identity.enterpriseapplication:portal' }
+        { id: 301, parentId: 300, routeName: 'ApplicationList', path: 'center', component: 'applications/index', type: 'C', name: '应用列表', sort: 10, hidden: false, keepAlive: true, affix: false, permission: 'identity:application:view' },
+        { id: 302, parentId: 300, routeName: 'DomainManagement', path: 'domains', component: 'applications/identity-management', type: 'C', name: '域名管理', sort: 20, hidden: false, keepAlive: false, affix: false, permission: 'identity:application:manage' },
+        { id: 303, parentId: 300, routeName: 'SsoConfiguration', path: 'sso', component: 'applications/sso/index', type: 'C', name: '单点登录', sort: 30, hidden: false, keepAlive: false, affix: false, permission: 'identity.ssoconfiguration:config' },
+        { id: 304, parentId: 300, routeName: 'OAuthClientManagement', path: 'oauth-client', component: 'applications/oauth/index', type: 'C', name: 'OAuth 客户端', sort: 40, hidden: false, keepAlive: false, affix: false, permission: 'identity.oauthclient:index' },
+        { id: 305, parentId: 300, routeName: 'ScopeClaimManagement', path: 'scopes', component: 'applications/identity-management', type: 'C', name: 'Scope 与 Claim', sort: 50, hidden: false, keepAlive: false, affix: false, permission: 'identity.scopeclaim:index' },
+        { id: 306, parentId: 300, routeName: 'IdentityUsers', path: 'users', component: 'applications/identity-management', type: 'C', name: '身份用户', sort: 60, hidden: false, keepAlive: false, affix: false, permission: 'identity.identityuser:index' },
+        { id: 307, parentId: 300, routeName: 'IdentitySessions', path: 'sessions', component: 'applications/identity-management', type: 'C', name: '会话与授权', sort: 70, hidden: false, keepAlive: false, affix: false, permission: 'identity.oidcsession:index' },
+        { id: 308, parentId: 300, routeName: 'SigningKeys', path: 'signing-keys', component: 'applications/identity-management', type: 'C', name: '签名密钥', sort: 80, hidden: false, keepAlive: false, affix: false, permission: 'identity.oidcsigningkey:index' },
+        { id: 309, parentId: 300, routeName: 'IdentityAudit', path: 'audit', component: 'applications/identity-management', type: 'C', name: '登录审计', sort: 90, hidden: false, keepAlive: false, affix: false, permission: 'identity.identityaudit:index' },
+        { id: 310, parentId: 300, routeName: 'ApplicationPortal', path: 'portal', component: 'applications/portal', type: 'C', name: '应用门户', sort: 100, hidden: false, keepAlive: true, affix: false, permission: 'identity.enterpriseapplication:portal' }
       ]
     },
     {
@@ -465,16 +465,16 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'admin/development:business:view',
+          permission: 'development:business:view',
           children: [
-            { id: 202, parentId: 201, routeName: 'BusinessMine', path: '/development/business/', redirect: '/development/business/mine', component: 'development/business/mine', type: 'C', name: '业务开发', sort: 10, hidden: true, keepAlive: true, affix: false, permission: 'admin/development:business:view' },
-            { id: 203, parentId: 201, routeName: 'BusinessVisual', path: '/development/business/visual', component: 'development/business/visual', type: 'C', name: '可视化创建', sort: 20, hidden: true, keepAlive: false, affix: false, permission: 'admin/development:business:save' },
-            { id: 204, parentId: 201, routeName: 'BusinessDatabase', path: '/development/business/database', component: 'development/business/database', type: 'C', name: '从数据库生成', sort: 30, hidden: true, keepAlive: false, affix: false, permission: 'admin/development:business:inspect' },
-            { id: 205, parentId: 201, routeName: 'BusinessRecords', path: '/development/business/records', component: 'development/business/records', type: 'C', name: '生成与发布记录', sort: 40, hidden: true, keepAlive: true, affix: false, permission: 'admin/development:business:records' }
+            { id: 202, parentId: 201, routeName: 'BusinessMine', path: '/development/business/', redirect: '/development/business/mine', component: 'development/business/mine', type: 'C', name: '业务开发', sort: 10, hidden: true, keepAlive: true, affix: false, permission: 'development:business:view' },
+            { id: 203, parentId: 201, routeName: 'BusinessVisual', path: '/development/business/visual', component: 'development/business/visual', type: 'C', name: '可视化创建', sort: 20, hidden: true, keepAlive: false, affix: false, permission: 'development:business:save' },
+            { id: 204, parentId: 201, routeName: 'BusinessDatabase', path: '/development/business/database', component: 'development/business/database', type: 'C', name: '从数据库生成', sort: 30, hidden: true, keepAlive: false, affix: false, permission: 'development:business:inspect' },
+            { id: 205, parentId: 201, routeName: 'BusinessRecords', path: '/development/business/records', component: 'development/business/records', type: 'C', name: '生成与发布记录', sort: 40, hidden: true, keepAlive: true, affix: false, permission: 'development:business:records' }
           ]
         },
-        { id: 207, parentId: 200, routeName: 'AiDevelopment', path: 'ai', component: 'development/ai/index', type: 'C', icon: 'i-ep-cpu', name: 'AI 开发助手', sort: 30, hidden: false, keepAlive: true, affix: false, permission: 'admin/development:ai:view' },
-        { id: 206, parentId: 200, routeName: 'BusinessDesigner', path: 'business/designer', component: 'form/designer/index', type: 'C', name: '业务设计器', sort: 90, hidden: true, keepAlive: false, affix: false, permission: 'admin/development:business:save' }
+        { id: 207, parentId: 200, routeName: 'AiDevelopment', path: 'ai', component: 'development/ai/index', type: 'C', icon: 'i-ep-cpu', name: 'AI 开发助手', sort: 30, hidden: false, keepAlive: true, affix: false, permission: 'development:ai:view' },
+        { id: 206, parentId: 200, routeName: 'BusinessDesigner', path: 'business/designer', component: 'form/designer/index', type: 'C', name: '业务设计器', sort: 90, hidden: true, keepAlive: false, affix: false, permission: 'development:business:save' }
       ]
     }
   ];

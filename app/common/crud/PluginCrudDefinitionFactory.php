@@ -34,7 +34,7 @@ final class PluginCrudDefinitionFactory
             'primaryKey' => (string) $primary[0]['name'], 'timestamps' => $this->has($fields, 'created_at') && $this->has($fields, 'updated_at'),
             'softDeletes' => $this->has($fields, 'deleted_at'),
             'target' => ['type' => 'plugin', 'plugin' => $plugin, 'scope' => $scope],
-            'permissionPrefix' => 'admin/' . $plugin . ':' . $entity, 'fields' => $fields,
+            'permissionPrefix' => $plugin . ':' . $entity, 'fields' => $fields,
             'relations' => [], 'optionsSource' => [], 'templates' => self::templates(),
             'capabilities' => ['list' => true, 'search' => true, 'form' => $management, 'detail' => true, 'create' => $management, 'update' => $management, 'delete' => $management, 'import' => false, 'export' => false],
             'features' => ['batchDelete' => $management, 'status' => $management && $this->has($fields, 'status'), 'detail' => true, 'import' => false, 'export' => false, 'upload' => false, 'dictionary' => false, 'referenceProtection' => false, 'formMode' => 'dialog', 'importLimit' => 100, 'exportLimit' => 100],

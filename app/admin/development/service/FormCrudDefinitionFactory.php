@@ -103,7 +103,7 @@ final class FormCrudDefinitionFactory
             'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
             'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
             'generationTargets' => $this->targets($entity, $class),
-            'permissionPrefix' => 'admin/generated:' . $entity,
+            'permissionPrefix' => 'generated:' . $entity,
             'fields' => $fields,
             'relations' => array_values($relations),
             'optionsSource' => array_values($optionSources),
@@ -150,7 +150,7 @@ final class FormCrudDefinitionFactory
         $data['module'] = $plugin;
         $data['apiPrefix'] = '/' . $entity;
         $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
-        $data['permissionPrefix'] = 'admin/' . $plugin . ':' . $entity;
+        $data['permissionPrefix'] = $plugin . ':' . $entity;
         unset($data['generationTargets'], $data['templates']['permissionMigration'], $data['templates']['phpTest'], $data['templates']['vitestTest']);
         return CrudDefinition::fromArray($data);
     }

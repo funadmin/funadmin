@@ -93,7 +93,7 @@ $definition = $factory->forBusinessTarget($core, $owned);
 boundaryExpect($definition->get('target') === ['type' => 'plugin', 'plugin' => 'sample', 'scope' => 'console'], '插件目标必须派生');
 boundaryExpect($definition->get('generationTargets') === null, '不得携带核心制品路径');
 boundaryExpect($definition->get('formSchema') === $core->get('formSchema'), '必须保留完整表单语义');
-boundaryExpect($definition->get('permissionPrefix') === 'sample:item', '插件权限派生');
+boundaryExpect($definition->get('permissionPrefix') === 'admin/sample:item', '插件权限派生');
 boundaryExpect($definition->get('routePath') === '/plugin/sample/item', '插件路由派生');
 // 采纳表的受管时间列必须保留真实 Schema，而不是套用新建表的 nullable 默认值。
 $adoptedDocument = $schema->document();
