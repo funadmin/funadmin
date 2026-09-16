@@ -39,14 +39,14 @@ final class MemberPageDefinition
         ])->toolbar([
             $action('normal', '正常列表', 'primary', ['activeWhen' => $active, 'inactiveColor' => 'info']),
             $action('recycled', '回收站', 'warning', ['activeWhen' => $recycled, 'inactiveColor' => 'info']),
-            $action('add', '新增', 'primary', ['icon' => 'i-ep-plus', 'permission' => 'admin/system:member:add', 'visibleWhen' => $active]),
-            $action('recycle', '移入回收站', 'danger', ['icon' => 'i-ep-delete', 'permission' => 'admin/system:member:delete', 'visibleWhen' => $active, 'disabledWhen' => $empty, 'selectionCount' => true]),
-            $action('import', 'CSV 导入', 'info', ['icon' => 'i-ep-upload', 'permission' => 'admin/system:member:import', 'visibleWhen' => $active]),
-            $action('restore', '恢复', 'success', ['icon' => 'i-ep-refresh-left', 'permission' => 'admin/system:member:restore', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
-            $action('destroy', '永久删除', 'danger', ['icon' => 'i-ep-delete-filled', 'permission' => 'admin/system:member:destroy', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
-            $action('export', 'CSV 导出', 'info', ['icon' => 'i-ep-download', 'permission' => 'admin/system:member:export']),
+            $action('add', '新增', 'primary', ['icon' => 'i-ep-plus', 'permission' => 'system:member:add', 'visibleWhen' => $active]),
+            $action('recycle', '移入回收站', 'danger', ['icon' => 'i-ep-delete', 'permission' => 'system:member:delete', 'visibleWhen' => $active, 'disabledWhen' => $empty, 'selectionCount' => true]),
+            $action('import', 'CSV 导入', 'info', ['icon' => 'i-ep-upload', 'permission' => 'system:member:import', 'visibleWhen' => $active]),
+            $action('restore', '恢复', 'success', ['icon' => 'i-ep-refresh-left', 'permission' => 'system:member:restore', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
+            $action('destroy', '永久删除', 'danger', ['icon' => 'i-ep-delete-filled', 'permission' => 'system:member:destroy', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
+            $action('export', 'CSV 导出', 'info', ['icon' => 'i-ep-download', 'permission' => 'system:member:export']),
         ])->rowActions([
-            $action('edit', '编辑', 'primary', ['permission' => 'admin/system:member:edit', 'visibleWhen' => $active]),
+            $action('edit', '编辑', 'primary', ['permission' => 'system:member:edit', 'visibleWhen' => $active]),
         ])->compile();
     }
 }

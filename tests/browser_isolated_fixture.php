@@ -249,9 +249,10 @@ PHP);
     $casbin = new app\admin\authorization\service\CasbinService();
     $casbin->syncAdminRoles(1, [1]);
     $casbin->syncAdminRoles(2, [2]);
+    $permissionGroup = app\admin\authorization\model\Permission::create(['app_name' => 'admin', 'pid' => 0, 'obj' => '', 'act' => '', 'name' => '业务开发', 'resource_type' => 'group', 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'controller_development']);
     $permissions = [];
     foreach (['modules', 'module', 'targets', 'fieldcapabilities', 'createvisual', 'databasetables', 'databasetableschema', 'previewformalgeneration', 'formalgeneration', 'generations'] as $action) {
-        $permission = app\admin\authorization\model\Permission::create(['app_name' => 'admin', 'code' => 'admin/development.business:' . $action, 'obj' => 'admin/development.business', 'act' => $action, 'name' => $action, 'resource_type' => 'route', 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture']);
+        $permission = app\admin\authorization\model\Permission::create(['app_name' => 'admin', 'pid' => (int) $permissionGroup->id, 'code' => 'development.business:' . $action, 'obj' => 'admin/development.business', 'act' => $action, 'name' => $action, 'resource_type' => 'route', 'status' => 1, 'source_type' => 'admin_web', 'source_name' => 'fixture']);
         $permissions[$action] = (int) $permission->id;
     }
     $casbin->syncRolePermissions(2, [$permissions['modules'], $permissions['module'], $permissions['fieldcapabilities']]);

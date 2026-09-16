@@ -17,18 +17,18 @@ $registry = new class extends ResourceRegistryService {
 try {
     $transaction = new GenerationResourceTransaction($registry);
     (new ReflectionProperty($transaction, 'active'))->setValue($transaction, true);
-    $transaction->apply([['resourceKey' => 'permission|sample|admin/generated:sample:list', 'code' => 'admin/generated:sample:list']]);
+    $transaction->apply([['resourceKey' => 'permission|sample|generated:sample:list', 'code' => 'generated:sample:list']]);
     if (count($registry->calls) !== 2 || $registry->calls[0] !== ['remove', 'generated', 'sample']) throw new RuntimeException('资源注册未委托真实命名空间服务');
 
     $definition = \app\common\crud\CrudDefinition::fromArray([
         'entity' => 'order-test', 'title' => '测试可视化', 'routePath' => '/generated/order-test',
-        'permissionPrefix' => 'admin/generated:order-test', 'menu' => ['hidden' => true, 'affix' => true],
+        'permissionPrefix' => 'generated:order-test', 'menu' => ['hidden' => true, 'affix' => true],
     ]);
     $service = (new ReflectionClass(\app\admin\development\service\ManagedGenerationService::class))->newInstanceWithoutConstructor();
     $resources = (new ReflectionMethod($service, 'resourcesFromDefinition'))->invoke($service, $definition);
     $menu = array_values(array_filter($resources, static fn (array $item): bool => $item['resourceType'] === 'menu'))[0];
     parse_str($menu['query'] ?? '', $meta);
-    if (($meta['permission'] ?? '') !== 'admin/generated:order-test:list') {
+    if (($meta['permission'] ?? '') !== 'generated:order-test:list') {
         throw new RuntimeException('Definition 到资源计划必须生成 canonical 页面权限');
     }
     if (($meta['component'] ?? '') !== 'generated/order-test/index' || ($meta['formKey'] ?? '') !== 'order_test'

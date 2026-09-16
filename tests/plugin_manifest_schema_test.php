@@ -55,12 +55,12 @@ $valid = [
         'source' => 'admin-web',
         'components' => ['Index' => 'Index.vue'],
         'minFrontendVersion' => '1.0.0',
-        'permissions' => [['code' => 'admin/demo:dashboard:view', 'name' => '查看演示']],
+        'permissions' => [['code' => 'demo:dashboard:view', 'name' => '查看演示']],
         'menu' => [
-            ['name' => '演示', 'path' => '/plugin/demo/index', 'permission' => 'admin/demo:dashboard:view'],
-            ['name' => '插件列表', 'path' => '/plugin/demo/plugins', 'permission' => 'admin/system:plugin:list'],
+            ['name' => '演示', 'path' => '/plugin/demo/index', 'permission' => 'demo:dashboard:view'],
+            ['name' => '插件列表', 'path' => '/plugin/demo/plugins', 'permission' => 'system:plugin:list'],
         ],
-        'routes' => [['path' => '/plugin/demo/index', 'name' => 'Plugin_demo_Index', 'component' => 'Index', 'meta' => ['permission' => 'admin/demo:dashboard:view']]],
+        'routes' => [['path' => '/plugin/demo/index', 'name' => 'Plugin_demo_Index', 'component' => 'Index', 'meta' => ['permission' => 'demo:dashboard:view']]],
     ],
     'resources' => ['public' => ['source' => 'resources/public', 'target' => 'plugin-assets/demo/public']],
     'migrations' => ['path' => 'database/migrations'],
@@ -82,12 +82,12 @@ $case = $valid; $case['load'] = []; $cases[] = [$case, 'Manifest v2 必须拒绝
 $case = $valid; $case['channels'] = []; $cases[] = [$case, 'Manifest v2 必须拒绝 channels'];
 $case = $valid; $case['resources']['public']['target'] = '../core'; $cases[] = [$case, '资源目标路径越界必须拒绝'];
 $case = $valid; $case['entry']['class'] = 'plugins\\other\\Plugin'; $cases[] = [$case, 'entry namespace 与 code 不一致必须拒绝'];
-$case = $valid; $case['adminWeb']['permissions'][0]['code'] = 'admin/other:dashboard:view'; $cases[] = [$case, '插件不得声明其他插件命名空间权限'];
+$case = $valid; $case['adminWeb']['permissions'][0]['code'] = 'other:dashboard:view'; $cases[] = [$case, '插件不得声明其他插件命名空间权限'];
 $case = $valid; $case['adminWeb']['permissions'][0]['code'] = 'demo:view'; $cases[] = [$case, '插件权限必须使用三段格式'];
-$case = $valid; $case['adminWeb']['menu'][0]['permission'] = 'admin/other:dashboard:view'; $cases[] = [$case, '菜单不得引用其他插件权限'];
-$case = $valid; $case['adminWeb']['menu'][0]['permission'] = 'admin/demo:settings:view'; $cases[] = [$case, '菜单不得引用未声明权限'];
-$case = $valid; $case['adminWeb']['menu'][1]['permission'] = 'admin/system:plugin:delete'; $cases[] = [$case, '菜单不得引用核心写权限'];
-$case = $valid; $case['adminWeb']['routes'][0]['meta']['permission'] = 'admin/other:dashboard:view'; $cases[] = [$case, '路由不得引用其他插件权限'];
+$case = $valid; $case['adminWeb']['menu'][0]['permission'] = 'other:dashboard:view'; $cases[] = [$case, '菜单不得引用其他插件权限'];
+$case = $valid; $case['adminWeb']['menu'][0]['permission'] = 'demo:settings:view'; $cases[] = [$case, '菜单不得引用未声明权限'];
+$case = $valid; $case['adminWeb']['menu'][1]['permission'] = 'system:plugin:delete'; $cases[] = [$case, '菜单不得引用核心写权限'];
+$case = $valid; $case['adminWeb']['routes'][0]['meta']['permission'] = 'other:dashboard:view'; $cases[] = [$case, '路由不得引用其他插件权限'];
 $case = $valid; unset($case['adminWeb']); $case['admin_web'] = ['entry' => 'entry.js']; $cases[] = [$case, '旧 admin_web 必须拒绝'];
 $case = $valid; $case['adminWeb']['rebuildRequired'] = true; $cases[] = [$case, 'rebuildRequired 不得写入 plugin.json'];
 $case = $valid; $case['adminWeb']['components'] = []; $cases[] = [$case, 'components 不得为空'];

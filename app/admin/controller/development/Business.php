@@ -76,7 +76,7 @@ final class Business extends AdminApiController
     #[Pattern('id', '\\d+')]
     public function deleteModule(int $id): Response
     {
-        if (!(new AdminAuthorizationService())->nodeAccess('admin/development.business:saveschema')) {
+        if (!(new AdminAuthorizationService())->nodeAccess('admin/development.business/saveschema')) {
             return $this->fail(msg: '缺少业务模块管理权限', code: 403);
         }
         return $this->execute(fn (): array => $this->business->deleteModule($id), '业务模块已删除');

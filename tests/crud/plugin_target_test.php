@@ -49,7 +49,7 @@ function pluginDefinition(string $scope, array $overrides = []): CrudDefinition
         'table' => 'shop_product_item', 'title' => '商品', 'apiPrefix' => '/catalog/product-item',
         'routePath' => '/catalog/product-item', 'primaryKey' => 'id', 'timestamps' => true, 'softDeletes' => true,
         'target' => ['type' => 'plugin', 'plugin' => 'shop', 'scope' => $scope],
-        'permissionPrefix' => 'admin/shop:product-item',
+        'permissionPrefix' => 'shop:product-item',
         'fields' => [
             ['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true, 'list' => true],
             ['name' => 'name', 'dbType' => 'varchar(80)', 'nullable' => false, 'required' => true, 'list' => true, 'form' => true, 'detail' => true],
@@ -244,9 +244,9 @@ try {
         } else {
             pluginCrudExpect(($merged['adminWeb']['components']['ProductItem'] ?? '') === 'product-item/index.vue', 'Manifest component 未结构化合并');
             $permissionCodes = array_column($merged['adminWeb']['permissions'], 'code');
-            pluginCrudExpect(in_array('admin/shop:product-item:list', $permissionCodes, true), 'Manifest list permission 未声明');
-            pluginCrudExpect(in_array('admin/shop:product-item:create', $permissionCodes, true), 'Manifest create permission 未声明');
-            pluginCrudExpect(in_array('admin/shop:product-item:delete', $permissionCodes, true), 'Manifest delete permission 未声明');
+            pluginCrudExpect(in_array('shop:product-item:list', $permissionCodes, true), 'Manifest list permission 未声明');
+            pluginCrudExpect(in_array('shop:product-item:create', $permissionCodes, true), 'Manifest create permission 未声明');
+            pluginCrudExpect(in_array('shop:product-item:delete', $permissionCodes, true), 'Manifest delete permission 未声明');
         }
     }
 
@@ -298,7 +298,7 @@ try {
     pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['generationTargets' => ['model' => 'app/console/model/Escape.php']]), $root), 'generationTargets');
     pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['entity' => '../escape']), $root), 'entity');
     pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['table' => 'shop_product;drop']), $root), 'table');
-    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['permissionPrefix' => 'admin/system:plugin:list']), $root), '插件权限');
+    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['permissionPrefix' => 'system:plugin:list']), $root), '插件权限');
 
     $tokens = new ConfirmationToken($root, 'plugin-crud-drift');
     $generator = new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', $tokens);
@@ -479,7 +479,7 @@ try {
     pluginCrudExpect(($applicationManifest['externalTables'][0]['table'] ?? '') === 'legacy_stock', 'application 采纳也必须声明外部表依赖');
     $inferredPermissionCodes = array_column($inferredManifest['adminWeb']['permissions'], 'code');
     pluginCrudExpect(
-        in_array('admin/shop:stock-item:list', $inferredPermissionCodes, true),
+        in_array('shop:stock-item:list', $inferredPermissionCodes, true),
         'make-crud infer 必须声明 route/menu 引用的 list 权限'
     );
 
@@ -521,10 +521,10 @@ try {
     $concurrentTokens = new ConfirmationToken($root, 'plugin-crud-concurrent');
     $concurrentGenerator = new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', $concurrentTokens);
     $firstConcurrent = pluginDefinition('application', [
-        'entity' => 'warehouse-one', 'table' => 'shop_warehouse_one', 'permissionPrefix' => 'admin/shop:warehouse-one',
+        'entity' => 'warehouse-one', 'table' => 'shop_warehouse_one', 'permissionPrefix' => 'shop:warehouse-one',
     ]);
     $secondConcurrent = pluginDefinition('application', [
-        'entity' => 'warehouse-two', 'table' => 'shop_warehouse_two', 'permissionPrefix' => 'admin/shop:warehouse-two',
+        'entity' => 'warehouse-two', 'table' => 'shop_warehouse_two', 'permissionPrefix' => 'shop:warehouse-two',
     ]);
     $firstConcurrentPlan = $concurrentGenerator->plan($firstConcurrent);
     $secondConcurrentPlan = $concurrentGenerator->plan($secondConcurrent);

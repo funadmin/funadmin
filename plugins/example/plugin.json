@@ -19,10 +19,10 @@
     "components": { "Index": "Index.vue" },
     "minFrontendVersion": "1.0.0",
     "permissions": [
-      { "code": "admin/example:dashboard:view", "name": "查看示例插件" }
+      { "code": "example:dashboard:view", "name": "查看示例插件" }
     ],
     "menu": [
-      { "name": "示例插件", "path": "/plugin/example/index", "permission": "admin/example:dashboard:view" }
+      { "name": "示例插件", "path": "/plugin/example/index", "permission": "example:dashboard:view" }
     ],
     "routes": [
       {
@@ -31,7 +31,7 @@
         "component": "Index",
         "meta": {
           "title": "示例插件",
-          "permission": "admin/example:dashboard:view"
+          "permission": "example:dashboard:view"
         }
       }
     ]

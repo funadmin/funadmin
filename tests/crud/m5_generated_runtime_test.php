@@ -106,7 +106,7 @@ try {
             'detail' => 'admin-web/src/views/generated/m5-record/components/M5RecordDetail.vue',
         ],
         'apiPrefix' => '/generated/m5-record',
-        'permissionPrefix' => 'admin/generated:m5-record',
+        'permissionPrefix' => 'generated:m5-record',
         'fields' => [
             ['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true, 'detail' => true],
             ['name' => 'name', 'label' => '名称 <script>', 'dbType' => 'varchar(80)', 'nullable' => false, 'required' => true, 'maxLength' => 80, 'unique' => true, 'search' => true, 'searchOperator' => 'like', 'sortable' => true, 'list' => true, 'form' => true, 'detail' => true],
@@ -159,7 +159,7 @@ try {
     $uuidData['primaryKey'] = 'uuid';
     $uuidData['title'] = 'M5 UUID 记录';
     $uuidData['routePath'] = '/generated/m5-uuid-record';
-    $uuidData['permissionPrefix'] = 'admin/generated:m5-uuid-record';
+    $uuidData['permissionPrefix'] = 'generated:m5-uuid-record';
     foreach ($uuidData['generationTargets'] as &$path) {
         $path = str_replace(['m5_record', 'M5Record', 'm5-record'], ['m5_uuid_record', 'M5UuidRecord', 'm5-uuid-record'], $path);
     }
@@ -186,7 +186,7 @@ try {
     $withoutStatusData['table'] = 'fun_m5_without_status';
     $withoutStatusData['title'] = 'M5 无状态记录';
     $withoutStatusData['routePath'] = '/generated/m5-without-status';
-    $withoutStatusData['permissionPrefix'] = 'admin/generated:m5-without-status';
+    $withoutStatusData['permissionPrefix'] = 'generated:m5-without-status';
     foreach ($withoutStatusData['generationTargets'] as &$path) {
         $path = str_replace(['m5_uuid_record', 'M5UuidRecord', 'm5-uuid-record'], ['m5_without_status', 'M5WithoutStatus', 'm5-without-status'], $path);
     }
@@ -407,10 +407,10 @@ try {
     }
     m5Expect(Db::name('admin_menu')->where('source_type', 'generated')->where('source_name', 'm5-record')->count() === 1, 'permission migration 必须注册菜单');
     $codes = Db::name('permission')->where('source_type', 'generated')->where('source_name', 'm5-record')->column('code');
-    foreach (['admin/generated:m5-record:list', 'admin/generated:m5-record:options', 'admin/generated:m5-record:delete', 'admin/generated:m5-record:destroy', 'admin/generated:m5-record:import', 'admin/generated:m5-record:export'] as $code) {
+    foreach (['generated:m5-record:list', 'generated:m5-record:options', 'generated:m5-record:delete', 'generated:m5-record:destroy', 'generated:m5-record:import', 'generated:m5-record:export'] as $code) {
         m5Expect(in_array($code, $codes, true), 'permission migration 缺少权限：' . $code);
     }
-    $optionsPermission = Db::name('permission')->where('code', 'admin/generated:m5-record:options')->find();
+    $optionsPermission = Db::name('permission')->where('code', 'generated:m5-record:options')->find();
     m5Expect(
         ($optionsPermission['obj'] ?? null) === 'console/generated.m5recordcontroller'
         && ($optionsPermission['act'] ?? null) === 'options',
@@ -419,7 +419,7 @@ try {
     $menu = Db::name('admin_menu')->where('source_type', 'generated')->where('source_name', 'm5-record')->find();
     m5Expect(
         (int) ($menu['permission_id'] ?? 0) > 0
-        && str_contains((string) ($menu['query'] ?? ''), 'permission=admin/generated:m5-record:list'),
+        && str_contains((string) ($menu['query'] ?? ''), 'permission=generated:m5-record:list'),
         '生成菜单必须绑定权限组并声明页面访问权限'
     );
 

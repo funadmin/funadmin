@@ -46,7 +46,7 @@ const permissionList: PermissionModel[] = [
     parentId: 227,
     appName: 'admin',
     code: `systempermission:${action}`,
-    object: 'systempermission',
+    object: 'admin/systempermission',
     action: String(action),
     name: String(name),
     resourceType: 'route' as const,

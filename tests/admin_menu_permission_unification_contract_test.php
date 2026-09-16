@@ -16,26 +16,29 @@ $expect = static function (bool $condition, string $message) use (&$failures): v
 };
 $migration = (string) @file_get_contents($root . '/database/migrations/130_admin_web_route_permission_canonical.sql');
 $seed = (string) file_get_contents($root . '/admin-web/src/mock/data/adminSeed.ts');
+$businessController = (string) file_get_contents($root . '/app/admin/controller/development/Business.php');
+$expect(str_contains($businessController, "nodeAccess('admin/development.business/saveschema')"), '删除业务模块必须按内部资源路径校验 saveschema 权限');
+$expect(!str_contains($businessController, "nodeAccess('admin/development.business:saveschema')"), '删除业务模块不得把内部资源路径写成权限 code');
 $auth = (new ReflectionClass(AdminAuth::class))->newInstanceWithoutConstructor();
 $webPermissions = (new ReflectionClass(AdminAuth::class))->getMethod('webPermissions');
 $resources = [
-    ['user', 'system.SystemAdmin', 'index', 'admin/system:user:list', true],
-    ['role', 'authorization.SystemRole', 'index', 'admin/system:role:list', true],
-    ['department', 'system.SystemDepartment', 'tree', 'admin/system:dept:list', true],
-    ['dictionary', 'system.SystemDict', 'types', 'admin/system:dict:list', true],
-    ['config', 'system.SystemConfig', 'index', 'admin/system:config:list', true],
-    ['attachment', 'system.SystemAttachment', 'index', 'admin/system:attachment:list', true],
-    ['attachment_group', 'system.SystemAttachmentGroup', 'tree', 'admin/system:attachment-group:list', false],
-    ['member', 'system.SystemMember', 'index', 'admin/system:member:list', true],
-    ['member_level', 'system.SystemMemberLevel', 'index', 'admin/system:member-level:list', true],
-    ['member_group', 'system.SystemMemberGroup', 'index', 'admin/system:member-group:list', true],
-    ['language', 'system.SystemLanguage', 'index', 'admin/system:language:list', true],
-    ['permission', 'authorization.SystemPermission', 'tree', 'admin/system:permission:list', true],
-    ['operation_log', 'system.SystemOperationLog', 'index', 'admin/system:log:operation:list', true],
-    ['blacklist', 'system.SystemBlacklist', 'index', 'admin/system:blacklist:list', false],
-    ['upload', 'system.AdminUpload', 'upload', 'admin/system:attachment:upload', false],
-    ['profile', 'authentication.AdminProfile', 'index', 'admin/adminprofile:index', false],
-    ['plugin_center', 'system.SystemPlugin', 'installed', 'admin/system:plugin:list', true],
+    ['user', 'system.SystemAdmin', 'index', 'system:user:list', true],
+    ['role', 'authorization.SystemRole', 'index', 'system:role:list', true],
+    ['department', 'system.SystemDepartment', 'tree', 'system:dept:list', true],
+    ['dictionary', 'system.SystemDict', 'types', 'system:dict:list', true],
+    ['config', 'system.SystemConfig', 'index', 'system:config:list', true],
+    ['attachment', 'system.SystemAttachment', 'index', 'system:attachment:list', true],
+    ['attachment_group', 'system.SystemAttachmentGroup', 'tree', 'system:attachment-group:list', false],
+    ['member', 'system.SystemMember', 'index', 'system:member:list', true],
+    ['member_level', 'system.SystemMemberLevel', 'index', 'system:member-level:list', true],
+    ['member_group', 'system.SystemMemberGroup', 'index', 'system:member-group:list', true],
+    ['language', 'system.SystemLanguage', 'index', 'system:language:list', true],
+    ['permission', 'authorization.SystemPermission', 'tree', 'system:permission:list', true],
+    ['operation_log', 'system.SystemOperationLog', 'index', 'system:log:operation:list', true],
+    ['blacklist', 'system.SystemBlacklist', 'index', 'system:blacklist:list', false],
+    ['upload', 'system.AdminUpload', 'upload', 'system:attachment:upload', false],
+    ['profile', 'authentication.AdminProfile', 'index', 'adminprofile:index', false],
+    ['plugin_center', 'system.SystemPlugin', 'installed', 'system:plugin:list', true],
 ];
 foreach ($resources as [$sourceName, $controller, $action, $webCode, $hasMockMenu]) {
     $resource = PermissionResource::fromParts('admin', $controller, $action);
@@ -44,7 +47,7 @@ foreach ($resources as [$sourceName, $controller, $action, $webCode, $hasMockMen
     $expect(str_contains($migration, "'{$sourceName}'"), "130 缺少 source_name {$sourceName}");
     $expect(str_contains($migration, "'{$legacyObj}'"), "130 缺少旧资源 {$legacyObj}");
     $expect(str_contains($migration, "'{$resource['obj']}'"), "130 缺少 canonical {$resource['obj']}");
-    if (str_starts_with($webCode, 'admin/system:')) {
+    if (str_starts_with($webCode, 'system:')) {
         $codes = $webPermissions->invoke($auth, [$resource['code']], false);
         $expect(in_array($webCode, $codes, true), "{$resource['code']} 必须继续下发 {$webCode}");
     }
@@ -64,8 +67,13 @@ $expect(!(bool) preg_match('/(?:INSERT|UPDATE|DELETE)[\s\S]{0,120}`ptype`\s*=\s*
 foreach (['development/', 'identity/', 'form.data', 'system:upgrade'] as $excluded) {
     $expect(!str_contains($migration, $excluded), "130 不得迁移 {$excluded}");
 }
-$developmentCodes = $webPermissions->invoke($auth, ['admin/development.business:modules'], false);
-$expect(in_array('admin/development:business:view', $developmentCodes, true), 'development 按钮码必须按 canonical 格式下发');
+$developmentCodes = $webPermissions->invoke($auth, ['development.business:modules'], false);
+$expect(in_array('development:business:view', $developmentCodes, true), 'development 按钮码必须按 canonical 格式下发');
+$authConfig = (string) file_get_contents($root . '/config/funadmin.php');
+foreach (['development.business:designactioncatalog', 'systemoperationlog:detail', 'systempermission:detail', 'systemmenu:permissionoptions'] as $code) {
+    $expect(str_contains($authConfig, "'{$code}' =>"), "路由权限别名必须使用无应用前缀 code：{$code}");
+    $expect(!str_contains($authConfig, "'admin/{$code}' =>"), "路由权限别名不得重复包含 admin 应用名：{$code}");
+}
 if ($failures) {
     fwrite(STDERR, implode("\n", $failures) . "\n");
     exit(1);
