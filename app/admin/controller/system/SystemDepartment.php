@@ -31,7 +31,7 @@ class SystemDepartment extends AdminApiController
     public function tree(): Response
     {
         $query = Department::order('sort_order', 'asc')->order('id', 'asc');
-        $allowedIds = $this->allowedDepartmentIds();
+        $allowedIds = Department::allowedIds();
         if ($allowedIds !== null) {
             $query->whereIn('id', $allowedIds ?: [0]);
         }
@@ -43,7 +43,7 @@ class SystemDepartment extends AdminApiController
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
-        $rows = array_map(fn (Department $department): array => $this->departmentData($department), $query->select()->all());
+        $rows = array_map(fn (Department $department): array => $department->toApiData(), $query->select()->all());
         if ($allowedIds !== null) {
             $visible = array_fill_keys(array_map('intval', $allowedIds), true);
             foreach ($rows as &$row) {
@@ -62,26 +62,26 @@ class SystemDepartment extends AdminApiController
     public function detail(int $id): Response
     {
         $department = Department::find($id);
-        if (!$department || !$this->canAccessDepartment($id)) {
+        if (!$department || !Department::canAccess($id)) {
             return $this->fail(msg: '部门不存在或无权访问', code: 404);
         }
-        return $this->ok(data: $this->departmentData($department));
+        return $this->ok(data: $department->toApiData());
     }
 
     #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
-        if ($error = $this->validatePayload($data)) {
+        if ($error = Department::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] <= 0 && !(new RoleScopeService())->isSuperAdmin()) {
             return $this->fail(msg: '只有超级管理员可以创建顶级部门', code: 403);
         }
-        if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->find() || !$this->canAccessDepartment($data['pid']))) {
+        if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->find() || !Department::canAccess($data['pid']))) {
             return $this->fail(msg: '上级部门不存在、已停用或无权访问', code: 422);
         }
-        return $this->ok('创建成功', $this->departmentData(Department::create($data)));
+        return $this->ok('创建成功', Department::create($data)->toApiData());
     }
 
     #[Put(':id')]
@@ -89,11 +89,11 @@ class SystemDepartment extends AdminApiController
     public function update(int $id): Response
     {
         $department = Department::find($id);
-        if (!$department || !$this->canAccessDepartment($id)) {
+        if (!$department || !Department::canAccess($id)) {
             return $this->fail(msg: '部门不存在或无权访问', code: 404);
         }
         $data = $this->payload(false);
-        if ($error = $this->validatePayload($data, false)) {
+        if ($error = Department::validateAttributes($data, false)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (isset($data['pid'])) {
@@ -105,7 +105,7 @@ class SystemDepartment extends AdminApiController
                 if (!$parent) {
                     return $this->fail(msg: '上级部门不存在或已停用', code: 422);
                 }
-                if (!$this->canAccessDepartment((int) $data['pid'])) {
+                if (!Department::canAccess((int) $data['pid'])) {
                     return $this->fail(msg: '不能移动到数据范围外的部门', code: 403);
                 }
             }
@@ -115,7 +115,7 @@ class SystemDepartment extends AdminApiController
             }
         }
         $department->save($data);
-        return $this->ok('保存成功', $this->departmentData($department));
+        return $this->ok('保存成功', $department->toApiData());
     }
 
     #[Delete(':id')]
@@ -138,7 +138,7 @@ class SystemDepartment extends AdminApiController
         $scopeService = new DataScopeService();
         $subtreeIds = [];
         foreach ($ids as $departmentId) {
-            if (!$this->canAccessDepartment($departmentId)) {
+            if (!Department::canAccess($departmentId)) {
                 return $this->fail(msg: '包含数据范围外的部门', code: 403);
             }
             $subtreeIds = array_merge($subtreeIds, $scopeService->departmentSubtreeIds($departmentId));
@@ -159,21 +159,6 @@ class SystemDepartment extends AdminApiController
             $department->delete();
         }
         return $this->ok('删除成功', ['removed' => count($departments)]);
-    }
-
-    private function allowedDepartmentIds(): ?array
-    {
-        if ((new RoleScopeService())->isSuperAdmin()) {
-            return null;
-        }
-        $scope = (new DataScopeService())->resolve();
-        return array_map('intval', $scope['departmentIds']);
-    }
-
-    private function canAccessDepartment(int $departmentId): bool
-    {
-        $allowedIds = $this->allowedDepartmentIds();
-        return $allowedIds === null || in_array($departmentId, $allowedIds, true);
     }
 
     private function payload(bool $create = true): array
@@ -203,28 +188,4 @@ class SystemDepartment extends AdminApiController
         return $data;
     }
 
-    private function validatePayload(array $data, bool $create = true): ?string
-    {
-        if (($create || array_key_exists('name', $data)) && (($data['name'] ?? '') === '' || mb_strlen((string) $data['name']) > 100)) {
-            return '部门名称不能为空且不能超过 100 个字符';
-        }
-        if (isset($data['email']) && $data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return '邮箱格式不正确';
-        }
-        return null;
-    }
-
-    private function departmentData(Department $department): array
-    {
-        return [
-            'id' => (int) $department->id,
-            'parentId' => (int) $department->pid,
-            'name' => (string) $department->name,
-            'leader' => (string) $department->leader,
-            'phone' => (string) $department->phone,
-            'email' => (string) $department->email,
-            'sort' => (int) $department->sort_order,
-            'status' => (int) $department->status,
-        ];
-    }
 }

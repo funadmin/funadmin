@@ -39,7 +39,7 @@ class SystemLanguage extends AdminApiController
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
         return $this->ok(data: $this->paginationData(
-            array_map(fn (Language $language): array => $this->languageData($language), $result->items()),
+            array_map(fn (Language $language): array => $language->toApiData(), $result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -52,7 +52,7 @@ class SystemLanguage extends AdminApiController
     {
         $language = Language::find($id);
         return $language
-            ? $this->ok(data: $this->languageData($language))
+            ? $this->ok(data: $language->toApiData())
             : $this->fail(msg: '语言不存在', code: 404);
     }
 
@@ -60,7 +60,7 @@ class SystemLanguage extends AdminApiController
     public function create(): Response
     {
         $name = $this->name();
-        if ($error = $this->validateName($name)) {
+        if ($error = Language::validateAttributes($name)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (Language::withTrashed()->where('name', $name)->find()) {
@@ -73,7 +73,7 @@ class SystemLanguage extends AdminApiController
             'status' => 1,
         ]);
         Cache::clear();
-        return $this->ok('创建成功', $this->languageData($language));
+        return $this->ok('创建成功', $language->toApiData());
     }
 
     #[Put(':id')]
@@ -84,12 +84,12 @@ class SystemLanguage extends AdminApiController
         if (!$language) {
             return $this->fail(msg: '语言不存在', code: 404);
         }
-        if ($this->isDefault($language)) {
+        if ($language->isDefaultLanguage()) {
             return $this->fail(msg: '默认语言不能重命名', code: 422);
         }
 
         $name = $this->name((string) $language->name);
-        if ($error = $this->validateName($name)) {
+        if ($error = Language::validateAttributes($name)) {
             return $this->fail(msg: $error, code: 422);
         }
         if (Language::withTrashed()->where('name', $name)->where('id', '<>', $id)->find()) {
@@ -98,7 +98,7 @@ class SystemLanguage extends AdminApiController
 
         $language->save(['name' => $name]);
         Cache::clear();
-        return $this->ok('保存成功', $this->languageData($language));
+        return $this->ok('保存成功', $language->toApiData());
     }
 
     #[Delete(':id')]
@@ -124,7 +124,7 @@ class SystemLanguage extends AdminApiController
             return $this->fail(msg: '部分语言不存在', code: 404);
         }
         foreach ($languages as $language) {
-            if ($this->isDefault($language)) {
+            if ($language->isDefaultLanguage()) {
                 return $this->fail(msg: '默认语言不能删除', code: 422);
             }
         }
@@ -138,34 +138,5 @@ class SystemLanguage extends AdminApiController
     private function name(string $default = ''): string
     {
         return trim((string) $this->request->post('name', $default));
-    }
-
-    private function validateName(string $name): ?string
-    {
-        $length = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
-        if ($name === '') {
-            return '语言名称不能为空';
-        }
-        if ($length > 20) {
-            return '语言名称不能超过 20 个字符';
-        }
-        return null;
-    }
-
-    private function isDefault(Language $language): bool
-    {
-        return (int) $language->is_default === 1 || strtolower((string) $language->name) === 'zh-cn';
-    }
-
-    private function languageData(Language $language): array
-    {
-        return [
-            'id' => (int) $language->id,
-            'name' => (string) $language->name,
-            'isDefault' => (int) $language->is_default,
-            'status' => (int) $language->status,
-            'createdAt' => $this->formatTime($language->created_at),
-            'updatedAt' => $this->formatTime($language->updated_at),
-        ];
     }
 }

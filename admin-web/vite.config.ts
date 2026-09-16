@@ -47,6 +47,11 @@ export default defineConfig(({ mode }) => {
             '/install.php': {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true
+            },
+            // 上传接口返回后端相对路径 /storage/...，开发环境需代理到后端才能显示头像等文件
+            '^/storage(?:/|$)': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
             }
           }
         : undefined
