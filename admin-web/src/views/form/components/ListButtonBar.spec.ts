@@ -223,3 +223,16 @@ describe('真实共享按钮组件', () => {
     wrapper.vm.cancel(); expect(await pending).toBeNull(); wrapper.unmount();
   });
 });
+
+describe('表格操作栏样式契约', () => {
+  it('行级(link)按钮只渲染文字，工具栏按钮保留图标', () => {
+    const withIcon: FormListButton = { ...edit, icon: 'edit' };
+    const rowBar = mount(Bar, { props: { buttons: [withIcon], handlers: { edit: vi.fn() }, allowed: () => true, link: true }, global: { plugins: [ElementPlus], provide } });
+    expect(rowBar.find('.el-icon').exists()).toBe(false);
+    expect(rowBar.text()).toContain('修改名称');
+    rowBar.unmount();
+    const toolbarBar = mount(Bar, { props: { buttons: [withIcon], handlers: { edit: vi.fn() }, allowed: () => true }, global: { plugins: [ElementPlus], provide } });
+    expect(toolbarBar.find('.el-icon').exists()).toBe(true);
+    toolbarBar.unmount();
+  });
+});

@@ -30,7 +30,7 @@
             <span>{{ selectedModule.code }}</span>
           </div>
           <span v-else>全部业务模块</span>
-          <el-button data-action="back-to-mine" @click="router.push('/development/business/mine')">返回我的业务</el-button>
+          <el-button data-action="back-to-mine" @click="router.push('/development/business/mine')"><i class="i-ep-back" /> 返回我的业务</el-button>
         </div>
       </template>
 

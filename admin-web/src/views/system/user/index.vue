@@ -105,13 +105,13 @@
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
                 <el-button size="small" type="primary" link v-perm="'system:user:edit'" @click="onEdit(row as UserModel)">
-                  <i class="i-ep-edit" /> 编辑
+                  编辑
                 </el-button>
                 <el-button size="small" type="warning" link v-perm="'system:user:reset'" @click="onResetPwd(row as UserModel)">
-                  <i class="i-ep-key" /> 重置密码
+                  重置密码
                 </el-button>
                 <el-button size="small" type="danger" link v-perm="'system:user:delete'" @click="onDelete(row as UserModel)">
-                  <i class="i-ep-delete" /> 删除
+                  删除
                 </el-button>
               </div>
             </template>

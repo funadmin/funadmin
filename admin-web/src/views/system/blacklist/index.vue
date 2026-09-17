@@ -16,8 +16,8 @@
       </template>
 
       <template #toolbar-left>
-        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)">正常列表</el-button>
-        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)">回收站</el-button>
+        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)"><i class="i-ep-list" /> 正常列表</el-button>
+        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> 回收站</el-button>
         <template v-if="!recycled">
           <el-button type="primary" plain v-perm="'system:blacklist:add'" @click="openAdd">
             <i class="i-ep-plus" /> 新增

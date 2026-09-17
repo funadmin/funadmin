@@ -75,7 +75,7 @@ function onReset() {
 <style scoped>
 .search-form__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 360px));
+  grid-template-columns: repeat(auto-fit, 320px);
   gap: 12px 20px;
   align-items: center;
   width: 100%;
@@ -85,6 +85,11 @@ function onReset() {
   min-width: 0;
   margin-right: 0;
   margin-bottom: 0;
+}
+
+/* label 文本左对齐：避免右对齐时在行首留下空白 label 槽，搜索区整体贴左。 */
+.search-form__grid :deep(.el-form-item__label) {
+  justify-content: flex-start;
 }
 
 .search-form__grid :deep(.el-form-item__content) {

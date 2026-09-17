@@ -1,7 +1,7 @@
 <template>
   <span v-if="items.length" class="inline-flex flex-wrap items-center gap-2" @click.stop>
     <template v-for="item in inline" :key="item.button.id">
-      <span :title="item.state.reason || item.button.tips"><el-button :link="link" :type="item.button.color === 'default' ? undefined : item.button.color" :plain="item.button.plain" :size="item.button.size" :disabled="busy || lock?.busy || item.state.disabled" @click="execute(item.button)"><el-icon v-if="icons[item.button.icon ?? '']"><component :is="icons[item.button.icon ?? '']" /></el-icon>{{ item.button.label }}</el-button></span>
+      <span :title="item.state.reason || item.button.tips"><el-button :link="link" :type="item.button.color === 'default' ? undefined : item.button.color" :plain="link ? item.button.plain : (item.button.plain ?? (item.button.color !== undefined && item.button.color !== 'default'))" :size="item.button.size" :disabled="busy || lock?.busy || item.state.disabled" @click="execute(item.button)"><el-icon v-if="!link && icons[iconKey(item.button.icon)]"><component :is="icons[iconKey(item.button.icon)]" /></el-icon>{{ item.button.label }}</el-button></span>
     </template>
     <el-dropdown v-if="more.length" trigger="click" @command="button => execute(button)"><el-button :disabled="busy || lock?.busy">更多</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-for="item in more" :key="item.button.id" :command="item.button" :disabled="busy || lock?.busy || item.state.disabled" :title="item.state.reason || item.button.tips">{{ item.button.label }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
   </span>
@@ -12,7 +12,7 @@
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { type FormListActionCatalog } from '@/api/formData';
-import { Plus, Edit, Delete, View, Refresh, Download, Upload, Search } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, DeleteFilled, View, Refresh, RefreshLeft, Download, Upload, Search, List, FolderRemove, Back } from '@element-plus/icons-vue';
 import type { Component } from 'vue';
 import type { FormListButton } from '../schema/types';
 import { useListButtonAdapter, listButtonAdapterAllowed, listActionKey, listButtonState, type ListButtonHandlers } from '../runtime/listButtonHost';
@@ -23,7 +23,9 @@ import { executeListResource, isListResource } from '../runtime/listResourceHost
 const router = inject(routerKey, undefined);
 const props = defineProps<{ buttons: FormListButton[]; handlers: ListButtonHandlers; allowed: (button: FormListButton) => boolean; row?: Record<string, unknown>; values?: Record<string, unknown>; fields?: string[]; link?: boolean; lock?: { busy: boolean }; refresh?: () => Promise<void>; clearSelection?: () => void; close?: () => void; preview?: boolean; context?: ListButtonContext; contextVersion?: string | number; permissionCheck?: (code: string) => boolean; localHost?: { state: (button: FormListButton) => { visible: boolean; disabled: boolean }; invoke: (button: FormListButton) => unknown; token: () => string } }>();
 const emit = defineEmits<{ error: [error: unknown] }>();
-const icons: Record<string, Component> = { plus: Plus, edit: Edit, delete: Delete, view: View, refresh: Refresh, download: Download, upload: Upload, search: Search };
+const icons: Record<string, Component> = { plus: Plus, edit: Edit, delete: Delete, 'delete-filled': DeleteFilled, view: View, refresh: Refresh, 'refresh-left': RefreshLeft, download: Download, upload: Upload, search: Search, list: List, 'folder-remove': FolderRemove, back: Back };
+// schema 图标统一为 i-ep-* 命名（与 DefinitionValidator 一致），渲染前剥离前缀查组件表。
+const iconKey = (icon?: string) => (icon ?? '').replace(/^i-ep-/, '');
 const interaction = ref<InstanceType<typeof ListButtonInteraction>>();
 const busy = ref(false);
 const catalog = ref<FormListActionCatalog>();

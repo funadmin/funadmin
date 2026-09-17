@@ -37,8 +37,8 @@ final class MemberPageDefinition
             ['key' => 'deletedAt', 'label' => '删除时间', 'prop' => 'deletedAt', 'width' => 170, 'visibleWhen' => $recycled],
             ['key' => 'actions', 'label' => '操作', 'slot' => 'actions', 'width' => 120, 'align' => 'center', 'fixed' => 'right', 'visibleWhen' => $active],
         ])->toolbar([
-            $action('normal', '正常列表', 'primary', ['activeWhen' => $active, 'inactiveColor' => 'info']),
-            $action('recycled', '回收站', 'warning', ['activeWhen' => $recycled, 'inactiveColor' => 'info']),
+            $action('normal', '正常列表', 'primary', ['icon' => 'i-ep-list', 'activeWhen' => $active, 'inactiveColor' => 'info']),
+            $action('recycled', '回收站', 'warning', ['icon' => 'i-ep-folder-remove', 'activeWhen' => $recycled, 'inactiveColor' => 'info']),
             $action('add', '新增', 'primary', ['icon' => 'i-ep-plus', 'permission' => 'system:member:add', 'visibleWhen' => $active]),
             $action('recycle', '移入回收站', 'danger', ['icon' => 'i-ep-delete', 'permission' => 'system:member:delete', 'visibleWhen' => $active, 'disabledWhen' => $empty, 'selectionCount' => true]),
             $action('import', 'CSV 导入', 'info', ['icon' => 'i-ep-upload', 'permission' => 'system:member:import', 'visibleWhen' => $active]),

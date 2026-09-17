@@ -82,13 +82,13 @@
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
                 <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:add'" @click="onAdd(asPermission(row))">
-                  <i class="i-ep-plus" /> 新增子项
+                  新增子项
                 </el-button>
                 <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:edit'" @click="onEdit(asPermission(row))">
-                  <i class="i-ep-edit" /> 编辑
+                  编辑
                 </el-button>
                 <el-button v-if="!row.readOnly" type="danger" link v-perm="'system:permission:delete'" @click="onDelete(asPermission(row))">
-                  <i class="i-ep-delete" /> 删除
+                  删除
                 </el-button>
               </div>
             </template>

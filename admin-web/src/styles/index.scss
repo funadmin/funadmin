@@ -235,6 +235,20 @@ html.dark .el-tag.el-tag--info {
   font-weight: 500;
 }
 
+/*
+ * 弹窗垂直居中：全局等价 Element Plus align-center。
+ * flex 居中 + margin auto：内容矮于视口时上下居中；高于视口时 auto 边距坍为 0，
+ * 弹窗顶对齐并保留遮罩层滚动，避免顶部内容不可达。
+ */
+.el-overlay-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.el-dialog {
+  margin: auto !important;
+}
+
 /* 按钮：圆角、图标与文字对齐、默认/主色层次（列表页查询区通用） */
 .el-button {
   /* 6px 圆角比默认 4px 更柔和，贴近图1参考设计 */
@@ -242,7 +256,8 @@ html.dark .el-tag.el-tag--info {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  /* 图标与文字间距：比 Element Plus 默认 6px 略宽，头部操作按钮更透气 */
+  gap: 8px;
   font-weight: 500;
   transition:
     color 0.15s ease,

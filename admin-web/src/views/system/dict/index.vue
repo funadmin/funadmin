@@ -69,10 +69,10 @@
                 <template #default="{ row }">
                   <div class="app-table-actions app-table-actions--link">
                     <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click.stop="onEditType(row as DictType)">
-                      <i class="i-ep-edit" /> 编辑
+                      编辑
                     </el-button>
                     <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click.stop="onDeleteType(row as DictType)">
-                      <i class="i-ep-delete" /> 删除
+                      删除
                     </el-button>
                   </div>
                 </template>
@@ -176,10 +176,10 @@
                   <template #default="{ row }">
                     <div class="app-table-actions app-table-actions--link">
                       <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click="onEditItem(row as DictItemModel)">
-                        <i class="i-ep-edit" /> 编辑
+                        编辑
                       </el-button>
                       <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click="onDeleteItem(row as DictItemModel)">
-                        <i class="i-ep-delete" /> 删除
+                        删除
                       </el-button>
                     </div>
                   </template>

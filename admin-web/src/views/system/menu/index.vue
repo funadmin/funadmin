@@ -105,16 +105,16 @@
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
                 <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:create'" @click="onAdd(row as API.MenuItem)">
-                  <i class="i-ep-plus" /> 新增子项
+                  新增子项
                 </el-button>
                 <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:update'" @click="onEdit(row as API.MenuItem)">
-                  <i class="i-ep-edit" /> 编辑
+                  编辑
                 </el-button>
                 <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
-                  <i class="i-ep-delete" /> 删除
+                  删除
                 </el-button>
                 <el-button v-else-if="row.orphaned && row.removable" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
-                  <i class="i-ep-delete" /> 清理孤儿资源
+                  清理孤儿资源
                 </el-button>
               </div>
             </template>

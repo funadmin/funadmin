@@ -134,13 +134,17 @@ onMounted(() => { document.addEventListener('click', closeContextMenu); void loa
 <style scoped>
 .role-workspace { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); min-height: calc(100vh - 190px); gap: 16px; }
 .role-tree-card, .role-detail-card { border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); box-shadow: 0 4px 18px rgb(15 23 42 / 4%); }
-.role-workspace__tree { padding: 0 14px 14px; overflow: auto; }
+.role-workspace__tree { padding: 0 14px 14px; overflow: auto; display: flex; flex-direction: column; }
+.role-workspace__tree .role-tree-card__header,
+.role-workspace__tree .role-tree-card__search { flex-shrink: 0; }
+/* 树组件撑满左卡剩余高度，节点多时在卡内滚动 */
+.role-workspace__tree :deep(.el-tree) { flex: 1; overflow: auto; }
 .role-tree-card__header { display: flex; align-items: center; justify-content: space-between; padding: 18px 4px 14px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .role-tree-card__header h3 { margin: 0 0 4px; font-size: 15px; color: var(--el-text-color-primary); }
 .role-tree-card__header span { color: var(--el-text-color-secondary); font-size: 12px; }
 .role-tree-card__search { margin: 14px 0 10px; }
 .role-detail-card { min-width: 0; padding: 0 22px 22px; overflow: auto; }
-.role-workspace__toolbar { display: flex; justify-content: flex-end; padding: 14px 0 10px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.role-workspace__toolbar { display: flex; justify-content: flex-start; padding: 14px 0 10px; border-bottom: 1px solid var(--el-border-color-lighter); }
 .role-toolbar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .role-node { display: flex; width: 100%; justify-content: space-between; align-items: center; padding-right: 8px; }
 .role-detail__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--el-border-color-lighter); }
