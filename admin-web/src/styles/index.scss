@@ -279,6 +279,17 @@ html.dark .el-tag.el-tag--info {
   /* 图标色强制跟随按钮文字色（含 plain 的语义色覆盖；盖过 Uno 图标工具里可能出现的固定色） */
   color: inherit !important;
 }
+/*
+ * 按钮内图标与文字间距：EP 将默认 slot 整体包进单个 span（按钮的唯一 flex 子项），
+ * 按钮级 gap 无法作用于包裹层内部的图标与文字（ListButtonBar、SearchForm 等
+ * 工具栏按钮均把图标写进默认 slot）。将包裹层设为 inline-flex 容器，
+ * 使图标与文字（匿名 flex 项）获得与按钮级一致的 gap。
+ */
+.el-button > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /*
  * 主按钮（实色）：所有主题统一语言 —— 实底主色 + 白字 + 轻阴影。
