@@ -1830,7 +1830,7 @@ html.dark .el-progress-bar__outer {
 
 /* —— el-tree —— */
 .el-tree {
-  --el-tree-node-content-height: 32px;
+  --el-tree-node-content-height: 40px;
   background-color: transparent;
   color: var(--app-text);
   font-size: 13px;
@@ -1867,7 +1867,7 @@ html.dark .el-progress-bar__outer {
 
 /* —— el-tree-select 弹层（弹层走 popover 同源已在 J 段命中，这里只补节点）—— */
 .el-tree-select__popper.el-popper .el-tree-node__content {
-  height: 32px;
+  height: 40px;
 }
 
 /* —— 暗色：tree hover/选中底色加深一档，避免 alpha-8 在 #161b22 上看不到 —— */

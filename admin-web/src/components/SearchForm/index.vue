@@ -87,9 +87,9 @@ function onReset() {
   margin-bottom: 0;
 }
 
-/* label 文本左对齐：避免右对齐时在行首留下空白 label 槽，搜索区整体贴左。 */
+/* label 文本右对齐（Element Plus 默认）：标签贴近输入框，行首不留悬浮文字。 */
 .search-form__grid :deep(.el-form-item__label) {
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .search-form__grid :deep(.el-form-item__content) {

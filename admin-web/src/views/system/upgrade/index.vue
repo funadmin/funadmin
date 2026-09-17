@@ -2,8 +2,8 @@
   <PageWrapper title="系统升级" subtitle="校验升级包、备份项目文件并执行可恢复升级">
     <el-alert class="mb-4" type="warning" :closable="false" title="升级会依次执行校验、解压、备份、部署、migration；失败时自动恢复已备份文件。" />
     <div class="mb-4 flex flex-wrap gap-2">
-      <el-button type="primary" v-perm="'system:upgrade:check'" :loading="checking" @click="check">检查更新</el-button>
-      <el-button v-if="manifest" type="success" v-perm="'system:upgrade:execute'" :loading="executing" @click="execute">升级到 {{ manifest.version }}</el-button>
+      <el-button type="primary" plain v-perm="'system:upgrade:check'" :loading="checking" @click="check">检查更新</el-button>
+      <el-button v-if="manifest" type="success" plain v-perm="'system:upgrade:execute'" :loading="executing" @click="execute">升级到 {{ manifest.version }}</el-button>
       <el-button v-perm="'system:upgrade:upload'" @click="uploadInput?.click()">离线 ZIP 升级</el-button>
       <input ref="uploadInput" class="hidden" type="file" accept=".zip" @change="upload" />
       <el-button @click="load">刷新任务</el-button>

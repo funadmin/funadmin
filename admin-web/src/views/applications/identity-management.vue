@@ -6,8 +6,8 @@
         <el-option label="成功" value="success" /><el-option label="失败" value="failure" />
       </el-select>
       <el-button @click="load">刷新</el-button>
-      <el-button v-if="mode === 'scopes'" type="primary" @click="openScope()">新建 Scope</el-button>
-      <el-button v-if="mode === 'keys'" type="primary" @click="rotateKey">轮换密钥</el-button>
+      <el-button v-if="mode === 'scopes'" type="primary" plain @click="openScope()">新建 Scope</el-button>
+      <el-button v-if="mode === 'keys'" type="primary" plain @click="rotateKey">轮换密钥</el-button>
     </div>
 
     <el-tabs v-if="mode === 'sessions'" v-model="sessionTab" @tab-change="load">

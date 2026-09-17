@@ -7,15 +7,15 @@
     </div>
     <div class="mb-4 flex gap-2">
       <el-input v-model="keyword" clearable placeholder="搜索应用名称或标识" class="max-w-80" @keyup.enter="load" />
-      <el-button type="primary" @click="load">搜索</el-button>
-      <el-button type="success" @click="openCreate">新建应用</el-button>
+      <el-button type="primary" plain @click="load">搜索</el-button>
+      <el-button type="success" plain @click="openCreate">新建应用</el-button>
       <el-radio-group v-model="viewMode"><el-radio-button value="card">卡片</el-radio-button><el-radio-button value="list">列表</el-radio-button></el-radio-group>
     </div>
     <div v-loading="loading" :class="viewMode === 'card' ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3' : 'space-y-3'">
       <el-card v-for="item in applications" :key="item.id">
         <template #header><div class="flex items-center justify-between"><strong>{{ item.name }}</strong><el-tag>{{ item.status }}</el-tag></div></template>
         <p>{{ item.description || '-' }}</p><p class="text-sm text-gray-500">{{ item.code }} · {{ item.runtimeType }}</p>
-        <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" :disabled="!canLaunchApplication(item)" @click="launch(item)">进入应用</el-button><el-button @click="openSettings(item)">设置</el-button><el-button v-if="item.status === 'draft'" type="success" @click="publish(item)">发布</el-button><el-button v-if="item.status === 'published'" type="warning" @click="disable(item)">停用</el-button><el-button v-if="item.status !== 'published'" type="danger" @click="remove(item)">删除</el-button></div>
+        <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">进入应用</el-button><el-button @click="openSettings(item)">设置</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">发布</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">停用</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">删除</el-button></div>
       </el-card>
     </div>
     <el-drawer v-model="drawerVisible" :title="selectedId ? '应用设置' : '新建应用'" size="620px">
@@ -25,7 +25,7 @@
         <el-tab-pane label="域名" name="domains"><el-form label-width="120"><el-form-item label="Identity 回调"><el-input v-model="domain.identityCallback" @input="domainTouched = true" /></el-form-item><el-form-item label="Logout 回调"><el-input v-model="domain.logoutCallback" @input="domainTouched = true" /></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="访问范围" name="assignments"><el-alert title="支持全部、用户、部门、角色的 allow/deny；显式拒绝始终优先。私有应用只有 user allow 可额外授权。" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item label="主体"><el-select v-model="assignment.subjectType"><el-option label="全部" value="all"/><el-option label="用户" value="user"/><el-option label="部门" value="department"/><el-option label="角色" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" label="主体 ID"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item label="效果"><el-radio-group v-model="assignment.effect"><el-radio value="allow">允许</el-radio><el-radio value="deny">拒绝</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="品牌" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item label="主色"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="OAuth" name="oauth"><el-alert title="OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。" type="info" :closable="false"/><el-button class="mt-3" type="primary" :disabled="selectedId <= 0" @click="openOAuthManagement">管理 OAuth Client</el-button></el-tab-pane>
+        <el-tab-pane label="OAuth" name="oauth"><el-alert title="OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。" type="info" :closable="false"/><el-button class="mt-3" type="primary" plain :disabled="selectedId <= 0" @click="openOAuthManagement">管理 OAuth Client</el-button></el-tab-pane>
       </el-tabs>
       <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button type="primary" @click="saveSettings">保存</el-button></template>
     </el-drawer>

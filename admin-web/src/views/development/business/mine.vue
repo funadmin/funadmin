@@ -17,7 +17,7 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button v-if="creationPath" data-action="create-business" type="primary" @click="router.push({ path: creationPath, query: route.query })"><i class="i-ep-plus" />创建业务</el-button>
+        <el-button v-if="creationPath" data-action="create-business" type="primary" plain @click="router.push({ path: creationPath, query: route.query })"><i class="i-ep-plus" />创建业务</el-button>
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">
         <BusinessPageState

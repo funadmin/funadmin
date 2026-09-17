@@ -59,7 +59,7 @@
     </el-table>
 
     <template v-else>
-      <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" @click="loadMarket">搜索</el-button></div>
+      <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" plain @click="loadMarket">搜索</el-button></div>
       <el-table v-loading="loading" :data="marketItems" border>
         <el-table-column prop="code" label="插件标识" width="130" /><el-table-column prop="name" label="名称" width="150" />
         <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />

@@ -32,7 +32,7 @@
           </div>
         </template>
         <p class="description">{{ item.description || '暂无说明' }}</p>
-        <el-button type="primary" :disabled="!item.available" @click="launch(item)">进入应用</el-button>
+        <el-button type="primary" plain :disabled="!item.available" @click="launch(item)">进入应用</el-button>
         <p v-if="item.availabilityReason" class="reason" role="status">{{ item.availabilityReason }}</p>
       </el-card>
     </div>

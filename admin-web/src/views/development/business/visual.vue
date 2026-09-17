@@ -1,14 +1,14 @@
 <template>
   <PageWrapper title="创建业务" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
     <el-card shadow="never">
-      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-3xl">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-6xl">
         <el-form-item label="创建方式">
           <el-radio-group v-model="mode" :disabled="submitting" aria-label="创建方式" class="creation-mode">
             <el-radio-button value="created">创建新表</el-radio-button>
             <el-radio-button value="adopted">使用已有表</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <p v-if="permissionNotice" role="alert">{{ permissionNotice }}</p>
+        <p v-if="permissionNotice" class="form-span-full" role="alert">{{ permissionNotice }}</p>
         <el-form-item label="业务目标">
           <el-select v-model="selected" :loading="targetsLoading" :disabled="submitting" aria-label="业务目标">
             <el-option v-for="item in candidates" :key="item.pluginCode || 'core'" :label="candidateLabel(item)" :disabled="item.available === false" :value="item.pluginCode || ''" />
@@ -43,12 +43,12 @@
           <el-input v-model="form.connection" :disabled="Boolean(selected)" aria-describedby="business-connection-help" />
           <span id="business-connection-help" class="field-help">填写已配置的数据库连接标识。</span>
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item label="备注" class="form-span-full">
           <el-input v-model="form.remark" type="textarea" :rows="4" maxlength="1000" show-word-limit aria-describedby="business-remark-help" />
           <span id="business-remark-help" class="field-help">可选，最多 1000 个字符。</span>
         </el-form-item>
         <div class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement }}</div>
-        <BusinessPageState v-if="mode === 'adopted' && canInspect" :loading="inspecting" :error="inspectionError" :empty="!inspection" :empty-text="inspectionNotice || '选择或输入已有数据表后，请先检查结构'" :on-retry="form.existingTable && canInspect ? inspect : undefined">
+        <BusinessPageState v-if="mode === 'adopted' && canInspect" class="form-span-full" :loading="inspecting" :error="inspectionError" :empty="!inspection" :empty-text="inspectionNotice || '选择或输入已有数据表后，请先检查结构'" :on-retry="form.existingTable && canInspect ? inspect : undefined">
           <template v-if="inspection">
             <el-alert :title="inspectionSummary" :type="inspectionBlockReason ? 'warning' : 'success'" :closable="false" class="mb-3" />
             <dl class="inspection-meta mb-3">
@@ -75,7 +75,7 @@
             </div>
           </template>
         </BusinessPageState>
-        <el-form-item>
+        <el-form-item class="form-span-full">
           <div class="form-actions">
             <el-button v-if="canSubmitMode" data-action="submit" type="primary" :loading="submitting" :disabled="submitting || !targetAvailable || (mode === 'adopted' && !canAdopt)" @click="submit">{{ mode === 'created' ? '创建并开始设计' : '采纳并进入设计器' }}</el-button>
             <el-button :disabled="submitting" @click="cancel">取消</el-button>
@@ -317,6 +317,15 @@ async function submit() {
 </script>
 
 <style scoped>
+/* 双排自适应：宽屏两列、窄屏单列；备注/检查结果/操作行跨满两列 */
+.business-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+}
+.business-form .form-span-full {
+  grid-column: 1 / -1;
+}
 .inspection-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
 .inspection-meta div { min-width: 0; }
 .inspection-meta dt { color: var(--el-text-color-secondary); font-size: 12px; }
@@ -351,6 +360,7 @@ async function submit() {
 }
 
 @media (max-width: 640px) {
+  .business-form { grid-template-columns: 1fr; }
   .inspection-meta { grid-template-columns: 1fr; }
   .field-table-scroll { display: none; }
   .field-cards { display: grid; gap: 10px; }
