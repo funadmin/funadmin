@@ -1,12 +1,13 @@
 <template>
   <PageWrapper title="创建业务" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
     <el-card shadow="never">
-      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-6xl">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-4xl">
         <el-form-item label="创建方式">
           <el-radio-group v-model="mode" :disabled="submitting" aria-label="创建方式" class="creation-mode">
-            <el-radio-button value="created">创建新表</el-radio-button>
-            <el-radio-button value="adopted">使用已有表</el-radio-button>
+            <el-radio value="created">创建新表</el-radio>
+            <el-radio value="adopted">使用已有表</el-radio>
           </el-radio-group>
+          <span class="field-help">创建新表由插件拥有并经迁移建表；使用已有表仅引用表结构，不取得所有权。</span>
         </el-form-item>
         <p v-if="permissionNotice" class="form-span-full" role="alert">{{ permissionNotice }}</p>
         <el-form-item label="业务目标">
@@ -317,11 +318,12 @@ async function submit() {
 </script>
 
 <style scoped>
-/* 双排自适应：宽屏两列、窄屏单列；备注/检查结果/操作行跨满两列 */
+/* 双排自适应：宽屏两列、窄屏单列；备注/检查结果/操作行跨满两列。
+   宽度收敛到 4xl，避免宽屏下输入框被拉伸得松散 */
 .business-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 24px;
+  column-gap: 28px;
 }
 .business-form .form-span-full {
   grid-column: 1 / -1;

@@ -27,7 +27,7 @@
       <slot name="toolbar-extra" />
     </template>
     <template #default="{ size, stripe, border, headerCellStyle, columnKeys }">
-      <el-table ref="table" :data="displayRows" :row-key="definition.primaryKey || 'id'" :tree-props="{ children: '__listChildren' }" v-loading="loading" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" @selection-change="emit('selectionChange', $event)" @sort-change="emit('sortChange', $event)">
+      <el-table ref="table" :data="displayRows" :row-key="definition.primaryKey || 'id'" :tree-props="{ children: '__listChildren' }" :default-expand-all="treeEnabled" v-loading="loading" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" @selection-change="emit('selectionChange', $event)" @sort-change="emit('sortChange', $event)">
         <template v-for="column in columns.filter(item => !columnKeys?.length || columnKeys.includes(item.key))" :key="column.key">
           <el-table-column v-if="column.type === 'selection'" type="selection" :width="column.width" :align="column.align" />
           <el-table-column v-else :prop="column.prop" :label="column.label" :width="column.width" :min-width="column.minWidth" :align="column.align" :fixed="column.fixed" :sortable="column.sortable ? 'custom' : false">

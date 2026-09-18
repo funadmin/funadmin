@@ -404,7 +404,7 @@ describe('BusinessVisual', () => {
     expect(state.form.table).toBe('new_orders');
     expect(mocks.push).not.toHaveBeenCalled();
     expect(window.confirm).not.toHaveBeenCalled();
-    expect(visualSource).toContain('el-radio-button');
+    expect(visualSource).toContain('<el-radio value="created">');
     expect(wrapper.text()).not.toContain('改为采纳已有表');
     wrapper.unmount();
   });

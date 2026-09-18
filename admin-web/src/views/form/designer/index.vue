@@ -60,20 +60,6 @@
       </template>
     </el-dialog>
 
-    <div v-show="workspaceMode === 'edit'" class="designer-edit-only">
-    <el-alert
-      class="designer-guide mb-3"
-      type="info"
-      :closable="false"
-      show-icon
-    >
-      <template #title>
-        <span>第一步：完善基本信息</span><span>第二步：拖入控件</span><span>第三步：配置字段</span><span>第四步：保存并发布</span>
-      </template>
-    </el-alert>
-
-    </div>
-
     <el-tabs v-model="activeTab" class="designer-tabs">
       <el-tab-pane label="基本信息" name="basic" :lazy="false">
     <el-card shadow="never" class="mb-3">
@@ -1034,11 +1020,6 @@ onBeforeUnmount(() => {
 :deep(.designer-toolbar .el-tag) {
   font-size: 14px;
   padding: 0 15px;
-}
-.designer-guide :deep(.el-alert__title) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
 }
 .publish-config-grid {
   display: grid;

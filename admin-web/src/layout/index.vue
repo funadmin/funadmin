@@ -431,12 +431,17 @@ html:not(.dark) .app-layout.menu-theme--fresh .app-layout__sidebar :deep(.el-sub
   width: 100%;
   box-sizing: border-box;
   border-bottom: 1px solid var(--app-sidebar-separator);
+  /* 通栏 Logo 靠左：与窄轨图标列左缘对齐，不再居中于双栏总宽 */
+  justify-content: flex-start;
+  padding-left: 22px;
 }
 .app-layout__columns-aside.is-rail-only .app-layout__columns-logo {
   width: 72px;
 }
 .app-layout__columns-aside.is-rail-only .app-layout__columns-logo :deep(.app-logo) {
   padding: 0;
+  /* 窄轨-only 折叠态恢复居中，避免图标贴边 */
+  justify-content: center;
 }
 .app-layout__columns-menus {
   flex: 1;
