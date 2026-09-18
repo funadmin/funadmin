@@ -1,7 +1,7 @@
 <template>
   <PageWrapper title="创建业务" subtitle="创建业务模块草稿后进入统一 FormSchema v2 设计器">
     <el-card shadow="never">
-      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="business-form max-w-4xl">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="left" label-width="100px" class="business-form max-w-4xl">
         <el-form-item label="创建方式">
           <el-radio-group v-model="mode" :disabled="submitting" aria-label="创建方式" class="creation-mode">
             <el-radio value="created">创建新表</el-radio>
@@ -47,6 +47,22 @@
         <el-form-item label="备注" class="form-span-full">
           <el-input v-model="form.remark" type="textarea" :rows="4" maxlength="1000" show-word-limit aria-describedby="business-remark-help" />
           <span id="business-remark-help" class="field-help">可选，最多 1000 个字符。</span>
+        </el-form-item>
+        <el-form-item label="树形表格">
+          <el-switch v-model="form.treeEnabled" :disabled="submitting || mode === 'created'" aria-describedby="business-tree-help" />
+          <span id="business-tree-help" class="field-help">采纳已有表可直接绑定父级字段；创建新表请创建后在设计器“树形与分类”开启。</span>
+        </el-form-item>
+        <el-form-item v-if="form.treeEnabled && mode === 'adopted'" label="父级字段">
+          <el-select v-model="form.treeParentField" filterable :disabled="submitting" placeholder="选择存储父记录主键的标量字段">
+            <el-option v-for="field in scalarInspectionFields" :key="String(field.name)" :label="String(field.label || field.name)" :value="String(field.name)" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="form.treeEnabled && mode === 'adopted'" label="新增页父级选择">
+          <el-radio-group v-model="form.treeSelectionMode" :disabled="submitting">
+            <el-radio value="single">单选</el-radio>
+            <el-radio value="multiple">多选</el-radio>
+          </el-radio-group>
+          <span class="field-help">新增/编辑页父级字段以当前记录树呈现：单选为树选择，多选为可勾选树。</span>
         </el-form-item>
         <div class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement }}</div>
         <BusinessPageState v-if="mode === 'adopted' && canInspect" class="form-span-full" :loading="inspecting" :error="inspectionError" :empty="!inspection" :empty-text="inspectionNotice || '选择或输入已有数据表后，请先检查结构'" :on-retry="form.existingTable && canInspect ? inspect : undefined">
@@ -121,7 +137,8 @@ const permissionNotice = computed(() => mode.value === 'created'
   : !canInspect.value ? '无结构检查权限，不能检查或采纳已有表。'
     : !canCreateFromDatabase.value ? '当前为只读检查，无采纳权限，不能提交。' : '');
 const inspectPending = ref(false);
-const form = reactive({ name: '', code: '', table: '', existingTable: '', connection: 'mysql', remark: '' });
+const form = reactive({ name: '', code: '', table: '', existingTable: '', connection: 'mysql', remark: '', treeEnabled: false, treeParentField: '', treeSelectionMode: 'single' as 'single' | 'multiple' });
+const scalarInspectionFields = computed(() => (inspection.value?.fields ?? []).filter((field: Record<string, unknown>) => !field.primary && !/(text|json|blob|binary|date|time)/i.test(String(field.dbType ?? ''))));
 const identifier = /^[a-z_][a-z0-9_]*$/;
 const rules: FormRules = {
   name: [{ required: true, message: '请输入业务名称', trigger: 'blur' }],
@@ -279,6 +296,9 @@ async function submit() {
     if (mode.value === 'created') normalize();
     if (!await formRef.value?.validate() || !canSubmitMode.value || !canLoadTargets.value) return;
     const { existingTable, ...visualForm } = form;
+    const listConfig = form.treeEnabled && mode.value === 'adopted' && form.treeParentField
+      ? { tree: { enabled: true, parentField: form.treeParentField, selectionMode: form.treeSelectionMode } }
+      : {};
     let result;
     if (mode.value === 'adopted') {
       const inspected = inspection.value;
@@ -290,9 +310,9 @@ async function submit() {
         { type: 'warning', confirmButtonText: '确认采纳', cancelButtonText: '取消' }
       );
       if (!canSubmitMode.value || !canLoadTargets.value || !targetAvailable.value || selectedTarget !== JSON.stringify(target.value) || inspection.value !== inspected || !canAdopt.value) return;
-      result = await businessDevelopmentApi.createFromDatabase({ ...visualForm, name: form.name.trim(), code: form.code.trim(), connection: form.connection.trim(), table: existingTable, target: target.value, expectedInspectionHash: inspected.snapshotHash });
+      result = await businessDevelopmentApi.createFromDatabase({ ...visualForm, listConfig, name: form.name.trim(), code: form.code.trim(), connection: form.connection.trim(), table: existingTable, target: target.value, expectedInspectionHash: inspected.snapshotHash });
     } else {
-      result = await businessDevelopmentApi.createVisual({ ...visualForm, target: target.value });
+      result = await businessDevelopmentApi.createVisual({ ...visualForm, listConfig, target: target.value });
     }
     dirty.value = false;
     await router.push({ path: '/development/business/designer', query: { id: String(result.module.form_id), moduleId: String(result.module.id) } });

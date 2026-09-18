@@ -170,8 +170,9 @@ export function parsePageSchema(value: unknown): PageSchema {
   if (owns(p, 'list')) {
     const list = record(p.list, ['category', 'leftTree', 'buttons', 'tree', 'tools']);
     if (owns(list, 'tree')) {
-      const tree = record(list.tree, ['enabled', 'parentField']);
+      const tree = record(list.tree, ['enabled', 'parentField', 'selectionMode']);
       if (typeof tree.enabled !== 'boolean' || (owns(tree, 'parentField') && !identifier(tree.parentField)) || (tree.enabled && !tree.parentField)) fail();
+      if (owns(tree, 'selectionMode') && !['single', 'multiple'].includes(String(tree.selectionMode))) fail();
     }
     if (owns(list, 'tools')) {
       const tools = record(list.tools, ['refresh', 'search', 'columns', 'density', 'fullscreen']);

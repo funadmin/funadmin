@@ -23,11 +23,9 @@
         <BusinessPageState
           :loading="loading"
           :error="loadError"
-          :empty="!loading && !loadError && list.length === 0"
-          :empty-text="emptyText"
           :on-retry="loadData"
         >
-          <el-table :data="list" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle">
+          <el-table :data="list" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" :empty-text="emptyText">
             <el-table-column prop="name" label="业务模块" min-width="180"><template #default="{ row }"><div>{{ row.name }}</div><small>{{ row.code }}</small></template></el-table-column>
             <el-table-column prop="origin" label="来源" width="110"><template #default="{ row }"><el-tag effect="plain">{{ originLabel(row.origin) }}</el-tag></template></el-table-column>
             <el-table-column label="所属插件" min-width="160"><template #default="{ row }">{{ row.metadata?.target?.type === 'plugin' ? row.metadata.target.pluginCode : '核心后台' }}<small v-if="row.metadata?.target?.locked"> · 已锁定</small></template></el-table-column>

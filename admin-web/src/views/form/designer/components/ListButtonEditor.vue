@@ -1,11 +1,17 @@
 <template>
-  <section class="mb-4">
-    <div class="flex flex-wrap gap-2 items-center"><strong>{{ title }}</strong><el-button size="small" @click="add">添加按钮</el-button><el-button size="small" @click="emit('update', [])">全部隐藏</el-button><el-button size="small" @click="emit('update', undefined)">恢复默认</el-button></div>
-    <p class="text-xs text-[var(--el-text-color-secondary)]">{{ modelValue === undefined ? '继承宿主默认按钮' : modelValue.length ? '使用自定义按钮' : '空集合：全部隐藏' }}；显示配置不会授予权限或开启业务能力。</p>
-    <div class="list-button-items"><div v-for="(button, index) in buttons" :key="button.id" class="flex gap-2 items-center my-2">
-      <span>{{ button.label }} · {{ button.action.type === 'builtin' ? button.action.key : button.action.type }}</span>
-      <el-button size="small" @click="edit(index)">配置</el-button><el-button size="small" :disabled="index === 0" @click="move(index, -1)">上移</el-button><el-button size="small" :disabled="index === buttons.length - 1" @click="move(index, 1)">下移</el-button><el-button size="small" type="danger" @click="remove(index)">移除</el-button>
-    </div></div>
+  <section class="list-button-block mb-4">
+    <div class="list-button-block__header">
+      <strong>{{ title }}</strong>
+      <span class="list-button-block__actions"><el-button size="small" @click="add">添加按钮</el-button><el-button size="small" @click="emit('update', [])">全部隐藏</el-button><el-button size="small" @click="emit('update', undefined)">恢复默认</el-button></span>
+    </div>
+    <p class="list-button-block__help">{{ modelValue === undefined ? '继承宿主默认按钮' : modelValue.length ? '使用自定义按钮' : '空集合：全部隐藏' }}；显示配置不会授予权限或开启业务能力。</p>
+    <div class="list-button-items">
+      <div v-for="(button, index) in buttons" :key="button.id" class="list-button-row">
+        <span class="list-button-row__label" :title="`${button.label} · ${button.action.type === 'builtin' ? button.action.key : button.action.type}`">{{ button.label }} · {{ button.action.type === 'builtin' ? button.action.key : button.action.type }}</span>
+        <span class="list-button-row__actions"><el-button size="small" @click="edit(index)">配置</el-button><el-button size="small" :disabled="index === 0" @click="move(index, -1)">上移</el-button><el-button size="small" :disabled="index === buttons.length - 1" @click="move(index, 1)">下移</el-button><el-button size="small" type="danger" plain @click="remove(index)">移除</el-button></span>
+      </div>
+      <div v-if="!buttons.length" class="list-button-empty">暂无按钮</div>
+    </div>
     <el-drawer v-model="visible" :title="`${title}配置`" size="min(560px, 96vw)" append-to-body>
       <el-form v-if="draft" label-width="100px" size="small" class="button-form">
         <el-alert v-if="unsupported" title="未注册、无权限或目录不可用：保留原配置，不代表可执行或可发布。" type="warning" :closable="false" />
@@ -208,7 +214,51 @@ function save() {
 .button-form :deep(.el-form-item) { margin-bottom: 12px; }
 .button-form :deep(.el-select) { width: 100%; }
 .parameter-row { display: grid; grid-template-columns: minmax(120px, 0.7fr) minmax(140px, 1fr) minmax(120px, 1fr) auto; gap: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid var(--el-border-color); border-radius: 4px; }
-.list-button-items { display: grid; gap: 4px; }
+.list-button-items { display: grid; gap: 2px; }
+.list-button-block {
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background: var(--el-fill-color-blank);
+}
+.list-button-block__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.list-button-block__actions { display: inline-flex; gap: 8px; }
+.list-button-block__help {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.list-button-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.list-button-row:hover { background: var(--el-fill-color-light); }
+.list-button-row__label {
+  flex: 0 0 200px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.list-button-row__actions { display: inline-flex; gap: 8px; }
+.list-button-empty {
+  padding: 8px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: center;
+}
 .parameter-notice { margin: 8px 0; }
 @media (max-width: 900px) { .parameter-row { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .parameter-row { grid-template-columns: 1fr; } }

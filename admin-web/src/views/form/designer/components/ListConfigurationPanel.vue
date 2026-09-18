@@ -1,8 +1,6 @@
 <template>
-  <el-card shadow="never" class="mb-4">
-    <template #header>列表展示配置</template>
-    <el-alert title="独立分类请选择“可管理分类”，绑定已发布分类业务的真实记录；“选项筛选”仅展示静态选项或字典，不提供分类增删改。两种左侧栏互斥，均可配合树形列表。" type="info" :closable="false" />
-    <el-form label-width="110px" class="mt-3">
+  <el-card shadow="never" class="mb-4" :class="{ 'list-panel--buttons-only': buttonsOnly }">
+    <el-form label-width="110px" :class="{ 'mt-3': !buttonsOnly }">
       <el-tabs v-model="activeTab">
       <el-tab-pane v-if="props.mode !== 'buttons'" label="选项筛选" name="category">
       <el-form-item label="选项筛选"><el-switch :model-value="modelValue.category?.enabled ?? false" @change="enabled => category({ enabled: Boolean(enabled) })" /></el-form-item>
@@ -12,7 +10,7 @@
         </el-select>
       </el-form-item>
       </el-tab-pane>
-      <el-tab-pane v-if="props.mode !== 'buttons'" label="树形列表" name="tree">
+      <el-tab-pane v-if="props.mode !== 'buttons'" label="树形与分类" name="treeleft">
       <el-form-item label="树形列表"><el-switch :model-value="modelValue.tree?.enabled ?? false" @change="enabled => tree({ enabled: Boolean(enabled) })" /></el-form-item>
       <el-form-item v-if="modelValue.tree?.enabled" label="父级字段">
         <el-select :model-value="modelValue.tree.parentField" filterable placeholder="选择存储父记录主键的字段" @change="parentField => tree({ parentField })">
@@ -20,8 +18,14 @@
         </el-select>
         <div class="text-xs text-[var(--el-text-color-secondary)]">主键自动读取实际表主键；树列表不分页，最多 1000 条授权记录，超限需缩小筛选范围。</div>
       </el-form-item>
-      </el-tab-pane>
-      <el-tab-pane v-if="props.mode !== 'buttons'" label="可管理分类" name="leftTree">
+      <el-form-item v-if="modelValue.tree?.enabled" label="新增页父级选择">
+        <el-radio-group :model-value="modelValue.tree.selectionMode ?? 'single'" @change="mode => tree({ selectionMode: mode as 'single' | 'multiple' })">
+          <el-radio value="single">单选</el-radio>
+          <el-radio value="multiple">多选</el-radio>
+        </el-radio-group>
+        <div class="text-xs text-[var(--el-text-color-secondary)]">新增/编辑页父级字段以当前记录树呈现：单选为树选择，多选为可勾选树。</div>
+      </el-form-item>
+      <el-divider />
       <el-form-item label="可管理分类"><el-switch :model-value="left.enabled" @change="value => updateLeft({ enabled: Boolean(value) })" /></el-form-item>
       <template v-if="left.enabled">
         <el-alert title="独立分类请选择已发布业务，右表关联字段保存分类主键。来源须有读取权限；新增、子级、编辑、删除还需对应权限。父级可留空（平面分类）；插件来源暂不支持快捷管理。" :closable="false" />
@@ -40,7 +44,10 @@
       </el-tab-pane>
       <el-tab-pane v-if="props.mode !== 'categories'" label="按钮与工具" name="buttons">
         <div class="list-button-section">
-          <div class="list-button-actions"><el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog">重新加载动作目录</el-button></div>
+          <div class="list-button-actions">
+            <span class="list-button-actions__hint">各位置可选的“注册动作”来自服务端设计目录（按路由权限过滤）；服务端新增或调整动作后点此刷新。</span>
+            <el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog"><i class="i-ep-refresh" />重新加载动作目录</el-button>
+          </div>
         <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? categoryButtonFields : buttonFields" :filter-fields="scalarFields.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name)" :category-fields="categoryButtonFields" :resources="resources" :actions="actionCatalogs[location.key]" :catalog-error="catalogErrors[location.key]" :builtin-keys="builtinKeys(location.key)" :resource-enabled="!pluginTarget && (!location.key.startsWith('category') || left.enabled)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
         </div>
         <el-divider>通用工具</el-divider>
@@ -62,6 +69,8 @@ import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, 
 import ListButtonEditor from './ListButtonEditor.vue';
 const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories' }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
+// 按钮与工具模式下外层只保留编辑区，去掉卡片头、说明与冗余的二级 Tab 条。
+const buttonsOnly = computed(() => props.mode === 'buttons');
 // Tab 仅保存面板显示状态，不进入 Schema 更新通道。
 const activeTab = ref(props.mode === 'buttons' ? 'buttons' : 'category');
 // 模式切换后原选中 Tab 可能已卸载，回落到该模式下存在的首个 Tab。
@@ -166,9 +175,10 @@ const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>
 const tree = (patch: Partial<NonNullable<FormListConfiguration['tree']>>) => emit('update', { tree: { enabled: false, ...props.modelValue.tree, ...patch } });
 </script>
 <style scoped>
-.list-button-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-.list-tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 16px; }
-@media (max-width: 600px) { .list-tools-grid { grid-template-columns: 1fr; } }
+.list-panel--buttons-only :deep(.el-tabs__header) { display: none; }
+.list-button-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.list-button-actions__hint { font-size: 12px; color: var(--el-text-color-secondary); }
+.list-tools-grid { display: flex; flex-wrap: wrap; gap: 0 32px; }
 .list-tools-grid :deep(.el-form-item) { margin-bottom: 8px; }
 .list-tools-grid :deep(.el-form-item__label) { width: auto !important; }
 .list-tools-grid :deep(.el-form-item__content) { flex: 0 0 auto; }

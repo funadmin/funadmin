@@ -4,22 +4,27 @@
       v-for="(node, index) in nodes"
       :key="node.id"
       class="schema-tree-node"
-      :style="{ marginLeft: depth ? '14px' : '0' }"
     >
       <div
         class="schema-tree-row"
         :class="store.selectedNodeId.value === node.id ? 'is-selected' : ''"
         @click="store.selectNode(node.id)"
       >
-        <span class="schema-tree-label">{{ node.title }}<template v-if="node.field">（{{ node.field }}）</template> · {{ typeLabel(node.type) }}</span>
-        <el-button link size="small" title="上移" :disabled="index === 0" @click.stop="store.moveNode(node.id, parentId, index - 1)">↑</el-button>
-        <el-button link size="small" title="下移" :disabled="index === nodes.length - 1" @click.stop="store.moveNode(node.id, parentId, index + 2)">↓</el-button>
-        <el-button v-if="parentId" link size="small" title="移至根层" @click.stop="store.moveNode(node.id, null, store.nodes.value.length)">根</el-button>
-        <el-button link size="small" @click.stop="store.duplicateNode(node.id)">复制</el-button>
+        <span class="schema-tree-label">
+          <span class="schema-tree-title">{{ node.title }}</span>
+          <code v-if="node.field" class="schema-tree-field">{{ node.field }}</code>
+          <el-tag size="small" type="info" effect="plain" class="schema-tree-type">{{ typeLabel(node.type) }}</el-tag>
+        </span>
+        <span class="schema-tree-ops">
+          <el-button link size="small" title="上移" :disabled="index === 0" @click.stop="store.moveNode(node.id, parentId, index - 1)"><i class="i-ep-top" /></el-button>
+          <el-button link size="small" title="下移" :disabled="index === nodes.length - 1" @click.stop="store.moveNode(node.id, parentId, index + 2)"><i class="i-ep-bottom" /></el-button>
+          <el-button v-if="parentId" link size="small" title="移至根层" @click.stop="store.moveNode(node.id, null, store.nodes.value.length)">根</el-button>
+          <el-button link size="small" title="复制" @click.stop="store.duplicateNode(node.id)"><i class="i-ep-copy-document" /></el-button>
+        </span>
       </div>
-      <div v-if="isContainer(node.type)" class="schema-tree-actions">
+      <div v-if="isContainer(node.type)" class="schema-tree-add">
         <el-dropdown trigger="click" @command="(type: string) => store.addNode(type, node.id)">
-          <el-button link size="small">容器内添加</el-button>
+          <el-button size="small" class="schema-tree-add-btn"><i class="i-ep-plus" /> 容器内添加</el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="input">输入框</el-dropdown-item>
@@ -29,13 +34,14 @@
           </template>
         </el-dropdown>
       </div>
-      <SchemaNodeTree
-        v-if="node.children.length"
-        :nodes="node.children"
-        :store="store"
-        :parent-id="node.id"
-        :depth="depth + 1"
-      />
+      <div v-if="node.children.length" class="schema-tree-children">
+        <SchemaNodeTree
+          :nodes="node.children"
+          :store="store"
+          :parent-id="node.id"
+          :depth="depth + 1"
+        />
+      </div>
     </div>
     <el-empty v-if="depth === 0 && !nodes.length" description="暂无表单节点" :image-size="48" />
   </div>
@@ -63,28 +69,74 @@ const isContainer = (type: string) => ['group', 'grid', 'collapse', 'tabs', 'rep
 </script>
 
 <style scoped>
-.schema-tree-label {
-  flex: 1 1 160px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
 .schema-tree-row {
   align-items: center;
-  flex-wrap: wrap;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
-  gap: 2px;
-  margin-top: 4px;
-  min-height: 32px;
-  padding: 2px 6px;
+  gap: 8px;
+  margin-top: 2px;
+  min-height: 34px;
+  padding: 4px 8px;
+  transition: background-color 0.15s ease;
+}
+.schema-tree-row:hover {
+  background: var(--el-fill-color-light);
 }
 .schema-tree-row.is-selected {
   background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary);
 }
-.schema-tree-actions {
-  padding-left: 8px;
+.schema-tree-row.is-selected .schema-tree-title {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.schema-tree-label {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+.schema-tree-title {
+  color: var(--app-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schema-tree-field {
+  background: var(--el-fill-color);
+  border-radius: 4px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.schema-tree-type {
+  flex-shrink: 0;
+}
+.schema-tree-ops {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.schema-tree-row:hover .schema-tree-ops,
+.schema-tree-row.is-selected .schema-tree-ops {
+  opacity: 1;
+}
+.schema-tree-children {
+  border-left: 1px dashed var(--el-border-color);
+  margin-left: 12px;
+  padding-left: 10px;
+}
+.schema-tree-add {
+  margin: 2px 0 2px 12px;
+}
+.schema-tree-add-btn {
+  border-style: dashed;
+  color: var(--el-text-color-regular);
 }
 </style>

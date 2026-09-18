@@ -75,6 +75,7 @@ final class FormDataService
             'etag' => '"' . $published['schemaHash'] . '"',
             'categoryOptions' => ($published['schema']['list']['category']['enabled'] ?? false)
                 ? $this->options($key, $published['schema']['list']['category']['field']) : [],
+            'recycleCapable' => in_array('deleted_at', array_keys($schema), true),
         ];
     }
 
@@ -150,7 +151,7 @@ final class FormDataService
     }
 
     /** 列表：筛选/排序/分页/关联标签 LEFT JOIN。 */
-    public function listing(string $key, array $filters, string $sort, string $order, int $page, int $pageSize): array
+    public function listing(string $key, array $filters, string $sort, string $order, int $page, int $pageSize, string $scope = 'normal'): array
     {
         $fields = $this->fields($key);
         $form = $this->form($key);
@@ -159,7 +160,8 @@ final class FormDataService
         $list = (array) ($this->publishedRuntime($form)['schema']['list'] ?? []);
         $tree = ($list['tree']['enabled'] ?? false) === true;
         if ($tree && (!isset($schema[$list['tree']['parentField']]) || $list['tree']['parentField'] === $primary['name'])) throw new InvalidArgumentException('树父级字段不存在或与主键相同');
-        $query = $this->filteredQuery($form, $fields, $list, $filters);
+        $recycled = $this->resolveRecycleScope($scope, $schema);
+        $query = $this->filteredQuery($form, $fields, $list, $filters, $recycled);
         $sortable = $this->sortableColumns($fields);
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
         $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
@@ -169,9 +171,9 @@ final class FormDataService
     }
 
     /** 列表与导出共用分类、普通过滤及基础权限查询，不绑定展示读取策略。 */
-    private function filteredQuery(Form $form, $fields, array $list, array $filters)
+    private function filteredQuery(Form $form, $fields, array $list, array $filters, bool $recycled = false)
     {
-        $query = $this->baseQuery($form, $fields);
+        $query = $this->baseQuery($form, $fields, $recycled);
         if (($list['leftTree']['enabled'] ?? false) === true && array_key_exists('__leftTree', $filters)) {
             $selected = $filters['__leftTree'];
             if (!is_array($selected)) throw new InvalidArgumentException('左树选择必须为数组');
@@ -642,11 +644,109 @@ final class FormDataService
         });
     }
 
+    /** 回收站 scope 解析：仅 normal/recycled，且回收站要求表含 deleted_at。 */
+    private function resolveRecycleScope(string $scope, array $schema): bool
+    {
+        if ($scope === 'normal') return false;
+        if ($scope !== 'recycled') throw new InvalidArgumentException('列表 scope 仅支持 normal/recycled');
+        if (!in_array('deleted_at', array_keys($schema), true)) throw new InvalidArgumentException('该表无回收站能力');
+        return true;
+    }
+
+    /** 批量删除：含 deleted_at 列则软删，否则硬删；逐条套用树写守卫。 */
+    public function batchRemove(string $key, array $ids, string $schemaHash = ''): array
+    {
+        $ids = array_values(array_unique(array_map(static fn ($id): string => is_int($id) ? (string) $id : trim((string) $id), $ids)));
+        if ($ids === [] || count($ids) > 500) throw new InvalidArgumentException('批量删除数量须在 1-500 之间');
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
+            $query = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)->whereIn($primary['name'], $ids);
+            if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
+            foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true);
+            if (in_array('deleted_at', $columns, true)) {
+                $removed = $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                return ['removed' => (int) $removed, 'mode' => 'soft'];
+            }
+            return ['removed' => (int) $query->delete(), 'mode' => 'hard'];
+        });
+    }
+
+    /** 恢复：仅回收站中的记录可恢复（deleted_at 置空）。 */
+    public function restore(string $key, array $ids, string $schemaHash = ''): array
+    {
+        $ids = array_values(array_unique(array_map(static fn ($id): string => is_int($id) ? (string) $id : trim((string) $id), $ids)));
+        if ($ids === [] || count($ids) > 500) throw new InvalidArgumentException('恢复数量须在 1-500 之间');
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        if (!in_array('deleted_at', $columns, true)) throw new InvalidArgumentException('该表无回收站能力');
+        $primary = $this->primaryKey($schema);
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
+            $restored = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)
+                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->update(['deleted_at' => null]);
+            return ['restored' => (int) $restored];
+        });
+    }
+
+    /** 永久删除：仅回收站中的记录可被硬删。 */
+    public function destroy(string $key, array $ids, string $schemaHash = ''): array
+    {
+        $ids = array_values(array_unique(array_map(static fn ($id): string => is_int($id) ? (string) $id : trim((string) $id), $ids)));
+        if ($ids === [] || count($ids) > 500) throw new InvalidArgumentException('永久删除数量须在 1-500 之间');
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $columns = array_keys($schema);
+        if (!in_array('deleted_at', $columns, true)) throw new InvalidArgumentException('该表无回收站能力');
+        $primary = $this->primaryKey($schema);
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
+            foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true);
+            $destroyed = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)
+                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->delete();
+            return ['destroyed' => (int) $destroyed];
+        });
+    }
+
+    /** 导入：逐行复用创建校验与写入，全有或全无；失败回执带行号。 */
+    public function import(string $key, array $rows, string $schemaHash = ''): array
+    {
+        if ($rows === [] || count($rows) > 1000) throw new InvalidArgumentException('导入行数须在 1-1000 之间');
+        $form = $this->form($key);
+        $published = $this->publishedRuntime($form);
+        $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
+        if (($published['schema']['form']['readOnly'] ?? false) === true) throw new InvalidArgumentException('只读表单不允许导入');
+        $database = Db::connect((string) $form->connection);
+        return $database->transaction(function () use ($key, $rows, $schemaHash): array {
+            foreach ($rows as $index => $row) {
+                if (!is_array($row)) throw new InvalidArgumentException('第 ' . ($index + 1) . ' 行必须是对象');
+                try {
+                    $this->create($key, $row, [], $schemaHash);
+                } catch (InvalidArgumentException $error) {
+                    throw new InvalidArgumentException('第 ' . ($index + 1) . ' 行：' . $error->getMessage());
+                }
+            }
+            return ['imported' => count($rows)];
+        });
+    }
+
     /** 选项源：static / 关联表（belongs_to 或 options_source.mode=relation）。 */
     public function options(string $key, string $fieldName, array $context = []): array
     {
+        // 设计器预览传 draft=1：选项按草稿 Schema 解析，避免未发布字段报“字段不存在”。
+        $draft = (bool) ($context['draft'] ?? false);
         $field = null;
-        foreach ($this->fields($key) as $candidate) {
+        foreach ($this->fields($key, $draft) as $candidate) {
             if ((string) $candidate->field_name === $fieldName) { $field = $candidate; break; }
         }
         if (!$field) {
@@ -683,6 +783,9 @@ final class FormDataService
                 ->field('value,label')
                 ->select()
                 ->toArray();
+        }
+        if ($mode === 'self-tree') {
+            return $this->selfTreeOptions($key, $field);
         }
         if ($mode === 'department') {
             $scope = (new DataScopeService())->resolve();
@@ -731,6 +834,44 @@ final class FormDataService
     /**
      * 对已受控加载的选项执行搜索与分页。
      *
+     */
+    /** 树形表格父级选择：选项为当前表授权记录树，上限 1000 条。 */
+    private function selfTreeOptions(string $key, FormField $parentField): array
+    {
+        $form = $this->form($key);
+        $connection = (string) $form->connection;
+        $table = (string) $form->table_name;
+        $schema = Db::connect($connection)->getFields($table);
+        $primary = $this->primaryKey($schema);
+        $labelField = (string) $primary['name'];
+        foreach ($this->publishedRuntime($form)['fields'] as $candidate) {
+            $name = (string) $candidate->field_name;
+            if ($name === $primary['name'] || in_array($candidate->type, ['password', 'file', 'files', 'image', 'images', 'json', 'richtext', 'repeatable', 'subform'], true)) continue;
+            $labelField = $name;
+            break;
+        }
+        $parentName = (string) $parentField->field_name;
+        $rows = Db::connect($connection)->table($table)->field([$primary['name'], $parentName, $labelField])->select()->toArray();
+        if (count($rows) > 1000) throw new InvalidArgumentException('树数据超过 1000 条，请缩小筛选范围');
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(string) $row[$primary['name']]] = ['label' => (string) $row[$labelField], 'value' => $row[$primary['name']], 'children' => []];
+        }
+        $roots = [];
+        foreach ($rows as $row) {
+            $id = (string) $row[$primary['name']];
+            $pid = $row[$parentName] ?? null;
+            $pid = ($pid === null || $pid === '') ? null : (string) $pid;
+            if ($pid !== null && $pid !== $id && isset($byId[$pid])) {
+                $byId[$pid]['children'][] = &$byId[$id];
+            } else {
+                $roots[] = &$byId[$id];
+            }
+        }
+        return array_values($roots);
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $options
      * @return array{options: array<int, array<string, mixed>>, total: int}
      */
@@ -1301,9 +1442,22 @@ final class FormDataService
         return $form;
     }
 
-    private function fields(string $key)
+    private function fields(string $key, bool $draft = false)
     {
-        return $this->publishedRuntime($this->form($key))['fields'];
+        if ($draft) {
+            // 草稿解析不能走 form()（其用发布态 schema 水合表名），直接读 Form 行。
+            $form = Form::where('form_key', $key)->where('status', 1)->find();
+            if (!$form) {
+                throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
+            }
+            $compiled = (new FormSchemaRepository())->draft((int) $form->id);
+            return new \think\Collection(array_map(
+                static fn (array $row): FormField => new FormField($row),
+                $compiled->fieldProjection()
+            ));
+        }
+        $form = $this->form($key);
+        return $this->publishedRuntime($form)['fields'];
     }
 
     /**
@@ -1344,7 +1498,7 @@ final class FormDataService
         return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields, 'module' => $module];
     }
 
-    private function baseQuery(Form $form, $fields)
+    private function baseQuery(Form $form, $fields, bool $recycled = false)
     {
         $table = (string) $form->table_name;
         $this->assertIdentifier($table, '绑定表');
@@ -1366,7 +1520,9 @@ final class FormDataService
         $select = array_map(static fn (string $column): string => $table . '.' . $column, array_values(array_unique($readable)));
         $query = Db::connect((string) $form->connection)->table($table)->field($select);
         if (in_array('deleted_at', $columns, true)) {
-            $query->whereNull($table . '.deleted_at');
+            $recycled ? $query->whereNotNull($table . '.deleted_at') : $query->whereNull($table . '.deleted_at');
+        } elseif ($recycled) {
+            throw new InvalidArgumentException('该表无回收站能力');
         }
         $query = $this->applyDataScope($query, $form, $columns, $table);
         $aliasIndex = 0;

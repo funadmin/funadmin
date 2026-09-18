@@ -11,12 +11,30 @@
       <el-button type="success" plain @click="openCreate">新建应用</el-button>
       <el-radio-group v-model="viewMode"><el-radio-button value="card">卡片</el-radio-button><el-radio-button value="list">列表</el-radio-button></el-radio-group>
     </div>
-    <div v-loading="loading" :class="viewMode === 'card' ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3' : 'space-y-3'">
-      <el-card v-for="item in applications" :key="item.id">
-        <template #header><div class="flex items-center justify-between"><strong>{{ item.name }}</strong><el-tag>{{ item.status }}</el-tag></div></template>
-        <p>{{ item.description || '-' }}</p><p class="text-sm text-gray-500">{{ item.code }} · {{ item.runtimeType }}</p>
-        <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">进入应用</el-button><el-button @click="openSettings(item)">设置</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">发布</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">停用</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">删除</el-button></div>
-      </el-card>
+    <div v-loading="loading">
+      <!-- 列表模式或空数据时保留表格结构：表头 + 表内空文案，避免整页空白 -->
+      <el-table v-if="viewMode === 'list' || !applications.length" :data="applications" :empty-text="emptyText">
+        <el-table-column prop="name" label="应用名称" min-width="180"><template #default="{ row }"><div>{{ row.name }}</div><small class="text-gray-500">{{ row.description || '-' }}</small></template></el-table-column>
+        <el-table-column prop="code" label="标识" min-width="140" />
+        <el-table-column prop="runtimeType" label="运行类型" width="110" />
+        <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" min-width="260" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" :disabled="!canLaunchApplication(appRow(row))" @click="launch(appRow(row))">进入应用</el-button>
+            <el-button link @click="openSettings(appRow(row))">设置</el-button>
+            <el-button v-if="row.status === 'draft'" link type="success" @click="publish(appRow(row))">发布</el-button>
+            <el-button v-if="row.status === 'published'" link type="warning" @click="disable(appRow(row))">停用</el-button>
+            <el-button v-if="row.status !== 'published'" link type="danger" @click="remove(appRow(row))">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <el-card v-for="item in applications" :key="item.id">
+          <template #header><div class="flex items-center justify-between"><strong>{{ item.name }}</strong><el-tag>{{ item.status }}</el-tag></div></template>
+          <p>{{ item.description || '-' }}</p><p class="text-sm text-gray-500">{{ item.code }} · {{ item.runtimeType }}</p>
+          <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">进入应用</el-button><el-button @click="openSettings(item)">设置</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">发布</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">停用</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">删除</el-button></div>
+        </el-card>
+      </div>
     </div>
     <el-drawer v-model="drawerVisible" :title="selectedId ? '应用设置' : '新建应用'" size="620px">
       <el-tabs v-model="activeTab">
@@ -50,6 +68,9 @@ const database = reactive<DatabaseInput>({ mode: 'shared', credentialRef: '', he
 const domain = reactive<DomainInput>({ identityCallback: '', logoutCallback: '', domainType: 'web' });
 const assignment = reactive<AssignmentInput>({ subjectType: 'all', effect: 'allow' });
 const statistics = computed(() => ({ total: applications.value.length, published: applications.value.filter((item) => item.status === 'published').length, inactive: applications.value.filter((item) => item.status !== 'published').length }));
+const emptyText = computed(() => (keyword.value.trim() ? '没有符合搜索条件的应用' : '暂无应用，可通过“新建应用”创建第一个企业应用'));
+// el-table 插槽 row 为 DefaultRow（Record<PropertyKey, any>），不能直接赋给实体类型；显式收窄避免模板类型报错
+const appRow = (row: Record<PropertyKey, any>): EnterpriseApplication => row as EnterpriseApplication;
 async function load() { loading.value = true; try { applications.value = (await applicationApi.list({ page: 1, pageSize: 100, keyword: keyword.value })).list; } finally { loading.value = false; } }
 async function launch(item: EnterpriseApplication) {
   if (!canLaunchApplication(item)) return;

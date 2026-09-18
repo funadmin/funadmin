@@ -12,6 +12,7 @@ import 'element-plus/es/components/overlay/style/css';
 import '@/styles/index.scss';
 import '@/styles/tailwind.css';
 import '@/utils/nprogress';
+import { installLabelActivationGuard } from '@/utils/labelActivationGuard';
 
 import { setupStore } from '@/store';
 import { setupRouter } from '@/router';
@@ -28,6 +29,8 @@ async function bootstrap() {
   }
 
   const app = createApp(App);
+  // 点表单标签文字不得误开 select/date 弹层或误改 radio/switch 值
+  installLabelActivationGuard();
 
   setupStore(app);
   app.use(i18n);

@@ -539,7 +539,7 @@ describe('BusinessVisual', () => {
     const { wrapper } = render();
     expect(inputAt(wrapper, 1).attributes('aria-describedby')).toBe('business-code-help');
     expect(wrapper.get('#business-code-help').text()).toContain('小写字母');
-    expect(wrapper.get('form').attributes('data-label-position')).toBe('top');
+    expect(wrapper.get('form').attributes('data-label-position')).toBe('left');
     expect(wrapper.find('.form-actions').exists()).toBe(true);
     expect(visualSource).toContain('flex-wrap: wrap');
     wrapper.unmount();

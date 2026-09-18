@@ -159,10 +159,13 @@ final class FormSchemaValidator
         foreach (['category' => 'field', 'tree' => 'parentField'] as $kind => $binding) {
             if (!array_key_exists($kind, $list)) continue;
             $config = $list[$kind];
-            if (!is_array($config) || ($config !== [] && array_is_list($config)) || array_diff(array_keys($config), ['enabled', $binding]) !== []) {
+            if (!is_array($config) || ($config !== [] && array_is_list($config)) || array_diff(array_keys($config), ['enabled', $binding, 'selectionMode']) !== []) {
                 throw new FormSchemaException('列表配置不合法', '/list/' . $kind);
             }
             if (array_key_exists('enabled', $config) && !is_bool($config['enabled'])) throw new FormSchemaException('enabled 必须为布尔值', '/list/' . $kind . '/enabled');
+            if ($kind === 'tree' && array_key_exists('selectionMode', $config) && !in_array($config['selectionMode'], ['single', 'multiple'], true)) {
+                throw new FormSchemaException('selectionMode 仅支持 single 或 multiple', '/list/tree/selectionMode');
+            }
             if (($config['enabled'] ?? false) !== true) continue;
             $name = $config[$binding] ?? '';
             $node = is_string($name) ? ($fields[$name] ?? null) : null;

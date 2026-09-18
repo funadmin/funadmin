@@ -1,4 +1,4 @@
-import { computed, defineComponent, inject, nextTick, provide, type ComputedRef, type PropType } from 'vue';
+import { computed, defineComponent, h, inject, nextTick, provide, type ComputedRef, type PropType } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
@@ -110,10 +110,11 @@ const stubs = {
   }),
   ElTable: defineComponent({
     inheritAttrs: false,
-    props: { data: { type: Array as PropType<BusinessModule[]>, default: () => [] } },
+    props: { data: { type: Array as PropType<BusinessModule[]>, default: () => [] }, emptyText: { type: String, default: '' } },
     setup(props, { slots }) {
       provide(tableRowsKey, computed(() => props.data));
-      return () => slots.default?.();
+      // 空态保留表格结构：无数据时渲染表内空文案，与生产 el-table 行为一致
+      return () => (props.data.length ? slots.default?.() : h('div', { 'data-table-empty': '' }, props.emptyText));
     }
   }),
   ElTableColumn: defineComponent({
@@ -211,12 +212,12 @@ describe('BusinessMine', () => {
     expect(wrapper.get('[data-page-state]').attributes('aria-busy')).toBe('true');
     pending.resolve(result([]));
     await flushPromises();
-    expect(wrapper.get('[data-empty]').text()).toContain('还没有业务模块');
+    expect(wrapper.get('[data-table-empty]').text()).toContain('还没有业务模块');
 
     mocks.modules.mockResolvedValueOnce(result([]));
     await wrapper.get('[data-search]').trigger('click');
     await flushPromises();
-    expect(wrapper.get('[data-empty]').text()).toContain('没有符合筛选条件');
+    expect(wrapper.get('[data-table-empty]').text()).toContain('没有符合筛选条件');
 
     mocks.modules.mockRejectedValueOnce(new Error('网络不可用'));
     await wrapper.get('[data-search]').trigger('click');

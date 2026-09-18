@@ -10,7 +10,7 @@
           <el-radio-button value="tablet">{{ t('formDesigner.tabletPreview', '平板预览') }}</el-radio-button>
           <el-radio-button value="mobile">{{ t('formDesigner.mobilePreview', '移动预览') }}</el-radio-button>
         </el-radio-group>
-        <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" class="w-[110px]">
+        <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" class="!w-28">
           <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
         </el-select>
         <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">预览数据</el-button>
@@ -132,7 +132,7 @@
               <div
                 v-for="control in controlsOf(group)"
                 :key="control.type"
-                class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-2 text-sm"
+                class="palette-item cursor-grab rounded border border-[var(--el-border-color)] px-2 py-1.5 text-xs"
                 :data-type="control.type"
                 role="button"
                 tabindex="0"
@@ -152,11 +152,11 @@
         <template #header>
           <div class="designer-canvas-heading">
             <span>设计画布（{{ store.fields.value.length }} 字段）</span>
-            <el-button v-if="workspaceMode === 'edit'" size="small" :aria-expanded="outlineVisible" @click="outlineVisible = true">表单大纲</el-button>
+            <el-button v-if="workspaceMode === 'edit'" size="small" :aria-expanded="outlineVisible" @click="outlineVisible = true"><i class="i-ep-operation" /> 表单大纲</el-button>
             <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
-        <div>
+        <div class="max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <DesignerCanvas
             v-show="workspaceMode === 'edit'"
             class="designer-canvas"
@@ -169,6 +169,7 @@
               :schema="previewSchema"
               :values="previewValues"
               :form-key="String(store.form.value.form_key ?? '')"
+              :options-request="previewOptionsRequest"
               :disabled="previewMode === 'readonly'"
             />
           </div>
@@ -178,7 +179,7 @@
       <!-- 右：属性面板 -->
       <el-card v-show="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
         <template #header>字段属性</template>
-        <div>
+        <div class="max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
           <el-empty v-else description="点选画布字段编辑参数" />
         </div>
@@ -192,7 +193,7 @@
     <ListConfigurationPanel v-if="activeTab === 'buttons' || activeTab === 'list'" :mode="activeTab === 'buttons' ? 'buttons' : 'categories'" :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" @update="store.updateList" />
 
     <el-drawer v-model="outlineVisible" title="表单大纲" size="min(480px, 100vw)" append-to-body destroy-on-close>
-      <el-button size="small" @click="store.addNode('group')">添加布局分组</el-button>
+      <el-button size="small" class="w-full border-dashed" @click="store.addNode('group')"><i class="i-ep-plus" /> 添加布局分组</el-button>
       <SchemaNodeTree v-if="outlineVisible" :nodes="store.nodes.value" :store="store" />
     </el-drawer>
 
@@ -285,6 +286,10 @@ import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig } from '@/api/form';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessModule, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
+import { formDataApi } from '@/api/formData';
+import { dictApi } from '@/api/system/dict';
+import type { FormDataSourceRequest } from '../dataSource/useFormDataSource';
+import { flattenSchemaNodes } from '../schema/types';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
 import { controlIcon, paletteContainers } from './controlPalette';
 import { useDesigner } from '../composables/useDesigner';
@@ -361,6 +366,26 @@ const publishConfig = ref<FormPublishConfig>({
   dataScopeEnabled: false, dataScopeField: ''
 });
 const paletteRef = ref<HTMLElement>();
+// 预览画布渲染草稿节点（含未保存草稿）：字典/静态选项按草稿节点客户端解析，
+// 其余来源带 draft=1 走后端草稿 Schema 解析，未发布字段不再报“选项加载失败”。
+const previewOptionsRequest: FormDataSourceRequest = async (formKey, field, params, signal) => {
+  const node = flattenSchemaNodes(store.schemaDocument.value.nodes).map(({ node }) => node).find((item) => item.field === field);
+  const source = (node?.dataSource ?? {}) as Record<string, unknown>;
+  const kind = String(source.kind ?? source.mode ?? '');
+  if (kind === 'static') {
+    const options = Array.isArray(source.options) ? (source.options as Array<Record<string, unknown>>) : [];
+    return { options: options.map((option) => ({ label: String(option.label ?? ''), value: option.value as string | number })) };
+  }
+  if (kind === 'dictionary') {
+    const code = String(source.dictionary ?? '');
+    const options = code ? await dictApi.options(code) : [];
+    return { options: options.map((option) => ({ label: String(option.label), value: option.value })) };
+  }
+  if (kind === 'self-tree') {
+    return { options: [] };
+  }
+  return formDataApi.options(formKey, field, { ...params, draft: 1 }, signal);
+};
 const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
 watch(() => store.fields.value.map((field) => [field.field_name, field.default_value] as const), (fields) => {
   const fieldNames = new Set(fields.map(([name]) => name));
@@ -1017,6 +1042,11 @@ onBeforeUnmount(() => {
   height: 32px;
   min-height: 32px;
 }
+/* 与顶部工具栏按钮同高：EP 单选按钮组默认 30px，比 32px 标准组件尺寸矮 2px */
+.designer-meta-form :deep(.el-radio-button__inner) {
+  height: 32px;
+  min-height: 32px;
+}
 :deep(.designer-toolbar .el-tag) {
   font-size: 14px;
   padding: 0 15px;
@@ -1076,8 +1106,8 @@ onBeforeUnmount(() => {
 .control-palette { width: 330px; }
 .palette-group-title { position: sticky; top: 0; z-index: 10; padding: 6px 2px; background: var(--el-bg-color-overlay); color: var(--el-text-color-secondary); font-size: 12px; font-weight: 600; }
 .palette-group-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.palette-item { display: flex; min-height: 58px; align-items: center; flex-direction: column; justify-content: center; gap: 5px; text-align: center; }
-.palette-item > i { font-size: 20px; line-height: 1; }
+.palette-item { display: flex; min-height: 48px; align-items: center; flex-direction: column; justify-content: center; gap: 4px; text-align: center; }
+.palette-item > i { font-size: 16px; line-height: 1; }
 .palette-item > span { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
 .palette-item:hover {
   border-color: var(--el-color-primary);

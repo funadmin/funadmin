@@ -145,7 +145,7 @@ export interface FormListConfiguration {
   tools?: Partial<Record<'refresh' | 'search' | 'columns' | 'density' | 'fullscreen', boolean>>;
   leftTree?: FormLeftTreeConfiguration;
   category?: { enabled: boolean; field?: string };
-  tree?: { enabled: boolean; parentField?: string };
+  tree?: { enabled: boolean; parentField?: string; selectionMode?: 'single' | 'multiple' };
   [key: string]: unknown;
 }
 

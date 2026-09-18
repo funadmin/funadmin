@@ -30,9 +30,12 @@ export function listButtonAdapterAllowed(adapter: ListButtonAdapter | undefined,
 }
 export type ListButtonHandlers = Partial<Record<string, (row?: Record<string, unknown>, input?: Record<string, unknown>) => unknown | Promise<unknown>>>;
 export const listButtonLabels: Record<FormListBuiltinAction, string> = { create: '新增', edit: '编辑', detail: '详情', delete: '删除', batchDelete: '批量删除', import: '导入', export: '导出', recycle: '回收站', normal: '正常列表', restore: '恢复', destroy: '永久删除', addChild: '加子级', copyCreate: '复制新增' };
-export const listButtonKeys: Record<FormListButtonLocation, FormListBuiltinAction[]> = { toolbar: ['create', 'export'], row: ['edit', 'detail', 'delete', 'copyCreate'], categoryToolbar: ['create'], categoryNode: ['addChild', 'edit', 'delete'] };
+export const listButtonKeys: Record<FormListButtonLocation, FormListBuiltinAction[]> = { toolbar: ['create', 'import', 'export', 'batchDelete', 'recycle', 'normal'], row: ['edit', 'detail', 'delete', 'copyCreate', 'restore', 'destroy'], categoryToolbar: ['create'], categoryNode: ['addChild', 'edit', 'delete'] };
 export function defaultListButtons(location: FormListButtonLocation): FormListButton[] {
-  return listButtonKeys[location].map(key => ({ id: key.toLowerCase(), label: listButtonLabels[key], color: key === 'delete' ? 'danger' : 'primary', action: { type: 'builtin', key } }));
+  const buttons: FormListButton[] = listButtonKeys[location].map(key => ({ id: key.toLowerCase(), label: listButtonLabels[key], color: (['delete', 'batchDelete', 'destroy'].includes(key) ? 'danger' : key === 'restore' ? 'success' : 'primary') as FormListButton['color'], action: { type: 'builtin', key } }));
+  // 刷新为宿主级动作（非内置写动作），工具栏默认附带。
+  if (location === 'toolbar') buttons.push({ id: 'refresh', label: '刷新', color: 'default', action: { type: 'refresh' } });
+  return buttons;
 }
 export function listActionKey(button: FormListButton): string {
   return button.action.type === 'builtin' ? button.action.key : button.action.type === 'form' ? 'edit' : button.action.type;

@@ -97,7 +97,8 @@ final class Data extends AdminApiController
                 trim((string) $this->request->get('sort', '')),
                 trim((string) $this->request->get('order', '')),
                 $this->page(),
-                $this->pageSize()
+                $this->pageSize(),
+                trim((string) $this->request->get('scope', 'normal'))
             ));
             return $this->paginationData($result['list'], $result['total'], $result['page'], $result['pageSize']);
         });
@@ -159,6 +160,16 @@ final class Data extends AdminApiController
     #[Pattern('field', '[a-z][a-z0-9_]*')]
     public function options(string $key, string $field): Response
     {
+        // draft=1（设计器预览）：绕过发布态观测上下文，未发布表单也能解析草稿选项。
+        $draft = (bool) $this->request->get('draft', false);
+        if ($draft) {
+            return $this->execute(fn (): array => $this->data->paginateOptions(
+                $this->data->options($key, $field, $this->request->get()),
+                trim((string) $this->request->get('keyword', '')),
+                $this->page(),
+                $this->pageSize()
+            ));
+        }
         return $this->execute(fn (): array => $this->observe(
             $key,
             'options',
@@ -287,6 +298,47 @@ final class Data extends AdminApiController
             is_int($id) ? $id : trim((string) $id),
             $this->schemaHash()
         ), $this->schemaHash()), '删除成功');
+    }
+
+    #[Post('batch-remove/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function batchRemove(string $key): Response
+    {
+        $ids = $this->postedIds();
+        return $this->execute(fn (): array => $this->observe($key, 'batchRemove', fn (): array => $this->data->batchRemove($key, $ids, $this->schemaHash()), $this->schemaHash()), '删除成功');
+    }
+
+    #[Post('restore/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function restore(string $key): Response
+    {
+        $ids = $this->postedIds();
+        return $this->execute(fn (): array => $this->observe($key, 'restore', fn (): array => $this->data->restore($key, $ids, $this->schemaHash()), $this->schemaHash()), '恢复成功');
+    }
+
+    #[Post('destroy/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function destroy(string $key): Response
+    {
+        $ids = $this->postedIds();
+        return $this->execute(fn (): array => $this->observe($key, 'destroy', fn (): array => $this->data->destroy($key, $ids, $this->schemaHash()), $this->schemaHash()), '永久删除成功');
+    }
+
+    #[Post('import/:key')]
+    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    public function import(string $key): Response
+    {
+        $rows = $this->request->post('rows', []);
+        if (!is_array($rows)) throw new InvalidArgumentException('rows 必须为数组');
+        return $this->execute(fn (): array => $this->observe($key, 'import', fn (): array => $this->data->import($key, $rows, $this->schemaHash()), $this->schemaHash()), '导入成功');
+    }
+
+    /** 批量端点共用 ids 读取：数组、去空、上限由服务层校验。避免与基类 Trait 的 protected ids() 签名冲突。 */
+    private function postedIds(): array
+    {
+        $ids = $this->request->post('ids', []);
+        if (!is_array($ids)) throw new InvalidArgumentException('ids 必须为数组');
+        return $ids;
     }
 
     private function payload(): array

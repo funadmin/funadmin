@@ -109,5 +109,9 @@ export const formDataApi = {
     }),
   create: (key: string, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/create/${key}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
   update: (key: string, id: FormRecordId, data: Record<string, unknown>, include: string[] = [], schemaHash = '') => http.post<FormDataMutationResult>(`${PREFIX}/update/${key}/${id}`, { data, include, schemaHash }, { requestOptions: { showErrorMsg: false } }),
-  remove: (key: string, id: string | number, schemaHash = '') => http.post<{ removed: number; mode: string }>(`${PREFIX}/remove/${key}`, { id, schemaHash })
+  remove: (key: string, id: string | number, schemaHash = '') => http.post<{ removed: number; mode: string }>(`${PREFIX}/remove/${key}`, { id, schemaHash }),
+  batchRemove: (key: string, ids: FormRecordId[], schemaHash = '') => http.post<{ removed: number; mode: string }>(`${PREFIX}/batch-remove/${key}`, { ids, schemaHash }),
+  restore: (key: string, ids: FormRecordId[], schemaHash = '') => http.post<{ restored: number }>(`${PREFIX}/restore/${key}`, { ids, schemaHash }),
+  destroy: (key: string, ids: FormRecordId[], schemaHash = '') => http.post<{ destroyed: number }>(`${PREFIX}/destroy/${key}`, { ids, schemaHash }),
+  importRows: (key: string, rows: Array<Record<string, unknown>>, schemaHash = '') => http.post<{ imported: number }>(`${PREFIX}/import/${key}`, { rows, schemaHash })
 };

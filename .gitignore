@@ -1,4 +1,5 @@
 /.idea
+/.tmp
 /.vscode
 .DS_Store
 *.log

@@ -47,6 +47,16 @@ describe('独立分类配置入口', () => {
     wrapper.unmount();
   });
   it('配置面板提供四个共享按钮编辑器和工具开关', () => { const wrapper = render(); expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4); expect(wrapper.text()).toContain('通用工具'); wrapper.unmount(); });
+  it('按钮与工具模式不再渲染列表展示配置外壳和说明，直接展示按钮编辑区', async () => {
+    const wrapper = render();
+    await wrapper.setProps({ mode: 'buttons' } as never);
+    expect(wrapper.text()).not.toContain('列表展示配置');
+    expect(wrapper.text()).not.toContain('独立分类请选择');
+    expect(wrapper.find('.list-panel--buttons-only').exists()).toBe(true);
+    expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4);
+    expect(wrapper.text()).toContain('通用工具');
+    wrapper.unmount();
+  });
   it('明确说明独立记录与选项筛选的区别', () => { const wrapper = render(); expect(wrapper.text()).toContain('独立分类'); expect(wrapper.text()).toContain('选项筛选'); wrapper.unmount(); });
   it('没有父级字段时禁用新增子节点，并在更新时清除旧开关', async () => { const wrapper = render(); expect(wrapper.get('[data-label="新增子节点"] button').attributes('disabled')).toBeDefined(); const state = (wrapper.vm as any).$.setupState; state.updateLeft({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { actions: { addChild: false } }, category: { enabled: false } }); wrapper.unmount(); });
   it('开启选项筛选会关闭可管理分类，保留原映射', () => { const wrapper = render(); (wrapper.vm as any).$.setupState.category({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { enabled: false, mapping: { targetField: 'category_id' } } }); wrapper.unmount(); });
