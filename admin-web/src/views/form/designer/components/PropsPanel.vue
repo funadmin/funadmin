@@ -111,6 +111,21 @@
         <el-form-item :label="t('formDesigner.displayName', '显示名称')">
           <el-input :model-value="field.label" @update:model-value="patch({ label: $event })" />
         </el-form-item>
+        <el-form-item v-if="field.type === 'dictionary'" :label="t('formDesigner.dictionaryCode', '字典编码')">
+          <el-select
+            data-testid="dictionary-code-select"
+            :model-value="dictionaryCode"
+            filterable
+            clearable
+            class="w-full"
+            :loading="dictTypesLoading"
+            :placeholder="t('formDesigner.dictionaryPlaceholder', '请选择字典')"
+            @visible-change="loadDictTypes"
+            @update:model-value="updateDictionary"
+          >
+            <el-option v-for="item in dictTypes" :key="item.code" :label="`${item.name}（${item.code}）`" :value="item.code" />
+          </el-select>
+        </el-form-item>
         <el-form-item v-if="selectedMeta.kind !== 'layout'" :label="t('formDesigner.placeholderLabel', '占位提示')">
           <el-input :model-value="field.placeholder" @update:model-value="patch({ placeholder: $event })" />
         </el-form-item>
@@ -214,6 +229,7 @@ import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import type { FormFieldDef } from '@/api/form';
+import { dictTypeApi, type DictType } from '@/api/system/dict';
 import { businessDevelopmentApi, type BusinessDatabaseTable } from '@/api/development/business';
 import { componentRegistry } from '../../schema/componentRegistry';
 import { normalizePropertySchema, patchDynamicProperty, type DynamicPropertyField } from '../structuredEditor';
@@ -239,6 +255,27 @@ const columnsLoading = ref(false);
 const loadedRelationTable = ref('');
 const patch = (value: Partial<FormFieldDef>) => emit('update', value);
 const emitUpdate = () => undefined;
+
+// 字典控件保存期强校验 options_source.dictionary，这里提供字典分类选择入口；写入统一收敛为 kind 键。
+const dictTypes = ref<DictType[]>([]);
+const dictTypesLoading = ref(false);
+const dictionaryCode = computed(() => String(props.field.options_source?.dictionary ?? ''));
+const loadDictTypes = async (visible = true) => {
+  if (!visible || dictTypes.value.length || dictTypesLoading.value) return;
+  dictTypesLoading.value = true;
+  try {
+    const result = await dictTypeApi.list({ page: 1, pageSize: 500 });
+    dictTypes.value = result.list ?? [];
+  } finally {
+    dictTypesLoading.value = false;
+  }
+};
+watch(() => props.field.type, (type) => { if (type === 'dictionary') void loadDictTypes(); }, { immediate: true });
+const updateDictionary = (value: string | undefined) => {
+  const current = (props.field.options_source ?? {}) as Record<string, unknown>;
+  const { mode: _legacyMode, ...rest } = current;
+  patch({ options_source: { ...rest, kind: 'dictionary', dictionary: value ?? '' } });
+};
 
 const selectedMeta = computed(() => controlMeta(props.field.type));
 const componentDefinition = computed(() => componentRegistry.resolve(props.field.type));
