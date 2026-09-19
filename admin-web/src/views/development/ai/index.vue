@@ -37,22 +37,22 @@
           <template #models>
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
             <el-tooltip placement="top" :popper-style="{ maxWidth: 'calc(100vw - 32px)' }">
-              <template #content><div id="ai-model-hint" class="model-help">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }} 仅影响新建任务，运行任务保留快照。
-                <div data-testid="profile-model-summary">档案默认模型：{{ selectedProfile?.model || '未选择档案' }}；Token 输入 {{ selectedProfile?.max_input_tokens ?? '未指定' }} / 输出 {{ selectedProfile?.max_output_tokens ?? '未指定' }} / 上下文 {{ selectedProfile?.context_window ?? '未指定' }}</div>
+              <template #content><div id="ai-model-hint" class="model-help">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }} {{ t('aiDevelopment.modelSelection.taskSnapshot', '仅影响新建任务，运行任务保留快照。') }}
+                <div data-testid="profile-model-summary">{{ t('aiDevelopment.modelSelection.profileSummary', { model: selectedProfile?.model || t('aiDevelopment.reasoning.noProfile'), input: selectedProfile?.max_input_tokens ?? t('aiDevelopment.modelSelection.unspecified', '未指定'), output: selectedProfile?.max_output_tokens ?? t('aiDevelopment.modelSelection.unspecified', '未指定'), context: selectedProfile?.context_window ?? t('aiDevelopment.modelSelection.unspecified', '未指定') }, { default: '档案默认模型：{model}；Token 输入 {input} / 输出 {output} / 上下文 {context}' }) }}</div>
               </div></template>
-              <el-button size="small" text class="model-help-trigger" aria-label="模型与思考设置说明">设置说明</el-button>
+              <el-button size="small" text class="model-help-trigger" :aria-label="t('aiDevelopment.modelSelection.helpAria', '模型与思考设置说明')">{{ t('aiDevelopment.modelSelection.helpTrigger', '设置说明') }}</el-button>
             </el-tooltip>
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
               <el-select size="small" :teleported="false" data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
-                <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="`${profile.name}${profile.is_default ? '（默认）' : ''} · ${profile.model}`" :disabled="!profile.enabled" />
+                <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="`${profile.name}${profile.is_default ? t('aiDevelopment.profiles.defaultShort', '（默认）') : ''} · ${profile.model}`" :disabled="!profile.enabled" />
               </el-select>
               <el-button size="small" :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
               <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
               <el-input size="small" id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" :disabled="modelSaving || !selectedConversation" />
               <el-button size="small" type="primary" data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
             </div>
-            <div v-if="selectedProfile?.favorite_models?.length" class="favorite-models" data-testid="favorite-models"><span>常用模型</span><el-button v-for="model in selectedProfile.favorite_models" :key="model" size="small" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</el-button></div>
+            <div v-if="selectedProfile?.favorite_models?.length" class="favorite-models" data-testid="favorite-models"><span>{{ t('aiDevelopment.profiles.favorites') }}</span><el-button v-for="model in selectedProfile.favorite_models" :key="model" size="small" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</el-button></div>
             <label for="ai-conversation-reasoning">{{ t('aiDevelopment.reasoning.conversation') }}</label>
             <el-select id="ai-conversation-reasoning" size="small" :teleported="false" :aria-label="t('aiDevelopment.reasoning.conversation')" data-testid="conversation-reasoning" :model-value="selectedConversation?.reasoning_effort ?? ''" :disabled="modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
               <el-option value="" :label="t('aiDevelopment.reasoning.inherit')" />
@@ -202,7 +202,7 @@ async function selectProfile(id: number) {
   const generation = store.selectionGeneration;
   if (!profile || !conversationId || modelSaving.value) return;
   const error = profileCapabilityError({ ...profile, reasoning_effort: selectedConversation.value?.reasoning_effort ?? profile.reasoning_effort });
-  if (!profile.enabled || error) { modelError.value = error || '档案已停用'; return; }
+  if (!profile.enabled || error) { modelError.value = error || t('aiDevelopment.errors.profileDisabled', '档案已停用'); return; }
   modelSaving.value = true;
   modelError.value = null;
   try { await store.updateConversationProfile(conversationId, id, profile.model); }
@@ -215,7 +215,7 @@ async function inheritProfile() {
   await manage(async () => {
     const profile = await aiDevelopmentApi.defaultProfile();
     if (id !== store.selectedConversationId || generation !== store.selectionGeneration) return;
-    if (!profile) throw new Error('没有默认档案');
+    if (!profile) throw new Error(t('aiDevelopment.errors.noDefaultProfile', '没有默认档案'));
     profiles.value = [...profiles.value.filter((item) => item.id !== profile.id), profile];
     await selectProfile(profile.id);
   });
@@ -513,7 +513,7 @@ async function testProvider(payload: Record<string, unknown>) {
   const generation = profileGeneration;
   await profileOperation(async () => {
     const result = await aiDevelopmentApi.testSettings(payload);
-    if (!result.reachable) throw new Error('连接失败');
+    if (!result.reachable) throw new Error(t('aiDevelopment.errors.connectionFailed', '连接失败'));
     if (generation === profileGeneration) profileNotice.value = t('aiDevelopment.providerSettings.testSuccess');
   });
 }

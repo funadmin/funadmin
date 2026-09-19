@@ -1,7 +1,10 @@
 import http from '@/utils/http';
 import { APP_CONFIG } from '@/config';
+import { i18n } from '@/locales';
 
 const PREFIX = '/development/ai';
+
+const tv = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 export type AiApprovalMode = 'request_approval' | 'agent_approval' | 'full_access';
 export type AiTaskStatus = 'pending' | 'running' | 'paused' | 'succeeded' | 'failed' | 'cancelled' | 'recovery_required';
@@ -90,15 +93,15 @@ export function profileCapabilityError(profile: AiProfileInput): string {
   const validModel = (model: string) => typeof model === 'string' && model.trim() === model && !!model && new TextEncoder().encode(model).length <= 200 && !/[\x00-\x1f\x7f]/.test(model);
   const validLimit = (n: number | null) => n === null || (Number.isInteger(n) && n >= 1 && n <= 10000000);
   const declarations = profile.model_capabilities || [];
-  if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !AI_REASONING_EFFORTS.includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return '模型能力声明无效、重复或预算超出范围';
-  if (declarations.some(c => (c.image_input !== undefined && typeof c.image_input !== 'boolean') || (c.image_tokens !== undefined && c.image_tokens !== 32768) || (c.max_images !== undefined && (!Number.isInteger(c.max_images) || c.max_images < 1 || c.max_images > 4)) || (c.image_mime_types !== undefined && (!Array.isArray(c.image_mime_types) || !c.image_mime_types.length || new Set(c.image_mime_types).size !== c.image_mime_types.length || c.image_mime_types.some(m => !['image/png', 'image/jpeg', 'image/webp'].includes(m)))))) return '图片能力声明无效，图片预算固定为 32768';
+  if (declarations.length > 100 || new Set(declarations.map(c => c.model)).size !== declarations.length || declarations.some(c => !validModel(c.model) || !Array.isArray(c.reasoning_efforts) || new Set(c.reasoning_efforts).size !== c.reasoning_efforts.length || c.reasoning_efforts.some(e => !AI_REASONING_EFFORTS.includes(e)) || !['max_tokens', 'max_completion_tokens'].includes(c.output_token_parameter) || !validLimit(c.context_window) || !validLimit(c.max_output_tokens))) return tv('aiDevelopment.validation.capabilitiesInvalid', {}, '模型能力声明无效、重复或预算超出范围');
+  if (declarations.some(c => (c.image_input !== undefined && typeof c.image_input !== 'boolean') || (c.image_tokens !== undefined && c.image_tokens !== 32768) || (c.max_images !== undefined && (!Number.isInteger(c.max_images) || c.max_images < 1 || c.max_images > 4)) || (c.image_mime_types !== undefined && (!Array.isArray(c.image_mime_types) || !c.image_mime_types.length || new Set(c.image_mime_types).size !== c.image_mime_types.length || c.image_mime_types.some(m => !['image/png', 'image/jpeg', 'image/webp'].includes(m)))))) return tv('aiDevelopment.validation.imageInvalid', {}, '图片能力声明无效，图片预算固定为 32768');
   const fallback = profile.fallback_models || [];
-  if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选';
+  if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return tv('aiDevelopment.validation.fallbackInvalid', {}, '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选');
   for (const model of [profile.model, ...(profile.fallback_enabled ? fallback : [])]) {
     const cap = profileModelCapability(profile, model);
-    if (profile.reasoning_effort != null && !cap.reasoning_efforts.includes(profile.reasoning_effort)) return `${model} 未声明支持所选推理档位，请选择默认或合法档位`;
-    if (profile.fallback_enabled && (cap.context_window === null || cap.max_output_tokens === null || profile.max_output_tokens == null)) return '备用要求主模型及全部候选声明上下文、输出能力，并设置明确输出预算';
-    if (profile.max_output_tokens != null && ((cap.max_output_tokens !== null && profile.max_output_tokens > cap.max_output_tokens) || (cap.context_window !== null && profile.max_output_tokens + (profile.max_input_tokens || 0) > cap.context_window))) return `${model} 的 Token 预算超过模型能力上限`;
+    if (profile.reasoning_effort != null && !cap.reasoning_efforts.includes(profile.reasoning_effort)) return tv('aiDevelopment.validation.reasoningNotDeclared', { model }, '{model} 未声明支持所选推理档位，请选择默认或合法档位');
+    if (profile.fallback_enabled && (cap.context_window === null || cap.max_output_tokens === null || profile.max_output_tokens == null)) return tv('aiDevelopment.validation.fallbackRequirements', {}, '备用要求主模型及全部候选声明上下文、输出能力，并设置明确输出预算');
+    if (profile.max_output_tokens != null && ((cap.max_output_tokens !== null && profile.max_output_tokens > cap.max_output_tokens) || (cap.context_window !== null && profile.max_output_tokens + (profile.max_input_tokens || 0) > cap.context_window))) return tv('aiDevelopment.validation.budgetExceeds', { model }, '{model} 的 Token 预算超过模型能力上限');
   }
   return '';
 }
@@ -307,20 +310,20 @@ function eventUrl(taskId: number, ticket: string, cursor: number): string {
 // HTTP 已解包 data；这里只校验 AI 实体形状并规范化 ORM bigint，不递归改写业务 JSON。
 const ID_FIELDS = ['id', 'admin_id', 'group_id', 'conversation_id', 'task_id', 'message_id', 'parent_id', 'change_set_id', 'approval_id', 'tool_call_id', 'profile_id', 'sequence'] as const;
 function aiRecord<T>(value: T): T {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !('id' in value)) throw new Error('AI 接口未返回有效实体');
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('id' in value)) throw new Error(tv('aiDevelopment.validation.invalidEntity', {}, 'AI 接口未返回有效实体'));
   const record = { ...value } as Record<string, unknown>;
   for (const field of ID_FIELDS) {
     if (!(field in record)) continue;
     const raw = record[field];
     if (raw === null && field !== 'id') continue;
     const id = typeof raw === 'string' && /^[1-9][0-9]*$/.test(raw) ? Number(raw) : raw;
-    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) throw new Error(`AI 接口 ${field} 无效或超出安全整数范围`);
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) throw new Error(tv('aiDevelopment.validation.invalidField', { field }, 'AI 接口 {field} 无效或超出安全整数范围'));
     record[field] = id;
   }
   return record as T;
 }
 function aiRecords<T>(value: T[]): T[] {
-  if (!Array.isArray(value)) throw new Error('AI 接口未返回有效列表');
+  if (!Array.isArray(value)) throw new Error(tv('aiDevelopment.validation.invalidList', {}, 'AI 接口未返回有效列表'));
   return value.map(aiRecord);
 }
 
@@ -331,7 +334,7 @@ export const aiDevelopmentApi = {
     return http.upload<AiAttachment>(`${PREFIX}/conversations/${id}/attachments`, data, { signal }).then(aiRecord);
   },
   attachmentContent: (id: number, attachmentId: number, signal?: AbortSignal) => http.download(`${PREFIX}/conversations/${id}/attachments/${attachmentId}/content`, undefined, { signal }).then(value => {
-      if (!(value instanceof Blob)) throw new Error('私有附件响应无效');
+      if (!(value instanceof Blob)) throw new Error(tv('aiDevelopment.validation.invalidAttachment', {}, '私有附件响应无效'));
       return value;
     }),
   deleteAttachment: (id: number, attachmentId: number) => http.delete<{ deleted: boolean }>(`${PREFIX}/conversations/${id}/attachments/${attachmentId}`),

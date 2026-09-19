@@ -2,12 +2,12 @@
   <el-drawer class="provider-drawer" :model-value="modelValue" :title="t('aiDevelopment.profiles.title')" size="min(1080px, 100vw)" @update:model-value="$emit('update:modelValue', $event)">
     <el-form class="provider-form" :model="form" :disabled="busy" label-width="136px" @submit.prevent="submit">
       <div class="profile-toolbar">
-        <el-form-item label="配置档案">
-          <el-select data-testid="profile-select" :model-value="selectedId" placeholder="新建档案" @update:model-value="select(profiles.find(p => p.id === $event))">
-            <el-option v-for="item in profiles" :key="item.id" :value="item.id" :label="`${item.name}${item.is_default ? '（默认档案）' : ''} · ${item.model}`" />
+        <el-form-item :label="t('aiDevelopment.profiles.selectProfile', '配置档案')">
+          <el-select data-testid="profile-select" :model-value="selectedId" :placeholder="t('aiDevelopment.profiles.newProfile', '新建档案')" @update:model-value="select(profiles.find(p => p.id === $event))">
+            <el-option v-for="item in profiles" :key="item.id" :value="item.id" :label="`${item.name}${item.is_default ? t('aiDevelopment.profiles.defaultBadge', '（默认档案）') : ''} · ${item.model}`" />
           </el-select>
         </el-form-item>
-        <el-form-item label="档案名称"><el-input v-model="form.name" required maxlength="100" /></el-form-item>
+        <el-form-item :label="t('aiDevelopment.profiles.nameLabel', '档案名称')"><el-input v-model="form.name" required maxlength="100" /></el-form-item>
         <div class="profile-actions">
           <el-button data-testid="profile-create" @click="select()">{{ t('aiDevelopment.profiles.create') }}</el-button>
           <el-tooltip :content="t('aiDevelopment.profiles.copyHint')"><el-button :disabled="!selectedId" @click="$emit('copy', selectedId!)">{{ t('aiDevelopment.profiles.copy') }}</el-button></el-tooltip>
@@ -17,74 +17,76 @@
       </div>
       <div class="profile-content" data-testid="profile-content">
         <section class="profile-section profile-fields">
-          <h3>连接与模型</h3>
-          <el-form-item class="profile-wide" label="供应商预设"><div class="model-control"><el-select v-model="presetId" data-testid="provider-preset"><el-option v-for="preset in presets" :key="preset.id" :value="preset.id" :label="preset.label" /></el-select><el-button data-testid="apply-preset" @click="applyPreset">应用到连接</el-button></div></el-form-item>
-          <el-form-item class="profile-wide" label="API 协议"><el-select v-model="form.protocol" data-testid="provider-protocol"><el-option value="openai-chat" label="Chat Completions" /><el-option value="openai-responses" label="Responses" /><el-option value="anthropic-messages" label="Anthropic Messages" /></el-select></el-form-item>
-          <p v-if="presetId === 'ollama'" class="profile-wide">Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。</p>
-          <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
-          <el-form-item label="供应商标识">
-            <el-input v-model="form.provider" required pattern="[a-z0-9][a-z0-9._-]*" maxlength="64" placeholder="例如 openai-compatible" />
+          <h3>{{ t('aiDevelopment.profiles.connectionTitle', '连接与模型') }}</h3>
+          <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.preset', '供应商预设')"><div class="model-control"><el-select v-model="presetId" data-testid="provider-preset"><el-option v-for="preset in presets" :key="preset.id" :value="preset.id" :label="preset.label" /></el-select><el-button data-testid="apply-preset" @click="applyPreset">{{ t('aiDevelopment.profiles.applyPreset', '应用到连接') }}</el-button></div></el-form-item>
+          <el-form-item :label="t('aiDevelopment.profiles.protocol', 'API 协议')"><el-select v-model="form.protocol" data-testid="provider-protocol"><el-option value="openai-chat" label="Chat Completions" /><el-option value="openai-responses" label="Responses" /><el-option value="anthropic-messages" label="Anthropic Messages" /></el-select></el-form-item>
+          <el-form-item :label="t('aiDevelopment.profiles.providerId', '供应商标识')">
+            <el-input v-model="form.provider" required pattern="[a-z0-9][a-z0-9._-]*" maxlength="64" :placeholder="t('aiDevelopment.profiles.providerIdPlaceholder', '例如 openai-compatible')" />
           </el-form-item>
+          <p v-if="presetId === 'ollama'" class="profile-wide">{{ t('aiDevelopment.profiles.ollamaHint', 'Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。') }}</p>
           <el-form-item class="profile-wide" label="Base URL"><el-input v-model="form.base_url" type="url" required placeholder="https://api.example.com/v1" /></el-form-item>
-          <el-form-item label="API key"><el-input v-model="apiKey" data-testid="provider-api-key" type="password" autocomplete="new-password" :placeholder="t('aiDevelopment.profiles.keyHint')" /></el-form-item>
-          <el-form-item label="密钥状态">
-            <div class="control-stack">
-              <small>{{ t(hasKey ? 'aiDevelopment.profiles.hasKey' : 'aiDevelopment.profiles.noKey') }}</small>
+          <el-form-item class="profile-wide" label="API key">
+            <div class="key-control">
+              <el-input v-model="apiKey" data-testid="provider-api-key" type="password" autocomplete="new-password" :placeholder="t('aiDevelopment.profiles.keyHint')" />
+              <span class="key-status">{{ t(hasKey ? 'aiDevelopment.profiles.hasKey' : 'aiDevelopment.profiles.noKey') }}</span>
               <el-switch v-model="clearKey" data-testid="provider-clear-key" :active-text="t('aiDevelopment.profiles.clearKey')" :aria-label="t('aiDevelopment.profiles.clearKey')" />
             </div>
           </el-form-item>
-          <el-form-item class="profile-wide" label="默认 Model">
+          <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.defaultModel', '默认 Model')">
             <div class="model-control">
               <el-select v-model="form.model" data-testid="profile-model" filterable allow-create default-first-option :aria-label="t('aiDevelopment.fields.model')"><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select>
-              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" @click="$emit('models', selectedId!)">获取模型</el-button></el-tooltip>
+              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" @click="$emit('models', selectedId!)">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
             </div>
           </el-form-item>
-          <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
+          <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
+          <el-form-item :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
         </section>
         <section class="profile-section">
-          <h3>备用模型</h3>
-          <el-form-item label="启用备用"><el-switch v-model="form.fallback_enabled" data-testid="fallback-enabled" aria-label="启用 Fallback" /></el-form-item>
-          <el-form-item label="有序备用模型">
-            <div class="control-stack">
-              <el-select :model-value="null" filterable allow-create default-first-option placeholder="添加备用模型（最多 3 个）" :disabled="(form.fallback_models?.length || 0) >= 3" @update:model-value="addFallback"><el-option v-for="id in fallbackOptions" :key="id" :value="id" :label="id" /></el-select>
-              <div v-for="(model, index) in form.fallback_models" :key="model" class="fallback-row">
-                <span>{{ index + 1 }}. {{ model }}</span>
-                <el-button :data-testid="`fallback-up-${index}`" :disabled="index === 0" @click="moveFallback(index, -1)">上移</el-button>
-                <el-button :disabled="index === (form.fallback_models?.length || 0) - 1" @click="moveFallback(index, 1)">下移</el-button>
-                <el-button @click="form.fallback_models?.splice(index, 1)">移除</el-button>
-              </div>
+          <h3>{{ t('aiDevelopment.profiles.fallbackTitle', '备用模型') }}</h3>
+          <div class="fallback-grid">
+            <el-form-item :label="t('aiDevelopment.profiles.fallbackEnable', '启用备用')"><el-switch v-model="form.fallback_enabled" data-testid="fallback-enabled" :aria-label="t('aiDevelopment.profiles.fallbackEnable', '启用备用')" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.fallbackList', '有序备用模型')">
+              <el-select :model-value="null" filterable allow-create default-first-option :placeholder="t('aiDevelopment.profiles.fallbackAdd', '添加备用模型（最多 3 个）')" :disabled="(form.fallback_models?.length || 0) >= 3" @update:model-value="addFallback"><el-option v-for="id in fallbackOptions" :key="id" :value="id" :label="id" /></el-select>
+            </el-form-item>
+          </div>
+          <div v-if="form.fallback_models?.length" class="fallback-list">
+            <div v-for="(model, index) in form.fallback_models" :key="model" class="fallback-row">
+              <span>{{ index + 1 }}. {{ model }}</span>
+              <el-button :data-testid="`fallback-up-${index}`" :disabled="index === 0" @click="moveFallback(index, -1)">{{ t('aiDevelopment.profiles.moveUp', '上移') }}</el-button>
+              <el-button :disabled="index === (form.fallback_models?.length || 0) - 1" @click="moveFallback(index, 1)">{{ t('aiDevelopment.profiles.moveDown', '下移') }}</el-button>
+              <el-button @click="form.fallback_models?.splice(index, 1)">{{ t('aiDevelopment.profiles.removeFallback', '移除') }}</el-button>
             </div>
-          </el-form-item>
+          </div>
         </section>
         <section class="profile-section">
-          <h3>Token 限制</h3>
+          <h3>{{ t('aiDevelopment.profiles.tokenLimits', 'Token 限制') }}</h3>
           <div class="token-grid">
             <el-form-item v-for="field in numericFields.slice(0, 3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)" label-position="top">
-              <el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" :value-on-clear="null" controls-position="right" placeholder="不指定" />
+              <el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" :value-on-clear="null" controls-position="right" :placeholder="t('aiDevelopment.profiles.unspecified', '不指定')" />
             </el-form-item>
           </div>
           <el-form-item :label="t('aiDevelopment.reasoning.profile')"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" :label="t('aiDevelopment.reasoning.defaultOption')" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
-          <p v-if="form.reasoning_effort && !legalEfforts.includes(form.reasoning_effort)" role="alert">已保存档位 {{ form.reasoning_effort }} 不兼容当前选择，请明确选择默认或合法档位。</p>
+          <p v-if="form.reasoning_effort && !legalEfforts.includes(form.reasoning_effort)" role="alert">{{ t('aiDevelopment.profiles.savedEffortIncompatible', { effort: form.reasoning_effort }, { default: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。' }) }}</p>
         </section>
         <details class="profile-section profile-advanced" data-testid="profile-advanced">
-          <summary>高级参数与模型能力</summary>
-          <div class="profile-fields">
-            <el-form-item v-for="field in numericFields.slice(3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)"><el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" controls-position="right" /></el-form-item>
-            <el-form-item :label="t('aiDevelopment.profiles.stream_usage')"><el-switch v-model="form.stream_usage" :aria-label="t('aiDevelopment.profiles.stream_usage')" /></el-form-item>
+          <summary>{{ t('aiDevelopment.profiles.advancedTitle', '高级参数与模型能力') }}</summary>
+          <div class="profile-fields advanced-fields">
+            <el-form-item v-for="field in numericFields.slice(3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)" label-position="top"><el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" controls-position="right" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.stream_usage')" label-position="top"><el-switch v-model="form.stream_usage" :aria-label="t('aiDevelopment.profiles.stream_usage')" /></el-form-item>
           </div>
-          <h3>模型能力（管理员声明）</h3>
+          <h3>{{ t('aiDevelopment.profiles.capabilitiesTitle', '模型能力（管理员声明）') }}</h3>
           <div v-for="(cap, index) in form.model_capabilities" :key="index" class="capability-row">
-            <el-form-item label="模型标识"><el-input v-model="cap.model" required maxlength="200" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.capModel', '模型标识')"><el-input v-model="cap.model" required maxlength="200" /></el-form-item>
             <el-form-item class="profile-wide" :label="t('aiDevelopment.reasoning.levels')"><el-checkbox-group v-model="cap.reasoning_efforts"><el-checkbox v-for="effort in efforts" :key="effort" :value="effort">{{ effort }}</el-checkbox></el-checkbox-group></el-form-item>
-            <el-form-item label="输出参数"><el-select v-model="cap.output_token_parameter" :data-testid="`cap-output-${index}`"><el-option value="max_tokens" label="max_tokens" /><el-option value="max_completion_tokens" label="max_completion_tokens" /></el-select></el-form-item>
-            <el-form-item label="模型上下文上限"><el-input-number v-model="cap.context_window" :min="1" :max="10000000" :precision="0" :value-on-clear="null" placeholder="未知" controls-position="right" /></el-form-item>
-            <el-form-item label="模型输出上限"><el-input-number v-model="cap.max_output_tokens" :min="1" :max="10000000" :precision="0" :value-on-clear="null" placeholder="未知" controls-position="right" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.capOutput', '输出参数')"><el-select v-model="cap.output_token_parameter" :data-testid="`cap-output-${index}`"><el-option value="max_tokens" label="max_tokens" /><el-option value="max_completion_tokens" label="max_completion_tokens" /></el-select></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.capContext', '模型上下文上限')"><el-input-number v-model="cap.context_window" :min="1" :max="10000000" :precision="0" :value-on-clear="null" :placeholder="t('aiDevelopment.profiles.unknown', '未知')" controls-position="right" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.capMaxOutput', '模型输出上限')"><el-input-number v-model="cap.max_output_tokens" :min="1" :max="10000000" :precision="0" :value-on-clear="null" :placeholder="t('aiDevelopment.profiles.unknown', '未知')" controls-position="right" /></el-form-item>
             <el-form-item :label="t('aiComposer.imageInput')"><el-switch v-model="cap.image_input" :data-testid="`cap-image-${index}`" :aria-label="t('aiComposer.imageInput')" /></el-form-item>
             <el-form-item :label="t('aiComposer.maxImages')"><el-input-number v-model="cap.max_images" :min="1" :max="4" :precision="0" /></el-form-item>
-            <el-form-item class="profile-wide" label="图片格式"><el-checkbox-group v-model="cap.image_mime_types"><el-checkbox v-for="mime in ['image/png', 'image/jpeg', 'image/webp']" :key="mime" :value="mime">{{ mime }}</el-checkbox></el-checkbox-group></el-form-item>
-            <div class="profile-actions"><small>{{ t('aiComposer.imageTokens') }}: 32768</small><el-button type="danger" plain @click="form.model_capabilities?.splice(index, 1)">删除声明</el-button></div>
+            <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.imageFormats', '图片格式')"><el-checkbox-group v-model="cap.image_mime_types"><el-checkbox v-for="mime in ['image/png', 'image/jpeg', 'image/webp']" :key="mime" :value="mime">{{ mime }}</el-checkbox></el-checkbox-group></el-form-item>
+            <div class="profile-actions"><small>{{ t('aiComposer.imageTokens') }}: 32768</small><el-button type="danger" plain @click="form.model_capabilities?.splice(index, 1)">{{ t('aiDevelopment.profiles.removeCapability', '删除声明') }}</el-button></div>
           </div>
-          <el-button :disabled="(form.model_capabilities?.length || 0) >= 100" @click="form.model_capabilities?.push({ model: '', reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, image_input: false, image_tokens: 32768, max_images: 4, image_mime_types: ['image/png', 'image/jpeg', 'image/webp'] })">添加模型能力声明</el-button>
+          <el-button :disabled="(form.model_capabilities?.length || 0) >= 100" @click="form.model_capabilities?.push({ model: '', reasoning_efforts: [], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null, image_input: false, image_tokens: 32768, max_images: 4, image_mime_types: ['image/png', 'image/jpeg', 'image/webp'] })">{{ t('aiDevelopment.profiles.addCapability', '添加模型能力声明') }}</el-button>
         </details>
       </div>
       <footer class="profile-footer" data-testid="profile-footer">
@@ -113,31 +115,31 @@ const validationError = ref('');
 const defaults = (): AiProfileInput => ({ name: '', provider: 'openai-compatible', protocol: 'openai-chat', base_url: '', model: '', enabled: true, favorite_models: [], model_capabilities: [], fallback_enabled: false, fallback_models: [], reasoning_effort: null, context_window: null, max_input_tokens: null, max_output_tokens: null, max_iterations: 10, stream_usage: false, connect_timeout: 5, request_timeout: 60, max_retries: 2 });
 const form = reactive(defaults());
 const presetId = ref('custom');
-const presets: Array<{ id: string; label: string; url: string; protocol?: AiProfileInput['protocol'] }> = [
+const presets = computed<Array<{ id: string; label: string; url: string; protocol?: AiProfileInput['protocol'] }>>(() => [
   { id: 'openai', label: 'OpenAI', url: 'https://api.openai.com/v1' },
   { id: 'anthropic', label: 'Anthropic (Claude)', url: 'https://api.anthropic.com/v1', protocol: 'anthropic-messages' },
   { id: 'deepseek', label: 'DeepSeek', url: 'https://api.deepseek.com/v1' },
   { id: 'kimi', label: 'Kimi', url: 'https://api.moonshot.cn/v1' },
-  { id: 'zhipu', label: '智谱 GLM', url: 'https://open.bigmodel.cn/api/paas/v4' },
-  { id: 'qwen', label: '通义千问（北京）', url: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { id: 'doubao', label: '豆包（北京）', url: 'https://ark.cn-beijing.volces.com/api/v3' },
-  { id: 'siliconflow', label: '硅基流动', url: 'https://api.siliconflow.cn/v1' },
+  { id: 'zhipu', label: t('aiDevelopment.profiles.presetZhipu', '智谱 GLM'), url: 'https://open.bigmodel.cn/api/paas/v4' },
+  { id: 'qwen', label: t('aiDevelopment.profiles.presetQwen', '通义千问（北京）'), url: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+  { id: 'doubao', label: t('aiDevelopment.profiles.presetDoubao', '豆包（北京）'), url: 'https://ark.cn-beijing.volces.com/api/v3' },
+  { id: 'siliconflow', label: t('aiDevelopment.profiles.presetSiliconFlow', '硅基流动'), url: 'https://api.siliconflow.cn/v1' },
   { id: 'openrouter', label: 'OpenRouter', url: 'https://openrouter.ai/api/v1' },
   { id: 'groq', label: 'Groq', url: 'https://api.groq.com/openai/v1' },
-  { id: 'google-gemini', label: 'Google Gemini（OpenAI 兼容）', url: 'https://generativelanguage.googleapis.com/v1beta/openai' },
-  { id: 'ollama', label: 'Ollama（自备安全网关）', url: '' },
-  { id: 'custom', label: '自定义', url: '' }
-];
+  { id: 'google-gemini', label: t('aiDevelopment.profiles.presetGemini', 'Google Gemini（OpenAI 兼容）'), url: 'https://generativelanguage.googleapis.com/v1beta/openai' },
+  { id: 'ollama', label: t('aiDevelopment.profiles.presetOllama', 'Ollama（自备安全网关）'), url: '' },
+  { id: 'custom', label: t('aiDevelopment.profiles.presetCustom', '自定义'), url: '' }
+]);
 const originalTarget = ref('');
 const target = () => JSON.stringify([form.provider, form.protocol, form.base_url]);
 const targetChanged = computed(() => selectedId.value !== null && originalTarget.value !== target());
 const presetConfirmation = ref('');
 function applyPreset() {
-  const preset = presets.find(p => p.id === presetId.value);
+  const preset = presets.value.find(p => p.id === presetId.value);
   if (!preset || preset.id === 'custom') return;
   if (selectedId.value && presetConfirmation.value !== preset.id) {
     presetConfirmation.value = preset.id;
-    validationError.value = '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。';
+    validationError.value = t('aiDevelopment.profiles.presetConfirm', '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。');
     return;
   }
   Object.assign(form, { provider: preset.id, protocol: preset.protocol || 'openai-chat', base_url: preset.url });
@@ -190,9 +192,9 @@ function select(profile?: AiProfile) {
 watch(() => props.savedProfile, (profile) => { if (profile) select(profile); });
 watch(() => props.modelValue, (visible) => { if (!visible) { apiKey.value = ''; clearKey.value = false; } else select(props.profiles.find((p) => p.id === selectedId.value)); });
 function submit() {
-  if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = '连接目标已变更，请提供新密钥或明确清空旧密钥。'; return; }
-  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'; return; }
-  if (form.protocol === 'anthropic-messages' && !form.max_output_tokens) { validationError.value = 'Messages 必须设置输出 Token 预算。'; return; }
+  if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = t('aiDevelopment.profiles.targetChangedNeedKey', '连接目标已变更，请提供新密钥或明确清空旧密钥。'); return; }
+  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.reasoningProtocolUnsupported', 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'); return; }
+  if (form.protocol === 'anthropic-messages' && !form.max_output_tokens) { validationError.value = t('aiDevelopment.profiles.messagesOutputRequired', 'Messages 必须设置输出 Token 预算。'); return; }
   const payload = { ...form, favorite_models: [...(form.favorite_models || [])], fallback_models: [...(form.fallback_models || [])], model_capabilities: (form.model_capabilities || []).map(c => ({ ...c, reasoning_efforts: [...c.reasoning_efforts], context_window: String(c.context_window) === '' ? null : c.context_window, max_output_tokens: String(c.max_output_tokens) === '' ? null : c.max_output_tokens })) };
   for (const field of numericFields) if (field.nullable && (payload[field.key] === undefined || String(payload[field.key]) === '')) Object.assign(payload, { [field.key]: null });
   const capabilityError = profileCapabilityError(payload);
@@ -209,7 +211,7 @@ function submit() {
   apiKey.value = '';
 }
 function test() {
-  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = '当前协议不支持显式推理模式。'; return; }
+  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.protocolReasoningUnsupported', '当前协议不支持显式推理模式。'); return; }
   emit('test', { protocol: form.protocol, name: form.provider, max_output_tokens: form.max_output_tokens, base_url: form.base_url, model: form.model, connect_timeout: form.connect_timeout, request_timeout: form.request_timeout, max_retries: form.max_retries, api_key: clearKey.value ? '' : apiKey.value });
   apiKey.value = '';
 }
@@ -220,9 +222,11 @@ function test() {
 :global(.provider-drawer .el-drawer__body) { display: flex; min-height: 0; overflow: hidden; padding: 0 var(--app-gap); }
 :global(.provider-drawer .el-drawer__header) { margin-bottom: 0; padding: var(--profile-space) var(--app-gap); border-bottom: 1px solid var(--el-border-color-lighter); }
 .provider-form { display: flex; flex-direction: column; width: 100%; max-width: 1000px; height: 100%; min-height: 0; min-width: 0; margin: 0 auto; }
-.profile-toolbar { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--profile-space); padding: var(--profile-space) 0; border-bottom: 1px solid var(--el-border-color-lighter); }
-.profile-toolbar :deep(.el-form-item) { margin-bottom: 10px; }
-.profile-toolbar .profile-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.profile-toolbar { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 4px var(--profile-space); padding: var(--profile-space) 0; border-bottom: 1px solid var(--el-border-color-lighter); }
+.profile-toolbar :deep(.el-form-item) { flex-direction: column; margin-bottom: 0; }
+.profile-toolbar :deep(.el-form-item__label) { width: auto !important; height: auto; justify-content: flex-start; margin-bottom: 4px; line-height: 1.4; }
+.profile-toolbar :deep(.el-form-item__content) { margin-left: 0 !important; }
+.profile-toolbar .profile-actions { justify-content: flex-end; padding-bottom: 1px; }
 .profile-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: var(--profile-space) calc(var(--profile-space) / 2) var(--profile-space) 0; }
 .profile-section { margin-bottom: var(--profile-space); padding: var(--profile-space); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
 .profile-section h3 { margin: 0 0 var(--profile-space); font-size: 15px; font-weight: 600; }
@@ -234,6 +238,13 @@ function test() {
 .provider-form :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .provider-form :deep(.el-checkbox) { margin-right: 0; }
 .control-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; min-width: 0; }
+.key-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; width: 100%; min-width: 0; }
+.key-control .el-input { flex: 1; min-width: 220px; }
+.key-status { flex: none; font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.fallback-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--profile-space); }
+.fallback-list { display: flex; flex-direction: column; gap: 8px; }
+.profile-fields.advanced-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.profile-fields.advanced-fields :deep(.el-form-item__label) { line-height: 1.4; margin-bottom: 4px; }
 .model-control { display: flex; gap: 8px; width: 100%; min-width: 0; }
 .model-control .el-select { flex: 1; }
 .token-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--profile-space); }
@@ -253,7 +264,8 @@ function test() {
   :global(.provider-drawer .el-drawer__body) { padding: 0 12px; }
   .profile-toolbar { grid-template-columns: 1fr; padding: 10px 0; }
   .profile-toolbar .profile-actions { justify-content: flex-start; }
-  .profile-fields, .capability-row, .token-grid { grid-template-columns: 1fr; gap: 0; }
+  .profile-fields, .capability-row, .token-grid, .fallback-grid { grid-template-columns: 1fr; gap: 0; }
+  .profile-fields.advanced-fields { grid-template-columns: 1fr; }
   .provider-form :deep(.el-form-item) { flex-direction: column; }
   .provider-form :deep(.el-form-item__label) { width: auto !important; height: auto; justify-content: flex-start; margin-bottom: 6px; line-height: 1.5; }
   .provider-form :deep(.el-form-item__content) { margin-left: 0 !important; }

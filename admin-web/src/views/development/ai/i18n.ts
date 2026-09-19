@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import type { ComposerTranslation } from 'vue-i18n';
+import { i18n } from '@/locales';
 import type { AiConversation, AiConversationGroup } from '@/api/development/ai';
 
 export type AiEnumGroup = 'statuses' | 'riskLevels' | 'operations' | 'fileStatuses' | 'taskStages' | 'taskTypes' | 'changeSetStatuses';
@@ -16,7 +17,7 @@ export interface ConversationSection {
   conversations: AiConversation[];
 }
 
-export const groupConversations = (conversations: AiConversation[], groups: AiConversationGroup[], ungroupedName = '未分组'): ConversationSection[] => {
+export const groupConversations = (conversations: AiConversation[], groups: AiConversationGroup[], ungroupedName = i18n.global.t('aiDevelopment.management.ungrouped', '未分组')): ConversationSection[] => {
   const sections: ConversationSection[] = groups.map((group) => ({
     id: group.id,
     name: group.name,

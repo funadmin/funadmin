@@ -18,6 +18,7 @@ import {
   resolveAiEventSourceFactory,
   type AiEventSourceConstructor
 } from '@/api/development/aiEventTransport';
+import { i18n } from '@/locales';
 
 const ROUTE_STATE_KEY = 'funadmin.ai.route';
 const INITIAL_RECONNECT_DELAY = 1000;
@@ -315,7 +316,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
 
     async updateConversationSelection(id: number, payload: Partial<Pick<AiConversation, 'model' | 'profile_id' | 'reasoning_effort'>>) {
       if (!this.conversations.some((item) => item.id === id)) return;
-      if (this.modelSaving[id]) throw new Error('模型正在保存，请稍后重试');
+      if (this.modelSaving[id]) throw new Error(i18n.global.t('aiDevelopment.errors.modelSaving', '模型正在保存，请稍后重试'));
       this.modelSaving[id] = true;
       try {
         const updated = await aiDevelopmentApi.updateConversation(id, payload);
@@ -351,7 +352,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
           const last = page.items.at(-1);
           if (last) this.latestMessageCursor = `${last.sequence}:${last.id}`;
           if (!page.has_more) break;
-          if (!page.next_cursor || page.next_cursor === after) throw new Error('消息分页游标未前进');
+          if (!page.next_cursor || page.next_cursor === after) throw new Error(i18n.global.t('aiDevelopment.errors.cursorNotAdvanced', '消息分页游标未前进'));
           after = page.next_cursor;
         } while (true);
         await this.markViewedRead(id, generation);
@@ -519,7 +520,7 @@ export const useAiDevelopmentStore = defineStore('aiDevelopment', {
         || approval.conversation_id !== changeSet.conversation_id || approval.task_id !== changeSet.task_id
         || this.selectedConversationId !== changeSet.conversation_id || this.activeTask?.id !== changeSet.task_id
         || this.activeTask.change_set_id !== changeSet.id) {
-        throw new Error('当前 ChangeSet 的最终 apply 审批不存在或尚未批准');
+        throw new Error(i18n.global.t('aiDevelopment.errors.finalApprovalUnavailable', '当前 ChangeSet 的最终 apply 审批不存在或尚未批准'));
       }
       return aiDevelopmentApi.applyChangeSet(changeSet.id, { selection, confirmToken, finalApprovalId: approval.id });
     },
