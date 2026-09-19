@@ -1,6 +1,7 @@
 <template>
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <div class="designer-command-bar designer-toolbar mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color-light)] bg-[var(--el-bg-color)] p-3">
+        <el-button data-action="back-to-list" @click="router.push('/development/business/mine')"><i class="i-ep-back" /> {{ t('formDesigner.backToList', '返回列表') }}</el-button>
         <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
@@ -104,6 +105,23 @@
               <el-button link type="primary" @click="loadDatabaseTables(true)">重新加载</el-button>
             </el-alert>
           </div>
+        </el-form-item>
+        <el-divider />
+        <el-form-item label="树形列表">
+          <el-switch :model-value="treeConfig.enabled === true" @change="enabled => updateTree({ enabled: Boolean(enabled) })" />
+        </el-form-item>
+        <el-form-item v-if="treeConfig.enabled" label="父级字段">
+          <el-select :model-value="treeConfig.parentField" filterable placeholder="选择存储父记录主键的字段" @change="parentField => updateTree({ parentField: String(parentField) })">
+            <el-option v-for="field in treeParentFieldOptions" :key="field.field_name" :label="field.label || field.field_name" :value="field.field_name" />
+          </el-select>
+          <div class="form-tip">主键自动读取实际表主键；树列表不分页，最多 1000 条授权记录，超限需缩小筛选范围。</div>
+        </el-form-item>
+        <el-form-item v-if="treeConfig.enabled" label="新增页父级选择">
+          <el-radio-group :model-value="treeConfig.selectionMode ?? 'single'" @change="mode => updateTree({ selectionMode: mode as 'single' | 'multiple' })">
+            <el-radio value="single">单选</el-radio>
+            <el-radio value="multiple">多选</el-radio>
+          </el-radio-group>
+          <div class="form-tip">新增/编辑页父级字段以当前记录树呈现：单选为树选择，多选为可勾选树。</div>
         </el-form-item>
       </el-form>
     </el-card>
@@ -222,6 +240,12 @@
 
       <template v-else-if="publishStep === 1">
         <el-alert :title="publishPreview?.plan.blocked ? '存在冲突，正式生成已阻断' : '正式生成计划已就绪'" :type="publishPreview?.plan.blocked ? 'warning' : 'success'" :closable="false" class="mb-3" />
+        <el-descriptions :column="3" border size="small" class="mb-3">
+          <el-descriptions-item label="菜单名称">{{ publishConfig.menuName || '（未填写）' }}</el-descriptions-item>
+          <el-descriptions-item label="父级菜单">{{ publishConfig.parentSourceName || '顶级菜单' }}</el-descriptions-item>
+          <el-descriptions-item label="菜单图标">{{ publishConfig.icon }}</el-descriptions-item>
+        </el-descriptions>
+        <p class="mb-3 text-xs" style="color: var(--el-text-color-secondary)">生成后将按以上配置创建/更新后台菜单与权限资源；如需调整，<el-button link type="primary" @click="publishStep = 0">返回发布设置</el-button></p>
         <p v-if="isPluginTarget">{{ businessTarget?.tableStrategy === 'external' ? '外部依赖：不生成该表 CREATE／ALTER，安装／更新时校验兼容性。' : '插件拥有新表：这里只生成迁移，安装／更新时才执行。' }}</p>
         <GenerationPlanView v-if="publishPreview" :plan="publishPreview.plan" :conflicts="publishPreview.conflicts" />
         <el-collapse>
@@ -259,6 +283,7 @@
 
       <template #footer>
         <el-button @click="publishVisible = false">关闭</el-button>
+        <el-button v-if="publishStep === 1" @click="publishStep = 0">上一步</el-button>
         <el-button v-if="publishStep === 2" @click="publishStep = 1">上一步</el-button>
         <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
@@ -282,7 +307,7 @@
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import Sortable from 'sortablejs';
 import type { FormPublishConfig } from '@/api/form';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessModule, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
@@ -387,6 +412,9 @@ const previewOptionsRequest: FormDataSourceRequest = async (formKey, field, para
   return formDataApi.options(formKey, field, { ...params, draft: 1 }, signal);
 };
 const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
+const treeConfig = computed(() => store.schemaDocument.value.list?.tree ?? { enabled: false as boolean, parentField: undefined as string | undefined, selectionMode: undefined as 'single' | 'multiple' | undefined });
+const updateTree = (patch: Partial<{ enabled: boolean; parentField?: string; selectionMode?: 'single' | 'multiple' }>) => store.updateList({ tree: { enabled: false, ...store.schemaDocument.value.list?.tree, ...patch } });
+const treeParentFieldOptions = computed(() => store.fields.value.filter(field => field.column_type && !['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'].includes(field.type) && !field.control_props?.multiple && !field.control_props?.sensitive && !field.control_props?.writeOnly && field.relation_type === 'none'));
 watch(() => store.fields.value.map((field) => [field.field_name, field.default_value] as const), (fields) => {
   const fieldNames = new Set(fields.map(([name]) => name));
   for (const [name, defaultValue] of fields) if (!(name in previewValues)) previewValues[name] = defaultValue;
@@ -431,7 +459,7 @@ const scheduleLocalDraft = () => {
   }, 500);
 };
 const clearLocalDraft = () => { if (typeof localStorage !== 'undefined') localStorage.removeItem(localDraftKey.value); };
-const restoreLocalDraft = () => {
+const restoreLocalDraft = async () => {
   if (!designerActive || !localDraftRestorePending) return;
   localDraftRestorePending = false;
   if (typeof localStorage === 'undefined') return;
@@ -439,7 +467,7 @@ const restoreLocalDraft = () => {
   if (!raw) return;
   try {
     const draft = JSON.parse(raw) as { definition?: import('@/api/form').FormDefinition; saveBlocked?: boolean };
-    if (draft.definition?.schema_document?.schemaVersion === 2 && window.confirm('检测到未同步的本地表单草稿，是否恢复？')) {
+    if (draft.definition?.schema_document?.schemaVersion === 2 && (await ElMessageBox.confirm('检测到未同步的本地表单草稿，是否恢复？', '恢复本地草稿', { type: 'warning', confirmButtonText: '恢复', cancelButtonText: '忽略' }).then(() => true).catch(() => false))) {
       const loadedHash = store.form.value.schema_hash;
       // 历史草稿不是服务端基线；版本不明时保留内容并暂停，禁止换 hash 盲目覆盖。
       saveBlocked.value = draft.saveBlocked === true || !loadedHash || draft.definition.schema_hash !== loadedHash;
@@ -614,7 +642,12 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
   const prompt = choice === 'local'
     ? '确认以已核对的本地快照覆盖此服务端版本？服务端再次变化时将拒绝保存。'
     : '确认放弃本地全部未保存编辑，采用已核对的服务端版本？';
-  if (!window.confirm(prompt) || !unchanged()) return;
+  try {
+    await ElMessageBox.confirm(prompt, choice === 'local' ? '本地覆盖确认' : '采用服务端确认', { type: 'warning' });
+  } catch {
+    return;
+  }
+  if (!unchanged()) return;
   conflictResolving.value = true;
   saveInFlight = true;
   conflictReviewError.value = '';
@@ -862,7 +895,10 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
   event.preventDefault();
   event.returnValue = '';
 };
-onBeforeRouteLeave(() => !store.dirty.value || window.confirm('当前表单尚未保存，确认离开吗？'));
+onBeforeRouteLeave(() => {
+  if (!store.dirty.value) return true;
+  return ElMessageBox.confirm('当前表单尚未保存，确认离开吗？', '离开确认', { type: 'warning' }).then(() => true).catch(() => false);
+});
 
 const scheduleAutoSave = (delay = 1200) => {
   if (!designerActive || saveBlocked.value || !store.dirty.value) return;
@@ -901,7 +937,7 @@ onActivated(() => {
   window.addEventListener('beforeunload', beforeUnload);
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
-  restoreLocalDraft();
+  void restoreLocalDraft();
   if (store.dirty.value) {
     scheduleLocalDraft();
     scheduleAutoSave();
@@ -915,7 +951,7 @@ onMounted(async () => {
   await Promise.allSettled([loadPluginFormComponents()]);
   await load();
   localDraftRestorePending = true;
-  restoreLocalDraft();
+  void restoreLocalDraft();
 });
 onBeforeUnmount(() => {
   deactivateDesigner();

@@ -17,7 +17,14 @@ export interface LanguageQuery {
   name?: string;
 }
 
+export interface LanguagePack {
+  locale: string;
+  version: number;
+  messages: Record<string, string>;
+}
+
 export const languageApi = {
+  pack: (locale: string, signal?: AbortSignal) => http.get<LanguagePack>(`${PREFIX}/pack`, { params: { locale }, signal }),
   list: (params: LanguageQuery) => http.get<API.PageResult<LanguageModel>>(PREFIX, { params }),
   detail: (id: number) => http.get<LanguageModel>(`${PREFIX}/${id}`),
   create: (data: Pick<LanguageModel, 'name'>) =>

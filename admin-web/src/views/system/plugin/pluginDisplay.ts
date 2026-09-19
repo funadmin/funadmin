@@ -32,14 +32,13 @@ const operationLabels: Record<string, string> = {
 
 const applicationLabels: Record<string, string> = {
   app: '独立应用',
-  application: '独立应用',
-  console: '管理后台',
+  admin: '管理后台',
   adminWeb: '管理前端'
 };
 
 const scopeLabels: Record<string, string> = {
-  application: '独立应用',
-  console: '管理后台',
+  app: '独立应用',
+  admin: '管理后台',
   both: '独立应用和管理后台'
 };
 

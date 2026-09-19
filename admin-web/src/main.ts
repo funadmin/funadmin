@@ -20,6 +20,7 @@ import { setupComponents } from '@/components';
 import { setupDirectives } from '@/directives';
 import { APP_CONFIG } from '@/config';
 import { i18n } from '@/locales';
+import { applyRemotePack } from '@/locales/remotePack';
 import { useAppStore } from '@/store/modules/app';
 
 async function bootstrap() {
@@ -36,6 +37,8 @@ async function bootstrap() {
   app.use(i18n);
   const appStore = useAppStore();
   i18n.global.locale.value = appStore.locale;
+  // 后端译文包覆盖静态语言包；失败时内部回落缓存/静态包。
+  void applyRemotePack(appStore.locale);
 
   // 历史默认主色无感迁移（老 localStorage 里若是旧默认色，自动换成新默认色）
   appStore.migrateLegacyPrimary();

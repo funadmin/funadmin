@@ -17,7 +17,7 @@ describe('插件中心中文显示', () => {
   it('将来源、操作和能力标识转换为中文', () => {
     expect(pluginSourceLabel('cloud')).toBe('云市场');
     expect(operationLabel('migrate')).toBe('数据库迁移');
-    expect(applicationLabel('console')).toBe('管理后台');
+    expect(applicationLabel('admin')).toBe('管理后台');
     expect(scopeLabel('both')).toBe('独立应用和管理后台');
   });
 

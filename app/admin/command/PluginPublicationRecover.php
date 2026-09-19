@@ -27,6 +27,9 @@ final class PluginPublicationRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
+            // publication journal 由 admin 应用（Web 请求）写入 runtime/admin/plugins，
+            // CLI 默认 runtime 路径不同，必须先对齐再检查或恢复。
+            app()->setRuntimePath(root_path('runtime') . 'admin' . DIRECTORY_SEPARATOR);
             $infrastructure = new PluginInfrastructureService();
             $publisher = $infrastructure->appPublisher();
             $token = trim((string) $input->getArgument('token'));

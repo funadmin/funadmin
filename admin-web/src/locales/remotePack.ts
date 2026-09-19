@@ -1,0 +1,49 @@
+import { i18n } from './index';
+import { languageApi } from '@/api/system/language';
+
+const cacheKey = (locale: string) => `funadmin-i18n-pack-${locale}`;
+
+/** 点分 key 平铺表还原为 vue-i18n 需要的嵌套消息对象。 */
+export const unflattenMessages = (flat: Record<string, string>): Record<string, unknown> => {
+  const root: Record<string, unknown> = {};
+  for (const [path, value] of Object.entries(flat)) {
+    const segments = path.split('.');
+    let cursor = root;
+    for (const [index, segment] of segments.entries()) {
+      if (index === segments.length - 1) {
+        cursor[segment] = value;
+      } else {
+        const next = cursor[segment];
+        if (!next || typeof next !== 'object') cursor[segment] = {};
+        cursor = cursor[segment] as Record<string, unknown>;
+      }
+    }
+  }
+  return root;
+};
+
+/**
+ * 拉取后端译文包并合并覆盖静态语言包；请求失败时回落 localStorage 缓存。
+ * 静态包继续作为最终兜底（t(key, fallback) 模式不变）。
+ */
+export async function applyRemotePack(locale: string): Promise<void> {
+  let messages: Record<string, string>;
+  try {
+    const pack = await languageApi.pack(locale);
+    messages = pack.messages ?? {};
+    try {
+      localStorage.setItem(cacheKey(locale), JSON.stringify(messages));
+    } catch {
+      /* 隐私模式或配额不足时忽略缓存写入。 */
+    }
+  } catch {
+    const cached = localStorage.getItem(cacheKey(locale));
+    if (!cached) return;
+    try {
+      messages = JSON.parse(cached) as Record<string, string>;
+    } catch {
+      return;
+    }
+  }
+  i18n.global.mergeLocaleMessage(locale, unflattenMessages(messages));
+}

@@ -102,7 +102,7 @@
     <el-tab-pane label="表单" name="form">
       <el-form label-width="90px" size="small">
         <el-form-item label="控件类型">
-          <el-select :model-value="field.type" class="w-full" filterable @update:model-value="onTypeChange">
+          <el-select :model-value="field.type" class="w-full" filterable :disabled="selectedMeta.kind === 'layout'" @update:model-value="onTypeChange">
             <el-option-group v-for="group in controlGroups" :key="group.label" :label="group.label">
               <el-option v-for="control in group.options" :key="control.type" :label="control.label" :value="control.type" />
             </el-option-group>
@@ -111,10 +111,10 @@
         <el-form-item label="显示名称">
           <el-input :model-value="field.label" @update:model-value="patch({ label: $event })" />
         </el-form-item>
-        <el-form-item label="占位提示">
+        <el-form-item v-if="selectedMeta.kind !== 'layout'" label="占位提示">
           <el-input :model-value="field.placeholder" @update:model-value="patch({ placeholder: $event })" />
         </el-form-item>
-        <el-form-item label="分组">
+        <el-form-item v-if="selectedMeta.kind !== 'layout'" label="分组">
           <el-input :model-value="field.form_group" @update:model-value="patch({ form_group: $event })" />
         </el-form-item>
         <el-form-item label="栅格 span">
@@ -210,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormFieldDef } from '@/api/form';
 import { businessDevelopmentApi, type BusinessDatabaseTable } from '@/api/development/business';
@@ -239,6 +239,10 @@ const emitUpdate = () => undefined;
 
 const selectedMeta = computed(() => controlMeta(props.field.type));
 const componentDefinition = computed(() => componentRegistry.resolve(props.field.type));
+// 布局节点无“列/列表”页签：选中容器时回落到可见页签，避免内容区空白。
+watch(selectedMeta, (meta) => {
+  if (meta.kind === 'layout' && (tab.value === 'column' || tab.value === 'list')) tab.value = 'form';
+}, { immediate: true });
 const propertyFields = computed(() => normalizePropertySchema(componentDefinition.value?.propertySchema ?? {}));
 const propertyValue = (property: DynamicPropertyField): unknown => props.field.control_props?.[property.name] ?? property.defaultValue;
 const numberPropertyValue = (property: DynamicPropertyField): number | undefined => {

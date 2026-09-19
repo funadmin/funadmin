@@ -277,6 +277,7 @@ export default {
   },
   formDesigner: {
     title: '表单设计器',
+    backToList: '返回列表',
     subtitle: '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移',
     undo: '撤销',
     redo: '重做',

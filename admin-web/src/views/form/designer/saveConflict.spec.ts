@@ -16,7 +16,8 @@ vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] 
 vi.mock('../schema/pluginComponentLoader', () => ({ loadPluginFormComponents: async () => {} }));
 vi.mock('../../development/business/composables/useBusinessMenuRefresh', () => ({ useBusinessMenuRefresh: () => ({ refreshBusinessMenu: vi.fn() }) }));
 vi.mock('sortablejs', () => ({ default: { create: () => ({ destroy() {} }) } }));
-vi.mock('element-plus', () => ({ ElMessage: { warning: vi.fn(), success: vi.fn(), error: vi.fn() } }));
+vi.mock('element-plus', () => ({ ElMessage: { warning: vi.fn(), success: vi.fn(), error: vi.fn() }, ElMessageBox: { confirm: vi.fn() } }));
+import { ElMessageBox } from 'element-plus';
 import Designer from './index.vue';
 
 const hash = (letter: string) => letter.repeat(64);
@@ -62,7 +63,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   api.module.mockResolvedValue(remote());
   api.saveSchema.mockImplementation(async (_id, document) => ({ document, schemaHash: hash('c') }));
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never);
 });
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -282,11 +283,11 @@ describe('保存冲突的明确恢复', () => {
   it('按钮取消保留草稿，读取和处理期间阻止危险操作并保留二次确认', async () => {
     await start(); await pause(); await review();
     const actions = () => wrapper.get('.save-conflict-actions').findAll('button');
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(ElMessageBox.confirm).mockRejectedValue(new Error('cancel'));
     await actions()[1].trigger('click');
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('放弃本地'));
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(expect.stringContaining('放弃本地'), expect.any(String), expect.any(Object));
     await actions()[2].trigger('click');
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('覆盖'));
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(expect.stringContaining('覆盖'), expect.any(String), expect.any(Object));
     expect(api.saveSchema).toHaveBeenCalledTimes(1);
     state.conflictReviewLoading = true;
     await nextTick();
@@ -349,7 +350,7 @@ describe('保存冲突的明确恢复', () => {
   it('明确确认放弃本地才采用服务端，不发送覆盖请求', async () => {
     await start(); await pause(); await review();
     await state.resolveSaveConflict('server');
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('放弃本地'));
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(expect.stringContaining('放弃本地'), expect.any(String), expect.any(Object));
     expect(state.store.form.value.name).toBe('服务端新版本');
     expect(state.store.form.value.schema_hash).toBe(hash('b'));
     expect(state.saveBlocked).toBe(false);
@@ -362,7 +363,7 @@ describe('保存冲突的明确恢复', () => {
 
   it.each(['local', 'server'])('取消 %s 确认不丢编辑、不清除暂停和草稿', async (choice) => {
     await start(); await pause(); await review();
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(ElMessageBox.confirm).mockRejectedValue(new Error('cancel'));
     await state.resolveSaveConflict(choice);
     expect(state.store.form.value.name).toBe('本地编辑');
     expect(state.saveBlocked).toBe(true);
@@ -396,6 +397,7 @@ describe('保存冲突的明确恢复', () => {
     let finish!: (value: unknown) => void;
     api.saveSchema.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const pending = state.resolveSaveConflict('local');
+    await flushPromises(); // 二次确认改为 ElMessageBox 异步确认：先放行确认微任务派发覆盖请求
     state.store.updateForm({ name: '请求期间编辑' });
     const sent = api.saveSchema.mock.calls.at(-1)![1];
     expect(sent.title).toBe('本地编辑');

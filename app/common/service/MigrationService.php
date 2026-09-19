@@ -364,11 +364,11 @@ class MigrationService extends AbstractService
             Db::execute("ALTER TABLE {$table} ADD COLUMN `app_name` varchar(50) NULL AFTER `module`");
         }
         if (in_array('module', $columns, true)) {
-            Db::execute("UPDATE {$table} SET `app_name` = COALESCE(NULLIF(`app_name`, ''), NULLIF(`module`, ''), 'console')");
+            Db::execute("UPDATE {$table} SET `app_name` = COALESCE(NULLIF(`app_name`, ''), NULLIF(`module`, ''), 'admin')");
         } else {
-            Db::execute("UPDATE {$table} SET `app_name` = 'console' WHERE `app_name` IS NULL OR `app_name` = ''");
+            Db::execute("UPDATE {$table} SET `app_name` = 'admin' WHERE `app_name` IS NULL OR `app_name` = ''");
         }
-        Db::execute("ALTER TABLE {$table} MODIFY COLUMN `app_name` varchar(50) NOT NULL DEFAULT 'console' COMMENT 'ThinkPHP应用标识'");
+        Db::execute("ALTER TABLE {$table} MODIFY COLUMN `app_name` varchar(50) NOT NULL DEFAULT 'admin' COMMENT 'ThinkPHP应用标识'");
     }
 
     private function contractLegacyModule(string $tableName): void

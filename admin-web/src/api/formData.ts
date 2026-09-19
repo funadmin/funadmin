@@ -17,6 +17,7 @@ export interface FormDataMeta {
   schemaHash: string;
   etag: string;
   categoryOptions?: Array<{ label: string; value: string | number; disabled?: boolean }>;
+  recycleCapable?: boolean;
 }
 
 export interface FormSourceField {

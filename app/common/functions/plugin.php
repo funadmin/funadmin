@@ -21,7 +21,7 @@ if (!function_exists('get_plugin_instance')) {
             $snapshot = (new PluginActivationReader(root_path('runtime/plugins/activation')))->read();
             $gate = new ActivationGate($snapshot);
             $plugins = $snapshot->plugins();
-            $application = (($plugins[$code]['applications']['console'] ?? false) === true) ? 'console' : 'app';
+            $application = (($plugins[$code]['applications']['admin'] ?? false) === true) ? 'admin' : 'app';
             $gate->assertEnabled($code, $application);
             $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code);
             return (new PluginEntryFactory())->create(

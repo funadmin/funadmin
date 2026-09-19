@@ -45,7 +45,7 @@ final class FormSchemaValidator
     ];
     private const EVENTS = ['change', 'blur', 'focus', 'click', 'clear', 'select', 'submit', 'reset', 'mounted'];
     private const VALUE_TYPES = ['string', 'number', 'boolean', 'array', 'object'];
-    private const DATA_SOURCE_KINDS = ['static', 'dictionary', 'department', 'user', 'relation', 'endpoint', 'computed'];
+    private const DATA_SOURCE_KINDS = ['static', 'dictionary', 'department', 'user', 'relation', 'endpoint', 'computed', 'self-tree'];
     private const CONDITION_OPERATORS = [
         'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn', 'contains', 'startsWith', 'endsWith', 'empty',
         'notEmpty', 'matches', 'and', 'or', 'not',
@@ -376,6 +376,9 @@ final class FormSchemaValidator
         $kind = (string) ($dataSource['kind'] ?? '');
         if (!in_array($kind, self::DATA_SOURCE_KINDS, true)) {
             throw new FormSchemaException('数据源 kind 未注册：' . $kind, $path . '/kind', 'FORM_DATA_SOURCE_NOT_REGISTERED');
+        }
+        if ($kind === 'dictionary' && !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', (string) ($dataSource['dictionary'] ?? ''))) {
+            throw new FormSchemaException('字典控件未选择字典，请在数据源配置中选择字典后保存', $path . '/dictionary');
         }
         if (isset($dataSource['dependsOn'])) {
             if (!is_array($dataSource['dependsOn']) || !array_is_list($dataSource['dependsOn'])) {

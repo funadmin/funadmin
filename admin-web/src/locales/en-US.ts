@@ -274,6 +274,7 @@ export default {
   },
   formDesigner: {
     title: 'Form Designer',
+    backToList: 'Back to list',
     subtitle: 'Drag controls onto the canvas, edit properties on the right, and preview guarded migrations before saving created tables',
     undo: 'Undo',
     redo: 'Redo',

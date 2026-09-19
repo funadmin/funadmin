@@ -3,6 +3,7 @@
 namespace app\admin\plugin\service\concern;
 
 use app\common\plugin\model\Plugin;
+use app\admin\plugin\PluginPreconditionException;
 use app\admin\plugin\service\PluginInfrastructureService;
 use app\admin\plugin\service\PluginOperationAuditService;
 use app\common\plugin\sdk\DependencyValidator;
@@ -136,7 +137,7 @@ trait PluginServiceSupport
             return;
         }
         $tokens = implode(', ', array_map(static fn (array $journal): string => (string) ($journal['token'] ?? ''), $stale));
-        throw new RuntimeException('插件存在未完成 publication journal，请先恢复：' . $tokens);
+        throw new PluginPreconditionException('插件存在未完成 publication journal，请先恢复：' . $tokens);
     }
 
     private function captureResourceState(string $code): void

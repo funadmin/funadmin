@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { CACHE_KEYS, APP_CONFIG } from '@/config';
 import { i18n } from '@/locales';
+import { applyRemotePack } from '@/locales/remotePack';
 import { setWatermark, removeWatermark } from '@/utils/watermark';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -193,6 +194,7 @@ export const useAppStore = defineStore('app', {
     setLocale(locale: LocaleType) {
       this.locale = locale;
       i18n.global.locale.value = locale;
+      void applyRemotePack(locale);
     },
     setLayoutMode(mode: LayoutMode) {
       this.layoutMode = mode;

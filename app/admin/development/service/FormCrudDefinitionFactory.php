@@ -204,6 +204,9 @@ final class FormCrudDefinitionFactory
             return;
         }
         if (!in_array($mode, ['dictionary', 'dict', 'department', 'user', 'remote'], true)) return;
+        if (in_array($mode, ['dictionary', 'dict'], true) && !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', (string) ($source['dictionary'] ?? ''))) {
+            throw new InvalidArgumentException('字段 ' . $name . ' 的字典数据源未选择字典，请在业务设计器中选择字典并重新保存');
+        }
         $sourceName = $name . '_options';
         $row['optionsSource'] = $sourceName;
         $row['dictionary'] = in_array($mode, ['dictionary', 'dict'], true);

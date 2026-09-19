@@ -4,6 +4,8 @@ import { createField, controlMeta } from '../registry';
 
 const HISTORY_LIMIT = 50;
 const CONTAINER_TYPES = new Set(['group', 'grid', 'collapse', 'tabs', 'repeatable', 'subform']);
+/** 容器/布局节点无 field_name，用哨兵前缀键在属性面板中寻址。 */
+export const NODE_FIELD_PREFIX = '@node:';
 
 interface DesignerSnapshot {
   fields: FormFieldDef[];
@@ -160,7 +162,41 @@ export function useDesigner() {
   let nodeSequence = 0;
 
   const flattenedNodes = computed(() => flattenNodes(nodes.value));
-  const selected = computed(() => fields.value.find((field) => field.field_name === selectedKey.value) ?? null);
+  const selected = computed((): FormFieldDef | null => {
+    const byKey = fields.value.find((field) => field.field_name === selectedKey.value);
+    if (byKey) return byKey;
+    if (!selectedKey.value?.startsWith(NODE_FIELD_PREFIX)) return null;
+    const node = selectedNode.value;
+    if (!node || node.kind === 'field') return null;
+    const props = (node.props as Record<string, unknown> | undefined) ?? {};
+    return {
+      field_name: selectedKey.value,
+      label: node.title,
+      type: node.type,
+      column_type: '',
+      nullable: 1,
+      default_value: '',
+      comment: '',
+      unsigned: 0,
+      index_type: 'none',
+      placeholder: String(props.placeholder ?? ''),
+      options_source: null,
+      control_props: { ...props },
+      validate_rules: null,
+      link_rules: null,
+      relation_type: 'none',
+      relation_table: '',
+      relation_label_field: '',
+      relation_value_field: '',
+      form_show: node.hidden === true ? 0 : 1,
+      form_required: 0,
+      form_readonly: 0,
+      form_group: String(props.form_group ?? ''),
+      form_span: Number(props.form_span ?? 24),
+      list_show: 0,
+      list_sort: 0,
+    } as FormFieldDef;
+  });
   const selectedNode = computed(() => flattenedNodes.value.find((entry) => entry.node.id === selectedNodeId.value)?.node ?? null);
   const canUndo = computed(() => undoStack.value.length > 0);
   const canRedo = computed(() => redoStack.value.length > 0);
@@ -227,8 +263,9 @@ export function useDesigner() {
   const findNode = (nodeId: string) => findLocation(nodes.value, nodeId)?.node ?? null;
   const selectNode = (nodeId: string | null) => {
     selectedNodeId.value = nodeId;
-    const fieldName = nodeId ? findNode(nodeId)?.field : null;
-    selectedKey.value = typeof fieldName === 'string' ? fieldName : null;
+    const node = nodeId ? findNode(nodeId) : null;
+    const fieldName = node?.field;
+    selectedKey.value = typeof fieldName === 'string' ? fieldName : (node && node.kind !== 'field' ? NODE_FIELD_PREFIX + node.id : null);
   };
   const targetChildren = (parentId: string | null): FormSchemaNode[] | null => {
     if (parentId === null) return nodes.value;
@@ -354,9 +391,30 @@ export function useDesigner() {
     selectedKey.value = copy.field_name;
     return null;
   };
-  const updateField = (patch: Partial<FormFieldDef>) => {
+  const updateField = (patch: Partial<FormFieldDef> & { props?: Record<string, unknown> }) => {
     if (!selectedKey.value) return;
     const currentName = selectedKey.value;
+    if (currentName.startsWith(NODE_FIELD_PREFIX)) {
+      const node = findNode(currentName.slice(NODE_FIELD_PREFIX.length));
+      if (!node) return;
+      pushHistory();
+      if (patch.label !== undefined) node.title = String(patch.label);
+      if (patch.form_show !== undefined) node.hidden = patch.form_show === 0;
+      const props = { ...(((node.props as Record<string, unknown> | undefined) ?? {})) };
+      let propsChanged = false;
+      for (const key of ['placeholder', 'form_group', 'form_span'] as const) {
+        if (patch[key] !== undefined) {
+          props[key] = patch[key];
+          propsChanged = true;
+        }
+      }
+      if (patch.control_props !== undefined) {
+        Object.assign(props, (patch.control_props as Record<string, unknown> | null) ?? {});
+        propsChanged = true;
+      }
+      if (propsChanged) node.props = props;
+      return;
+    }
     pushHistory();
     fields.value = fields.value.map((field) => field.field_name === currentName ? { ...field, ...patch } : field);
     const field = fields.value.find((item) => item.field_name === (patch.field_name ?? currentName));

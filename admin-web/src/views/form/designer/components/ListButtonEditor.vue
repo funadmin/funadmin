@@ -18,11 +18,10 @@
         <el-alert v-if="catalogError" :title="catalogError" type="warning" :closable="false" />
         <el-form-item label="动作"><el-select aria-label="动作" :model-value="actionValue" @change="changeAction"><el-option v-for="option in actionOptions" :key="option.value" :value="option.value" :label="option.label" /><el-option v-if="unsupported && actionValue" :value="actionValue" :label="`${actionValue}（不可用，已保留）`" disabled /></el-select></el-form-item>
         <el-form-item v-if="'capabilityVersion' in draft.action" label="目录版本"><el-input :model-value="draft.action.capabilityVersion" readonly /></el-form-item>
-        <p class="text-xs parameter-notice">{{ selectionNotice }}；数量约束仅收紧实际能力与权限，不授予批量能力。</p>
         <template v-if="location === 'toolbar'">
           <el-form-item label="最少选择"><el-input-number aria-label="最少选择数量" :model-value="draft.selection?.min" :min="0" :max="200" :precision="0" @update:model-value="value => setSelection('min', value)" /></el-form-item>
           <el-form-item label="最多选择"><el-input-number aria-label="最多选择数量" :model-value="draft.selection?.max" :min="0" :max="200" :precision="0" @update:model-value="value => setSelection('max', value)" /></el-form-item>
-          <el-button @click="delete draft.selection">清除数量约束</el-button>
+          <el-form-item><el-button @click="delete draft.selection">清除数量约束</el-button></el-form-item>
         </template>
         <el-alert v-if="metadata?.requiresConfirmation" title="注册动作要求服务端二次确认，不能关闭；参数表单之后仍会确认。" :closable="false" />
         <el-divider v-if="parameterNames.length">参数绑定（数据库字段名）</el-divider>
@@ -101,7 +100,6 @@ const actionOptions = computed(() => [
     ...Object.entries(props.actions ?? {}).filter(([, item]) => item.locations.includes(props.location) && item.targets.includes({ row: 'record', toolbar: 'selection', categoryNode: 'category', categoryToolbar: 'none' }[props.location]) && (props.location !== 'toolbar' || item.batch) && item.parameters && item.parameterTypes && item.resultContract === 'json').map(([key]) => ({ value: `registered:${key}`, label: `注册动作 · ${key}` }))
   ])
 ]);
-const selectionNotice = computed(() => ({ row: '当前行单条记录', toolbar: draft.value?.action.type === 'registered' ? '当前页明确勾选 1–200 条，且动作必须支持批量' : '仅当前页明确选择，不隐式选择所有筛选记录', categoryNode: '当前分类记录，不使用右表勾选记录', categoryToolbar: '分类顶部无记录上下文' }[props.location]));
 const conditionKeys = [{ key: 'visibleWhen', label: '显示条件' }, { key: 'disabledWhen', label: '禁用条件' }] as const;
 function setCondition(key: 'visibleWhen' | 'disabledWhen', field: string) { if (!draft.value) return; if (!field) delete draft.value[key]; else draft.value[key] = { field, op: 'eq', value: '' }; }
 function setConditionValue(key: 'visibleWhen' | 'disabledWhen', value: string) { if (!draft.value?.[key]) return; let parsed: unknown = value; try { const candidate = JSON.parse(value); if (candidate === null || ['string', 'number', 'boolean'].includes(typeof candidate)) parsed = candidate; } catch {} draft.value[key]!.value = parsed; }
@@ -259,7 +257,6 @@ function save() {
   font-size: 12px;
   text-align: center;
 }
-.parameter-notice { margin: 8px 0; }
 @media (max-width: 900px) { .parameter-row { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .parameter-row { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .button-form :deep(.el-form-item) { display: block; } .button-form :deep(.el-form-item__content) { margin-left: 0 !important; } }

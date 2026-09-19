@@ -7,6 +7,7 @@ use app\common\plugin\model\Plugin;
 use app\common\plugin\model\PluginVersionHistory;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
+use app\admin\plugin\PluginPreconditionException;
 use app\admin\plugin\service\concern\PluginServiceSupport;
 use app\common\plugin\sdk\DatabaseCapabilityGuard;
 use app\common\plugin\sdk\LifecycleLock;
@@ -87,7 +88,7 @@ class PluginService extends AbstractService
                     $exception
                 );
             }
-            if ($lock && !$this->suppressFailureRecording) {
+            if ($lock && !$this->suppressFailureRecording && !$exception instanceof PluginPreconditionException) {
                 $this->recordFailure($code, $exception);
             }
             throw $exception;
@@ -192,10 +193,10 @@ class PluginService extends AbstractService
             $record = $this->isInstall($code);
             $installed = $record && $record->deleted_at === null && (int) ($record->needs_reinstall ?? 0) === 0;
             if ($operation === 'install' && $installed) {
-                throw new RuntimeException(sprintf('插件 %s 已安装', $code));
+                throw new PluginPreconditionException(sprintf('插件 %s 已安装', $code));
             }
             if ($operation === 'update' && !$installed) {
-                throw new RuntimeException('插件尚未安装');
+                throw new PluginPreconditionException('插件尚未安装');
             }
             $fromVersion = $installed ? (string) $record->version : '';
             $context = ['pre_operation_state' => $this->captureDeploymentState($code)] + $context;
@@ -234,7 +235,7 @@ class PluginService extends AbstractService
             $record = $this->isInstall($code);
             if ($record && $record->deleted_at === null && (int) ($record->needs_reinstall ?? 0) === 0
                 && (string) $record->lifecycle_state !== 'installing') {
-                throw new RuntimeException(sprintf('插件 %s 已安装', $code));
+                throw new PluginPreconditionException(sprintf('插件 %s 已安装', $code));
             }
             if ($record && $record->deleted_at !== null) {
                 (new Plugin())->restore(['id' => $record->id]);
@@ -301,7 +302,7 @@ class PluginService extends AbstractService
             $fromVersion = (string) $record->version;
             $toVersion = $manifest->version();
             if (!$allowCodeDowngrade && $fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
-                throw new RuntimeException("插件目标版本 {$toVersion} 必须高于当前版本 {$fromVersion}");
+                throw new PluginPreconditionException("插件目标版本 {$toVersion} 必须高于当前版本 {$fromVersion}");
             }
             $plugin = $this->plugin($code);
             if ((string) $record->lifecycle_state !== 'updating') {
@@ -480,10 +481,10 @@ class PluginService extends AbstractService
             }
             if ($enabled) {
                 if ((int) $record->migration_pending === 1) {
-                    throw new RuntimeException('插件数据库迁移尚未完成，禁止启用');
+                    throw new PluginPreconditionException('插件数据库迁移尚未完成，禁止启用');
                 }
                 if (trim((string) $record->last_error) !== '') {
-                    throw new RuntimeException('插件最近一次生命周期操作失败，请先修复或重新更新');
+                    throw new PluginPreconditionException('插件最近一次生命周期操作失败，请先修复或重新更新');
                 }
                 $manifest = $this->validatedManifest($code);
                 $this->infrastructure()->assertExternalTables($manifest, false);
@@ -535,7 +536,7 @@ class PluginService extends AbstractService
     {
         $record = Plugin::where('code', $code)->find();
         if (!$record) {
-            throw new RuntimeException('插件尚未安装');
+            throw new PluginPreconditionException('插件尚未安装');
         }
         return $record;
     }
@@ -543,14 +544,14 @@ class PluginService extends AbstractService
     private function assertDisabled(Plugin $record, string $code): void
     {
         if ((string) $record->lifecycle_state !== 'disabled' && (string) $record->lifecycle_state !== 'failed') {
-            throw new RuntimeException(lang('Please disable plugins %s first', [$code]));
+            throw new PluginPreconditionException(lang('Please disable plugins %s first', [$code]));
         }
     }
 
     private function assertRunnableRecord(Plugin $record): void
     {
         if ((int) ($record->needs_reinstall ?? 0) === 1) {
-            throw new RuntimeException('旧插件必须通过可信 plugin.json 包重新安装后才能运行生命周期操作');
+            throw new PluginPreconditionException('旧插件必须通过可信 plugin.json 包重新安装后才能运行生命周期操作');
         }
     }
 

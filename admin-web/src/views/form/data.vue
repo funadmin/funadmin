@@ -129,6 +129,7 @@ import type { FormListButton } from './schema/types';
 import { useUserStore } from '@/store/modules/user';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
 import ListSourceTree from './components/ListSourceTree.vue';
+import FormDataImportDialog from './components/FormDataImportDialog.vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import type { PageSchema } from '@/components/DataTable/pageSchema';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';

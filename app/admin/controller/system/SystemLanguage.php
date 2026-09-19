@@ -9,6 +9,7 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
 use app\common\model\Language;
+use app\common\model\LanguageLine;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -138,5 +139,25 @@ class SystemLanguage extends AdminApiController
     private function name(string $default = ''): string
     {
         return trim((string) $this->request->post('name', $default));
+    }
+
+    /**
+     * 译文包：前端启动/切语言时拉取并合并覆盖静态语言包。
+     */
+    #[Get('pack')]
+    #[Pattern('locale', '[a-z]{2}-[a-z]{2,4}')]
+    public function pack(): Response
+    {
+        $locale = strtolower(trim((string) $this->request->get('locale', '')));
+        if ($locale === '') {
+            return $this->fail(msg: 'locale 不合法', code: 422);
+        }
+        $messages = [];
+        $version = 0;
+        foreach (LanguageLine::where('locale', $locale)->order('id', 'asc')->select() as $line) {
+            $messages[(string) $line->key] = (string) $line->value;
+            $version = max($version, (int) $line->id);
+        }
+        return $this->ok(data: ['locale' => $locale, 'version' => $version, 'messages' => (object) $messages]);
     }
 }

@@ -120,8 +120,9 @@ final class FormSchemaRepository
         return Db::transaction(function () use ($formId, $compiled, $expectedHash, $origin, $actor, $summary): FormSchemaVersion {
             $form = Form::lock(true)->find($formId);
             if (!$form) throw new InvalidArgumentException('表单不存在');
-            $current = $this->compile((array) $form->schema_document);
-            if (!hash_equals($current->hash(), $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            // 乐观锁只对比客户端读取过的库存 hash 列；重编译库存文档的 hash 会随编译器
+            // 规范化演进（如树形父级控件投影）而漂移，导致基线永不相等、保存死锁。
+            if (!hash_equals((string) $form->schema_hash, $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
             return $this->saveCompiledVersion($formId, $compiled, $origin, $actor, $summary);
         });
     }
@@ -248,8 +249,8 @@ final class FormSchemaRepository
         return Db::transaction(function () use ($formId, $targetVersion, $expectedHash, $actor, $summary): FormSchemaVersion {
             $form = Form::lock(true)->find($formId);
             if (!$form) throw new InvalidArgumentException('表单不存在');
-            $current = $this->compile((array) $form->schema_document);
-            if (!hash_equals($current->hash(), $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
+            // 与保存路径一致：对比库存 hash 列，避免编译器规范化演进造成回滚基线漂移。
+            if (!hash_equals((string) $form->schema_hash, $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
             $source = $this->findVersion($formId, $targetVersion);
             return $this->createRollbackVersion($formId, $source, $actor, $summary);
         });

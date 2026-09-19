@@ -83,9 +83,14 @@ final class BusinessApiErrorMapper
 
     private static function fallback(Throwable $exception): array
     {
-        return match (self::code($exception)) {
+        $code = self::code($exception);
+        if ($code === 'VALIDATION_ERROR') {
+            // 校验类异常均源于使用者自己的表单/配置内容，透出消息便于定位修复。
+            $message = trim($exception->getMessage());
+            return [422, $message !== '' ? $message : '请求参数不合法', false];
+        }
+        return match ($code) {
             'RESOURCE_GONE' => [410, '请求的资源已退役或不存在', false],
-            'VALIDATION_ERROR' => [422, '请求参数不合法', false],
             default => [500, '服务器内部错误', false],
         };
     }

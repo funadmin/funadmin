@@ -18,6 +18,7 @@
         </SearchForm>
       </template>
       <template #toolbar>
+        <el-alert v-if="recycled" title="回收站视图：仅显示已删除记录，可恢复或永久删除" type="warning" :closable="false" class="mb-2" />
         <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
       <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
@@ -33,6 +34,7 @@
         <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
       </template>
     </SchemaTablePage>
+    <FormDataImportDialog v-model="importVisible" :fields="formFields" @submit="onImportRows" />
     </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" destroy-on-close>
@@ -64,6 +66,7 @@ import ListSourceTree from './components/ListSourceTree.vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import type { PageSchema } from '@/components/DataTable/pageSchema';
 import ListButtonBar from './components/ListButtonBar.vue';
+import FormDataImportDialog from './components/FormDataImportDialog.vue';
 import { resolveListButtons } from './schema/listButtons';
 import { provideListButtonAdapter, defaultListButtons, listActionKey, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
@@ -83,15 +86,45 @@ provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: '
 const user = useUserStore();
 const hasPermission = (code: string) => user.permissions.some(p => p === '*' || p === '*:*:*' || p === code);
 const buttonLock = reactive({ busy: false });
-const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')));
-const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')));
+const recycled = ref(false);
+const importVisible = ref(false);
+const recycleCapable = computed(() => meta.value?.recycleCapable === true);
+const RECYCLE_MODE_ONLY = new Set(['normal', 'restore', 'destroy']);
+const NORMAL_MODE_ONLY = new Set(['recycle', 'create', 'import', 'export', 'batchDelete', 'edit', 'detail', 'delete', 'copyCreate']);
+const modeVisible = (button: FormListButton) => {
+  if (button.action.type !== 'builtin' && button.action.type !== 'refresh') return true;
+  const key = listActionKey(button);
+  if (['recycle', 'normal', 'restore', 'destroy'].includes(key) && !recycleCapable.value) return false;
+  return recycled.value ? !NORMAL_MODE_ONLY.has(key) : !RECYCLE_MODE_ONLY.has(key);
+};
+const toolbarButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'toolbar', defaultListButtons('toolbar')).filter(modeVisible));
+const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'row', defaultListButtons('row')).filter(modeVisible));
 const copyAllowed = () => Boolean(meta.value && meta.value.schema.form?.readOnly !== true && hasPermission('form.data:create') && hasPermission('form.data:detail'));
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
-  const routes: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index' };
+  const routes: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index', batchDelete: 'batchremove', import: 'import', recycle: 'index', normal: 'index', restore: 'restore', destroy: 'destroy' };
   return (key !== 'copyCreate' || copyAllowed()) && (!button.permission || hasPermission(button.permission)) && (!routes[key] || hasPermission(`form.data:${routes[key]}`)) && (key !== 'edit' || hasPermission('form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
 };
-const buttonHandlers: ListButtonHandlers = { copyCreate: row => openDialog(row, true), create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData() };
+const buttonHandlers: ListButtonHandlers = {
+  copyCreate: row => openDialog(row, true), create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => removeRow(row!), export: () => onExport(), refresh: () => loadData(),
+  recycle: async () => { recycled.value = true; await loadData(); },
+  normal: async () => { recycled.value = false; await loadData(); },
+  batchDelete: async () => {
+    const ids = selectedRows.value.map(record => record[primaryKey.value] as FormRecordId);
+    if (!ids.length) { ElMessage.warning('请先勾选需要删除的记录'); return; }
+    await ElMessageBox.confirm(`确认删除选中的 ${ids.length} 条记录吗？`, '批量删除', { type: 'warning' });
+    await formDataApi.batchRemove(formKey.value, ids, meta.value?.schemaHash ?? '');
+    clearSelection();
+    await loadData();
+  },
+  restore: async (row) => { await formDataApi.restore(formKey.value, [row![primaryKey.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
+  destroy: async (row) => {
+    await ElMessageBox.confirm('永久删除后不可恢复，确认继续吗？', '永久删除', { type: 'warning' });
+    await formDataApi.destroy(formKey.value, [row![primaryKey.value] as FormRecordId], meta.value?.schemaHash ?? '');
+    await loadData();
+  },
+  import: () => { importVisible.value = true; }
+};
 const selectedRows = ref<Record<string, unknown>[]>([]);
 const tableRef = ref<{ clearSelection: () => void }>();
 const buttonContextVersion = ref(0);
@@ -140,7 +173,7 @@ const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === tr
 const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'published_form', primaryKey: primaryKey.value, search: [], toolbar: [], rowActions: [],
   list: { ...(meta.value?.schema.list?.tree ? { tree: meta.value.schema.list.tree } : {}), ...(meta.value?.schema.list?.tools ? { tools: meta.value.schema.list.tools } : {}) },
   columns: [
-    ...(toolbarButtons.value.some(button => button.action.type === 'registered') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
+    ...(toolbarButtons.value.some(button => button.action.type === 'registered' || listActionKey(button) === 'batchDelete') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
     { key: 'primary', prop: primaryKey.value, label: 'ID', width: 100, sortable: true },
     ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
     ...(rowButtons.value.some(button => !button.hidden && buttonAllowed(button)) ? [{ key: 'actions', label: '操作', slot: 'actions', width: 180, fixed: 'right' as const }] : [])
@@ -187,7 +220,7 @@ const loadData = async () => {
   try {
     if (!meta.value && !await loadMeta(() => sequence === dataSequence)) return;
     if (sequence !== dataSequence) return;
-    const result = await formDataApi.index(formKey.value, { ...query, filters: { ...filters, __leftTree: leftSelection.value } });
+    const result = await formDataApi.index(formKey.value, { ...query, scope: recycled.value ? 'recycled' : 'normal', filters: { ...filters, __leftTree: leftSelection.value } });
     if (sequence !== dataSequence) return;
     rows.value = result.list;
     total.value = result.total;
@@ -196,6 +229,11 @@ const loadData = async () => {
   }
 };
 const onSearch = () => { query.page = 1; void loadData(); };
+const onImportRows = async (importRows: Array<Record<string, unknown>>) => {
+  await formDataApi.importRows(formKey.value, importRows, meta.value?.schemaHash ?? '');
+  importVisible.value = false;
+  await loadData();
+};
 const syncDateFilter = (field: string) => {
   const range = dateFilters[field];
   filters[`${field}_from`] = range?.[0] ?? '';
