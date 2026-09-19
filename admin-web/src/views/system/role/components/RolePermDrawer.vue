@@ -1,8 +1,8 @@
 <template>
-  <el-drawer v-model="visible" title="角色授权工作区" direction="rtl" size="92%" destroy-on-close>
+  <el-drawer v-model="visible" :title="t('systemRole.authWorkspace', '角色授权工作区')" direction="rtl" size="92%" destroy-on-close>
     <div v-loading="loading" class="role-authorization">
       <aside class="role-authorization__sidebar">
-        <el-input v-model="roleKeyword" placeholder="角色搜索" clearable prefix-icon="Search" />
+        <el-input v-model="roleKeyword" :placeholder="t('systemRole.roleSearch', '角色搜索')" clearable prefix-icon="Search" />
         <el-tree
           :data="filteredRoles"
           node-key="id"
@@ -17,11 +17,11 @@
       <main class="role-authorization__main">
         <header class="role-authorization__header">
           <div>
-            <h3>{{ activeRole?.name || row?.name || '角色授权' }}</h3>
-            <span>直接授权可编辑，继承授权只读并显示来源</span>
+            <h3>{{ activeRole?.name || row?.name || t('systemRole.authTitle', '角色授权') }}</h3>
+            <span>{{ t('systemRole.authHint', '直接授权可编辑，继承授权只读并显示来源') }}</span>
           </div>
           <div class="role-authorization__copy">
-            <el-select v-model="copySourceRoleId" placeholder="选择授权来源角色" filterable clearable>
+            <el-select v-model="copySourceRoleId" :placeholder="t('systemRole.copySourcePlaceholder', '选择授权来源角色')" filterable clearable>
               <el-option
                 v-for="role in copySourceOptions"
                 :key="role.id"
@@ -30,19 +30,19 @@
               />
             </el-select>
             <el-button :disabled="!copySourceRoleId" :loading="copying" @click="copyAuthorization">
-              复制授权
+              {{ t('systemRole.copyAuth', '复制授权') }}
             </el-button>
           </div>
         </header>
 
         <el-tabs v-model="activeTab" class="role-authorization__tabs">
-          <el-tab-pane label="功能权限" name="permissions">
+          <el-tab-pane :label="t('systemRole.tabPermissions', '功能权限')" name="permissions">
             <el-collapse v-model="expandedGroups">
               <el-collapse-item v-for="group in permissionGroups" :key="group.id" :name="group.id">
                 <template #title><strong>{{ group.name }}</strong></template>
                 <el-table :data="group.resources" border>
-                  <el-table-column prop="name" label="资源" min-width="180" fixed />
-                  <el-table-column label="动作" min-width="520">
+                  <el-table-column prop="name" :label="t('systemRole.resource', '资源')" min-width="180" fixed />
+                  <el-table-column :label="t('systemRole.actions', '动作')" min-width="520">
                     <template #default="{ row: resource }">
                       <div class="permission-actions">
                         <el-tooltip
@@ -57,7 +57,7 @@
                             @change="setPermission(action, $event)"
                           >
                             {{ action.name }}
-                            <el-tag v-if="action.inherited" size="small" type="info">继承</el-tag>
+                            <el-tag v-if="action.inherited" size="small" type="info">{{ t('systemRole.inherited', '继承') }}</el-tag>
                           </el-checkbox>
                         </el-tooltip>
                       </div>
@@ -68,47 +68,47 @@
             </el-collapse>
           </el-tab-pane>
 
-          <el-tab-pane label="字段权限" name="fields">
+          <el-tab-pane :label="t('systemRole.tabFields', '字段权限')" name="fields">
             <el-table :data="fields" border row-key="id">
-              <el-table-column prop="resource" label="资源" min-width="180" />
-              <el-table-column prop="name" label="字段" min-width="180">
+              <el-table-column prop="resource" :label="t('systemRole.resource', '资源')" min-width="180" />
+              <el-table-column prop="name" :label="t('systemRole.field', '字段')" min-width="180">
                 <template #default="{ row: field }">
                   {{ field.name }} <span class="field-code">{{ field.field }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="查看" width="150" align="center">
+              <el-table-column :label="t('systemRole.view', '查看')" width="150" align="center">
                 <template #default="{ row: field }">
                   <el-tooltip :content="inheritanceText(field.inheritedFrom)" :disabled="!field.inheritedView">
                     <el-checkbox
                       :model-value="field.view || field.inheritedView"
                       :disabled="field.inheritedView"
                       @change="setFieldView(field as FieldPermission, $event)"
-                    >继承</el-checkbox>
+                    >{{ t('systemRole.inherited', '继承') }}</el-checkbox>
                   </el-tooltip>
                 </template>
               </el-table-column>
-              <el-table-column label="编辑" width="150" align="center">
+              <el-table-column :label="t('common.edit', '编辑')" width="150" align="center">
                 <template #default="{ row: field }">
                   <el-tooltip :content="inheritanceText(field.inheritedFrom)" :disabled="!field.inheritedEdit">
                     <el-checkbox
                       :model-value="field.edit || field.inheritedEdit"
                       :disabled="field.inheritedEdit"
                       @change="setFieldEdit(field as FieldPermission, $event)"
-                    >继承</el-checkbox>
+                    >{{ t('systemRole.inherited', '继承') }}</el-checkbox>
                   </el-tooltip>
                 </template>
               </el-table-column>
             </el-table>
-            <el-empty v-if="!fields.length" description="暂无已登记的字段白名单" />
+            <el-empty v-if="!fields.length" :description="t('systemRole.noFields', '暂无已登记的字段白名单')" />
           </el-tab-pane>
 
-          <el-tab-pane label="数据授权" name="data">
+          <el-tab-pane :label="t('systemRole.tabData', '数据授权')" name="data">
             <el-radio-group v-model="dataScope" class="data-scopes">
-              <el-radio value="all">全部数据</el-radio>
-              <el-radio value="dept_and_children">本部门及下级</el-radio>
-              <el-radio value="dept">本部门</el-radio>
-              <el-radio value="self">仅本人</el-radio>
-              <el-radio value="custom">自定义部门</el-radio>
+              <el-radio value="all">{{ t('systemRole.scopeAll', '全部数据') }}</el-radio>
+              <el-radio value="dept_and_children">{{ t('systemRole.scopeDeptAndChildren', '本部门及下级') }}</el-radio>
+              <el-radio value="dept">{{ t('systemRole.scopeDept', '本部门') }}</el-radio>
+              <el-radio value="self">{{ t('systemRole.scopeSelf', '仅本人') }}</el-radio>
+              <el-radio value="custom">{{ t('systemRole.scopeCustom', '自定义部门') }}</el-radio>
             </el-radio-group>
             <el-tree
               v-if="dataScope === 'custom'"
@@ -127,9 +127,9 @@
     </div>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
       <el-button type="primary" :loading="saving" :disabled="!activeRoleId" @click="save">
-        保存整套授权
+        {{ t('systemRole.saveAll', '保存整套授权') }}
       </el-button>
     </template>
   </el-drawer>
@@ -137,6 +137,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ElTree } from 'element-plus';
 import {
   roleApi,
@@ -153,6 +154,7 @@ import { normalizeFieldGrant, toggleFieldEdit, toggleFieldView } from '../roleAu
 interface Props { modelValue: boolean; row?: RoleModel | null }
 const props = withDefaults(defineProps<Props>(), { row: null });
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; success: [] }>();
+const { t } = useI18n();
 
 const visible = ref(false);
 const loading = ref(false);
@@ -237,7 +239,7 @@ const setFieldEdit = (field: FieldPermission, checked: unknown) => {
   Object.assign(field, toggleFieldEdit(field, Boolean(checked)));
 };
 const inheritanceText = (sources: AuthorizationSource[]) => sources.length
-  ? `继承自：${sources.map((source) => source.roleName).join('、')}`
+  ? t('systemRole.inheritedFrom', { names: sources.map((source) => source.roleName).join('、') }, '继承自：{names}')
   : '';
 
 const save = async () => {

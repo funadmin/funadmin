@@ -4,12 +4,15 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormFieldDef } from '@/api/form';
 import type { FormSchemaDocument, FormSchemaNode, FormSchemaValidationRule } from '../schema/types';
 import { formDataApi } from '@/api/formData';
 import { evaluateLinkRules } from '../linkRules';
 import { controlMeta } from '../registry';
 import SchemaRenderer from './SchemaRenderer.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{ formKey: string; fields: FormFieldDef[]; values: Record<string, any> }>();
 const renderer = ref<InstanceType<typeof SchemaRenderer>>();
@@ -20,7 +23,7 @@ const definitionKey = computed(() => JSON.stringify([props.formKey, props.fields
 function validation(field: FormFieldDef): FormSchemaValidationRule[] {
   const extra = field.validate_rules ?? {};
   const rules: FormSchemaValidationRule[] = [];
-  if (field.form_required === 1) rules.push({ type: 'required', message: `${field.label}不能为空` });
+  if (field.form_required === 1) rules.push({ type: 'required', message: t('formData.fieldRequiredWithLabel', { label: field.label }, '{label}不能为空') });
   for (const [key, value] of Object.entries(extra)) {
     let type = key;
     let argument = value;
@@ -30,7 +33,7 @@ function validation(field: FormFieldDef): FormSchemaValidationRule[] {
     if (key === 'maxlen') type = 'maxLength';
     if (extra.type === 'array' && ['min', 'max'].includes(key)) type = key === 'min' ? 'minLength' : 'maxLength';
     if (type === 'minLength' && Number(argument) > 0 && extra.type === 'array' && field.form_required !== 1) rules.push({ type: 'required' });
-    rules.push({ type, value: argument, message: `${field.label}格式或长度不正确` });
+    rules.push({ type, value: argument, message: t('formData.fieldInvalid', { label: field.label }, '{label}格式或长度不正确') });
   }
   return rules;
 }

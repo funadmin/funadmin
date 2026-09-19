@@ -10,9 +10,9 @@ export function useMenuTitle() {
 
   function menuTitle(route: {
     name?: RouteRecordRaw['name'];
-    meta?: { title?: string };
+    meta?: { title?: string; menuKey?: string };
   }): string {
-    const n = route.name;
+    const n = route.name ?? route.meta?.menuKey;
     if (typeof n === 'string' && te(`menu.${n}`)) {
       return t(`menu.${n}`) as string;
     }

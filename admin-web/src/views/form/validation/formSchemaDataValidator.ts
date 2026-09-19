@@ -1,3 +1,7 @@
+import { i18n } from '@/locales';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+
 export interface FormSchemaCondition {
   field?: string;
   op: string;
@@ -40,13 +44,26 @@ export interface ElementPlusValidationRule {
 }
 
 const DEFAULT_MESSAGES: Record<string, string> = {
-  required: '字段不能为空', type: '字段类型不正确', min: '字段值过小', max: '字段值过大',
-  minLength: '字段长度不足', maxLength: '字段长度过长', length: '字段长度不正确',
-  enum: '字段值不在允许范围内', pattern: '字段格式不正确', format: '字段格式不正确',
-  same: '字段值不一致', different: '字段值必须不同', before: '字段日期必须更早',
-  after: '字段日期必须更晚', precision: '字段小数位数过多', file: '文件不符合要求',
-  array: '字段必须为数组', object: '字段必须为对象', items: '数组成员不符合要求',
-  properties: '对象属性不符合要求'
+  required: t('formData.validation.required', '字段不能为空'),
+  type: t('formData.validation.type', '字段类型不正确'),
+  min: t('formData.validation.min', '字段值过小'),
+  max: t('formData.validation.max', '字段值过大'),
+  minLength: t('formData.validation.minLength', '字段长度不足'),
+  maxLength: t('formData.validation.maxLength', '字段长度过长'),
+  length: t('formData.validation.length', '字段长度不正确'),
+  enum: t('formData.validation.enum', '字段值不在允许范围内'),
+  pattern: t('formData.validation.pattern', '字段格式不正确'),
+  format: t('formData.validation.format', '字段格式不正确'),
+  same: t('formData.validation.same', '字段值不一致'),
+  different: t('formData.validation.different', '字段值必须不同'),
+  before: t('formData.validation.before', '字段日期必须更早'),
+  after: t('formData.validation.after', '字段日期必须更晚'),
+  precision: t('formData.validation.precision', '字段小数位数过多'),
+  file: t('formData.validation.file', '文件不符合要求'),
+  array: t('formData.validation.array', '字段必须为数组'),
+  object: t('formData.validation.object', '字段必须为对象'),
+  items: t('formData.validation.items', '数组成员不符合要求'),
+  properties: t('formData.validation.properties', '对象属性不符合要求')
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -189,7 +206,7 @@ export const validateFormSchemaField = (field: string, value: unknown, rules: Fo
     if (!conditionMatches(rule.when, values) || rule.type === 'async' || (rule.type !== 'required' && !Array.isArray(value) && isEmpty(value))) continue;
     const nested = nestedErrors(rule.type, field, value, rule.value, values);
     if (!nested.length && passes(rule.type, value, rule.value, values)) continue;
-    errors.push({ field: nested[0]?.field ?? field, rule: rule.type, message: rule.message ?? nested[0]?.message ?? DEFAULT_MESSAGES[rule.type] ?? '字段校验失败', severity: rule.severity ?? 'error' });
+    errors.push({ field: nested[0]?.field ?? field, rule: rule.type, message: rule.message ?? nested[0]?.message ?? DEFAULT_MESSAGES[rule.type] ?? t('formData.fieldValidationFailed', '字段校验失败'), severity: rule.severity ?? 'error' });
     if (rule.bail ?? true) break;
   }
   return errors;

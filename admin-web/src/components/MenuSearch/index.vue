@@ -14,7 +14,7 @@
           ref="inputRef"
           v-model="keyword"
           class="menu-search__field"
-          placeholder="搜索菜单（标题 / 路径）"
+          :placeholder="t('common.searchMenu', '搜索菜单（标题 / 路径）')"
           @keydown.up.prevent="move(-1)"
           @keydown.down.prevent="move(1)"
           @keydown.enter.prevent="enter"
@@ -25,7 +25,7 @@
 
       <el-scrollbar max-height="320px" class="menu-search__list">
         <div v-if="!filtered.length" class="menu-search__empty">
-          <el-empty :image-size="64" description="未找到匹配菜单" />
+          <el-empty :image-size="64" :description="t('common.noMenuMatch', '未找到匹配菜单')" />
         </div>
         <div
           v-for="(item, idx) in filtered"
@@ -42,9 +42,9 @@
       </el-scrollbar>
 
       <div class="menu-search__footer">
-        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
-        <span><kbd>↵</kbd> 跳转</span>
-        <span><kbd>ESC</kbd> 关闭</span>
+        <span><kbd>↑</kbd><kbd>↓</kbd> {{ t('common.choose', '选择') }}</span>
+        <span><kbd>↵</kbd> {{ t('common.jump', '跳转') }}</span>
+        <span><kbd>ESC</kbd> {{ t('common.close', '关闭') }}</span>
       </div>
     </div>
   </el-dialog>
@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter, type RouteRecordRaw } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { usePermissionStore } from '@/store/modules/permission';
 import mitt from '@/utils/mitt';
 import { useMenuTitle } from '@/composables/useMenuTitle';
@@ -64,6 +65,7 @@ interface FlatMenu {
   icon?: string;
 }
 
+const { t } = useI18n();
 const { menuTitle } = useMenuTitle();
 
 function displayTitle(item: FlatMenu) {
@@ -102,13 +104,13 @@ function flatten(routes: RouteRecordRaw[], parentPath = ''): FlatMenu[] {
 const allMenus = computed<FlatMenu[]>(() => {
   const dashboard: FlatMenu = {
     path: '/dashboard',
-    title: '仪表盘',
+    title: t('menu.Dashboard', '仪表盘'),
     name: 'Dashboard',
     icon: 'i-ep-monitor'
   };
   const profile: FlatMenu = {
     path: '/profile',
-    title: '个人中心',
+    title: t('menu.Profile', '个人中心'),
     name: 'Profile',
     icon: 'i-ep-user'
   };

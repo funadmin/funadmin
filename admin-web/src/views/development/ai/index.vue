@@ -97,6 +97,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import { AI_REASONING_EFFORTS, aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
@@ -116,6 +117,7 @@ import { aiEnumLabel } from './i18n';
 const { t } = useI18n();
 const store = useAiDevelopmentStore();
 const userStore = useUserStore();
+const route = useRoute();
 const showArchived = ref(false);
 const conversationFilters = computed({
   get: () => store.conversationFilters,
@@ -522,6 +524,11 @@ onMounted(async () => {
   await manage(async () => {
     await store.restoreRouteState();
     if (store.activeTask) { await store.refreshTaskContext(); await store.connectEvents(); }
+    // 深链 /development/ai/conversations/:id(/tasks)：直达指定会话
+    const deepLinkId = Number(route.params.id ?? 0);
+    if (Number.isFinite(deepLinkId) && deepLinkId > 0 && store.selectedConversationId !== deepLinkId) {
+      await selectConversation(deepLinkId);
+    }
   });
 });
 onUnmounted(() => mobileQuery?.removeEventListener('change', updateViewport));

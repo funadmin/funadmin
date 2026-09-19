@@ -7,7 +7,7 @@ namespace app\admin\controller\system;
 use app\admin\controller\base\AdminApiController;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
-use app\admin\authentication\model\AdminLog;
+use app\admin\model\AdminLog;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -71,6 +71,13 @@ class SystemOperationLog extends AdminApiController
     {
         $log = AdminLog::scopedQuery()->where('id', $id)->find();
         return $log ? $this->ok(data: $log->toApiData(true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
+    }
+
+    #[Delete('clear')]
+    public function clear(): Response
+    {
+        $removed = AdminLog::scopedQuery()->delete();
+        return $this->ok('清空成功', ['removed' => $removed]);
     }
 
     #[Delete(':id')]

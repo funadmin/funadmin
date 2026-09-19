@@ -4,7 +4,7 @@
       <template #header>
         <div class="repeatable-header">
           <span>{{ field.label }} {{ index + 1 }}</span>
-          <el-button v-if="!disabled" link type="danger" @click="removeRow(index)">删除</el-button>
+          <el-button v-if="!disabled" link type="danger" @click="removeRow(index)">{{ t('common.remove', '删除') }}</el-button>
         </div>
       </template>
       <el-row v-if="childNodes.length" :gutter="16">
@@ -25,16 +25,19 @@
       </template>
       <span v-if="row[primaryKey] != null" class="row-identity">{{ row[primaryKey] }}</span>
     </el-card>
-    <el-button v-if="!disabled && canAdd" plain type="primary" @click="addRow">新增一行</el-button>
+    <el-button v-if="!disabled && canAdd" plain type="primary" @click="addRow">{{ t('formData.addRow', '新增一行') }}</el-button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormFieldDef } from '@/api/form';
 import type { FormSchemaNode } from '../schema/types';
 
 const SchemaNodeRenderer = defineAsyncComponent(() => import('./SchemaNodeRenderer.vue'));
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   field: FormFieldDef;

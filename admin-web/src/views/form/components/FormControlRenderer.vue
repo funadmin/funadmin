@@ -4,15 +4,15 @@
     <el-alert v-else-if="field.type === 'group'" :title="layoutText" type="info" :closable="false" show-icon />
     <el-row v-else-if="field.type === 'grid'" :gutter="numberProp('gutter', 16)" class="layout-grid">
       <el-col v-for="column in numberProp('columns', 2)" :key="column" :span="Math.floor(24 / numberProp('columns', 2))">
-        <div class="layout-placeholder">栅格 {{ column }}</div>
+        <div class="layout-placeholder">{{ t('formData.gridColumn', { n: column }, '栅格 {n}') }}</div>
       </el-col>
     </el-row>
     <el-text v-else-if="field.type === 'text'">{{ layoutText }}</el-text>
     <el-collapse v-else-if="field.type === 'collapse'" :model-value="['preview']">
-      <el-collapse-item :title="layoutText" name="preview">折叠区域内容</el-collapse-item>
+      <el-collapse-item :title="layoutText" name="preview">{{ t('formData.collapseContent', '折叠区域内容') }}</el-collapse-item>
     </el-collapse>
     <el-tabs v-else-if="field.type === 'tabs'" model-value="0" type="border-card">
-      <el-tab-pane v-for="(tab, index) in tabs" :key="index" :label="tab" :name="String(index)">标签页内容</el-tab-pane>
+      <el-tab-pane v-for="(tab, index) in tabs" :key="index" :label="tab" :name="String(index)">{{ t('formData.tabContent', '标签页内容') }}</el-tab-pane>
     </el-tabs>
   </div>
 
@@ -136,7 +136,7 @@
     />
     <el-alert v-if="dataSourceState?.error" :title="dataSourceError" type="error" :closable="false" show-icon class="data-source-error">
       <template #default>
-        <el-button link type="primary" :loading="dataSourceState.loading" @click="dataSourceState.retry">重试</el-button>
+        <el-button link type="primary" :loading="dataSourceState.loading" @click="dataSourceState.retry">{{ t('common.retry', '重试') }}</el-button>
       </template>
     </el-alert>
     <el-pagination
@@ -182,6 +182,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, type PropType, type VNode } from 'vue';
 import { ElOption, ElOptionGroup } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import type { FormFieldDef } from '@/api/form';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 import type { FormSchemaNode } from '../schema/types';
@@ -189,6 +190,8 @@ import Upload from '@/components/Upload/index.vue';
 import { controlMeta } from '../registry';
 import RepeatableField from './RepeatableField.vue';
 import { adaptFieldSelection, formatFieldValue } from '../runtime/fieldPresentation';
+
+const { t } = useI18n();
 
 interface ControlOption {
   [key: string]: any;
@@ -249,7 +252,7 @@ const remoteSearchable = computed(() => Boolean(props.dataSourceState?.searchabl
 const dataSourceError = computed(() => {
   const reason = props.dataSourceState?.error;
   if (reason instanceof Error) return reason.message;
-  return typeof reason === 'string' ? reason : '选项加载失败';
+  return typeof reason === 'string' ? reason : t('formData.optionsLoadFailed', '选项加载失败');
 });
 const filterCascader = (_node: unknown, keyword: string): boolean => {
   props.dataSourceState?.search(keyword);
@@ -273,7 +276,7 @@ const formattedValue = computed(() => formatFieldValue(props.modelValue === unde
 const transferOptions = computed(() => props.options.map((option) => ({ key: option.value, label: option.label })));
 const tabs = computed(() => {
   const value = controlProps.value.tabs;
-  return Array.isArray(value) ? value.map(String) : ['标签一', '标签二'];
+  return Array.isArray(value) ? value.map(String) : [t('formData.previewTab1', '标签一'), t('formData.previewTab2', '标签二')];
 });
 const layoutText = computed(() => String(controlProps.value.title ?? controlProps.value.content ?? props.field.label));
 const numberProp = (key: string, fallback: number) => {

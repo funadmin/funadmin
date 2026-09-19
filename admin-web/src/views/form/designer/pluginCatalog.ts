@@ -1,6 +1,10 @@
 import { computed, ref } from 'vue';
+import { i18n } from '@/locales';
 import type { FormComponentCatalog, FormComponentCatalogItem } from '@/api/form';
 import { setPluginControls, type ControlGroup, type ControlKind, type ControlMeta } from '../registry';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 export type PluginCatalogDiagnosticCode = 'missing-plugin' | 'namespace-mismatch' | 'version-mismatch' | 'load-failed';
 
@@ -15,9 +19,14 @@ export interface PluginCatalogRegistration {
   diagnostics: PluginCatalogDiagnostic[];
 }
 
-const DEFAULT_GROUP: ControlGroup = '业务控件';
+const DEFAULT_GROUP: ControlGroup = t('formDesigner.groups.business', '业务控件');
 const VALID_GROUPS = new Set<ControlGroup>([
-  '基础控件', '选择控件', '日期时间', '上传控件', '业务控件', '布局控件'
+  t('formDesigner.groups.basic', '基础控件'),
+  t('formDesigner.groups.selection', '选择控件'),
+  t('formDesigner.groups.datetime', '日期时间'),
+  t('formDesigner.groups.upload', '上传控件'),
+  t('formDesigner.groups.business', '业务控件'),
+  t('formDesigner.groups.layout', '布局控件')
 ]);
 
 const defaultColumnType = (valueType: string): string => ({
@@ -79,7 +88,7 @@ export const createPluginCatalog = () => {
       setPluginControls([]);
       diagnostics.value.unshift({
         code: 'version-mismatch',
-        message: `组件目录版本不匹配：期望 2，收到 ${String(catalog.schemaVersion)}`
+        message: tNamed('formDesigner.catalogVersionMismatch', { version: String(catalog.schemaVersion) }, '组件目录版本不匹配：期望 2，收到 {version}')
       });
       return;
     }
@@ -107,7 +116,7 @@ export const createPluginCatalog = () => {
     return missing.map((type) => ({
       code: 'missing-plugin',
       type,
-      message: `插件组件缺失或未通过白名单加载：${type}`
+      message: tNamed('formDesigner.pluginComponentMissing', { type }, '插件组件缺失或未通过白名单加载：{type}')
     }));
   };
 

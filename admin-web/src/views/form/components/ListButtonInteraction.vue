@@ -11,13 +11,15 @@
         <el-input v-else v-model="values[field.name]" :type="field.type === 'textarea' ? 'textarea' : 'text'" :maxlength="field.maxLength ?? 10000" />
       </el-form-item>
     </el-form>
-    <template #footer><el-button @click="cancel">取消</el-button><el-button type="primary" @click="submit">确定</el-button></template>
+    <template #footer><el-button @click="cancel">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" @click="submit">{{ t('common.ok', '确定') }}</el-button></template>
   </component>
 </template>
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue';
 import { ElDialog, ElDrawer } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import type { FormListButton, FormListButtonInteraction } from '../schema/types';
+const { t } = useI18n();
 const visible = ref(false);
 const failure = ref('');
 const interaction = ref<FormListButtonInteraction>();
@@ -40,11 +42,11 @@ function submit() {
   errors.value = {};
   for (const field of interaction.value?.fields ?? []) {
     const value = values.value[field.name];
-    if (field.required && (value === undefined || value === null || String(value).trim() === '')) errors.value[field.name] = '此项必填';
+    if (field.required && (value === undefined || value === null || String(value).trim() === '')) errors.value[field.name] = t('formData.fieldRequired', '此项必填');
     else if (value !== undefined && value !== null && value !== '') {
-      if (field.type === 'number' && (typeof value !== 'number' || !Number.isFinite(value) || (field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max))) errors.value[field.name] = '数值超出允许范围';
-      if (typeof value === 'string' && value.length > (field.maxLength ?? 10000)) errors.value[field.name] = '输入过长';
-      if (field.type === 'select' && !field.options?.some(option => option.value === value)) errors.value[field.name] = '请选择有效选项';
+      if (field.type === 'number' && (typeof value !== 'number' || !Number.isFinite(value) || (field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max))) errors.value[field.name] = t('formData.numberOutOfRange', '数值超出允许范围');
+      if (typeof value === 'string' && value.length > (field.maxLength ?? 10000)) errors.value[field.name] = t('formData.inputTooLong', '输入过长');
+      if (field.type === 'select' && !field.options?.some(option => option.value === value)) errors.value[field.name] = t('formData.invalidOption', '请选择有效选项');
     }
   }
   if (Object.keys(errors.value).length) return;

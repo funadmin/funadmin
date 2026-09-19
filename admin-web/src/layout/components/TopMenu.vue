@@ -54,7 +54,7 @@ const permissionStore = usePermissionStore();
 const dashboardItem: RouteRecordRaw = {
   path: '/dashboard',
   name: 'Dashboard',
-  meta: { title: '仪表盘', icon: 'i-ep-monitor' }
+  meta: { title: 'Dashboard', icon: 'i-ep-monitor' }
 } as RouteRecordRaw;
 
 const menus = computed<RouteRecordRaw[]>(() => {

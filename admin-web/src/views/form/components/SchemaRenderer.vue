@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import type { FormSchemaDocument, FormSchemaNode } from '../schema/types';
 import { flattenSchemaNodes } from '../schema/types';
@@ -51,6 +52,8 @@ import { createElementPlusValidationRules, validateFormSchemaValues } from '../v
 import { assertRuntimeComponents } from '../schema/runtimeGuard';
 import { loadPluginFormComponents } from '../schema/pluginComponentLoader';
 import { formDataApi } from '@/api/formData';
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   schema: FormSchemaDocument;
@@ -89,7 +92,7 @@ const formRef = ref<FormInstance>();
 const fieldErrors = ref<Record<string, string>>({});
 const errorSummary = computed(() => {
   const count = Object.keys(fieldErrors.value).length;
-  return count ? `表单存在 ${count} 个错误，请检查并修正。` : '';
+  return count ? t('formData.errorSummary', { n: count }, '表单存在 {n} 个错误，请检查并修正。') : '';
 });
 const asyncDataSources = flattenSchemaNodes(props.schema.nodes).map(({ node }) => node).filter((node) => {
   const kind = String(node.dataSource?.kind ?? node.dataSource?.mode ?? '');
@@ -151,7 +154,7 @@ const rules = computed<FormRules>(() => {
         message: rule.message
       })
     ));
-    if (state.required && !items.some((rule) => rule.required === true)) items.unshift({ required: true, message: `${node.title}不能为空`, trigger: ['blur', 'change'] });
+    if (state.required && !items.some((rule) => rule.required === true)) items.unshift({ required: true, message: t('formData.fieldRequiredWithLabel', { label: node.title }, '{label}不能为空'), trigger: ['blur', 'change'] });
     if (items.length) result[node.field] = items;
   }
   return result;
@@ -201,7 +204,7 @@ const validate = async () => {
     return await formRef.value?.validate();
   } catch (reason) {
     const invalid = reason && typeof reason === 'object' ? reason as Record<string, Array<{ message?: string }>> : {};
-    fieldErrors.value = Object.fromEntries(Object.entries(invalid).map(([field, items]) => [field, items[0]?.message ?? '字段校验失败']));
+    fieldErrors.value = Object.fromEntries(Object.entries(invalid).map(([field, items]) => [field, items[0]?.message ?? t('formData.fieldValidationFailed', '字段校验失败')]));
     await focusFirstError();
     throw reason;
   }

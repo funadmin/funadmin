@@ -74,6 +74,9 @@ class PermissionResource
         if ($appName === 'admin' && $controller === 'development.business' && $action === 'targets') {
             $action = 'modules';
         }
+        if ($appName === 'admin' && $controller === 'systemoperationlog' && $action === 'clear') {
+            $action = 'delete';
+        }
         if ($appName === 'admin' && $controller === 'form.data' && in_array($action, ['lefttree', 'mutatelefttree', 'lefttreeform'], true)) {
             $action = 'index';
         }

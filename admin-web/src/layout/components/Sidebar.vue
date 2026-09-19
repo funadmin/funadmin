@@ -62,7 +62,7 @@ const route = useRoute();
 const dashboardItem: RouteRecordRaw = {
   path: '/dashboard',
   name: 'Dashboard',
-  meta: { title: '仪表盘', icon: 'i-ep-monitor' }
+  meta: { title: 'Dashboard', icon: 'i-ep-monitor' }
 } as RouteRecordRaw;
 
 /** 默认菜单：仪表盘 + 全部动态路由 */

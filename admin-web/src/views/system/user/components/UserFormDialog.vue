@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="isEdit ? '编辑管理员' : '新增管理员'"
+    :title="isEdit ? t('systemUser.dialogEdit', '编辑管理员') : t('systemUser.dialogAdd', '新增管理员')"
     width="600px"
     :close-on-click-modal="false"
     @closed="onClosed"
@@ -9,54 +9,54 @@
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" class="px-2">
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="账号" prop="username">
-            <el-input v-model="form.username" :disabled="isEdit" placeholder="请输入账号" />
+          <el-form-item :label="t('systemUser.colUsername', '账号')" prop="username">
+            <el-input v-model="form.username" :disabled="isEdit" :placeholder="t('systemUser.usernamePlaceholder', '请输入账号')" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="昵称" prop="nickname">
-            <el-input v-model="form.nickname" placeholder="请输入昵称" />
+          <el-form-item :label="t('systemUser.colNickname', '昵称')" prop="nickname">
+            <el-input v-model="form.nickname" :placeholder="t('systemUser.nicknamePlaceholder', '请输入昵称')" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="邮箱" prop="email">
+          <el-form-item :label="t('systemUser.colEmail', '邮箱')" prop="email">
             <el-input v-model="form.email" maxlength="60" placeholder="user@example.com" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="手机" prop="mobile">
-            <el-input v-model="form.mobile" placeholder="11 位手机号" />
+          <el-form-item :label="t('systemUser.colMobile', '手机')" prop="mobile">
+            <el-input v-model="form.mobile" :placeholder="t('systemUser.mobilePlaceholder', '11 位手机号')" />
           </el-form-item>
         </el-col>
         <el-col v-if="!isEdit" :span="12">
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="form.password" type="password" show-password placeholder="至少 8 位" />
+          <el-form-item :label="t('systemUser.password', '密码')" prop="password">
+            <el-input v-model="form.password" type="password" show-password :placeholder="t('systemUser.passwordPlaceholder', '至少 8 位')" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="状态" prop="status">
+          <el-form-item :label="t('systemUser.colStatus', '状态')" prop="status">
             <el-radio-group v-model="form.status">
-              <el-radio-button :value="1">启用</el-radio-button>
-              <el-radio-button :value="0">禁用</el-radio-button>
+              <el-radio-button :value="1">{{ t('systemUser.enabled', '启用') }}</el-radio-button>
+              <el-radio-button :value="0">{{ t('systemUser.disabled', '禁用') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="主部门" prop="deptId">
+          <el-form-item :label="t('systemUser.dept', '主部门')" prop="deptId">
             <el-tree-select
               v-model="form.deptId"
               :data="departmentOptions"
               :props="{ label: 'name', children: 'children' }"
               node-key="id"
               check-strictly
-              placeholder="选择部门"
+              :placeholder="t('systemUser.deptPlaceholder', '选择部门')"
               class="w-full"
               :loading="optionsLoading"
             />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="兼任部门" prop="departmentIds">
+          <el-form-item :label="t('systemUser.additionalDept', '兼任部门')" prop="departmentIds">
             <el-tree-select
               v-model="form.departmentIds"
               :data="additionalDepartmentOptions"
@@ -68,15 +68,15 @@
               collapse-tags
               collapse-tags-tooltip
               clearable
-              placeholder="可选，可兼任多个部门"
-              no-data-text="暂无可兼任部门"
+              :placeholder="t('systemUser.additionalDeptPlaceholder', '可选，可兼任多个部门')"
+              :no-data-text="t('systemUser.noAdditionalDept', '暂无可兼任部门')"
               class="w-full"
               :loading="optionsLoading"
             />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="角色" prop="roleIds">
+          <el-form-item :label="t('systemUser.role', '角色')" prop="roleIds">
             <el-tree-select
               v-model="form.roleIds"
               :data="roleTreeOptions"
@@ -88,8 +88,8 @@
               collapse-tags
               collapse-tags-tooltip
               clearable
-              placeholder="选择角色"
-              no-data-text="暂无可分配角色"
+              :placeholder="t('systemUser.rolePlaceholder', '选择角色')"
+              :no-data-text="t('systemUser.noRole', '暂无可分配角色')"
               class="w-full"
               :loading="optionsLoading"
             />
@@ -99,14 +99,15 @@
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import { userApi, type UserModel } from '@/api/system/user';
 import { roleApi, type RoleModel } from '@/api/system/role';
@@ -119,6 +120,7 @@ interface Props {
   row?: UserModel | null;
 }
 const props = withDefaults(defineProps<Props>(), { row: null });
+const { t } = useI18n();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -148,21 +150,21 @@ const initialForm = () => ({
 const form = reactive<ReturnType<typeof initialForm>>(initialForm());
 const additionalDepartmentOptions = computed(() => filterDepartmentTree(departmentOptions.value, form.deptId));
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   username: [
-    { required: true, message: '请输入账号', trigger: 'blur' },
-    { pattern: /^[A-Za-z][A-Za-z0-9_]{2,19}$/, message: '账号需以字母开头，长度 3 到 20 位', trigger: 'blur' }
+    { required: true, message: t('systemUser.usernamePlaceholder', '请输入账号'), trigger: 'blur' },
+    { pattern: /^[A-Za-z][A-Za-z0-9_]{2,19}$/, message: t('systemUser.usernamePattern', '账号需以字母开头，长度 3 到 20 位'), trigger: 'blur' }
   ],
-  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
-  password: [{ required: true, min: 8, message: '密码至少 8 位', trigger: 'blur' }],
+  nickname: [{ required: true, message: t('systemUser.nicknamePlaceholder', '请输入昵称'), trigger: 'blur' }],
+  password: [{ required: true, min: 8, message: t('systemUser.passwordMin', '密码至少 8 位'), trigger: 'blur' }],
   email: [
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
-    { max: 60, message: '邮箱不能超过 60 个字符', trigger: 'blur' }
+    { type: 'email', message: t('systemUser.emailInvalid', '邮箱格式不正确'), trigger: 'blur' },
+    { max: 60, message: t('systemUser.emailMax', '邮箱不能超过 60 个字符'), trigger: 'blur' }
   ],
-  mobile: [{ pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' }],
-  deptId: [{ required: true, message: '请选择部门', trigger: 'change' }],
-  roleIds: [{ required: true, message: '请选择角色', trigger: 'change' }]
-};
+  mobile: [{ pattern: /^1\d{10}$/, message: t('systemUser.mobileInvalid', '手机号格式不正确'), trigger: 'blur' }],
+  deptId: [{ required: true, message: t('systemUser.deptPlaceholder', '选择部门'), trigger: 'change' }],
+  roleIds: [{ required: true, message: t('systemUser.rolePlaceholder', '选择角色'), trigger: 'change' }]
+}));
 
 watch(
   () => props.modelValue,

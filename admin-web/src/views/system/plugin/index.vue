@@ -1,71 +1,71 @@
 <template>
-  <PageWrapper title="插件中心" subtitle="管理已安装插件、本地插件包和云市场版本">
+  <PageWrapper :title="t('plugin.title', '插件中心')" :subtitle="t('plugin.subtitle', '管理已安装插件、本地插件包和云市场版本')">
     <div class="mb-4 flex flex-wrap gap-2">
-      <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">市场账号</el-button>
-      <el-button type="success" plain v-perm="'system:plugin:install'" @click="installVisible = true">上传本地 ZIP</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">创建插件</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">校验插件</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">打包插件</el-button>
+      <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">{{ t('plugin.account', '市场账号') }}</el-button>
+      <el-button type="success" plain v-perm="'system:plugin:install'" @click="installVisible = true">{{ t('plugin.uploadZip', '上传本地 ZIP') }}</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">{{ t('plugin.create', '创建插件') }}</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">{{ t('plugin.validate', '校验插件') }}</el-button>
+      <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">{{ t('plugin.package', '打包插件') }}</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
-      <el-button type="info" plain @click="load">刷新</el-button>
+      <el-button type="info" plain @click="load">{{ t('plugin.refresh', '刷新') }}</el-button>
     </div>
     <el-alert v-if="pageError" class="mb-3" type="error" :title="pageError" :closable="false" role="alert" />
     <el-tabs v-model="activeTab" @tab-change="load">
-      <el-tab-pane label="已安装" name="installed" />
-      <el-tab-pane label="本地插件" name="local" />
-      <el-tab-pane label="云市场" name="market" />
+      <el-tab-pane :label="t('plugin.tabInstalled', '已安装')" name="installed" />
+      <el-tab-pane :label="t('plugin.tabLocal', '本地插件')" name="local" />
+      <el-tab-pane :label="t('plugin.tabMarket', '云市场')" name="market" />
     </el-tabs>
 
     <el-alert
       v-if="activeTab === 'local'"
       class="mb-3"
       type="info"
-      :title="`已发现 ${items.length} 个本地插件，来源目录：plugins/`"
+      :title="t('plugin.localFound', { n: items.length }, { default: '已发现 {n} 个本地插件，来源目录：plugins/' })"
       :closable="false"
     />
     <el-table
       v-if="activeTab !== 'market'"
       v-loading="loading"
       :data="items"
-      :empty-text="activeTab === 'local' ? 'plugins/ 目录下暂无符合 Manifest v2 的本地插件' : '暂无已安装插件'"
+      :empty-text="activeTab === 'local' ? t('plugin.emptyLocal', 'plugins/ 目录下暂无符合 Manifest v2 的本地插件') : t('plugin.emptyInstalled', '暂无已安装插件')"
       border
     >
-      <el-table-column prop="code" label="插件标识" min-width="120" />
-      <el-table-column prop="name" label="名称" min-width="130" />
-      <el-table-column prop="version" label="当前版本" width="110" />
-      <el-table-column prop="latestVersion" label="最新版本" width="110" />
-      <el-table-column prop="dbVersion" label="数据库版本" width="120" />
-      <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag>{{ pluginStateLabel(row.state) }}</el-tag></template></el-table-column>
-      <el-table-column label="依赖插件" min-width="160"><template #default="{ row }">{{ dependencies(row.dependencies) }}</template></el-table-column>
-      <el-table-column label="待迁移" width="90"><template #default="{ row }"><el-tag :type="row.migrationPending ? 'warning' : 'success'">{{ row.migrationPending ? '是' : '否' }}</el-tag></template></el-table-column>
-      <el-table-column label="来源" width="100"><template #default="{ row }">{{ pluginSourceLabel(row.source) }}</template></el-table-column>
-      <el-table-column prop="lastError" label="最近错误" min-width="180" show-overflow-tooltip />
-      <el-table-column label="操作" min-width="430" fixed="right">
+      <el-table-column prop="code" :label="t('plugin.colCode', '插件标识')" min-width="120" />
+      <el-table-column prop="name" :label="t('plugin.colName', '名称')" min-width="130" />
+      <el-table-column prop="version" :label="t('plugin.colVersion', '当前版本')" width="110" />
+      <el-table-column prop="latestVersion" :label="t('plugin.colLatest', '最新版本')" width="110" />
+      <el-table-column prop="dbVersion" :label="t('plugin.colDbVersion', '数据库版本')" width="120" />
+      <el-table-column :label="t('plugin.colState', '状态')" width="100"><template #default="{ row }"><el-tag>{{ stateLabel(row.state) }}</el-tag></template></el-table-column>
+      <el-table-column :label="t('plugin.colDeps', '依赖插件')" min-width="160"><template #default="{ row }">{{ dependencies(row.dependencies) }}</template></el-table-column>
+      <el-table-column :label="t('plugin.colPending', '待迁移')" width="90"><template #default="{ row }"><el-tag :type="row.migrationPending ? 'warning' : 'success'">{{ row.migrationPending ? t('plugin.yes', '是') : t('plugin.no', '否') }}</el-tag></template></el-table-column>
+      <el-table-column :label="t('plugin.colSource', '来源')" width="100"><template #default="{ row }">{{ sourceLabel(row.source) }}</template></el-table-column>
+      <el-table-column prop="lastError" :label="t('plugin.colLastError', '最近错误')" min-width="180" show-overflow-tooltip />
+      <el-table-column :label="t('plugin.colActions', '操作')" min-width="430" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:discovered-install'" :disabled="Boolean(actionReason(row as PluginItem, 'install'))" :title="actionReason(row as PluginItem, 'install')" @click="installDiscovered(row as PluginItem)">安装</el-button>
-          <el-button v-if="activeTab === 'installed'" type="primary" link v-perm="'system:plugin:local-update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="selectLocalUpdate(row as PluginItem)">本地 ZIP 更新</el-button>
-          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="updatePlugin(row as PluginItem)">更新</el-button>
-          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">迁移</el-button>
-          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">启用</el-button>
-          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">禁用</el-button>
-          <el-button type="primary" link v-perm="'development:business:save'" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || '进入统一业务设计器，目标可用性由服务端再次校验'" @click="developBusiness(row as PluginItem)">开发业务</el-button>
-          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row as PluginItem)">配置</el-button>
-          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row as PluginItem)">历史</el-button>
-          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">卸载</el-button>
-          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:purge'" :disabled="Boolean(actionReason(row as PluginItem, 'purge'))" :title="actionReason(row as PluginItem, 'purge')" @click="purge(row as PluginItem)">清除数据</el-button>
-          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row as PluginItem)">删除包</el-button>
+          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:discovered-install'" :disabled="Boolean(actionReason(row as PluginItem, 'install'))" :title="actionReason(row as PluginItem, 'install')" @click="installDiscovered(row as PluginItem)">{{ t('plugin.install', '安装') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="primary" link v-perm="'system:plugin:local-update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="selectLocalUpdate(row as PluginItem)">{{ t('plugin.localUpdate', '本地 ZIP 更新') }}</el-button>
+          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="updatePlugin(row as PluginItem)">{{ t('plugin.update', '更新') }}</el-button>
+          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">{{ t('plugin.migrate', '迁移') }}</el-button>
+          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">{{ t('plugin.enable', '启用') }}</el-button>
+          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">{{ t('plugin.disable', '禁用') }}</el-button>
+          <el-button type="primary" link v-perm="'development:business:save'" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || t('plugin.businessTip', '进入统一业务设计器，目标可用性由服务端再次校验')" @click="developBusiness(row as PluginItem)">{{ t('plugin.developBusiness', '开发业务') }}</el-button>
+          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row as PluginItem)">{{ t('plugin.config', '配置') }}</el-button>
+          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row as PluginItem)">{{ t('plugin.history', '历史') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">{{ t('plugin.uninstall', '卸载') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:purge'" :disabled="Boolean(actionReason(row as PluginItem, 'purge'))" :title="actionReason(row as PluginItem, 'purge')" @click="purge(row as PluginItem)">{{ t('plugin.purge', '清除数据') }}</el-button>
+          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row as PluginItem)">{{ t('plugin.deletePackage', '删除包') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <template v-else>
-      <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" plain @click="loadMarket">搜索</el-button></div>
+      <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" :placeholder="t('plugin.searchPlaceholder', '搜索插件')" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" plain @click="loadMarket">{{ t('plugin.search', '搜索') }}</el-button></div>
       <el-table v-loading="loading" :data="marketItems" border>
-        <el-table-column prop="code" label="插件标识" width="130" /><el-table-column prop="name" label="名称" width="150" />
-        <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
-        <el-table-column label="最新版本" width="110"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
-        <el-table-column label="能力" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
-        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
+        <el-table-column prop="code" :label="t('plugin.colCode', '插件标识')" width="130" /><el-table-column prop="name" :label="t('plugin.colName', '名称')" width="150" />
+        <el-table-column prop="description" :label="t('plugin.colDescription', '描述')" min-width="240" show-overflow-tooltip /><el-table-column prop="author" :label="t('plugin.colAuthor', '作者')" width="120" />
+        <el-table-column :label="t('plugin.colLatest', '最新版本')" width="110"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
+        <el-table-column :label="t('plugin.colCapabilities', '能力')" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
+        <el-table-column :label="t('plugin.colActions', '操作')" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">{{ t('plugin.detail', '详情') }}</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">{{ t('plugin.install', '安装') }}</el-button></template></el-table-column>
       </el-table>
     </template>
 
@@ -80,6 +80,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessageBox } from 'element-plus';
 import { pluginApi, type MarketplacePlugin, type PluginItem } from '@/api/plugin';
 import router from '@/router';
@@ -94,6 +95,10 @@ import Market from './components/Market.vue';
 import PluginDevelopmentDialog from './components/PluginDevelopmentDialog.vue';
 
 defineOptions({ name: 'SystemPlugin' });
+const { t } = useI18n();
+const stateLabel = (value: string) => t(`plugin.state.${value}`, pluginStateLabel(value));
+const sourceLabel = (value: string) => t(`plugin.source.${value}`, pluginSourceLabel(value));
+const opLabel = (value: string) => t(`plugin.operation.${value}`, operationLabel(value));
 const activeTab = ref<'installed' | 'local' | 'market'>('installed');
 const loading = ref(false);
 const items = ref<PluginItem[]>([]);
@@ -112,7 +117,7 @@ const developmentVisible = ref(false);
 const developmentMode = ref<'create' | 'maintain'>('create');
 
 function businessReason(row: PluginItem) {
-  if (row.operation || !['discovered', 'enabled', 'disabled'].includes(row.state)) return row.disabledReason || '插件正在发布、恢复或当前状态不可开发';
+  if (row.operation || !['discovered', 'enabled', 'disabled'].includes(row.state)) return row.disabledReason || t('plugin.businessReason', '插件正在发布、恢复或当前状态不可开发');
   return '';
 }
 function developBusiness(row: PluginItem) {
@@ -127,11 +132,11 @@ function dependencies(value: Record<string, string>) { return Object.entries(val
 function marketCapabilities(item: MarketplacePlugin) {
   const version = item.versions[0];
   if (!version) return '-';
-  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => applicationLabel(name)).join('、');
-  const signature = version.signatureAlgorithm === 'ed25519' ? 'Ed25519 签名' : (version.signatureAlgorithm ? `${version.signatureAlgorithm} 签名` : '未签名');
-  const database = version.databaseCapability ? `数据库 ${version.databaseCapability}` : '数据库无迁移要求';
+  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => applicationLabel(name)).join(', ');
+  const signature = version.signatureAlgorithm === 'ed25519' ? t('plugin.capSigned', 'Ed25519 签名') : (version.signatureAlgorithm ? t('plugin.capSignedBy', { alg: version.signatureAlgorithm }, { default: '{alg} 签名' }) : t('plugin.capUnsigned', '未签名'));
+  const database = version.databaseCapability ? t('plugin.capDb', { v: version.databaseCapability }, { default: '数据库 {v}' }) : t('plugin.capDbNone', '数据库无迁移要求');
   const compatibility = version.compatibleReason ? ` · ${version.compatibleReason}` : '';
-  return `清单协议 v${version.manifestSchema} · ${version.packageFormat === 'funadmin-native-app-v1' ? '原生应用包' : '其他格式包'} · ${apps || '无应用能力'} · ${signature} · ${database}${compatibility}`;
+  return `${t('plugin.capManifest', { v: version.manifestSchema }, { default: '清单协议 v{v}' })} · ${version.packageFormat === 'funadmin-native-app-v1' ? t('plugin.capNative', '原生应用包') : t('plugin.capOther', '其他格式包')} · ${apps || t('plugin.capNone', '无应用能力')} · ${signature} · ${database}${compatibility}`;
 }
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -139,15 +144,15 @@ function errorMessage(error: unknown) {
   return String(error);
 }
 function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' | 'enable' | 'disable' | 'uninstall' | 'purge') {
-  if (row.operation) return row.disabledReason || `插件正在执行${operationLabel(row.operation)}（${row.progress}%）`;
-  if (action === 'update' && row.modified) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '检测到本地修改，需要人工合并';
+  if (row.operation) return row.disabledReason || t('plugin.running', { label: opLabel(row.operation), progress: row.progress }, { default: '插件正在执行{label}（{progress}%）' });
+  if (action === 'update' && row.modified) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || t('plugin.needMerge', '检测到本地修改，需要人工合并');
   if (action === 'update' && (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '';
-  if (row.needsReinstall && action !== 'purge') return '插件需要重新安装后才能执行此操作';
-  if (action === 'enable' && row.migrationPending) return '存在待执行数据库迁移，完成迁移后才能启用';
+  if (row.needsReinstall && action !== 'purge') return t('plugin.needReinstall', '插件需要重新安装后才能执行此操作');
+  if (action === 'enable' && row.migrationPending) return t('plugin.pendingMigration', '存在待执行数据库迁移，完成迁移后才能启用');
   if (action === 'enable' && Object.keys(row.dependencies || {}).length > 0 && row.disabledReason) return row.disabledReason;
-  if (['update', 'migrate', 'enable', 'uninstall'].includes(action) && row.state !== 'disabled') return `当前状态“${pluginStateLabel(row.state)}”不允许执行此操作`;
-  if (action === 'disable' && row.state !== 'enabled') return `当前状态“${pluginStateLabel(row.state)}”不允许禁用`;
-  if (action === 'install' && row.state !== 'discovered') return `当前状态“${pluginStateLabel(row.state)}”不允许安装`;
+  if (['update', 'migrate', 'enable', 'uninstall'].includes(action) && row.state !== 'disabled') return t('plugin.stateNotAllowed', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许执行此操作' });
+  if (action === 'disable' && row.state !== 'enabled') return t('plugin.stateNotDisable', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许禁用' });
+  if (action === 'install' && row.state !== 'discovered') return t('plugin.stateNotInstall', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许安装' });
   return '';
 }
 async function load() {
@@ -190,18 +195,18 @@ async function load() {
 async function loadMarket() { pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
 async function installedFromZip() { activeTab.value = 'installed'; await load(); }
 function selectLocalUpdate(row: PluginItem) { selectedCode.value = row.code; updateInput.value?.click(); }
-async function updateLocalZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(`确认使用 ${file.name} 更新插件 ${selectedCode.value} 吗？`, '本地更新确认'), async () => { await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
+async function updateLocalZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(t('plugin.localUpdateConfirm', { file: file.name, code: selectedCode.value }, { default: '确认使用 {file} 更新插件 {code} 吗？' }), t('plugin.localUpdateTitle', '本地更新确认')), async () => { await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
 async function syncPluginRoutes() { await loadPluginModulesSafely(router); }
-async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: '确认迁移插件', enable: '确认启用插件', disable: '确认禁用插件' } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} 吗？`, '操作确认'), async () => { await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
-async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认将 ${row.code} 更新到 ${row.latestVersion} 吗？`, '更新确认'), async () => { await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
-async function installDiscovered(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认安装发现目录中的插件 ${row.code} 吗？`, '安装确认'), async () => { await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
-async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认卸载插件 ${row.code} 吗？业务数据与配置将保留。`, '卸载确认'), async () => { await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
-async function purge(row: PluginItem) { pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(`此操作仅清除插件业务数据，不卸载插件。请输入插件标识 ${row.code} 二次确认`, '危险操作').then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
-async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认删除本地插件包 ${row.code} 吗？`, '删除确认'), async () => { await pluginApi.deletePackage(row.code); await load(); }); }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: t('plugin.confirmMigrate', '确认迁移插件'), enable: t('plugin.confirmEnable', '确认启用插件'), disable: t('plugin.confirmDisable', '确认禁用插件') } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} ${t('plugin.confirmSuffix', '吗？')}`, t('plugin.operateTitle', '操作确认')), async () => { await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
+async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.updateConfirm', { code: row.code, version: row.latestVersion }, { default: '确认将 {code} 更新到 {version} 吗？' }), t('plugin.updateTitle', '更新确认')), async () => { await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
+async function installDiscovered(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.installConfirm', { code: row.code }, { default: '确认安装发现目录中的插件 {code} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
+async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.uninstallConfirm', { code: row.code }, { default: '确认卸载插件 {code} 吗？业务数据与配置将保留。' }), t('plugin.uninstallTitle', '卸载确认')), async () => { await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
+async function purge(row: PluginItem) { pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(t('plugin.purgePrompt', { code: row.code }, { default: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认' }), t('plugin.purgeTitle', '危险操作')).then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
+async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.deleteConfirm', { code: row.code }, { default: '确认删除本地插件包 {code} 吗？' }), t('plugin.deleteTitle', '删除确认')), async () => { await pluginApi.deletePackage(row.code); await load(); }); }
 function openConfig(row: PluginItem) { selectedCode.value = row.code; configVisible.value = true; }
 function openHistory(row: PluginItem) { selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
 function openMarket(row: MarketplacePlugin) { selectedCode.value = row.code; marketVisible.value = true; }
-async function installMarket(row: MarketplacePlugin) { const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${row.code} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
-async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(`确认安装插件 ${selectedCode.value} ${version} 吗？`, '安装确认'), async () => { await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
+async function installMarket(row: MarketplacePlugin) { const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: row.code, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
+async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: selectedCode.value, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
 onMounted(load);
 </script>

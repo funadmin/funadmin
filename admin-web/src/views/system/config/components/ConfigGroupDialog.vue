@@ -1,22 +1,22 @@
 <template>
-  <el-dialog v-model="visible" :title="row?.id ? '编辑配置分组' : '新增配置分组'" width="520px" destroy-on-close @closed="resetForm">
+  <el-dialog v-model="visible" :title="row?.id ? t('systemConfig.dialogEditGroup', '编辑配置分组') : t('systemConfig.dialogAddGroup', '新增配置分组')" width="520px" destroy-on-close @closed="resetForm">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="96px">
-      <el-form-item label="分组编码" prop="name">
-        <el-input v-model="form.name" maxlength="30" placeholder="例如 site" />
+      <el-form-item :label="t('systemConfig.groupCode', '分组编码')" prop="name">
+        <el-input v-model="form.name" maxlength="30" :placeholder="t('systemConfig.groupCodePlaceholder', '例如 site')" />
       </el-form-item>
-      <el-form-item label="分组标题" prop="title">
+      <el-form-item :label="t('systemConfig.groupTitle', '分组标题')" prop="title">
         <el-input v-model="form.title" maxlength="60" show-word-limit />
       </el-form-item>
-      <el-form-item label="状态" prop="status">
+      <el-form-item :label="t('common.status', '状态')" prop="status">
         <el-radio-group v-model="form.status">
-          <el-radio :value="1">启用</el-radio>
-          <el-radio :value="0">停用</el-radio>
+          <el-radio :value="1">{{ t('common.enable', '启用') }}</el-radio>
+          <el-radio :value="0">{{ t('systemConfig.stopped', '停用') }}</el-radio>
         </el-radio-group>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -24,18 +24,20 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { configApi, type ConfigGroupModel, type ConfigGroupPayload } from '@/api/system/config';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: ConfigGroupModel | null }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
+const { t } = useI18n();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const formRef = ref<FormInstance>();
 const saving = ref(false);
 const initialForm = (): ConfigGroupPayload => ({ name: '', title: '', status: 1 });
 const form = reactive<ConfigGroupPayload>(initialForm());
 const rules: FormRules = {
-  name: [{ required: true, message: '请输入分组编码', trigger: 'blur' }, { pattern: /^[A-Za-z][A-Za-z0-9_-]{0,29}$/, message: '以字母开头，只能包含字母、数字、横线和下划线', trigger: 'blur' }],
-  title: [{ required: true, message: '请输入分组标题', trigger: 'blur' }, { max: 60, message: '最多 60 个字符', trigger: 'blur' }]
+  name: [{ required: true, message: t('systemConfig.groupCodeRequired', '请输入分组编码'), trigger: 'blur' }, { pattern: /^[A-Za-z][A-Za-z0-9_-]{0,29}$/, message: t('systemConfig.groupCodePattern', '以字母开头，只能包含字母、数字、横线和下划线'), trigger: 'blur' }],
+  title: [{ required: true, message: t('systemConfig.groupTitleRequired', '请输入分组标题'), trigger: 'blur' }, { max: 60, message: t('systemConfig.groupTitleMax', '最多 60 个字符'), trigger: 'blur' }]
 };
 watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
   if (!opened) return;

@@ -3,15 +3,16 @@
     class="captcha-box"
     type="button"
     :style="{ width: `${width}px`, height: `${height}px` }"
-    title="点击刷新验证码"
+    :title="t('common.refreshCaptcha', '点击刷新验证码')"
     @click="refresh"
   >
-    <img :src="src" alt="验证码" />
+    <img :src="src" :alt="t('common.captcha', '验证码')" />
   </button>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Props {
   width?: number;
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: 40
 });
 
+const { t } = useI18n();
 const src = ref('');
 
 defineExpose({ refresh });

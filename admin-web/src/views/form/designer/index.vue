@@ -2,7 +2,7 @@
   <PageWrapper :title="t('formDesigner.title', '表单设计器')" :subtitle="t('formDesigner.subtitle', '拖拽控件到画布；右侧编辑字段参数；创建表保存前需应用守卫式迁移')">
     <div class="designer-command-bar designer-toolbar mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color-light)] bg-[var(--el-bg-color)] p-3">
         <el-button data-action="back-to-list" @click="router.push('/development/business/mine')"><i class="i-ep-back" /> {{ t('formDesigner.backToList', '返回列表') }}</el-button>
-        <el-tag v-if="!online" type="warning" effect="plain">离线草稿</el-tag>
+        <el-tag v-if="!online" type="warning" effect="plain">{{ t('formDesigner.offlineDraft', '离线草稿') }}</el-tag>
         <el-button :disabled="!store.canUndo.value" @click="store.undo()">{{ t('formDesigner.undo', '撤销') }}</el-button>
         <el-button :disabled="!store.canRedo.value" @click="store.redo()">{{ t('formDesigner.redo', '重做') }}</el-button>
         <el-radio-group v-model="workspaceMode">
@@ -12,23 +12,17 @@
           <el-radio-button value="mobile">{{ t('formDesigner.mobilePreview', '移动预览') }}</el-radio-button>
         </el-radio-group>
         <el-select v-if="workspaceMode !== 'edit'" v-model="previewMode" class="!w-28">
-          <el-option label="创建" value="create" /><el-option label="编辑" value="edit" /><el-option label="只读" value="readonly" /><el-option label="搜索" value="search" />
+          <el-option :label="t('formDesigner.previewCreate', '创建')" value="create" /><el-option :label="t('formDesigner.previewEdit', '编辑')" value="edit" /><el-option :label="t('formDesigner.previewReadonly', '只读')" value="readonly" /><el-option :label="t('formDesigner.previewSearch', '搜索')" value="search" />
         </el-select>
-        <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">预览数据</el-button>
+        <el-button v-if="workspaceMode !== 'edit'" @click="previewSettingsVisible = true">{{ t('formDesigner.previewData', '预览数据') }}</el-button>
         <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
-        <el-button
-          :type="store.dirty.value ? 'primary' : 'default'"
-          :loading="store.saveStatus.value === 'saving'"
-          :disabled="!store.dirty.value || store.saveStatus.value === 'saving'"
-          @click="onSave"
-        >{{ t('formDesigner.saveDraft', '保存草稿') }}</el-button>
-        <el-tag v-if="businessModule" data-business-target>{{ isPluginTarget ? `所属插件：${businessTarget?.pluginCode}` : '核心后台' }} · {{ businessTarget?.locked ? '目标已锁定' : '首次成功生成后锁定' }}</el-tag>
-        <span v-if="isPluginTarget">使用已保存草稿生成源码，不动态发布；安装／更新后生效。</span>
+        <el-tag v-if="businessModule" data-business-target>{{ isPluginTarget ? t('formDesigner.pluginBadge', { code: businessTarget?.pluginCode }, '所属插件：{code}') : t('formDesigner.coreAdmin', '核心后台') }} · {{ businessTarget?.locked ? t('formDesigner.targetLocked', '目标已锁定') : t('formDesigner.lockAfterGenerate', '首次成功生成后锁定') }}</el-tag>
+        <span v-if="isPluginTarget">{{ t('formDesigner.pluginGenerateHint', '使用已保存草稿生成源码，不动态发布；安装／更新后生效。') }}</span>
         <el-button v-if="businessModule && !isPluginTarget" type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">生成正式模块</el-button>
+        <el-button v-perm="'development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">{{ t('formDesigner.generateFormal', '生成正式模块') }}</el-button>
       <div v-if="saveBlocked" data-testid="save-conflict-alert" role="alert" class="w-full">
-        <strong>保存已暂停。</strong>本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。
-        <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">核对版本</el-button>
+        <strong>{{ t('formDesigner.savePausedTitle', '保存已暂停。') }}</strong>{{ t('formDesigner.savePausedHint', '本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。') }}
+        <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">{{ t('formDesigner.reviewVersion', '核对版本') }}</el-button>
       </div>
     </div>
 
@@ -62,7 +56,7 @@
     </el-dialog>
 
     <el-tabs v-model="activeTab" class="designer-tabs">
-      <el-tab-pane label="基本信息" name="basic" :lazy="false">
+      <el-tab-pane :label="t('formDesigner.tabBasic', '基本信息')" name="basic" :lazy="false">
     <el-card shadow="never" class="mb-3">
       <template #header>{{ t('formDesigner.basicInfo', '表单基本信息') }}</template>
       <el-form label-width="90px" class="designer-meta-form">
@@ -94,7 +88,7 @@
               :default-first-option="store.form.value.source_type === 'created'"
               :loading="tableLoading"
               class="w-full"
-              :placeholder="store.form.value.source_type === 'created' ? '选择或输入新表名' : '搜索并选择已有数据表'"
+              :placeholder="store.form.value.source_type === 'created' ? t('formDesigner.tablePlaceholderCreated', '选择或输入新表名') : t('formDesigner.tablePlaceholderAdopted', '搜索并选择已有数据表')"
               @visible-change="onTableSelectVisible"
               @update:model-value="updateBoundTable"
             >
@@ -102,31 +96,31 @@
             </el-select>
             <div class="form-tip">{{ tableHelp }}</div>
             <el-alert v-if="tableLoadError" :title="tableLoadError" type="warning" :closable="false" class="mt-2">
-              <el-button link type="primary" @click="loadDatabaseTables(true)">重新加载</el-button>
+              <el-button link type="primary" @click="loadDatabaseTables(true)">{{ t('formDesigner.reload', '重新加载') }}</el-button>
             </el-alert>
           </div>
         </el-form-item>
         <el-divider />
-        <el-form-item label="树形列表">
+        <el-form-item :label="t('formDesigner.treeList', '树形列表')">
           <el-switch :model-value="treeConfig.enabled === true" @change="enabled => updateTree({ enabled: Boolean(enabled) })" />
         </el-form-item>
-        <el-form-item v-if="treeConfig.enabled" label="父级字段">
-          <el-select :model-value="treeConfig.parentField" filterable placeholder="选择存储父记录主键的字段" @change="parentField => updateTree({ parentField: String(parentField) })">
+        <el-form-item v-if="treeConfig.enabled" :label="t('formDesigner.parentField', '父级字段')">
+          <el-select :model-value="treeConfig.parentField" filterable :placeholder="t('formDesigner.parentFieldPlaceholder', '选择存储父记录主键的字段')" @change="parentField => updateTree({ parentField: String(parentField) })">
             <el-option v-for="field in treeParentFieldOptions" :key="field.field_name" :label="field.label || field.field_name" :value="field.field_name" />
           </el-select>
-          <div class="form-tip">主键自动读取实际表主键；树列表不分页，最多 1000 条授权记录，超限需缩小筛选范围。</div>
+          <div class="form-tip">{{ t('formDesigner.treeTip', '主键自动读取实际表主键；树列表不分页，最多 1000 条授权记录，超限需缩小筛选范围。') }}</div>
         </el-form-item>
-        <el-form-item v-if="treeConfig.enabled" label="新增页父级选择">
+        <el-form-item v-if="treeConfig.enabled" :label="t('formDesigner.parentSelection', '新增页父级选择')">
           <el-radio-group :model-value="treeConfig.selectionMode ?? 'single'" @change="mode => updateTree({ selectionMode: mode as 'single' | 'multiple' })">
-            <el-radio value="single">单选</el-radio>
-            <el-radio value="multiple">多选</el-radio>
+            <el-radio value="single">{{ t('formDesigner.selectionSingle', '单选') }}</el-radio>
+            <el-radio value="multiple">{{ t('formDesigner.selectionMultiple', '多选') }}</el-radio>
           </el-radio-group>
-          <div class="form-tip">新增/编辑页父级字段以当前记录树呈现：单选为树选择，多选为可勾选树。</div>
+          <div class="form-tip">{{ t('formDesigner.parentSelectionTip', '新增/编辑页父级字段以当前记录树呈现：单选为树选择，多选为可勾选树。') }}</div>
         </el-form-item>
       </el-form>
     </el-card>
       </el-tab-pane>
-      <el-tab-pane label="表单设计" name="design" :lazy="false">
+      <el-tab-pane :label="t('formDesigner.tabDesign', '表单设计')" name="design" :lazy="false">
     <div v-show="workspaceMode === 'edit'">
     <el-alert
       v-if="catalogDiagnostics.length"
@@ -142,7 +136,7 @@
     <div class="designer-layout flex gap-3" :class="{ 'is-preview': workspaceMode !== 'edit' }">
       <!-- 左：控件 palette -->
       <el-card v-show="workspaceMode === 'edit'" shadow="never" class="control-palette shrink-0">
-        <template #header>选择控件</template>
+        <template #header>{{ t('formDesigner.paletteTitle', '选择控件') }}</template>
         <div ref="paletteRef" class="palette-list max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <template v-for="group in controlGroups" :key="group">
             <div class="palette-group-title">{{ group }}</div>
@@ -154,7 +148,7 @@
                 :data-type="control.type"
                 role="button"
                 tabindex="0"
-                :aria-label="`添加${control.label}`"
+                :aria-label="t('formDesigner.addControlAria', { label: control.label }, '添加{label}')"
                 @keydown.enter.prevent="store.addNode(control.type)"
               >
                 <i :class="controlIcon(control)" aria-hidden="true" />
@@ -169,9 +163,9 @@
       <el-card shadow="never" class="min-w-0 flex-1">
         <template #header>
           <div class="designer-canvas-heading">
-            <span>设计画布（{{ store.fields.value.length }} 字段）</span>
-            <el-button v-if="workspaceMode === 'edit'" size="small" :aria-expanded="outlineVisible" @click="outlineVisible = true"><i class="i-ep-operation" /> 表单大纲</el-button>
-            <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || '未命名' }} → {{ store.form.value.table_name }}</span>
+            <span>{{ t('formDesigner.canvasTitle', { n: store.fields.value.length }, '设计画布（{n} 字段）') }}</span>
+            <el-button v-if="workspaceMode === 'edit'" size="small" :aria-expanded="outlineVisible" @click="outlineVisible = true"><i class="i-ep-operation" /> {{ t('formDesigner.outline', '表单大纲') }}</el-button>
+            <span class="text-xs text-[var(--el-text-color-secondary)]">{{ store.form.value.name || t('formDesigner.unnamed', '未命名') }} → {{ store.form.value.table_name }}</span>
           </div>
         </template>
         <div class="max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
@@ -196,72 +190,72 @@
 
       <!-- 右：属性面板 -->
       <el-card v-show="workspaceMode === 'edit'" shadow="never" class="w-[360px] shrink-0">
-        <template #header>字段属性</template>
+        <template #header>{{ t('formDesigner.fieldPropsTitle', '字段属性') }}</template>
         <div class="max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
           <PropsPanel v-if="store.selected.value" :module-id="moduleId" :field="store.selected.value" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
-          <el-empty v-else description="点选画布字段编辑参数" />
+          <el-empty v-else :description="t('formDesigner.emptyProps', '点选画布字段编辑参数')" />
         </div>
       </el-card>
     </div>
 
       </el-tab-pane>
-      <el-tab-pane label="按钮与工具" name="buttons" :lazy="false" />
-      <el-tab-pane label="分类管理" name="list" :lazy="false" />
+      <el-tab-pane :label="t('formDesigner.tabButtons', '按钮与工具')" name="buttons" :lazy="false" />
+      <el-tab-pane :label="t('formDesigner.tabCategories', '分类管理')" name="list" :lazy="false" />
     </el-tabs>
     <ListConfigurationPanel v-if="activeTab === 'buttons' || activeTab === 'list'" :mode="activeTab === 'buttons' ? 'buttons' : 'categories'" :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" @update="store.updateList" />
 
-    <el-drawer v-model="outlineVisible" title="表单大纲" size="min(480px, 100vw)" append-to-body destroy-on-close>
-      <el-button size="small" class="w-full border-dashed" @click="store.addNode('group')"><i class="i-ep-plus" /> 添加布局分组</el-button>
+    <el-drawer v-model="outlineVisible" :title="t('formDesigner.outline', '表单大纲')" size="min(480px, 100vw)" append-to-body destroy-on-close>
+      <el-button size="small" class="w-full border-dashed" @click="store.addNode('group')"><i class="i-ep-plus" /> {{ t('formDesigner.addLayoutGroup', '添加布局分组') }}</el-button>
       <SchemaNodeTree v-if="outlineVisible" :nodes="store.nodes.value" :store="store" />
     </el-drawer>
 
-    <el-dialog v-model="publishVisible" title="正式生成" width="900px" :close-on-click-modal="false">
+    <el-dialog v-model="publishVisible" :title="t('formDesigner.publishDialogTitle', '正式生成')" width="900px" :close-on-click-modal="false">
       <el-steps :active="publishStep" finish-status="success" align-center class="mb-5">
-        <el-step title="发布设置" />
-        <el-step title="变更预览" />
-        <el-step title="冲突确认" />
-        <el-step title="发布结果" />
+        <el-step :title="t('formDesigner.stepConfig', '发布设置')" />
+        <el-step :title="t('formDesigner.stepPreview', '变更预览')" />
+        <el-step :title="t('formDesigner.stepConflict', '冲突确认')" />
+        <el-step :title="t('formDesigner.stepResult', '发布结果')" />
       </el-steps>
 
       <el-form v-if="publishStep === 0" :model="publishConfig" label-width="110px" class="publish-config-grid">
-        <el-form-item label="模块名"><el-input v-model="publishConfig.module" /></el-form-item>
-        <el-form-item label="API 前缀"><el-input v-model="publishConfig.apiPrefix" /></el-form-item>
-        <el-form-item label="页面路由"><el-input v-model="publishConfig.routePath" /></el-form-item>
-        <el-form-item label="菜单名称"><el-input v-model="publishConfig.menuName" /></el-form-item>
-        <el-form-item label="父级菜单">
+        <el-form-item :label="t('formDesigner.moduleName', '模块名')"><el-input v-model="publishConfig.module" /></el-form-item>
+        <el-form-item :label="t('formDesigner.apiPrefix', 'API 前缀')"><el-input v-model="publishConfig.apiPrefix" /></el-form-item>
+        <el-form-item :label="t('formDesigner.routePath', '页面路由')"><el-input v-model="publishConfig.routePath" /></el-form-item>
+        <el-form-item :label="t('formDesigner.menuName', '菜单名称')"><el-input v-model="publishConfig.menuName" /></el-form-item>
+        <el-form-item :label="t('formDesigner.parentMenu', '父级菜单')">
           <el-tree-select v-model="publishConfig.parentSourceName" :data="parentMenus" node-key="sourceName" :props="menuTreeProps" check-strictly clearable class="w-full" />
         </el-form-item>
-        <el-form-item label="菜单图标"><el-select v-model="publishConfig.icon" filterable class="w-full"><el-option v-for="icon in icons" :key="icon" :label="icon" :value="icon" /></el-select></el-form-item>
-        <el-form-item label="表单容器"><el-radio-group v-model="publishConfig.formMode"><el-radio-button value="dialog">弹窗</el-radio-button><el-radio-button value="drawer">抽屉</el-radio-button></el-radio-group></el-form-item>
-        <el-form-item label="完整功能"><el-checkbox v-model="publishConfig.batchDelete">批量删除</el-checkbox><el-checkbox v-model="publishConfig.import">导入</el-checkbox><el-checkbox v-model="publishConfig.export">导出</el-checkbox><el-checkbox v-model="publishConfig.softDeletes">软删除</el-checkbox></el-form-item>
-        <el-form-item label="数据权限"><el-switch v-model="publishConfig.dataScopeEnabled" /></el-form-item>
-        <el-form-item v-if="publishConfig.dataScopeEnabled" label="部门字段"><el-select v-model="publishConfig.dataScopeField" filterable class="w-full"><el-option v-for="field in dataScopeFields" :key="field.field_name" :label="`${field.label} (${field.field_name})`" :value="field.field_name" /></el-select></el-form-item>
+        <el-form-item :label="t('formDesigner.menuIcon', '菜单图标')"><el-select v-model="publishConfig.icon" filterable class="w-full"><el-option v-for="icon in icons" :key="icon" :label="icon" :value="icon" /></el-select></el-form-item>
+        <el-form-item :label="t('formDesigner.formMode', '表单容器')"><el-radio-group v-model="publishConfig.formMode"><el-radio-button value="dialog">{{ t('formDesigner.modeDialog', '弹窗') }}</el-radio-button><el-radio-button value="drawer">{{ t('formDesigner.modeDrawer', '抽屉') }}</el-radio-button></el-radio-group></el-form-item>
+        <el-form-item :label="t('formDesigner.fullFeatures', '完整功能')"><el-checkbox v-model="publishConfig.batchDelete">{{ t('common.batchRemove', '批量删除') }}</el-checkbox><el-checkbox v-model="publishConfig.import">{{ t('common.import', '导入') }}</el-checkbox><el-checkbox v-model="publishConfig.export">{{ t('common.export', '导出') }}</el-checkbox><el-checkbox v-model="publishConfig.softDeletes">{{ t('formDesigner.softDeletes', '软删除') }}</el-checkbox></el-form-item>
+        <el-form-item :label="t('formDesigner.dataScope', '数据权限')"><el-switch v-model="publishConfig.dataScopeEnabled" /></el-form-item>
+        <el-form-item v-if="publishConfig.dataScopeEnabled" :label="t('formDesigner.dataScopeField', '部门字段')"><el-select v-model="publishConfig.dataScopeField" filterable class="w-full"><el-option v-for="field in dataScopeFields" :key="field.field_name" :label="`${field.label} (${field.field_name})`" :value="field.field_name" /></el-select></el-form-item>
       </el-form>
 
       <template v-else-if="publishStep === 1">
-        <el-alert :title="publishPreview?.plan.blocked ? '存在冲突，正式生成已阻断' : '正式生成计划已就绪'" :type="publishPreview?.plan.blocked ? 'warning' : 'success'" :closable="false" class="mb-3" />
+        <el-alert :title="publishPreview?.plan.blocked ? t('formDesigner.planBlocked', '存在冲突，正式生成已阻断') : t('formDesigner.planReady', '正式生成计划已就绪')" :type="publishPreview?.plan.blocked ? 'warning' : 'success'" :closable="false" class="mb-3" />
         <el-descriptions :column="3" border size="small" class="mb-3">
-          <el-descriptions-item label="菜单名称">{{ publishConfig.menuName || '（未填写）' }}</el-descriptions-item>
-          <el-descriptions-item label="父级菜单">{{ publishConfig.parentSourceName || '顶级菜单' }}</el-descriptions-item>
-          <el-descriptions-item label="菜单图标">{{ publishConfig.icon }}</el-descriptions-item>
+          <el-descriptions-item :label="t('formDesigner.menuName', '菜单名称')">{{ publishConfig.menuName || t('formDesigner.notFilled', '（未填写）') }}</el-descriptions-item>
+          <el-descriptions-item :label="t('formDesigner.parentMenu', '父级菜单')">{{ publishConfig.parentSourceName || t('formDesigner.topMenu', '顶级菜单') }}</el-descriptions-item>
+          <el-descriptions-item :label="t('formDesigner.menuIcon', '菜单图标')">{{ publishConfig.icon }}</el-descriptions-item>
         </el-descriptions>
-        <p class="mb-3 text-xs" style="color: var(--el-text-color-secondary)">生成后将按以上配置创建/更新后台菜单与权限资源；如需调整，<el-button link type="primary" @click="publishStep = 0">返回发布设置</el-button></p>
-        <p v-if="isPluginTarget">{{ businessTarget?.tableStrategy === 'external' ? '外部依赖：不生成该表 CREATE／ALTER，安装／更新时校验兼容性。' : '插件拥有新表：这里只生成迁移，安装／更新时才执行。' }}</p>
+        <p class="mb-3 text-xs" style="color: var(--el-text-color-secondary)">{{ t('formDesigner.planHint', '生成后将按以上配置创建/更新后台菜单与权限资源；如需调整，') }}<el-button link type="primary" @click="publishStep = 0">{{ t('formDesigner.backToConfig', '返回发布设置') }}</el-button></p>
+        <p v-if="isPluginTarget">{{ businessTarget?.tableStrategy === 'external' ? t('formDesigner.pluginExternalHint', '外部依赖：不生成该表 CREATE／ALTER，安装／更新时校验兼容性。') : t('formDesigner.pluginOwnedHint', '插件拥有新表：这里只生成迁移，安装／更新时才执行。') }}</p>
         <GenerationPlanView v-if="publishPreview" :plan="publishPreview.plan" :conflicts="publishPreview.conflicts" />
         <el-collapse>
-          <el-collapse-item title="正式生成基线" name="schema">
+          <el-collapse-item :title="t('formDesigner.baselineTitle', '正式生成基线')" name="schema">
             <el-descriptions :column="1" border><el-descriptions-item label="Schema Hash">{{ publishPreview?.schemaHash }}</el-descriptions-item><el-descriptions-item label="Definition Hash">{{ publishPreview?.definitionHash }}</el-descriptions-item></el-descriptions>
           </el-collapse-item>
-          <el-collapse-item title="生成文件" name="files">
-            <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" label="路径" /><el-table-column prop="status" label="状态" width="110" /></el-table>
+          <el-collapse-item :title="t('formDesigner.generatedFiles', '生成文件')" name="files">
+            <el-table :data="publishPreview?.plan.files || []" size="small" border><el-table-column prop="path" :label="t('formDesigner.filePath', '路径')" /><el-table-column prop="status" :label="t('common.status', '状态')" width="110" /></el-table>
           </el-collapse-item>
         </el-collapse>
       </template>
 
       <template v-else-if="publishStep === 2">
-        <el-alert v-if="!conflictFiles.length" title="没有人工修改冲突，可直接发布" type="success" :closable="false" class="mb-3" />
+        <el-alert v-if="!conflictFiles.length" :title="t('formDesigner.noConflicts', '没有人工修改冲突，可直接发布')" type="success" :closable="false" class="mb-3" />
         <div v-else class="flex flex-col gap-3">
-          <el-alert title="存在冲突时禁止生成。请在本地人工处理后重新预览；系统不会强制覆盖文件。" type="warning" :closable="false" />
+          <el-alert :title="t('formDesigner.conflictBlocked', '存在冲突时禁止生成。请在本地人工处理后重新预览；系统不会强制覆盖文件。')" type="warning" :closable="false" />
           <el-card v-for="file in conflictFiles" :key="file.path" shadow="never">
             <div class="mb-2 font-medium">{{ file.path }} · {{ file.status }}</div>
             <el-tabs v-if="file.status !== 'binary-conflict'" type="border-card">
@@ -276,27 +270,27 @@
 
       <el-result v-else :icon="publishResult?.state === 'completed' ? 'success' : 'warning'" :title="generationResultTitle" :sub-title="publishResult?.resourceApplyError || publishResult?.routePath || ''">
         <template #extra>
-          <el-button v-if="generationQueryPending" :loading="publishing" @click="retryGenerationQuery">查询生成结果</el-button>
-          <el-button v-if="!isPluginTarget && publishResult?.routePath" type="primary" @click="openGeneratedRoute">打开独立页面</el-button>
+          <el-button v-if="generationQueryPending" :loading="publishing" @click="retryGenerationQuery">{{ t('formDesigner.queryResult', '查询生成结果') }}</el-button>
+          <el-button v-if="!isPluginTarget && publishResult?.routePath" type="primary" @click="openGeneratedRoute">{{ t('formDesigner.openRoute', '打开独立页面') }}</el-button>
         </template>
       </el-result>
 
       <template #footer>
-        <el-button @click="publishVisible = false">关闭</el-button>
-        <el-button v-if="publishStep === 1" @click="publishStep = 0">上一步</el-button>
-        <el-button v-if="publishStep === 2" @click="publishStep = 1">上一步</el-button>
-        <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">预览发布</el-button>
-        <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">下一步</el-button>
-        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">确认生成</el-button>
+        <el-button @click="publishVisible = false">{{ t('common.close', '关闭') }}</el-button>
+        <el-button v-if="publishStep === 1" @click="publishStep = 0">{{ t('formDesigner.prevStep', '上一步') }}</el-button>
+        <el-button v-if="publishStep === 2" @click="publishStep = 1">{{ t('formDesigner.prevStep', '上一步') }}</el-button>
+        <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">{{ t('formDesigner.previewPublish', '预览发布') }}</el-button>
+        <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">{{ t('formDesigner.nextStep', '下一步') }}</el-button>
+        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">{{ t('formDesigner.confirmGenerate', '确认生成') }}</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="previewSettingsVisible" title="预览数据与服务端错误" width="680px">
+    <el-dialog v-model="previewSettingsVisible" :title="t('formDesigner.previewSettingsTitle', '预览数据与服务端错误')" width="680px">
       <el-form label-width="120px">
-        <el-form-item label="初始值 JSON"><el-input v-model="previewValuesJson" type="textarea" :rows="8" /></el-form-item>
-        <el-form-item label="字段错误 JSON"><el-input v-model="previewErrorsJson" type="textarea" :rows="6" placeholder='{"field":"服务端错误"}' /></el-form-item>
+        <el-form-item :label="t('formDesigner.previewValuesJson', '初始值 JSON')"><el-input v-model="previewValuesJson" type="textarea" :rows="8" /></el-form-item>
+        <el-form-item :label="t('formDesigner.previewErrorsJson', '字段错误 JSON')"><el-input v-model="previewErrorsJson" type="textarea" :rows="6" :placeholder="t('formDesigner.previewErrorsPlaceholder', '{&quot;field&quot;:&quot;服务端错误&quot;}')" /></el-form-item>
       </el-form>
-      <template #footer><el-button @click="previewSettingsVisible = false">取消</el-button><el-button type="primary" @click="applyPreviewSettings">应用预览</el-button></template>
+      <template #footer><el-button @click="previewSettingsVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" @click="applyPreviewSettings">{{ t('formDesigner.applyPreview', '应用预览') }}</el-button></template>
     </el-dialog>
 
 
@@ -367,7 +361,7 @@ const generationQueryPending = ref(false);
 const executingGenerationId = ref<number | null>(null);
 const formalGenerationNonce = ref(crypto.randomUUID());
 const conflictFiles = computed(() => publishPreview.value?.conflicts ?? []);
-const generationResultTitle = computed(() => publishResult.value?.state !== 'completed' ? '正式模块生成未完成' : isPluginTarget.value ? '源码已生成，待安装／更新发布' : '正式模块生成成功');
+const generationResultTitle = computed(() => publishResult.value?.state !== 'completed' ? t('formDesigner.generateIncomplete', '正式模块生成未完成') : isPluginTarget.value ? t('formDesigner.generatedPendingInstall', '源码已生成，待安装／更新发布') : t('formDesigner.generateSuccess', '正式模块生成成功'));
 const canConfirmGeneration = computed(() => Boolean(publishPreview.value?.sensitive?.confirmToken && !publishPreview.value.plan.blocked && !conflictFiles.value.length && !store.dirty.value && !saveBlocked.value && !publishing.value));
 let previewRevision = 0;
 const invalidateGenerationPreview = () => {
@@ -467,7 +461,7 @@ const restoreLocalDraft = async () => {
   if (!raw) return;
   try {
     const draft = JSON.parse(raw) as { definition?: import('@/api/form').FormDefinition; saveBlocked?: boolean };
-    if (draft.definition?.schema_document?.schemaVersion === 2 && (await ElMessageBox.confirm('检测到未同步的本地表单草稿，是否恢复？', '恢复本地草稿', { type: 'warning', confirmButtonText: '恢复', cancelButtonText: '忽略' }).then(() => true).catch(() => false))) {
+    if (draft.definition?.schema_document?.schemaVersion === 2 && (await ElMessageBox.confirm(t('formDesigner.draftRestoreConfirm', '检测到未同步的本地表单草稿，是否恢复？'), t('formDesigner.draftRestoreTitle', '恢复本地草稿'), { type: 'warning', confirmButtonText: t('formDesigner.draftRestore', '恢复'), cancelButtonText: t('formDesigner.draftIgnore', '忽略') }).then(() => true).catch(() => false))) {
       const loadedHash = store.form.value.schema_hash;
       // 历史草稿不是服务端基线；版本不明时保留内容并暂停，禁止换 hash 盲目覆盖。
       saveBlocked.value = draft.saveBlocked === true || !loadedHash || draft.definition.schema_hash !== loadedHash;
@@ -475,7 +469,7 @@ const restoreLocalDraft = async () => {
       store.updateForm({ schema_origin: 'designer' });
       if (saveBlocked.value) {
         store.failSave();
-        ElMessage.warning('本地草稿已恢复，保存仍暂停，请点击“核对版本”选择恢复方式');
+        ElMessage.warning(t('formDesigner.draftRestoredPaused', '本地草稿已恢复，保存仍暂停，请点击“核对版本”选择恢复方式'));
       }
     }
   } catch { clearLocalDraft(); }
@@ -502,7 +496,7 @@ const applyPreviewSettings = async () => {
     Object.assign(previewValues, values);
     await previewRenderer.value?.setFieldErrors(errors);
     previewSettingsVisible.value = false;
-  } catch { ElMessage.warning('请输入合法 JSON'); }
+  } catch { ElMessage.warning(t('formDesigner.invalidJson', '请输入合法 JSON')); }
 };
 const formatDebug = (value: unknown) => JSON.stringify(value, null, 2);
 const saveStatusLabel = computed(() => ({
@@ -526,10 +520,10 @@ const suggestedTableName = computed(() => {
   return String(store.form.value.table_name ?? '') || key;
 });
 const tableHelp = computed(() => isPluginTarget.value
-  ? (businessTarget.value?.tableStrategy === 'external' ? '外部依赖表：不生成 CREATE／ALTER，不取得表所有权。' : '保存只更新草稿；生成只写源码与迁移，安装／更新时建表。')
+  ? (businessTarget.value?.tableStrategy === 'external' ? t('formDesigner.tableHelpExternal', '外部依赖表：不生成 CREATE／ALTER，不取得表所有权。') : t('formDesigner.tableHelpPlugin', '保存只更新草稿；生成只写源码与迁移，安装／更新时建表。'))
   : store.form.value.source_type === 'created'
-  ? `新表将在保存或发布时按画布字段创建；建议表名：${suggestedTableName.value || '业务标识'}`
-  : '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。');
+  ? t('formDesigner.tableHelpCreated', { name: suggestedTableName.value || t('formDesigner.suggestedTablePlaceholder', '业务标识') }, '新表将在保存或发布时按画布字段创建；建议表名：{name}')
+  : t('formDesigner.tableHelpAdopted', '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。'));
 const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
 const loadDatabaseTables = async (force = false) => {
   if (tableLoading.value || (!force && databaseTables.value.length)) return;
@@ -538,7 +532,7 @@ const loadDatabaseTables = async (force = false) => {
   try {
     databaseTables.value = await businessDevelopmentApi.databaseTables(String(store.form.value.connection ?? 'mysql'));
   } catch (error) {
-    tableLoadError.value = error instanceof Error ? error.message : '数据表加载失败';
+    tableLoadError.value = error instanceof Error ? error.message : t('formDesigner.tableLoadFailed', '数据表加载失败');
   } finally {
     tableLoading.value = false;
   }
@@ -588,7 +582,7 @@ async function load() {
     return;
   }
   const data = await businessDevelopmentApi.module(moduleId.value);
-  if (!data.form) throw new Error('业务模块没有可设计表单');
+  if (!data.form) throw new Error(t('formDesigner.noDesignableForm', '业务模块没有可设计表单'));
   businessModule.value = data.module;
   store.load({ ...data.form, fields: data.fields });
 }
@@ -612,11 +606,11 @@ async function reviewSaveConflict() {
     const data = await businessDevelopmentApi.module(reviewedModuleId);
     if (!designerActive || !conflictReviewVisible.value || moduleId.value !== reviewedModuleId) return;
     if (!data.form?.schema_hash || data.form.schema_document?.schemaVersion !== 2 || !Array.isArray(data.form.schema_document.nodes)) {
-      throw new Error('服务端文档或版本 hash 缺失，无法安全恢复，请重新核对');
+      throw new Error(t('formDesigner.serverDocMissing', '服务端文档或版本 hash 缺失，无法安全恢复，请重新核对'));
     }
     conflictReview.value = { local, server: JSON.parse(JSON.stringify({ ...data.form, fields: data.fields })), moduleId: reviewedModuleId };
   } catch (error) {
-    conflictReviewError.value = error instanceof Error ? error.message : '版本读取失败，请重新核对';
+    conflictReviewError.value = error instanceof Error ? error.message : t('formDesigner.versionReadFailed', '版本读取失败，请重新核对');
   } finally {
     conflictReviewLoading.value = false;
   }
@@ -635,15 +629,15 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
   const unchanged = () => moduleId.value === reviewed.moduleId && JSON.stringify(definition()) === JSON.stringify(reviewed.local);
   if (!unchanged()) {
     conflictReview.value = null;
-    conflictReviewError.value = '本地内容已变化，请重新核对版本后再选择';
+    conflictReviewError.value = t('formDesigner.localChangedRecheck', '本地内容已变化，请重新核对版本后再选择');
     persistLocalDraft();
     return;
   }
   const prompt = choice === 'local'
-    ? '确认以已核对的本地快照覆盖此服务端版本？服务端再次变化时将拒绝保存。'
-    : '确认放弃本地全部未保存编辑，采用已核对的服务端版本？';
+    ? t('formDesigner.overwriteConfirm', '确认以已核对的本地快照覆盖此服务端版本？服务端再次变化时将拒绝保存。')
+    : t('formDesigner.useServerConfirm', '确认放弃本地全部未保存编辑，采用已核对的服务端版本？');
   try {
-    await ElMessageBox.confirm(prompt, choice === 'local' ? '本地覆盖确认' : '采用服务端确认', { type: 'warning' });
+    await ElMessageBox.confirm(prompt, choice === 'local' ? t('formDesigner.overwriteTitle', '本地覆盖确认') : t('formDesigner.useServerTitle', '采用服务端确认'), { type: 'warning' });
   } catch {
     return;
   }
@@ -654,12 +648,12 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
   try {
     if (choice === 'local') {
       store.beginSave();
-      const saved = await businessDevelopmentApi.saveSchema(reviewed.moduleId, reviewed.local.schema_document, String(reviewed.server.schema_hash), '核对冲突后采用本地');
+      const saved = await businessDevelopmentApi.saveSchema(reviewed.moduleId, reviewed.local.schema_document, String(reviewed.server.schema_hash), t('formDesigner.reasonConflictLocal', '核对冲突后采用本地'));
       if (!unchanged()) {
         // 只推进已成功的版本；请求期间的新编辑必须重新核对，不能排队自动覆盖。
         store.acknowledgeSave(saved.schemaHash);
         store.failSave();
-        conflictReviewError.value = '核对快照已保存，但本地又有编辑，保存仍暂停，请重新核对版本';
+        conflictReviewError.value = t('formDesigner.snapshotSavedButEdited', '核对快照已保存，但本地又有编辑，保存仍暂停，请重新核对版本');
         return;
       }
       store.markSaved({ ...reviewed.local, schema_document: saved.document, schema_hash: saved.schemaHash } as import('@/api/form').FormDefinition);
@@ -672,12 +666,12 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
     localDraftTimer = null;
     clearLocalDraft();
     conflictReviewVisible.value = false;
-    ElMessage.success('冲突已处理，后续编辑将继续自动保存');
+    ElMessage.success(t('formDesigner.conflictResolved', '冲突已处理，后续编辑将继续自动保存'));
   } catch (error) {
     store.failSave();
     conflictReviewError.value = isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT'
-      ? '服务端版本再次变化，保存仍暂停，请重新核对版本；本地编辑已保留'
-      : error instanceof Error ? error.message : '恢复失败，保存仍暂停，请重新核对版本';
+      ? t('formDesigner.serverChangedAgain', '服务端版本再次变化，保存仍暂停，请重新核对版本；本地编辑已保留')
+      : error instanceof Error ? error.message : t('formDesigner.restoreFailed', '恢复失败，保存仍暂停，请重新核对版本');
   } finally {
     conflictReview.value = null;
     conflictResolving.value = false;
@@ -694,7 +688,7 @@ async function saveDefinition(automatic: boolean) {
   const expectedHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId.value || !expectedHash) {
     store.failSave();
-    if (!automatic) ElMessage.warning('当前表单版本信息缺失，请刷新页面后重试');
+    if (!automatic) ElMessage.warning(t('formDesigner.versionMissing', '当前表单版本信息缺失，请刷新页面后重试'));
     return;
   }
   saveInFlight = true;
@@ -702,7 +696,7 @@ async function saveDefinition(automatic: boolean) {
   const payloadHash = JSON.stringify(payload);
   store.beginSave();
   try {
-    const saved = await businessDevelopmentApi.saveSchema(moduleId.value, store.schemaDocument.value, expectedHash, '业务设计器保存');
+    const saved = await businessDevelopmentApi.saveSchema(moduleId.value, store.schemaDocument.value, expectedHash, t('formDesigner.reasonDesignerSave', '业务设计器保存'));
     const unchanged = JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
       store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
@@ -724,9 +718,9 @@ async function saveDefinition(automatic: boolean) {
     }
     if (!designerActive) return;
     if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
-      ElMessage.warning('Schema 版本已变化，保存已暂停，请点击“核对版本”选择恢复方式');
+      ElMessage.warning(t('formDesigner.schemaConflictPaused', 'Schema 版本已变化，保存已暂停，请点击“核对版本”选择恢复方式'));
     } else if (isBusinessApiError(error)) {
-      ElMessage.error(`${error.msg}（请求 ID：${error.data.error.requestId}）`);
+      ElMessage.error(t('formDesigner.requestErrorWithId', { msg: error.msg, id: error.data.error.requestId }, '{msg}（请求 ID：{id}）'));
     } else {
       ElMessage.error(error instanceof Error ? error.message : t('formDesigner.saveError', '保存失败，请重试'));
     }
@@ -741,15 +735,15 @@ const onDynamicPublish = async () => {
   if (!businessModule.value || isPluginTarget.value || saveBlocked.value || !validateDefinitionBasics() || store.dirty.value) return;
   const moduleId = instanceModuleId;
   const schemaHash = String(store.form.value.schema_hash ?? '');
-  if (!moduleId || !schemaHash) throw new Error('业务模块或 Schema hash 缺失');
+  if (!moduleId || !schemaHash) throw new Error(t('formDesigner.moduleOrHashMissing', '业务模块或 Schema hash 缺失'));
   const payload = { schema_document: store.schemaDocument.value, schemaHash, expected_schema_hash: schemaHash, publish_config: publishConfig.value };
   const previewResult = await businessDevelopmentApi.previewPublish(moduleId, payload);
   await businessDevelopmentApi.publish(moduleId, { ...payload, formDependencyHash: previewResult.formDependencyHash });
-  ElMessage.success('动态发布成功');
+  ElMessage.success(t('formDesigner.publishSuccess', '动态发布成功'));
 };
 const openFormalGeneration = async () => {
   const moduleId = instanceModuleId;
-  if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning('请先保存业务 Schema'); return; }
+  if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning(t('formDesigner.saveSchemaFirst', '请先保存业务 Schema')); return; }
   invalidateGenerationPreview();
   const revision = previewRevision;
   previewingPublish.value = true;
@@ -762,13 +756,13 @@ const openFormalGeneration = async () => {
     publishStep.value = 1;
     publishVisible.value = true;
   } catch (error) {
-    ElMessage.error(isBusinessApiError(error) ? error.msg : error instanceof Error ? error.message : '生成预览失败');
+    ElMessage.error(isBusinessApiError(error) ? error.msg : error instanceof Error ? error.message : t('formDesigner.previewFailed', '生成预览失败'));
   } finally { previewingPublish.value = false; }
 };
 const openPublish = async () => {
   if (!validateDefinitionBasics() || !store.fields.value.some((field) => controlMeta(field.type).kind !== 'layout')) return;
   if (!pluginCatalog.canPublish(store.fields.value)) {
-    ElMessage.warning(catalogDiagnostics.value.map((item) => item.message).join('；') || '插件组件目录尚未加载');
+    ElMessage.warning(catalogDiagnostics.value.map((item) => item.message).join('；') || t('formDesigner.catalogNotLoaded', '插件组件目录尚未加载'));
     return;
   }
   const key = String(store.form.value.form_key ?? '').replace(/_/g, '-');
@@ -786,23 +780,23 @@ const openPublish = async () => {
 };
 const validatePublishConfig = () => {
   if (!/^[a-z][a-z0-9-]*$/.test(publishConfig.value.module)) {
-    ElMessage.warning('模块名须以小写字母开头，仅包含小写字母、数字和短横线');
+    ElMessage.warning(t('formDesigner.moduleInvalid', '模块名须以小写字母开头，仅包含小写字母、数字和短横线'));
     return false;
   }
   if (!/^\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(publishConfig.value.apiPrefix)) {
-    ElMessage.warning('请填写正确的 API 前缀');
+    ElMessage.warning(t('formDesigner.apiPrefixInvalid', '请填写正确的 API 前缀'));
     return false;
   }
   if (!/^\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(publishConfig.value.routePath)) {
-    ElMessage.warning('请填写正确的页面路由');
+    ElMessage.warning(t('formDesigner.routePathInvalid', '请填写正确的页面路由'));
     return false;
   }
   if (!publishConfig.value.menuName.trim()) {
-    ElMessage.warning('请填写菜单名称');
+    ElMessage.warning(t('formDesigner.menuNameRequired', '请填写菜单名称'));
     return false;
   }
   if (publishConfig.value.dataScopeEnabled && !publishConfig.value.dataScopeField) {
-    ElMessage.warning('启用数据权限后请选择部门字段');
+    ElMessage.warning(t('formDesigner.dataScopeFieldRequired', '启用数据权限后请选择部门字段'));
     return false;
   }
   return true;
@@ -813,21 +807,21 @@ const completeFormalGeneration = async (result: BusinessFormalGenerationResult) 
   generationQueryPending.value = false;
   publishStep.value = 3;
   if (result.state !== 'completed') {
-    ElMessage.warning('正式模块生成未完成');
+    ElMessage.warning(t('formDesigner.generateIncomplete', '正式模块生成未完成'));
     return;
   }
   if (isPluginTarget.value) {
     if (businessTarget.value) businessTarget.value.locked = true;
     publishResult.value = result;
     publishVisible.value = true;
-    ElMessage.success('源码已生成，待安装／更新发布');
+    ElMessage.success(t('formDesigner.generatedPendingInstall', '源码已生成，待安装／更新发布'));
     return;
   }
   try {
     await refreshBusinessMenu();
-    ElMessage.success('正式模块生成成功');
+    ElMessage.success(t('formDesigner.generateSuccess', '正式模块生成成功'));
   } catch {
-    ElMessage.warning('生成成功，菜单刷新失败');
+    ElMessage.warning(t('formDesigner.menuRefreshFailed', '生成成功，菜单刷新失败'));
   }
 };
 const generationResult = (generation: BusinessGeneration): BusinessFormalGenerationResult => ({
@@ -851,11 +845,11 @@ const retryGenerationQuery = async () => {
     }
     generationQueryPending.value = true;
     publishStep.value = 3;
-    ElMessage.warning('生成状态尚未确认，请稍后重试查询');
+    ElMessage.warning(t('formDesigner.generateStatusPending', '生成状态尚未确认，请稍后重试查询'));
   } catch {
     generationQueryPending.value = true;
     publishStep.value = 3;
-    ElMessage.warning('生成状态查询失败，请重试查询');
+    ElMessage.warning(t('formDesigner.generateStatusFailed', '生成状态查询失败，请重试查询'));
   } finally {
     publishing.value = false;
   }
@@ -867,7 +861,7 @@ const onPublish = async () => {
   const generationId = Number(publishPreview.value?.generationId || 0);
   executingGenerationId.value = generationId || null;
   try {
-    if (!formId || !generationId) throw new Error('完整发布缺少 formId 或 generationId');
+    if (!formId || !generationId) throw new Error(t('formDesigner.publishParamsMissing', '完整发布缺少 formId 或 generationId'));
     const moduleId = instanceModuleId;
     const result = await businessDevelopmentApi.formalGeneration(
       moduleId,
@@ -877,10 +871,10 @@ const onPublish = async () => {
     await completeFormalGeneration(result);
   } catch (error) {
     if (isBusinessApiError(error)) {
-      ElMessage.error(`${error.msg}（请求 ID：${error.data.error.requestId}）`);
+      ElMessage.error(t('formDesigner.requestErrorWithId', { msg: error.msg, id: error.data.error.requestId }, '{msg}（请求 ID：{id}）'));
       invalidateGenerationPreview();
     } else if (generationId) await retryGenerationQuery();
-    else throw new Error('完整发布缺少 formId 或 generationId');
+    else throw new Error(t('formDesigner.publishParamsMissing', '完整发布缺少 formId 或 generationId'));
   } finally {
     publishing.value = false;
   }
@@ -897,7 +891,7 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
 };
 onBeforeRouteLeave(() => {
   if (!store.dirty.value) return true;
-  return ElMessageBox.confirm('当前表单尚未保存，确认离开吗？', '离开确认', { type: 'warning' }).then(() => true).catch(() => false);
+  return ElMessageBox.confirm(t('formDesigner.unsavedLeaveConfirm', '当前表单尚未保存，确认离开吗？'), t('formData.leaveConfirmTitle', '离开确认'), { type: 'warning' }).then(() => true).catch(() => false);
 });
 
 const scheduleAutoSave = (delay = 1200) => {

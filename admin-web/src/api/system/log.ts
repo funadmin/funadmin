@@ -43,5 +43,9 @@ export const operationLogApi = {
   remove: (ids: number | number[]) =>
     http.delete<{ removed: number }>(PREFIX, { ids: Array.isArray(ids) ? ids : [ids] }, {
       requestOptions: { showSuccessMsg: true }
+    }),
+  clear: () =>
+    http.delete<{ removed: number }>(`${PREFIX}/clear`, {}, {
+      requestOptions: { showSuccessMsg: true }
     })
 };

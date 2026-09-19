@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="布局设置"
+    :title="t('setting.title')"
     :size="340"
     direction="rtl"
     :with-header="true"
@@ -9,7 +9,7 @@
     <div class="setting">
       <!-- 主题方案（一键预设） -->
       <div class="setting__section">
-        <div class="setting__title">主题方案</div>
+        <div class="setting__title">{{ t('setting.presetTheme') }}</div>
         <div class="setting__preset-grid">
           <div
             v-for="p in presets"
@@ -40,7 +40,7 @@
 
       <!-- 布局模式 -->
       <div class="setting__section">
-        <div class="setting__title">布局模式</div>
+        <div class="setting__title">{{ t('setting.layoutMode') }}</div>
         <div class="setting__layout-grid">
           <div
             v-for="m in layoutModes"
@@ -94,7 +94,7 @@
 
       <!-- 主题模式 -->
       <div class="setting__section">
-        <div class="setting__title">主题模式</div>
+        <div class="setting__title">{{ t('setting.themeMode') }}</div>
         <div class="setting__theme-grid">
           <div
             v-for="m in themeModes"
@@ -111,7 +111,7 @@
 
       <!-- 主题色 -->
       <div class="setting__section">
-        <div class="setting__title">主题色</div>
+        <div class="setting__title">{{ t('setting.primaryColor') }}</div>
         <div class="setting__colors">
           <div
             v-for="c in colors"
@@ -134,7 +134,7 @@
 
       <!-- 侧栏主题 -->
       <div class="setting__section">
-        <div class="setting__title">侧栏风格</div>
+        <div class="setting__title">{{ t('setting.sidebarStyle') }}</div>
         <div class="setting__menu-grid">
           <div
             v-for="m in menuThemes"
@@ -165,41 +165,41 @@
 
       <!-- 界面 -->
       <div class="setting__section">
-        <div class="setting__title">界面显示</div>
+        <div class="setting__title">{{ t('setting.uiDisplay') }}</div>
         <div class="setting__row">
-          <span>多页签</span>
+          <span>{{ t('setting.showTabs') }}</span>
           <el-switch v-model="appStore.showTabs" />
         </div>
         <div class="setting__row">
-          <span>面包屑</span>
+          <span>{{ t('setting.breadcrumb') }}</span>
           <el-switch v-model="appStore.showBreadcrumb" />
         </div>
         <div class="setting__row">
-          <span>固定头部</span>
+          <span>{{ t('setting.fixedHeader') }}</span>
           <el-switch v-model="appStore.fixedHeader" />
         </div>
         <div class="setting__row">
-          <span>显示 Logo</span>
+          <span>{{ t('setting.showLogo') }}</span>
           <el-switch v-model="appStore.showLogo" />
         </div>
         <div class="setting__row">
-          <span>显示页脚</span>
+          <span>{{ t('setting.showFooter') }}</span>
           <el-switch v-model="appStore.showFooter" />
         </div>
       </div>
 
       <!-- 界面定制 -->
       <div class="setting__section">
-        <div class="setting__title">界面定制</div>
+        <div class="setting__title">{{ t('setting.uiCustomize') }}</div>
         <div class="setting__row">
-          <span>全局水印</span>
+          <span>{{ t('setting.watermark') }}</span>
           <el-switch
             :model-value="appStore.watermark"
             @change="(v: any) => appStore.setWatermark(!!v)"
           />
         </div>
         <div class="setting__row">
-          <span>菜单宽度</span>
+          <span>{{ t('setting.sidebarWidth') }}</span>
           <el-input-number
             :model-value="appStore.sidebarWidth"
             :min="160"
@@ -211,7 +211,7 @@
           />
         </div>
         <div class="setting__row">
-          <span>标签页风格</span>
+          <span>{{ t('setting.tabStyle') }}</span>
           <el-select
             :model-value="appStore.tabStyle"
             class="setting__select"
@@ -226,7 +226,7 @@
           </el-select>
         </div>
         <div class="setting__row">
-          <span>页面切换动画</span>
+          <span>{{ t('setting.pageTransition') }}</span>
           <el-select
             :model-value="appStore.pageTransition"
             class="setting__select"
@@ -241,7 +241,7 @@
           </el-select>
         </div>
         <div class="setting__row">
-          <span>自定义圆角</span>
+          <span>{{ t('setting.customRadius') }}</span>
           <el-select
             :model-value="appStore.radiusScale"
             class="setting__select"
@@ -256,11 +256,11 @@
           </el-select>
         </div>
         <div v-if="appStore.watermark" class="setting__row">
-          <span>水印文字</span>
+          <span>{{ t('setting.watermarkText') }}</span>
           <el-input
             :model-value="appStore.watermarkText"
             class="setting__select"
-            placeholder="水印文字"
+            :placeholder="t('setting.watermarkPlaceholder')"
             @change="(v: any) => appStore.setWatermarkText(v)"
           />
         </div>
@@ -268,16 +268,16 @@
 
       <!-- 特殊模式 -->
       <div class="setting__section">
-        <div class="setting__title">特殊模式</div>
+        <div class="setting__title">{{ t('setting.specialMode') }}</div>
         <div class="setting__row">
-          <span>灰色模式</span>
+          <span>{{ t('setting.grayMode') }}</span>
           <el-switch
             :model-value="appStore.grayMode"
             @change="(v: any) => appStore.setGrayMode(!!v)"
           />
         </div>
         <div class="setting__row">
-          <span>色弱模式</span>
+          <span>{{ t('setting.weakMode') }}</span>
           <el-switch
             :model-value="appStore.weakMode"
             @change="(v: any) => appStore.setWeakMode(!!v)"
@@ -290,11 +290,11 @@
       <div class="setting__actions">
         <el-button @click="copyConfig">
           <i class="i-ep-document-copy mr-1" />
-          复制配置
+          {{ t('setting.copyConfig') }}
         </el-button>
         <el-button type="danger" plain @click="onReset">
           <i class="i-ep-refresh mr-1" />
-          重置默认
+          {{ t('setting.resetDefault') }}
         </el-button>
       </div>
     </div>

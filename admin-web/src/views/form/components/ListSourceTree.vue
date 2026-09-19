@@ -1,6 +1,6 @@
 <template>
-  <aside class="source-tree" v-loading="loading" aria-label="业务来源树">
-    <el-button @click="select([])">全部</el-button>
+  <aside class="source-tree" v-loading="loading" :aria-label="t('formData.sourceTreeAria', '业务来源树')">
+    <el-button @click="select([])">{{ t('formData.all', '全部') }}</el-button>
     <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :context="buttonContext('categoryToolbar')" :context-version="contextVersion" :permission-check="permissionCheck" :clear-selection="clearSelection" :close="closeButtonHost" :refresh="refreshButtonHost" />
     <el-tree ref="treeRef" :data="nodes" node-key="value" :props="{ label: 'label', children: '__listChildren' }" :show-checkbox="multiple" check-strictly highlight-current default-expand-all @node-click="clickNode" @check="checkNodes">
       <template #default="{ data }">
@@ -8,10 +8,10 @@
         <ListButtonBar :buttons="nodeButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="data" :lock="buttonLock" :fields="['id', 'value', 'label', 'parent']" :context="buttonContext('categoryNode', data)" :context-version="contextVersion" :permission-check="permissionCheck" :clear-selection="clearSelection" :close="closeButtonHost" :refresh="refreshButtonHost" link />
       </template>
     </el-tree>
-    <el-dialog v-model="visible" :title="operation === 'edit' ? '编辑来源节点' : '新增来源节点'" width="720px" destroy-on-close append-to-body>
-      <el-alert v-if="unsupportedValidation" title="此来源包含异步校验；左树快捷弹窗暂不支持该校验权限通道，请使用来源业务的正式表单。此处不可保存。" type="warning" :closable="false" />
+    <el-dialog v-model="visible" :title="operation === 'edit' ? t('formData.editSourceNode', '编辑来源节点') : t('formData.addSourceNode', '新增来源节点')" width="720px" destroy-on-close append-to-body>
+      <el-alert v-if="unsupportedValidation" :title="t('formData.unsupportedValidationAlert', '此来源包含异步校验；左树快捷弹窗暂不支持该校验权限通道，请使用来源业务的正式表单。此处不可保存。')" type="warning" :closable="false" />
       <SchemaRenderer v-else-if="sourceMeta" :key="dialogSequence" ref="renderer" :form-key="sourceMeta.form.form_key" :schema="sourceMeta.schema" :values="values" :options-request="optionsRequest" />
-      <template #footer><el-button @click="visible = false">取消</el-button><el-button type="primary" :loading="saving" :disabled="unsupportedValidation || !canMutate" @click="save">保存</el-button></template>
+      <template #footer><el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" :loading="saving" :disabled="unsupportedValidation || !canMutate" @click="save">{{ t('common.save', '保存') }}</el-button></template>
     </el-dialog>
   </aside>
 </template>
@@ -24,11 +24,13 @@ import { resolveListButtons } from '../schema/listButtons';
 import { flattenSchemaNodes } from '../schema/types';
 import type { FormDataSourceRequest } from '../dataSource/useFormDataSource';
 import { ElMessageBox, type ElTree } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { formDataApi, type FormDataMeta, type FormLeftTreeResult, type FormRecordId } from '@/api/formData';
 import type { FormLeftTreeConfiguration, FormListConfiguration, FormListButton } from '../schema/types';
 import { buildListTree } from '../runtime/listPresentation';
 import { buildSubmissionPayload, emptyRuntimeValues } from '../runtime/submissionPolicy';
 import SchemaRenderer from './SchemaRenderer.vue';
+const { t } = useI18n();
 const props = withDefaults(defineProps<{ formKey: string; schemaHash: string; config: FormLeftTreeConfiguration; list?: FormListConfiguration; lock?: { busy: boolean }; permissionCheck?: (code: string) => boolean; modelValue?: FormRecordId[]; filter?: Record<string, unknown>; canReadForm?: boolean; canMutate?: boolean; api?: Pick<typeof formDataApi, 'leftTree' | 'leftTreeForm' | 'mutateLeftTree'> }>(), { canReadForm: true, canMutate: true });
 const emit = defineEmits<{ change: [values: FormRecordId[]]; mutated: [] }>();
 const adapter = useListButtonAdapter();
@@ -77,9 +79,9 @@ const optionsRequest = computed<FormDataSourceRequest>(() => {
   const action = operation.value;
   const id = editingId.value;
   return async (_key, field, context) => {
-    if (!props.canReadForm || !actionAllowed(action) || sequence !== dialogSequence.value) throw new Error('弹窗已失效');
+    if (!props.canReadForm || !actionAllowed(action) || sequence !== dialogSequence.value) throw new Error(t('formData.dialogExpired', '弹窗已失效'));
     const form = await (props.api ?? formDataApi).leftTreeForm(props.formKey, action, id, props.schemaHash, field, context);
-    if (sequence !== dialogSequence.value || form.meta.schemaHash !== sourceMeta.value?.schemaHash) throw new Error('来源发布版本已变化，请重新打开弹窗');
+    if (sequence !== dialogSequence.value || form.meta.schemaHash !== sourceMeta.value?.schemaHash) throw new Error(t('formData.sourceVersionChanged', '来源发布版本已变化，请重新打开弹窗'));
     return { options: form.options ?? [], total: form.total };
   };
 });
@@ -141,7 +143,7 @@ const remove = async (id: FormRecordId) => {
   if (!actionAllowed('delete') || !props.canMutate || !result.value?.actions.delete) return;
   const sequence = dialogSequence.value;
   const version = contextVersion.value;
-  await ElMessageBox.confirm('确认删除来源节点？有子节点或业务引用时禁止删除。', '删除确认', { type: 'warning' });
+  await ElMessageBox.confirm(t('formData.deleteSourceNodeConfirm', '确认删除来源节点？有子节点或业务引用时禁止删除。'), t('formData.deleteConfirmTitle', '删除确认'), { type: 'warning' });
   if (sequence !== dialogSequence.value || version !== contextVersion.value || !actionAllowed('delete') || !result.value) return;
   const api = props.api ?? formDataApi;
   await api.mutateLeftTree(props.formKey, 'delete', id, {}, props.schemaHash, result.value.schemaHash);

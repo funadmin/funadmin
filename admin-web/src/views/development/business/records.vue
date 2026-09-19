@@ -1,22 +1,22 @@
 <template>
-  <PageWrapper title="生成记录" :subtitle="pageSubtitle">
+  <PageWrapper :title="t('business.records.title', '生成记录')" :subtitle="pageSubtitle">
     <DataTableShell storage-key="development-business-records" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="query" :loading="loading" @search="search" @reset="reset">
-          <el-form-item label="业务模块" :error="moduleIdError">
+          <el-form-item :label="t('business.records.module', '业务模块')" :error="moduleIdError">
             <el-select
               v-model="query.moduleId"
               clearable
               filterable
               :loading="modulesLoading"
-              placeholder="选择业务模块"
+              :placeholder="t('business.records.modulePlaceholder', '选择业务模块')"
               class="module-select"
             >
               <el-option v-for="module in modules" :key="module.id" :label="`${module.name}（${module.code}）`" :value="module.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="query.status" clearable placeholder="全部状态" class="status-select">
+          <el-form-item :label="t('common.status', '状态')">
+            <el-select v-model="query.status" clearable :placeholder="t('business.records.statusPlaceholder', '全部状态')" class="status-select">
               <el-option v-for="status in statuses" :key="status" :label="status" :value="status" />
             </el-select>
           </el-form-item>
@@ -29,8 +29,8 @@
             <strong>{{ selectedModule.name }}</strong>
             <span>{{ selectedModule.code }}</span>
           </div>
-          <span v-else>全部业务模块</span>
-          <el-button data-action="back-to-mine" @click="router.push('/development/business/mine')"><i class="i-ep-back" /> 返回我的业务</el-button>
+          <span v-else>{{ t('business.records.allModules', '全部业务模块') }}</span>
+          <el-button data-action="back-to-mine" @click="router.push('/development/business/mine')"><i class="i-ep-back" /> {{ t('business.records.backToMine', '返回我的业务') }}</el-button>
         </div>
       </template>
 
@@ -39,43 +39,43 @@
           :loading="loading"
           :error="pageError"
           :empty="!loading && !pageError && list.length === 0"
-          empty-text="暂无生成记录"
+          :empty-text="t('business.records.empty', '暂无生成记录')"
           :on-retry="loadData"
         >
-          <div class="records-table-wrap" aria-label="生成记录列表" tabindex="0">
+          <div class="records-table-wrap" :aria-label="t('business.records.tableAria', '生成记录列表')" tabindex="0">
             <el-table :data="list" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle">
               <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column label="业务模块" min-width="180">
+              <el-table-column :label="t('business.records.module', '业务模块')" min-width="180">
                 <template #default="{ row }">
-                  <div>{{ moduleFor(row as BusinessGeneration)?.name || `模块 #${generationModuleId(row as BusinessGeneration) || '-'}` }}</div>
+                  <div>{{ moduleFor(row as BusinessGeneration)?.name || t('business.records.moduleFallback', { id: generationModuleId(row as BusinessGeneration) || '-' }, '模块 #{id}') }}</div>
                   <small>{{ moduleFor(row as BusinessGeneration)?.code || '-' }}</small>
                 </template>
               </el-table-column>
-              <el-table-column label="模式" min-width="110">
+              <el-table-column :label="t('business.records.mode', '模式')" min-width="110">
                 <template #default="{ row }">{{ row.generationMode || row.generation_mode || '-' }}</template>
               </el-table-column>
-              <el-table-column label="状态" min-width="120">
+              <el-table-column :label="t('common.status', '状态')" min-width="120">
                 <template #default="{ row }"><GenerationStatusTag :status="row.status" /></template>
               </el-table-column>
-              <el-table-column label="恢复状态" min-width="130">
+              <el-table-column :label="t('business.records.recoveryStatus', '恢复状态')" min-width="130">
                 <template #default="{ row }"><GenerationStatusTag :status="row.recoveryStatus || row.recovery_status" kind="recovery" /></template>
               </el-table-column>
-              <el-table-column label="失败摘要" min-width="180" show-overflow-tooltip>
+              <el-table-column :label="t('business.records.failureSummary', '失败摘要')" min-width="180" show-overflow-tooltip>
                 <template #default="{ row }">{{ failureSummary(row as BusinessGeneration) }}</template>
               </el-table-column>
-              <el-table-column label="更新时间" min-width="170">
+              <el-table-column :label="t('business.records.updatedAt', '更新时间')" min-width="170">
                 <template #default="{ row }">{{ row.updatedAt || row.updated_at || '-' }}</template>
               </el-table-column>
-              <el-table-column label="操作" width="100" fixed="right">
+              <el-table-column :label="t('common.operation', '操作')" width="100" fixed="right">
                 <template #default="{ row }">
                   <el-button
                     link
                     type="primary"
                     :data-action="`detail-${row.id}`"
                     :loading="detailLoadingId === row.id"
-                    :aria-label="`查看生成记录 ${row.id} 详情`"
+                    :aria-label="t('business.records.detailAria', { id: row.id }, '查看生成记录 {id} 详情')"
                     @click="showDetail(row.id)"
-                  >详情</el-button>
+                  >{{ t('common.detail', '详情') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -95,20 +95,21 @@
     </DataTableShell>
 
     <GenerationDetailDrawer v-model="detailVisible" :generation="drawerGeneration" @recovered="refreshAfterRecovery" />
-    <div v-if="detailVisible && canRecover" class="recovery-action" role="region" aria-label="恢复操作">
+    <div v-if="detailVisible && canRecover" class="recovery-action" role="region" :aria-label="t('business.records.recoveryRegionAria', '恢复操作')">
       <el-button
         data-action="recover"
         type="warning"
         :loading="recovering"
         :disabled="recovering"
         @click="recoverDetail"
-      >恢复</el-button>
+      >{{ t('business.recovery', '恢复') }}</el-button>
     </div>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -127,6 +128,7 @@ type GenerationQuery = { page: number; pageSize: number; moduleId?: number; stat
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const statuses = ['planned', 'completed', 'failed', 'conflict'];
 const query = reactive<GenerationQuery>({ page: 1, pageSize: 20, moduleId: undefined, status: '' });
 const list = ref<BusinessGeneration[]>([]);
@@ -146,8 +148,8 @@ const detailRequest = useLatestRequest((id: number) => businessDevelopmentApi.ge
 const loading = computed(() => listRequest.loading.value);
 const selectedModule = computed(() => modules.value.find((module) => module.id === query.moduleId));
 const pageSubtitle = computed(() => selectedModule.value
-  ? `${selectedModule.value.name}（${selectedModule.value.code}）的 managed 生成、冲突与恢复状态`
-  : '查看全部业务模块的 managed 生成、冲突与恢复状态');
+  ? t('business.records.subtitleScoped', { name: selectedModule.value.name, code: selectedModule.value.code }, '{name}（{code}）的 managed 生成、冲突与恢复状态')
+  : t('business.records.subtitleAll', '查看全部业务模块的 managed 生成、冲突与恢复状态'));
 const canRecover = computed(() => detail.value?.availableActions?.includes('recover') === true);
 // 页面统一承担恢复确认，drawer 继续负责结构化展示，避免未确认即调用恢复接口。
 const drawerGeneration = computed(() => detail.value ? { ...detail.value, availableActions: detail.value.availableActions?.filter((action) => action !== 'recover') } : null);
@@ -167,7 +169,7 @@ const parseModuleId = (value: unknown): number | undefined => {
 const syncFromRoute = () => {
   const rawModuleId = route.query.moduleId;
   query.moduleId = parseModuleId(rawModuleId);
-  moduleIdError.value = rawModuleId !== undefined && query.moduleId === undefined ? '模块 ID 必须为正整数' : '';
+  moduleIdError.value = rawModuleId !== undefined && query.moduleId === undefined ? t('business.records.moduleIdInvalid', '模块 ID 必须为正整数') : '';
   query.page = positiveInteger(route.query.page, 1);
   query.pageSize = positiveInteger(route.query.pageSize, 20);
   query.status = typeof route.query.status === 'string' && statuses.includes(route.query.status) ? route.query.status : '';
@@ -194,7 +196,7 @@ async function loadData() {
     list.value = data.list;
     total.value = data.total;
   } catch (error) {
-    pageError.value = error instanceof Error ? error : '生成记录加载失败';
+    pageError.value = error instanceof Error ? error : t('business.records.loadFailed', '生成记录加载失败');
   }
 }
 
@@ -244,7 +246,7 @@ async function showDetail(id: number) {
     detail.value = data;
     detailVisible.value = true;
   } catch (error) {
-    pageError.value = error instanceof Error ? error : '生成记录详情加载失败';
+    pageError.value = error instanceof Error ? error : t('business.records.detailLoadFailed', '生成记录详情加载失败');
   } finally {
     if (!detailRequest.loading.value) detailLoadingId.value = undefined;
   }
@@ -254,12 +256,12 @@ async function recoverDetail() {
   if (!detail.value || !canRecover.value || recovering.value) return;
   recovering.value = true;
   try {
-    await ElMessageBox.confirm('恢复将回滚本次生成产生的变更，是否继续？', '确认恢复', { type: 'warning' });
+    await ElMessageBox.confirm(t('business.records.recoverConfirm', '恢复将回滚本次生成产生的变更，是否继续？'), t('business.records.recoverConfirmTitle', '确认恢复'), { type: 'warning' });
     await businessDevelopmentApi.recoverGeneration(detail.value.id, detail.value.recoveryStatus || detail.value.recovery_status || 'recovery_required');
     await refreshAfterRecovery();
-    ElMessage.success('恢复成功');
+    ElMessage.success(t('business.records.recoverSuccess', '恢复成功'));
   } catch (error) {
-    if (error !== 'cancel' && error !== 'close') pageError.value = error instanceof Error ? error : '恢复失败';
+    if (error !== 'cancel' && error !== 'close') pageError.value = error instanceof Error ? error : t('business.records.recoverFailed', '恢复失败');
   } finally {
     recovering.value = false;
   }
@@ -283,7 +285,7 @@ function moduleFor(row: BusinessGeneration) {
 }
 
 function failureSummary(row: BusinessGeneration) {
-  return row.error?.code || (row.status === 'failed' || row.status === 'conflict' ? '生成失败，查看详情' : '-');
+  return row.error?.code || (row.status === 'failed' || row.status === 'conflict' ? t('business.records.failedSummary', '生成失败，查看详情') : '-');
 }
 
 watch(() => route.query.moduleId, (value, previous) => {

@@ -4,8 +4,8 @@
       <div class="drawer-header">
         <span class="header-icon" aria-hidden="true"><el-icon><Shop /></el-icon></span>
         <div>
-          <h2>云市场账号</h2>
-          <p>连接 FunAdmin 云市场，统一管理插件服务</p>
+          <h2>{{ t('plugin.accountTitle', '云市场账号') }}</h2>
+          <p>{{ t('plugin.accountSubtitle', '连接 FunAdmin 云市场，统一管理插件服务') }}</p>
         </div>
       </div>
     </template>
@@ -26,9 +26,9 @@
 
       <div v-else-if="loadFailed" class="load-error">
         <el-icon class="load-error-icon"><WarningFilled /></el-icon>
-        <h3>账号信息加载失败</h3>
-        <p>暂时无法获取云市场连接状态，请检查网络后重试。</p>
-        <el-button type="primary" plain :loading="initialLoading" @click="load">重新加载</el-button>
+        <h3>{{ t('plugin.accountLoadFailed', '账号信息加载失败') }}</h3>
+        <p>{{ t('plugin.accountLoadFailedDesc', '暂时无法获取云市场连接状态，请检查网络后重试。') }}</p>
+        <el-button type="primary" plain :loading="initialLoading" @click="load">{{ t('plugin.accountReload', '重新加载') }}</el-button>
       </div>
 
       <template v-else-if="account">
@@ -40,7 +40,7 @@
             <div class="account-identity">
               <div class="account-name-row">
                 <strong>{{ account.nickname || account.username }}</strong>
-                <el-tag type="success" effect="light" round>已连接</el-tag>
+                <el-tag type="success" effect="light" round>{{ t('plugin.accountConnected', '已连接') }}</el-tag>
               </div>
               <span>@{{ account.username }}</span>
             </div>
@@ -50,25 +50,25 @@
         <section class="capability-section" aria-labelledby="market-capabilities">
           <div class="section-heading">
             <div>
-              <h3 id="market-capabilities">云市场能力</h3>
-              <p>当前账号已授权以下插件服务</p>
+              <h3 id="market-capabilities">{{ t('plugin.accountCapabilities', '云市场能力') }}</h3>
+              <p>{{ t('plugin.accountCapabilitiesDesc', '当前账号已授权以下插件服务') }}</p>
             </div>
           </div>
           <ul class="capability-list">
             <li>
               <span class="capability-icon"><el-icon><Refresh /></el-icon></span>
-              <div><strong>版本检查</strong><p>同步插件版本与更新信息</p></div>
-              <el-tag type="success" effect="plain">可用</el-tag>
+              <div><strong>{{ t('plugin.capVersionCheck', '版本检查') }}</strong><p>{{ t('plugin.capVersionCheckDesc', '同步插件版本与更新信息') }}</p></div>
+              <el-tag type="success" effect="plain">{{ t('plugin.capAvailable', '可用') }}</el-tag>
             </li>
             <li>
               <span class="capability-icon"><el-icon><Download /></el-icon></span>
-              <div><strong>授权下载</strong><p>获取账号有权访问的插件包</p></div>
-              <el-tag type="success" effect="plain">可用</el-tag>
+              <div><strong>{{ t('plugin.capDownload', '授权下载') }}</strong><p>{{ t('plugin.capDownloadDesc', '获取账号有权访问的插件包') }}</p></div>
+              <el-tag type="success" effect="plain">{{ t('plugin.capAvailable', '可用') }}</el-tag>
             </li>
             <li>
               <span class="capability-icon"><el-icon><Key /></el-icon></span>
-              <div><strong>会话令牌</strong><p>凭据由服务端会话安全维护</p></div>
-              <el-tag type="info" effect="plain">已保护</el-tag>
+              <div><strong>{{ t('plugin.capToken', '会话令牌') }}</strong><p>{{ t('plugin.capTokenDesc', '凭据由服务端会话安全维护') }}</p></div>
+              <el-tag type="info" effect="plain">{{ t('plugin.capProtected', '已保护') }}</el-tag>
             </li>
           </ul>
         </section>
@@ -80,8 +80,8 @@
             :loading="refreshing"
             v-perm="'system:plugin:account-refresh'"
             @click="refreshToken"
-          >刷新令牌</el-button>
-          <el-button type="danger" plain :loading="loggingOut" @click="logout">退出市场账号</el-button>
+          >{{ t('plugin.refreshToken', '刷新令牌') }}</el-button>
+          <el-button type="danger" plain :loading="loggingOut" @click="logout">{{ t('plugin.logoutButton', '退出市场账号') }}</el-button>
         </div>
       </template>
 
@@ -90,18 +90,18 @@
           <div class="intro-content">
             <span class="intro-icon" aria-hidden="true"><el-icon><Connection /></el-icon></span>
             <div>
-              <h3>连接云市场</h3>
-              <p>登录后同步授权、版本信息与插件下载权限，让插件维护更顺畅。</p>
+              <h3>{{ t('plugin.connectTitle', '连接云市场') }}</h3>
+              <p>{{ t('plugin.connectDesc', '登录后同步授权、版本信息与插件下载权限，让插件维护更顺畅。') }}</p>
             </div>
           </div>
         </el-card>
 
         <el-form label-position="top" class="login-form" @submit.prevent="login">
-          <el-form-item label="云市场账号" :error="validation.account">
+          <el-form-item :label="t('plugin.accountLabel', '云市场账号')" :error="validation.account">
             <el-input
               v-model="form.account"
               data-testid="account-account"
-              placeholder="请输入用户名或邮箱"
+              :placeholder="t('plugin.accountPlaceholder', '请输入用户名或邮箱')"
               autocomplete="username"
               clearable
               @input="validation.account = ''"
@@ -109,12 +109,12 @@
               <template #prefix><el-icon aria-hidden="true"><User /></el-icon></template>
             </el-input>
           </el-form-item>
-          <el-form-item label="密码" :error="validation.password">
+          <el-form-item :label="t('plugin.passwordLabel', '密码')" :error="validation.password">
             <el-input
               v-model="form.password"
               data-testid="account-password"
               type="password"
-              placeholder="请输入至少 6 位密码"
+              :placeholder="t('plugin.passwordPlaceholder', '请输入至少 6 位密码')"
               show-password
               autocomplete="current-password"
               @input="validation.password = ''"
@@ -129,12 +129,12 @@
             native-type="submit"
             :loading="loggingIn"
             :disabled="!canLogin"
-          >登录并连接</el-button>
+          >{{ t('plugin.loginSubmit', '登录并连接') }}</el-button>
         </el-form>
 
         <div class="security-note">
           <el-icon aria-hidden="true"><Lock /></el-icon>
-          <span>凭据仅用于换取令牌，不在浏览器长期保存；登录状态由服务端会话维护。</span>
+          <span>{{ t('plugin.securityNote', '凭据仅用于换取令牌，不在浏览器长期保存；登录状态由服务端会话维护。') }}</span>
         </div>
       </template>
     </div>
@@ -145,8 +145,10 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { Connection, Download, Key, Lock, Refresh, Shop, User, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { pluginApi, type PluginAccount } from '@/api/plugin';
 
+const { t } = useI18n();
 const visible = defineModel<boolean>({ default: false });
 const emit = defineEmits<{ changed: [] }>();
 const account = ref<PluginAccount | null>(null);
@@ -160,12 +162,12 @@ const form = reactive({ account: '', password: '' });
 const validation = reactive({ account: '', password: '' });
 
 const canLogin = computed(() => form.account.trim().length > 0 && form.password.length >= 6 && !loggingIn.value);
-const accountInitial = computed(() => (account.value?.nickname || account.value?.username || '云').trim().charAt(0).toUpperCase());
+const accountInitial = computed(() => (account.value?.nickname || account.value?.username || t('plugin.avatarFallback', '云')).trim().charAt(0).toUpperCase());
 
 function errorMessage(reason: unknown) {
   if (reason instanceof Error) return reason.message;
   if (reason && typeof reason === 'object' && 'msg' in reason && typeof reason.msg === 'string') return reason.msg;
-  return '操作失败，请稍后重试';
+  return t('plugin.operationFailed', '操作失败，请稍后重试');
 }
 
 function resetSensitiveState() {
@@ -176,8 +178,8 @@ function resetSensitiveState() {
 }
 
 function validateLogin() {
-  validation.account = form.account.trim() ? '' : '请输入云市场账号';
-  validation.password = form.password.length >= 6 ? '' : '密码至少 6 位';
+  validation.account = form.account.trim() ? '' : t('plugin.accountRequired', '请输入云市场账号');
+  validation.password = form.password.length >= 6 ? '' : t('plugin.passwordMin', '密码至少 6 位');
   return !validation.account && !validation.password;
 }
 
@@ -205,7 +207,7 @@ async function login() {
     account.value = await pluginApi.accountLogin(normalizedAccount, form.password);
     form.account = normalizedAccount;
     form.password = '';
-    ElMessage.success('云市场账号登录成功');
+    ElMessage.success(t('plugin.loginSuccess', '云市场账号登录成功'));
     emit('changed');
   } catch (reason) {
     error.value = errorMessage(reason);
@@ -219,7 +221,7 @@ async function refreshToken() {
   error.value = '';
   try {
     account.value = await pluginApi.accountRefresh();
-    ElMessage.success('令牌刷新成功');
+    ElMessage.success(t('plugin.refreshSuccess', '令牌刷新成功'));
     emit('changed');
   } catch (reason) {
     error.value = errorMessage(reason);
@@ -230,10 +232,10 @@ async function refreshToken() {
 
 async function logout() {
   try {
-    await ElMessageBox.confirm('退出后将无法同步授权、版本信息和下载插件，确认退出吗？', '退出云市场账号', {
+    await ElMessageBox.confirm(t('plugin.logoutConfirm', '退出后将无法同步授权、版本信息和下载插件，确认退出吗？'), t('plugin.logoutTitle', '退出云市场账号'), {
       type: 'warning',
-      confirmButtonText: '确认退出',
-      cancelButtonText: '取消'
+      confirmButtonText: t('plugin.logoutConfirmButton', '确认退出'),
+      cancelButtonText: t('common.cancel', '取消')
     });
   } catch (reason) {
     if (reason === 'cancel' || reason === 'close') return;
@@ -247,7 +249,7 @@ async function logout() {
     await pluginApi.accountLogout();
     account.value = null;
     form.password = '';
-    ElMessage.success('已退出云市场账号');
+    ElMessage.success(t('plugin.logoutSuccess', '已退出云市场账号'));
     emit('changed');
   } catch (reason) {
     error.value = errorMessage(reason);

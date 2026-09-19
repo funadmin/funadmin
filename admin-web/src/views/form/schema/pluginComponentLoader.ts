@@ -1,9 +1,12 @@
 import type { Component } from 'vue';
+import { i18n } from '@/locales';
 import type { FormComponentCatalog, FormComponentCatalogItem } from '@/api/form';
 import { businessDevelopmentApi } from '@/api/development/business';
 import { componentRegistry, type FormComponentRegistry, type FormValueCodec } from './componentRegistry';
 import type { FormValueType } from './types';
 import { pluginCatalog, type PluginCatalogDiagnostic, type PluginCatalogRegistration } from '../designer/pluginCatalog';
+
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 type ComponentModule = { default: Component };
 type ComponentLoader = () => Promise<ComponentModule>;
@@ -27,14 +30,14 @@ export const registerPluginFormComponents = (
   for (const definition of catalog.components) {
     if (definition.namespace === 'core') continue;
     if (!definition.type.startsWith(`${definition.namespace}:`)) {
-      diagnostics.push({ code: 'namespace-mismatch', type: definition.type, message: `插件组件命名空间不一致：${definition.type}` });
+      diagnostics.push({ code: 'namespace-mismatch', type: definition.type, message: tNamed('formDesigner.pluginNamespaceMismatch', { type: definition.type }, '插件组件命名空间不一致：{type}') });
       continue;
     }
     const key = `../../../modules/${definition.namespace}/${definition.component}.vue`;
     const fallbackKey = `../../../modules/${definition.namespace}/${definition.component}.tsx`;
     const loader = modules[key] ?? modules[fallbackKey];
     if (!loader) {
-      diagnostics.push({ code: 'missing-plugin', type: definition.type, message: `插件表单组件未包含在当前构建中：${definition.type}` });
+      diagnostics.push({ code: 'missing-plugin', type: definition.type, message: tNamed('formDesigner.pluginNotInBuild', { type: definition.type }, '插件表单组件未包含在当前构建中：{type}') });
       continue;
     }
     registry.register({

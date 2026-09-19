@@ -1,24 +1,24 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="isEdit ? '编辑字典项' : '新增字典项'"
+    :title="isEdit ? t('systemDict.dialogEditItem', '编辑字典项') : t('systemDict.dialogAddItem', '新增字典项')"
     width="540px"
     align-center
     destroy-on-close
     @close="onClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-      <el-form-item label="所属分类" prop="typeCode">
-        <el-input :model-value="typeName" disabled placeholder="请先在左侧选择分类" />
+      <el-form-item :label="t('systemDict.belongType', '所属分类')" prop="typeCode">
+        <el-input :model-value="typeName" disabled :placeholder="t('systemDict.selectTypePlaceholder', '请先在左侧选择分类')" />
       </el-form-item>
-      <el-form-item label="字典标签" prop="label">
-        <el-input v-model="form.label" placeholder="如：男" maxlength="40" show-word-limit />
+      <el-form-item :label="t('systemDict.itemLabel', '字典标签')" prop="label">
+        <el-input v-model="form.label" :placeholder="t('systemDict.itemLabelEg', '如：男')" maxlength="40" show-word-limit />
       </el-form-item>
-      <el-form-item label="字典键值" prop="value">
-        <el-input v-model="form.value" placeholder="如：1" maxlength="60" />
+      <el-form-item :label="t('systemDict.itemValue', '字典键值')" prop="value">
+        <el-input v-model="form.value" :placeholder="t('systemDict.itemValueEg', '如：1')" maxlength="60" />
       </el-form-item>
-      <el-form-item label="样式属性" prop="cssClass">
-        <el-select v-model="form.cssClass" placeholder="用于 Tag 颜色（可选）" clearable class="!w-full">
+      <el-form-item :label="t('systemDict.cssClass', '样式属性')" prop="cssClass">
+        <el-select v-model="form.cssClass" :placeholder="t('systemDict.cssClassPlaceholder', '用于 Tag 颜色（可选）')" clearable class="!w-full">
           <el-option label="primary" value="primary" />
           <el-option label="success" value="success" />
           <el-option label="warning" value="warning" />
@@ -26,23 +26,23 @@
           <el-option label="info" value="info" />
         </el-select>
       </el-form-item>
-      <el-form-item label="排序" prop="sort">
+      <el-form-item :label="t('systemDict.sort', '排序')" prop="sort">
         <el-input-number v-model="form.sort" :min="0" :max="999" controls-position="right" />
       </el-form-item>
-      <el-form-item label="状态" prop="status">
+      <el-form-item :label="t('common.status', '状态')" prop="status">
         <el-radio-group v-model="form.status">
-          <el-radio :value="1">启用</el-radio>
-          <el-radio :value="0">禁用</el-radio>
+          <el-radio :value="1">{{ t('common.enable', '启用') }}</el-radio>
+          <el-radio :value="0">{{ t('common.disable', '禁用') }}</el-radio>
         </el-radio-group>
       </el-form-item>
-      <el-form-item label="备注" prop="remark">
+      <el-form-item :label="t('systemDict.remark', '备注')" prop="remark">
         <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="120" show-word-limit />
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { dictItemApi, type DictItemModel } from '@/api/system/dict';
 
 interface Props {
@@ -71,6 +72,7 @@ const emit = defineEmits<{
   (e: 'success'): void;
 }>();
 
+const { t } = useI18n();
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v)
@@ -93,8 +95,8 @@ const initForm = (): Partial<DictItemModel> => ({
 const form = reactive<Partial<DictItemModel>>(initForm());
 
 const rules: FormRules = {
-  label: [{ required: true, message: '请输入字典标签', trigger: 'blur' }],
-  value: [{ required: true, message: '请输入字典键值', trigger: 'blur' }]
+  label: [{ required: true, message: t('systemDict.itemLabelRequired', '请输入字典标签'), trigger: 'blur' }],
+  value: [{ required: true, message: t('systemDict.itemValueRequired', '请输入字典键值'), trigger: 'blur' }]
 };
 
 watch(visible, (v) => {

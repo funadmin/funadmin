@@ -7,7 +7,10 @@ import axios, {
 import qs from 'qs';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { APP_CONFIG, RESP_CODE } from '@/config';
+import { i18n } from '@/locales';
 import { clearAuth, getCsrfToken, setCsrfToken } from '@/utils/auth';
+
+const tr = (key: string, fallback: string) => i18n.global.t(key, fallback) as string;
 
 interface RequestOptions {
   showSuccessMsg?: boolean;
@@ -67,9 +70,9 @@ service.interceptors.response.use(
       return data;
     }
     if (code === RESP_CODE.UNAUTHORIZED) {
-      return handleUnauthorized(msg || '登录已失效，请重新登录');
+      return handleUnauthorized(msg || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
-    if (opt.showErrorMsg) showError(msg || '请求失败', opt.errorMessageMode);
+    if (opt.showErrorMsg) showError(msg || tr('http.requestFailed', '请求失败'), opt.errorMessageMode);
     return Promise.reject(response.data);
   },
   (error) => {
@@ -80,7 +83,7 @@ service.interceptors.response.use(
 
     // 真实服务端故障不信任任何业务字段，也不将原始载荷交给页面二次展示。
     if (status >= 500) {
-      const message = status === 502 ? '网关错误' : status === 504 ? '网关超时' : '服务器内部错误';
+      const message = status === 502 ? tr('http.badGateway', '网关错误') : status === 504 ? tr('http.gatewayTimeout', '网关超时') : tr('http.serverError', '服务器内部错误');
       if (opt.showErrorMsg) showError(message, opt.errorMessageMode);
       return Promise.reject({ code: status, msg: message, message, data: null });
     }
@@ -89,11 +92,11 @@ service.interceptors.response.use(
       return handleUnauthorized(safeMessage || '登录已失效，请重新登录');
     }
 
-    let message = safeMessage || error?.message || '网络异常';
-    if (status === 403) message = safeMessage || '没有访问权限';
-    else if (status === 404) message = safeMessage || '请求资源不存在';
-    else if (status === 422) message = safeMessage || '参数验证失败';
-    else if (error?.code === 'ECONNABORTED') message = '请求超时';
+    let message = safeMessage || error?.message || tr('http.networkError', '网络异常');
+    if (status === 403) message = safeMessage || tr('http.forbidden', '没有访问权限');
+    else if (status === 404) message = safeMessage || tr('http.notFound', '请求资源不存在');
+    else if (status === 422) message = safeMessage || tr('http.validationFailed', '参数验证失败');
+    else if (error?.code === 'ECONNABORTED') message = tr('http.timeout', '请求超时');
 
     if (opt.showErrorMsg) showError(message, opt.errorMessageMode);
     return Promise.reject(payload || error);
@@ -111,7 +114,7 @@ function businessMessage(payload: unknown): string | undefined {
 
 function showError(message: string, mode: RequestOptions['errorMessageMode']) {
   if (mode === 'modal') {
-    ElMessageBox.alert(message, '错误提示', { type: 'error' });
+    ElMessageBox.alert(message, tr('http.errorTitle', '错误提示'), { type: 'error' });
   } else if (mode === 'message') {
     ElMessage.error(message);
   }
@@ -119,9 +122,9 @@ function showError(message: string, mode: RequestOptions['errorMessageMode']) {
 
 function handleUnauthorized(message: string): Promise<never> {
   clearAuth();
-  ElMessageBox.confirm(message, '系统提示', {
-    confirmButtonText: '重新登录',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm(message, tr('http.systemTip', '系统提示'), {
+    confirmButtonText: tr('http.relogin', '重新登录'),
+    cancelButtonText: tr('common.cancel', '取消'),
     type: 'warning'
   })
     .then(() => {

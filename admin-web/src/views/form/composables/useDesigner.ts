@@ -1,6 +1,10 @@
 import { computed, ref, shallowRef } from 'vue';
+import { i18n } from '@/locales';
 import type { FormDefinition, FormFieldDef, FormSchemaDocument, FormSchemaNode } from '@/api/form';
 import { createField, controlMeta } from '../registry';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 const HISTORY_LIMIT = 50;
 const CONTAINER_TYPES = new Set(['group', 'grid', 'collapse', 'tabs', 'repeatable', 'subform']);
@@ -274,7 +278,7 @@ export function useDesigner() {
   };
   const addNode = (type: string, parentId: string | null = null, index?: number) => {
     const target = targetChildren(parentId);
-    if (!target) throw new Error('目标节点不是容器');
+    if (!target) throw new Error(t('formDesigner.targetNotContainer', '目标节点不是容器'));
     pushHistory();
     const field = createField(type, fields.value.length + 1);
     field.field_name = uniqueFieldName(field.field_name);
@@ -362,7 +366,7 @@ export function useDesigner() {
       if (!original) return null;
       const field = clone(original);
       field.field_name = uniqueFieldName(`${original.field_name}_copy`);
-      field.label = `${original.label}(副本)`;
+      field.label = tNamed('formDesigner.copySuffix', { label: original.label }, '{label}(副本)');
       entry.node.field = field.field_name;
       entry.node.title = field.label;
       return field;
@@ -385,7 +389,7 @@ export function useDesigner() {
     pushHistory();
     const copy = clone(source);
     copy.field_name = uniqueFieldName(`${source.field_name}_copy`);
-    copy.label = `${source.label}(副本)`;
+    copy.label = tNamed('formDesigner.copySuffix', { label: source.label }, '{label}(副本)');
     const index = fields.value.indexOf(source);
     fields.value.splice(index + 1, 0, copy);
     selectedKey.value = copy.field_name;
@@ -445,9 +449,9 @@ export function useDesigner() {
     selectNode(null);
   };
   const replaceSchema = (schema: FormSchemaDocument) => {
-    if (schema.schemaVersion !== 2 || !Array.isArray(schema.nodes)) return { ok: false, error: '仅支持 FormSchema v2 文档' };
+    if (schema.schemaVersion !== 2 || !Array.isArray(schema.nodes)) return { ok: false, error: t('formDesigner.replaceSchemaV2Only', '仅支持 FormSchema v2 文档') };
     const ids = flattenNodes(schema.nodes).map((entry) => entry.node.id);
-    if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return { ok: false, error: 'nodeId 不能为空且必须唯一' };
+    if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return { ok: false, error: t('formDesigner.nodeIdInvalid', 'nodeId 不能为空且必须唯一') };
     pushHistory();
     nodes.value = clone(schema.nodes);
     fields.value = projectFields(nodes.value, fields.value);

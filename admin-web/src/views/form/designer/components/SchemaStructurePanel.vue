@@ -1,10 +1,10 @@
 <template>
   <el-tabs v-model="activeTab">
-    <el-tab-pane label="验证规则" name="validation">
+    <el-tab-pane :label="t('formDesigner.tabValidation', '验证规则')" name="validation">
       <div class="flex flex-col gap-3">
         <el-card v-for="(rule, index) in validation" :key="index" shadow="never">
           <template #header>
-            <div class="flex items-center justify-between"><span>规则 {{ index + 1 }}</span><el-button link type="danger" @click="removeValidation(index)">删除</el-button></div>
+            <div class="flex items-center justify-between"><span>{{ t('formDesigner.ruleNumber', { n: index + 1 }, '规则 {n}') }}</span><el-button link type="danger" @click="removeValidation(index)">{{ t('common.remove', '删除') }}</el-button></div>
           </template>
           <el-form label-width="72px" size="small">
             <el-form-item label="type"><el-select v-model="rule.type" class="w-full" @change="emitValidation"><el-option v-for="type in VALIDATION_TYPES" :key="type" :label="type" :value="type" /></el-select></el-form-item>
@@ -16,90 +16,90 @@
             <el-form-item label="bail"><el-switch v-model="rule.bail" @change="emitValidation" /></el-form-item>
           </el-form>
         </el-card>
-        <el-button type="primary" plain @click="addValidation">添加验证规则</el-button>
-        <RawJson title="验证规则原始 JSON" :value="validation" @apply="applyRaw('validation', $event)" />
+        <el-button type="primary" plain @click="addValidation">{{ t('formDesigner.addValidation', '添加验证规则') }}</el-button>
+        <RawJson :title="t('formDesigner.validationRawJson', '验证规则原始 JSON')" :value="validation" @apply="applyRaw('validation', $event)" />
       </div>
     </el-tab-pane>
 
-    <el-tab-pane label="联动条件" name="conditions">
+    <el-tab-pane :label="t('formDesigner.tabConditions', '联动条件')" name="conditions">
       <div class="flex flex-col gap-3">
-        <el-alert v-if="cycleFields.length" :title="`检测到循环依赖：${cycleFields.join(' → ')}`" type="warning" :closable="false" show-icon />
+        <el-alert v-if="cycleFields.length" :title="t('formDesigner.cycleDetected', { fields: cycleFields.join(' → ') }, '检测到循环依赖：{fields}')" type="warning" :closable="false" show-icon />
         <el-card v-for="(rule, ruleIndex) in conditions" :key="ruleIndex" shadow="never">
           <template #header>
-            <div class="flex items-center justify-between"><span>条件组 {{ ruleIndex + 1 }}</span><el-button link type="danger" @click="removeConditionRule(ruleIndex)">删除</el-button></div>
+            <div class="flex items-center justify-between"><span>{{ t('formDesigner.conditionGroupNumber', { n: ruleIndex + 1 }, '条件组 {n}') }}</span><el-button link type="danger" @click="removeConditionRule(ruleIndex)">{{ t('common.remove', '删除') }}</el-button></div>
           </template>
           <el-form label-width="76px" size="small">
-            <el-form-item label="条件组"><el-radio-group v-model="rule.when.op" @change="emitConditions"><el-radio-button value="and">and</el-radio-button><el-radio-button value="or">or</el-radio-button></el-radio-group></el-form-item>
+            <el-form-item :label="t('formDesigner.conditionGroup', '条件组')"><el-radio-group v-model="rule.when.op" @change="emitConditions"><el-radio-button value="and">and</el-radio-button><el-radio-button value="or">or</el-radio-button></el-radio-group></el-form-item>
             <div v-for="(condition, conditionIndex) in rule.when.conditions" :key="conditionIndex" class="mb-2 rounded border p-2">
-              <el-input v-model="condition.field" placeholder="字段" class="mb-2" @change="emitConditions" />
+              <el-input v-model="condition.field" :placeholder="t('formDesigner.fieldPlaceholder', '字段')" class="mb-2" @change="emitConditions" />
               <el-select v-model="condition.op" placeholder="op" class="mb-2 w-full" @change="emitConditions"><el-option v-for="operator in CONDITION_OPERATORS" :key="operator" :label="operator" :value="operator" /></el-select>
               <el-input :model-value="displayValue(condition.value)" placeholder="value" @change="(value) => updateConditionValue(ruleIndex, conditionIndex, value)" />
-              <el-button link type="danger" @click="removeComparison(ruleIndex, conditionIndex)">删除条件</el-button>
+              <el-button link type="danger" @click="removeComparison(ruleIndex, conditionIndex)">{{ t('formDesigner.removeCondition', '删除条件') }}</el-button>
             </div>
-            <el-button link type="primary" @click="addComparison(ruleIndex)">添加条件</el-button>
+            <el-button link type="primary" @click="addComparison(ruleIndex)">{{ t('formDesigner.addCondition', '添加条件') }}</el-button>
             <el-divider />
-            <el-form-item label="目标动作"><el-select v-model="rule.then.action" class="w-full" @change="emitConditions"><el-option v-for="action in CONDITION_ACTIONS" :key="action" :label="action" :value="action" /></el-select></el-form-item>
-            <el-form-item label="目标字段"><el-input v-model="rule.then.target" @change="emitConditions" /></el-form-item>
-            <el-form-item v-if="rule.then.action === 'setValue'" label="目标值"><el-input :model-value="displayValue(rule.then.value)" @change="(value) => updateConditionActionValue(ruleIndex, value)" /></el-form-item>
+            <el-form-item :label="t('formDesigner.targetAction', '目标动作')"><el-select v-model="rule.then.action" class="w-full" @change="emitConditions"><el-option v-for="action in CONDITION_ACTIONS" :key="action" :label="action" :value="action" /></el-select></el-form-item>
+            <el-form-item :label="t('formDesigner.targetField', '目标字段')"><el-input v-model="rule.then.target" @change="emitConditions" /></el-form-item>
+            <el-form-item v-if="rule.then.action === 'setValue'" :label="t('formDesigner.targetValue', '目标值')"><el-input :model-value="displayValue(rule.then.value)" @change="(value) => updateConditionActionValue(ruleIndex, value)" /></el-form-item>
           </el-form>
         </el-card>
-        <el-button type="primary" plain @click="addConditionRule">添加联动规则</el-button>
-        <RawJson title="联动条件原始 JSON" :value="conditions" @apply="applyRaw('conditions', $event)" />
+        <el-button type="primary" plain @click="addConditionRule">{{ t('formDesigner.addConditionRule', '添加联动规则') }}</el-button>
+        <RawJson :title="t('formDesigner.conditionsRawJson', '联动条件原始 JSON')" :value="conditions" @apply="applyRaw('conditions', $event)" />
       </div>
     </el-tab-pane>
 
-    <el-tab-pane label="事件动作" name="events">
+    <el-tab-pane :label="t('formDesigner.tabEvents', '事件动作')" name="events">
       <div class="flex flex-col gap-3">
         <el-card v-for="eventName in eventNames" :key="eventName" shadow="never">
-          <template #header><div class="flex items-center justify-between"><span>{{ eventName }}</span><el-button link type="danger" @click="removeEvent(eventName)">删除事件</el-button></div></template>
+          <template #header><div class="flex items-center justify-between"><span>{{ eventName }}</span><el-button link type="danger" @click="removeEvent(eventName)">{{ t('formDesigner.removeEvent', '删除事件') }}</el-button></div></template>
           <el-card v-for="(action, actionIndex) in events[eventName]" :key="actionIndex" shadow="never" class="mb-2">
             <el-form label-width="76px" size="small">
-              <el-form-item label="动作类型"><el-select :model-value="action.type" class="w-full" @update:model-value="(type) => changeActionType(eventName, actionIndex, type)"><el-option v-for="type in ACTION_TYPES" :key="type" :label="type" :value="type" /></el-select></el-form-item>
+              <el-form-item :label="t('formDesigner.actionType', '动作类型')"><el-select :model-value="action.type" class="w-full" @update:model-value="(type) => changeActionType(eventName, actionIndex, type)"><el-option v-for="type in ACTION_TYPES" :key="type" :label="type" :value="type" /></el-select></el-form-item>
               <el-form-item v-for="parameter in actionParameters(action.type)" :key="parameter.name" :label="parameter.name">
                 <el-switch v-if="parameter.type === 'boolean'" :model-value="Boolean(action[parameter.name])" @update:model-value="(value) => updateBooleanActionParameter(eventName, actionIndex, parameter.name, Boolean(value))" />
                 <el-select v-else-if="parameter.type === 'select'" :model-value="String(action[parameter.name] ?? '')" class="w-full" @update:model-value="(value) => updateActionParameter(eventName, actionIndex, parameter.name, value, parameter.type)"><el-option v-for="option in parameter.options" :key="option" :label="option" :value="option" /></el-select>
                 <el-input v-else :model-value="displayValue(action[parameter.name])" @change="(value) => updateActionParameter(eventName, actionIndex, parameter.name, value, parameter.type)" />
               </el-form-item>
             </el-form>
-            <el-button link type="danger" @click="removeAction(eventName, actionIndex)">删除动作</el-button>
+            <el-button link type="danger" @click="removeAction(eventName, actionIndex)">{{ t('formDesigner.removeAction', '删除动作') }}</el-button>
           </el-card>
-          <el-button link type="primary" @click="addAction(eventName)">添加动作</el-button>
+          <el-button link type="primary" @click="addAction(eventName)">{{ t('formDesigner.addAction', '添加动作') }}</el-button>
         </el-card>
-        <div class="flex gap-2"><el-select v-model="newEvent" placeholder="已注册事件" class="flex-1"><el-option v-for="eventName in availableEvents" :key="eventName" :label="eventName" :value="eventName" /></el-select><el-button type="primary" plain :disabled="!newEvent" @click="addEvent">添加事件</el-button></div>
-        <RawJson title="事件动作原始 JSON" :value="events" @apply="applyRaw('events', $event)" />
+        <div class="flex gap-2"><el-select v-model="newEvent" :placeholder="t('formDesigner.registeredEventPlaceholder', '已注册事件')" class="flex-1"><el-option v-for="eventName in availableEvents" :key="eventName" :label="eventName" :value="eventName" /></el-select><el-button type="primary" plain :disabled="!newEvent" @click="addEvent">{{ t('formDesigner.addEvent', '添加事件') }}</el-button></div>
+        <RawJson :title="t('formDesigner.eventsRawJson', '事件动作原始 JSON')" :value="events" @apply="applyRaw('events', $event)" />
       </div>
     </el-tab-pane>
 
-    <el-tab-pane label="字段权限" name="access">
+    <el-tab-pane :label="t('formDesigner.tabAccess', '字段权限')" name="access">
       <el-form label-width="92px" size="small">
-        <el-form-item label="读取权限"><el-select v-model="access.read" multiple filterable allow-create default-first-option class="w-full" placeholder="选择或输入权限码" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
-        <el-form-item label="写入权限"><el-select v-model="access.write" multiple filterable allow-create default-first-option class="w-full" placeholder="选择或输入权限码" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
-        <el-form-item label="提交策略">
-          <el-select v-model="access.include" class="w-full" @change="emitAccess"><el-option label="自动" value="auto" /><el-option label="始终包含" value="always" /><el-option label="始终排除" value="never" /></el-select>
+        <el-form-item :label="t('formDesigner.readAccess', '读取权限')"><el-select v-model="access.read" multiple filterable allow-create default-first-option class="w-full" :placeholder="t('formDesigner.permissionPlaceholder', '选择或输入权限码')" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
+        <el-form-item :label="t('formDesigner.writeAccess', '写入权限')"><el-select v-model="access.write" multiple filterable allow-create default-first-option class="w-full" :placeholder="t('formDesigner.permissionPlaceholder', '选择或输入权限码')" @change="emitAccess"><el-option v-for="option in permissionOptions" :key="option.value" :label="`${option.label} (${option.value})`" :value="option.value" /></el-select></el-form-item>
+        <el-form-item :label="t('formDesigner.submitPolicy', '提交策略')">
+          <el-select v-model="access.include" class="w-full" @change="emitAccess"><el-option :label="t('formDesigner.includeAuto', '自动')" value="auto" /><el-option :label="t('formDesigner.includeAlways', '始终包含')" value="always" /><el-option :label="t('formDesigner.includeNever', '始终排除')" value="never" /></el-select>
         </el-form-item>
       </el-form>
-      <RawJson title="字段权限原始 JSON" :value="access" @apply="applyRaw('access', $event)" />
+      <RawJson :title="t('formDesigner.accessRawJson', '字段权限原始 JSON')" :value="access" @apply="applyRaw('access', $event)" />
     </el-tab-pane>
 
-    <el-tab-pane label="数据源" name="dataSource">
+    <el-tab-pane :label="t('formDesigner.tabDataSource', '数据源')" name="dataSource">
       <el-form label-width="92px" size="small">
         <el-form-item label="kind"><el-select v-model="dataSource.kind" class="w-full" @change="changeDataSourceKind"><el-option v-for="kind in DATA_SOURCE_KINDS" :key="kind" :label="kind" :value="kind" /></el-select></el-form-item>
-        <el-form-item v-if="dataSource.kind === 'endpoint'" label="endpoint key"><el-select v-model="dataSource.endpoint" filterable allow-create default-first-option class="w-full" placeholder="已注册 endpoint key" @change="emitDataSource"><el-option v-if="dataSource.endpoint" :label="String(dataSource.endpoint)" :value="dataSource.endpoint" /></el-select></el-form-item>
-        <el-form-item v-if="dataSource.kind === 'dictionary'" label="字典编码"><el-input :model-value="String(dataSource.dictionary ?? '')" @update:model-value="(value) => updateDataSourceText('dictionary', value)" /></el-form-item>
-        <el-form-item v-if="dataSource.kind === 'relation'" label="关联名称"><el-input :model-value="String(dataSource.relation ?? '')" @update:model-value="(value) => updateDataSourceText('relation', value)" /></el-form-item>
-        <el-form-item label="参数映射"><KeyValueEditor v-model="dataSource.params" @change="emitDataSource" /></el-form-item>
-        <el-form-item label="响应映射">
-          <div class="w-full"><el-input v-model="dataSource.response.items" placeholder="items: data.rows" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.label" placeholder="label: name" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.value" placeholder="value: id" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.disabled" placeholder="disabled（可选）" @change="emitDataSource" /></div>
+        <el-form-item v-if="dataSource.kind === 'endpoint'" label="endpoint key"><el-select v-model="dataSource.endpoint" filterable allow-create default-first-option class="w-full" :placeholder="t('formDesigner.endpointKeyPlaceholder', '已注册 endpoint key')" @change="emitDataSource"><el-option v-if="dataSource.endpoint" :label="String(dataSource.endpoint)" :value="dataSource.endpoint" /></el-select></el-form-item>
+        <el-form-item v-if="dataSource.kind === 'dictionary'" :label="t('formDesigner.dictionaryCode', '字典编码')"><el-input :model-value="String(dataSource.dictionary ?? '')" @update:model-value="(value) => updateDataSourceText('dictionary', value)" /></el-form-item>
+        <el-form-item v-if="dataSource.kind === 'relation'" :label="t('formDesigner.relationName', '关联名称')"><el-input :model-value="String(dataSource.relation ?? '')" @update:model-value="(value) => updateDataSourceText('relation', value)" /></el-form-item>
+        <el-form-item :label="t('formDesigner.paramMapping', '参数映射')"><KeyValueEditor v-model="dataSource.params" @change="emitDataSource" /></el-form-item>
+        <el-form-item :label="t('formDesigner.responseMapping', '响应映射')">
+          <div class="w-full"><el-input v-model="dataSource.response.items" placeholder="items: data.rows" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.label" placeholder="label: name" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.value" placeholder="value: id" class="mb-1" @change="emitDataSource" /><el-input v-model="dataSource.response.disabled" :placeholder="t('formDesigner.disabledOptional', 'disabled（可选）')" @change="emitDataSource" /></div>
         </el-form-item>
-        <el-form-item label="依赖字段"><el-select v-model="dataSource.dependsOn" multiple filterable allow-create default-first-option class="w-full" @change="emitDataSource" /></el-form-item>
-        <el-form-item label="搜索"><el-switch v-model="dataSource.searchable" @change="emitDataSource" /></el-form-item>
-        <el-form-item label="分页"><el-input-number v-model="dataSource.pagination.pageSize" :min="1" :max="500" class="w-full" @change="emitDataSource" /></el-form-item>
-        <el-form-item label="缓存(ms)"><el-input-number v-model="dataSource.cacheTtl" :min="0" class="w-full" @change="emitDataSource" /></el-form-item>
-        <el-form-item label="旧值策略"><el-select v-model="dataSource.staleValue" class="w-full" @change="emitDataSource"><el-option label="清空" value="clear" /><el-option label="保留" value="retain" /><el-option label="重新校验" value="revalidate" /></el-select></el-form-item>
-        <el-form-item><el-button type="primary" plain :loading="testing" @click="testDataSource">测试请求</el-button></el-form-item>
+        <el-form-item :label="t('formDesigner.dependsOn', '依赖字段')"><el-select v-model="dataSource.dependsOn" multiple filterable allow-create default-first-option class="w-full" @change="emitDataSource" /></el-form-item>
+        <el-form-item :label="t('common.search', '查询')"><el-switch v-model="dataSource.searchable" @change="emitDataSource" /></el-form-item>
+        <el-form-item :label="t('formDesigner.pagination', '分页')"><el-input-number v-model="dataSource.pagination.pageSize" :min="1" :max="500" class="w-full" @change="emitDataSource" /></el-form-item>
+        <el-form-item :label="t('formDesigner.cacheTtl', '缓存(ms)')"><el-input-number v-model="dataSource.cacheTtl" :min="0" class="w-full" @change="emitDataSource" /></el-form-item>
+        <el-form-item :label="t('formDesigner.staleValue', '旧值策略')"><el-select v-model="dataSource.staleValue" class="w-full" @change="emitDataSource"><el-option :label="t('common.clear', '清空')" value="clear" /><el-option :label="t('formDesigner.staleRetain', '保留')" value="retain" /><el-option :label="t('formDesigner.staleRevalidate', '重新校验')" value="revalidate" /></el-select></el-form-item>
+        <el-form-item><el-button type="primary" plain :loading="testing" @click="testDataSource">{{ t('formDesigner.testRequest', '测试请求') }}</el-button></el-form-item>
       </el-form>
       <el-alert v-if="testResult" :title="testResult" :type="testResultType" :closable="false" class="mb-2" />
-      <RawJson title="数据源原始 JSON" :value="dataSource" @apply="applyRaw('dataSource', $event)" />
+      <RawJson :title="t('formDesigner.dataSourceRawJson', '数据源原始 JSON')" :value="dataSource" @apply="applyRaw('dataSource', $event)" />
     </el-tab-pane>
   </el-tabs>
 </template>
@@ -107,6 +107,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, reactive, ref, watch, type PropType } from 'vue';
 import { ElButton, ElCollapse, ElCollapseItem, ElInput, ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import type { FormSchemaNode } from '@/api/form';
 import { formDataApi } from '@/api/formData';
 import { componentRegistry } from '../../schema/componentRegistry';
@@ -118,6 +119,8 @@ import {
   createValidationRule, detectConditionCycles, type DesignerConditionRule, type DesignerDataSource,
   type DesignerValidationRule
 } from '../structuredEditor';
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   node: FormSchemaNode;
@@ -189,17 +192,17 @@ const updateDataSourceText = (name: string, value: string) => { dataSource[name]
 const changeDataSourceKind = (kind: DataSourceKind) => { replaceReactive(dataSource, createDataSource(kind)); emitDataSource(); };
 const testDataSource = async (): Promise<void> => {
   if (!props.node.field) {
-    ElMessage.warning('布局节点不能测试数据源');
+    ElMessage.warning(t('formDesigner.layoutNoTest', '布局节点不能测试数据源'));
     return;
   }
   testing.value = true;
   testResult.value = '';
   try {
     const result = await formDataApi.options('designer-preview', props.node.field, { ...dataSource.params, page: 1, pageSize: dataSource.pagination.pageSize });
-    testResult.value = `测试成功，共 ${result.total ?? result.options.length} 条数据`;
+    testResult.value = t('formDesigner.testSuccess', { n: result.total ?? result.options.length }, '测试成功，共 {n} 条数据');
     testResultType.value = 'success';
   } catch (error) {
-    testResult.value = `测试失败：${error instanceof Error ? error.message : '请求异常'}`;
+    testResult.value = t('formDesigner.testFailed', { msg: error instanceof Error ? error.message : t('formDesigner.requestException', '请求异常') }, '测试失败：{msg}');
     testResultType.value = 'error';
   } finally { testing.value = false; }
 };
@@ -219,10 +222,10 @@ const RawJson = defineComponent({
   setup(sectionProps, { emit: sectionEmit }) {
     const raw = ref('');
     watch(() => sectionProps.value, (value) => { raw.value = JSON.stringify(value, null, 2); }, { immediate: true, deep: true });
-    const apply = () => { try { sectionEmit('apply', JSON.parse(raw.value)); ElMessage.success('原始 JSON 已应用'); } catch { ElMessage.warning('请输入合法 JSON'); } };
-    return () => h(ElCollapse, {}, () => h(ElCollapseItem, { title: `原始 JSON（高级）· ${sectionProps.title}`, name: sectionProps.title }, () => [
+    const apply = () => { try { sectionEmit('apply', JSON.parse(raw.value)); ElMessage.success(t('formDesigner.rawJsonApplied', '原始 JSON 已应用')); } catch { ElMessage.warning(t('formDesigner.invalidJson', '请输入合法 JSON')); } };
+    return () => h(ElCollapse, {}, () => h(ElCollapseItem, { title: t('formDesigner.rawJsonWithTitle', { title: sectionProps.title }, '原始 JSON（高级）· {title}'), name: sectionProps.title }, () => [
       h(ElInput, { modelValue: raw.value, type: 'textarea', rows: 8, 'onUpdate:modelValue': (value: string) => { raw.value = value; } }),
-      h(ElButton, { type: 'primary', plain: true, class: 'mt-2', onClick: apply }, () => '应用原始 JSON')
+      h(ElButton, { type: 'primary', plain: true, class: 'mt-2', onClick: apply }, () => t('formDesigner.applyRawJson', '应用原始 JSON'))
     ]));
   }
 });
@@ -236,11 +239,11 @@ const KeyValueEditor = defineComponent({
     const commit = () => { editorEmit('update:modelValue', Object.fromEntries(rows.value.filter((row) => row.key).map((row) => [row.key, parseValue(row.value)]))); editorEmit('change'); };
     return () => h('div', { class: 'w-full' }, [
       ...rows.value.map((row, index) => h('div', { class: 'mb-1 flex gap-1' }, [
-        h(ElInput, { modelValue: row.key, placeholder: '参数名', 'onUpdate:modelValue': (value: string) => { row.key = value; }, onChange: commit }),
+        h(ElInput, { modelValue: row.key, placeholder: t('formDesigner.paramName', '参数名'), 'onUpdate:modelValue': (value: string) => { row.key = value; }, onChange: commit }),
         h(ElInput, { modelValue: row.value, placeholder: '$form.field', 'onUpdate:modelValue': (value: string) => { row.value = value; }, onChange: commit }),
-        h(ElButton, { type: 'danger', plain: true, onClick: () => { rows.value.splice(index, 1); commit(); } }, () => '删')
+        h(ElButton, { type: 'danger', plain: true, onClick: () => { rows.value.splice(index, 1); commit(); } }, () => t('formDesigner.removeMapping', '删'))
       ])),
-      h(ElButton, { link: true, type: 'primary', onClick: () => rows.value.push({ key: '', value: '' }) }, () => '添加映射')
+      h(ElButton, { link: true, type: 'primary', onClick: () => rows.value.push({ key: '', value: '' }) }, () => t('formDesigner.addMapping', '添加映射'))
     ]);
   }
 });

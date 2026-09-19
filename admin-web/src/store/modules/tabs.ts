@@ -21,7 +21,7 @@ interface TabsState {
 const HOME_TAB: TabItem = {
   path: '/dashboard',
   name: 'Dashboard',
-  title: '仪表盘',
+  title: 'Dashboard',
   icon: 'i-ep-monitor',
   affix: true,
   keepAlive: true

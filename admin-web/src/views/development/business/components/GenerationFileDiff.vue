@@ -1,7 +1,7 @@
 <template>
-  <section class="generation-file-diff" aria-label="只读文件差异">
-    <p class="explanation">基线 Base：上次生成的版本；本地 Local：当前文件；待生成 Remote：本次生成候选。这里只比较内容，不代表最终合并结果，不会写入或选择覆盖。</p>
-    <div role="tablist" aria-label="对比版本" class="diff-tabs">
+  <section class="generation-file-diff" :aria-label="t('business.diff.regionAria', '只读文件差异')">
+    <p class="explanation">{{ t('business.diff.explanation', '基线 Base：上次生成的版本；本地 Local：当前文件；待生成 Remote：本次生成候选。这里只比较内容，不代表最终合并结果，不会写入或选择覆盖。') }}</p>
+    <div role="tablist" :aria-label="t('business.diff.tabsAria', '对比版本')" class="diff-tabs">
       <button v-for="tab in tabs" :id="`${id}-${tab.key}`" :key="tab.key" type="button" role="tab"
         :data-comparison="tab.key" :aria-selected="active === tab.key" :aria-controls="`${id}-panel`"
         :tabindex="active === tab.key ? 0 : -1" @click="active = tab.key" @keydown="moveTab($event, tab.key)">{{ tab.label }}</button>
@@ -10,23 +10,23 @@
       <p data-diff-status role="status">{{ result.message }}</p>
       <template v-if="result.rows">
         <div class="diff-toolbar">
-          <strong data-diff-stats>+{{ added }} / −{{ removed }} 行</strong>
-          <span>− 删除　+ 新增（修改以删除＋新增表示）</span>
+          <strong data-diff-stats>{{ t('business.diff.stats', { added, removed }, '+{added} / −{removed} 行') }}</strong>
+          <span>{{ t('business.diff.legend', '− 删除　+ 新增（修改以删除＋新增表示）') }}</span>
           <div class="navigation">
-            <button type="button" data-prev-diff :disabled="!hunks.length || position === 0" @click="navigate(-1)">上一处差异</button>
+            <button type="button" data-prev-diff :disabled="!hunks.length || position === 0" @click="navigate(-1)">{{ t('business.diff.prev', '上一处差异') }}</button>
             <span data-diff-position aria-live="polite">{{ hunks.length ? position + 1 : 0 }} / {{ hunks.length }}</span>
-            <button type="button" data-next-diff :disabled="!hunks.length || position === hunks.length - 1" @click="navigate(1)">下一处差异</button>
+            <button type="button" data-next-diff :disabled="!hunks.length || position === hunks.length - 1" @click="navigate(1)">{{ t('business.diff.next', '下一处差异') }}</button>
           </div>
-          <label><input v-model="wrapped" data-wrap-lines type="checkbox" />长行换行</label>
+          <label><input v-model="wrapped" data-wrap-lines type="checkbox" />{{ t('business.diff.wrap', '长行换行') }}</label>
         </div>
-        <div ref="scroll" data-diff-scroll class="diff-scroll" :class="{ 'is-wrapped': wrapped }" tabindex="0" role="region" aria-label="行级差异，可横向滚动">
+        <div ref="scroll" data-diff-scroll class="diff-scroll" :class="{ 'is-wrapped': wrapped }" tabindex="0" role="region" :aria-label="t('business.diff.scrollAria', '行级差异，可横向滚动')">
           <table>
-            <thead><tr><th scope="col">旧行</th><th scope="col">新行</th><th scope="col">±</th><th scope="col">{{ comparison.label }}</th></tr></thead>
+            <thead><tr><th scope="col">{{ t('business.diff.oldLine', '旧行') }}</th><th scope="col">{{ t('business.diff.newLine', '新行') }}</th><th scope="col">±</th><th scope="col">{{ comparison.label }}</th></tr></thead>
             <tbody>
               <tr v-for="(row, index) in result.rows" :key="index" :data-line-kind="row.kind" :data-row="index" :class="[row.kind, { current: hunks[position] === index }]">
                 <td data-old-line class="line-number">{{ row.oldLine }}</td><td data-new-line class="line-number">{{ row.newLine }}</td>
                 <td class="sign">{{ row.kind === 'add' ? '+' : row.kind === 'delete' ? '−' : ' ' }}</td>
-                <td class="source"><code>{{ row.text }}</code><span v-if="row.ending !== '\n'" class="ending">{{ row.ending === '\r\n' ? 'CRLF' : row.ending === '\r' ? 'CR' : '无末尾换行' }}</span></td>
+                <td class="source"><code>{{ row.text }}</code><span v-if="row.ending !== '\n'" class="ending">{{ row.ending === '\r\n' ? 'CRLF' : row.ending === '\r' ? 'CR' : t('business.diff.noTrailingNewline', '无末尾换行') }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -38,9 +38,11 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { BusinessGenerationFile } from '@/api/development/business';
 
 const props = defineProps<{ file: BusinessGenerationFile }>();
+const { t } = useI18n();
 type Comparison = 'local' | 'remote' | 'direct';
 type Line = { raw: string; text: string; ending: string };
 type Row = Line & { kind: 'equal' | 'add' | 'delete'; oldLine?: number; newLine?: number };
@@ -51,9 +53,9 @@ const position = ref(0);
 const scroll = ref<HTMLElement>();
 const missingBase = computed(() => typeof props.file.baseContent !== 'string');
 const tabs = computed(() => [
-  { key: 'local' as const, label: '本地修改（Base → Local）' },
-  { key: 'remote' as const, label: '本次生成改动（Base → Remote）' },
-  ...(missingBase.value ? [{ key: 'direct' as const, label: '本地与待生成（Local → Remote）' }] : [])
+  { key: 'local' as const, label: t('business.diff.tabLocal', '本地修改（Base → Local）') },
+  { key: 'remote' as const, label: t('business.diff.tabRemote', '本次生成改动（Base → Remote）') },
+  ...(missingBase.value ? [{ key: 'direct' as const, label: t('business.diff.tabDirect', '本地与待生成（Local → Remote）') }] : [])
 ]);
 watch(() => [props.file.path, missingBase.value], () => {
   active.value = missingBase.value && typeof props.file.localContent === 'string' && typeof props.file.remoteContent === 'string' ? 'direct' : 'remote';
@@ -72,15 +74,15 @@ function lines(content: string): Line[] {
   });
 }
 const result = computed<{ message: string; rows?: Row[] }>(() => {
-  if (props.file.contentKind === 'binary' || props.file.status === 'binary-conflict') return { message: '二进制文件：未计算文本差异，请使用专用工具核对。' };
+  if (props.file.contentKind === 'binary' || props.file.status === 'binary-conflict') return { message: t('business.diff.binary', '二进制文件：未计算文本差异，请使用专用工具核对。') };
   const { before, after } = comparison.value;
-  if (typeof before !== 'string' || typeof after !== 'string') return { message: '服务端未提供所选版本内容，未计算差异；缺失内容不等于空文件。' };
-  const limited = { message: '文本过大或差异计算超出预算，未计算行级差异；不表示内容相同。请在本地使用 diff 工具核对。' };
+  if (typeof before !== 'string' || typeof after !== 'string') return { message: t('business.diff.missing', '服务端未提供所选版本内容，未计算差异；缺失内容不等于空文件。') };
+  const limited = { message: t('business.diff.limited', '文本过大或差异计算超出预算，未计算行级差异；不表示内容相同。请在本地使用 diff 工具核对。') };
   if (before.length + after.length > 200000) return limited;
   const old = lines(before), fresh = lines(after);
   if (old.length + fresh.length > 5000) return limited;
   const rows: Row[] = [];
-  if (before === after) return { message: '内容相同，无差异。', rows: old.map((line, i) => ({ ...line, kind: 'equal', oldLine: i + 1, newLine: i + 1 })) };
+  if (before === after) return { message: t('business.diff.identical', '内容相同，无差异。'), rows: old.map((line, i) => ({ ...line, kind: 'equal', oldLine: i + 1, newLine: i + 1 })) };
   // 有界 LCS 只服务于展示，不参与任何生成或合并决策；限制矩阵与 DOM 规模。
   if (old.length * fresh.length > 1000000) return limited;
   const width = fresh.length + 1;
@@ -102,7 +104,7 @@ const result = computed<{ message: string; rows?: Row[] }>(() => {
       rows.push({ ...fresh[j], kind: 'add', newLine: ++j });
     }
   }
-  return { message: '只读行级差异；旧行与新行对应同一组上下文。LF 为默认行尾，其他行尾单独标注。', rows };
+  return { message: t('business.diff.computed', '只读行级差异；旧行与新行对应同一组上下文。LF 为默认行尾，其他行尾单独标注。'), rows };
 });
 const added = computed(() => result.value.rows?.filter((row) => row.kind === 'add').length || 0);
 const removed = computed(() => result.value.rows?.filter((row) => row.kind === 'delete').length || 0);

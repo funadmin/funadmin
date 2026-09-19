@@ -43,7 +43,7 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         meta: {
-          title: '仪表盘',
+          title: 'Dashboard',
           icon: 'i-ep-monitor',
           affix: true,
           keepAlive: true,
@@ -55,6 +55,13 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '个人中心', icon: 'i-ep-user', hidden: true }
+      },
+      {
+        // 会话/任务深链：直接定位到 AI 助手页并选中指定会话（tasks 面板随工作区展示）
+        path: 'development/ai/conversations/:id/:panel?',
+        name: 'AiConversationDeepLink',
+        component: () => import('@/views/development/ai/index.vue'),
+        meta: { title: 'AI 助手', icon: 'i-ep-chat-dot-round', hidden: true }
       },
       {
         path: 'form/data/:key',

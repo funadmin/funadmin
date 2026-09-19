@@ -33,7 +33,7 @@
         :maxlength="maxlength"
         size="small"
         class="inline-edit__input"
-        :placeholder="placeholder"
+        :placeholder="inputPlaceholder"
         @keyup.enter="onSave"
         @keyup.esc="onCancel"
         @blur="onSave"
@@ -62,6 +62,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
 interface Props {
   modelValue: string | number | null | undefined;
@@ -83,7 +84,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   disabled: false,
-  placeholder: '请输入',
+  placeholder: '',
   min: 0,
   max: 9999,
   step: 1,
@@ -96,10 +97,13 @@ const emit = defineEmits<{
   (e: 'change', v: any): void;
 }>();
 
+const { t } = useI18n();
 const editing = ref(false);
 const saving = ref(false);
 const draft = ref<any>(props.modelValue);
 const inputRef = ref<ComponentPublicInstance | null>(null);
+
+const inputPlaceholder = computed(() => props.placeholder || t('common.pleaseInput', '请输入'));
 
 const displayText = computed(() => {
   const v = props.modelValue;
@@ -141,7 +145,7 @@ async function onSave() {
   } catch (err: any) {
     // 回滚
     draft.value = props.modelValue;
-    ElMessage.error(err?.message || '保存失败');
+    ElMessage.error(err?.message || t('common.saveFailed', '保存失败'));
   } finally {
     saving.value = false;
   }

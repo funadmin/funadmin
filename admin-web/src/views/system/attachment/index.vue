@@ -1,16 +1,16 @@
 <template>
-  <PageWrapper title="附件库" subtitle="统一管理上传文件与附件分组；旧模板文件选择器继续兼容">
+  <PageWrapper :title="t('systemAttachment.title', '附件库')" :subtitle="t('systemAttachment.subtitle', '统一管理上传文件与附件分组；旧模板文件选择器继续兼容')">
     <div class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       <el-card shadow="never">
         <template #header>
           <div class="flex items-center justify-between">
-            <span class="font-medium">附件分组</span>
-            <el-button type="primary" link v-perm="'system:attachment-group:add'" @click="openGroupAdd(0)">新增</el-button>
+            <span class="font-medium">{{ t('systemAttachment.groups', '附件分组') }}</span>
+            <el-button type="primary" link v-perm="'system:attachment-group:add'" @click="openGroupAdd(0)">{{ t('common.add', '新增') }}</el-button>
           </div>
         </template>
         <div class="mb-3 grid grid-cols-2 gap-2">
-          <el-button :type="query.groupId === undefined ? 'primary' : 'default'" :plain="query.groupId === undefined" @click="selectGroupFilter(undefined)">全部附件</el-button>
-          <el-button :type="query.groupId === 0 ? 'primary' : 'default'" :plain="query.groupId === 0" @click="selectGroupFilter(0)">未分组</el-button>
+          <el-button :type="query.groupId === undefined ? 'primary' : 'default'" :plain="query.groupId === undefined" @click="selectGroupFilter(undefined)">{{ t('systemAttachment.allFiles', '全部附件') }}</el-button>
+          <el-button :type="query.groupId === 0 ? 'primary' : 'default'" :plain="query.groupId === 0" @click="selectGroupFilter(0)">{{ t('systemAttachment.ungrouped', '未分组') }}</el-button>
         </div>
         <el-tree
           :data="groupTree"
@@ -27,9 +27,9 @@
                 <el-button link @click.stop><i class="i-ep-more-filled" /></el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="add" v-perm="'system:attachment-group:add'">新增下级</el-dropdown-item>
-                    <el-dropdown-item command="edit" v-perm="'system:attachment-group:edit'">编辑</el-dropdown-item>
-                    <el-dropdown-item v-if="data.id !== 1" command="delete" divided v-perm="'system:attachment-group:delete'">删除</el-dropdown-item>
+                    <el-dropdown-item command="add" v-perm="'system:attachment-group:add'">{{ t('systemAttachment.addChildGroup', '新增下级') }}</el-dropdown-item>
+                    <el-dropdown-item command="edit" v-perm="'system:attachment-group:edit'">{{ t('common.edit', '编辑') }}</el-dropdown-item>
+                    <el-dropdown-item v-if="data.id !== 1" command="delete" divided v-perm="'system:attachment-group:delete'">{{ t('common.remove', '删除') }}</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -41,32 +41,32 @@
       <DataTableShell storage-key="system-attachment" :loading="loading" @refresh="loadData">
         <template #search>
           <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-            <el-form-item label="文件名称" prop="keyword">
-              <el-input v-model="query.keyword" placeholder="原始名称/存储名称" clearable />
+            <el-form-item :label="t('systemAttachment.fileName', '文件名称')" prop="keyword">
+              <el-input v-model="query.keyword" :placeholder="t('systemAttachment.keywordPlaceholder', '原始名称/存储名称')" clearable />
             </el-form-item>
-            <el-form-item label="文件类型" prop="mimeType">
-              <el-select v-model="query.mimeType" placeholder="全部" clearable class="!w-32">
-                <el-option label="图片" value="image" />
-                <el-option label="视频" value="video" />
-                <el-option label="音频" value="audio" />
-                <el-option label="文档" value="document" />
-                <el-option label="压缩包" value="archive" />
+            <el-form-item :label="t('systemAttachment.fileType', '文件类型')" prop="mimeType">
+              <el-select v-model="query.mimeType" :placeholder="t('systemAttachment.allTypes', '全部')" clearable class="!w-32">
+                <el-option :label="t('systemAttachment.typeImage', '图片')" value="image" />
+                <el-option :label="t('systemAttachment.typeVideo', '视频')" value="video" />
+                <el-option :label="t('systemAttachment.typeAudio', '音频')" value="audio" />
+                <el-option :label="t('systemAttachment.typeDocument', '文档')" value="document" />
+                <el-option :label="t('systemAttachment.typeArchive', '压缩包')" value="archive" />
               </el-select>
             </el-form-item>
           </SearchForm>
         </template>
         <template #toolbar-left>
           <el-button type="primary" plain v-perm="'system:attachment:upload'" @click="uploadInput?.click()">
-            <i class="i-ep-upload" /> 上传到{{ selectedGroupTitle }}
+            <i class="i-ep-upload" /> {{ t('systemAttachment.uploadTo', { name: selectedGroupTitle }, { default: '上传到{name}' }) }}
           </el-button>
           <el-button type="info" plain :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
-            <i class="i-ep-folder-opened" /> 移动{{ selection.length ? `(${selection.length})` : '' }}
+            <i class="i-ep-folder-opened" /> {{ t('systemAttachment.move', '移动') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:attachment:delete'" @click="removeSelected">
-            <i class="i-ep-delete" /> 删除{{ selection.length ? `(${selection.length})` : '' }}
+            <i class="i-ep-delete" /> {{ t('common.remove', '删除') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
           <div class="flex items-center gap-2" v-perm="'system:attachment:storage'">
-            <span class="text-sm text-[var(--el-text-color-secondary)]">存储驱动</span>
+            <span class="text-sm text-[var(--el-text-color-secondary)]">{{ t('systemAttachment.storageDriver', '存储驱动') }}</span>
             <el-select v-model="storageDriver" class="!w-36" :loading="storageLoading" @change="changeStorageDriver">
               <el-option v-for="driver in storageDrivers" :key="driver.name" :label="driver.label" :value="driver.name" :disabled="!driver.available" />
             </el-select>
@@ -76,21 +76,21 @@
         <template #default="{ size, stripe, border, headerCellStyle }">
           <el-table :data="list" v-loading="loading" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" @selection-change="selection = $event">
             <el-table-column type="selection" width="48" align="center" />
-            <el-table-column label="预览" width="82" align="center">
+            <el-table-column :label="t('common.preview', '预览')" width="82" align="center">
               <template #default="{ row }">
                 <el-image v-if="row.mime.startsWith('image/')" :src="row.thumb || row.path" fit="cover" class="h-11 w-11 rounded" :preview-src-list="[row.path]" preview-teleported lazy />
                 <i v-else :class="fileIcon(row.ext)" class="text-3xl text-[var(--el-text-color-secondary)]" />
               </template>
             </el-table-column>
-            <el-table-column prop="originalName" label="文件名称" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="ext" label="扩展名" width="90" align="center" />
-            <el-table-column label="大小" width="110" align="right"><template #default="{ row }">{{ formatBytes(row.size) }}</template></el-table-column>
-            <el-table-column prop="driver" label="存储" width="100" align="center" />
-            <el-table-column prop="createdAt" label="上传时间" width="170" />
-            <el-table-column label="操作" width="150" align="center" fixed="right">
+            <el-table-column prop="originalName" :label="t('systemAttachment.fileName', '文件名称')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="ext" :label="t('systemAttachment.ext', '扩展名')" width="90" align="center" />
+            <el-table-column :label="t('systemAttachment.size', '大小')" width="110" align="right"><template #default="{ row }">{{ formatBytes(row.size) }}</template></el-table-column>
+            <el-table-column prop="driver" :label="t('systemAttachment.storage', '存储')" width="100" align="center" />
+            <el-table-column prop="createdAt" :label="t('systemAttachment.uploadedAt', '上传时间')" width="170" />
+            <el-table-column :label="t('common.operation', '操作')" width="150" align="center" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" link v-perm="'system:attachment:edit'" @click="renameOne(row as AttachmentModel)">重命名</el-button>
-                <el-button type="primary" link @click="openFile(row.path)">查看</el-button>
+                <el-button type="primary" link v-perm="'system:attachment:edit'" @click="renameOne(row as AttachmentModel)">{{ t('systemAttachment.rename', '重命名') }}</el-button>
+                <el-button type="primary" link @click="openFile(row.path)">{{ t('systemAttachment.view', '查看') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -107,12 +107,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { attachmentApi, attachmentGroupApi, type AttachmentGroupModel, type AttachmentModel, type AttachmentQuery } from '@/api/system/attachment';
 import { uploadApi } from '@/api/common/upload';
 import { storageApi, type StorageDriver } from '@/api/system/storage';
 import AttachmentGroupDialog from './components/AttachmentGroupDialog.vue';
 
 defineOptions({ name: 'SystemAttachment' });
+const { t } = useI18n();
 const loading = ref(false);
 const list = ref<AttachmentModel[]>([]);
 const total = ref(0);
@@ -131,7 +133,7 @@ const flatGroups = computed(() => {
   walk(groupTree.value);
   return result;
 });
-const selectedGroupTitle = computed(() => flatGroups.value.find((item) => item.id === query.groupId)?.name || '默认分组');
+const selectedGroupTitle = computed(() => flatGroups.value.find((item) => item.id === query.groupId)?.name || t('systemAttachment.defaultGroup', '默认分组'));
 
 async function loadGroups() { groupTree.value = await attachmentGroupApi.tree(); }
 async function loadStorageSettings() {
@@ -140,7 +142,7 @@ async function loadStorageSettings() {
     const settings = await storageApi.settings();
     storageDriver.value = settings.driver;
     storageDrivers.value = settings.drivers;
-    if (settings.fallback) ElMessage.warning('原存储驱动不可用，已回退到本地存储');
+    if (settings.fallback) ElMessage.warning(t('systemAttachment.storageFallback', '原存储驱动不可用，已回退到本地存储'));
   } finally { storageLoading.value = false; }
 }
 async function changeStorageDriver(driver: string) { await storageApi.update(driver); storageDriver.value = driver; }
@@ -159,7 +161,7 @@ function openGroupEdit(group: AttachmentGroupModel) { currentGroup.value = group
 async function onGroupCommand(command: string, group: AttachmentGroupModel) {
   if (command === 'add') return openGroupAdd(group.id);
   if (command === 'edit') return openGroupEdit(group);
-  await ElMessageBox.confirm(`确认删除附件分组“${group.name}”吗？组内附件将移至未分组。`, '删除确认', { type: 'warning' });
+  await ElMessageBox.confirm(t('systemAttachment.deleteGroupConfirm', { name: group.name }, { default: '确认删除附件分组“{name}”吗？组内附件将移至未分组。' }), t('systemAttachment.deleteConfirmTitle', '删除确认'), { type: 'warning' });
   await attachmentGroupApi.remove(group.id);
   if (query.groupId === group.id) query.groupId = 0;
   await reloadGroups();
@@ -179,21 +181,21 @@ async function uploadFiles(event: Event) {
       if (result.reused && result.groupId !== uploadGroupId) reusedOutsideGroup++;
     } catch { failed.push(file.name); }
   }
-  if (failed.length) ElMessage.warning(`成功 ${uploaded} 个，失败 ${failed.length} 个：${failed.join('、')}`);
-  else if (reusedOutsideGroup > 0) ElMessage.warning(`${reusedOutsideGroup} 个重复文件复用了其他分组中的已有记录`);
-  else ElMessage.success(`成功上传 ${uploaded} 个文件`);
+  if (failed.length) ElMessage.warning(t('systemAttachment.uploadPartialFailed', { uploaded, failed: failed.length, names: failed.join('、') }, { default: '成功 {uploaded} 个，失败 {failed} 个：{names}' }));
+  else if (reusedOutsideGroup > 0) ElMessage.warning(t('systemAttachment.uploadReused', { n: reusedOutsideGroup }, { default: '{n} 个重复文件复用了其他分组中的已有记录' }));
+  else ElMessage.success(t('systemAttachment.uploadSuccess', { n: uploaded }, { default: '成功上传 {n} 个文件' }));
   await loadData();
 }
 async function renameOne(row: AttachmentModel) {
-  const result = await ElMessageBox.prompt('请输入新的文件名称', '重命名', { inputValue: row.originalName, inputPattern: /^.{1,255}$/, inputErrorMessage: '名称长度必须为 1 至 255 个字符' });
+  const result = await ElMessageBox.prompt(t('systemAttachment.renamePrompt', '请输入新的文件名称'), t('systemAttachment.rename', '重命名'), { inputValue: row.originalName, inputPattern: /^.{1,255}$/, inputErrorMessage: t('systemAttachment.renameRule', '名称长度必须为 1 至 255 个字符') });
   await attachmentApi.rename(row.id, result.value.trim()); await loadData();
 }
 async function moveSelected() {
-  const result = await ElMessageBox.prompt('请输入目标附件分组 ID，0 表示未分组', '移动附件', { inputPattern: /^\d+$/, inputErrorMessage: '请输入非负整数' });
+  const result = await ElMessageBox.prompt(t('systemAttachment.movePrompt', '请输入目标附件分组 ID，0 表示未分组'), t('systemAttachment.moveTitle', '移动附件'), { inputPattern: /^\d+$/, inputErrorMessage: t('systemAttachment.moveRule', '请输入非负整数') });
   await attachmentApi.move(selection.value.map((item) => item.id), Number(result.value)); await loadData();
 }
 async function removeSelected() {
-  await ElMessageBox.confirm(`确认永久删除选中的 ${selection.value.length} 个附件吗？本地文件将同步删除。`, '永久删除确认', { type: 'error', confirmButtonText: '永久删除' });
+  await ElMessageBox.confirm(t('systemAttachment.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个附件吗？本地文件将同步删除。' }), t('systemAttachment.destroyConfirmTitle', '永久删除确认'), { type: 'error', confirmButtonText: t('systemAttachment.destroyButton', '永久删除') });
   await attachmentApi.remove(selection.value.map((item) => item.id)); await loadData();
 }
 function formatBytes(size: number) { if (size < 1024) return `${size} B`; if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`; return `${(size / 1024 / 1024).toFixed(2)} MB`; }

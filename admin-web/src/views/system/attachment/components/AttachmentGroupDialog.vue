@@ -1,28 +1,28 @@
 <template>
-  <el-dialog v-model="visible" :title="row?.id ? '编辑附件分组' : '新增附件分组'" width="500px" destroy-on-close @closed="resetForm">
+  <el-dialog v-model="visible" :title="row?.id ? t('systemAttachment.dialogEditGroup', '编辑附件分组') : t('systemAttachment.dialogAddGroup', '新增附件分组')" width="500px" destroy-on-close @closed="resetForm">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="92px">
-      <el-form-item label="上级分组" prop="parentId">
-        <el-tree-select v-model="form.parentId" :data="parentOptions" :props="{ label: 'name', children: 'children' }" node-key="id" check-strictly clearable class="w-full" placeholder="无上级" />
+      <el-form-item :label="t('systemAttachment.parentGroup', '上级分组')" prop="parentId">
+        <el-tree-select v-model="form.parentId" :data="parentOptions" :props="{ label: 'name', children: 'children' }" node-key="id" check-strictly clearable class="w-full" :placeholder="t('systemAttachment.noParent', '无上级')" />
       </el-form-item>
-      <el-form-item label="分组名称" prop="name">
+      <el-form-item :label="t('systemAttachment.groupName', '分组名称')" prop="name">
         <el-input v-model="form.name" maxlength="100" show-word-limit />
       </el-form-item>
-      <el-form-item label="缩略图" prop="thumb">
+      <el-form-item :label="t('systemAttachment.thumb', '缩略图')" prop="thumb">
         <Upload v-model="form.thumb" type="image" biz-type="image" :max-size="5" />
       </el-form-item>
-      <el-form-item label="排序" prop="sort">
+      <el-form-item :label="t('systemAttachment.sort', '排序')" prop="sort">
         <el-input-number v-model="form.sort" :min="0" :max="999999" controls-position="right" class="w-full" />
       </el-form-item>
-      <el-form-item label="状态" prop="status">
+      <el-form-item :label="t('common.status', '状态')" prop="status">
         <el-radio-group v-model="form.status">
-          <el-radio :value="1">启用</el-radio>
-          <el-radio :value="0">停用</el-radio>
+          <el-radio :value="1">{{ t('common.enable', '启用') }}</el-radio>
+          <el-radio :value="0">{{ t('systemAttachment.stopped', '停用') }}</el-radio>
         </el-radio-group>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -30,22 +30,24 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import Upload from '@/components/Upload/index.vue';
 import { attachmentGroupApi, type AttachmentGroupModel, type AttachmentGroupPayload } from '@/api/system/attachment';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: AttachmentGroupModel | null; parents: AttachmentGroupModel[] }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
+const { t } = useI18n();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const formRef = ref<FormInstance>();
 const saving = ref(false);
 const initialForm = (): AttachmentGroupPayload => ({ parentId: 0, name: '', thumb: '', status: 1, sort: 999 });
 const form = reactive(initialForm());
 const parentOptions = computed<AttachmentGroupModel[]>(() => [
-  { id: 0, parentId: 0, name: '无上级' } as AttachmentGroupModel,
+  { id: 0, parentId: 0, name: t('systemAttachment.noParent', '无上级') } as AttachmentGroupModel,
   ...props.parents
 ]);
 const rules: FormRules = {
-  name: [{ required: true, message: '请输入分组名称', trigger: 'blur' }, { max: 100, message: '最多 100 个字符', trigger: 'blur' }]
+  name: [{ required: true, message: t('systemAttachment.nameRequired', '请输入分组名称'), trigger: 'blur' }, { max: 100, message: t('systemAttachment.nameMax', '最多 100 个字符'), trigger: 'blur' }]
 };
 watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
   if (!opened) return;

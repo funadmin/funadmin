@@ -1,7 +1,10 @@
 import dayjs from 'dayjs';
 import { computed, onBeforeUnmount, ref, watch, toValue, type MaybeRefOrGetter } from 'vue';
+import { i18n } from '@/locales';
 import { formDataApi } from '@/api/formData';
 import { resolveDataSourceParameters } from '../dataSource/useFormDataSource';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
 
 export type PresentationOption = { label: string; value: unknown; [key: string]: unknown };
 export type FieldOptionsRequest = (formKey: string, field: string, params: Record<string, unknown>, signal?: AbortSignal) => Promise<{ options: unknown[]; total?: number }>;
@@ -111,7 +114,7 @@ export function useSuppliedFieldOptions(context: MaybeRefOrGetter<Record<string,
           const result = await request(key, String(node.field ?? node.id ?? ''), params, entry.controller.signal);
           if (active && entries.get(id) === entry) entry.options = result.options.filter(isOption).map(item => ({ ...item, label: String(item.label) }));
         } catch {
-          if (active && entries.get(id) === entry) entry.error = '选项加载失败，请稍后重试';
+          if (active && entries.get(id) === entry) entry.error = t('formData.optionsLoadFailedRetry', '选项加载失败，请稍后重试');
         } finally {
           if (active && entries.get(id) === entry) { entry.pending = false; revision.value++; }
         }
@@ -137,7 +140,7 @@ export function useSuppliedFieldOptions(context: MaybeRefOrGetter<Record<string,
   const supplied = computed(() => { void revision.value; return forContext(contexts()[0] ?? {}); });
   const errors = computed(() => { void revision.value; return Object.fromEntries((config?.fields ?? []).flatMap(node => { const field = String(node.id ?? node.field ?? ''); const error = entryFor(field, contexts()[0] ?? {})?.error; return error ? [[field, error]] : []; })); });
   const pending = computed(() => { void revision.value; return Object.fromEntries((config?.fields ?? []).map(node => { const field = String(node.id ?? node.field ?? ''); return [field, entryFor(field, contexts()[0] ?? {})?.pending ?? false]; })); });
-  const placeholder = (field: string, values = contexts()[0] ?? {}) => { const entry = entryFor(field, values); return entry?.pending ? '选项加载中…' : entry?.error ?? ''; };
+  const placeholder = (field: string, values = contexts()[0] ?? {}) => { const entry = entryFor(field, values); return entry?.pending ? t('formData.optionsLoading', '选项加载中…') : entry?.error ?? ''; };
   return { supplied, errors, pending, load, invalidate, placeholder, forContext };
 }
 
@@ -169,6 +172,6 @@ export function formatFieldValue(value: unknown, options: PresentationOption[] =
     try { return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value) ?? ''; } catch { return displayValue(value); }
   }
   const values = Array.isArray(value) ? value : [value];
-  const labels = values.map(item => findFieldOption(item, options)?.label ?? (formatter === 'boolean' || formatter === 'switch' ? (['1', 'true', 'yes', 'on'].includes(String(item).toLowerCase()) ? '是' : '否') : displayValue(item)));
+  const labels = values.map(item => findFieldOption(item, options)?.label ?? (formatter === 'boolean' || formatter === 'switch' ? (['1', 'true', 'yes', 'on'].includes(String(item).toLowerCase()) ? t('formData.yes', '是') : t('formData.no', '否')) : displayValue(item)));
   return labels.join(', ');
 }

@@ -16,20 +16,20 @@
           <el-tag size="small" type="info" effect="plain" class="schema-tree-type">{{ typeLabel(node.type) }}</el-tag>
         </span>
         <span class="schema-tree-ops">
-          <el-button link size="small" title="上移" :disabled="index === 0" @click.stop="store.moveNode(node.id, parentId, index - 1)"><i class="i-ep-top" /></el-button>
-          <el-button link size="small" title="下移" :disabled="index === nodes.length - 1" @click.stop="store.moveNode(node.id, parentId, index + 2)"><i class="i-ep-bottom" /></el-button>
-          <el-button v-if="parentId" link size="small" title="移至根层" @click.stop="store.moveNode(node.id, null, store.nodes.value.length)">根</el-button>
-          <el-button link size="small" title="复制" @click.stop="store.duplicateNode(node.id)"><i class="i-ep-copy-document" /></el-button>
+          <el-button link size="small" :title="t('formDesigner.moveUp', '上移')" :disabled="index === 0" @click.stop="store.moveNode(node.id, parentId, index - 1)"><i class="i-ep-top" /></el-button>
+          <el-button link size="small" :title="t('formDesigner.moveDown', '下移')" :disabled="index === nodes.length - 1" @click.stop="store.moveNode(node.id, parentId, index + 2)"><i class="i-ep-bottom" /></el-button>
+          <el-button v-if="parentId" link size="small" :title="t('formDesigner.moveToRoot', '移至根层')" @click.stop="store.moveNode(node.id, null, store.nodes.value.length)">{{ t('formDesigner.root', '根') }}</el-button>
+          <el-button link size="small" :title="t('formDesigner.duplicate', '复制')" @click.stop="store.duplicateNode(node.id)"><i class="i-ep-copy-document" /></el-button>
         </span>
       </div>
       <div v-if="isContainer(node.type)" class="schema-tree-add">
         <el-dropdown trigger="click" @command="(type: string) => store.addNode(type, node.id)">
-          <el-button size="small" class="schema-tree-add-btn"><i class="i-ep-plus" /> 容器内添加</el-button>
+          <el-button size="small" class="schema-tree-add-btn"><i class="i-ep-plus" /> {{ t('formDesigner.addInContainer', '容器内添加') }}</el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="input">输入框</el-dropdown-item>
-              <el-dropdown-item command="select">下拉选择</el-dropdown-item>
-              <el-dropdown-item command="group">分组容器</el-dropdown-item>
+              <el-dropdown-item command="input">{{ t('formDesigner.addInput', '输入框') }}</el-dropdown-item>
+              <el-dropdown-item command="select">{{ t('formDesigner.addSelect', '下拉选择') }}</el-dropdown-item>
+              <el-dropdown-item command="group">{{ t('formDesigner.addGroup', '分组容器') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -43,16 +43,19 @@
         />
       </div>
     </div>
-    <el-empty v-if="depth === 0 && !nodes.length" description="暂无表单节点" :image-size="48" />
+    <el-empty v-if="depth === 0 && !nodes.length" :description="t('formDesigner.noNodes', '暂无表单节点')" :image-size="48" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { FormSchemaNode } from '@/api/form';
 import type { DesignerStore } from '../../composables/useDesigner';
 import { controlMeta } from '../../registry';
 
 defineOptions({ name: 'SchemaNodeTree' });
+
+const { t } = useI18n();
 
 withDefaults(defineProps<{
   nodes: FormSchemaNode[];
@@ -63,7 +66,7 @@ withDefaults(defineProps<{
 
 const typeLabel = (type: string) => {
   const meta = controlMeta(type);
-  return meta.type === type ? meta.label : '未知控件';
+  return meta.type === type ? meta.label : t('formDesigner.unknownControl', '未知控件');
 };
 const isContainer = (type: string) => ['group', 'grid', 'collapse', 'tabs', 'repeatable', 'subform'].includes(type);
 </script>

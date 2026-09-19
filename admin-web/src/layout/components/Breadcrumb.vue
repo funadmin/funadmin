@@ -39,7 +39,7 @@ const items = computed<Crumb[]>(() => {
     matched.unshift({
       path: '/dashboard',
       name: 'Home',
-      meta: { title: '首页' }
+      meta: { title: 'Home' }
     } as any);
   }
   return matched.map((r) => ({

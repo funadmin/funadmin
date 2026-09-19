@@ -23,9 +23,29 @@ export interface LanguagePack {
   messages: Record<string, string>;
 }
 
+export interface LanguageLineModel {
+  id: number;
+  locale: string;
+  key: string;
+  value: string;
+  updatedAt: string;
+}
+
+export interface LanguageLineQuery {
+  page: number;
+  pageSize: number;
+  locale: string;
+  keyword?: string;
+}
+
 export const languageApi = {
   pack: (locale: string, signal?: AbortSignal) =>
     http.get<LanguagePack>(`${PREFIX}/pack`, { locale }, signal ? { signal } : undefined),
+  lines: (params: LanguageLineQuery) => http.get<API.PageResult<LanguageLineModel>>(`${PREFIX}/lines`, params),
+  saveLine: (data: { locale: string; key: string; value: string }) =>
+    http.post<{ id: number }>(`${PREFIX}/lines`, data, { requestOptions: { showSuccessMsg: true } }),
+  removeLine: (id: number) =>
+    http.delete<{ removed: number }>(`${PREFIX}/lines`, { id }, { requestOptions: { showSuccessMsg: true } }),
   list: (params: LanguageQuery) => http.get<API.PageResult<LanguageModel>>(PREFIX, { params }),
   detail: (id: number) => http.get<LanguageModel>(`${PREFIX}/${id}`),
   create: (data: Pick<LanguageModel, 'name'>) =>

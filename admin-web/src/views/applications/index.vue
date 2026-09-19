@@ -1,30 +1,30 @@
 <template>
   <PageWrapper :title="t('enterpriseApplications.title')" :subtitle="t('enterpriseApplications.subtitle')">
     <div class="statistics mb-4 grid grid-cols-3 gap-3">
-      <el-card><el-statistic title="全部应用" :value="statistics.total" /></el-card>
-      <el-card><el-statistic title="已发布" :value="statistics.published" /></el-card>
-      <el-card><el-statistic title="草稿/禁用" :value="statistics.inactive" /></el-card>
+      <el-card><el-statistic :title="t('applications.statTotal', '全部应用')" :value="statistics.total" /></el-card>
+      <el-card><el-statistic :title="t('applications.statPublished', '已发布')" :value="statistics.published" /></el-card>
+      <el-card><el-statistic :title="t('applications.statInactive', '草稿/禁用')" :value="statistics.inactive" /></el-card>
     </div>
     <div class="mb-4 flex gap-2">
-      <el-input v-model="keyword" clearable placeholder="搜索应用名称或标识" class="max-w-80" @keyup.enter="load" />
-      <el-button type="primary" plain @click="load">搜索</el-button>
-      <el-button type="success" plain @click="openCreate">新建应用</el-button>
-      <el-radio-group v-model="viewMode"><el-radio-button value="card">卡片</el-radio-button><el-radio-button value="list">列表</el-radio-button></el-radio-group>
+      <el-input v-model="keyword" clearable :placeholder="t('applications.searchPlaceholder', '搜索应用名称或标识')" class="max-w-80" @keyup.enter="load" />
+      <el-button type="primary" plain @click="load">{{ t('applications.searchButton', '搜索') }}</el-button>
+      <el-button type="success" plain @click="openCreate">{{ t('applications.createApp', '新建应用') }}</el-button>
+      <el-radio-group v-model="viewMode"><el-radio-button value="card">{{ t('applications.viewCard', '卡片') }}</el-radio-button><el-radio-button value="list">{{ t('applications.viewList', '列表') }}</el-radio-button></el-radio-group>
     </div>
     <div v-loading="loading">
       <!-- 列表模式或空数据时保留表格结构：表头 + 表内空文案，避免整页空白 -->
       <el-table v-if="viewMode === 'list' || !applications.length" :data="applications" :empty-text="emptyText">
-        <el-table-column prop="name" label="应用名称" min-width="180"><template #default="{ row }"><div>{{ row.name }}</div><small class="text-gray-500">{{ row.description || '-' }}</small></template></el-table-column>
-        <el-table-column prop="code" label="标识" min-width="140" />
-        <el-table-column prop="runtimeType" label="运行类型" width="110" />
-        <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" min-width="260" fixed="right">
+        <el-table-column prop="name" :label="t('applications.colName', '应用名称')" min-width="180"><template #default="{ row }"><div>{{ row.name }}</div><small class="text-gray-500">{{ row.description || '-' }}</small></template></el-table-column>
+        <el-table-column prop="code" :label="t('applications.colCode', '标识')" min-width="140" />
+        <el-table-column prop="runtimeType" :label="t('applications.runtimeType', '运行类型')" width="110" />
+        <el-table-column prop="status" :label="t('common.status', '状态')" width="100"><template #default="{ row }"><el-tag :type="row.status === 'published' ? 'success' : 'info'" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column :label="t('common.operation', '操作')" min-width="260" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :disabled="!canLaunchApplication(appRow(row))" @click="launch(appRow(row))">进入应用</el-button>
-            <el-button link @click="openSettings(appRow(row))">设置</el-button>
-            <el-button v-if="row.status === 'draft'" link type="success" @click="publish(appRow(row))">发布</el-button>
-            <el-button v-if="row.status === 'published'" link type="warning" @click="disable(appRow(row))">停用</el-button>
-            <el-button v-if="row.status !== 'published'" link type="danger" @click="remove(appRow(row))">删除</el-button>
+            <el-button link type="primary" :disabled="!canLaunchApplication(appRow(row))" @click="launch(appRow(row))">{{ t('applications.enterApp', '进入应用') }}</el-button>
+            <el-button link @click="openSettings(appRow(row))">{{ t('applications.settings', '设置') }}</el-button>
+            <el-button v-if="row.status === 'draft'" link type="success" @click="publish(appRow(row))">{{ t('applications.publish', '发布') }}</el-button>
+            <el-button v-if="row.status === 'published'" link type="warning" @click="disable(appRow(row))">{{ t('applications.stop', '停用') }}</el-button>
+            <el-button v-if="row.status !== 'published'" link type="danger" @click="remove(appRow(row))">{{ t('common.remove', '删除') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -32,20 +32,20 @@
         <el-card v-for="item in applications" :key="item.id">
           <template #header><div class="flex items-center justify-between"><strong>{{ item.name }}</strong><el-tag>{{ item.status }}</el-tag></div></template>
           <p>{{ item.description || '-' }}</p><p class="text-sm text-gray-500">{{ item.code }} · {{ item.runtimeType }}</p>
-          <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">进入应用</el-button><el-button @click="openSettings(item)">设置</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">发布</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">停用</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">删除</el-button></div>
+          <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">{{ t('applications.enterApp', '进入应用') }}</el-button><el-button @click="openSettings(item)">{{ t('applications.settings', '设置') }}</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">{{ t('applications.publish', '发布') }}</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">{{ t('applications.stop', '停用') }}</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">{{ t('common.remove', '删除') }}</el-button></div>
         </el-card>
       </div>
     </div>
-    <el-drawer v-model="drawerVisible" :title="selectedId ? '应用设置' : '新建应用'" size="620px">
+    <el-drawer v-model="drawerVisible" :title="selectedId ? t('applications.drawerSettings', '应用设置') : t('applications.drawerCreate', '新建应用')" size="620px">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="基本信息" name="basic"><el-form label-width="110"><el-form-item label="名称"><el-input v-model="form.name" /></el-form-item><el-form-item label="标识"><el-input v-model="form.code" :disabled="selectedId > 0" /></el-form-item><el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item><el-form-item label="可见性"><el-select v-model="form.visibility"><el-option label="私有" value="private"/><el-option label="租户" value="tenant"/><el-option label="公开" value="public"/></el-select></el-form-item><el-form-item v-if="form.visibility === 'private'" label="所有者身份 ID"><el-input-number v-model="form.ownerIdentityUserId" :min="1" /></el-form-item><el-alert title="显式拒绝始终优先；私有仅所有者或显式用户允许可进入；租户与公开允许同租户已启用身份进入。" type="info" :closable="false"/></el-form></el-tab-pane>
-        <el-tab-pane label="运行与数据" name="runtime"><el-form label-width="110"><el-form-item label="运行类型"><el-select v-model="form.runtimeType"><el-option label="内部" value="internal"/><el-option label="插件" value="plugin"/><el-option label="独立应用" value="standalone"/></el-select></el-form-item><el-form-item label="启动地址"><el-input v-model="form.launchUrl" /></el-form-item><el-form-item label="数据模式"><el-select v-model="database.mode"><el-option label="共享" value="shared"/><el-option label="独立" value="dedicated"/><el-option label="外部" value="external"/></el-select></el-form-item><el-form-item v-if="database.mode !== 'shared'" label="凭证引用"><el-input v-model="database.credentialRef" placeholder="vault://..." /></el-form-item><el-form-item label="健康路径"><el-input v-model="database.healthPath" placeholder="/health" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="域名" name="domains"><el-form label-width="120"><el-form-item label="Identity 回调"><el-input v-model="domain.identityCallback" @input="domainTouched = true" /></el-form-item><el-form-item label="Logout 回调"><el-input v-model="domain.logoutCallback" @input="domainTouched = true" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="访问范围" name="assignments"><el-alert title="支持全部、用户、部门、角色的 allow/deny；显式拒绝始终优先。私有应用只有 user allow 可额外授权。" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item label="主体"><el-select v-model="assignment.subjectType"><el-option label="全部" value="all"/><el-option label="用户" value="user"/><el-option label="部门" value="department"/><el-option label="角色" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" label="主体 ID"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item label="效果"><el-radio-group v-model="assignment.effect"><el-radio value="allow">允许</el-radio><el-radio value="deny">拒绝</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="品牌" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item label="主色"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
-        <el-tab-pane label="OAuth" name="oauth"><el-alert title="OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。" type="info" :closable="false"/><el-button class="mt-3" type="primary" plain :disabled="selectedId <= 0" @click="openOAuthManagement">管理 OAuth Client</el-button></el-tab-pane>
+        <el-tab-pane :label="t('applications.tabBasic', '基本信息')" name="basic"><el-form label-width="110"><el-form-item :label="t('applications.name', '名称')"><el-input v-model="form.name" /></el-form-item><el-form-item :label="t('applications.colCode', '标识')"><el-input v-model="form.code" :disabled="selectedId > 0" /></el-form-item><el-form-item :label="t('applications.formDesc', '描述')"><el-input v-model="form.description" type="textarea" /></el-form-item><el-form-item :label="t('applications.formVisibility', '可见性')"><el-select v-model="form.visibility"><el-option :label="t('applications.visibilityPrivate', '私有')" value="private"/><el-option :label="t('applications.visibilityTenant', '租户')" value="tenant"/><el-option :label="t('applications.visibilityPublic', '公开')" value="public"/></el-select></el-form-item><el-form-item v-if="form.visibility === 'private'" :label="t('applications.formOwnerId', '所有者身份 ID')"><el-input-number v-model="form.ownerIdentityUserId" :min="1" /></el-form-item><el-alert :title="t('applications.visibilityHint', '显式拒绝始终优先；私有仅所有者或显式用户允许可进入；租户与公开允许同租户已启用身份进入。')" type="info" :closable="false"/></el-form></el-tab-pane>
+        <el-tab-pane :label="t('applications.tabRuntime', '运行与数据')" name="runtime"><el-form label-width="110"><el-form-item :label="t('applications.runtimeType', '运行类型')"><el-select v-model="form.runtimeType"><el-option :label="t('applications.runtimeInternal', '内部')" value="internal"/><el-option :label="t('applications.runtimePlugin', '插件')" value="plugin"/><el-option :label="t('applications.runtimeStandalone', '独立应用')" value="standalone"/></el-select></el-form-item><el-form-item :label="t('applications.launchUrl', '启动地址')"><el-input v-model="form.launchUrl" /></el-form-item><el-form-item :label="t('applications.dataMode', '数据模式')"><el-select v-model="database.mode"><el-option :label="t('applications.modeShared', '共享')" value="shared"/><el-option :label="t('applications.modeDedicated', '独立')" value="dedicated"/><el-option :label="t('applications.modeExternal', '外部')" value="external"/></el-select></el-form-item><el-form-item v-if="database.mode !== 'shared'" :label="t('applications.credentialRef', '凭证引用')"><el-input v-model="database.credentialRef" placeholder="vault://..." /></el-form-item><el-form-item :label="t('applications.healthPath', '健康路径')"><el-input v-model="database.healthPath" placeholder="/health" /></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane :label="t('applications.tabDomains', '域名')" name="domains"><el-form label-width="120"><el-form-item :label="t('applications.identityCallback', 'Identity 回调')"><el-input v-model="domain.identityCallback" @input="domainTouched = true" /></el-form-item><el-form-item :label="t('applications.logoutCallback', 'Logout 回调')"><el-input v-model="domain.logoutCallback" @input="domainTouched = true" /></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane :label="t('applications.tabAssignments', '访问范围')" name="assignments"><el-alert :title="t('applications.assignmentsHint', '支持全部、用户、部门、角色的 allow/deny；显式拒绝始终优先。私有应用只有 user allow 可额外授权。')" type="info" :closable="false"/><el-form class="mt-3" label-width="100"><el-form-item :label="t('applications.subject', '主体')"><el-select v-model="assignment.subjectType"><el-option :label="t('applications.subjectAll', '全部')" value="all"/><el-option :label="t('applications.subjectUser', '用户')" value="user"/><el-option :label="t('applications.subjectDepartment', '部门')" value="department"/><el-option :label="t('applications.subjectRole', '角色')" value="role"/></el-select></el-form-item><el-form-item v-if="assignment.subjectType !== 'all'" :label="t('applications.subjectId', '主体 ID')"><el-input-number v-model="assignment.subjectId" :min="1" /></el-form-item><el-form-item :label="t('applications.effect', '效果')"><el-radio-group v-model="assignment.effect"><el-radio value="allow">{{ t('applications.effectAllow', '允许') }}</el-radio><el-radio value="deny">{{ t('applications.effectDeny', '拒绝') }}</el-radio></el-radio-group></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane :label="t('applications.tabBrand', '品牌')" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item :label="t('applications.primaryColor', '主色')"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
+        <el-tab-pane label="OAuth" name="oauth"><el-alert :title="t('applications.oauthHint', 'OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。')" type="info" :closable="false"/><el-button class="mt-3" type="primary" plain :disabled="selectedId <= 0" @click="openOAuthManagement">{{ t('applications.manageOAuth', '管理 OAuth Client') }}</el-button></el-tab-pane>
       </el-tabs>
-      <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button type="primary" @click="saveSettings">保存</el-button></template>
+      <template #footer><el-button @click="drawerVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" @click="saveSettings">{{ t('common.save', '保存') }}</el-button></template>
     </el-drawer>
   </PageWrapper>
 </template>
@@ -68,7 +68,7 @@ const database = reactive<DatabaseInput>({ mode: 'shared', credentialRef: '', he
 const domain = reactive<DomainInput>({ identityCallback: '', logoutCallback: '', domainType: 'web' });
 const assignment = reactive<AssignmentInput>({ subjectType: 'all', effect: 'allow' });
 const statistics = computed(() => ({ total: applications.value.length, published: applications.value.filter((item) => item.status === 'published').length, inactive: applications.value.filter((item) => item.status !== 'published').length }));
-const emptyText = computed(() => (keyword.value.trim() ? '没有符合搜索条件的应用' : '暂无应用，可通过“新建应用”创建第一个企业应用'));
+const emptyText = computed(() => (keyword.value.trim() ? t('applications.emptySearch', '没有符合搜索条件的应用') : t('applications.emptyAll', '暂无应用，可通过“新建应用”创建第一个企业应用')));
 // el-table 插槽 row 为 DefaultRow（Record<PropertyKey, any>），不能直接赋给实体类型；显式收窄避免模板类型报错
 const appRow = (row: Record<PropertyKey, any>): EnterpriseApplication => row as EnterpriseApplication;
 async function load() { loading.value = true; try { applications.value = (await applicationApi.list({ page: 1, pageSize: 100, keyword: keyword.value })).list; } finally { loading.value = false; } }
@@ -79,7 +79,7 @@ async function launch(item: EnterpriseApplication) {
     window.location.assign(launchUrl);
   } catch (caught) {
     const error = caught as { code?: number; msg?: string };
-    if (error?.code === 403) ElMessage.error(error.msg || '当前账号无权进入该应用');
+    if (error?.code === 403) ElMessage.error(error.msg || t('applications.noPermission', '当前账号无权进入该应用'));
   }
 }
 function resetSettings() {
@@ -112,6 +112,6 @@ async function saveSettings() {
 async function openOAuthManagement() { if (selectedId.value > 0) { drawerVisible.value = false; await router.push({ path: '/applications/oauth-client', query: { applicationId: String(selectedId.value) } }); } }
 async function publish(item: EnterpriseApplication) { await applicationApi.publish(item.id); await load(); }
 async function disable(item: EnterpriseApplication) { await applicationApi.disable(item.id); await load(); }
-async function remove(item: EnterpriseApplication) { await ElMessageBox.confirm(`确定删除应用“${item.name}”吗？`, '删除确认', { type: 'warning' }); await applicationApi.remove(item.id); await load(); }
+async function remove(item: EnterpriseApplication) { await ElMessageBox.confirm(t('applications.deleteConfirm', { name: item.name }, '确定删除应用“{name}”吗？'), t('applications.deleteTitle', '删除确认'), { type: 'warning' }); await applicationApi.remove(item.id); await load(); }
 onMounted(load);
 </script>

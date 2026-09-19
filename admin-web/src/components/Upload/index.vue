@@ -14,7 +14,7 @@
           <img v-if="previewUrl" :src="previewUrl" class="app-upload__image-img" alt="" />
           <div v-else class="app-upload__image-placeholder">
             <i class="i-ep-plus app-upload__image-icon" />
-            <span class="app-upload__image-tip">点击上传</span>
+            <span class="app-upload__image-tip">{{ t('common.clickUpload', '点击上传') }}</span>
           </div>
           <div v-if="loading" class="app-upload__image-mask">
             <i class="i-ep-loading app-upload__image-loading" />
@@ -57,7 +57,7 @@
               <i v-if="loading" class="i-ep-loading app-upload__image-loading" />
               <template v-else>
                 <i class="i-ep-plus app-upload__image-icon" />
-                <span class="app-upload__image-tip">添加图片</span>
+                <span class="app-upload__image-tip">{{ t('common.addImage', '添加图片') }}</span>
               </template>
             </div>
           </div>
@@ -88,9 +88,9 @@
           <i v-if="loading" class="i-ep-loading app-upload__file-drop-icon is-loading" />
           <i v-else class="i-ep-upload-filled app-upload__file-drop-icon" />
           <div class="app-upload__file-drop-title">
-            <span>点击或</span>
-            <em>拖拽文件</em>
-            <span>到此处上传</span>
+            <span>{{ t('common.clickOr', '点击或') }}</span>
+            <em>{{ t('common.dragFile', '拖拽文件') }}</em>
+            <span>{{ t('common.toHereUpload', '到此处上传') }}</span>
           </div>
           <div v-if="hint" class="app-upload__file-drop-hint">{{ hint }}</div>
         </div>
@@ -117,7 +117,7 @@
             <div class="app-upload__file-row-info">
               <span>{{ formatBytes(it.size) }}</span>
               <span v-if="it.url" class="app-upload__file-row-status">
-                <i class="i-ep-success-filled" /> 已上传
+                <i class="i-ep-success-filled" /> {{ t('common.uploaded', '已上传') }}
               </span>
             </div>
           </div>
@@ -129,7 +129,7 @@
               size="small"
               @click="openFile(it.url!)"
             >
-              <i class="i-ep-view" /> 预览
+              <i class="i-ep-view" /> {{ t('common.preview', '预览') }}
             </ElButton>
             <ElButton
               link
@@ -138,7 +138,7 @@
               :disabled="disabled"
               @click="removeFile(idx)"
             >
-              <i class="i-ep-delete" /> 删除
+              <i class="i-ep-delete" /> {{ t('common.remove', '删除') }}
             </ElButton>
           </div>
         </li>
@@ -168,6 +168,7 @@ import {
   ElUpload,
   type UploadRequestOptions
 } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { uploadApi, type UploadResult } from '@/api/common/upload';
 
 type UploadType = 'image' | 'images' | 'file';
@@ -211,6 +212,7 @@ const emit = defineEmits<{
   error: [err: Error];
 }>();
 
+const { t } = useI18n();
 const loading = ref(false);
 
 /* ---------- 单图 ---------- */
@@ -295,7 +297,7 @@ function getFileIcon(name: string): string {
 function beforeUpload(file: File): boolean {
   const sizeMB = file.size / 1024 / 1024;
   if (sizeMB > props.maxSize) {
-    ElMessage.warning(`文件 ${file.name} 超过 ${props.maxSize}MB`);
+    ElMessage.warning(t('common.fileTooLarge', { name: file.name, size: props.maxSize }, '文件 {name} 超过 {size}MB'));
     return false;
   }
   return true;
@@ -320,7 +322,7 @@ async function customRequest(opts: UploadRequestOptions) {
     }
   } catch (e: any) {
     emit('error', e);
-    ElMessage.error(e?.msg || e?.message || '上传失败');
+    ElMessage.error(e?.msg || e?.message || t('common.uploadFailed', '上传失败'));
   } finally {
     loading.value = false;
   }

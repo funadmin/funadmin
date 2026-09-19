@@ -11,7 +11,6 @@
       <el-divider />
       <el-form-item label="可管理分类"><el-switch :model-value="left.enabled" @change="value => updateLeft({ enabled: Boolean(value) })" /></el-form-item>
       <template v-if="left.enabled">
-        <el-alert title="独立分类请选择已发布业务，右表关联字段保存分类主键。来源须有读取权限；新增、子级、编辑、删除还需对应权限。父级可留空（平面分类）；插件来源暂不支持快捷管理。" :closable="false" />
         <el-form-item label="来源"><el-select :model-value="left.source.type" @change="changeSource"><el-option label="当前业务（same）" value="current" /><el-option label="已发布业务（cross）" value="module" /></el-select></el-form-item>
         <el-form-item v-if="left.source.type === 'module'" label="业务模块"><el-select :model-value="left.source.module" filterable @visible-change="shown => shown && loadModules()" @change="chooseModule"><el-option v-for="item in modules" :key="item.moduleId" :label="item.moduleCode" :value="item.moduleCode" /></el-select></el-form-item>
         <el-form-item v-for="binding in bindings" :key="binding.key" :label="binding.label">

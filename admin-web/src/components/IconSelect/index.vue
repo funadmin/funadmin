@@ -10,14 +10,14 @@
     <template #reference>
       <div class="icon-select__trigger" @click="visible = !visible">
         <i v-if="modelValue" :class="modelValue" class="text-base" />
-        <span v-else class="icon-select__placeholder">{{ placeholder }}</span>
+        <span v-else class="icon-select__placeholder">{{ triggerPlaceholder }}</span>
         <i class="i-ep-arrow-down icon-select__arrow" />
       </div>
     </template>
     <div class="icon-select">
       <el-input
         v-model="keyword"
-        placeholder="搜索图标"
+        :placeholder="t('common.searchIcon', '搜索图标')"
         clearable
         size="small"
         class="mb-2"
@@ -39,15 +39,16 @@
             <i :class="name" class="icon-select__item-icon" />
           </div>
         </div>
-        <div v-if="!filtered.length" class="icon-select__empty">无匹配图标</div>
+        <div v-if="!filtered.length" class="icon-select__empty">{{ t('common.noIconMatch', '无匹配图标') }}</div>
       </div>
-      <div class="icon-select__footer">共 {{ allIcons.length }} 个图标 · 显示 {{ filtered.length }}</div>
+      <div class="icon-select__footer">{{ t('common.iconStats', { total: allIcons.length, shown: filtered.length }, '共 {total} 个图标 · 显示 {shown}') }}</div>
     </div>
   </el-popover>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Props {
   modelValue?: string;
@@ -56,7 +57,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
-  placeholder: '选择图标'
+  placeholder: ''
 });
 
 const emit = defineEmits<{
@@ -64,6 +65,7 @@ const emit = defineEmits<{
   change: [value: string];
 }>();
 
+const { t } = useI18n();
 const visible = ref(false);
 const keyword = ref('');
 
@@ -141,6 +143,8 @@ const allIcons: string[] = [
   'i-ep-warning',
   'i-ep-zoom-in',
 ];
+
+const triggerPlaceholder = computed(() => props.placeholder || t('common.selectIcon', '选择图标'));
 
 const filtered = computed(() => {
   const k = keyword.value.trim().toLowerCase();

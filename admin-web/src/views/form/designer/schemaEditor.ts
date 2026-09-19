@@ -1,5 +1,9 @@
+import { i18n } from '@/locales';
 import type { FormSchemaDocument, FormSchemaNode } from '@/api/form';
 import { evaluateCondition, type Condition } from '../runtime/conditionEvaluator';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 export interface SchemaParseResult {
   ok: boolean;
@@ -45,11 +49,12 @@ export const parseSchemaJson = (raw: string): SchemaParseResult => {
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
-    return { ok: false, schema: null, error: `JSON 语法错误：${error instanceof Error ? error.message : '无法解析'}` };
+    const msg = error instanceof Error ? error.message : t('formDesigner.cannotParse', '无法解析');
+    return { ok: false, schema: null, error: tNamed('formDesigner.jsonSyntaxError', { msg }, 'JSON 语法错误：{msg}') };
   }
   if (!isRecord(parsed) || parsed.schemaVersion !== 2 || typeof parsed.key !== 'string'
     || typeof parsed.title !== 'string' || !Array.isArray(parsed.nodes) || !parsed.nodes.every(isNode)) {
-    return { ok: false, schema: null, error: '仅支持结构完整的 FormSchema v2 文档' };
+    return { ok: false, schema: null, error: t('formDesigner.schemaV2Only', '仅支持结构完整的 FormSchema v2 文档') };
   }
   return { ok: true, schema: parsed as unknown as FormSchemaDocument, error: '' };
 };

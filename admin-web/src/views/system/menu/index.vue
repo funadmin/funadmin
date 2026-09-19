@@ -1,21 +1,21 @@
 <template>
   <PageWrapper
-    title="菜单管理"
-    subtitle="维护后台导航目录与页面；按钮权限在角色权限中统一分配"
+    :title="t('systemMenu.title', '菜单管理')"
+    :subtitle="t('systemMenu.subtitle', '维护后台导航目录与页面；按钮权限在角色权限中统一分配')"
   >
     <DataTableShell storage-key="system-menu" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item label="菜单名称" prop="name">
-            <el-input v-model="query.name" placeholder="请输入菜单名称" clearable />
+          <el-form-item :label="t('systemMenu.name', '菜单名称')" prop="name">
+            <el-input v-model="query.name" :placeholder="t('systemMenu.namePlaceholder', '请输入菜单名称')" clearable />
           </el-form-item>
-          <el-form-item label="菜单路由" prop="path">
-            <el-input v-model="query.path" placeholder="请输入菜单路由" clearable />
+          <el-form-item :label="t('systemMenu.path', '菜单路由')" prop="path">
+            <el-input v-model="query.path" :placeholder="t('systemMenu.pathPlaceholder', '请输入菜单路由')" clearable />
           </el-form-item>
-          <el-form-item label="状态" prop="hidden">
-            <el-select v-model="query.hidden" placeholder="请选择" clearable class="!w-36">
-              <el-option label="显示" :value="false" />
-              <el-option label="隐藏" :value="true" />
+          <el-form-item :label="t('common.status', '状态')" prop="hidden">
+            <el-select v-model="query.hidden" :placeholder="t('common.pleaseSelect', '请选择')" clearable class="!w-36">
+              <el-option :label="t('systemMenu.visible', '显示')" :value="false" />
+              <el-option :label="t('systemMenu.hidden', '隐藏')" :value="true" />
             </el-select>
           </el-form-item>
         </SearchForm>
@@ -23,7 +23,7 @@
 
       <template #toolbar-left>
         <el-button type="primary" plain v-perm="'systemmenu:create'" @click="onAdd()">
-          <i class="i-ep-plus" /> 新增
+          <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
         </el-button>
         <el-button
           type="danger"
@@ -32,10 +32,10 @@
           v-perm="'systemmenu:delete'"
           @click="onBatchDelete"
         >
-          <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
+          <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
         </el-button>
         <el-button type="primary" plain @click="toggleExpand">
-          <i :class="expandAll ? 'i-ep-fold' : 'i-ep-expand'" /> {{ expandAll ? '折叠' : '展开' }}
+          <i :class="expandAll ? 'i-ep-fold' : 'i-ep-expand'" /> {{ expandAll ? t('systemMenu.collapse', '折叠') : t('systemMenu.expand', '展开') }}
         </el-button>
       </template>
 
@@ -60,7 +60,7 @@
                 v-if="dragEnabled && !row.readOnly"
                 class="menu-drag-handle inline-flex cursor-grab items-center justify-center text-[var(--el-text-color-secondary)] active:cursor-grabbing"
                 :data-menu-id="row.id"
-                title="拖动调整同级顺序"
+                :title="t('systemMenu.dragTip', '拖动调整同级顺序')"
               >
                 <i class="i-ep-rank text-lg" />
               </span>
@@ -68,26 +68,26 @@
             </template>
           </el-table-column>
           <el-table-column type="selection" width="48" align="center" :selectable="(row: API.MenuItem) => !row.readOnly" />
-          <el-table-column prop="name" label="名称" min-width="200" />
-          <el-table-column label="图标" width="80" align="center">
+          <el-table-column prop="name" :label="t('systemMenu.colName', '名称')" min-width="200" />
+          <el-table-column :label="t('systemMenu.icon', '图标')" width="80" align="center">
             <template #default="{ row }">
               <SvgIcon v-if="row.icon" :name="row.icon" :size="18" />
             </template>
           </el-table-column>
-          <el-table-column prop="path" label="路由" min-width="180" />
-          <el-table-column prop="permission" label="权限标识" min-width="220">
+          <el-table-column prop="path" :label="t('systemMenu.route', '路由')" min-width="180" />
+          <el-table-column prop="permission" :label="t('systemMenu.permission', '权限标识')" min-width="220">
             <template #default="{ row }">
               <span>{{ row.permission || '—' }}</span>
-              <el-tag v-if="row.orphaned" class="ml-2" size="small" type="danger">孤儿资源</el-tag>
-              <el-tag v-else-if="row.readOnly" class="ml-2" size="small" type="info">受管</el-tag>
+              <el-tag v-if="row.orphaned" class="ml-2" size="small" type="danger">{{ t('systemMenu.orphaned', '孤儿资源') }}</el-tag>
+              <el-tag v-else-if="row.readOnly" class="ml-2" size="small" type="info">{{ t('systemMenu.managed', '受管') }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="类型" width="90" align="center">
+          <el-table-column :label="t('systemMenu.type', '类型')" width="90" align="center">
             <template #default="{ row }">
               <el-tag size="small" :type="typeTag(row.type)">{{ typeText(row.type) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="sort" label="排序" width="100" align="center">
+          <el-table-column prop="sort" :label="t('systemMenu.sort', '排序')" width="100" align="center">
             <template #default="{ row }">
               <InlineEdit
                 v-if="!row.readOnly"
@@ -101,20 +101,20 @@
               <span v-else>{{ row.sort }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="320" align="center" fixed="right">
+          <el-table-column :label="t('common.operation', '操作')" width="320" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
                 <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:create'" @click="onAdd(row as API.MenuItem)">
-                  新增子项
+                  {{ t('systemMenu.addChild', '新增子项') }}
                 </el-button>
                 <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:update'" @click="onEdit(row as API.MenuItem)">
-                  编辑
+                  {{ t('common.edit', '编辑') }}
                 </el-button>
                 <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
-                  删除
+                  {{ t('common.remove', '删除') }}
                 </el-button>
                 <el-button v-else-if="row.orphaned && row.removable" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
-                  清理孤儿资源
+                  {{ t('systemMenu.cleanOrphan', '清理孤儿资源') }}
                 </el-button>
               </div>
             </template>
@@ -136,6 +136,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import Sortable from 'sortablejs';
 import { menuApi } from '@/api/system/menu';
 import { filterTree, listToTree, treeToList } from '@/utils/tree';
@@ -144,6 +145,7 @@ import MenuFormDialog from './components/MenuFormDialog.vue';
 
 defineOptions({ name: 'SystemMenu' });
 
+const { t } = useI18n();
 const loading = ref(false);
 const tree = ref<API.MenuItem[]>([]);
 const selection = ref<API.MenuItem[]>([]);
@@ -243,9 +245,9 @@ async function onMenuRowSortEnd() {
         menuApi.update(u.id, { sort: u.sort }, { requestOptions: { showSuccessMsg: false } }),
       ),
     );
-    ElMessage.success('排序已保存');
+    ElMessage.success(t('systemMenu.sortSaved', '排序已保存'));
   } catch {
-    ElMessage.error('保存排序失败');
+    ElMessage.error(t('systemMenu.sortSaveFailed', '保存排序失败'));
   } finally {
     await loadData();
   }
@@ -315,7 +317,7 @@ function typeTag(type: API.MenuItem['type']) {
   return ({ M: 'primary', C: 'success' } as const)[type as 'M' | 'C'];
 }
 function typeText(type: API.MenuItem['type']) {
-  return ({ M: '目录', C: '页面' } as const)[type as 'M' | 'C'] || '未知';
+  return type === 'M' ? t('systemMenu.typeDir', '目录') : type === 'C' ? t('systemMenu.typePage', '页面') : t('systemMenu.typeUnknown', '未知');
 }
 
 function onAdd(parent?: API.MenuItem) {
@@ -334,9 +336,9 @@ function onEdit(row: API.MenuItem) {
 async function onDelete(row: API.MenuItem) {
   const orphaned = row.orphaned && row.sourceType === 'generated';
   const message = orphaned
-    ? `确认清理孤儿资源 ${row.name}？同一生成来源的菜单、权限与授权规则将一并删除。`
-    : `确认删除 ${row.name} ?`;
-  await ElMessageBox.confirm(message, orphaned ? '清理孤儿资源' : '提示', { type: 'warning' });
+    ? t('systemMenu.deleteOrphanConfirm', { name: row.name }, { default: '确认清理孤儿资源 {name}？同一生成来源的菜单、权限与授权规则将一并删除。' })
+    : t('systemMenu.deleteConfirm', { name: row.name }, { default: '确认删除 {name} ?' });
+  await ElMessageBox.confirm(message, orphaned ? t('systemMenu.cleanOrphan', '清理孤儿资源') : t('common.tip', '提示'), { type: 'warning' });
   await menuApi.remove(row.id);
   await loadData();
 }
@@ -352,7 +354,7 @@ function onSelectionChange(rows: API.MenuItem[]) {
  */
 async function onBatchDelete() {
   if (!selection.value.length) {
-    ElMessage.warning('请至少选择一项');
+    ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
   }
   const rows = selection.value.filter((row) => !row.readOnly);
@@ -372,8 +374,8 @@ async function onBatchDelete() {
   const topIds = rows.map((r) => r.id).filter((id) => !hasSelectedAncestor(id));
 
   await ElMessageBox.confirm(
-    `已选中 ${selection.value.length} 项，去重后将删除 ${topIds.length} 个顶层节点（含其子节点）。是否继续？`,
-    '提示',
+    t('systemMenu.batchDeleteConfirm', { selected: selection.value.length, n: topIds.length }, { default: '已选中 {selected} 项，去重后将删除 {n} 个顶层节点（含其子节点）。是否继续？' }),
+    t('common.tip', '提示'),
     { type: 'warning' }
   );
 

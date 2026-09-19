@@ -1,25 +1,26 @@
 <template>
-  <el-dialog v-model="visible" :title="row?.id ? '编辑会员' : '新增会员'" width="680px" :close-on-click-modal="false" destroy-on-close>
-    <el-alert v-if="!row?.id" title="后台新建会员不设置密码，会员需后续通过前台找回或设置密码后才能登录。" type="warning" :closable="false" class="mb-4" />
+  <el-dialog v-model="visible" :title="row?.id ? t('systemMember.dialogEdit', '编辑会员') : t('systemMember.dialogAdd', '新增会员')" width="680px" :close-on-click-modal="false" destroy-on-close>
+    <el-alert v-if="!row?.id" :title="t('systemMember.addTip', '后台新建会员不设置密码，会员需后续通过前台找回或设置密码后才能登录。')" type="warning" :closable="false" class="mb-4" />
     <el-skeleton v-if="loading" :rows="6" animated />
     <template v-else-if="loadError">
       <el-alert :title="loadError" type="error" :closable="false" />
-      <el-button class="mt-4" @click="loadDefinition">重试</el-button>
+      <el-button class="mt-4" @click="loadDefinition">{{ t('systemMember.retry', '重试') }}</el-button>
     </template>
     <template v-else-if="definition">
-      <el-alert v-if="unavailable" title="存在已停用、已删除或不可用的会员关系，原值已保留，请重新选择后保存。" type="warning" :closable="false" class="mb-4" />
+      <el-alert v-if="unavailable" :title="t('systemMember.unavailableTip', '存在已停用、已删除或不可用的会员关系，原值已保留，请重新选择后保存。')" type="warning" :closable="false" class="mb-4" />
       <SchemaRenderer :key="generation" ref="formRef" :schema="definition.schema!" :values="values" :options="relationOptions" />
-      <p class="text-xs text-[var(--el-text-color-secondary)]">头像支持常见图片格式，最大 2MB</p>
+      <p class="text-xs text-[var(--el-text-color-secondary)]">{{ t('systemMember.avatarTip', '头像支持常见图片格式，最大 2MB') }}</p>
     </template>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" :disabled="loading || !!loadError || !definition" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="saving" :disabled="loading || !!loadError || !definition" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { memberApi, type MemberModel, type MemberOptions, type MemberPayload } from '@/api/system/member';
 import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
@@ -28,6 +29,7 @@ import { useUserStore } from '@/store/modules/user';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions; lock?: { busy: boolean } }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
+const { t } = useI18n();
 const visible = computed({ get: () => props.modelValue, set: (value) => emit('update:modelValue', value) });
 const userStore = useUserStore();
 const userCanSubmit = (permission: string) => userStore.permissions.some(item => item === '*' || item === '*:*:*' || item === permission);
@@ -73,13 +75,13 @@ async function loadDefinition() {
         const ids = key === 'level_id' ? [row.levelId] : key === 'group_ids' ? row.groupIds : row.tagIds;
         const names = key === 'level_id' ? [row.levelName] : key === 'group_ids' ? row.groupNames : row.tagNames;
         ids.forEach((id, index) => {
-          if (id > 0 && options && !options.some((option) => option.value === id)) options.push({ value: id, label: `${names[index] || '#' + id}（不可用，请重新选择）` });
+          if (id > 0 && options && !options.some((option) => option.value === id)) options.push({ value: id, label: `${names[index] || '#' + id}${t('systemMember.optionUnavailable', '（不可用，请重新选择）')}` });
         });
       }
     }
     definition.value = result;
   } catch {
-    if (token === generation.value) loadError.value = '会员表单加载失败，请重试';
+    if (token === generation.value) loadError.value = t('systemMember.formLoadFailed', '会员表单加载失败，请重试');
   } finally {
     if (token === generation.value) loading.value = false;
   }

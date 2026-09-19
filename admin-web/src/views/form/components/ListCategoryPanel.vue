@@ -1,12 +1,14 @@
 <template>
-  <aside class="list-category-panel" aria-label="列表分类">
-    <div class="mb-3 font-medium">分类</div>
+  <aside class="list-category-panel" :aria-label="t('formData.categoryPanelAria', '列表分类')">
+    <div class="mb-3 font-medium">{{ t('formData.category', '分类') }}</div>
     <slot name="categoryToolbar" />
-    <button type="button" :aria-pressed="modelValue === undefined || modelValue === ''" @click="$emit('change', undefined)">全部</button>
+    <button type="button" :aria-pressed="modelValue === undefined || modelValue === ''" @click="$emit('change', undefined)">{{ t('formData.all', '全部') }}</button>
     <button v-for="option in options" :key="String(option.value)" type="button" :disabled="option.disabled" :aria-pressed="modelValue !== undefined && String(modelValue) === String(option.value)" @click="$emit('change', option.value)"><span>{{ option.label }}</span><slot name="categoryNode" :row="{ id: option.value, label: option.label }" /></button>
   </aside>
 </template>
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 defineProps<{ options: Array<{ label: string; value: string | number; disabled?: boolean }>; modelValue?: string | number }>();
 defineEmits<{ change: [value: string | number | undefined] }>();
 </script>

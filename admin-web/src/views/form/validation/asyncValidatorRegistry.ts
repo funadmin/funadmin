@@ -1,3 +1,7 @@
+import { i18n } from '@/locales';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+
 export interface FieldError {
   path: string;
   message: string;
@@ -43,7 +47,7 @@ const serialize = (value: unknown): string => {
 };
 
 const validationError = (result: AsyncValidatorResult, fallback?: string): void => {
-  if (!result.valid) throw new Error(result.message ?? fallback ?? '字段校验失败');
+  if (!result.valid) throw new Error(result.message ?? fallback ?? t('formData.fieldValidationFailed', '字段校验失败'));
 };
 
 export const clearAsyncValidatorCache = (): void => resultCache.clear();

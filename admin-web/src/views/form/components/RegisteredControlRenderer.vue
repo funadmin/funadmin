@@ -1,7 +1,7 @@
 <template>
   <el-alert
     v-if="!definition"
-    :title="`未注册的表单组件：${node.type}`"
+    :title="t('formData.unregisteredComponent', { type: node.type }, '未注册的表单组件：{type}')"
     type="error"
     :closable="false"
     show-icon
@@ -27,10 +27,13 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormFieldDef } from '@/api/form';
 import { componentRegistry, sanitizeComponentBindings } from '../schema/componentRegistry';
 import type { FormSchemaNode } from '../schema/types';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   node: FormSchemaNode;

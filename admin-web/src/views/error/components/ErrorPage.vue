@@ -12,10 +12,10 @@
         <p class="mb-6 text-sm leading-relaxed text-app-muted">{{ desc }}</p>
         <div class="flex flex-wrap gap-3 max-md:justify-center">
           <el-button type="primary" @click="goHome">
-            <i class="i-ep-house mr-1" /> 返回首页
+            <i class="i-ep-house mr-1" /> {{ t('errorPage.backHome', '返回首页') }}
           </el-button>
           <el-button @click="goBack">
-            <i class="i-ep-back mr-1" /> 上一页
+            <i class="i-ep-back mr-1" /> {{ t('errorPage.prevPage', '上一页') }}
           </el-button>
         </div>
       </div>
@@ -26,6 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import Art403 from './Art403.vue';
 import Art404 from './Art404.vue';
 import Art500 from './Art500.vue';
@@ -41,15 +42,17 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const router = useRouter();
+const { t } = useI18n();
 
 const presetMap = {
   '403': { title: '无权访问', desc: '抱歉，你没有访问该页面的权限' },
   '404': { title: '页面不存在', desc: '你访问的资源已被移除或暂时不可用' },
   '500': { title: '服务异常', desc: '服务器开了点小差，稍后再试' }
 } as const;
+const presetKeyMap = { '403': 'forbidden', '404': 'notFound', '500': 'serverError' } as const;
 
-const title = computed(() => props.title || presetMap[props.code].title);
-const desc = computed(() => props.desc || presetMap[props.code].desc);
+const title = computed(() => props.title || t(`errorPage.${presetKeyMap[props.code]}Title`, presetMap[props.code].title));
+const desc = computed(() => props.desc || t(`errorPage.${presetKeyMap[props.code]}Desc`, presetMap[props.code].desc));
 
 const artwork = computed(() => {
   if (props.code === '403') return Art403;

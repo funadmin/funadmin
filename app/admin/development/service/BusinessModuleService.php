@@ -60,7 +60,13 @@ final class BusinessModuleService
         if ($status !== '') $query->where('lifecycle_status', $status);
         if ($origin !== '') $query->where('origin', $origin);
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        $list = array_map(static fn ($module): array => $module->toArray(), $result->items());
+        $list = array_map(static function ($module): array {
+            $row = $module->toArray();
+            // 前端契约（BusinessModule.id/form_id）为 number；MySQL 驱动返回字符串，必须显式转换。
+            $row['id'] = (int) $row['id'];
+            $row['form_id'] = isset($row['form_id']) ? (int) $row['form_id'] : null;
+            return $row;
+        }, $result->items());
         if ($list !== []) {
             // 成功指针不代表最新尝试；按本页模块批量投影生成状态，不暴露制品内容。
             $latestIds = CrudGeneration::whereIn('business_module_id', array_column($list, 'id'))

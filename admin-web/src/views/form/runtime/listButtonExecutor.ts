@@ -1,5 +1,9 @@
+import { i18n } from '@/locales';
 import type { FormListButton } from '../schema/types';
 import type { FormListActionCatalog, FormListActionRequest } from '@/api/formData';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 export interface ListButtonContext extends Omit<FormListActionRequest, 'buttonId' | 'idempotencyKey' | 'input' | 'confirmation'> {
   formKey: string;
@@ -21,10 +25,10 @@ export function registeredListButtonAvailable(button: FormListButton, context: L
 }
 export function listButtonSelectionReason(button: FormListButton, context?: ListButtonContext): string {
   if (!button.selection) return '';
-  if (!context || context.location !== 'toolbar') return '缺少当前页选择上下文';
+  if (!context || context.location !== 'toolbar') return t('formDesigner.selectionContextMissing', '缺少当前页选择上下文');
   const count = context.ids.length;
-  if (count < (button.selection.min ?? 0)) return `至少选择 ${button.selection.min} 条，当前已选择 ${count} 条`;
-  if (count > (button.selection.max ?? 200)) return `最多选择 ${button.selection.max ?? 200} 条，当前已选择 ${count} 条`;
+  if (count < (button.selection.min ?? 0)) return tNamed('formDesigner.selectionMin', { min: button.selection.min, count }, '至少选择 {min} 条，当前已选择 {count} 条');
+  if (count > (button.selection.max ?? 200)) return tNamed('formDesigner.selectionMax', { max: button.selection.max ?? 200, count }, '最多选择 {max} 条，当前已选择 {count} 条');
   return '';
 }
 /** 只传身份和声明输入；参数绑定和来源记录必须由后端解析。 */

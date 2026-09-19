@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper title="字典管理" subtitle="维护通用字典分类与字典项">
+  <PageWrapper :title="t('systemDict.title', '字典管理')" :subtitle="t('systemDict.subtitle', '维护通用字典分类与字典项')">
     <div class="dict-layout">
       <!-- 左：字典分类 -->
       <div class="dict-layout__aside">
@@ -18,17 +18,17 @@
               @reset="onResetType"
             >
               <el-form-item prop="name" class="dict-type-search__field">
-                <el-input v-model="typeQuery.name" placeholder="字典名称" clearable />
+                <el-input v-model="typeQuery.name" :placeholder="t('systemDict.typeName', '字典名称')" clearable />
               </el-form-item>
               <el-form-item prop="code" class="dict-type-search__field">
-                <el-input v-model="typeQuery.code" placeholder="编码" clearable />
+                <el-input v-model="typeQuery.code" :placeholder="t('systemDict.code', '编码')" clearable />
               </el-form-item>
             </SearchForm>
           </template>
 
           <template #toolbar-left>
             <el-button type="primary" plain v-perm="'system:dict:add'" @click="onAddType">
-              <i class="i-ep-plus" /> 新增分类
+              <i class="i-ep-plus" /> {{ t('systemDict.addType', '新增分类') }}
             </el-button>
             <el-button
               type="danger"
@@ -37,7 +37,7 @@
               v-perm="'system:dict:delete'"
               @click="onBatchDeleteType"
             >
-              <i class="i-ep-delete" /> 批量删除{{ typeSelection.length ? `(${typeSelection.length})` : '' }}
+              <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ typeSelection.length ? `(${typeSelection.length})` : '' }}
             </el-button>
           </template>
 
@@ -56,23 +56,23 @@
               @row-click="onSelectType"
             >
               <el-table-column type="selection" width="48" align="center" />
-              <el-table-column prop="name" label="字典名称" min-width="120" show-overflow-tooltip />
-              <el-table-column prop="code" label="编码" min-width="160" show-overflow-tooltip />
-              <el-table-column label="状态" width="80" align="center">
+              <el-table-column prop="name" :label="t('systemDict.typeName', '字典名称')" min-width="120" show-overflow-tooltip />
+              <el-table-column prop="code" :label="t('systemDict.code', '编码')" min-width="160" show-overflow-tooltip />
+              <el-table-column :label="t('common.status', '状态')" width="80" align="center">
                 <template #default="{ row }">
                   <el-tag size="small" :type="row.status === 1 ? 'success' : 'info'">
-                    {{ row.status === 1 ? '启用' : '禁用' }}
+                    {{ row.status === 1 ? t('common.enable', '启用') : t('common.disable', '禁用') }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120" align="center" fixed="right">
+              <el-table-column :label="t('common.operation', '操作')" width="120" align="center" fixed="right">
                 <template #default="{ row }">
                   <div class="app-table-actions app-table-actions--link">
                     <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click.stop="onEditType(row as DictType)">
-                      编辑
+                      {{ t('common.edit', '编辑') }}
                     </el-button>
                     <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click.stop="onDeleteType(row as DictType)">
-                      删除
+                      {{ t('common.remove', '删除') }}
                     </el-button>
                   </div>
                 </template>
@@ -98,7 +98,7 @@
       <!-- 右：字典项 -->
       <div class="dict-layout__main">
         <div v-if="!currentType" class="dict-layout__empty">
-          <el-empty description="请先在左侧选择一个字典分类" />
+          <el-empty :description="t('systemDict.emptyTypeTip', '请先在左侧选择一个字典分类')" />
         </div>
 
         <template v-else>
@@ -109,13 +109,13 @@
           >
             <template #search>
               <SearchForm :model="itemQuery" :loading="itemLoading" @search="onSearchItem" @reset="onResetItem">
-                <el-form-item label="字典标签" prop="label">
-                  <el-input v-model="itemQuery.label" placeholder="请输入标签" clearable />
+                <el-form-item :label="t('systemDict.itemLabel', '字典标签')" prop="label">
+                  <el-input v-model="itemQuery.label" :placeholder="t('systemDict.itemLabelPlaceholder', '请输入标签')" clearable />
                 </el-form-item>
-                <el-form-item label="状态" prop="status">
-                  <el-select v-model="itemQuery.status" placeholder="请选择" clearable class="!w-32">
-                    <el-option label="启用" :value="1" />
-                    <el-option label="禁用" :value="0" />
+                <el-form-item :label="t('common.status', '状态')" prop="status">
+                  <el-select v-model="itemQuery.status" :placeholder="t('common.pleaseSelect', '请选择')" clearable class="!w-32">
+                    <el-option :label="t('common.enable', '启用')" :value="1" />
+                    <el-option :label="t('common.disable', '禁用')" :value="0" />
                   </el-select>
                 </el-form-item>
               </SearchForm>
@@ -123,11 +123,11 @@
 
             <template #toolbar-left>
               <span class="dict-current">
-                当前分类：<b>{{ currentType.name }}</b>
+                {{ t('systemDict.currentType', '当前分类：') }}<b>{{ currentType.name }}</b>
                 <code class="dict-current__code">{{ currentType.code }}</code>
               </span>
               <el-button type="primary" plain v-perm="'system:dict:add'" @click="onAddItem">
-                <i class="i-ep-plus" /> 新增字典项
+                <i class="i-ep-plus" /> {{ t('systemDict.addItem', '新增字典项') }}
               </el-button>
               <el-button
                 type="danger"
@@ -136,7 +136,7 @@
                 v-perm="'system:dict:delete'"
                 @click="onBatchDeleteItem"
               >
-                <i class="i-ep-delete" /> 批量删除{{ itemSelection.length ? `(${itemSelection.length})` : '' }}
+                <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ itemSelection.length ? `(${itemSelection.length})` : '' }}
               </el-button>
             </template>
 
@@ -151,35 +151,35 @@
                 @selection-change="onItemSelectionChange"
               >
                 <el-table-column type="selection" width="48" align="center" />
-                <el-table-column prop="label" label="字典标签" min-width="120">
+                <el-table-column prop="label" :label="t('systemDict.itemLabel', '字典标签')" min-width="120">
                   <template #default="{ row }">
                     <el-tag :type="(row.cssClass || 'info') as any" size="small">{{ row.label }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="value" label="字典键值" min-width="120" />
-                <el-table-column prop="cssClass" label="样式属性" width="110" align="center">
+                <el-table-column prop="value" :label="t('systemDict.itemValue', '字典键值')" min-width="120" />
+                <el-table-column prop="cssClass" :label="t('systemDict.cssClass', '样式属性')" width="110" align="center">
                   <template #default="{ row }">
                     <span v-if="row.cssClass">{{ row.cssClass }}</span>
                     <span v-else class="text-gray-400">-</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="sort" label="排序" width="80" align="center" />
-                <el-table-column label="状态" width="80" align="center">
+                <el-table-column prop="sort" :label="t('systemDict.sort', '排序')" width="80" align="center" />
+                <el-table-column :label="t('common.status', '状态')" width="80" align="center">
                   <template #default="{ row }">
                     <el-tag size="small" :type="row.status === 1 ? 'success' : 'info'">
-                      {{ row.status === 1 ? '启用' : '禁用' }}
+                      {{ row.status === 1 ? t('common.enable', '启用') : t('common.disable', '禁用') }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-                <el-table-column label="操作" width="180" align="center" fixed="right">
+                <el-table-column prop="remark" :label="t('systemDict.remark', '备注')" min-width="160" show-overflow-tooltip />
+                <el-table-column :label="t('common.operation', '操作')" width="180" align="center" fixed="right">
                   <template #default="{ row }">
                     <div class="app-table-actions app-table-actions--link">
                       <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click="onEditItem(row as DictItemModel)">
-                        编辑
+                        {{ t('common.edit', '编辑') }}
                       </el-button>
                       <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click="onDeleteItem(row as DictItemModel)">
-                        删除
+                        {{ t('common.remove', '删除') }}
                       </el-button>
                     </div>
                   </template>
@@ -219,11 +219,14 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { dictTypeApi, dictItemApi, type DictType, type DictItemModel } from '@/api/system/dict';
 import DictTypeFormDialog from './components/DictTypeFormDialog.vue';
 import DictItemFormDialog from './components/DictItemFormDialog.vue';
 
 defineOptions({ name: 'SystemDict' });
+
+const { t } = useI18n();
 
 // ===== 字典分类 =====
 const typeLoading = ref(false);
@@ -280,7 +283,7 @@ function onEditType(row: DictType) {
 }
 
 async function onDeleteType(row: DictType) {
-  await ElMessageBox.confirm(`确认删除分类「${row.name}」？该操作会一并删除其下所有字典项`, '提示', {
+  await ElMessageBox.confirm(t('systemDict.deleteTypeConfirm', { name: row.name }, { default: '确认删除分类「{name}」？该操作会一并删除其下所有字典项' }), t('common.tip', '提示'), {
     type: 'warning'
   });
   await dictTypeApi.remove(row.id);
@@ -290,12 +293,12 @@ async function onDeleteType(row: DictType) {
 
 async function onBatchDeleteType() {
   if (!typeSelection.value.length) {
-    ElMessage.warning('请至少选择一项');
+    ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
   }
   await ElMessageBox.confirm(
-    `确认删除选中的 ${typeSelection.value.length} 个分类？将一并删除其下字典项，此操作不可恢复`,
-    '提示',
+    t('systemDict.batchDeleteTypeConfirm', { n: typeSelection.value.length }, { default: '确认删除选中的 {n} 个分类？将一并删除其下字典项，此操作不可恢复' }),
+    t('common.tip', '提示'),
     { type: 'warning' }
   );
   const ids = typeSelection.value.map((r) => r.id);
@@ -368,7 +371,7 @@ function onResetItem() {
 
 function onAddItem() {
   if (!currentType.value) {
-    ElMessage.warning('请先在左侧选择一个分类');
+    ElMessage.warning(t('systemDict.selectTypeFirst', '请先在左侧选择一个分类'));
     return;
   }
   currentEditItem.value = null;
@@ -381,17 +384,17 @@ function onEditItem(row: DictItemModel) {
 }
 
 async function onDeleteItem(row: DictItemModel) {
-  await ElMessageBox.confirm(`确认删除字典项「${row.label}」?`, '提示', { type: 'warning' });
+  await ElMessageBox.confirm(t('systemDict.deleteItemConfirm', { name: row.label }, { default: '确认删除字典项「{name}」?' }), t('common.tip', '提示'), { type: 'warning' });
   await dictItemApi.remove(row.id);
   reloadItems();
 }
 
 async function onBatchDeleteItem() {
   if (!itemSelection.value.length) {
-    ElMessage.warning('请至少选择一项');
+    ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
   }
-  await ElMessageBox.confirm(`确认删除选中的 ${itemSelection.value.length} 个字典项？此操作不可恢复`, '提示', {
+  await ElMessageBox.confirm(t('systemDict.batchDeleteItemConfirm', { n: itemSelection.value.length }, { default: '确认删除选中的 {n} 个字典项？此操作不可恢复' }), t('common.tip', '提示'), {
     type: 'warning'
   });
   await dictItemApi.removeMany(itemSelection.value.map((r) => r.id));

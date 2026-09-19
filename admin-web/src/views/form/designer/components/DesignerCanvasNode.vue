@@ -18,13 +18,13 @@
         type="button"
         class="collapse-toggle"
         data-collapse-toggle
-        :aria-label="collapsed ? '展开节点' : '折叠节点'"
+        :aria-label="collapsed ? t('formDesigner.expandNode', '展开节点') : t('formDesigner.collapseNode', '折叠节点')"
         @click.stop="collapsed = !collapsed"
       >{{ collapsed ? '▸' : '▾' }}</button>
       <span class="drag-handle" aria-hidden="true">⋮⋮</span>
       <span class="min-w-0 flex-1 truncate">{{ node.title }} · {{ controlMeta(node.type).label }} · {{ node.id }}</span>
-      <el-button link size="small" @click.stop="store.duplicateNode(node.id)">复制</el-button>
-      <el-button link size="small" type="danger" @click.stop="store.removeNode(node.id)">删除</el-button>
+      <el-button link size="small" @click.stop="store.duplicateNode(node.id)">{{ t('formDesigner.duplicate', '复制') }}</el-button>
+      <el-button link size="small" type="danger" @click.stop="store.removeNode(node.id)">{{ t('common.remove', '删除') }}</el-button>
     </div>
 
     <div v-if="!container" class="designer-field-preview" @click.stop>
@@ -42,7 +42,7 @@
     </div>
 
     <template v-else>
-      <div v-if="collapsed" class="collapsed-summary">已折叠 {{ descendantCount }} 个后代节点，仍可拖入此容器</div>
+      <div v-if="collapsed" class="collapsed-summary">{{ t('formDesigner.collapsedSummary', { n: descendantCount }, '已折叠 {n} 个后代节点，仍可拖入此容器') }}</div>
       <DesignerCanvas
         :nodes="collapsed ? EMPTY_NODES : node.children"
         :store="store"
@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormSchemaNode } from '@/api/form';
 import { controlMeta } from '../../registry';
 import type { DesignerKeyboardMove, DesignerStore } from '../../composables/useDesigner';
@@ -63,6 +64,8 @@ import FormControlRenderer from '../../components/FormControlRenderer.vue';
 import DesignerCanvas from './DesignerCanvas.vue';
 
 defineOptions({ name: 'DesignerCanvasNode' });
+
+const { t } = useI18n();
 
 const EMPTY_NODES: FormSchemaNode[] = [];
 

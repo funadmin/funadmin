@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="`${code} 配置`" size="520px">
+  <el-drawer v-model="visible" :title="t('plugin.configDrawerTitle', { code }, { default: '{code} 配置' })" size="520px">
     <el-form v-loading="loading" label-position="top">
       <el-form-item v-for="(definition, key) in schema" :key="key" :label="definition.title || key">
         <el-switch v-if="definition.type === 'switch'" :model-value="booleanValue(key)" @update:model-value="values[key] = $event" />
@@ -17,15 +17,17 @@
         <el-input v-else :model-value="inputValue(key)" :type="definition.type === 'password' ? 'password' : 'text'" :show-password="definition.type === 'password'" @update:model-value="values[key] = $event" />
         <div v-if="definition.tip" class="text-xs text-gray-400">{{ definition.tip }}</div>
       </el-form-item>
-      <el-button type="primary" :loading="saving" v-perm="'system:plugin:config'" @click="save">保存配置</el-button>
+      <el-button type="primary" :loading="saving" v-perm="'system:plugin:config'" @click="save">{{ t('plugin.saveConfig', '保存配置') }}</el-button>
     </el-form>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { pluginApi, type PluginConfigDefinition } from '@/api/plugin';
 
+const { t } = useI18n();
 const visible = defineModel<boolean>({ default: false });
 const props = defineProps<{ code: string }>();
 const emit = defineEmits<{ saved: [] }>();

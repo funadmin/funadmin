@@ -170,7 +170,7 @@ const activeRootPath = computed(() => getMenuActiveRootPath(route));
 const dashboardItem: RouteRecordRaw = {
   path: '/dashboard',
   name: 'Dashboard',
-  meta: { title: '仪表盘', icon: 'i-ep-monitor' }
+  meta: { title: 'Dashboard', icon: 'i-ep-monitor' }
 } as RouteRecordRaw;
 
 const allMenus = computed<RouteRecordRaw[]>(() => {
@@ -442,6 +442,10 @@ html:not(.dark) .app-layout.menu-theme--fresh .app-layout__sidebar :deep(.el-sub
   padding: 0;
   /* 窄轨-only 折叠态恢复居中，避免图标贴边 */
   justify-content: center;
+}
+/* 窄轨仅图标态（52px）：Logo 行同步缩至 52px，消除右侧空白条并与窄轨/底部切换按钮对齐 */
+.app-layout__columns-aside.is-rail-only:has(.app-rail.is-icon-only) .app-layout__columns-logo {
+  width: 52px;
 }
 .app-layout__columns-menus {
   flex: 1;

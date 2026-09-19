@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper title="用户管理" subtitle="管理系统用户、分配角色与部门">
+  <PageWrapper :title="t('systemUser.title', '用户管理')" :subtitle="t('systemUser.subtitle', '管理系统用户、分配角色与部门')">
     <DataTableShell
       storage-key="system-user"
       :loading="loading"
@@ -8,13 +8,13 @@
     >
       <template #search>
         <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item label="账号" prop="username">
-            <el-input v-model="query.username" placeholder="账号 / 昵称" clearable />
+          <el-form-item :label="t('systemUser.colUsername', '账号')" prop="username">
+            <el-input v-model="query.username" :placeholder="t('systemUser.searchPlaceholder', '账号 / 昵称')" clearable />
           </el-form-item>
-          <el-form-item label="状态" prop="status">
-            <el-select v-model="query.status" placeholder="请选择" clearable class="!w-32">
-              <el-option label="启用" :value="1" />
-              <el-option label="禁用" :value="0" />
+          <el-form-item :label="t('systemUser.colStatus', '状态')" prop="status">
+            <el-select v-model="query.status" :placeholder="t('systemUser.statusPlaceholder', '请选择')" clearable class="!w-32">
+              <el-option :label="t('systemUser.enabled', '启用')" :value="1" />
+              <el-option :label="t('systemUser.disabled', '禁用')" :value="0" />
             </el-select>
           </el-form-item>
         </SearchForm>
@@ -22,7 +22,7 @@
 
       <template #toolbar-left>
         <el-button type="primary" plain v-perm="'system:user:add'" @click="onAdd">
-          <i class="i-ep-plus" /> 新增
+          <i class="i-ep-plus" /> {{ t('systemUser.add', '新增') }}
         </el-button>
         <el-button
           type="danger"
@@ -31,7 +31,7 @@
           v-perm="'system:user:delete'"
           @click="onBatchDelete"
         >
-          <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
+          <i class="i-ep-delete" /> {{ t('systemUser.batchDelete', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
         </el-button>
       </template>
 
@@ -56,29 +56,29 @@
           <el-table-column
             v-if="columnKeys.includes('username')"
             prop="username"
-            label="账号"
+            :label="t('systemUser.colUsername', '账号')"
             min-width="120"
           />
           <el-table-column
             v-if="columnKeys.includes('nickname')"
             prop="nickname"
-            label="昵称"
+            :label="t('systemUser.colNickname', '昵称')"
             min-width="120"
           />
           <el-table-column
             v-if="columnKeys.includes('email')"
             prop="email"
-            label="邮箱"
+            :label="t('systemUser.colEmail', '邮箱')"
             min-width="180"
             show-overflow-tooltip
           />
           <el-table-column
             v-if="columnKeys.includes('mobile')"
             prop="mobile"
-            label="手机"
+            :label="t('systemUser.colMobile', '手机')"
             width="140"
           />
-          <el-table-column v-if="columnKeys.includes('status')" label="状态" width="90" align="center">
+          <el-table-column v-if="columnKeys.includes('status')" :label="t('systemUser.colStatus', '状态')" width="90" align="center">
             <template #default="{ row }">
               <div class="app-status-switch">
                 <el-switch
@@ -92,12 +92,12 @@
           <el-table-column
             v-if="columnKeys.includes('createdAt')"
             prop="createdAt"
-            label="创建时间"
+            :label="t('systemUser.colCreatedAt', '创建时间')"
             width="170"
           />
           <el-table-column
             v-if="columnKeys.includes('action')"
-            label="操作"
+            :label="t('systemUser.colActions', '操作')"
             width="300"
             align="center"
             fixed="right"
@@ -105,13 +105,13 @@
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
                 <el-button size="small" type="primary" link v-perm="'system:user:edit'" @click="onEdit(row as UserModel)">
-                  编辑
+                  {{ t('systemUser.edit', '编辑') }}
                 </el-button>
                 <el-button size="small" type="warning" link v-perm="'system:user:reset'" @click="onResetPwd(row as UserModel)">
-                  重置密码
+                  {{ t('systemUser.resetPwd', '重置密码') }}
                 </el-button>
                 <el-button size="small" type="danger" link v-perm="'system:user:delete'" @click="onDelete(row as UserModel)">
-                  删除
+                  {{ t('systemUser.delete', '删除') }}
                 </el-button>
               </div>
             </template>
@@ -138,25 +138,28 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { userApi, type UserModel } from '@/api/system/user';
 import type { DataTableColumnOption } from '@/components/DataTable';
 import { useCrud } from '@/composables/useCrud';
 import UserFormDialog from './components/UserFormDialog.vue';
 
 defineOptions({ name: 'SystemUser' });
+const { t } = useI18n();
 
 /** 与表格列一一对应，供工具栏「列设置」勾选显隐；操作列不可取消 */
-const userColumnOptions: DataTableColumnOption[] = [
+const userColumnOptions = computed<DataTableColumnOption[]>(() => [
   { key: 'id', label: 'ID' },
-  { key: 'username', label: '账号' },
-  { key: 'nickname', label: '昵称' },
-  { key: 'email', label: '邮箱' },
-  { key: 'mobile', label: '手机' },
-  { key: 'status', label: '状态' },
-  { key: 'createdAt', label: '创建时间' },
-  { key: 'action', label: '操作', alwaysVisible: true }
-];
+  { key: 'username', label: t('systemUser.colUsername', '账号') },
+  { key: 'nickname', label: t('systemUser.colNickname', '昵称') },
+  { key: 'email', label: t('systemUser.colEmail', '邮箱') },
+  { key: 'mobile', label: t('systemUser.colMobile', '手机') },
+  { key: 'status', label: t('systemUser.colStatus', '状态') },
+  { key: 'createdAt', label: t('systemUser.colCreatedAt', '创建时间') },
+  { key: 'action', label: t('systemUser.colActions', '操作'), alwaysVisible: true }
+]);
 
 const {
   loading,
@@ -185,22 +188,22 @@ const {
   pagination: true,
   deleteConfirm: (target) =>
     Array.isArray(target)
-      ? `确认删除选中的 ${target.length} 个账号？此操作不可恢复`
-      : `确认删除账号 ${(target as UserModel).username} ?`
+      ? t('systemUser.deleteManyConfirm', { n: target.length }, { default: '确认删除选中的 {n} 个账号？此操作不可恢复' })
+      : t('systemUser.deleteOneConfirm', { name: (target as UserModel).username }, { default: '确认删除账号 {name} ?' })
 });
 
 async function onToggleStatus(row: UserModel, v: boolean) {
   const target = (v ? 1 : 0) as 0 | 1;
   await userApi.toggleStatus(row.id, target);
   row.status = target;
-  ElMessage.success('状态已更新');
+  ElMessage.success(t('systemUser.statusUpdated', '状态已更新'));
 }
 
 async function onResetPwd(row: UserModel) {
-  const { value } = await ElMessageBox.prompt(`重置 ${row.username} 的密码`, '提示', {
-    inputPlaceholder: '至少 8 位新密码',
+  const { value } = await ElMessageBox.prompt(t('systemUser.resetPwdPrompt', { name: row.username }, { default: '重置 {name} 的密码' }), t('systemUser.resetPwdTitle', '提示'), {
+    inputPlaceholder: t('systemUser.resetPwdPlaceholder', '至少 8 位新密码'),
     inputPattern: /^.{8,}$/,
-    inputErrorMessage: '密码长度至少 8 位'
+    inputErrorMessage: t('systemUser.resetPwdError', '密码长度至少 8 位')
   });
   await userApi.resetPassword(row.id, value);
 }

@@ -10,14 +10,14 @@
     <el-option v-for="item in optionList" :key="item.value" :label="item.label" :value="item.value" />
   </el-select>
   <el-select v-else-if="type === 'tags'" :model-value="arrayValue" multiple filterable allow-create default-first-option class="w-full" @update:model-value="emitArray($event as Array<string | number>)" />
-  <el-input v-else-if="type === 'array'" :model-value="modelValue" type="textarea" :rows="5" placeholder="每行一个值" @update:model-value="emitValue" />
-  <el-input v-else-if="type === 'json'" :model-value="modelValue" type="textarea" :rows="8" placeholder='例如 {"key":"value"}' @update:model-value="emitValue" />
+  <el-input v-else-if="type === 'array'" :model-value="modelValue" type="textarea" :rows="5" :placeholder="t('systemConfig.linePlaceholder', '每行一个值')" @update:model-value="emitValue" />
+  <el-input v-else-if="type === 'json'" :model-value="modelValue" type="textarea" :rows="8" :placeholder="jsonPlaceholder" @update:model-value="emitValue" />
   <el-input v-else-if="type === 'textarea' || type === 'editor'" :model-value="modelValue" type="textarea" :rows="8" @update:model-value="emitValue" />
   <el-input v-else-if="type === 'hidden'" :model-value="modelValue" type="password" show-password @update:model-value="emitValue" />
   <el-color-picker v-else-if="type === 'color'" :model-value="modelValue" show-alpha @update:model-value="emitValue(String($event ?? ''))" />
   <el-date-picker v-else-if="type === 'date'" :model-value="modelValue" type="date" value-format="YYYY-MM-DD" class="w-full" @update:model-value="emitValue(String($event ?? ''))" />
   <el-date-picker v-else-if="type === 'datetime'" :model-value="modelValue" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="w-full" @update:model-value="emitValue(String($event ?? ''))" />
-  <el-date-picker v-else-if="type === 'range'" :model-value="rangeValue" type="datetimerange" value-format="YYYY-MM-DD HH:mm:ss" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" class="w-full" @update:model-value="emitRange" />
+  <el-date-picker v-else-if="type === 'range'" :model-value="rangeValue" type="datetimerange" value-format="YYYY-MM-DD HH:mm:ss" :range-separator="t('common.to', '至')" :start-placeholder="t('systemConfig.rangeStart', '开始时间')" :end-placeholder="t('systemConfig.rangeEnd', '结束时间')" class="w-full" @update:model-value="emitRange" />
   <Upload v-else-if="type === 'image'" :model-value="modelValue" type="image" biz-type="image" @update:model-value="emitValue(String($event ?? ''))" />
   <Upload v-else-if="type === 'images'" :model-value="arrayValue" type="images" biz-type="image" @update:model-value="emitUploadValues" />
   <Upload v-else-if="type === 'file' || type === 'files'" :model-value="fileValue" type="file" biz-type="file" :multiple="type === 'files'" :max-count="type === 'file' ? 1 : 0" @update:model-value="emitUploadValues" />
@@ -28,11 +28,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Upload from '@/components/Upload/index.vue';
 import type { UploadResult } from '@/api/common/upload';
 
 const props = withDefaults(defineProps<{ modelValue: string; type?: string; extra?: string }>(), { type: 'text', extra: '' });
+const { t } = useI18n();
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+const jsonPlaceholder = computed(() => t('systemConfig.jsonPlaceholder', '例如 {"key":"value"}'));
 const arrayTypes = ['checkbox', 'array', 'tags', 'images', 'files'];
 const arrayValue = computed(() => props.modelValue ? props.modelValue.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean) : []);
 const rangeValue = computed(() => props.modelValue ? props.modelValue.split(/\s+-\s+/, 2) : []);

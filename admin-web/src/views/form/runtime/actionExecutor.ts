@@ -1,3 +1,8 @@
+import { i18n } from '@/locales';
+
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
+const tPlain = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+
 export const ACTION_TYPES = [
   'setValue', 'copyValue', 'clearValue', 'show', 'hide', 'enable', 'disable', 'setRequired',
   'validate', 'request', 'notify', 'openDialog', 'navigate', 'submit', 'reset'
@@ -97,16 +102,16 @@ const validateActions = (
   maxSteps: number,
   requestKeys: ReadonlySet<string>
 ): void => {
-  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1) throw new Error('动作链最大步数必须为正整数');
-  if (actions.length > maxSteps) throw new Error(`动作链超过最大步数：${maxSteps}`);
+  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1) throw new Error(tPlain('formDesigner.actionMaxStepsPositive', '动作链最大步数必须为正整数'));
+  if (actions.length > maxSteps) throw new Error(tNamed('formDesigner.actionMaxStepsExceeded', { max: maxSteps }, '动作链超过最大步数：{max}'));
 
   for (const action of actions) {
-    if (!action || !ACTION_TYPE_SET.has(action.type)) throw new Error(`动作未注册：${String(action?.type ?? '')}`);
+    if (!action || !ACTION_TYPE_SET.has(action.type)) throw new Error(tNamed('formDesigner.actionNotRegistered', { type: String(action?.type ?? '') }, '动作未注册：{type}'));
     if (action.type !== 'request') continue;
     const request = action as RequestAction;
-    if (!request.key || !requestKeys.has(request.key)) throw new Error(`request key 未注册：${String(request.key ?? '')}`);
+    if (!request.key || !requestKeys.has(request.key)) throw new Error(tNamed('formDesigner.requestKeyNotRegistered', { key: String(request.key ?? '') }, 'request key 未注册：{key}'));
     if (!REQUEST_CONCURRENCY.includes(request.concurrency)) {
-      throw new Error(`request 并发策略不合法：${String(request.concurrency ?? '')}`);
+      throw new Error(tNamed('formDesigner.requestConcurrencyInvalid', { value: String(request.concurrency ?? '') }, 'request 并发策略不合法：{value}'));
     }
   }
 };

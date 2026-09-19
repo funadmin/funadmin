@@ -87,6 +87,7 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
     component: Layout,
     meta: {
       title: menu.name,
+      menuKey: menu.routeName || `Menu_${menu.id}`,
       icon: menu.icon,
       hidden: Boolean(menu.hidden),
       rank: menu.sort

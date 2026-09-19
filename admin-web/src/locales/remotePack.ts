@@ -22,6 +22,17 @@ export const unflattenMessages = (flat: Record<string, string>): Record<string, 
   return root;
 };
 
+/** 嵌套消息对象展平为点分 key 平铺表（译文编辑页的静态 key 候选源）。 */
+export const flattenMessages = (messages: Record<string, unknown>, prefix = ''): Record<string, string> => {
+  const flat: Record<string, string> = {};
+  for (const [key, value] of Object.entries(messages)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object') Object.assign(flat, flattenMessages(value as Record<string, unknown>, path));
+    else flat[path] = String(value);
+  }
+  return flat;
+};
+
 /**
  * 拉取后端译文包并合并覆盖静态语言包；请求失败时回落 localStorage 缓存。
  * 静态包继续作为最终兜底（t(key, fallback) 模式不变）。

@@ -1,5 +1,9 @@
 import type { Component } from 'vue';
+import { i18n } from '@/locales';
 import type { FormNodeKind, FormValueType } from './types';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 export interface FormValueCodec {
   encode: (value: unknown) => unknown;
@@ -31,9 +35,9 @@ export class FormComponentRegistry {
   private readonly definitions = new Map<string, FormComponentDefinition>();
 
   register(definition: FormComponentDefinition): void {
-    if (this.definitions.has(definition.type)) throw new Error(`表单组件已注册：${definition.type}`);
+    if (this.definitions.has(definition.type)) throw new Error(tNamed('formDesigner.componentAlreadyRegistered', { type: definition.type }, '表单组件已注册：{type}'));
     if (definition.namespace !== 'core' && !definition.type.startsWith(`${definition.namespace}:`)) {
-      throw new Error('插件组件必须使用插件命名空间');
+      throw new Error(t('formDesigner.pluginNamespaceRequired', '插件组件必须使用插件命名空间'));
     }
     this.definitions.set(definition.type, Object.freeze({
       ...definition,

@@ -160,4 +160,68 @@ class SystemLanguage extends AdminApiController
         }
         return $this->ok(data: ['locale' => $locale, 'version' => $version, 'messages' => (object) $messages]);
     }
+
+    /**
+     * 译文条目列表：按 locale 分页，支持 key/译文关键字搜索。
+     */
+    #[Get('lines')]
+    public function lines(): Response
+    {
+        $locale = strtolower(trim((string) $this->request->get('locale', '')));
+        if ($locale === '') {
+            return $this->fail(msg: 'locale 不合法', code: 422);
+        }
+        $keyword = trim((string) $this->request->get('keyword', ''));
+        $query = LanguageLine::where('locale', $locale);
+        if ($keyword !== '') {
+            $query->where(static function ($sub) use ($keyword): void {
+                $sub->whereLike('key', '%' . $keyword . '%')->whereOr('value', 'like', '%' . $keyword . '%');
+            });
+        }
+        $result = $query->order('id', 'desc')->paginate(['list_rows' => $this->pageSize(), 'page' => $this->page()]);
+        return $this->ok(data: $this->paginationData(array_map(
+            static fn ($line): array => [
+                'id' => (int) $line->id,
+                'locale' => (string) $line->locale,
+                'key' => (string) $line->key,
+                'value' => (string) $line->value,
+                'updatedAt' => (string) ($line->updated_at ?? ''),
+            ],
+            $result->items()
+        ), $result->total(), $this->page(), $this->pageSize()));
+    }
+
+    /**
+     * 译文保存：locale+key 存在则覆盖，不存在则新增。
+     */
+    #[Post('lines')]
+    public function saveLine(): Response
+    {
+        $locale = strtolower(trim((string) $this->request->post('locale', '')));
+        $key = trim((string) $this->request->post('key', ''));
+        $value = (string) $this->request->post('value', '');
+        if ($locale === '' || $key === '' || mb_strlen($key) > 190) {
+            return $this->fail(msg: 'locale/key 不合法', code: 422);
+        }
+        $line = LanguageLine::where('locale', $locale)->where('key', $key)->find();
+        if ($line) {
+            $line->value = $value;
+            $line->save();
+        } else {
+            $line = LanguageLine::create(['locale' => $locale, 'key' => $key, 'value' => $value]);
+        }
+        return $this->ok('保存成功', ['id' => (int) $line->id]);
+    }
+
+    #[Delete('lines')]
+    public function removeLine(): Response
+    {
+        $id = (int) $this->request->delete('id', 0);
+        $line = LanguageLine::find($id);
+        if (!$line) {
+            return $this->fail(msg: '译文条目不存在', code: 404);
+        }
+        $line->delete();
+        return $this->ok('删除成功', ['removed' => 1]);
+    }
 }

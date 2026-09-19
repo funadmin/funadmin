@@ -1,22 +1,22 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="isEdit ? '编辑权限资源' : '新增权限资源'"
+    :title="isEdit ? t('systemPermission.dialogEdit', '编辑权限资源') : t('systemPermission.dialogAdd', '新增权限资源')"
     width="620px"
     :close-on-click-modal="false"
     destroy-on-close
     @closed="onClosed"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="资源类型" prop="resourceType">
+      <el-form-item :label="t('systemPermission.resourceType', '资源类型')" prop="resourceType">
         <el-radio-group v-model="form.resourceType">
-          <el-radio-button value="group">目录</el-radio-button>
-          <el-radio-button value="route">路由</el-radio-button>
-          <el-radio-button value="capability">能力</el-radio-button>
+          <el-radio-button value="group">{{ t('systemPermission.typeGroup', '目录') }}</el-radio-button>
+          <el-radio-button value="route">{{ t('systemPermission.typeRoute', '路由') }}</el-radio-button>
+          <el-radio-button value="capability">{{ t('systemPermission.typeCapability', '能力') }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item label="上级资源" prop="parentId">
+      <el-form-item :label="t('systemPermission.parentResource', '上级资源')" prop="parentId">
         <el-tree-select
           v-model="form.parentId"
           :data="parentOptions"
@@ -25,55 +25,55 @@
           check-strictly
           clearable
           filterable
-          placeholder="顶级资源"
+          :placeholder="t('systemPermission.topPlaceholder', '顶级资源')"
           class="w-full"
         />
       </el-form-item>
 
-      <el-form-item label="资源名称" prop="name">
-        <el-input v-model="form.name" maxlength="100" show-word-limit placeholder="请输入资源名称" />
+      <el-form-item :label="t('systemPermission.name', '资源名称')" prop="name">
+        <el-input v-model="form.name" maxlength="100" show-word-limit :placeholder="t('systemPermission.namePlaceholder', '请输入资源名称')" />
       </el-form-item>
 
-      <el-form-item label="应用标识" prop="appName">
-        <el-input v-model="form.appName" maxlength="50" placeholder="如 admin" />
+      <el-form-item :label="t('systemPermission.appName', '应用标识')" prop="appName">
+        <el-input v-model="form.appName" maxlength="50" :placeholder="t('systemPermission.appPlaceholder', '如 admin')" />
       </el-form-item>
 
       <template v-if="form.resourceType !== 'group'">
-        <el-form-item :label="form.resourceType === 'route' ? '控制器' : '资源对象'" prop="object">
-          <el-input v-model="form.object" maxlength="190" :placeholder="form.resourceType === 'route' ? '如 systempermission' : '如 development/business'" />
+        <el-form-item :label="form.resourceType === 'route' ? t('systemPermission.objectRoute', '控制器') : t('systemPermission.objectCapability', '资源对象')" prop="object">
+          <el-input v-model="form.object" maxlength="190" :placeholder="form.resourceType === 'route' ? t('systemPermission.objectPlaceholderRoute', '如 systempermission') : t('systemPermission.objectPlaceholderCapability', '如 development/business')" />
         </el-form-item>
-        <el-form-item label="动作" prop="action">
-          <el-input v-model="form.action" maxlength="100" :placeholder="form.resourceType === 'route' ? '如 tree' : '如 view'" />
+        <el-form-item :label="t('systemPermission.action', '动作')" prop="action">
+          <el-input v-model="form.action" maxlength="100" :placeholder="form.resourceType === 'route' ? t('systemPermission.actionPlaceholderRoute', '如 tree') : t('systemPermission.actionPlaceholderCapability', '如 view')" />
         </el-form-item>
       </template>
 
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="排序" prop="sort">
+          <el-form-item :label="t('systemPermission.sort', '排序')" prop="sort">
             <el-input-number v-model="form.sort" :min="0" :max="9999" class="w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="状态" prop="status">
+          <el-form-item :label="t('common.status', '状态')" prop="status">
             <el-radio-group v-model="form.status">
-              <el-radio :value="1">启用</el-radio>
-              <el-radio :value="0">停用</el-radio>
+              <el-radio :value="1">{{ t('common.enable', '启用') }}</el-radio>
+              <el-radio :value="0">{{ t('systemPermission.stopped', '停用') }}</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
       </el-row>
 
-      <el-form-item label="登录后共享" prop="isPublic">
+      <el-form-item :label="t('systemPermission.isPublic', '登录后共享')" prop="isPublic">
         <el-switch v-model="form.isPublic" :active-value="1" :inactive-value="0" />
         <span class="ml-3 text-xs text-[var(--el-text-color-secondary)]">
-          开启后所有已登录管理员都可访问该资源，请谨慎使用
+          {{ t('systemPermission.isPublicTip', '开启后所有已登录管理员都可访问该资源，请谨慎使用') }}
         </span>
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { permissionApi, type PermissionModel } from '@/api/system/permission';
 
 interface Props {
@@ -99,6 +100,7 @@ const emit = defineEmits<{
   (event: 'success'): void;
 }>();
 
+const { t } = useI18n();
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
@@ -121,18 +123,18 @@ const initialForm = (): Partial<PermissionModel> => ({
 const form = reactive<Partial<PermissionModel>>(initialForm());
 
 const rules = computed<FormRules>(() => ({
-  name: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
+  name: [{ required: true, message: t('systemPermission.nameRequired', '请输入资源名称'), trigger: 'blur' }],
   appName: [
-    { required: true, message: '请输入应用标识', trigger: 'blur' },
-    { pattern: /^[a-z][a-z0-9_]{0,49}$/, message: '仅支持小写字母、数字和下划线', trigger: 'blur' }
+    { required: true, message: t('systemPermission.appNameRequired', '请输入应用标识'), trigger: 'blur' },
+    { pattern: /^[a-z][a-z0-9_]{0,49}$/, message: t('systemPermission.appNamePattern', '仅支持小写字母、数字和下划线'), trigger: 'blur' }
   ],
   object:
     form.resourceType !== 'group'
-      ? [{ required: true, message: '请输入资源对象', trigger: 'blur' }]
+      ? [{ required: true, message: t('systemPermission.objectRequired', '请输入资源对象'), trigger: 'blur' }]
       : [],
   action:
     form.resourceType !== 'group'
-      ? [{ required: true, message: '请输入动作', trigger: 'blur' }]
+      ? [{ required: true, message: t('systemPermission.actionRequired', '请输入动作'), trigger: 'blur' }]
       : []
 }));
 
@@ -146,7 +148,7 @@ function withoutNode(nodes: PermissionModel[], id: number): PermissionModel[] {
 }
 
 const parentOptions = computed<PermissionModel[]>(() => [
-  { id: 0, parentId: 0, name: '无上级' } as PermissionModel,
+  { id: 0, parentId: 0, name: t('systemPermission.noParent', '无上级') } as PermissionModel,
   ...(props.row?.id ? withoutNode(props.tree, props.row.id) : props.tree)
 ]);
 

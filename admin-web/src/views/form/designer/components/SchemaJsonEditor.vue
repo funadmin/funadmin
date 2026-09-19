@@ -1,22 +1,25 @@
 <template>
   <div class="flex flex-col gap-3">
     <el-alert
-      :title="parsed.ok ? 'JSON 解析成功，可应用到设计器' : parsed.error"
+      :title="parsed.ok ? t('formDesigner.jsonParseSuccess', 'JSON 解析成功，可应用到设计器') : parsed.error"
       :type="parsed.ok ? 'success' : 'error'"
       :closable="false"
       show-icon
     />
     <el-input v-model="raw" type="textarea" :rows="22" spellcheck="false" />
     <div class="flex justify-end">
-      <el-button type="primary" :disabled="!parsed.ok" @click="apply">应用到设计器</el-button>
+      <el-button type="primary" :disabled="!parsed.ok" @click="apply">{{ t('formDesigner.applyToDesigner', '应用到设计器') }}</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FormSchemaDocument } from '@/api/form';
 import { parseSchemaJson } from '../schemaEditor';
+
+const { t } = useI18n();
 
 const props = defineProps<{ schema: FormSchemaDocument }>();
 const emit = defineEmits<{ apply: [schema: FormSchemaDocument] }>();

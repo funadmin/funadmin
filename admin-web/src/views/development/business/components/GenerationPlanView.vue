@@ -23,11 +23,11 @@
     </section>
 
     <p v-if="plan.files.some((file) => !file.status.includes('conflict') && !diffFiles.includes(file))" data-diff-unavailable role="status" class="mb-4">
-      部分文件仅有路径和决策，服务端未提供内容，无法核对其源码差异、Manifest 变化或迁移内容；这不表示内容没有变化。
+      {{ t('business.plan.partialContent', '部分文件仅有路径和决策，服务端未提供内容，无法核对其源码差异、Manifest 变化或迁移内容；这不表示内容没有变化。') }}
     </p>
     <section v-if="diffFiles.length" data-section="diffs" class="mb-4">
       <details v-for="file in diffFiles" :key="file.path" :data-file-diff="file.path">
-        <summary>{{ file.path.endsWith('/plugin.json') ? 'Manifest 变化（含外部依赖声明）' : file.path.endsWith('.sql') ? '数据库迁移' : '源码差异' }} · {{ file.path }}</summary>
+        <summary>{{ file.path.endsWith('/plugin.json') ? t('business.plan.manifest', 'Manifest 变化（含外部依赖声明）') : file.path.endsWith('.sql') ? t('business.plan.migration', '数据库迁移') : t('business.plan.sourceDiff', '源码差异') }} · {{ file.path }}</summary>
         <GenerationFileDiff :file="file" />
       </details>
     </section>

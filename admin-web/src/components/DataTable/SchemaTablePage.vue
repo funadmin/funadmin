@@ -2,7 +2,7 @@
   <div class="schema-table-page">
     <template v-if="definition.list?.leftTree?.enabled">
       <ListSourceTree v-if="sourceBinding?.formKey && sourceBinding?.schemaHash" :form-key="sourceBinding.formKey" :schema-hash="sourceBinding.schemaHash" :lock="pageLock" :config="definition.list.leftTree" :list="definition.list" :permission-check="permitted" :can-read-form="permitted('form.data:lefttreeform')" :can-mutate="permitted('form.data:mutatelefttree')" :model-value="query.filters?.__leftTree ?? []" @change="onLeftTree" @mutated="emit('refresh')" />
-      <div v-else role="alert">业务分类需要绑定已发布表单；未启用来源操作。</div>
+      <div v-else role="alert">{{ t('common.schemaCategoryBinding', '业务分类需要绑定已发布表单；未启用来源操作。') }}</div>
     </template>
     <ListCategoryPanel v-else-if="category" :options="category.options ?? []" :model-value="query[category.field]" @change="onCategory" />
   <DataTableShell class="schema-table-main" :storage-key="storageKey || definition.key" :loading="loading" :column-options="columns.map(column => ({ key: column.key, label: column.label }))" :show-refresh="definition.list?.tools?.refresh !== false" :show-density="definition.list?.tools?.density !== false" :show-fullscreen="definition.list?.tools?.fullscreen !== false" :show-column-setting="definition.list?.tools?.columns !== false" @refresh="emit('refresh')">
@@ -10,11 +10,11 @@
       <slot name="search"><SearchForm :model="query" :loading="loading" @search="emit('search')" @reset="emit('reset')">
         <el-form-item v-for="field in definition.search" :key="field.field" :label="field.label" :prop="field.field">
           <el-input v-if="field.type === 'input'" v-model="query[field.field]" :placeholder="field.placeholder" clearable />
-          <el-date-picker v-else-if="field.type === 'date'" v-model="query[field.field]" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
+          <el-date-picker v-else-if="field.type === 'date'" v-model="query[field.field]" type="daterange" value-format="YYYY-MM-DD" :range-separator="t('common.to', '至')" :start-placeholder="t('common.startDate', '开始日期')" :end-placeholder="t('common.endDate', '结束日期')" />
           <template v-else-if="field.type === 'range'">
-            <el-input v-model="query[field.field + '_from']" placeholder="最小值" clearable />
-            <span>至</span>
-            <el-input v-model="query[field.field + '_to']" placeholder="最大值" clearable />
+            <el-input v-model="query[field.field + '_from']" :placeholder="t('common.minValue', '最小值')" clearable />
+            <span>{{ t('common.to', '至') }}</span>
+            <el-input v-model="query[field.field + '_to']" :placeholder="t('common.maxValue', '最大值')" clearable />
           </template>
           <el-select v-else v-model="query[field.field]" :placeholder="field.placeholder" clearable>
             <el-option v-for="option in field.options" :key="option.value" :label="option.label" :value="option.value" />
@@ -48,6 +48,7 @@
 </template>
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { buildListTree } from '@/views/form/runtime/listPresentation';
 import DataTableShell from './DataTableShell.vue';
 import SearchForm from '@/components/SearchForm/index.vue';
@@ -58,6 +59,7 @@ import type { FormRecordId } from '@/api/formData';
 import { parsePageSchema, matchesPageCondition, type PageSchema, type PageContext, type PageColumn } from './pageSchema';
 const props = defineProps<{ lock?: { busy: boolean }; schema: PageSchema; sourceBinding?: { formKey: string; schemaHash: string }; query: Record<string, any>; rows: any[]; total: number; loading?: boolean; storageKey?: string; context: PageContext; formatters?: Record<string, (value: any, row: any) => unknown> }>();
 const emit = defineEmits<{ search: []; reset: []; refresh: []; selectionChange: [rows: any[]]; sortChange: [sort: { prop: string | null; order: 'ascending' | 'descending' | null }]; actionError: [error: unknown] }>();
+const { t } = useI18n();
 const localLock = reactive({ busy: false });
 const pageLock = computed(() => props.lock ?? localLock);
 const table = ref<{ clearSelection: () => void }>();

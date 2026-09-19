@@ -1,3 +1,7 @@
+import { i18n } from '@/locales';
+
+const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
+
 export type ComparisonOperator =
   | 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'notIn'
   | 'contains' | 'startsWith' | 'endsWith' | 'empty' | 'notEmpty' | 'matches';
@@ -65,7 +69,7 @@ const compare = (condition: ComparisonCondition, actual: unknown): boolean => {
         return false;
       }
     default:
-      throw new Error(`条件操作符未注册：${String((condition as ComparisonCondition).op)}`);
+      throw new Error(tNamed('formDesigner.conditionOpNotRegistered', { op: String((condition as ComparisonCondition).op) }, '条件操作符未注册：{op}'));
   }
 };
 

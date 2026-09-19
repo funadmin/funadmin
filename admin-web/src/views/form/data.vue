@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper :title="meta?.form.name ? `${meta.form.name} 数据` : '表单数据'" subtitle="元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉">
+  <PageWrapper :title="meta?.form.name ? t('formData.pageTitle', { name: meta.form.name }, '{name} 数据') : t('formData.title', '表单数据')" :subtitle="t('formData.subtitle', '元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉')">
     <div class="flex flex-col gap-4 md:flex-row">
     <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('form.data:index')" :can-mutate="hasPermission('form.data:index')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
@@ -9,8 +9,8 @@
           <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label" :prop="field.field_name">
             <template v-if="field.list_filter === 'range'">
               <div class="flex gap-1">
-                <el-input v-model="filters[field.field_name + '_from']" placeholder="最小值" class="w-[110px]" />
-                <el-input v-model="filters[field.field_name + '_to']" placeholder="最大值" class="w-[110px]" />
+                <el-input v-model="filters[field.field_name + '_from']" :placeholder="t('common.minValue', '最小值')" class="w-[110px]" />
+                <el-input v-model="filters[field.field_name + '_to']" :placeholder="t('common.maxValue', '最大值')" class="w-[110px]" />
               </div>
             </template>
             <el-date-picker
@@ -18,21 +18,21 @@
               v-model="dateFilters[field.field_name]"
               type="daterange"
               value-format="YYYY-MM-DD"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              :range-separator="t('common.to', '至')"
+              :start-placeholder="t('common.startDate', '开始日期')"
+              :end-placeholder="t('common.endDate', '结束日期')"
               @change="syncDateFilter(field.field_name)"
             />
             <el-select
               v-else-if="field.list_filter === 'is_null' || field.list_filter === 'not_null'"
               v-model="filters[field.field_name]"
-              placeholder="请选择"
+              :placeholder="t('common.pleaseSelect', '请选择')"
               clearable
               class="w-[160px]"
             >
-              <el-option label="启用" value="1" />
+              <el-option :label="t('common.enable', '启用')" value="1" />
             </el-select>
-            <el-select v-else-if="isDynamicFieldOptions(optionNode(field)) && ['eq', 'neq', '='].includes(field.list_filter)" v-model="filters[field.field_name]" :loading="filterOptions.pending.value[field.field_name]" :placeholder="filterOptions.placeholder(field.field_name) || '请选择'" clearable>
+            <el-select v-else-if="isDynamicFieldOptions(optionNode(field)) && ['eq', 'neq', '='].includes(field.list_filter)" v-model="filters[field.field_name]" :loading="filterOptions.pending.value[field.field_name]" :placeholder="filterOptions.placeholder(field.field_name) || t('common.pleaseSelect', '请选择')" clearable>
               <el-option v-for="option in resolveFieldOptions(optionNode(field), filterOptions.supplied.value)" :key="String(option.value)" :label="option.label" :value="option.value as string | number" />
             </el-select>
             <el-input v-else v-model="filters[field.field_name]" :placeholder="filterPlaceholder(field.list_filter)" clearable class="w-[180px]" />
@@ -40,7 +40,7 @@
         </SearchForm>
       </template>
       <template #toolbar>
-        <el-alert v-if="recycled" title="回收站视图：仅显示已删除记录，可恢复或永久删除" type="warning" :closable="false" class="mb-2" />
+        <el-alert v-if="recycled" :title="t('formData.recycleAlert', '回收站视图：仅显示已删除记录，可恢复或永久删除')" type="warning" :closable="false" class="mb-2" />
         <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
       <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
@@ -88,21 +88,21 @@
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="editingId !== null ? '编辑' : '新增'" width="720px" :close-on-click-modal="false" :before-close="beforeDialogClose" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingId !== null ? t('common.edit', '编辑') : t('common.add', '新增')" width="720px" :close-on-click-modal="false" :before-close="beforeDialogClose" destroy-on-close>
       <SchemaRenderer v-if="meta" ref="schemaRendererRef" :form-key="formKey" :schema="meta.schema" :values="dialogValues" />
       <template #footer>
-        <el-button @click="requestDialogClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+        <el-button @click="requestDialogClose">{{ t('common.cancel', '取消') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="onSave">{{ t('common.save', '保存') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="详情" size="52%">
+    <el-drawer v-model="detailVisible" :title="t('common.detail', '详情')" size="52%">
       <el-descriptions :column="1" border>
         <el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">
           {{ presentField(field, detail?.row ?? {}, detailOptions) }}
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detail?.row?.created_at ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="t('common.createdAt', '创建时间')">{{ detail?.row?.created_at ?? '-' }}</el-descriptions-item>
       </el-descriptions>
       <template v-for="(child, relation) in detail?.children ?? {}" :key="relation">
         <el-divider content-position="left">{{ relation }}</el-divider>
@@ -118,6 +118,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
 import type { FormFieldDef } from '@/api/form';
@@ -144,6 +145,7 @@ import {
 } from './runtime/submissionPolicy';
 
 provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form.data:listactions', executePermission: 'form.data:listaction' } });
+const { t } = useI18n();
 const user = useUserStore();
 const hasPermission = (code: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === code);
 const buttonLock = reactive({ busy: false });
@@ -172,15 +174,15 @@ const buttonHandlers: ListButtonHandlers = {
   normal: async () => { recycled.value = false; await loadData(); },
   batchDelete: async () => {
     const ids = selectedRows.value.map(record => record[primaryKeyName.value] as FormRecordId);
-    if (!ids.length) { ElMessage.warning('请先勾选需要删除的记录'); return; }
-    await ElMessageBox.confirm(`确认删除选中的 ${ids.length} 条记录吗？`, '批量删除', { type: 'warning' });
+    if (!ids.length) { ElMessage.warning(t('formData.selectRecordsToDelete', '请先勾选需要删除的记录')); return; }
+    await ElMessageBox.confirm(t('formData.batchDeleteConfirm', { n: ids.length }, '确认删除选中的 {n} 条记录吗？'), t('common.batchRemove', '批量删除'), { type: 'warning' });
     await formDataApi.batchRemove(formKey.value, ids, meta.value?.schemaHash ?? '');
     clearSelection();
     await loadData();
   },
   restore: async (row) => { await formDataApi.restore(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
   destroy: async (row) => {
-    await ElMessageBox.confirm('永久删除后不可恢复，确认继续吗？', '永久删除', { type: 'warning' });
+    await ElMessageBox.confirm(t('formData.destroyConfirm', '永久删除后不可恢复，确认继续吗？'), t('formData.destroyTitle', '永久删除'), { type: 'warning' });
     await formDataApi.destroy(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? '');
     await loadData();
   },
@@ -245,8 +247,8 @@ const tableSchema = computed<PageSchema>(() => ({
     ...(toolbarButtons.value.some(button => button.action.type === 'registered' || listActionKey(button) === 'batchDelete') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
     { key: 'primary', prop: primaryKeyName.value, label: 'ID', width: 120 },
     ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
-    { key: 'created', prop: 'created_at', label: '创建时间', width: 170, sortable: true },
-    ...(hasRowButtons.value ? [{ key: 'actions', label: '操作', slot: 'actions', minWidth: 180, fixed: 'right' as const }] : [])
+    { key: 'created', prop: 'created_at', label: t('common.createdAt', '创建时间'), width: 170, sortable: true },
+    ...(hasRowButtons.value ? [{ key: 'actions', label: t('common.operation', '操作'), slot: 'actions', minWidth: 180, fixed: 'right' as const }] : [])
   ], pagination: { pageSize: 20, pageSizes: [10, 20, 50, 100], enabled: !treeEnabled.value }
 }));
 const onCategory = (value: string | number | undefined) => { if (value === undefined) delete filters.__category; else filters.__category = String(value); onSearch(); };
@@ -254,7 +256,7 @@ const listFields = computed(() => formFields.value.filter((f) => f.list_show ===
 const filterFields = computed(() => formFields.value.filter((f) => f.list_filter !== '' && f.type !== 'hidden' && !isSensitiveField(f)));
 
 const actionFilterFields = computed(() => new Set(filterFields.value.filter(field => field.column_type && (!field.relation_type || field.relation_type === 'none')).flatMap(field => ['range', 'date'].includes(field.list_filter) ? [field.field_name + '_from', field.field_name + '_to'] : [field.field_name])));
-const filterPlaceholder = (type: string) => ['in', 'not_in'].includes(type) ? '多个值用英文逗号分隔' : '请输入筛选值';
+const filterPlaceholder = (type: string) => ['in', 'not_in'].includes(type) ? t('formData.filterInPlaceholder', '多个值用英文逗号分隔') : t('formData.filterPlaceholder', '请输入筛选值');
 const syncDateFilter = (name: string) => {
   const range = dateFilters[name];
   filters[name + '_from'] = range?.[0] ?? '';
@@ -338,7 +340,7 @@ const beforeDialogClose = async (done: () => void) => {
     done();
     return;
   }
-  await ElMessageBox.confirm('确认放弃未保存的修改？', '离开确认', { type: 'warning' });
+  await ElMessageBox.confirm(t('formData.discardChangesConfirm', '确认放弃未保存的修改？'), t('formData.leaveConfirmTitle', '离开确认'), { type: 'warning' });
   done();
 };
 const requestDialogClose = () => beforeDialogClose(() => { dialogVisible.value = false; });
@@ -377,7 +379,7 @@ async function refreshAfterWrite() {
   try {
     await loadData();
   } catch {
-    if (identity === formKey.value && sequence === dataSequence) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交');
+    if (identity === formKey.value && sequence === dataSequence) ElMessage.warning(t('formData.refreshFailed', '操作已成功，但列表刷新失败，请手动刷新，不要重复提交'));
   }
 }
 async function onSave() {
@@ -397,7 +399,7 @@ async function onSave() {
     if (saveSequenceValue !== saveSequence) return;
     closeDialogAfterSave = true;
     dialogVisible.value = false;
-    ElMessage.success('保存成功');
+    ElMessage.success(t('common.saveSuccess', '保存成功'));
     await refreshAfterWrite();
   } catch (reason) {
     if (saveSequenceValue !== saveSequence) return;
@@ -420,10 +422,10 @@ async function openDetail(row: Record<string, unknown>) {
 async function onDelete(row: Record<string, unknown>) {
   const context = JSON.stringify(buttonContext('row', row));
   const version = buttonContextVersion.value;
-  await ElMessageBox.confirm('确认删除该条数据？', '删除确认', { type: 'warning' });
+  await ElMessageBox.confirm(t('formData.deleteConfirm', '确认删除该条数据？'), t('formData.deleteConfirmTitle', '删除确认'), { type: 'warning' });
   if (context !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('form.data:remove') || !rows.value.some(record => record[primaryKeyName.value] === row[primaryKeyName.value])) return;
   await formDataApi.remove(formKey.value, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
-  ElMessage.success('删除成功');
+  ElMessage.success(t('common.deleteSuccess', '删除成功'));
   await refreshAfterWrite();
 }
 async function onExport() {

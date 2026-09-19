@@ -13,6 +13,7 @@
  */
 import { getCurrentInstance, onMounted, reactive, ref, type Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
 export interface UseCrudApi<T, ID = number> {
   list: (params: any) => Promise<API.PageResult<T> | T[]>;
@@ -40,6 +41,7 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   options: UseCrudOptions<T, Q, ID>
 ) {
   const { api, initialQuery, rowKey = 'id', pagination = false, deleteConfirm, immediate = true } = options;
+  const { t } = useI18n();
 
   const loading = ref(false);
   const list = ref([]) as Ref<T[]>;
@@ -96,8 +98,8 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
 
   async function onDelete(row: T) {
     if (!api.remove) return;
-    const text = deleteConfirm?.(row) ?? '确认删除该记录？此操作不可恢复';
-    await ElMessageBox.confirm(text, '提示', { type: 'warning' });
+    const text = deleteConfirm?.(row) ?? t('common.deleteConfirm', '确认删除该记录？此操作不可恢复');
+    await ElMessageBox.confirm(text, t('common.tip', '提示'), { type: 'warning' });
     await api.remove(row[rowKey] as ID);
     loadData();
   }
@@ -105,13 +107,13 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   async function onBatchDelete() {
     if (!api.remove && !api.removeMany) return;
     if (!selection.value.length) {
-      ElMessage.warning('请至少选择一项');
+      ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
       return;
     }
     const text =
       deleteConfirm?.(selection.value) ??
-      `确认删除选中的 ${selection.value.length} 条？此操作不可恢复`;
-    await ElMessageBox.confirm(text, '提示', { type: 'warning' });
+      t('common.batchDeleteConfirm', { n: selection.value.length }, '确认删除选中的 {n} 条？此操作不可恢复');
+    await ElMessageBox.confirm(text, t('common.tip', '提示'), { type: 'warning' });
     const ids = selection.value.map((r) => r[rowKey] as ID);
     if (api.removeMany) {
       await api.removeMany(ids);

@@ -1,32 +1,32 @@
 <template>
-  <el-drawer v-model="visible" title="版本历史" size="760px" @open="loadVersions">
+  <el-drawer v-model="visible" :title="t('formDesigner.versionHistory', '版本历史')" size="760px" @open="loadVersions">
     <div class="mb-3 flex items-center gap-2">
-      <el-select v-model="fromVersion" placeholder="起始版本" class="w-[150px]">
+      <el-select v-model="fromVersion" :placeholder="t('formDesigner.fromVersion', '起始版本')" class="w-[150px]">
         <el-option v-for="item in versions" :key="item.id" :label="`v${item.version}`" :value="item.version" />
       </el-select>
-      <el-select v-model="toVersion" placeholder="目标版本" class="w-[150px]">
+      <el-select v-model="toVersion" :placeholder="t('formDesigner.toVersion', '目标版本')" class="w-[150px]">
         <el-option v-for="item in versions" :key="item.id" :label="`v${item.version}`" :value="item.version" />
       </el-select>
-      <el-button :disabled="!canCompare" :loading="comparing" @click="compareVersions">比较版本</el-button>
+      <el-button :disabled="!canCompare" :loading="comparing" @click="compareVersions">{{ t('formDesigner.compareVersions', '比较版本') }}</el-button>
     </div>
 
     <el-table :data="versions" border size="small" v-loading="loading">
-      <el-table-column prop="version" label="版本" width="80">
+      <el-table-column prop="version" :label="t('formDesigner.version', '版本')" width="80">
         <template #default="{ row }">v{{ row.version }}</template>
       </el-table-column>
-      <el-table-column prop="origin" label="来源" width="100" />
-      <el-table-column prop="change_summary" label="变更摘要" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="created_by" label="操作人" width="110" />
-      <el-table-column prop="created_at" label="创建时间" width="170" />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column prop="origin" :label="t('formDesigner.source', '来源')" width="100" />
+      <el-table-column prop="change_summary" :label="t('formDesigner.changeSummary', '变更摘要')" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="created_by" :label="t('formDesigner.operator', '操作人')" width="110" />
+      <el-table-column prop="created_at" :label="t('common.createdAt', '创建时间')" width="170" />
+      <el-table-column :label="t('common.operation', '操作')" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="viewVersion(row.version)">查看</el-button>
-          <el-button link type="danger" :loading="rollingBack === row.version" @click="rollbackVersion(row.version)">回滚</el-button>
+          <el-button link type="primary" @click="viewVersion(row.version)">{{ t('common.view', '查看') }}</el-button>
+          <el-button link type="danger" :loading="rollingBack === row.version" @click="rollbackVersion(row.version)">{{ t('formDesigner.rollback', '回滚') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-divider content-position="left">版本内容 / Diff</el-divider>
+    <el-divider content-position="left">{{ t('formDesigner.versionContentDiff', '版本内容 / Diff') }}</el-divider>
     <el-input :model-value="detailText" type="textarea" :rows="16" readonly />
   </el-drawer>
 </template>
@@ -34,8 +34,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import type { FormSchemaDiff, FormSchemaVersion } from '@/api/form';
 import { businessDevelopmentApi, isBusinessApiError } from '@/api/development/business';
+
+const { t } = useI18n();
 
 const props = defineProps<{ modelValue: boolean; moduleId: number; schemaHash: string }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; rollback: [version: FormSchemaVersion] }>();
@@ -82,16 +85,16 @@ async function compareVersions() {
 
 async function rollbackVersion(version: number) {
   if (!props.moduleId) return;
-  await ElMessageBox.confirm(`确认回滚到 v${version}？系统会创建一个新的不可变版本。`, '回滚确认', { type: 'warning' });
+  await ElMessageBox.confirm(t('formDesigner.rollbackConfirm', { version }, '确认回滚到 v{version}？系统会创建一个新的不可变版本。'), t('formDesigner.rollbackTitle', '回滚确认'), { type: 'warning' });
   rollingBack.value = version;
   try {
     const result = await businessDevelopmentApi.rollbackSchema(props.moduleId, version, props.schemaHash);
     emit('rollback', result);
     await loadVersions();
-    ElMessage.success('回滚版本已创建');
+    ElMessage.success(t('formDesigner.rollbackSuccess', '回滚版本已创建'));
   } catch (error) {
     if (isBusinessApiError(error) && error.data.error.code === 'FORM_SCHEMA_CONFLICT') {
-      ElMessage.warning('Schema 已更新，请刷新后重试');
+      ElMessage.warning(t('formDesigner.schemaUpdatedRefresh', 'Schema 已更新，请刷新后重试'));
       return;
     }
     throw error;

@@ -4,7 +4,7 @@
     class="designer-drop-zone"
     :class="{ 'designer-root-zone': root }"
     :role="root ? 'tree' : 'group'"
-    :aria-label="root ? '表单设计画布' : undefined"
+    :aria-label="root ? t('formDesigner.canvasAria', '表单设计画布') : undefined"
     :data-drop-zone="parentId ?? 'root'"
     :data-parent-id="parentId ?? ''"
   >
@@ -15,18 +15,21 @@
       :store="store"
       :depth="depth"
     />
-    <div v-if="!nodes.length" class="designer-drop-placeholder">{{ root ? '从左侧拖入控件开始设计' : '拖入控件到此容器' }}</div>
+    <div v-if="!nodes.length" class="designer-drop-placeholder">{{ root ? t('formDesigner.dropHintRoot', '从左侧拖入控件开始设计') : t('formDesigner.dropHintContainer', '拖入控件到此容器') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Sortable from 'sortablejs';
 import type { FormSchemaNode } from '@/api/form';
 import type { DesignerStore } from '../../composables/useDesigner';
 import DesignerCanvasNode from './DesignerCanvasNode.vue';
 
 defineOptions({ name: 'DesignerCanvas' });
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   nodes: FormSchemaNode[];
