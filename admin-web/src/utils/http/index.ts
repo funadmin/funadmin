@@ -89,7 +89,7 @@ service.interceptors.response.use(
     }
     const safeMessage = businessMessage(payload);
     if (status === 401 || payload?.code === RESP_CODE.UNAUTHORIZED) {
-      return handleUnauthorized(safeMessage || '登录已失效，请重新登录');
+      return handleUnauthorized(safeMessage || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
 
     let message = safeMessage || error?.message || tr('http.networkError', '网络异常');

@@ -1,3 +1,5 @@
+import { i18n } from '@/locales';
+
 export interface PurgeConfirmation {
   purgeConfirm: string;
 }
@@ -20,7 +22,7 @@ export async function confirmAction(
 
 export function buildPurgeConfirmation(pluginCode: string, confirmation: string): PurgeConfirmation {
   if (confirmation !== pluginCode) {
-    throw new Error(`彻底清理数据时必须输入插件标识 ${pluginCode}`);
+    throw new Error(i18n.global.t('plugin.purgeRequireCode', { code: pluginCode }, `彻底清理数据时必须输入插件标识 ${pluginCode}`));
   }
   return { purgeConfirm: confirmation };
 }

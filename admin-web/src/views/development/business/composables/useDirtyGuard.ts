@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, type Ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
+import { i18n } from '@/locales';
 
 export interface DirtyGuardOptions {
   message?: string;
@@ -7,7 +8,7 @@ export interface DirtyGuardOptions {
 }
 
 export function useDirtyGuard(dirty: Ref<boolean>, options: DirtyGuardOptions = {}) {
-  const message = options.message || '当前内容尚未保存，确认离开吗？';
+  const message = options.message || i18n.global.t('business.dirtyGuardConfirm', '当前内容尚未保存，确认离开吗？');
   const confirmLeave = options.confirm || ((text: string) => window.confirm(text));
   const beforeUnload = (event: BeforeUnloadEvent) => {
     if (!dirty.value) return;

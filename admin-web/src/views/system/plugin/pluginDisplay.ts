@@ -1,4 +1,7 @@
+import { i18n } from '@/locales';
 import type { PluginState } from '@/api/plugin';
+
+const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
 
 const stateLabels: Record<PluginState, string> = {
   discovered: '待安装',
@@ -42,8 +45,23 @@ const scopeLabels: Record<string, string> = {
   both: '独立应用和管理后台'
 };
 
-export const pluginStateLabel = (value: string) => stateLabels[value as PluginState] || '未知状态';
-export const pluginSourceLabel = (value: string) => sourceLabels[value] || '未知来源';
-export const operationLabel = (value: string) => operationLabels[value] || '未知操作';
-export const applicationLabel = (value: string) => applicationLabels[value] || '其他能力';
-export const scopeLabel = (value: string) => scopeLabels[value] || '其他范围';
+export const pluginStateLabel = (value: string) => {
+  const fallback = stateLabels[value as PluginState];
+  return fallback ? t(`plugin.state.${value}`, fallback) : t('plugin.stateUnknown', '未知状态');
+};
+export const pluginSourceLabel = (value: string) => {
+  const fallback = sourceLabels[value];
+  return fallback ? t(`plugin.source.${value}`, fallback) : t('plugin.sourceUnknown', '未知来源');
+};
+export const operationLabel = (value: string) => {
+  const fallback = operationLabels[value];
+  return fallback ? t(`plugin.operation.${value}`, fallback) : t('plugin.operationUnknown', '未知操作');
+};
+export const applicationLabel = (value: string) => {
+  const fallback = applicationLabels[value];
+  return fallback ? t(`plugin.application.${value}`, fallback) : t('plugin.applicationUnknown', '其他能力');
+};
+export const scopeLabel = (value: string) => {
+  const fallback = scopeLabels[value];
+  return fallback ? t(`plugin.scope.${value}`, fallback) : t('plugin.scopeUnknown', '其他范围');
+};

@@ -179,7 +179,7 @@ async function load() {
       items.value = loaded.map((item) => {
         const update = updatesByCode.get(item.code);
         const updateBlockedReason = update?.requiresManualMerge || update?.compatible === false || update?.databaseCompatible === false
-          ? update.reason || '当前版本不允许自动更新'
+          ? update.reason || t('plugin.noAutoUpdate', '当前版本不允许自动更新')
           : '';
         return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '', updateBlockedReason };
       });

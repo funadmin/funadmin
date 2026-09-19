@@ -69,7 +69,9 @@ export default {
     modelSelection: {
       current: 'Current conversation model', unset: 'Not set', id: 'Model ID', save: 'Save model',
       hint: 'Only the currently configured provider is supported. Enter a model ID it supports. Changes affect only tasks created after saving; the current task keeps its original model.',
-      failed: 'Could not save the model. Check the model ID or retry'
+      failed: 'Could not save the model. Check the model ID or retry',
+      helpAria: 'Model and reasoning settings help', helpTrigger: 'Settings help', taskSnapshot: 'Only affects newly created tasks; running tasks keep their snapshot.',
+      profileSummary: 'Profile default model: {model}; tokens input {input} / output {output} / context {context}', unspecified: 'Unspecified'
     },
     provider: 'Provider',
     fields: { base: 'Base', local: 'Local', remote: 'Remote', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
@@ -131,7 +133,7 @@ export default {
       unsupported: 'Unsupported capabilities', disabled: 'Disabled', unsupportedHint: 'Fallback is not implemented; reasoning capabilities are unverified. Non-default execution is rejected. Saving disables fallback and clears reasoning.', save: 'Save profile', saved: 'Profile saved', testHint: 'Temporary connection test only: saved credentials and token/stream parameters are not tested. Re-enter a test key; blank explicitly tests without a key, never with the global key. Keys are not stored in the browser.', inherit: 'Use current default profile', selectionHint: 'New conversations inherit the default at creation. Changing the default does not modify existing conversations or frozen tasks.', invalid: 'Check model, URL, budgets and timeout ranges', emptyModels: 'Empty model catalog; model IDs can still be entered manually',
       selectProfile: 'Profile', newProfile: 'New profile', defaultBadge: ' (default)', nameLabel: 'Profile name', connectionTitle: 'Connection & model', preset: 'Provider preset', applyPreset: 'Apply to connection', protocol: 'API protocol', ollamaHint: 'The official Ollama local URL is http://localhost:11434/v1; this system forbids local, private-network and HTTP targets. Use an authorized public HTTPS gateway address.', providerId: 'Provider ID', providerIdPlaceholder: 'e.g. openai-compatible', keyStatus: 'Key status', defaultModel: 'Default model', fetchModelsShort: 'Fetch models', fallbackTitle: 'Fallback models', fallbackEnable: 'Enable fallback', fallbackList: 'Ordered fallbacks', fallbackAdd: 'Add fallback (max 3)', moveUp: 'Up', moveDown: 'Down', removeFallback: 'Remove', tokenLimits: 'Token limits', unspecified: 'Unspecified', savedEffortIncompatible: 'Saved effort {effort} is incompatible with the current selection; choose Default or a legal effort.', advancedTitle: 'Advanced parameters & model capabilities', capabilitiesTitle: 'Model capabilities (admin declared)', capModel: 'Model ID', capOutput: 'Output parameter', capContext: 'Context limit', capMaxOutput: 'Output limit', unknown: 'Unknown', imageFormats: 'Image formats', removeCapability: 'Remove declaration', addCapability: 'Add capability declaration',
       presetZhipu: 'Zhipu GLM', presetQwen: 'Qwen (Beijing)', presetDoubao: 'Doubao (Beijing)', presetSiliconFlow: 'SiliconFlow', presetGemini: 'Google Gemini (OpenAI compatible)', presetOllama: 'Ollama (bring your own secure gateway)', presetCustom: 'Custom',
-      presetConfirm: 'Click Apply again to replace the connection target of this profile and clear the temporary key; saving then requires a new key or explicitly clearing the old one.', targetChangedNeedKey: 'Connection target changed; provide a new key or explicitly clear the old key.', reasoningProtocolUnsupported: 'Responses / Messages do not support explicit reasoning yet; choose Default and use a non-thinking model.', messagesOutputRequired: 'Messages requires an output token budget.', protocolReasoningUnsupported: 'The current protocol does not support explicit reasoning.'
+      presetConfirm: 'Click Apply again to replace the connection target of this profile and clear the temporary key; saving then requires a new key or explicitly clearing the old one.', targetChangedNeedKey: 'Connection target changed; provide a new key or explicitly clear the old key.', reasoningProtocolUnsupported: 'Responses / Messages do not support explicit reasoning yet; choose Default and use a non-thinking model.', messagesOutputRequired: 'Messages requires an output token budget.', protocolReasoningUnsupported: 'The current protocol does not support explicit reasoning.', defaultShort: ' (default)'
     },
     providerSettings: {
       title: 'Provider settings', securityNotice: 'The API key is sent only for this connection test. It is never displayed or stored in the browser.', apiKeyPlaceholder: 'Send only; never display',
@@ -151,7 +153,7 @@ export default {
       taskTypes: { chat: 'Chat', crud: 'CRUD', code_change: 'Code change', fix: 'Fix', test: 'Test', migration: 'Migration' },
       changeSetStatuses: { proposed: 'Proposed', applying: 'Applying', completed: 'Completed', failed: 'Failed', recovery_required: 'Recovery required' }
     },
-    errors: { approvalModeUpdate: 'Could not update the approval mode. Check your permissions and try again.', applyUnavailable: 'Final application approval is missing or has not been granted', generic: 'The operation failed. Please try again later.' }
+    errors: { approvalModeUpdate: 'Could not update the approval mode. Check your permissions and try again.', applyUnavailable: 'Final application approval is missing or has not been granted', generic: 'The operation failed. Please try again later.', modelSaving: 'The model is being saved. Please retry shortly.', cursorNotAdvanced: 'The message pagination cursor did not advance', finalApprovalUnavailable: 'The final apply approval for the current ChangeSet is missing or has not been granted', profileDisabled: 'The profile is disabled', noDefaultProfile: 'No default profile', connectionFailed: 'Connection failed' }
   },
   layout: {
     menuSearch: 'Menu search',
@@ -491,7 +493,21 @@ export default {
       purge: 'purge',
       package: 'package',
       validate: 'validate'
-    }
+    },
+    application: { app: 'Standalone App', admin: 'Admin Backend', adminWeb: 'Admin Web' },
+    scope: { app: 'Standalone App', admin: 'Admin Backend', both: 'Standalone App & Admin Backend' },
+    stateUnknown: 'Unknown state', sourceUnknown: 'Unknown source', operationUnknown: 'Unknown operation', applicationUnknown: 'Other capability', scopeUnknown: 'Other scope',
+    noAutoUpdate: 'The current version does not allow automatic updates',
+    configDrawerTitle: '{code} Config', saveConfig: 'Save Config',
+    historyDrawerTitle: '{code} History & Recovery', historySource: 'Source', historyTime: 'Time', operationRecords: 'Operation Records',
+    moduleLoadFailed: 'Failed to load the plugin module', pluginLine: 'Plugin: {name}', stageLine: 'Stage: {stage}', stage: 'Stage', progress: 'Progress', result: 'Result', errorDetail: 'Error Details', failedStage: 'Failed stage: {stage}',
+    version: 'Version', versionHistory: 'Version Package History', signatureVerified: 'Signature verified',
+    redeploy: 'Redeploy', redeployConfirm: 'Redeploy plugin {code} to historical version {version}? The database will not be downgraded automatically.', redeployTitle: 'Redeploy Historical Version',
+    purgeRequireCode: 'You must enter the plugin code {code} to purge data',
+    devTitle: 'Plugin Development Tools', devTabMaintain: 'Validate/Package', devFieldPlugin: 'Plugin', devFieldName: 'Plugin Code', devFieldTitle: 'Plugin Name', devNamePlaceholder: 'Starts with a lowercase letter; letters and digits only',
+    devConfirmCreate: 'Confirm Creation', devCreateSuccess: 'Plugin created, audit ID: {id}', devAuditId: 'Audit ID', devValidateLabel: 'Validate', devValidateSuccess: 'Plugin validation passed', devManifestValid: 'Manifest v2 is valid',
+    devPackageSuccess: 'Plugin packaged successfully', devDownloadPackage: 'Download Package', devDownloadPath: 'Download Path', devPlanPath: 'Target File', devSha256: 'SHA-256 Digest',
+    devFileCreate: 'Create', devFileOverwrite: 'Overwrite', devFileUnchanged: 'Unchanged', devFileConflict: 'Conflict', devFilePending: 'Pending', devConflicts: 'Conflicts: {list}'
   },
   table: {
     reset: 'Reset',
@@ -1123,6 +1139,7 @@ export default {
     subtitle: 'Manage enterprise apps, runtime data, domains, and access scope'
   },
   business: {
+    dirtyGuardConfirm: 'Unsaved changes. Leave this page?',
     status: {
       lifecycle: {
         draft: { label: 'Draft', description: 'The module is being edited and has not been published.' },
@@ -1231,7 +1248,9 @@ export default {
       announcing: 'Inspecting database structure', creating: 'Creating business', requestFailed: 'Request failed, please retry',
       staleNotice: 'Connection or target changed; please inspect again', inspectionStale: 'Database structure changed; please inspect again',
       adoptConfirm: 'Adopt table {table} on connection {connection}? Primary key: {keys}; fields: {count}. Adopting saves an immutable Schema baseline.',
-      adoptConfirmTitle: 'Confirm Database Adoption', adoptConfirmButton: 'Confirm Adoption', codeExists: 'Business code already exists'
+      adoptConfirmTitle: 'Confirm Database Adoption', adoptConfirmButton: 'Confirm Adoption', codeExists: 'Business code already exists',
+      targetLoading: 'Loading business targets', pluginUnavailableReason: 'Selected plugin unavailable: {msg}', pluginUnavailable: 'The selected plugin is unavailable or not permitted. Please choose another target.',
+      targetUnavailable: 'Target unavailable', noTargetPermission: 'No permission to view business targets; creation and adoption are disabled. Authorized structure inspection remains available.', targetLoadFailed: 'Failed to load business targets. Please retry.'
     },
     diff: {
       regionAria: 'Read-only file diff',
@@ -1397,6 +1416,12 @@ export default {
     prev: 'Previous',
     next: 'Next',
     installNow: 'Install Now',
+    requestFailed: 'Installation request failed',
+    validation: {
+      dbIncomplete: 'Database configuration is incomplete', adminRequired: 'Admin username is required', passwordLength: 'Admin password must be 6-16 characters',
+      passwordAlphaNum: 'Admin password must contain both letters and digits', passwordMismatch: 'The two passwords do not match',
+      emailTooLong: 'Admin email must not exceed 60 characters', emailInvalid: 'Please enter a valid email address'
+    },
     successTitle: 'Installation Successful',
     successSub: 'FunAdmin has been initialized. You can now sign in to the admin panel.',
     resultUrl: 'Admin URL: ',
@@ -1672,5 +1697,73 @@ export default {
     ssoModeIdpDesc: 'FunAdmin acts as an OIDC Provider',
     ssoModeExternal: 'External Identity',
     ssoModeExternalDesc: 'Connect an external enterprise IdP'
+  },
+  errorPage: {
+    backHome: 'Back to Home', prevPage: 'Previous Page',
+    forbiddenTitle: 'Access Denied', forbiddenDesc: 'Sorry, you do not have permission to access this page',
+    notFoundTitle: 'Page Not Found', notFoundDesc: 'The resource you visited has been removed or is temporarily unavailable',
+    serverErrorTitle: 'Server Error', serverErrorDesc: 'The server encountered a hiccup. Please try again later'
+  },
+  systemBlacklist: {
+    title: 'Blacklist', subtitle: 'Manage login IP/rules; enabled and non-deleted records participate in admin login blocking',
+    ipRule: 'IP/Rule', ipPlaceholder: 'Enter IP or rule', remark: 'Remark', allStatus: 'All', stopped: 'Disabled', createdAt: 'Created At', deletedAt: 'Deleted At',
+    normalList: 'Normal List', recycleBin: 'Recycle Bin', moveToRecycle: 'Move to Recycle Bin', restore: 'Restore', destroy: 'Delete Permanently',
+    recycleConfirm: 'Move the selected {n} record(s) to the recycle bin?', destroyConfirm: 'Permanently delete the selected {n} record(s)? This cannot be undone.', destroyConfirmTitle: 'Permanent Deletion Confirmation', operateConfirmTitle: 'Action Confirmation',
+    csvImport: 'CSV Import', csvExport: 'CSV Export', importSuccess: '{n} record(s) imported', importResult: 'Import finished: {created} created, {skipped} skipped'
+  },
+  systemConfig: {
+    title: 'Configuration', subtitle: 'Maintain runtime configuration definitions and values; all values are stored as strings',
+    keyword: 'Keyword', keywordPlaceholder: 'Config code/remark', group: 'Group', all: 'All', code: 'Config Code', remark: 'Remark', type: 'Type', value: 'Config Value', isSystem: 'System', yes: 'Yes', no: 'No', stopped: 'Disabled',
+    addConfig: 'Add Config', addGroup: 'Add Group', configGroups: 'Config Groups', groupCode: 'Group Code', groupTitle: 'Group Title',
+    setValue: 'Set Value', saveValue: 'Save Config Value', valueDialogTitle: 'Set config value: {code}',
+    deleteOneConfirm: 'Delete config "{code}"?', deleteManyConfirm: 'Delete the selected {n} config(s)?', deleteGroupConfirm: 'Delete config group "{title}"? Only empty groups can be deleted.', deleteConfirmTitle: 'Delete Confirmation'
+  },
+  systemLanguage: {
+    title: 'Languages', subtitle: 'Maintain switchable admin language entries; language packs are managed in the code repository',
+    name: 'Language Name', namePlaceholder: 'Enter language name', isDefault: 'Default Language', systemProtected: 'System Protected', yes: 'Yes', no: 'No', stopped: 'Disabled', createdAt: 'Created At', updatedAt: 'Updated At',
+    lines: 'Translations', linesTitle: 'Translation Entries · {locale}', addLine: 'Add Translation', lineValue: 'Translation', keyPlaceholder: 'Select or enter an i18n key', valuePlaceholder: 'Translation of this key in the current language', keywordPlaceholder: 'Search key / translation',
+    inlineTip: 'Inline edits are saved on blur; the current language pack refreshes immediately after saving.', save: 'Save',
+    deleteOneConfirm: 'Delete language "{name}"?', deleteManyConfirm: 'Delete the selected {n} language(s)?', deleteConfirmTitle: 'Delete Confirmation',
+    deleteLineConfirm: 'Delete translation {key}? The key will fall back to the static language pack.', batchDeleteConfirmTitle: 'Batch Delete Confirmation'
+  },
+  systemLog: {
+    title: 'Operation Logs', subtitle: 'View admin operation audit data recorded by the system',
+    username: 'Account', usernamePlaceholder: 'Operating account', appName: 'Application', appPlaceholder: 'e.g. console', sourceType: 'Source', sourceName: 'Source Name', sourceNamePlaceholder: 'e.g. core',
+    all: 'All', time: 'Time', method: 'Method', request: 'Request', statusCode: 'Status Code', duration: 'Duration', plugin: 'Plugin', pluginPrefix: 'Plugin: {name}', system: 'System',
+    rangeStart: 'Start', rangeEnd: 'End', detailTitle: 'Operation Log Details', requestId: 'Request ID', resource: 'Resource', getParams: 'GET Params', postParams: 'Request Params', response: 'Response', failReason: 'Failure Reason',
+    deleteOneConfirm: 'Delete this log?', deleteManyConfirm: 'Delete the selected {n} log(s)?', clearAll: 'Clear All', clearAllConfirm: 'Clear all operation logs? This cannot be undone.', clearAllTitle: 'Clear Logs'
+  },
+  systemMember: {
+    title: 'Members', subtitle: 'Maintain frontend member profiles, groups and levels; members created in admin have no login password by default',
+    username: 'Username', mobile: 'Mobile', email: 'Email', sex: 'Gender', sexMale: 'Male', sexFemale: 'Female', sexSecret: 'Secret', avatar: 'Avatar', avatarTip: 'Common image formats supported, max 2MB',
+    groupNames: 'Member Groups', groupIds: 'Member Group IDs', tagNames: 'Member Tags', tagIds: 'Member Tag IDs', levelName: 'Member Level', levelId: 'Member Level ID',
+    loginCount: 'Login Count', lastLoginAt: 'Last Login At', lastLoginIp: 'Last Login IP', createdAt: 'Registered At', deletedAt: 'Deleted At', stopped: 'Disabled',
+    dialogAdd: 'Add Member', dialogEdit: 'Edit Member', addTip: 'Members created in admin have no password; they must recover or set a password via the frontend before signing in.',
+    recycleConfirm: 'Move the selected member(s) to the recycle bin?', destroyConfirm: 'Permanently delete the selected member(s)? This cannot be undone.',
+    retry: 'Retry', listLoadFailed: 'Failed to load the list. Please retry.', formLoadFailed: 'Failed to load the member form. Please retry.', definitionLoadFailed: 'Failed to load the page configuration. Please retry.', actionFailed: 'Operation failed. Please retry.',
+    formDefinitionUnavailable: 'The member form definition is unavailable', csvEmpty: 'No importable data in the CSV', importResult: '{created} created, {skipped} skipped: {errors}',
+    optionUnavailable: '(unavailable, please select again)', unavailableTip: 'Some member relations are disabled, deleted or unavailable. Original values are kept; please reselect and save.'
+  },
+  systemMemberGroup: {
+    title: 'Member Groups', subtitle: 'Maintain member groups; the default group and groups still referenced by members cannot be deleted',
+    name: 'Group Name', groupName: 'Member Group Name', namePlaceholder: 'Enter member group name', icon: 'Icon', defaultGroup: 'Default Group', yes: 'Yes', no: 'No', all: 'All', stopped: 'Disabled', createdAt: 'Created At', deletedAt: 'Deleted At',
+    normalList: 'Normal List', recycleBin: 'Recycle Bin', moveToRecycle: 'Move to Recycle Bin', restore: 'Restore', destroy: 'Delete Permanently', destroyButton: 'Delete Permanently',
+    recycleConfirm: 'Move the selected {n} member group(s) to the recycle bin?', destroyConfirm: 'Permanently delete the selected {n} member group(s)? This cannot be undone.', destroyConfirmTitle: 'Permanent Deletion Confirmation', operateConfirmTitle: 'Action Confirmation',
+    csvImport: 'CSV Import', csvExport: 'CSV Export', csvEmpty: 'No importable data in the CSV'
+  },
+  systemMenu: {
+    title: 'Menus', subtitle: 'Maintain admin navigation directories and pages; button permissions are assigned in role permissions',
+    colName: 'Name', name: 'Menu Name', namePlaceholder: 'Enter menu name', type: 'Type', typeDir: 'Directory', typePage: 'Page', typeUnknown: 'Unknown',
+    path: 'Menu Route', pathPlaceholder: 'Enter menu route', route: 'Route', icon: 'Icon', sort: 'Sort', visible: 'Visible', hidden: 'Hidden', managed: 'Managed', orphaned: 'Orphaned Resource', permission: 'Permission',
+    addChild: 'Add Child', expand: 'Expand', collapse: 'Collapse', dragTip: 'Drag to reorder siblings', cleanOrphan: 'Clean Orphaned Resources',
+    deleteConfirm: 'Delete {name}?', deleteOrphanConfirm: 'Clean orphaned resource {name}? Menus, permissions and authorization rules from the same generation source will be deleted together.',
+    batchDeleteConfirm: '{selected} item(s) selected; after deduplication {n} top-level node(s) (including children) will be deleted. Continue?', sortSaved: 'Sort order saved', sortSaveFailed: 'Failed to save sort order'
+  },
+  systemUpgrade: {
+    title: 'System Upgrade', subtitle: 'Validate upgrade packages, back up project files and perform recoverable upgrades',
+    check: 'Check for Updates', version: 'Version', targetVersion: 'Target Version', upgradeTo: 'Upgrade to {version}', changelog: 'Changelog', progress: 'Progress', stage: 'Stage', task: 'Task', error: 'Error',
+    offlineZip: 'Offline ZIP Upgrade', uploadConfirm: 'Upload {name} and run the upgrade? The signed manifest in the ZIP will be verified by the server.',
+    upgradeConfirm: 'Upgrade to {version}? The system will back up first.', upgradeConfirmTitle: 'Upgrade Confirmation',
+    restore: 'Restore', restoreConfirm: 'Restore files from the backup of task {id}? Database migrations will not be rolled back.', restoreConfirmTitle: 'Restore Confirmation', refreshTasks: 'Refresh Tasks'
   }
 };

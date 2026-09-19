@@ -70,7 +70,9 @@ export default {
     modelSelection: {
       current: '当前会话模型', unset: '未设置', id: '模型 ID', save: '保存模型',
       hint: '仅支持当前配置的供应商，请输入其支持的模型 ID。切换仅影响保存后创建的任务，当前任务保持原模型。',
-      failed: '模型保存失败，请检查模型 ID 或重试'
+      failed: '模型保存失败，请检查模型 ID 或重试',
+      helpAria: '模型与思考设置说明', helpTrigger: '设置说明', taskSnapshot: '仅影响新建任务，运行任务保留快照。',
+      profileSummary: '档案默认模型：{model}；Token 输入 {input} / 输出 {output} / 上下文 {context}', unspecified: '未指定'
     },
     provider: 'Provider',
     fields: { base: '基线', local: '本地', remote: '远端', baseUrl: 'Base URL', model: 'Model', apiKey: 'API key' },
@@ -133,7 +135,7 @@ export default {
       save: '保存档案', saved: '档案已保存', testHint: '测试仅调用临时连接接口，不测试已保存的密钥，也不验证 token / stream 等运行参数。请重新输入本次测试密钥；留空按无密钥测试，不使用全局密钥。密钥不写入浏览器存储。', inherit: '使用当前默认档案', selectionHint: '新会话继承创建时的默认档案；更改默认不会修改已有会话和已冻结任务。', invalid: '请检查模型、URL、预算和超时范围', emptyModels: '模型目录为空，仍可手动输入模型 ID',
       selectProfile: '配置档案', newProfile: '新建档案', defaultBadge: '（默认档案）', nameLabel: '档案名称', connectionTitle: '连接与模型', preset: '供应商预设', applyPreset: '应用到连接', protocol: 'API 协议', ollamaHint: 'Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。', providerId: '供应商标识', providerIdPlaceholder: '例如 openai-compatible', keyStatus: '密钥状态', defaultModel: '默认 Model', fetchModelsShort: '获取模型', fallbackTitle: '备用模型', fallbackEnable: '启用备用', fallbackList: '有序备用模型', fallbackAdd: '添加备用模型（最多 3 个）', moveUp: '上移', moveDown: '下移', removeFallback: '移除', tokenLimits: 'Token 限制', unspecified: '不指定', savedEffortIncompatible: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。', advancedTitle: '高级参数与模型能力', capabilitiesTitle: '模型能力（管理员声明）', capModel: '模型标识', capOutput: '输出参数', capContext: '模型上下文上限', capMaxOutput: '模型输出上限', unknown: '未知', imageFormats: '图片格式', removeCapability: '删除声明', addCapability: '添加模型能力声明',
       presetZhipu: '智谱 GLM', presetQwen: '通义千问（北京）', presetDoubao: '豆包（北京）', presetSiliconFlow: '硅基流动', presetGemini: 'Google Gemini（OpenAI 兼容）', presetOllama: 'Ollama（自备安全网关）', presetCustom: '自定义',
-      presetConfirm: '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。', targetChangedNeedKey: '连接目标已变更，请提供新密钥或明确清空旧密钥。', reasoningProtocolUnsupported: 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。', messagesOutputRequired: 'Messages 必须设置输出 Token 预算。', protocolReasoningUnsupported: '当前协议不支持显式推理模式。'
+      presetConfirm: '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。', targetChangedNeedKey: '连接目标已变更，请提供新密钥或明确清空旧密钥。', reasoningProtocolUnsupported: 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。', messagesOutputRequired: 'Messages 必须设置输出 Token 预算。', protocolReasoningUnsupported: '当前协议不支持显式推理模式。', defaultShort: '（默认）'
     },
     providerSettings: {
       title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
@@ -153,7 +155,7 @@ export default {
       taskTypes: { chat: '对话', crud: 'CRUD', code_change: '代码变更', fix: '修复', test: '测试', migration: '迁移' },
       changeSetStatuses: { proposed: '待应用', applying: '应用中', completed: '已完成', failed: '失败', recovery_required: '需要恢复' }
     },
-    errors: { approvalModeUpdate: '审批模式更新失败，请检查权限后重试', applyUnavailable: '最终应用审批不存在或尚未批准', generic: '操作失败，请稍后重试' }
+    errors: { approvalModeUpdate: '审批模式更新失败，请检查权限后重试', applyUnavailable: '最终应用审批不存在或尚未批准', generic: '操作失败，请稍后重试', modelSaving: '模型正在保存，请稍后重试', cursorNotAdvanced: '消息分页游标未前进', finalApprovalUnavailable: '当前 ChangeSet 的最终 apply 审批不存在或尚未批准', profileDisabled: '档案已停用', noDefaultProfile: '没有默认档案', connectionFailed: '连接失败' }
   },
   layout: {
     menuSearch: '菜单搜索',
@@ -969,6 +971,7 @@ export default {
     subtitle: '统一管理企业应用、运行数据、域名与访问范围'
   },
   business: {
+    dirtyGuardConfirm: '当前内容尚未保存，确认离开吗？',
     status: {
       lifecycle: {
         draft: { label: '草稿', description: '模块仍在编辑，尚未发布。' },
@@ -1077,7 +1080,9 @@ export default {
       announcing: '正在检查数据库结构', creating: '正在创建业务', requestFailed: '请求失败，请重试',
       staleNotice: '连接或目标已变化，请重新检查', inspectionStale: '数据库结构已变化，请重新检查',
       adoptConfirm: '确认采纳连接 {connection} 的表 {table}？主键：{keys}；字段数：{count}。采纳后将保存不可变 Schema 基线。',
-      adoptConfirmTitle: '确认数据库采纳', adoptConfirmButton: '确认采纳', codeExists: '业务标识已存在'
+      adoptConfirmTitle: '确认数据库采纳', adoptConfirmButton: '确认采纳', codeExists: '业务标识已存在',
+      targetLoading: '正在加载业务目标', pluginUnavailableReason: '所选插件不可用：{msg}', pluginUnavailable: '所选插件不可用或无权限，请重新选择目标。',
+      targetUnavailable: '目标不可用', noTargetPermission: '无业务目标查看权限，不能创建或采纳；已授权的结构检查仍可使用。', targetLoadFailed: '业务目标加载失败，请重试'
     },
     diff: {
       regionAria: '只读文件差异',
@@ -1243,6 +1248,12 @@ export default {
     prev: '上一步',
     next: '下一步',
     installNow: '立即安装',
+    requestFailed: '安装请求失败',
+    validation: {
+      dbIncomplete: '数据库配置不完整', adminRequired: '管理员账号不能为空', passwordLength: '管理员密码必须为6-16位',
+      passwordAlphaNum: '管理员密码必须同时包含字母和数字', passwordMismatch: '两次输入密码不一致',
+      emailTooLong: '管理员邮箱不能超过60个字符', emailInvalid: '请输入正确的邮箱'
+    },
     successTitle: '安装成功',
     successSub: 'FunAdmin 已完成初始化，可以进入后台登录。',
     resultUrl: '后台地址：',
@@ -1518,5 +1529,119 @@ export default {
     ssoModeIdpDesc: 'FunAdmin 作为 OIDC Provider',
     ssoModeExternal: '外部身份接入',
     ssoModeExternalDesc: '连接企业外部 IdP'
+  },
+  errorPage: {
+    backHome: '返回首页', prevPage: '上一页',
+    forbiddenTitle: '无权访问', forbiddenDesc: '抱歉，你没有访问该页面的权限',
+    notFoundTitle: '页面不存在', notFoundDesc: '你访问的资源已被移除或暂时不可用',
+    serverErrorTitle: '服务异常', serverErrorDesc: '服务器开了点小差，稍后再试'
+  },
+  plugin: {
+    title: '插件中心', subtitle: '管理已安装插件、本地插件包和云市场版本',
+    account: '市场账号', uploadZip: '上传本地 ZIP', create: '创建插件', validate: '校验插件', package: '打包插件', refresh: '刷新',
+    tabInstalled: '已安装', tabLocal: '本地插件', tabMarket: '云市场',
+    localFound: '已发现 {n} 个本地插件，来源目录：plugins/', emptyLocal: 'plugins/ 目录下暂无符合 Manifest v2 的本地插件', emptyInstalled: '暂无已安装插件',
+    colCode: '插件标识', colName: '名称', colVersion: '当前版本', colLatest: '最新版本', colDbVersion: '数据库版本', colState: '状态', colDeps: '依赖插件', colPending: '待迁移', colSource: '来源', colLastError: '最近错误', colActions: '操作', colDescription: '描述', colAuthor: '作者', colCapabilities: '能力',
+    yes: '是', no: '否',
+    install: '安装', localUpdate: '本地 ZIP 更新', update: '更新', migrate: '迁移', enable: '启用', disable: '禁用', developBusiness: '开发业务', config: '配置', history: '历史', uninstall: '卸载', purge: '清除数据', deletePackage: '删除包', detail: '详情',
+    searchPlaceholder: '搜索插件', search: '搜索',
+    businessTip: '进入统一业务设计器，目标可用性由服务端再次校验', businessReason: '插件正在发布、恢复或当前状态不可开发',
+    running: '插件正在执行{label}（{progress}%）', needMerge: '检测到本地修改，需要人工合并', needReinstall: '插件需要重新安装后才能执行此操作',
+    pendingMigration: '存在待执行数据库迁移，完成迁移后才能启用',
+    stateNotAllowed: '当前状态“{state}”不允许执行此操作', stateNotDisable: '当前状态“{state}”不允许禁用', stateNotInstall: '当前状态“{state}”不允许安装',
+    confirmMigrate: '确认迁移插件', confirmEnable: '确认启用插件', confirmDisable: '确认禁用插件', confirmSuffix: '吗？', operateTitle: '操作确认',
+    updateConfirm: '确认将 {code} 更新到 {version} 吗？', updateTitle: '更新确认',
+    localUpdateConfirm: '确认使用 {file} 更新插件 {code} 吗？', localUpdateTitle: '本地更新确认',
+    installConfirm: '确认安装发现目录中的插件 {code} 吗？', installTitle: '安装确认', marketInstallConfirm: '确认安装插件 {code} {version} 吗？',
+    uninstallConfirm: '确认卸载插件 {code} 吗？业务数据与配置将保留。', uninstallTitle: '卸载确认',
+    purgePrompt: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认', purgeTitle: '危险操作', purgeRequireCode: '彻底清理数据时必须输入插件标识 {code}',
+    deleteConfirm: '确认删除本地插件包 {code} 吗？', deleteTitle: '删除确认',
+    capManifest: '清单协议 v{v}', capNative: '原生应用包', capOther: '其他格式包', capNone: '无应用能力', capSigned: 'Ed25519 签名', capSignedBy: '{alg} 签名', capUnsigned: '未签名', capDb: '数据库 {v}', capDbNone: '数据库无迁移要求',
+    noAutoUpdate: '当前版本不允许自动更新',
+    configDrawerTitle: '{code} 配置', saveConfig: '保存配置',
+    historyDrawerTitle: '{code} 历史与恢复', historySource: '来源', historyTime: '时间', operationRecords: '操作记录',
+    moduleLoadFailed: '插件模块加载失败', pluginLine: '插件：{name}', stageLine: '阶段：{stage}', stage: '阶段', progress: '进度', result: '结果', errorDetail: '错误详情', failedStage: '失败阶段：{stage}',
+    version: '版本', versionHistory: '版本包历史', signatureVerified: '签名已验证',
+    redeploy: '重部署', redeployConfirm: '确认将插件 {code} 重部署为历史版本 {version} 吗？数据库不会自动降级。', redeployTitle: '历史版本重部署',
+    devTitle: '插件开发工具', devTabMaintain: '校验/打包', devFieldPlugin: '插件', devFieldName: '插件标识', devFieldTitle: '插件名称', devNamePlaceholder: '小写字母开头，仅字母和数字',
+    devConfirmCreate: '确认创建', devCreateSuccess: '插件已创建，审计编号：{id}', devAuditId: '审计编号', devValidateLabel: '校验', devValidateSuccess: '插件校验通过', devManifestValid: '清单协议 v2 有效',
+    devPackageSuccess: '插件打包完成', devDownloadPackage: '下载插件包', devDownloadPath: '下载路径', devPlanPath: '目标文件', devSha256: 'SHA-256 摘要',
+    devFileCreate: '新建', devFileOverwrite: '覆盖', devFileUnchanged: '未变化', devFileConflict: '冲突', devFilePending: '待处理', devConflicts: '冲突：{list}',
+    stateUnknown: '未知状态', sourceUnknown: '未知来源', operationUnknown: '未知操作', applicationUnknown: '其他能力', scopeUnknown: '其他范围',
+    state: { discovered: '待安装', installing: '安装中', disabled: '已禁用', updating: '更新中', enabling: '启用中', enabled: '已启用', disabling: '禁用中', uninstalling: '卸载中', failed: '失败' },
+    source: { installed: '已安装', local: '本地插件', cloud: '云市场' },
+    operation: { install: '安装', update: '更新', migrate: '数据库迁移', enable: '启用', disable: '禁用', uninstall: '卸载', purge: '清除数据', package: '打包', validate: '校验' },
+    application: { app: '独立应用', admin: '管理后台', adminWeb: '管理前端' },
+    scope: { app: '独立应用', admin: '管理后台', both: '独立应用和管理后台' }
+  },
+  systemBlacklist: {
+    title: '黑名单', subtitle: '管理登录 IP/规则；启用且未删除的记录会参与后台登录拦截',
+    ipRule: 'IP/规则', ipPlaceholder: '请输入 IP 或规则', remark: '备注', allStatus: '全部', stopped: '停用', createdAt: '创建时间', deletedAt: '删除时间',
+    normalList: '正常列表', recycleBin: '回收站', moveToRecycle: '移入回收站', restore: '恢复', destroy: '永久删除',
+    recycleConfirm: '确认将选中的 {n} 条记录移入回收站吗？', destroyConfirm: '确认永久删除选中的 {n} 条记录吗？此操作不可恢复。', destroyConfirmTitle: '永久删除确认', operateConfirmTitle: '操作确认',
+    csvImport: 'CSV 导入', csvExport: 'CSV 导出', importSuccess: '成功导入 {n} 条', importResult: '导入完成：成功 {created}，跳过 {skipped}'
+  },
+  systemConfig: {
+    title: '配置管理', subtitle: '维护运行时配置定义和值；所有配置值保持字符串存储',
+    keyword: '关键词', keywordPlaceholder: '配置编码/备注', group: '分组', all: '全部', code: '配置编码', remark: '备注', type: '类型', value: '配置值', isSystem: '系统', yes: '是', no: '否', stopped: '停用',
+    addConfig: '新增配置', addGroup: '新增分组', configGroups: '配置分组', groupCode: '分组编码', groupTitle: '分组标题',
+    setValue: '设置值', saveValue: '保存配置值', valueDialogTitle: '设置配置值：{code}',
+    deleteOneConfirm: '确认删除配置“{code}”吗？', deleteManyConfirm: '确认删除选中的 {n} 个配置吗？', deleteGroupConfirm: '确认删除配置分组“{title}”吗？仅空分组可删除。', deleteConfirmTitle: '删除确认'
+  },
+  systemLanguage: {
+    title: '多语言', subtitle: '维护后台可切换的语言注册项；语言包文件仍由代码仓库管理',
+    name: '语言名称', namePlaceholder: '请输入语言名称', isDefault: '默认语言', systemProtected: '系统保护', yes: '是', no: '否', stopped: '停用', createdAt: '创建时间', updatedAt: '更新时间',
+    lines: '译文', linesTitle: '译文条目 · {locale}', addLine: '新增译文', lineValue: '译文', keyPlaceholder: '选择或输入 i18n key', valuePlaceholder: '该 key 在当前语言下的译文', keywordPlaceholder: '搜索 key / 译文',
+    inlineTip: '行内修改失焦即保存；保存后当前语言译文包即时刷新。', save: '保存',
+    deleteOneConfirm: '确认删除语言“{name}”吗？', deleteManyConfirm: '确认删除选中的 {n} 个语言吗？', deleteConfirmTitle: '删除确认',
+    deleteLineConfirm: '确认删除译文 {key}？删除后该 key 回落静态语言包。', batchDeleteConfirmTitle: '批量删除确认'
+  },
+  systemLog: {
+    title: '操作日志', subtitle: '查看系统已记录的后台操作审计数据',
+    username: '账号', usernamePlaceholder: '操作账号', appName: '应用', appPlaceholder: '如 console', sourceType: '来源', sourceName: '来源标识', sourceNamePlaceholder: '如 core',
+    all: '全部', time: '时间', method: '方法', request: '请求', statusCode: '状态码', duration: '耗时', plugin: '插件', pluginPrefix: '插件：{name}', system: '系统',
+    rangeStart: '开始', rangeEnd: '结束', detailTitle: '操作日志详情', requestId: '请求 ID', resource: '资源', getParams: 'GET 参数', postParams: '请求参数', response: '响应', failReason: '失败原因',
+    deleteOneConfirm: '确认删除该日志？', deleteManyConfirm: '确认删除选中的 {n} 条日志？', clearAll: '清空', clearAllConfirm: '确认清空全部操作日志？该操作不可恢复。', clearAllTitle: '清空日志'
+  },
+  systemMember: {
+    title: '会员管理', subtitle: '维护前台会员资料、分组和等级；后台新建会员默认无登录密码',
+    username: '用户名', mobile: '手机号', email: '邮箱', sex: '性别', sexMale: '男', sexFemale: '女', sexSecret: '保密', avatar: '头像', avatarTip: '头像支持常见图片格式，最大 2MB',
+    groupNames: '会员组', groupIds: '会员组ID', tagNames: '会员标签', tagIds: '会员标签ID', levelName: '会员等级', levelId: '会员等级ID',
+    loginCount: '登录次数', lastLoginAt: '最后登录时间', lastLoginIp: '最后登录IP', createdAt: '注册时间', deletedAt: '删除时间', stopped: '停用',
+    dialogAdd: '新增会员', dialogEdit: '编辑会员', addTip: '后台新建会员不设置密码，会员需后续通过前台找回或设置密码后才能登录。',
+    recycleConfirm: '确认将选中的会员移入回收站吗？', destroyConfirm: '确认永久删除选中的会员吗？此操作不可恢复。',
+    retry: '重试', listLoadFailed: '列表加载失败，请重试', formLoadFailed: '会员表单加载失败，请重试', definitionLoadFailed: '页面配置加载失败，请重试', actionFailed: '操作失败，请重试',
+    formDefinitionUnavailable: '会员表单定义不可用', csvEmpty: 'CSV 中没有可导入的数据', importResult: '成功 {created} 条，跳过 {skipped} 条：{errors}',
+    optionUnavailable: '（不可用，请重新选择）', unavailableTip: '存在已停用、已删除或不可用的会员关系，原值已保留，请重新选择后保存。'
+  },
+  systemMemberGroup: {
+    title: '会员组', subtitle: '维护会员分组；默认组和仍被会员引用的分组不能删除',
+    name: '组名', groupName: '会员组名称', namePlaceholder: '请输入会员组名称', icon: '图标', defaultGroup: '默认组', yes: '是', no: '否', all: '全部', stopped: '停用', createdAt: '创建时间', deletedAt: '删除时间',
+    normalList: '正常列表', recycleBin: '回收站', moveToRecycle: '移入回收站', restore: '恢复', destroy: '永久删除', destroyButton: '永久删除',
+    recycleConfirm: '确认将选中的 {n} 个会员组移入回收站吗？', destroyConfirm: '确认永久删除选中的 {n} 个会员组吗？此操作不可恢复。', destroyConfirmTitle: '永久删除确认', operateConfirmTitle: '操作确认',
+    csvImport: 'CSV 导入', csvExport: 'CSV 导出', csvEmpty: 'CSV 中没有可导入的数据'
+  },
+  systemMenu: {
+    title: '菜单管理', subtitle: '维护后台导航目录与页面；按钮权限在角色权限中统一分配',
+    colName: '名称', name: '菜单名称', namePlaceholder: '请输入菜单名称', type: '类型', typeDir: '目录', typePage: '页面', typeUnknown: '未知',
+    path: '菜单路由', pathPlaceholder: '请输入菜单路由', route: '路由', icon: '图标', sort: '排序', visible: '显示', hidden: '隐藏', managed: '受管', orphaned: '孤儿资源', permission: '权限标识',
+    addChild: '新增子项', expand: '展开', collapse: '折叠', dragTip: '拖动调整同级顺序', cleanOrphan: '清理孤儿资源',
+    deleteConfirm: '确认删除 {name} ?', deleteOrphanConfirm: '确认清理孤儿资源 {name}？同一生成来源的菜单、权限与授权规则将一并删除。',
+    batchDeleteConfirm: '已选中 {selected} 项，去重后将删除 {n} 个顶层节点（含其子节点）。是否继续？', sortSaved: '排序已保存', sortSaveFailed: '保存排序失败'
+  },
+  systemUpgrade: {
+    title: '系统升级', subtitle: '校验升级包、备份项目文件并执行可恢复升级',
+    check: '检查更新', version: '版本', targetVersion: '目标版本', upgradeTo: '升级到 {version}', changelog: '变更内容', progress: '进度', stage: '阶段', task: '任务', error: '错误',
+    offlineZip: '离线 ZIP 升级', uploadConfirm: '确认上传 {name} 并执行升级？ZIP 内签名 manifest 将由服务器校验。',
+    upgradeConfirm: '确认升级到 {version}？系统将先备份。', upgradeConfirmTitle: '升级确认',
+    restore: '恢复', restoreConfirm: '确认从任务 {id} 的备份恢复文件？数据库 migration 不会回滚。', restoreConfirmTitle: '恢复确认', refreshTasks: '刷新任务'
+  },
+  systemUser: {
+    title: '用户管理', subtitle: '管理系统用户、分配角色与部门',
+    searchPlaceholder: '账号 / 昵称', statusPlaceholder: '请选择', add: '新增', edit: '编辑', delete: '删除', batchDelete: '批量删除', resetPwd: '重置密码',
+    colUsername: '账号', colNickname: '昵称', colMobile: '手机', colEmail: '邮箱', colStatus: '状态', colCreatedAt: '创建时间', colActions: '操作',
+    enabled: '启用', disabled: '禁用', statusUpdated: '状态已更新',
+    deleteOneConfirm: '确认删除账号 {name} ?', deleteManyConfirm: '确认删除选中的 {n} 个账号？此操作不可恢复',
+    resetPwdTitle: '提示', resetPwdPrompt: '重置 {name} 的密码', resetPwdPlaceholder: '至少 8 位新密码', resetPwdError: '密码长度至少 8 位'
   }
 };

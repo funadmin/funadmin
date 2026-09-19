@@ -63,7 +63,7 @@ async function loadDefinition() {
   try {
     const result = await memberApi.options();
     if (token !== generation.value || !props.modelValue) return;
-    if (result.schema?.schemaVersion !== 2 || !Array.isArray(result.schema.nodes) || !result.fields?.length) throw new Error('会员表单定义不可用');
+    if (result.schema?.schemaVersion !== 2 || !Array.isArray(result.schema.nodes) || !result.fields?.length) throw new Error(t('systemMember.formDefinitionUnavailable', '会员表单定义不可用'));
     fields.value = result.fields.map((field) => ({ ...field, options_source: field.options_source ? { ...field.options_source, options: [...(field.options_source.options as any[] ?? [])] } : null }));
     values.value = Object.fromEntries(flattenSchemaNodes(result.schema.nodes).filter(({ node }) => node.field).map(({ node }) => [node.field!, Array.isArray(node.defaultValue) ? [...node.defaultValue] : node.defaultValue]));
     if (row) {
