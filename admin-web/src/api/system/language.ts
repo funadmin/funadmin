@@ -24,7 +24,8 @@ export interface LanguagePack {
 }
 
 export const languageApi = {
-  pack: (locale: string, signal?: AbortSignal) => http.get<LanguagePack>(`${PREFIX}/pack`, { params: { locale }, signal }),
+  pack: (locale: string, signal?: AbortSignal) =>
+    http.get<LanguagePack>(`${PREFIX}/pack`, { locale }, signal ? { signal } : undefined),
   list: (params: LanguageQuery) => http.get<API.PageResult<LanguageModel>>(PREFIX, { params }),
   detail: (id: number) => http.get<LanguageModel>(`${PREFIX}/${id}`),
   create: (data: Pick<LanguageModel, 'name'>) =>
