@@ -194,6 +194,8 @@ export const useAppStore = defineStore('app', {
     setLocale(locale: LocaleType) {
       this.locale = locale;
       i18n.global.locale.value = locale;
+      // 同步后端 LoadLangPack 中间件识别的语言 cookie（allow_lang_list 为小写区域码）
+      document.cookie = `think_lang=${locale.toLowerCase()}; path=/`;
       void applyRemotePack(locale);
     },
     setLayoutMode(mode: LayoutMode) {

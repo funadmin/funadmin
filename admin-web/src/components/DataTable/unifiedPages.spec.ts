@@ -14,8 +14,8 @@ describe('统一页面入口', () => {
 
   it('published 详情复用共享展示并保持敏感字段过滤', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/form/published.vue'), 'utf8');
-    expect(source).toContain('presentField(field, detail?.row ?? {})');
+    expect(source).toContain('presentField(field, detail?.row ?? {}, detailOptions)');
     expect(source).not.toContain('detail.row[field.field_name] ?? \'-\'');
-    expect(source).toContain("field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly");
+    expect(source).toContain("!['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly");
   });
 });

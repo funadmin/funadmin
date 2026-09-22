@@ -164,6 +164,30 @@ try {
     crudExpect(str_contains($generatedView, 'onSelectionChange(rows);') && str_contains($generatedView, 'buttonContextVersion.value++'), 'selection 回调必须直接传递模型数组，不需要双重类型断言');
     crudExpect(!str_contains($generatedView, 'rows: unknown[]'), 'audit-log index.vue 不得生成裸 unknown[] 参数');
 
+    $generatedForm = (string) ($generatedContext['formContent'] ?? '');
+    $generatedDetail = (string) ($generatedContext['detailContent'] ?? '');
+    $generatedService = (string) ($generatedContext['serviceContent'] ?? '');
+    $generatedLangMigration = (string) ($generatedContext['langMigrationContent'] ?? '');
+    $generatedLangZh = (string) ($generatedContext['langZhContent'] ?? '');
+    $generatedLangEn = (string) ($generatedContext['langEnContent'] ?? '');
+    crudExpect(str_contains($generatedView, "from 'vue-i18n'"), '生成列表页必须引入 useI18n');
+    crudExpect(str_contains($generatedView, "t('crud.audit-log.field.status'"), '生成列表页字段文案必须走 t() 并带 crud 命名空间');
+    crudExpect(!str_contains($generatedView, '>批量删除</el-button>') && !str_contains($generatedView, 'label="操作"'), '生成列表页不得残留硬编码中文按钮与列头');
+    crudExpect(str_contains($generatedForm, "from 'vue-i18n'") && str_contains($generatedForm, 'nodeTitles'), '生成表单必须引入 useI18n 并按节点映射标题译文');
+    crudExpect(str_contains($generatedView, 'const buttonActionLabels = computed<Record<string, string>>(() => ('), '生成列表页按钮文案映射必须 computed 响应式以支持运行时切换语言');
+    crudExpect(str_contains($generatedView, 'const columnLabels = computed<Record<string, string>>(() => ('), '生成列表页列文案映射必须 computed 响应式');
+    crudExpect(str_contains($generatedView, 'buttonBatchLabels.value[button.id] ?? buttonActionLabels.value[key]'), 'localizeButtons 必须读取 computed 映射的 .value');
+    crudExpect(str_contains($generatedForm, 'const nodeTitles = computed<Record<string, string>>(() => (') && str_contains($generatedForm, 'nodeTitles.value[node.id]'), '生成表单节点标题映射必须 computed 响应式');
+    crudExpect(str_contains($generatedDetail, "t('crud.audit-log.field.status'"), '生成详情字段文案必须走 t()');
+    crudExpect(str_contains($generatedService, "lang('audit-log.referenced'"), '生成服务消息必须走 lang()');
+    crudExpect(str_contains($generatedLangMigration, 'INSERT IGNORE INTO `fun_language_line`'), 'lang.sql 必须 INSERT IGNORE 保护人工修订');
+    crudExpect(str_contains($generatedLangMigration, "'zh-cn','crud.audit-log.field.status'"), 'lang.sql 必须包含 zh-cn 译文');
+    crudExpect(str_contains($generatedLangMigration, "'en-us','crud.audit-log.field.status','Status'"), 'lang.sql 必须包含 en-us 预翻译占位');
+    crudExpect(str_contains($generatedLangMigration, "`ns` = 'crud.audit-log'"), 'lang.sql 必须附 ns 等值删除片段');
+    crudExpect(str_contains($generatedLangZh, "'referenced' => '记录仍被 {:target} 引用，无法删除'"), 'zh 后端语言文件必须包含引用保护消息');
+    crudExpect(str_contains($generatedLangEn, "'referenced' => 'Referenced'"), 'en 后端语言文件必须包含占位译文');
+    crudExpect(str_contains($generatedLangZh, "'audit-log' =>") && str_contains($generatedLangEn, "'audit-log' =>"), '后端语言文件必须按 entity 分组嵌套返回（ThinkPHP allow_group 查询结构）');
+
     $definitionSchema = json_decode(
         (string) file_get_contents(dirname(__DIR__, 2) . '/app/common/crud/schema/crud-definition-v1.schema.json'),
         true,
@@ -184,7 +208,7 @@ try {
     );
     crudExpect(!in_array('route', $definitionSchema['$defs']['artifactNames']['enum'], true), 'Schema 不得声明独立 route 制品');
     crudExpect(!in_array('route', $definitionSchema['$defs']['artifacts']['required'], true), 'Schema 不得要求独立 route 路径');
-    crudExpect(count($definitionSchema['$defs']['templates']['required']) === 12, 'Schema 必须要求 12 个生成模板');
+    crudExpect(count($definitionSchema['$defs']['templates']['required']) === 15, 'Schema 必须要求 15 个生成模板');
 
     foreach ([
         ['data' => ['schemaVersion' => '9.9'], 'message' => 'schemaVersion'],
@@ -624,7 +648,7 @@ try {
     ]));
     $generator = new CrudGenerator($root, dirname(__DIR__, 2) . '/app/common/crud/templates/v1', $tokens);
     $generatorPlan = $generator->plan($fixtureDefinition);
-    crudExpect(count($generatorPlan['files']) === 12, 'M5 必须生成 12 个非路由制品');
+    crudExpect(count($generatorPlan['files']) === 15, 'M5 必须生成 15 个非路由制品');
     crudExpect(
         array_filter($generatorPlan['files'], static fn (array $file): bool => str_contains($file['path'], '/route/')) === [],
         '生成计划不得包含任何路由文件'
@@ -655,13 +679,13 @@ try {
     $generatedService = $generatedByPath['fixture/app/admin/service/AuditLogService.php'];
     crudExpect(str_contains($generatedService, "whereIn('department_id'"), '必须生成 dataScope 约束');
     crudExpect(
-        str_contains($generatedService, 'public function options(string $source, ?array $departmentIds = null): array')
+        str_contains($generatedService, 'public function options(string $source, ?array $departmentIds = null, array $params = []): array')
         && str_contains($generatedService, "whereIn('id', \$departmentIds ?: [0])"),
         'relation field 等于 dataScope.field 时 options 必须按允许 IDs 限制目标 valueField'
     );
     crudExpect(
         str_contains($generatedByPath[$controllerPath], "\$scope = (new DataScopeService())->resolve();")
-        && str_contains($generatedByPath[$controllerPath], "->options(\$source, \$scope['all'] ? null : \$scope['departmentIds'])"),
+        && str_contains($generatedByPath[$controllerPath], "->options(\$source, \$scope['all'] ? null : \$scope['departmentIds'], \$this->request->get())"),
         'options controller 必须将与写入校验相同的当前数据范围传入 service'
     );
     crudExpect(str_contains($generatedByPath['fixture/app/admin/model/AuditLog.php'], 'function department()'), '必须生成模型关系');
@@ -693,10 +717,10 @@ try {
     crudExpect(str_contains($generatedByPath[$controllerPath], 'DataScopeService'), 'dataScope 必须进入控制器真实查询链');
     crudExpect(str_contains($generatedByPath[$controllerPath], 'baseQuery as private crudUnscopedBaseQuery'), 'dataScope 必须复用 Trait 基础查询');
     crudExpect(str_contains($generatedByPath[$controllerPath], 'protected function baseQuery(bool $onlyTrashed, bool $withTrashed)'), 'dataScope 必须覆盖所有详情与写操作的基础查询');
-    crudExpect(str_contains($generatedByPath[$controllerPath], "return '无权写入指定数据范围';"), 'dataScope 必须拒绝创建、更新和导入到未授权部门');
+    crudExpect(str_contains($generatedByPath[$controllerPath], "return lang('audit-log.dataScopeDenied');"), 'dataScope 必须拒绝创建、更新和导入到未授权部门');
     crudExpect(
         str_contains($generatedByPath[$controllerPath], "\$model === null && !array_key_exists('department_id', \$data)")
-        && str_contains($generatedByPath[$controllerPath], "return '数据范围字段 department_id 必填';"),
+        && str_contains($generatedByPath[$controllerPath], "return lang('audit-log.dataScopeRequired', ['field' => 'department_id']);"),
         '非全范围创建与导入必须强制提交 dataScope 字段'
     );
     crudExpect(
@@ -988,6 +1012,41 @@ TS
     foreach (['definitionHash', 'templateVersion', 'files', 'operator', 'status'] as $key) {
         crudExpect(array_key_exists($key, $manifest->toArray()), 'Manifest 缺少字段：' . $key);
     }
+
+    // === 语言包安装器契约：白名单、INSERT IGNORE 报告与 force-refresh ===
+    $installerRoot = $root . '/installer';
+    mkdir($installerRoot, 0755, true);
+    $permissionSql = "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\nSELECT 0,'admin',NULL,'','','审计日志','group',1,0,0,'generated','audit-log',NOW(),NOW(),0,NULL\nWHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = 'audit-log' AND `resource_type` = 'group');\n";
+    $langSql = "-- Generated language pack migration\nINSERT IGNORE INTO `fun_language_line` (`locale`, `key`, `value`, `created_at`, `updated_at`) VALUES\n('zh-cn','crud.audit-log.field.status','状态',NOW(),NOW()),\n('zh-cn','crud.audit-log.page.title','审计日志',NOW(),NOW());\nINSERT IGNORE INTO `fun_language_line` (`locale`, `key`, `value`, `created_at`, `updated_at`) VALUES\n('en-us','crud.audit-log.field.status','Status',NOW(),NOW());\n-- 卸载清理（手动执行）：DELETE FROM `fun_language_line` WHERE `locale` = 'zh-cn' AND `ns` = 'crud.audit-log';\n";
+    file_put_contents($installerRoot . '/permissions.sql', $permissionSql);
+    file_put_contents($installerRoot . '/lang.sql', $langSql);
+    $installerDefinition = CrudDefinition::fromArray(['entity' => 'audit-log', 'generationTargets' => ['permissionMigration' => 'permissions.sql', 'langMigration' => 'lang.sql']]);
+    $installerManifest = ['definitionHash' => $installerDefinition->hash(), 'files' => [
+        ['path' => 'permissions.sql', 'hash' => hash('sha256', $permissionSql)],
+        ['path' => 'lang.sql', 'hash' => hash('sha256', $langSql)],
+    ]];
+    $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'tenant_fun_']]], 'database');
+    $executed = [];
+    $installer = new \app\common\crud\CrudResourceInstaller($installerRoot, static function (string $sql) use (&$executed): int { $executed[] = $sql; return 1; }, static fn (callable $operation) => $operation());
+    $applied = $installer->apply($installerDefinition->toArray(), $installerManifest);
+    crudExpect(count($executed) === 3, '安装器必须同事务应用权限与语言包 migration');
+    crudExpect(str_contains($executed[1], 'INSERT IGNORE INTO `tenant_fun_language_line`'), '语言包 SQL 必须走默认连接前缀替换且保持 INSERT IGNORE');
+    crudExpect(($applied['langInserted'] ?? null) === 2 && ($applied['langSkipped'] ?? null) === 1, '安装器必须报告语言包 inserted/skipped 计数');
+    crudExpect(($applied['resourceApplyStatus'] ?? '') === 'applied', '安装器应用后必须回报 applied 状态');
+    $executed = [];
+    $applied = $installer->apply($installerDefinition->toArray(), $installerManifest, true);
+    crudExpect(str_contains($executed[1], 'INSERT INTO `tenant_fun_language_line`') && !str_contains($executed[1], 'INSERT IGNORE') && str_contains($executed[1], 'ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `updated_at`=NOW()'), 'force-refresh 必须改写为 ON DUPLICATE KEY UPDATE 覆盖人工修订');
+    file_put_contents($installerRoot . '/evil.sql', "DELETE FROM `fun_language_line` WHERE `ns` = 'crud.audit-log';\n");
+    $evilDefinition = CrudDefinition::fromArray(['entity' => 'audit-log', 'generationTargets' => ['permissionMigration' => 'evil.sql', 'langMigration' => 'lang.sql']]);
+    $evilManifest = ['definitionHash' => $evilDefinition->hash(), 'files' => [
+        ['path' => 'evil.sql', 'hash' => hash('sha256', (string) file_get_contents($installerRoot . '/evil.sql'))],
+        ['path' => 'lang.sql', 'hash' => hash('sha256', $langSql)],
+    ]];
+    crudReject(
+        static fn () => $installer->apply($evilDefinition->toArray(), $evilManifest),
+        '非白名单 SQL'
+    );
+    $app->config->set([], 'database');
 
     echo "CRUD core tests: PASS\n";
 } finally {

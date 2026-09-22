@@ -12,7 +12,7 @@ vi.mock('@/api/system/member', () => ({ memberApi: api }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:add', 'system:member:edit'] }) }));
 vi.mock('@/utils/http', () => ({ default: remote }));
 
-const definition = JSON.parse(execFileSync(process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php', ['-r', `require 'vendor/autoload.php'; echo json_encode(\\app\\console\\service\\MemberFormDefinition::build(['groups'=>[['id'=>7,'name'=>'会员组']], 'levels'=>[['id'=>3,'name'=>'会员等级']], 'tags'=>[['id'=>5,'name'=>'标签']]]));`], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' }));
+const definition = JSON.parse(execFileSync(process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php', ['-r', `require 'vendor/autoload.php'; echo json_encode(\\app\\admin\\service\\MemberFormDefinition::build(['groups'=>[['id'=>7,'name'=>'会员组']], 'levels'=>[['id'=>3,'name'=>'会员等级']], 'tags'=>[['id'=>5,'name'=>'标签']]]));`], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' }));
 
 describe('PHP 真实会员 v2 与真实渲染器', () => {
   it('九字段、真实校验、数值类型及专用提交映射，不访问动态目录', async () => {

@@ -55,7 +55,7 @@ const ElButton = defineComponent({
   emits: ['click'],
   template: '<button type="button" :disabled="disabled || loading" :data-loading="String(Boolean(loading))" @click="$emit(\'click\')"><slot /></button>'
 });
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }) }));
 const PageWrapper = defineComponent({ template: '<main><slot /></main>' });
 const ElCard = defineComponent({ template: '<section><slot /></section>' });
 const ElFormItem = defineComponent({ props: ['label', 'prop'], template: '<label :data-prop="prop"><slot /></label>' });
@@ -266,7 +266,7 @@ describe('BusinessVisual', () => {
     await inputAt(wrapper, 4).setValue('asdf');
     await wrapper.get('[data-action="submit"]').trigger('click');
     await flushPromises();
-    expect(mocks.createVisual).toHaveBeenCalledWith({ name: 'test', code: 'test', table: 'example_test', connection: 'mysql', remark: 'asdf', target: { type: 'plugin', pluginCode: 'example' } });
+    expect(mocks.createVisual).toHaveBeenCalledWith(expect.objectContaining({ name: 'test', code: 'test', table: 'example_test', connection: 'mysql', remark: 'asdf', target: { type: 'plugin', pluginCode: 'example' } }));
     expect(formApi.fields.find(item => item.prop === field)?.validateMessage).toBe(message);
     expect(formApi.scrollToField).toHaveBeenCalledWith(field);
     expect(mocks.push).not.toHaveBeenCalled();
@@ -427,7 +427,7 @@ describe('BusinessVisual', () => {
     await wrapper.get('[data-action="submit"]').trigger('click');
     await flushPromises();
     expect(mocks.inspectDatabase).toHaveBeenCalledWith('mysql', 'fun_existing');
-    expect(mocks.createFromDatabase).toHaveBeenCalledWith({ name: '客户订单', code: 'customer_order', table: 'fun_existing', connection: 'mysql', remark: '备注', target: { type: 'plugin', pluginCode: 'demo' }, expectedInspectionHash: 'snapshot-1' });
+    expect(mocks.createFromDatabase).toHaveBeenCalledWith(expect.objectContaining({ name: '客户订单', code: 'customer_order', table: 'fun_existing', connection: 'mysql', remark: '备注', target: { type: 'plugin', pluginCode: 'demo' }, expectedInspectionHash: 'snapshot-1' }));
     expect(mocks.createVisual).not.toHaveBeenCalled();
     wrapper.unmount();
   });

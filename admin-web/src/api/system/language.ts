@@ -20,6 +20,7 @@ export interface LanguageQuery {
 export interface LanguagePack {
   locale: string;
   version: number;
+  unchanged?: boolean;
   messages: Record<string, string>;
 }
 
@@ -27,6 +28,7 @@ export interface LanguageLineModel {
   id: number;
   locale: string;
   key: string;
+  ns: string;
   value: string;
   updatedAt: string;
 }
@@ -36,11 +38,13 @@ export interface LanguageLineQuery {
   pageSize: number;
   locale: string;
   keyword?: string;
+  ns?: string;
 }
 
 export const languageApi = {
-  pack: (locale: string, signal?: AbortSignal) =>
-    http.get<LanguagePack>(`${PREFIX}/pack`, { locale }, signal ? { signal } : undefined),
+  pack: (locale: string, version = 0, signal?: AbortSignal) =>
+    http.get<LanguagePack>(`${PREFIX}/pack`, version > 0 ? { locale, version } : { locale }, signal ? { signal } : undefined),
+  namespaces: (locale: string) => http.get<string[]>(`${PREFIX}/ns`, { locale }),
   lines: (params: LanguageLineQuery) => http.get<API.PageResult<LanguageLineModel>>(`${PREFIX}/lines`, params),
   saveLine: (data: { locale: string; key: string; value: string }) =>
     http.post<{ id: number }>(`${PREFIX}/lines`, data, { requestOptions: { showSuccessMsg: true } }),

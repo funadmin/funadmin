@@ -153,6 +153,55 @@ class ResourceRegistryService extends AbstractService
         $this->clearApplicationCache();
     }
 
+    /**
+     * 注册生成模块语言行（INSERT IGNORE 语义）：已存在的 (locale,key) 跳过，人工修订永不覆盖。
+     * 语言行无 source 列、不参与 removeSource 清理；按 ns 等值删除走 lang.sql 卸载片段。
+     *
+     * @return array{inserted:int,skipped:int}
+     */
+    public function registerLanguageLines(array $items, string $sourceType = 'system', string $sourceName = ''): array
+    {
+        $rows = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $locale = strtolower(trim((string) ($item['locale'] ?? '')));
+            $key = trim((string) ($item['key'] ?? ''));
+            $value = (string) ($item['value'] ?? '');
+            if (preg_match('/^[a-z]{2}-[a-z]{2}$/', $locale) !== 1 || $key === '' || $value === '') {
+                continue;
+            }
+            $rows[$locale . "\0" . $key] = ['locale' => $locale, 'key' => $key, 'value' => $value];
+        }
+        if ($rows === []) {
+            return ['inserted' => 0, 'skipped' => 0];
+        }
+        $byLocale = [];
+        foreach ($rows as $row) {
+            $byLocale[$row['locale']][] = $row['key'];
+        }
+        $existing = [];
+        foreach ($byLocale as $locale => $keys) {
+            foreach (array_chunk(array_values(array_unique($keys)), 500) as $chunk) {
+                foreach (Db::name('language_line')->where('locale', $locale)->whereIn('key', $chunk)->column('key') as $key) {
+                    $existing[$locale . "\0" . $key] = true;
+                }
+            }
+        }
+        $now = date('Y-m-d H:i:s');
+        $missing = [];
+        foreach ($rows as $id => $row) {
+            if (!isset($existing[$id])) {
+                $missing[] = $row + ['created_at' => $now, 'updated_at' => $now];
+            }
+        }
+        if ($missing !== []) {
+            Db::name('language_line')->insertAll($missing);
+        }
+        return ['inserted' => count($missing), 'skipped' => count($rows) - count($missing)];
+    }
+
     public function disablePermissions(string $sourceType, string $sourceName): void
     {
         Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->update(['status' => 0]);

@@ -12,12 +12,12 @@ const box = defineComponent({ template: '<div><slot /></div>' });
 const switchStub = defineComponent({ props: ['modelValue', 'disabled'], emits: ['change'], template: '<button :disabled="disabled" @click="$emit(\'change\', !modelValue)">{{ modelValue }}</button>' });
 const item = defineComponent({ props: ['label'], template: '<section :data-label="label"><slot /></section>' });
 const config = () => ({ category: { enabled: true, field: 'mention' }, leftTree: { enabled: true, source: { type: 'module' as const }, mapping: { valueField: '', labelField: '', targetField: 'category_id' }, actions: { addChild: true } } });
-const render = () => mount(Panel, { props: { modelValue: config(), fields: [] }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElForm: box, ElTabs: box, ElTabPane: box, ElFormItem: item, ElSwitch: switchStub, ElAlert: defineComponent({ props: ['title'], template: '<p>{{ title }}</p>' }), ElSelect: box, ElOption: true, ElRadioGroup: box, ElRadio: box } } });
+const render = (mode: 'all' | 'buttons' | 'categories' = 'all') => mount(Panel, { props: { modelValue: config(), fields: [], mode }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElForm: box, ElTabs: box, ElTabPane: box, ElFormItem: item, ElSwitch: switchStub, ElAlert: defineComponent({ props: ['title'], template: '<p>{{ title }}</p>' }), ElSelect: box, ElOption: true, ElRadioGroup: box, ElRadio: box } } });
 beforeEach(() => { vi.clearAllMocks(); api.sourceCandidates.mockResolvedValue({ list: [safeSource], total: 1 }); api.sourceMeta.mockResolvedValue(safeSource); api.modules.mockResolvedValue({ list: [{ id: 1, code: 'allowed', name: '分类', lifecycle_status: 'published' }, { id: 2, code: 'denied', lifecycle_status: 'published' }], total: 2 }); api.module.mockImplementation(async (id: number) => ({ form: { form_key: id === 1 ? 'allowed' : 'denied' } })); api.meta.mockImplementation(async (key: string) => { if (key === 'denied') throw Error('拒绝'); return { primaryKey: { name: 'code' }, fields: [] }; }); });
 describe('独立分类配置入口', () => {
   it('按实际入口加载权限目录并传给编辑器，失败不改写按钮', async () => {
     api.designActionCatalog.mockResolvedValue({ moduleId: 7, designOnly: true, executable: false, resources: { customer: { type: 'navigate', permission: 'view', capabilityVersion: 'v2', params: [], query: [] } }, actions: { row: { inspect: { permission: 'inspect', capabilityVersion: 'v3', parameters: [], parameterTypes: {}, locations: ['row'], targets: ['record'], effect: 'read', batch: false, requiresConfirmation: false, resultContract: 'json' } } } });
-    const wrapper = render();
+    const wrapper = render('buttons');
     await wrapper.setProps({ moduleId: 7, permissions: ['development:business:save'] } as never);
     await flushPromises();
     expect(api.designActionCatalog).toHaveBeenCalledWith(7);
@@ -46,7 +46,7 @@ describe('独立分类配置入口', () => {
     expect(state.scalarFields).toEqual([]);
     wrapper.unmount();
   });
-  it('配置面板提供四个共享按钮编辑器和工具开关', () => { const wrapper = render(); expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4); expect(wrapper.text()).toContain('通用工具'); wrapper.unmount(); });
+  it('配置面板提供四个共享按钮编辑器和工具开关', () => { const wrapper = render('buttons'); expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4); expect(wrapper.text()).toContain('通用工具'); wrapper.unmount(); });
   it('按钮与工具模式不再渲染列表展示配置外壳和说明，直接展示按钮编辑区', async () => {
     const wrapper = render();
     await wrapper.setProps({ mode: 'buttons' } as never);
@@ -57,7 +57,7 @@ describe('独立分类配置入口', () => {
     expect(wrapper.text()).toContain('通用工具');
     wrapper.unmount();
   });
-  it('明确说明独立记录与选项筛选的区别', () => { const wrapper = render(); expect(wrapper.text()).toContain('独立分类'); expect(wrapper.text()).toContain('选项筛选'); wrapper.unmount(); });
+  it('明确区分可管理分类与选项筛选', () => { const wrapper = render(); const labels = wrapper.findAll('[data-label]').map(item => item.attributes('data-label')); expect(labels).toContain('可管理分类'); expect(labels).toContain('选项筛选'); wrapper.unmount(); });
   it('没有父级字段时禁用新增子节点，并在更新时清除旧开关', async () => { const wrapper = render(); expect(wrapper.get('[data-label="新增子节点"] button').attributes('disabled')).toBeDefined(); const state = (wrapper.vm as any).$.setupState; state.updateLeft({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { actions: { addChild: false } }, category: { enabled: false } }); wrapper.unmount(); });
   it('开启选项筛选会关闭可管理分类，保留原映射', () => { const wrapper = render(); (wrapper.vm as any).$.setupState.category({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { enabled: false, mapping: { targetField: 'category_id' } } }); wrapper.unmount(); });
   it('候选与选择只使用专用安全元数据，绝不请求完整模块详情或运行态 meta', async () => {

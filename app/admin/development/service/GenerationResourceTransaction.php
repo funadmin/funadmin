@@ -28,17 +28,25 @@ final class GenerationResourceTransaction
         $this->active = true;
     }
 
-    public function apply(array $resources): void
+    /** @return array{inserted:int,skipped:int} 语言行 INSERT IGNORE 计数，供生成结果报告。 */
+    public function apply(array $resources): array
     {
         $this->assertActive();
         $registry = $this->registry ?? new ResourceRegistryService();
+        $totals = ['inserted' => 0, 'skipped' => 0];
         foreach ($this->groupBySource($resources) as $sourceName => $group) {
             $registry->removeSource('generated', $sourceName);
             $registry->registerPermissions($group['permissions'], 'generated', $sourceName);
             if ($group['menus'] !== []) {
                 $registry->registerTree($group['menus'], sourceType: 'generated', sourceName: $sourceName);
             }
+            if ($group['languageLines'] !== []) {
+                $result = $registry->registerLanguageLines($group['languageLines'], 'generated', $sourceName);
+                $totals['inserted'] += (int) ($result['inserted'] ?? 0);
+                $totals['skipped'] += (int) ($result['skipped'] ?? 0);
+            }
         }
+        return $totals;
     }
 
     public function commit(): void
@@ -63,7 +71,7 @@ final class GenerationResourceTransaction
         }
     }
 
-    /** @return array<string, array{permissions:list<array>,menus:list<array>}> */
+    /** @return array<string, array{permissions:list<array>,menus:list<array>,languageLines:list<array>}> */
     private function groupBySource(array $resources): array
     {
         $groups = [];
@@ -72,7 +80,15 @@ final class GenerationResourceTransaction
                 throw new RuntimeException('生成资源记录无效');
             }
             [$type, $sourceName, $identity] = $this->identity($resource);
-            $groups[$sourceName] ??= ['permissions' => [], 'menus' => []];
+            $groups[$sourceName] ??= ['permissions' => [], 'menus' => [], 'languageLines' => []];
+            if ($type === 'language') {
+                $groups[$sourceName]['languageLines'][] = [
+                    'locale' => (string) ($resource['locale'] ?? ''),
+                    'key' => (string) ($resource['langKey'] ?? $identity),
+                    'value' => (string) ($resource['value'] ?? ''),
+                ];
+                continue;
+            }
             if ($type === 'permission') {
                 $groups[$sourceName]['permissions'][] = [
                     'code' => (string) ($resource['code'] ?? $identity),

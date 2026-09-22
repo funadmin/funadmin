@@ -81,10 +81,16 @@ final class CrudDefinition implements JsonSerializable
         if (!$isPlugin && is_array($data['generationTargets'])) {
             $data['generationTargets']['phpTest'] ??= "tests/generated/{$class}GeneratedTest.php";
             $data['generationTargets']['vitestTest'] ??= "admin-web/tests/generated/{$entity}.spec.ts";
+            $data['generationTargets']['langMigration'] ??= "database/generated/{$entity}_lang.sql";
+            $data['generationTargets']['langZh'] ??= "app/admin/lang/zh-cn/{$entity}.php";
+            $data['generationTargets']['langEn'] ??= "app/admin/lang/en-us/{$entity}.php";
         }
         if (!$isPlugin && is_array($data['templates'] ?? null)) {
             $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
             $data['templates']['vitestTest'] ??= 'tests/vitest-test.ts.tpl';
+            $data['templates']['langMigration'] ??= 'database/lang.sql.tpl';
+            $data['templates']['langZh'] ??= 'admin/lang-zh.php.tpl';
+            $data['templates']['langEn'] ??= 'admin/lang-en.php.tpl';
         }
         $data['menu'] = self::normalizeMenu($data);
         $data['permission'] = self::normalizePermission($data);

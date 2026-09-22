@@ -35,7 +35,7 @@ describe('公共页面声明', () => {
     expect(parsePageSchema(page()).columns).toEqual([]);
     const root = resolve(process.cwd(), '..');
     const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
-    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\console\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
+    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\admin\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output)).columns).toHaveLength(12);
   });
   it.each([null, {}, { ...page(), toolbar: null }, { ...page(), search: [{ field: '__proto__', label: '坏字段', type: 'input' }] }, { ...page(), toolbar: [{ ...action(), url: '/delete' }] }, { ...page(), toolbar: [{ ...action(), action: { type: 'external', key: 'edit' } }] }])('拒绝损坏及可执行声明 %j', (value) => {

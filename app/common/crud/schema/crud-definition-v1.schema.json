@@ -71,11 +71,11 @@
   "$defs": {
     "coreTarget": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "core" } } },
     "pluginTarget": { "type": "object", "additionalProperties": false, "required": ["type", "plugin", "scope"], "properties": { "type": { "const": "plugin" }, "plugin": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" }, "scope": { "enum": ["application", "admin", "both"] } } },
-    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
+    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
     "templatePath": { "type": "string", "pattern": "^(admin|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
-    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
-    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest"] },
+    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
+    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
     "pluginTemplates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "api", "view", "form", "detail"] },
     "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "label": { "type": "string" }, "dbType": { "type": "string", "minLength": 1 },

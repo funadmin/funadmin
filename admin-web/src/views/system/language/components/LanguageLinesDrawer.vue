@@ -2,12 +2,16 @@
   <el-drawer v-model="visible" :title="t('systemLanguage.linesTitle', { locale }, { default: '译文条目 · {locale}' })" size="min(760px, 100vw)" append-to-body destroy-on-close>
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <el-input v-model="keyword" :placeholder="t('systemLanguage.keywordPlaceholder', '搜索 key / 译文')" clearable class="!w-64" @keyup.enter="reload(1)" @clear="reload(1)" />
+      <el-select v-model="ns" :placeholder="t('systemLanguage.nsFilter', '命名空间')" clearable filterable class="!w-52" @change="reload(1)" @clear="reload(1)">
+        <el-option v-for="item in nsOptions" :key="item" :label="item" :value="item" />
+      </el-select>
       <el-button type="primary" plain @click="reload(1)"><i class="i-ep-search" /> {{ t('common.search', '查询') }}</el-button>
       <el-button plain @click="openAdd"><i class="i-ep-plus" /> {{ t('systemLanguage.addLine', '新增译文') }}</el-button>
       <span class="text-xs text-[var(--el-text-color-secondary)]">{{ t('systemLanguage.inlineTip', '行内修改失焦即保存；保存后当前语言译文包即时刷新。') }}</span>
     </div>
     <el-table v-loading="loading" :data="rows" border>
       <el-table-column prop="key" label="Key" min-width="220" show-overflow-tooltip />
+      <el-table-column prop="ns" :label="t('systemLanguage.nsFilter', '命名空间')" width="140" show-overflow-tooltip />
       <el-table-column :label="t('systemLanguage.lineValue', '译文')" min-width="260">
         <template #default="{ row }">
           <el-input v-model="row.value" size="small" @change="save(row as LanguageLineModel)" />
@@ -71,6 +75,8 @@ const visible = computed({
 const rows = ref<LanguageLineModel[]>([]);
 const loading = ref(false);
 const keyword = ref('');
+const ns = ref('');
+const nsOptions = ref<string[]>([]);
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
@@ -90,7 +96,7 @@ async function reload(target?: number) {
   if (target) page.value = target;
   loading.value = true;
   try {
-    const result = await languageApi.lines({ page: page.value, pageSize: pageSize.value, locale: props.locale, keyword: keyword.value || undefined });
+    const result = await languageApi.lines({ page: page.value, pageSize: pageSize.value, locale: props.locale, keyword: keyword.value || undefined, ns: ns.value || undefined });
     rows.value = result.list;
     total.value = result.total;
   } finally {
@@ -125,6 +131,12 @@ async function submitAdd() {
 }
 
 watch(visible, (open) => {
-  if (open) void reload(1);
+  if (open) {
+    ns.value = '';
+    void reload(1);
+    void languageApi.namespaces(props.locale).then((list) => {
+      nsOptions.value = list;
+    });
+  }
 });
 </script>

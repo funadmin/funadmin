@@ -151,7 +151,7 @@ final class FormCrudDefinitionFactory
         $data['apiPrefix'] = '/' . $entity;
         $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
         $data['permissionPrefix'] = $plugin . ':' . $entity;
-        unset($data['generationTargets'], $data['templates']['permissionMigration'], $data['templates']['phpTest'], $data['templates']['vitestTest']);
+        unset($data['generationTargets'], $data['templates']['permissionMigration'], $data['templates']['phpTest'], $data['templates']['vitestTest'], $data['templates']['langMigration'], $data['templates']['langZh'], $data['templates']['langEn']);
         return CrudDefinition::fromArray($data);
     }
 
@@ -274,6 +274,9 @@ final class FormCrudDefinitionFactory
             'detail' => "admin-web/src/views/generated/{$entity}/components/{$class}Detail.vue",
             'phpTest' => "tests/generated/{$class}GeneratedTest.php",
             'vitestTest' => "admin-web/tests/generated/{$entity}.spec.ts",
+            'langMigration' => "database/generated/{$entity}_lang.sql",
+            'langZh' => "app/admin/lang/zh-cn/{$entity}.php",
+            'langEn' => "app/admin/lang/en-us/{$entity}.php",
         ];
     }
 
@@ -286,6 +289,7 @@ final class FormCrudDefinitionFactory
             'api' => 'frontend/api.ts.tpl', 'view' => 'frontend/index.vue.tpl',
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
             'phpTest' => 'tests/php-test.php.tpl', 'vitestTest' => 'tests/vitest-test.ts.tpl',
+            'langMigration' => 'database/lang.sql.tpl', 'langZh' => 'admin/lang-zh.php.tpl', 'langEn' => 'admin/lang-en.php.tpl',
         ];
     }
 

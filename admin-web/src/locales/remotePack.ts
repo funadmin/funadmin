@@ -2,6 +2,7 @@ import { i18n } from './index';
 import { languageApi } from '@/api/system/language';
 
 const cacheKey = (locale: string) => `funadmin-i18n-pack-${locale}`;
+const versionKey = (locale: string) => `funadmin-i18n-pack-version-${locale}`;
 
 /** 点分 key 平铺表还原为 vue-i18n 需要的嵌套消息对象。 */
 export const unflattenMessages = (flat: Record<string, string>): Record<string, unknown> => {
@@ -33,28 +34,56 @@ export const flattenMessages = (messages: Record<string, unknown>, prefix = ''):
   return flat;
 };
 
+const readCache = (locale: string): Record<string, string> | null => {
+  try {
+    const cached = localStorage.getItem(cacheKey(locale));
+    return cached ? (JSON.parse(cached) as Record<string, string>) : null;
+  } catch {
+    return null;
+  }
+};
+
+const readVersion = (locale: string): number => {
+  try {
+    const version = Number(localStorage.getItem(versionKey(locale)) ?? 0);
+    return Number.isFinite(version) && version > 0 ? version : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writeCache = (locale: string, messages: Record<string, string>, version: number | undefined): void => {
+  try {
+    localStorage.setItem(cacheKey(locale), JSON.stringify(messages));
+    localStorage.setItem(versionKey(locale), String(version ?? 0));
+  } catch {
+    /* 隐私模式或配额不足时忽略缓存写入。 */
+  }
+};
+
 /**
  * 拉取后端译文包并合并覆盖静态语言包；请求失败时回落 localStorage 缓存。
- * 静态包继续作为最终兜底（t(key, fallback) 模式不变）。
+ * 版本协商：本地版本与服务端一致时服务端返回 unchanged 空包，直接复用缓存；
+ * 缓存缺失（被清理）则强制全量重拉。静态包继续作为最终兜底（t(key, fallback) 模式不变）。
  */
 export async function applyRemotePack(locale: string): Promise<void> {
-  let messages: Record<string, string>;
+  let messages: Record<string, string> | null = null;
   try {
-    const pack = await languageApi.pack(locale);
-    messages = pack.messages ?? {};
-    try {
-      localStorage.setItem(cacheKey(locale), JSON.stringify(messages));
-    } catch {
-      /* 隐私模式或配额不足时忽略缓存写入。 */
+    const pack = await languageApi.pack(locale, readVersion(locale));
+    if (pack.unchanged) {
+      messages = readCache(locale);
+      if (!messages) {
+        const full = await languageApi.pack(locale, 0);
+        messages = full.messages ?? {};
+        writeCache(locale, messages, full.version);
+      }
+    } else {
+      messages = pack.messages ?? {};
+      writeCache(locale, messages, pack.version);
     }
   } catch {
-    const cached = localStorage.getItem(cacheKey(locale));
-    if (!cached) return;
-    try {
-      messages = JSON.parse(cached) as Record<string, string>;
-    } catch {
-      return;
-    }
+    messages = readCache(locale);
+    if (!messages) return;
   }
   i18n.global.mergeLocaleMessage(locale, unflattenMessages(messages));
 }

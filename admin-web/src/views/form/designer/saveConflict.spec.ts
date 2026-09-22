@@ -9,7 +9,7 @@ import enUS from '@/locales/en-US';
 const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
+vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
 vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [] } }));
 // 用户权限不是冲突测试的目标；导入前隔离会话读取，草稿仍使用每例独立的 localStorage。
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] }) }));
@@ -93,7 +93,8 @@ describe('按需表单大纲', () => {
     const field = state.store.nodes.value[0];
     await open();
     const rows = wrapper.findAll('.schema-tree-row');
-    expect(rows[0].text()).toContain(`${field.title}（${field.field}）`);
+    expect(rows[0].get('.schema-tree-title').text()).toBe(field.title);
+    expect(rows[0].get('.schema-tree-field').text()).toBe(field.field);
     expect(rows[0].text()).toContain('单行输入');
     expect(rows[1].text()).toContain('分组');
     expect(rows[1].text()).not.toContain('（');
@@ -110,7 +111,7 @@ describe('按需表单大纲', () => {
     await open();
     await wrapper.findAll('.schema-tree-row')[0].get('[title="下移"]').trigger('click');
     expect(state.store.nodes.value[1].id).toBe(firstId);
-    await wrapper.findAll('.schema-tree-row')[1].findAll('button').find((item) => item.text() === '复制')!.trigger('click');
+    await wrapper.findAll('.schema-tree-row')[1].get('[title="复制"]').trigger('click');
     expect(state.store.nodes.value).toHaveLength(3);
     expect(new Set(state.store.nodes.value.map((node: any) => node.field)).size).toBe(3);
     await wrapper.findAll('[role="dialog"] button').find((item) => item.text() === '添加布局分组')!.trigger('click');

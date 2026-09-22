@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
+use InvalidArgumentException;
+
 /**
  * 将严格 Definition 编译为确定性的生产模板上下文。
  */
@@ -11,6 +13,8 @@ final class ProductionTemplateContext
 {
     public static function build(CrudDefinition $definition, array $target = []): array
     {
+        self::$i18nKeys = [];
+        self::$backendLangKeys = [];
         $data = $definition->toArray();
         $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\admin');
         $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim((string) $data['apiPrefix'], '/'));
@@ -39,8 +43,14 @@ final class ProductionTemplateContext
             $data['fields'],
             static fn (array $field): bool => ($field['primary'] ?? false) === true
         ))[0];
+        // 字段标签统一收集，列表、表单、详情、搜索与导出共用同一 key。
+        foreach ($data['fields'] as $field) {
+            if (!self::sensitiveField($field)) {
+                self::fieldLabelKey($data, $field);
+            }
+        }
 
-        return [
+        $result = [
             'name' => (string) $data['entity'],
             'phpClass' => $class,
             'title' => (string) $data['title'],
@@ -62,6 +72,40 @@ final class ProductionTemplateContext
             'phpTestContent' => self::phpTest($data, $class),
             'vitestTestContent' => self::vitestTest($data, $class),
         ];
+
+        $backendFullKeys = [];
+        foreach (self::$backendLangKeys as $purpose => $zh) {
+            $backendFullKeys[$data['entity'] . '.' . $purpose] = $zh;
+        }
+        $allKeys = $backendFullKeys + self::$i18nKeys;
+        $translations = [];
+        $translator = $target['translator'] ?? null;
+        if (is_callable($translator) && $allKeys !== []) {
+            try {
+                $translations = (array) $translator($allKeys);
+            } catch (\Throwable) {
+                $translations = [];
+            }
+        }
+        $result['langMigrationContent'] = self::langMigration($data, $translations);
+        $result['langZhContent'] = self::langFile((string) $data['entity'], self::$backendLangKeys);
+        $backendEn = [];
+        foreach (self::$backendLangKeys as $purpose => $zh) {
+            $backendEn[$purpose] = self::translationFor($translations, (string) $data['entity'] . '.' . $purpose);
+        }
+        $result['langEnContent'] = self::langFile((string) $data['entity'], $backendEn);
+        // 前端语言行结构化包：managed 生成路径据此派生语言资源确定性入库，与 lang.sql 内容一致。
+        $enFrontend = [];
+        $placeholders = [];
+        foreach (self::$i18nKeys as $key => $zh) {
+            $translated = $translations[$key] ?? null;
+            if (!is_string($translated) || trim($translated) === '') {
+                $placeholders[] = $key;
+            }
+            $enFrontend[$key] = self::translationFor($translations, $key);
+        }
+        $result['languagePack'] = ['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend, 'placeholders' => $placeholders];
+        return $result;
     }
 
     private static function migration(array $data, array $primary): string
@@ -236,13 +280,24 @@ final class ProductionTemplateContext
         $dictionaryMethod = $usesDictionary
             ? "\n    private function dictionaryOptions(string \$code): array\n    {\n        \$type = \\app\\common\\model\\DictType::where('code', \$code)->where('status', 1)->find();\n        if (!\$type) return [];\n        return \\app\\common\\model\\DictItem::where('type_id', \$type->id)->where('status', 1)->order('sort_order', 'asc')->field('value,label')->select()->toArray();\n    }\n"
             : '';
-        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException('optionsSource 参数未声明');\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException('keyword 必须为字符串');\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException('分页参数不合法');\n        }\n        \$options = match (\$source) {\n"
+        if ($optionArms !== []) {
+            self::collectBackend('optionsParamsUndeclared', 'optionsSource 参数未声明');
+            self::collectBackend('optionsKeywordInvalid', 'keyword 必须为字符串');
+            self::collectBackend('optionsPageInvalid', '分页参数不合法');
+            self::collectBackend('optionsSourceUnknown', '未知 optionsSource');
+        }
+        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsParamsUndeclared'));\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsKeywordInvalid'));\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsPageInvalid'));\n        }\n        \$options = match (\$source) {\n"
             . implode("\n", $optionArms)
-            . "\n            default => throw new \\InvalidArgumentException('未知 optionsSource'),\n        };\n        \$keyword = \$params['keyword'] ?? '';\n        if (\$keyword !== '') \$options = array_values(array_filter(\$options, static fn (array \$item): bool => str_contains((string) \$item['label'], \$keyword)));\n        if (isset(\$params['page']) || isset(\$params['pageSize'])) {\n            \$size = min(200, (int) (\$params['pageSize'] ?? 20));\n            \$options = array_slice(\$options, ((int) (\$params['page'] ?? 1) - 1) * \$size, \$size);\n        }\n        return \$options;\n    }\n"
+            . "\n            default => throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsSourceUnknown')),\n        };\n        \$keyword = \$params['keyword'] ?? '';\n        if (\$keyword !== '') \$options = array_values(array_filter(\$options, static fn (array \$item): bool => str_contains((string) \$item['label'], \$keyword)));\n        if (isset(\$params['page']) || isset(\$params['pageSize'])) {\n            \$size = min(200, (int) (\$params['pageSize'] ?? 20));\n            \$options = array_slice(\$options, ((int) (\$params['page'] ?? 1) - 1) * \$size, \$size);\n        }\n        return \$options;\n    }\n"
             . implode('', $relationOptionMethods)
             . $dictionaryMethod;
-        $referenceMethod = ($data['features']['referenceProtection'] ?? false) === true
-            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) {\n            \$ids[] = \$model->{$primary['name']};\n        }\n        if (\$ids === []) return null;\n        \$references = Db::query('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) (\$reference['TABLE_NAME'] ?? \$reference['table_name'] ?? '');\n            \$column = (string) (\$reference['COLUMN_NAME'] ?? \$reference['column_name'] ?? '');\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) {\n                throw new \\RuntimeException('数据库引用元数据包含非法标识符');\n            }\n            if (Db::table(\$table)->whereIn(\$column, \$ids)->limit(1)->count() > 0) {\n                return '记录仍被 ' . \$table . '.' . \$column . ' 引用，无法删除';\n            }\n        }\n        return null;\n    }\n"
+        $referenceProtection = ($data['features']['referenceProtection'] ?? false) === true;
+        if ($referenceProtection) {
+            self::collectBackend('referenceMetadataInvalid', '数据库引用元数据包含非法标识符');
+            self::collectBackend('referenced', '记录仍被 {:target} 引用，无法删除');
+        }
+        $referenceMethod = $referenceProtection
+            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) {\n            \$ids[] = \$model->{$primary['name']};\n        }\n        if (\$ids === []) return null;\n        \$references = Db::query('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) (\$reference['TABLE_NAME'] ?? \$reference['table_name'] ?? '');\n            \$column = (string) (\$reference['COLUMN_NAME'] ?? \$reference['column_name'] ?? '');\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) {\n                throw new \\RuntimeException(lang('{$data['entity']}.referenceMetadataInvalid'));\n            }\n            if (Db::table(\$table)->whereIn(\$column, \$ids)->limit(1)->count() > 0) {\n                return lang('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n            }\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
@@ -325,9 +380,13 @@ final class ProductionTemplateContext
                 . "    private function listButtonResponse(callable \$operation): Response\n    {\n        try { return \$this->ok(data: \$operation()); }\n        catch (\\Throwable \$error) {\n            return \$this->listActionFailure(\$error);\n        }\n    }";
         }
         if ($enabled['list']) {
-            $methods[] = ($data['list']['tree']['enabled'] ?? false)
-                ? "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: '树形列表超过 1000 条，请缩小筛选范围', code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }"
-                : "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
+            if (($data['list']['tree']['enabled'] ?? false) === true) {
+                self::collectBackend('treeLimit', '树形列表超过 1000 条，请缩小筛选范围');
+                $treeLimitExpr = "lang('{$data['entity']}.treeLimit')";
+                $methods[] = "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }";
+            } else {
+                $methods[] = "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
+            }
         }
         if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
@@ -372,6 +431,10 @@ final class ProductionTemplateContext
         $controllerMiddleware = $data['_consoleController']
             ? "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
             : "    protected array \$middleware = [MApi::class];\n";
+        if ($data['dataScope']['enabled']) {
+            self::collectBackend('dataScopeRequired', '数据范围字段 {:field} 必填');
+            self::collectBackend('dataScopeDenied', '无权写入指定数据范围');
+        }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
             . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
@@ -407,7 +470,7 @@ final class ProductionTemplateContext
             . "        return \$model === null ? (new {$class}Service())->prepareCreatePayload(\$payload) : \$payload;\n    }\n"
             . "    protected function validatePayload(array &\$data, ?Model \$model = null): ?string\n    {\n"
             . ($data['dataScope']['enabled']
-                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return '数据范围字段 {$data['dataScope']['field']} 必填';\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return '无权写入指定数据范围';\n            }\n        }\n"
+                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return lang('{$data['entity']}.dataScopeRequired', ['field' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return lang('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
                 : '')
             . "        \$validate = new {$class}Validate();\n"
             . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
@@ -573,68 +636,44 @@ final class ProductionTemplateContext
     {
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
-        $columns = [];
         $csvColumns = [];
+        $csvLabels = [];
         foreach ($data['fields'] as $field) {
             $key = self::camel($field['name']);
             $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
-            if (($field['list'] ?? false) === true && !self::sensitiveField($field)) {
-                $width = (int) ($field['listWidth'] ?? 0);
-                $widthAttribute = $width > 0 ? " width=\"{$width}\"" : '';
-                $formatter = (string) ($field['listFormatter'] ?? '');
-                $columns[] = "          <el-table-column prop=\"{$key}\" label=\"" . htmlspecialchars($labelText, ENT_QUOTES) . "\"{$widthAttribute}>"
-                    . self::listCell($key, $formatter) . '</el-table-column>';
-            }
             if (($field['writable'] ?? true) && !($field['primary'] ?? false) && !self::sensitiveField($field)) {
                 $csvColumns[] = ['key' => $key, 'label' => $labelText];
+                $csvLabels[$key] = self::tCall(self::fieldLabelKey($data, $field), $labelText);
             }
         }
         $primaryName = self::camel($primary['name']);
         $enabled = self::enabledCapabilities($data);
+        $pageTitleExpr = self::tCall(self::collectFrontend($data, 'page.title', (string) $data['title']), (string) $data['title']);
         if (!$enabled['list']) {
-            return "<template><PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\" /></template>\n";
+            return "<template><PageWrapper :title=\"" . $pageTitleExpr . "\" /></template>\n"
+                . "<script setup lang=\"ts\">\nimport { useI18n } from 'vue-i18n';\nconst { t } = useI18n();\n</script>\n";
         }
-        $statusColumn = $enabled['status']
-            ? "          <el-table-column label=\"状态操作\"><template #default=\"scope\"><el-switch :model-value=\"Number(scope.row.status) === 1\" :disabled=\"recycled\" @change=\"value => changeStatus(scope.row as {$type}, value === true)\" /></template></el-table-column>\n"
-            : '';
         $searchItems = [];
         foreach ($data['fields'] as $field) {
             if (($field['search'] ?? false) !== true || ($field['component'] ?? '') === 'hidden' || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
             $operator = (string) ($field['searchOperator'] ?? 'eq');
             $parameter = $key . (in_array($operator, ['range', 'date'], true) ? 'Range' : '');
-            $label = htmlspecialchars((string) ($field['label'] ?? $field['name']), ENT_QUOTES);
-            $control = in_array($operator, ['range', 'date'], true)
-                ? "<el-input v-model=\"query.{$parameter}\" placeholder=\"起,止\" clearable />"
-                : "<el-input v-model=\"query.{$parameter}\" placeholder=\"请输入{$label}\" clearable />";
-            if (in_array($operator, ['eq', 'neq'], true)) {
-                $control = "<el-select v-if=\"filterNodes.some(node => node.id === '{$key}' && node.dataSource?.kind && node.dataSource.kind !== 'static')\" v-model=\"query.{$parameter}\" :placeholder=\"filterOptions.placeholder('{$key}') || '请选择'\" :loading=\"filterOptions.pending.value.{$key}\" clearable><el-option v-for=\"option in filterOptions.supplied.value.{$key} ?? []\" :key=\"String(option.value)\" :label=\"option.label\" :value=\"option.value as string | number\" /></el-select>" . str_replace('<el-input ', '<el-input v-else ', $control);
+            $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
+            $labelExpr = self::tCall(self::fieldLabelKey($data, $field), $labelText);
+            if (in_array($operator, ['range', 'date'], true)) {
+                $control = "<el-input v-model=\"query.{$parameter}\" :placeholder=\"" . self::tCall(self::collectFrontend($data, 'search.range', '起,止'), '起,止') . "\" clearable />";
+            } else {
+                $control = "<el-input v-model=\"query.{$parameter}\" :placeholder=\"t(" . self::tsString(self::collectFrontend($data, 'search.input', '请输入{label}')) . ", { label: {$labelExpr} }, { default: " . self::tsString('请输入{label}') . " })\" clearable />";
             }
-            $searchItems[] = "<el-form-item label=\"{$label}\">{$control}</el-form-item>";
+            if (in_array($operator, ['eq', 'neq'], true)) {
+                $control = "<el-select v-if=\"filterNodes.some(node => node.id === '{$key}' && node.dataSource?.kind && node.dataSource.kind !== 'static')\" v-model=\"query.{$parameter}\" :placeholder=\"filterOptions.placeholder('{$key}') || " . self::tCall(self::collectFrontend($data, 'search.select', '请选择'), '请选择') . "\" :loading=\"filterOptions.pending.value.{$key}\" clearable><el-option v-for=\"option in filterOptions.supplied.value.{$key} ?? []\" :key=\"String(option.value)\" :label=\"option.label\" :value=\"option.value as string | number\" /></el-select>" . str_replace('<el-input ', '<el-input v-else ', $control);
+            }
+            $searchItems[] = "<el-form-item :label=\"{$labelExpr}\">{$control}</el-form-item>";
         }
         $searchSlot = $enabled['search'] && ($data['list']['tools']['search'] ?? true)
             ? "      <template #search><SearchForm :model=\"query\" :loading=\"loading\" @search=\"onSearch\" @reset=\"onReset\">" . implode('', $searchItems) . "</SearchForm></template>\n"
             : '';
-        $toolbar = [];
-        if ($enabled['softDelete']) {
-            $toolbar[] = '<el-button @click="switchMode(false)">正常列表</el-button><el-button @click="switchMode(true)">回收站</el-button>';
-        }
-        if ($enabled['create'] && ($data['capabilities']['form'] ?? true)) $toolbar[] = '<el-button v-if="!recycled" type="primary" @click="onAdd">新增</el-button>';
-        if ($enabled['batchDelete']) {
-            $toolbar[] = $enabled['batchSoftDelete']
-                ? '<el-button v-if="!recycled" type="danger" :disabled="!selection.length" @click="onBatchDelete">批量删除</el-button><el-button v-if="recycled" type="success" :disabled="!selection.length" @click="restoreSelected">批量恢复</el-button><el-button v-if="recycled" type="danger" :disabled="!selection.length" @click="forceDeleteSelected">批量永久删除</el-button>'
-                : '<el-button type="danger" :disabled="!selection.length" @click="onBatchDelete">批量删除</el-button>';
-        }
-        if ($enabled['import']) $toolbar[] = '<el-button @click="fileInput?.click()">导入</el-button><input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';
-        if ($enabled['export']) $toolbar[] = '<el-button @click="exportRows">导出</el-button>';
-        $editButton = $enabled['update'] && ($data['capabilities']['form'] ?? true) ? "<el-button v-if=\"!recycled\" link @click=\"onEdit(scope.row as {$type})\">编辑</el-button>" : '';
-        $detailButton = $enabled['detail'] ? "<el-button v-if=\"!recycled\" link @click=\"onOpenDrawer(scope.row as {$type})\">详情</el-button>" : '';
-        $deleteButtons = $enabled['delete']
-            ? ($enabled['softDelete']
-                ? "<el-button v-if=\"!recycled\" link type=\"danger\" @click=\"removeRow(scope.row as {$type})\">删除</el-button><el-button v-else link type=\"success\" @click=\"restoreRow(scope.row as {$type})\">恢复</el-button><el-button v-if=\"recycled\" link type=\"danger\" @click=\"forceDeleteRow(scope.row as {$type})\">永久删除</el-button>"
-                : "<el-button link type=\"danger\" @click=\"removeRow(scope.row as {$type})\">删除</el-button>")
-            : '';
-        $operationColumn = $editButton . $detailButton . $deleteButtons === '' ? '' : "          <el-table-column label=\"操作\"><template #default=\"scope\">{$editButton}{$detailButton}{$deleteButtons}</template></el-table-column>\n";
         $formEnabled = ($enabled['create'] || $enabled['update']) && ($data['capabilities']['form'] ?? true);
         $formComponent = $formEnabled ? "<{$class}Form :lock=\"buttonLock\" v-model=\"dialogVisible\" :row=\"current\" @success=\"refreshAfterSave\" />" : '';
         $detailComponent = $enabled['detail'] ? "<{$class}Detail v-model=\"drawerVisible\" :row=\"current\" />" : '';
@@ -646,8 +685,6 @@ final class ProductionTemplateContext
         if ($enabled['create'] && $formEnabled) $crudBindings[] = 'onAdd';
         if ($enabled['update'] && $formEnabled) $crudBindings[] = 'onEdit';
         if ($enabled['detail']) array_push($crudBindings, 'drawerVisible', 'onOpenDrawer');
-        $selectionColumn = $enabled['batchDelete'] ? "          <el-table-column type=\"selection\" width=\"48\" />\n" : '';
-        $selectionChange = $enabled['batchDelete'] ? ' @selection-change="handleSelectionChange"' : '';
         $tree = ($data['list']['tree']['enabled'] ?? false) === true;
         $category = ($data['list']['category']['enabled'] ?? false) === true && !($data['list']['leftTree']['enabled'] ?? false);
         $listImports = '';
@@ -681,7 +718,7 @@ final class ProductionTemplateContext
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
         if (!$leftTree) $listImports .= "import { useUserStore } from '@/store/modules/user';\n";
         $listSetup .= 'const listConfig = ' . self::json($data['list'] ?: new \stdClass()) . " as FormListConfiguration;\n";
-        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\nlet hostActive = true;\nonBeforeUnmount(() => { hostActive = false; });\nasync function refreshAfterSave() { if (!hostActive) return; try { await refreshButtonHost(); } catch { if (hostActive) ElMessage.warning('操作已成功，但列表刷新失败，请手动刷新，不要重复提交'); } }\n";
+        $listSetup .= "const buttonUser = useUserStore();\nconst buttonLock = reactive({ busy: false });\nlet hostActive = true;\nonBeforeUnmount(() => { hostActive = false; });\nasync function refreshAfterSave() { if (!hostActive) return; try { await refreshButtonHost(); } catch { if (hostActive) ElMessage.warning(" . self::tCall(self::collectFrontend($data, 'message.refreshFailed', '操作已成功，但列表刷新失败，请手动刷新，不要重复提交'), '操作已成功，但列表刷新失败，请手动刷新，不要重复提交') . "); } }\n";
         if ($data['_listActionHost']) {
             $listSetup .= "const buttonAdapter = { api: {$camel}Api, declaration: {$camel}Api.listButtonAdapter };\nprovideListButtonAdapter(buttonAdapter);\nconst buttonFieldMap = buttonAdapter.declaration.fieldMap;\n";
         } else {
@@ -707,7 +744,7 @@ final class ProductionTemplateContext
         $close = ($formEnabled ? 'dialogVisible.value = false; ' : '') . ($enabled['detail'] ? 'drawerVisible.value = false; ' : '');
         $listSetup .= "const closeButtonHost = () => { {$close} };\n";
         $listSetup .= "const buttonValues = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(buttonFieldMap).map(([field, alias]) => [field, row[alias]]));\n";
-        $listSetup .= "function resolveButtonRow(row?: Record<string, unknown>): {$type} { const current = list.value.find(item => item.{$primaryName} === row?.['{$primaryName}']); if (!current) throw new Error('记录上下文已失效'); return current; }\n";
+        $listSetup .= "function resolveButtonRow(row?: Record<string, unknown>): {$type} { const current = list.value.find(item => item.{$primaryName} === row?.['{$primaryName}']); if (!current) throw new Error(" . self::tCall(self::collectFrontend($data, 'message.contextExpired', '记录上下文已失效'), '记录上下文已失效') . "); return current; }\n";
         $defaults = ['toolbar' => [], 'row' => []];
         $handlers = ['refresh: () => loadData()'];
         $append = static function (string $location, string $key, string $label, string $handler, array $presentation = []) use (&$defaults, &$handlers): void {
@@ -736,7 +773,50 @@ final class ProductionTemplateContext
                 ? 'restore: row => row ? restoreRow(resolveButtonRow(row)) : restoreSelected()'
                 : (str_starts_with($handler, 'destroy:') ? 'destroy: row => row ? forceDeleteRow(resolveButtonRow(row)) : forceDeleteSelected()' : $handler), $handlers);
         }
-        $listSetup .= 'const buttonHandlers: ListButtonHandlers = { ' . implode(', ', $handlers) . " };\n";
+        // 按钮文案运行时翻译，JSON 默认值仅作中文兜底。
+        $actionLabels = [];
+        $addActionLabel = static function (string $actionKey, string $purpose, string $zh) use (&$actionLabels, $data): void {
+            $actionLabels[$actionKey] = self::tCall(self::collectFrontend($data, $purpose, $zh), $zh);
+        };
+        if ($enabled['softDelete']) {
+            $addActionLabel('normal', 'action.normalList', '正常列表');
+            $addActionLabel('recycle', 'action.recycleBin', '回收站');
+        }
+        if ($enabled['create'] && $formEnabled) $addActionLabel('create', 'action.create', '新增');
+        if ($enabled['batchDelete']) $addActionLabel('batchDelete', 'action.batchDestroy', '移入回收站');
+        if ($enabled['import']) $addActionLabel('import', 'action.import', 'CSV 导入');
+        if ($enabled['export']) $addActionLabel('export', 'action.export', 'CSV 导出');
+        if ($enabled['update'] && $formEnabled) $addActionLabel('edit', 'action.edit', '编辑');
+        if ($enabled['detail']) $addActionLabel('detail', 'action.detail', '详情');
+        if ($enabled['delete']) $addActionLabel('delete', 'action.destroy', '删除');
+        if ($enabled['softDelete']) {
+            $addActionLabel('restore', 'action.restore', '恢复');
+            $addActionLabel('destroy', 'action.forceDestroy', '永久删除');
+        }
+        $batchLabels = [];
+        if ($enabled['batchSoftDelete']) {
+            $batchLabels['restoreselected'] = self::tCall(self::collectFrontend($data, 'action.batchRestore', '批量恢复'), '批量恢复');
+            $batchLabels['destroyselected'] = self::tCall(self::collectFrontend($data, 'action.batchForceDestroy', '批量永久删除'), '批量永久删除');
+        }
+        $withConfirmMessages = $enabled['delete'] || $enabled['batchSoftDelete'];
+        if ($withConfirmMessages) {
+            $destroyConfirmKey = $enabled['delete']
+                ? self::collectFrontend($data, 'message.destroyConfirm', '确认{label}？此操作可能不可恢复。')
+                : 'crud.' . $data['entity'] . '.message.destroyConfirm';
+            $batchDestroyConfirmKey = $enabled['batchSoftDelete']
+                ? self::collectFrontend($data, 'message.batchForceDestroyConfirm', '确认永久删除选中记录？此操作不可恢复。')
+                : $destroyConfirmKey;
+        }
+        $listSetup .= 'const buttonActionLabels = computed<Record<string, string>>(() => (' . self::tsRecord($actionLabels) . "));\n";
+        $listSetup .= 'const buttonBatchLabels = computed<Record<string, string>>(() => (' . self::tsRecord($batchLabels) . "));\n";
+        if ($withConfirmMessages) {
+            $listSetup .= "const localizeButtons = (buttons: FormListButton[]): FormListButton[] => buttons.map(button => { const key = listActionKey(button); const label = buttonBatchLabels.value[button.id] ?? buttonActionLabels.value[key] ?? button.label; let interaction = button.interaction; if (interaction?.type === 'confirm') { interaction = { ...interaction, message: button.id === 'destroyselected' ? "
+                . self::tCall($batchDestroyConfirmKey, '确认永久删除选中记录？此操作不可恢复。')
+                . " : t(" . self::tsString($destroyConfirmKey) . ", { label }, { default: " . self::tsString('确认{label}？此操作可能不可恢复。') . " }) }; } return { ...button, label, interaction }; });\n";
+        } else {
+            $listSetup .= "const localizeButtons = (buttons: FormListButton[]): FormListButton[] => buttons.map(button => { const key = listActionKey(button); const label = buttonBatchLabels.value[button.id] ?? buttonActionLabels.value[key] ?? button.label; return { ...button, label }; });\n";
+        }
+        $listSetup .= "const buttonHandlers: ListButtonHandlers = { " . implode(', ', $handlers) . " }\n";
         $listSetup .= "const buttonPermission = (code: string) => buttonUser.permissions.some(value => value === '*' || value === '*:*:*' || value === code);\n";
         $listSetup .= "const toolbarButtonAllowed = (button: FormListButton) => buttonAllowed(button, true) && (!['restore', 'destroy'].includes(listActionKey(button)) || buttonSelection.value.length > 0);\n";
         $prefix = self::json($data['permissionPrefix']);
@@ -747,15 +827,12 @@ final class ProductionTemplateContext
             $presentation = $location === 'toolbar'
                 ? ".map(button => { const key = listActionKey(button); if (key === 'batchDelete') return { ...button, selection: { ...button.selection, min: Math.max(1, button.selection?.min ?? 0) } }; if (['normal', 'recycle'].includes(key)) return { ...button, color: (key === 'normal' ? (!{$recycledValue} ? 'primary' : 'info') : ({$recycledValue} ? 'warning' : 'info')) as FormListButton['color'] }; return button; })"
                 : '';
-            $listSetup .= "const {$location}Buttons = computed(() => resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]){$presentation});\n";
+            $listSetup .= "const {$location}Buttons = computed(() => localizeButtons(resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]){$presentation}));\n";
         }
         $listSetup .= "const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));\n";
         $toolbar = ['<ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="toolbarButtonAllowed" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'toolbar\')" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" />'];
         if ($enabled['import']) $toolbar[] = '<input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';
-        $operationColumn = '          <el-table-column v-if="hasRowButtons" label="操作"><template #default="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template></el-table-column>' . "\n";
         if ($leftTree) $categoryPanel = str_replace(':config="leftTreeConfig"', ':config="leftTreeConfig" :list="listConfig" :permission-check="buttonPermission" :lock="buttonLock"', $categoryPanel);
-        $selectionColumn = '          <el-table-column v-if="toolbarButtons.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . '" type="selection" width="48" />' . "\n";
-        $selectionChange = ' @selection-change="handleSelectionChange"';
         $listSetup .= "const refreshButtonHost = async () => { clearButtonSelection(); await loadData(); };\nwatch(query, clearButtonSelection, { deep: true, flush: 'sync' });\nwatch(list, clearButtonSelection);\n";
         $listSetup .= "const handleSelectionChange = (rows: {$type}[]) => { buttonSelection.value = rows; buttonContextVersion.value++; " . ($enabled['batchDelete'] ? 'onSelectionChange(rows);' : '') . " };\n";
         $vueImports = ['computed', 'onBeforeUnmount', 'ref', 'reactive', 'watch'];
@@ -768,17 +845,21 @@ final class ProductionTemplateContext
             ? "import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';\n"
             : '';
         $pageColumns = [];
+        $columnLabels = [];
         $cellSlots = '';
         foreach ($data['fields'] as $field) {
             if (!($field['list'] ?? false) || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
-            $column = ['key' => $key, 'prop' => $key, 'slot' => $key, 'label' => (string) ($field['label'] ?? $field['name'])];
+            $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
+            $column = ['key' => $key, 'prop' => $key, 'slot' => $key, 'label' => $labelText];
+            $columnLabels[$key] = self::tCall(self::fieldLabelKey($data, $field), $labelText);
             if (($field['listWidth'] ?? 0) > 0) $column['width'] = (int) $field['listWidth'];
             if ($field['sortable'] ?? false) $column['sortable'] = true;
             $pageColumns[] = $column;
             $cellSlots .= str_replace('#default="scope"', '#' . $key . '="scope"', self::listCell($key, (string) ($field['listFormatter'] ?? '')));
         }
         if ($enabled['status']) {
+            $columnLabels['statusAction'] = self::tCall(self::collectFrontend($data, 'status.column', '状态操作'), '状态操作');
             $pageColumns[] = ['key' => 'statusAction', 'label' => '状态操作', 'slot' => 'statusAction'];
             $cellSlots .= '<template #statusAction="scope"><el-switch :model-value="Number(scope.row.status) === 1" :disabled="recycled || buttonLock.busy" @change="value => changeStatus(resolveButtonRow(scope.row), value === true)" /></template>';
         }
@@ -787,15 +868,18 @@ final class ProductionTemplateContext
         $page = ['pageSchemaVersion' => 1, 'key' => str_replace('-', '_', $data['entity']), 'primaryKey' => $primaryName, 'search' => [], 'toolbar' => [], 'rowActions' => [], 'list' => $pageList, 'pagination' => ['pageSize' => 20, 'pageSizes' => [10, 20, 50, 100], 'enabled' => !$tree]];
         $listImports .= "import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';\nimport type { PageSchema } from '@/components/DataTable/pageSchema';\nimport { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';
 import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation';\n";
-        $listSetup .= 'const tableSchema = computed<PageSchema>(() => ({ ...' . self::json($page) . ', columns: [...(toolbarButtons.value.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . ' ? [{ key: \'selection\', label: \'\', type: \'selection\' as const, width: 48 }] : []), ...' . self::json($pageColumns) . ', ...(hasRowButtons.value ? [{ key: \'actions\', label: \'操作\', slot: \'actions\' }] : [])] } as PageSchema));' . "\n";
+        $actionsColumnLabel = self::tCall(self::collectFrontend($data, 'action.column', '操作'), '操作');
+        $listSetup .= 'const columnLabels = computed<Record<string, string>>(() => (' . self::tsRecord($columnLabels) . "));\n";
+        $listSetup .= 'const tableSchema = computed<PageSchema>(() => ({ ...' . self::json($page) . ', columns: [...(toolbarButtons.value.some(button => button.action.type === \'registered\')' . ($enabled['batchDelete'] ? ' || true' : '') . ' ? [{ key: \'selection\', label: \'\', type: \'selection\' as const, width: 48 }] : []), ...' . self::json($pageColumns) . '.map(column => ({ ...column, label: columnLabels.value[column.key] ?? column.label })), ...(hasRowButtons.value ? [{ key: \'actions\', label: ' . $actionsColumnLabel . ', slot: \'actions\' }] : [])] } as PageSchema));' . "\n";
         $actionSlot = '<template #actions="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template>';
-        return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
+        return "<template>\n  <PageWrapper :title=\"" . $pageTitleExpr . "\">\n"
             . (($category || $leftTree) ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
             . "<SchemaTablePage ref=\"buttonTable\" class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :schema=\"tableSchema\" :query=\"query\" :rows=\"list\" :total=\"total\" :loading=\"loading\" :lock=\"buttonLock\" :context=\"{ values: {}, permissions: buttonUser.permissions, handlers: {} }\" @refresh=\"refreshButtonHost\" @sort-change=\"({ prop, order }) => { query.sort = prop ?? ''; query.order = order === 'descending' ? 'desc' : 'asc'; loadData(); }\" @selection-change=\"handleSelectionChange\">"
             . $searchSlot . '<template #toolbar>' . implode('', $toolbar) . '</template>' . $cellSlots . $actionSlot
             . '</SchemaTablePage>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . "import { ElMessage } from 'element-plus';\n"
+            . "import { useI18n } from 'vue-i18n';\n"
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport . $listImports
             . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '{$data['_frontendApiImport']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
@@ -803,19 +887,20 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
             . ($enabled['batchDelete'] ? ", removeMany: {$camel}Api.removeMany" : '')
             . " }, initialQuery: () => ({ page: 1, pageSize: 20, recycled: 0" . ($category ? ', __category: undefined' : '') . " }), rowKey: '{$primaryName}', pagination: true });\n"
+            . "const { t } = useI18n();\n"
             . self::fieldPresentationSetup($data, 'list')
             . $listSetup
             . ($enabled['softDelete'] ? "const recycled = computed(() => query.recycled === 1);\n" : "const recycled = false;\n")
             . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
-            . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
+            . (($enabled['import'] || $enabled['export']) ? 'const csvLabels = computed<Record<string, string>>(() => (' . self::tsRecord($csvLabels) . "));\nconst csvColumns = computed(() => " . self::json($csvColumns) . ".map(column => ({ ...column, label: csvLabels.value[column.key] ?? column.label })) as CsvColumn<{$type}Payload>[]);\n" : '')
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
             . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await {$camel}Api.remove(row.{$primaryName}); await refreshAfterSave(); }\n" : '')
             . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await refreshAfterSave(); }\nasync function forceDeleteRow(row: {$type}) { await {$camel}Api.forceDelete(row.{$primaryName}); await refreshAfterSave(); }\n" : '')
             . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await refreshAfterSave(); }\nasync function forceDeleteSelected() { await {$camel}Api.forceDeleteMany(selectedIds()); await refreshAfterSave(); }\n" : '')
             . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { if (buttonLock.busy || {$recycledValue} || !buttonPermission({$prefix} + ':status')) return; buttonLock.busy = true; try { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await refreshAfterSave(); } finally { buttonLock.busy = false; } }\n" : '')
-            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file || buttonLock.busy || !buttonPermission({$prefix} + ':import')) return; buttonLock.busy = true; try { const version = buttonContextVersion.value; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); if (version !== buttonContextVersion.value || !buttonPermission({$prefix} + ':import')) return; await {$camel}Api.importRows(rows); await refreshAfterSave(); } finally { buttonLock.busy = false; } }\n" : '')
-            . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
+            . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file || buttonLock.busy || !buttonPermission({$prefix} + ':import')) return; buttonLock.busy = true; try { const version = buttonContextVersion.value; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns.value); if (version !== buttonContextVersion.value || !buttonPermission({$prefix} + ':import')) return; await {$camel}Api.importRows(rows); await refreshAfterSave(); } finally { buttonLock.busy = false; } }\n" : '')
+            . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns.value as CsvColumn<{$type}>[])); }\n" : '')
             . "</script>\n";
     }
 
@@ -880,6 +965,27 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
             return $result;
         };
         $document['nodes'] = ($data['capabilities']['form'] ?? true) ? $prune($document['nodes']) : [];
+        // 节点标题运行时翻译：字段节点共用 field.<name> key，容器节点按 form.node.<id> 收集。
+        $nodeTitles = [];
+        $walkTitles = static function (array $nodes) use (&$walkTitles, &$nodeTitles, $data, $fieldsByName): void {
+            foreach ($nodes as $node) {
+                $nodeId = (string) ($node['id'] ?? '');
+                if (($node['kind'] ?? '') === 'field') {
+                    $field = $fieldsByName[$node['field'] ?? ''] ?? null;
+                    if ($field !== null && !self::sensitiveField($field) && $nodeId !== '') {
+                        $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
+                        $nodeTitles[$nodeId] = self::tCall(self::fieldLabelKey($data, $field), $labelText);
+                    }
+                } elseif ((string) ($node['title'] ?? '') !== '' && $nodeId !== '') {
+                    $nodeTitles[$nodeId] = self::tCall(
+                        self::collectFrontend($data, 'form.node.' . $nodeId, (string) $node['title']),
+                        (string) $node['title']
+                    );
+                }
+                $walkTitles((array) ($node['children'] ?? []));
+            }
+        };
+        $walkTitles($document['nodes']);
         $schema = self::json($document);
         $valueMap = self::json(array_values(array_map(
             static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name']],
@@ -908,17 +1014,25 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $defaults = self::json((object) array_column($formFields, 'default', 'name'));
         $formKey = str_replace('-', '_', (string) $data['entity']);
         // 选项映射仅来自裁剪后真正交给 renderer 的节点。
+        $optionsMissingExpr = self::tCall(self::collectFrontend($data, 'message.optionsSourceMissing', '选项来源未注册'), '选项来源未注册');
         $optionsSetup = 'const optionSources = ' . self::json((object) $optionMap) . " as Record<string,string>;\n"
-            . "const optionsRequest = async (_key:string, field:string, params: Record<string, unknown>, signal?: AbortSignal) => { const source=Object.hasOwn(optionSources,field)?optionSources[field]:undefined; if(!source) throw Error('选项来源未注册'); "
-            . ($enabled['options'] ? "return {options:await {$camel}Api.options(source, params, signal)};" : "throw Error('选项能力未启用');") . " };\n";
+            . "const optionsRequest = async (_key:string, field:string, params: Record<string, unknown>, signal?: AbortSignal) => { const source=Object.hasOwn(optionSources,field)?optionSources[field]:undefined; if(!source) throw Error({$optionsMissingExpr}); "
+            . ($enabled['options'] ? "return {options:await {$camel}Api.options(source, params, signal)};" : 'throw Error(' . self::tCall(self::collectFrontend($data, 'message.optionsDisabled', '选项能力未启用'), '选项能力未启用') . ');') . " };\n";
         $permissionPrefix = self::json($data['permissionPrefix']);
-        $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error('编辑能力未启用');") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error('新增能力未启用');") . ' }';
-        return "<template><{$tag} v-model=\"visible\" title=\"编辑\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
-            . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
+        $updateDisabledExpr = $enabled['update'] ? '' : self::tCall(self::collectFrontend($data, 'message.updateDisabled', '编辑能力未启用'), '编辑能力未启用');
+        $createDisabledExpr = $enabled['create'] ? '' : self::tCall(self::collectFrontend($data, 'message.createDisabled', '新增能力未启用'), '新增能力未启用');
+        $write = 'if (row) { ' . ($enabled['update'] ? "await {$camel}Api.update(row." . self::camel(self::primary($data)['name']) . ',payload);' : "throw Error({$updateDisabledExpr});") . ' } else { ' . ($enabled['create'] ? "await {$camel}Api.create(payload);" : "throw Error({$createDisabledExpr});") . ' }';
+        $editTitleExpr = self::tCall(self::collectFrontend($data, 'form.editTitle', '编辑'), '编辑');
+        $createTitleExpr = self::tCall(self::collectFrontend($data, 'form.createTitle', '新增'), '新增');
+        $cancelExpr = self::tCall(self::collectFrontend($data, 'form.cancel', '取消'), '取消');
+        $saveExpr = self::tCall(self::collectFrontend($data, 'form.save', '保存'), '保存');
+        return "<template><{$tag} v-model=\"visible\" :title=\"(row ? {$editTitleExpr} : {$createTitleExpr})\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">{{ {$cancelExpr} }}</el-button><el-button type=\"primary\" :loading=\"saving\" @click=\"submit\">{{ {$saveExpr} }}</el-button></template></{$tag}></template>\n"
+            . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport { useI18n } from 'vue-i18n';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { useUserStore } from '@/store/modules/user';\n"
             . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { mapFieldErrors } from '@/views/form/validation/asyncValidatorRegistry';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
-            . "const props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
+            . "const { t } = useI18n();\nconst props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
             . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const changed=reactive(new Set<string>()); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const sourceSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>; const submissionFields={$submissionFields} as unknown as FormFieldDef[];\n"
-            . "const formSchema=computed(()=>{const project=(nodes:FormSchemaDocument['nodes']):FormSchemaDocument['nodes']=>nodes.map(node=>({...node,...(props.row && fieldMap.some(item=>item.target===node.field && item.sensitive) && !changed.has(node.field ?? '')?{validation:[]}:{}),children:project(node.children ?? [])}));return {...sourceSchema,nodes:project(sourceSchema.nodes)};});\n"
+            . 'const nodeTitles = computed<Record<string, string>>(() => (' . self::tsRecord($nodeTitles) . "));\n"
+            . "const formSchema=computed(()=>{const project=(nodes:FormSchemaDocument['nodes']):FormSchemaDocument['nodes']=>nodes.map(node=>({...node,...(node.id !== undefined && nodeTitles.value[node.id] !== undefined ? { title: nodeTitles.value[node.id] } : {}),...(props.row && fieldMap.some(item=>item.target===node.field && item.sensitive) && !changed.has(node.field ?? '')?{validation:[]}:{}),children:project(node.children ?? [])}));return {...sourceSchema,nodes:project(sourceSchema.nodes)};});\n"
             . $optionsSetup
             . "const user=useUserStore(); const permitted=(edit:boolean)=>user.permissions.some(code=>code==='*'||code==='*:*:*'||code==={$permissionPrefix}+':'+(edit?'update':'create'));\n"
             . "const saving=ref(false); const generation=ref(0); let active=true; onBeforeUnmount(()=>{active=false; generation.value++;});\n"
@@ -1075,14 +1189,16 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         foreach ($data['fields'] as $field) {
             if (($field['detail'] ?? true) === false || self::sensitiveField($field)) continue;
             $key = self::camel($field['name']);
-            $label = htmlspecialchars((string) ($field['label'] ?? $field['name']), ENT_QUOTES);
+            $labelText = (string) ($field['label'] ?? $field['comment'] ?? $field['name']);
+            $labelExpr = self::tCall(self::fieldLabelKey($data, $field), $labelText);
             $cell = self::listCell($key, (string) ($field['listFormatter'] ?? ''));
-            $cell = str_replace(['<template #default="scope">', '</template>', 'scope.row.', 'scope.row)'], ['', '', 'row.', 'row)'], $cell);
-            $items[] = "<el-descriptions-item label=\"{$label}\">{$cell}</el-descriptions-item>";
+            $cell = str_replace(['<template #default="scope">', '</template>', 'scope.row.', 'scope.row)'], ['', '', 'row.', '{ ...row })'], $cell);
+            $items[] = "<el-descriptions-item :label=\"{$labelExpr}\">{$cell}</el-descriptions-item>";
         }
-        return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\">" . implode('', $items) . "</el-descriptions></el-drawer></template>\n"
-            . "<script setup lang=\"ts\">import { computed, watch } from 'vue'; import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';
-import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'; {$apiImport} import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});\n" . self::fieldPresentationSetup($data, 'detail') . "</script>\n";
+        $titleExpr = self::tCall(self::collectFrontend($data, 'detail.title', '详情'), '详情');
+        return "<template><el-drawer v-model=\"visible\" :title=\"{$titleExpr}\"><el-descriptions v-if=\"row\" :column=\"1\">" . implode('', $items) . "</el-descriptions></el-drawer></template>\n"
+            . "<script setup lang=\"ts\">import { computed, watch } from 'vue'; import { useI18n } from 'vue-i18n'; import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';
+import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'; {$apiImport} import type { {$type} } from '{$data['_frontendComponentApiImport']}'; const { t } = useI18n(); const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});\n" . self::fieldPresentationSetup($data, 'detail') . "</script>\n";
     }
 
     private static function phpTest(array $data, string $class): string
@@ -1147,6 +1263,109 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
     private static function primary(array $data): array
     {
         return array_values(array_filter($data['fields'], static fn (array $field): bool => ($field['primary'] ?? false)))[0];
+    }
+
+    /** @var array<string,string> 构建期收集的前端文案 key => 中文兜底。 */
+    private static array $i18nKeys = [];
+
+    /** @var array<string,string> 构建期收集的后端消息 用途 => 中文。 */
+    private static array $backendLangKeys = [];
+
+    private static function collectFrontend(array $data, string $purpose, string $zh): string
+    {
+        $key = 'crud.' . $data['entity'] . '.' . $purpose;
+        self::$i18nKeys[$key] ??= $zh;
+        return $key;
+    }
+
+    private static function collectBackend(string $purpose, string $zh): void
+    {
+        self::$backendLangKeys[$purpose] ??= $zh;
+    }
+
+    private static function fieldLabelKey(array $data, array $field): string
+    {
+        return self::collectFrontend($data, 'field.' . $field['name'], (string) ($field['label'] ?? $field['comment'] ?? $field['name']));
+    }
+
+    /** 生成 TS 单引号字符串字面量；json 已将引号与标签 HEX 转义，可安全嵌入模板属性。 */
+    private static function tsString(string $value): string
+    {
+        $json = self::json($value);
+        return "'" . substr($json, 1, -1) . "'";
+    }
+
+    private static function tCall(string $key, string $zh): string
+    {
+        return 't(' . self::tsString($key) . ', ' . self::tsString($zh) . ')';
+    }
+
+    /** id => TS 表达式 的对象字面量。 */
+    private static function tsRecord(array $entries): string
+    {
+        $items = [];
+        foreach ($entries as $id => $expr) {
+            $items[] = self::tsString((string) $id) . ': ' . $expr;
+        }
+        return '{ ' . implode(', ', $items) . ' }';
+    }
+
+    private static function translationFor(array $translations, string $key): string
+    {
+        $value = $translations[$key] ?? null;
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+        return self::placeholderEn($key);
+    }
+
+    /** key 派生英文占位：field.name => Name，action.batchDestroy => Batch destroy。 */
+    private static function placeholderEn(string $key): string
+    {
+        $last = substr($key, (int) strrpos($key, '.') + 1);
+        $words = (string) preg_replace('/(?<!^)[A-Z]/', ' $0', str_replace(['-', '_'], ' ', $last));
+        return ucfirst(strtolower($words));
+    }
+
+    /** 生成 ThinkPHP 分组语言文件：按 [entity => [key => message]] 嵌套返回，匹配 allow_group 的 group.key 查询结构。 */
+    private static function langFile(string $group, array $messages): string
+    {
+        ksort($messages);
+        return "<?php\n\ndeclare(strict_types=1);\n\n// 生成的后端消息包；重新生成会覆盖人工修改。\nreturn "
+            . self::phpArray([$group => $messages]) . ";\n";
+    }
+
+    private static function langMigration(array $data, array $translations): string
+    {
+        $entity = (string) $data['entity'];
+        $sql = "-- Generated language pack migration; INSERT IGNORE 保护人工修订，force-refresh 由安装器改写。\n";
+        $rows = [];
+        foreach (self::$i18nKeys as $key => $zh) {
+            $rows[] = '(' . self::sqlLiteral('zh-cn') . ',' . self::sqlLiteral($key) . ',' . self::sqlLiteral($zh) . ',NOW(),NOW())';
+        }
+        if ($rows !== []) {
+            $sql .= "INSERT IGNORE INTO `fun_language_line` (`locale`, `key`, `value`, `created_at`, `updated_at`) VALUES\n"
+                . implode(",\n", $rows) . ";\n";
+        }
+        $rows = [];
+        $placeholders = [];
+        foreach (self::$i18nKeys as $key => $zh) {
+            $translated = $translations[$key] ?? null;
+            if (!is_string($translated) || trim($translated) === '') {
+                $placeholders[] = $key;
+            }
+            $rows[] = '(' . self::sqlLiteral('en-us') . ',' . self::sqlLiteral($key) . ',' . self::sqlLiteral(self::translationFor($translations, $key)) . ',NOW(),NOW())';
+        }
+        if ($rows !== []) {
+            $sql .= "INSERT IGNORE INTO `fun_language_line` (`locale`, `key`, `value`, `created_at`, `updated_at`) VALUES\n"
+                . implode(",\n", $rows) . ";\n";
+        }
+        if ($placeholders !== []) {
+            $sql .= '-- draft: placeholder（AI 预翻译缺失，待人工校正）：' . implode(', ', $placeholders) . "\n";
+        }
+        $sql .= "-- 卸载清理（手动执行）：DELETE FROM `fun_language_line` WHERE `locale` = 'zh-cn' AND `ns` = 'crud.{$entity}';\n";
+        $sql .= "-- 卸载清理（手动执行）：DELETE FROM `fun_language_line` WHERE `locale` = 'en-us' AND `ns` = 'crud.{$entity}';\n";
+        return $sql;
     }
 
     private static function relativePath(string $fromDirectory, string $target): string

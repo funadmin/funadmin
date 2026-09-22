@@ -15,7 +15,7 @@ use app\common\crud\ManifestMerger;
 use app\common\plugin\sdk\PluginScaffolder;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaValidator;
-use app\console\development\service\FormCrudDefinitionFactory;
+use app\admin\development\service\FormCrudDefinitionFactory;
 
 function managedExpect(bool $value, string $message): void
 {
@@ -95,7 +95,7 @@ $state = new class {
     public function commitGeneration(int $moduleId, int $generationId, array $records, string $transactionId, string $digest): void { $this->records = $records; }
     public function isGenerationCommitted(int $moduleId, int $generationId, string $transactionId, string $digest): bool { return $this->records !== []; }
 };
-$blobs = new \app\console\development\repository\GeneratedFileBaselineRepository($root, $state);
+$blobs = new \app\admin\development\repository\GeneratedFileBaselineRepository($root, $state);
 $tokens = new \app\common\crud\ConfirmationToken($root, 'managed-test-secret');
 $bundle = [
     'target' => $changed->get('target'), 'plan' => $plan, 'remoteContents' => $files,
@@ -106,7 +106,7 @@ $bundle = [
     'migrationHash' => str_repeat('3', 64), 'resources' => [],
     'resourcesHash' => hash('sha256', CrudDefinition::canonicalJson([])),
 ];
-$transaction = new \app\console\development\service\GenerationTransactionService($root, $tokens, $blobs, $state, new stdClass(), fn (): array => $bundle);
+$transaction = new \app\admin\development\service\GenerationTransactionService($root, $tokens, $blobs, $state, new stdClass(), fn (): array => $bundle);
 $lifecycle = new \app\common\plugin\sdk\LifecycleLock($root . '/runtime/plugins/locks');
 $held = $lifecycle->acquire('closeout');
 $blockedByLock = false;
@@ -122,14 +122,14 @@ managedExpect(count($manifestRecords) === 1, 'WAL 必须提交当前模块 Manif
 $saved = $manifestRecords[0];
 managedExpect($blobs->load($saved['base_storage_path'], $saved['base_hash']) === CrudDefinition::canonicalJson($projection), 'WAL 只能持久化模块 projection，不能持有整个 Manifest');
 managedExpect($saved['target_hash'] === hash_file('sha256', $manifestPath), 'Manifest target hash 必须仍然绑定完整文件');
-$managed = new \app\console\development\service\ManagedGenerationService($root, baselines: $blobs, stateRepository: $state);
+$managed = new \app\admin\development\service\ManagedGenerationService($root, baselines: $blobs, stateRepository: $state);
 $build = new ReflectionMethod($managed, 'buildDefinitionBundle');
 $build->setAccessible(true);
 $rebuilt = $build->invoke($managed, 1, managedDefinition('alpha', '模块 A 再次更新'), str_repeat('1', 64), str_repeat('2', 64));
 managedExpect(isset($rebuilt['manifestBaselines']['plugins/closeout/plugin.json']), '生产 bundle 必须派生模块 projection');
 managedExpect(!$rebuilt['plan']['blocked'], '生产 bundle 必须在渲染与规划中消费相同模块基线');
 $rows = [];
-$previewService = new \app\console\development\service\ManagedGenerationService($root, baselines: $blobs, stateRepository: $state,
+$previewService = new \app\admin\development\service\ManagedGenerationService($root, baselines: $blobs, stateRepository: $state,
     moduleReader: fn (int $id): array => ['id' => $id, 'form_id' => 1],
     generationWriter: function (array $row) use (&$rows): int { $rows[] = $row; return count($rows); });
 $previewMethod = new ReflectionMethod($previewService, 'previewBundle');

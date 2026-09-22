@@ -41,7 +41,11 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   options: UseCrudOptions<T, Q, ID>
 ) {
   const { api, initialQuery, rowKey = 'id', pagination = false, deleteConfirm, immediate = true } = options;
-  const { t } = useI18n();
+  const instance = getCurrentInstance();
+  const t = instance ? useI18n().t : (_key: string, values: string | Record<string, unknown>, fallback?: string) => {
+      const message = typeof values === 'string' ? values : fallback ?? _key;
+      return typeof values === 'string' ? message : message.replace(/\{(\w+)\}/g, (_, name: string) => String(values[name] ?? ''));
+    };
 
   const loading = ref(false);
   const list = ref([]) as Ref<T[]>;

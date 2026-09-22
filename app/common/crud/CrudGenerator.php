@@ -16,6 +16,8 @@ final class CrudGenerator
     private readonly DefinitionValidator $validator;
     private readonly TemplateRenderer $renderer;
     private readonly ConfirmationToken $tokens;
+    private ?LangPackTranslator $langTranslator = null;
+    private array $languagePack = [];
 
     public function __construct(
         private readonly string $projectRoot,
@@ -213,15 +215,23 @@ final class CrudGenerator
         return [];
     }
 
+    /** 最近一次渲染收集的前端语言行（managed 路径据此派生语言资源入库）；插件目标为空。 */
+    public function languagePack(): array
+    {
+        return $this->languagePack;
+    }
+
     private function renderFiles(CrudDefinition $definition, array $manifestBase = [], bool $managed = false): array
     {
         $target = (array) $definition->get('target', ['type' => 'core']);
         if (($target['type'] ?? 'core') === 'plugin') {
+            $this->languagePack = [];
             return (new PluginCrudTarget($this->projectRoot))->files($definition, $this->renderer, $manifestBase, $managed);
         }
         $paths = $definition->get('generationTargets', []);
         $templates = $definition->get('templates', []);
         $context = $this->context($definition);
+        $this->languagePack = (array) ($context['languagePack'] ?? []);
         $files = [];
         foreach ($paths as $type => $path) {
             if ($type === 'migration' && $definition->isAdopted()) continue;
@@ -235,6 +245,14 @@ final class CrudGenerator
 
     private function context(CrudDefinition $definition): array
     {
-        return ProductionTemplateContext::build($definition);
+        // AI 预翻译失败时由 Context 降级为 key 派生占位，不阻塞生成。
+        return ProductionTemplateContext::build($definition, [
+            'translator' => fn (array $zhMap): array => $this->translator()->translate($zhMap),
+        ]);
+    }
+
+    private function translator(): LangPackTranslator
+    {
+        return $this->langTranslator ??= new LangPackTranslator();
     }
 }

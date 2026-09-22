@@ -466,7 +466,11 @@ final class ManagedGenerationService
                 $merged[(string) $file['path']] = $file['content'];
             }
         }
-        $resources = $this->resourcesFromDefinition($definition);
+        $resources = array_merge(
+            $this->resourcesFromDefinition($definition),
+            $this->languageResources($definition, $generator->languagePack())
+        );
+        usort($resources, static fn (array $left, array $right): int => $left['resourceKey'] <=> $right['resourceKey']);
         $migration = (string) ($definition->get('generationTargets')['migration'] ?? '');
         return [
             'target' => (array) $definition->get('target', ['type' => 'core']),
@@ -543,7 +547,7 @@ final class ManagedGenerationService
         $inputs = [];
         foreach ($this->baselines->baselines($moduleId) as $row) {
             $artifact = (string) ($row['artifact_type'] ?? '');
-            if (in_array($artifact, ['migration', 'permissionMigration'], true)) continue;
+            if (in_array($artifact, ['migration', 'permissionMigration', 'langMigration'], true)) continue;
             $inputs[] = [
                 'path' => (string) $row['relative_path'],
                 'artifactType' => $artifact,
@@ -573,6 +577,7 @@ final class ManagedGenerationService
         $entity = (string) $data['entity'];
         $data['generationTargets']['migration'] = "database/generated/{$entity}_{$nonce}.sql";
         $data['generationTargets']['permissionMigration'] = "database/generated/{$entity}_permissions_{$nonce}.sql";
+        $data['generationTargets']['langMigration'] = "database/generated/{$entity}_lang_{$nonce}.sql";
         return CrudDefinition::fromArray($data);
     }
 
@@ -607,6 +612,31 @@ final class ManagedGenerationService
             ];
         }
         usort($resources, static fn (array $left, array $right): int => $left['resourceKey'] <=> $right['resourceKey']);
+        return $resources;
+    }
+
+    /** 语言行资源由模板上下文收集的 key 确定性派生（与 lang.sql 内容一致），插件目标不落库。 */
+    private function languageResources(CrudDefinition $definition, array $pack): array
+    {
+        $data = $definition->toArray();
+        if (($data['target']['type'] ?? 'core') === 'plugin') return [];
+        $source = (string) $data['entity'];
+        $resources = [];
+        foreach (['zh-cn', 'en-us'] as $locale) {
+            foreach ((array) ($pack[$locale] ?? []) as $key => $value) {
+                $key = trim((string) $key);
+                $value = trim((string) $value);
+                if ($key === '' || $value === '') continue;
+                $resources[] = [
+                    'resourceKey' => "language|{$source}|{$locale}|{$key}",
+                    'resourceType' => 'language',
+                    'sourceName' => $source,
+                    'locale' => $locale,
+                    'langKey' => $key,
+                    'value' => $value,
+                ];
+            }
+        }
         return $resources;
     }
 

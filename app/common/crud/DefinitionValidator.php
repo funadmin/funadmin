@@ -24,6 +24,7 @@ final class DefinitionValidator
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
         'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest',
+        'langMigration', 'langZh', 'langEn',
     ];
     private const COMPONENTS = [
         'input', 'password', 'textarea', 'mention', 'inputNumber', 'select', 'selectV2', 'treeSelect', 'cascader',

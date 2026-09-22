@@ -56,9 +56,9 @@ function pluginDefinition(string $scope, array $overrides = []): CrudDefinition
         ],
         'relations' => [], 'optionsSource' => [],
         'templates' => [
-            'migration' => 'database/migration.sql.tpl', 'model' => 'console/model.php.tpl',
-            'validate' => 'console/validate.php.tpl', 'service' => 'console/service.php.tpl',
-            'controller' => 'console/controller.php.tpl', 'permissionMigration' => 'database/permissions.sql.tpl',
+            'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
+            'validate' => 'admin/validate.php.tpl', 'service' => 'admin/service.php.tpl',
+            'controller' => 'admin/controller.php.tpl', 'permissionMigration' => 'database/permissions.sql.tpl',
             'api' => 'frontend/api.ts.tpl', 'view' => 'frontend/index.vue.tpl',
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
             'phpTest' => 'tests/php-test.php.tpl', 'vitestTest' => 'tests/vitest-test.ts.tpl',
@@ -196,7 +196,7 @@ try {
     });
     pluginCrudExpect($securityFailures === [], implode("\n", $securityFailures));
 
-    foreach (['application', 'console', 'both'] as $scope) {
+    foreach (['application', 'admin', 'both'] as $scope) {
         $definition = pluginDefinition($scope);
         (new DefinitionValidator())->validate($definition, $root);
         $plan = (new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', new ConfirmationToken($root, 'plugin-crud-secret')))->plan($definition);
@@ -204,31 +204,31 @@ try {
         pluginCrudExpect(isset($files['plugins/shop/database/migrations/001_create_product_item.sql']), $scope . ' 缺少唯一 migration');
         pluginCrudExpect(!isset($files['database/generated/product-item_permissions.sql']), '插件不得生成核心权限 SQL');
         $applicationModel = 'plugins/shop/app/shop/model/ProductItem.php';
-        $consoleModel = 'plugins/shop/app/console/model/ProductItem.php';
+        $adminModel = 'plugins/shop/app/admin/model/ProductItem.php';
         pluginCrudExpect(isset($files[$applicationModel]) === in_array($scope, ['application', 'both'], true), $scope . ' application 制品不准确');
-        pluginCrudExpect(isset($files[$consoleModel]) === in_array($scope, ['console', 'both'], true), $scope . ' console 制品不准确');
-        pluginCrudExpect(isset($files['plugins/shop/admin-web/product-item/index.vue']) === in_array($scope, ['console', 'both'], true), $scope . ' AdminWeb 制品不准确');
+        pluginCrudExpect(isset($files[$adminModel]) === in_array($scope, ['admin', 'both'], true), $scope . ' admin 制品不准确');
+        pluginCrudExpect(isset($files['plugins/shop/admin-web/product-item/index.vue']) === in_array($scope, ['admin', 'both'], true), $scope . ' AdminWeb 制品不准确');
         if (isset($files[$applicationModel])) {
             pluginCrudExpect(str_contains($files[$applicationModel], 'namespace app\\shop\\model;'), 'application namespace 错误');
             pluginCrudExpect(str_contains($files[$applicationModel], 'extends Model'), 'application model 必须使用原生 ThinkPHP Model');
             $applicationController = $files['plugins/shop/app/shop/controller/ProductItemController.php'];
             pluginCrudExpect(str_contains($applicationController, 'extends BaseController'), 'application controller 必须使用原生应用基类');
-            pluginCrudExpect(!str_contains($applicationController, 'AdminApiController'), 'application controller 不得依赖 Console 基类');
-            pluginCrudExpect(!str_contains($applicationController, 'CheckAdminApiRole'), 'application controller 不得携带 Console 中间件');
+            pluginCrudExpect(!str_contains($applicationController, 'AdminApiController'), 'application controller 不得依赖 Admin 基类');
+            pluginCrudExpect(!str_contains($applicationController, 'CheckAdminApiRole'), 'application controller 不得携带 Admin 中间件');
             pluginCrudExpect(str_contains($applicationController, 'use app\\common\\middleware\\MApi;'), 'application controller 必须使用会员 API 认证链');
             pluginCrudExpect(str_contains($applicationController, 'protected array $middleware = [MApi::class];'), 'application CRUD 默认必须统一认证');
             pluginCrudExpect(str_contains($applicationController, "#[Group('product-item')]"), 'application 必须使用原生 Attribute 路由');
         }
-        if (isset($files[$consoleModel])) {
-            pluginCrudExpect(str_contains($files[$consoleModel], 'namespace app\\console\\model\\plugin\\shop;'), 'console namespace 错误');
-            $controller = $files['plugins/shop/app/console/controller/ProductItemController.php'];
-            pluginCrudExpect(str_contains($controller, "#[Group('plugin/shop/product-item')]"), 'Console Group 前缀错误');
-            pluginCrudExpect(str_contains($controller, 'extends AdminApiController'), 'Console controller 基类错误');
+        if (isset($files[$adminModel])) {
+            pluginCrudExpect(str_contains($files[$adminModel], 'namespace app\\admin\\model\\plugin\\shop;'), 'admin namespace 错误');
+            $controller = $files['plugins/shop/app/admin/controller/ProductItemController.php'];
+            pluginCrudExpect(str_contains($controller, "#[Group('plugin/shop/product-item')]"), 'Admin Group 前缀错误');
+            pluginCrudExpect(str_contains($controller, 'extends AdminApiController'), 'Admin controller 基类错误');
             foreach (['create', 'update', 'remove', 'restore', 'destroy', 'recycle', 'restoreMany', 'destroyMany'] as $action) {
-                pluginCrudExpect(str_contains($controller, 'public function ' . $action . '('), 'Console 不得丢失管理能力：' . $action);
+                pluginCrudExpect(str_contains($controller, 'public function ' . $action . '('), 'Admin 不得丢失管理能力：' . $action);
             }
             $api = $files['plugins/shop/admin-web/product-item/api.ts'];
-            pluginCrudExpect(str_contains($api, '/console/plugin/shop/product-item'), '插件 API URL 错误');
+            pluginCrudExpect(str_contains($api, '/admin/plugin/shop/product-item'), '插件 API URL 错误');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/index.vue'], "from './api'"), '根 view 必须从 ./api 导入');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/components/ProductItemForm.vue'], "from '../api'"), 'Form 必须从 ../api 导入');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/components/ProductItemDetail.vue'], "from '../api'"), 'Detail 必须从 ../api 导入');
@@ -254,7 +254,7 @@ try {
         $root,
         $repository . '/app/common/crud/templates/v1',
         new ConfirmationToken($root, 'plugin-crud-permission-disabled')
-    ))->plan(pluginDefinition('console', ['permission' => ['enabled' => false]]));
+    ))->plan(pluginDefinition('admin', ['permission' => ['enabled' => false]]));
     $permissionDisabledFiles = array_column($permissionDisabledPlan['files'], 'content', 'path');
     $permissionDisabledManifest = json_decode(
         $permissionDisabledFiles['plugins/shop/plugin.json'],
@@ -279,26 +279,26 @@ try {
         '禁用权限时 Manifest menu 不得引用未声明权限'
     );
 
-    foreach (['../shop', 'console', 'api'] as $plugin) {
-        pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['target' => ['plugin' => $plugin]]), $root), '插件');
+    foreach (['../shop', 'admin', 'api'] as $plugin) {
+        pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('admin', ['target' => ['plugin' => $plugin]]), $root), '插件');
     }
     symlink($root . '/plugins/shop', $root . '/plugins/store');
     pluginCrudReject(
         static fn () => (new DefinitionValidator())->validate(
-            pluginDefinition('console', ['target' => ['plugin' => 'store']]),
+            pluginDefinition('admin', ['target' => ['plugin' => 'store']]),
             $root
         ),
         '符号链接'
     );
     unlink($root . '/plugins/store');
-    $reorderedTarget = pluginDefinition('console');
+    $reorderedTarget = pluginDefinition('admin');
     $reorderedTargetData = $reorderedTarget->toArray();
-    $reorderedTargetData['target'] = ['plugin' => 'shop', 'scope' => 'console', 'type' => 'plugin'];
+    $reorderedTargetData['target'] = ['plugin' => 'shop', 'scope' => 'admin', 'type' => 'plugin'];
     (new DefinitionValidator())->validate(CrudDefinition::fromArray($reorderedTargetData), $root);
-    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['generationTargets' => ['model' => 'app/console/model/Escape.php']]), $root), 'generationTargets');
-    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['entity' => '../escape']), $root), 'entity');
-    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['table' => 'shop_product;drop']), $root), 'table');
-    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('console', ['permissionPrefix' => 'system:plugin:list']), $root), '插件权限');
+    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('admin', ['generationTargets' => ['model' => 'app/admin/model/Escape.php']]), $root), 'generationTargets');
+    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('admin', ['entity' => '../escape']), $root), 'entity');
+    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('admin', ['table' => 'shop_product;drop']), $root), 'table');
+    pluginCrudReject(static fn () => (new DefinitionValidator())->validate(pluginDefinition('admin', ['permissionPrefix' => 'system:plugin:list']), $root), '插件权限');
 
     $tokens = new ConfirmationToken($root, 'plugin-crud-drift');
     $generator = new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', $tokens);
@@ -315,8 +315,8 @@ try {
     $applicationPlan = $applicationGenerator->plan($applicationDefinition);
     $applicationResult = $applicationGenerator->generate($applicationDefinition, $applicationPlan['confirmToken']);
     pluginCrudExpect(($applicationResult['write']['status'] ?? '') === 'written', 'application generate 不应要求覆盖未变化 Manifest');
-    $consoleGenerator = new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', new ConfirmationToken($root, 'plugin-crud-console-write'));
-    $consoleDefinition = pluginDefinition('console');
+    $consoleGenerator = new CrudGenerator($root, $repository . '/app/common/crud/templates/v1', new ConfirmationToken($root, 'plugin-crud-admin-write'));
+    $consoleDefinition = pluginDefinition('admin');
     $consolePlan = $consoleGenerator->plan($consoleDefinition);
     $consoleMigrationPaths = array_values(array_filter(
         array_column($consolePlan['files'], 'path'),
@@ -327,12 +327,12 @@ try {
         '同插件同实体跨 scope 重复生成不得新增 migration'
     );
     $consoleResult = $consoleGenerator->generate($consoleDefinition, $consolePlan['confirmToken']);
-    pluginCrudExpect(($consoleResult['write']['status'] ?? '') === 'written', 'console generate 应通过 Manifest CAS 合并');
+    pluginCrudExpect(($consoleResult['write']['status'] ?? '') === 'written', 'admin generate 应通过 Manifest CAS 合并');
     pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/common/crud/CrudGenerator.php'), 'pluginManifestOverwrite'), 'CrudGenerator 不得通用豁免 Manifest 覆盖');
     $sameSchemaPlan = $consoleGenerator->plan($consoleDefinition);
     $sameMigration = array_values(array_filter($sameSchemaPlan['files'], static fn (array $file): bool => str_ends_with((string) $file['path'], '.sql')))[0];
     pluginCrudExpect($sameMigration['status'] === 'unchanged', '相同 schema migration 必须复用且 unchanged');
-    $addedFieldDefinition = pluginDefinition('console', ['fields' => [
+    $addedFieldDefinition = pluginDefinition('admin', ['fields' => [
         ['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true, 'list' => true],
         ['name' => 'name', 'dbType' => 'varchar(80)', 'nullable' => false, 'required' => true, 'list' => true, 'form' => true, 'detail' => true],
         ['name' => 'sku', 'dbType' => 'varchar(64)', 'nullable' => true, 'unique' => true, 'list' => true],
@@ -341,7 +341,7 @@ try {
     $forwardMigration = array_values(array_filter($forwardPlan['files'], static fn (array $file): bool => str_ends_with((string) $file['path'], '.sql')))[0];
     pluginCrudExpect(str_starts_with(basename($forwardMigration['path']), '002_'), '结构新增必须生成下一个三位 forward migration');
     pluginCrudExpect(str_contains($forwardMigration['content'], 'ALTER TABLE `shop_product_item`') && str_contains($forwardMigration['content'], 'ADD COLUMN `sku`'), '新增字段必须生成 ALTER ADD');
-    pluginCrudReject(static fn () => $consoleGenerator->plan(pluginDefinition('console', ['fields' => [
+    pluginCrudReject(static fn () => $consoleGenerator->plan(pluginDefinition('admin', ['fields' => [
         ['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true, 'list' => true],
         ['name' => 'name', 'dbType' => 'varchar(120)', 'nullable' => false, 'required' => true, 'list' => true, 'form' => true, 'detail' => true],
     ]])), '删除或修改字段');
@@ -350,10 +350,10 @@ try {
         isset($generatedManifest->toArray()['adminWeb']['components']['ProductItem']),
         '事务提交后的插件必须通过完整 Manifest v2 校验'
     );
-    pluginCrudRemove($root . '/plugins/shop/app/console/model');
-    pluginCrudRemove($root . '/plugins/shop/app/console/validate');
-    pluginCrudRemove($root . '/plugins/shop/app/console/service');
-    pluginCrudRemove($root . '/plugins/shop/app/console/controller');
+    pluginCrudRemove($root . '/plugins/shop/app/admin/model');
+    pluginCrudRemove($root . '/plugins/shop/app/admin/validate');
+    pluginCrudRemove($root . '/plugins/shop/app/admin/service');
+    pluginCrudRemove($root . '/plugins/shop/app/admin/controller');
     pluginCrudRemove($root . '/plugins/shop/admin-web/product-item');
     file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
     pluginCrudRemove($root . '/plugins/shop/app/shop/model');
@@ -391,7 +391,7 @@ try {
     $conflict['adminWeb']['components']['ProductItem'] = 'other.vue';
     file_put_contents($root . '/plugins/shop/admin-web/other.vue', '<template />');
     file_put_contents($manifestPath, json_encode($conflict, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
-    pluginCrudReject(static fn () => $generator->plan(pluginDefinition('console')), '冲突');
+    pluginCrudReject(static fn () => $generator->plan(pluginDefinition('admin')), '冲突');
     file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
 
     $app = new \think\App($root);
@@ -423,11 +423,11 @@ try {
     $app->config->set(['mysqlPrefix' => ['__PREFIX__', 'fun_']], 'funadmin');
     foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         $app->config->set(['connections' => ['archive' => ['prefix' => $prefix]]], 'database');
-        $oldDefinition = pluginDefinition('console', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => 'fun_shop_legacy']);
+        $oldDefinition = pluginDefinition('admin', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => 'fun_shop_legacy']);
         $oldSql = substr(\app\common\crud\ProductionTemplateContext::build($oldDefinition)['migrationContent'], strlen("-- funadmin-physical-table\n"));
         $legacyPath = $root . '/plugins/shop/database/migrations/090_legacy.sql';
         file_put_contents($legacyPath, $oldSql);
-        $newDefinition = pluginDefinition('console', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => $prefix . 'shop_legacy']);
+        $newDefinition = pluginDefinition('admin', ['connection' => 'archive', 'entity' => 'legacy-item', 'table' => $prefix . 'shop_legacy']);
         $newSql = \app\common\crud\ProductionTemplateContext::build($newDefinition)['migrationContent'];
         $result = $migrationMethod->invoke($migrationTarget, $newDefinition, 'shop', 'legacy-item', $newSql);
         pluginCrudExpect($result['path'] === 'plugins/shop/database/migrations/090_legacy.sql' && $result['content'] === $oldSql, '旧模板迁移必须按执行前缀识别并原样复用，不得新增 CREATE 或改 checksum');

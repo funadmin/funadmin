@@ -234,20 +234,20 @@ final class DevCrudService
         }
     }
 
-    public function applyResources(int $id): array
+    public function applyResources(int $id, bool $forceRefresh = false): array
     {
         $row = ($this->auditReader)($id);
         if ($row === null || ($row['operation'] ?? '') !== 'generate') throw new InvalidArgumentException('生成记录不存在或不可应用资源');
         $definition = (array) ($row['definition'] ?? []);
         $manifest = (array) ($row['manifest'] ?? []);
         $applyStatus = (string) ($manifest['resourceApplyStatus'] ?? '');
-        if ($applyStatus === 'applied') {
+        if ($applyStatus === 'applied' && !$forceRefresh) {
             return ['generationId' => $id, 'resourceApplyStatus' => 'applied', 'resourceChecksum' => $manifest['resourceChecksum'] ?? null];
         }
-        if (!in_array($applyStatus, ['pending', 'failed'], true)) {
+        if (!in_array($applyStatus, ['pending', 'failed', 'applied'], true)) {
             throw new InvalidArgumentException('该生成记录的资源状态不可重试');
         }
-        return $this->applyGeneratedResources($id, $definition, $manifest);
+        return $this->applyGeneratedResources($id, $definition, $manifest, [], $forceRefresh);
     }
 
     public function generation(int $id): ?array
@@ -256,10 +256,10 @@ final class DevCrudService
         return $row === null ? null : $this->sanitize($row);
     }
 
-    private function applyGeneratedResources(int $id, array $definition, array $manifest, array $result = []): array
+    private function applyGeneratedResources(int $id, array $definition, array $manifest, array $result = [], bool $forceRefresh = false): array
     {
         try {
-            $applied = $this->resourceInstaller->apply($definition, $manifest);
+            $applied = $this->resourceInstaller->apply($definition, $manifest, $forceRefresh);
             $manifest = array_replace($manifest, $applied);
             ($this->auditUpdater)($id, ['status' => 'completed', 'manifest' => $manifest, 'error' => null]);
             return ['generationId' => $id] + $applied + $result + ['manifest' => $manifest];

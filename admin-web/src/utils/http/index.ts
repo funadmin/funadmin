@@ -50,6 +50,8 @@ service.interceptors.request.use(
       const csrfToken = getCsrfToken();
       if (csrfToken) config.headers['X-CSRF-TOKEN'] = csrfToken;
     }
+    // 后端按当前界面语言返回 schema/错误文案（如会员页定义）。
+    config.headers['X-Locale'] = i18n.global.locale.value;
     return config;
   },
   (error) => Promise.reject(error)

@@ -13,7 +13,8 @@
 
 
 return [
-     \think\middleware\LoadLangPack::class,
+     // app 子类放开 think_lang 的 HttpOnly 供前端同步语言
+     \app\middleware\LoadLangPack::class,
 
      \think\middleware\SessionInit::class,
         //全局请求缓存

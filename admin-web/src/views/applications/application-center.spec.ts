@@ -26,7 +26,7 @@ describe('企业应用中心', () => {
     const page = read('views/applications/index.vue');
     expect(page).toContain("import { ElMessage, ElMessageBox } from 'element-plus'");
     expect(page).toContain("error?.code === 403");
-    expect(page).toContain("ElMessage.error(error.msg || '当前账号无权进入该应用')");
+    expect(page).toContain("ElMessage.error(error.msg || t('applications.noPermission', '当前账号无权进入该应用'))");
     expect(page).toMatch(/catch\s*\([^)]*\)/);
   });
 

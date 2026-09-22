@@ -345,9 +345,10 @@ final class DatabaseGenerationStateRepository
         int $generationId,
         array $records,
         string $transactionId,
-        string $planDigest
+        string $planDigest,
+        array $langCounts = []
     ): void {
-        Db::transaction(function () use ($moduleId, $generationId, $records, $transactionId, $planDigest): void {
+        Db::transaction(function () use ($moduleId, $generationId, $records, $transactionId, $planDigest, $langCounts): void {
             $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
             if (!$module) {
                 throw new RuntimeException('业务模块不存在');
@@ -385,6 +386,8 @@ final class DatabaseGenerationStateRepository
                 'schemaHash' => (string) ($definition['formSchemaHash'] ?? ''),
                 'transactionId' => $transactionId,
                 'planDigest' => $planDigest,
+                'langInserted' => (int) ($langCounts['inserted'] ?? 0),
+                'langSkipped' => (int) ($langCounts['skipped'] ?? 0),
             ];
 
             $this->replaceBaselines($moduleId, $generationId, $records);

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import * as Vue from 'vue';
+import * as VueI18n from 'vue-i18n';
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import ElementPlus, { ElMessageBox } from 'element-plus';
@@ -57,9 +58,9 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const api = evaluate(generated.apiContent, { '@/utils/http': { default: http } });
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
-  const page = evaluate(script.content, { vue: Vue, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
+  const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
   permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
-  const wrapper = mount(page, { global: { plugins: [ElementPlus], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
+  const wrapper = mount(page, { global: { plugins: [ElementPlus, VueI18n.createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': {} } })], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
 }
 afterEach(() => { vi.restoreAllMocks(); });
@@ -69,7 +70,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     expect(generated.viewContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
     expect(generated.viewContent).toContain("presentField('orderId', scope.row)");
     expect(generated.detailContent).toContain("import { formatFieldValue, resolveFieldOptions } from '@/views/form/runtime/fieldPresentation';");
-    expect(generated.detailContent).toContain("presentField('orderId', row)");
+    expect(generated.detailContent).toMatch(/presentField\('orderId', \{ \.\.\.row \}\)/);
     for (const content of [generated.viewContent, generated.detailContent]) {
       const { descriptor, errors } = parse(content);
       expect(errors).toEqual([]);
@@ -91,7 +92,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
       if (formatter === 'tag') {
         const { descriptor } = parse(generated.detailContent);
         const script = compileScript(descriptor, { id: 'detail-presentation', inlineTemplate: true });
-        const page = evaluate(script.content, { vue: Vue, '@/views/form/runtime/fieldPresentation': fieldPresentation }).default;
+        const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, '@/views/form/runtime/fieldPresentation': fieldPresentation }).default;
         const wrapper = mount(page, { props: { modelValue: true, row: { orderId: 42, orderTitle: 'chosen' } }, global: { stubs: { ElDrawer: box, ElDescriptions: box, ElDescriptionsItem: box, ElTag: box } } });
         expect(wrapper.text()).toContain(label);
         wrapper.unmount();

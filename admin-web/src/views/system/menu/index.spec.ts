@@ -14,7 +14,7 @@ vi.mock('@/components/InlineEdit/index.vue', () => ({ default: { template: '<spa
 
 const menuView = readFileSync(resolve(process.cwd(), 'src/views/system/menu/index.vue'), 'utf8');
 const dragColumnIndex = menuView.search(/<el-table-column\b[^>]*label=""[^>]*width="52"/);
-const nameColumnIndex = menuView.indexOf('<el-table-column prop="name" label="名称"');
+const nameColumnIndex = menuView.indexOf('<el-table-column prop="name" :label="t(\'systemMenu.colName\', \'名称\')"');
 const selectionColumnIndex = menuView.indexOf('<el-table-column type="selection"');
 const columns = [
   { index: dragColumnIndex, node: h(ElTableColumn, { label: '', width: 52, type: menuView.slice(dragColumnIndex, menuView.indexOf('>', dragColumnIndex)).includes('type="index"') ? 'index' : 'default' }, {

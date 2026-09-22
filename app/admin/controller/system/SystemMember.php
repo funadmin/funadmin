@@ -72,8 +72,9 @@ class SystemMember extends AdminApiController
             'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
             'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
         ];
-        return $this->ok(data: $options + MemberFormDefinition::build($options) + [
-            'page' => \app\admin\service\MemberPageDefinition::build($options),
+        $locale = (string) $this->request->header('X-Locale', 'zh-cn');
+        return $this->ok(data: $options + MemberFormDefinition::build($options, $locale) + [
+            'page' => \app\admin\service\MemberPageDefinition::build($options, $locale),
         ]);
     }
 

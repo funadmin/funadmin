@@ -72,9 +72,9 @@ $projectRoot = dirname(__DIR__, 2);
 $fixtureRoot = sys_get_temp_dir() . '/funadmin-m5-fixture-' . bin2hex(random_bytes(5));
 $databaseName = 'funadmin_m5_test_' . bin2hex(random_bytes(5));
 $app = new App($projectRoot . '/');
-$app->http->name('console');
-$app->setAppPath($projectRoot . '/app/console/');
-$app->setNamespace('app\\console');
+$app->http->name('admin');
+$app->setAppPath($projectRoot . '/app/admin/');
+$app->setNamespace('app\\admin');
 $app->initialize();
 $mysql = config('database.connections.mysql');
 $server = new PDO(
@@ -127,9 +127,9 @@ try {
             ['name' => 'category_options', 'type' => 'dictionary', 'dictionary' => 'm5_category', 'labelField' => 'label', 'valueField' => 'value'],
         ],
         'templates' => [
-            'migration' => 'database/migration.sql.tpl', 'model' => 'console/model.php.tpl',
-            'validate' => 'console/validate.php.tpl', 'service' => 'console/service.php.tpl',
-            'controller' => 'console/controller.php.tpl',
+            'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
+            'validate' => 'admin/validate.php.tpl', 'service' => 'admin/service.php.tpl',
+            'controller' => 'admin/controller.php.tpl',
             'permissionMigration' => 'database/permissions.sql.tpl',
             'api' => 'frontend/api.ts.tpl', 'view' => 'frontend/index.vue.tpl',
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',

@@ -128,7 +128,14 @@ final class GenerationTransactionService
                 if (!$plugin) $this->resourceCall('begin');
                 $resourcesBegun = !$plugin;
                 $this->fault('before_resources', -1, '');
-                if (!$plugin) $this->resourceCall('apply', [(array) $bundle['resources']]);
+                $langCounts = ['inserted' => 0, 'skipped' => 0];
+                if (!$plugin) {
+                    $applyResult = $this->resourceCall('apply', [(array) $bundle['resources']]);
+                    $langCounts = [
+                        'inserted' => (int) ($applyResult['inserted'] ?? 0),
+                        'skipped' => (int) ($applyResult['skipped'] ?? 0),
+                    ];
+                }
                 $this->fault('after_resources', -1, '');
                 $journal = $this->checkpoint($journal, 'resources_applied');
 
@@ -137,13 +144,14 @@ final class GenerationTransactionService
                 $this->fault('before_blob_commit', -1, '');
                 $this->baselines->commit((array) $journal['prepared_blobs']);
                 $this->fault('after_blob_commit', -1, '');
-                $this->stateRepository->transaction(function () use ($moduleId, $generationId, $records, $transactionId, $bundle): void {
+                $this->stateRepository->transaction(function () use ($moduleId, $generationId, $records, $transactionId, $bundle, $langCounts): void {
                     $this->stateRepository->commitGeneration(
                         $moduleId,
                         $generationId,
                         $records,
                         $transactionId,
-                        (string) $bundle['plan']['planDigest']
+                        (string) $bundle['plan']['planDigest'],
+                        $langCounts
                     );
                     $this->fault('before_db_commit', -1, '');
                 });
@@ -153,7 +161,13 @@ final class GenerationTransactionService
                 $journal = $this->checkpoint($journal, 'completed');
                 $this->cleanupTransaction($journal);
                 $this->executionOutcome = 'completed';
-                return ['state' => 'completed', 'transactionId' => $transactionId, 'written' => count($journal['applied'])];
+                return [
+                    'state' => 'completed',
+                    'transactionId' => $transactionId,
+                    'written' => count($journal['applied']),
+                    'langInserted' => $langCounts['inserted'],
+                    'langSkipped' => $langCounts['skipped'],
+                ];
             } catch (GenerationInterruptionException $exception) {
                 $this->executionOutcome = 'recovery_required';
                 throw $exception;

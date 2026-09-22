@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch, toValue, type MaybeRefOrGetter }
 import { i18n } from '@/locales';
 import { formDataApi } from '@/api/formData';
 import { resolveDataSourceParameters } from '../dataSource/useFormDataSource';
+import type { FormSchemaDataSource } from '../schema/types';
 
 const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
 
@@ -19,7 +20,7 @@ const stableKey = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
-export type PresentationNode = { id?: string | null; field?: string | null; dataSource?: { kind?: string; options?: unknown; params?: Record<string, unknown>; dependsOn?: string[] } | null; listFormatter?: string; formatter?: string };
+export type PresentationNode = { id?: string | null; field?: string | null; dataSource?: FormSchemaDataSource | null; listFormatter?: string; formatter?: string };
 
 type RawOption = { label: unknown; value: unknown; [key: string]: unknown };
 
