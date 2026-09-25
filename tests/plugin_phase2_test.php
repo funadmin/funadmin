@@ -66,7 +66,7 @@ $version = new PluginVersionDto(
     manifestSchema: 2,
     packageFormat: MarketplaceProtocol::PACKAGE_FORMAT,
     treeHash: str_repeat('b', 64),
-    applications: ['app' => true, 'console' => true]
+    applications: ['app' => true, 'admin' => true]
 );
 $detail = new PluginDetailDto(9, 'demo', '演示插件', '说明', '作者', [$version]);
 $result = new MarketplaceSearchResultDto([$detail], 1, 1, 20);
@@ -76,7 +76,7 @@ phase2Expect($account->id === 7 && $category->id === 3 && $result->total === 1, 
 phase2Expect($update->updateAvailable && $authorization->authorized, '更新与授权 DTO 字段错误');
 
 $descriptor = new DownloadDescriptorDto(
-    'https://downloads.example.com/demo.zip',
+    'https://93.184.216.34/demo.zip',
     'demo',
     '1.2.0',
     str_repeat('a', 64),

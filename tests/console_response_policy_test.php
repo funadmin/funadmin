@@ -21,7 +21,7 @@ function consoleExpect(bool $condition, string $message): void
 }
 
 $app = new App();
-$app->http->name('console');
+$app->http->name('admin');
 $request = (new Request())->withHeader(['accept' => 'application/json']);
 $handler = new ExceptionHandle($app);
 $response = $handler->render($request, new ValidateException('名称不能为空'));

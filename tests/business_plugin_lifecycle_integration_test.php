@@ -68,7 +68,7 @@ try {
     $app->env->load($repository . '/.env');
     $databaseConfig = require $repository . '/config/database.php';
     $source = $databaseConfig['connections']['mysql'];
-    lifecycleExpect($source['type'] === 'mysql' && $source['prefix'] === 'fun_' && (int) $source['deploy'] === 0, '仅支持单机 MySQL / fun_ 前缀');
+    lifecycleExpect($source['type'] === 'mysql' && (int) $source['deploy'] === 0, '仅支持单机 MySQL');
     lifecycleExpect(in_array($source['hostname'], ['127.0.0.1', 'localhost', '::1'], true), '拒绝使用非本地 MySQL');
     $dsn = 'mysql:host=' . $source['hostname'] . ';port=' . $source['hostport'] . ';charset=utf8mb4';
     $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
@@ -81,7 +81,9 @@ try {
         'plugin', 'plugin_operation', 'plugin_version_history', 'plugin_resource', 'permission', 'admin_menu', 'casbin_rule', 'system_migration'];
     $ddl = [];
     foreach ($tables as $table) {
-        $sql = array_values($server->query('SHOW CREATE TABLE `' . $source['database'] . '`.`fun_' . $table . '`')->fetch())[1];
+        // 按本机实际前缀读取，在隔离库统一重命名为测试约定的 fun_ 前缀。
+        $sql = array_values($server->query('SHOW CREATE TABLE `' . $source['database'] . '`.`' . $source['prefix'] . $table . '`')->fetch())[1];
+        $sql = preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE `fun_' . $table . '`', $sql);
         lifecycleExpect(!str_contains($sql, 'REFERENCES') && !str_contains($sql, 'CONNECTION='), '拒绝带外部依赖的源表结构');
         $ddl[] = preg_replace('/ AUTO_INCREMENT=\d+/', '', $sql);
     }
@@ -96,6 +98,7 @@ try {
     lifecycleExpect(count($grants) === 2, '临时账号出现非预期授权');
     foreach ($grants as $grant) lifecycleExpect(str_contains($grant, 'GRANT USAGE ON *.*') || str_contains(str_replace('\\_', '_', $grant), '`' . $name . '`.*'), '临时账号授权越界');
     $source['database'] = $name;
+    $source['prefix'] = 'fun_';
     $source['username'] = $user;
     $source['password'] = $password;
     $source['schema_cache_path'] = $root . '/runtime/schema/';

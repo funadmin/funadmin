@@ -11,19 +11,17 @@ function businessPermissionExpect(bool $condition, string $message): void
     if (!$condition) throw new RuntimeException($message);
 }
 
-$authClass = new ReflectionClass(\app\admin\controller\authentication\AdminAuth::class);
-$authInstance = $authClass->newInstanceWithoutConstructor();
-$webPermissions = $authClass->getMethod('webPermissions');
+$webPermissions = static fn (array $codes, bool $isSuperAdmin): array => \app\admin\authorization\model\Permission::webPermissions($codes, $isSuperAdmin);
 foreach (['createvisual', 'createfromdatabase', 'inspectdatabase', 'databasetables', 'modules'] as $action) {
-    $code = 'console/development.business:' . $action;
-    $permissions = $webPermissions->invoke($authInstance, [$code], false);
+    $code = 'development.business:' . $action;
+    $permissions = $webPermissions([$code], false);
     businessPermissionExpect(in_array($code, $permissions, true), '必须保留已授权独立动作：' . $action);
     foreach (['createvisual', 'createfromdatabase', 'inspectdatabase', 'databasetables', 'modules'] as $other) {
-        if ($other !== $action) businessPermissionExpect(!in_array('console/development.business:' . $other, $permissions, true), '不得扩大独立动作授权');
+        if ($other !== $action) businessPermissionExpect(!in_array('development.business:' . $other, $permissions, true), '不得扩大独立动作授权');
     }
 }
-businessPermissionExpect($webPermissions->invoke($authInstance, [], false) === [], '无权限不得获得动作');
-businessPermissionExpect($webPermissions->invoke($authInstance, [], true) === ['*'], '保留超级管理员通配');
+businessPermissionExpect($webPermissions([], false) === [], '无权限不得获得动作');
+businessPermissionExpect($webPermissions([], true) === ['*'], '保留超级管理员通配');
 if (getenv('BUSINESS_PERMISSION_READ_ONLY') === '1') {
     echo "business action permission tests: PASS (no database)\n";
     exit(0);
@@ -66,13 +64,14 @@ foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 's
 businessPermissionExpect(str_contains($remainingSql, "source_name` IN ('form_management','development_crud')"), '086 旧授权映射必须严格限定来源');
 
 $auth = (string) file_get_contents($root . '/app/admin/controller/authentication/AdminAuth.php');
-businessPermissionExpect(str_contains($auth, "'console/development.business:modules'") && str_contains($auth, "'console/development.business:fieldcapabilities'"), 'AdminAuth aliases 必须包含全部 Business actions');
+$aliases = (string) file_get_contents($root . '/app/admin/authorization/model/Permission.php');
+businessPermissionExpect(str_contains($aliases, "'development.business:modules'") && str_contains($aliases, "'development.business:fieldcapabilities'"), 'AdminAuth aliases 必须包含全部 Business actions');
 foreach (['compileschema', 'exportschema', 'schemaversions', 'schemaversion', 'schemadiff', 'rollbackschema', 'databasetables', 'databasetableschema'] as $action) {
-    businessPermissionExpect(str_contains($auth, "'console/development.business:{$action}'"), 'AdminAuth aliases 缺少：' . $action);
+    businessPermissionExpect(str_contains($aliases, "'development.business:{$action}'"), 'AdminAuth aliases 缺少：' . $action);
 }
-businessPermissionExpect(str_contains($auth, "'development:business:"), 'AdminAuth aliases 必须映射统一 business 权限');
-businessPermissionExpect(!str_contains($auth, "'console/devcrud:"), 'AdminAuth 不得保留 DevCrud aliases');
-businessPermissionExpect(str_contains($auth, "'console/development.business:recovergeneration' => 'development:business:recover'"), 'AdminAuth 缺少 recover 独立权限 alias');
+businessPermissionExpect(str_contains($aliases, "'development:business:"), 'AdminAuth aliases 必须映射统一 business 权限');
+businessPermissionExpect(!str_contains($aliases, "'devcrud:"), 'AdminAuth 不得保留 DevCrud aliases');
+businessPermissionExpect(str_contains($aliases, "'development.business:recovergeneration' => 'development:business:recover'"), 'AdminAuth 缺少 recover 独立权限 alias');
 
 $recoverFile = $root . '/database/migrations/archive/089_business_generation_recover_permission.sql';
 businessPermissionExpect(is_file($recoverFile), '缺少 089 recover 权限 migration');
@@ -189,7 +188,7 @@ $memory->exec($hideSql);
 businessPermissionExpect($memory->query('SELECT * FROM fun_admin_menu ORDER BY id')->fetchAll(PDO::FETCH_ASSOC) === $after, '隐藏迁移必须幂等');
 $mine = (string) file_get_contents($root . '/admin-web/src/views/development/business/mine.vue');
 businessPermissionExpect(substr_count($mine, 'data-action="create-business"') === 1, '我的业务只保留统一创建入口');
-businessPermissionExpect(str_contains($mine, 'console/development.business:createvisual') && str_contains($mine, '/development/business/database'), '统一入口必须按独立动作保留只读旧路由');
+businessPermissionExpect(str_contains($mine, 'development.business:createvisual') && str_contains($mine, '/development/business/database'), '统一入口必须按独立动作保留只读旧路由');
 businessPermissionExpect(str_contains($auth, "in_array((int) \$menu->permission_id, \$permissionIds, true)"), '非管理员仍按原权限绑定过滤，不能补授查看权限');
 businessPermissionExpect(!str_contains($hideSql, 'fun_permission') && !str_contains($hideSql, 'fun_casbin_rule'), '隐藏操作不得修改权限或角色授权');
 

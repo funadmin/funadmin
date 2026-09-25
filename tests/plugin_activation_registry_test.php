@@ -47,7 +47,7 @@ $root = sys_get_temp_dir() . '/funadmin-plugin-activation-' . bin2hex(random_byt
 $runtime = $root . '/runtime/plugins/activation';
 $plugins = $root . '/plugins';
 mkdir($plugins . '/catalog/app/catalog', 0755, true);
-mkdir($plugins . '/catalog/app/console', 0755, true);
+mkdir($plugins . '/catalog/app/admin', 0755, true);
 mkdir($plugins . '/payment/app/payment', 0755, true);
 
 $records = [
@@ -81,7 +81,7 @@ activationExpect(is_string($first['generation'] ?? null) && $first['generation']
 activationExpect(strlen((string) ($first['activation_hash'] ?? '')) === 64, '激活清单必须包含 activation SHA-256 hash');
 activationExpect(strlen((string) ($first['ownership_hash'] ?? '')) === 64, '激活清单必须包含 ownership SHA-256 hash');
 activationExpect(array_keys($first['plugins']) === ['catalog', 'legacy', 'payment', 'removed'], '清单必须稳定保留全部 installed/discovered 插件');
-activationExpect($first['plugins']['catalog']['applications'] === ['app' => true, 'console' => true], '编译器必须记录独立 app 与 console ownership');
+activationExpect($first['plugins']['catalog']['applications'] === ['app' => true, 'admin' => true], '编译器必须记录独立 app 与 console ownership');
 activationExpect($first['plugins']['removed']['enabled'] === false, '软删除记录即使 status=1 也不得编译为启用');
 activationExpect(in_array($first['plugins']['removed']['state'], ['discovered', 'deleted'], true), '软删除记录必须编译为不可运行状态');
 activationExpect(!is_file($runtime . '/ownership.php'), '不得在 root 发布跨代 ownership 索引');
@@ -105,10 +105,10 @@ activationExpect($snapshot->isTrusted(), '新编译清单必须可信');
 activationExpect($snapshot->plugins()['legacy']['state'] === 'disabled', 'Reader 必须返回所有已知插件状态');
 $gate = new ActivationGate($snapshot);
 $gate->assertEnabled('catalog', 'app');
-$gate->assertEnabled('catalog', 'console');
+$gate->assertEnabled('catalog', 'admin');
 $gate->assertEnabled('payment', 'app');
 activationThrows(fn () => $gate->assertEnabled('legacy', 'app'), PluginNotActiveException::class, 'needs_reinstall/disabled 插件必须 fail closed');
-activationThrows(fn () => $gate->assertEnabled('payment', 'console'), PluginNotActiveException::class, '未声明 console ownership 必须 fail closed');
+activationThrows(fn () => $gate->assertEnabled('payment', 'admin'), PluginNotActiveException::class, '未声明 console ownership 必须 fail closed');
 activationThrows(fn () => $gate->assertEnabled('removed', 'app'), PluginNotActiveException::class, '软删除 enabled 记录必须被 Gate 拒绝');
 
 $busyRecords = $records;

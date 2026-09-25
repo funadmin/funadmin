@@ -96,11 +96,11 @@ $version = new PluginVersionDto(
     'funadmin-native-app-v1',
     str_repeat('b', 64),
     '003_seed',
-    ['app' => true, 'console' => true],
+    ['app' => true, 'admin' => true],
     ''
 );
 remainingExpect($version->manifestSchema === 2 && $version->treeHash === str_repeat('b', 64), '版本 DTO 必须携带 v3 制品契约');
-remainingExpect($version->databaseCapability === '003_seed' && $version->applications['console'], '版本 DTO 必须携带数据库及应用能力');
+remainingExpect($version->databaseCapability === '003_seed' && $version->applications['admin'], '版本 DTO 必须携带数据库及应用能力');
 remainingException(static fn () => new PluginVersionDto(1, 'demo', '2.0.0', compatible: true), '不兼容');
 remainingException(static fn () => new PluginVersionDto(
     1,
@@ -111,11 +111,11 @@ remainingException(static fn () => new PluginVersionDto(
     packageFormat: MarketplaceProtocol::PACKAGE_FORMAT,
     treeHash: str_repeat('b', 64),
     databaseCapability: '',
-    applications: ['app' => true, 'console' => false]
+    applications: ['app' => true, 'admin' => false]
 ), 'manifest schema');
 
 $descriptorArguments = [
-    'https://downloads.example.com/demo.zip',
+    'https://93.184.216.34/demo.zip',
     'demo',
     '2.0.0',
     str_repeat('a', 64),
@@ -161,7 +161,7 @@ $adapter = new NativeMarketplaceAdapter(
             'package_format' => 'funadmin-native-app-v1',
             'tree_hash' => str_repeat('b', 64),
             'database_capability' => '003_seed',
-            'applications' => ['app' => true, 'console' => true],
+            'applications' => ['app' => true, 'admin' => true],
             'compatible_reason' => '',
         ];
         return match ($endpoint) {
@@ -183,7 +183,7 @@ $adapter = new NativeMarketplaceAdapter(
                 'compatible' => true, 'database_compatible' => true, 'requires_manual_merge' => false, 'reason' => '',
             ]]]],
             '/api/v3/plugins/demo/authorize' => ['code' => 200, 'data' => ['code' => 'demo', 'code_version' => '2.0.0', 'authorized' => true, 'message' => '']],
-            '/api/v3/plugins/demo/download' => ['code' => 200, 'data' => $version + ['url' => 'https://downloads.example.com/demo.zip']],
+            '/api/v3/plugins/demo/download' => ['code' => 200, 'data' => $version + ['url' => 'https://93.184.216.34/demo.zip']],
             default => throw new RuntimeException('unexpected endpoint ' . $endpoint),
         };
     },
@@ -221,7 +221,7 @@ $keypair = sodium_crypto_sign_keypair();
 $secretKey = sodium_crypto_sign_secretkey($keypair);
 $publicKey = base64_encode(sodium_crypto_sign_publickey($keypair));
 $signingDescriptor = new DownloadDescriptorDto(
-    'https://downloads.example.com/demo.zip',
+    'https://93.184.216.34/demo.zip',
     'demo',
     '2.0.0',
     hash('sha256', $payload),
@@ -301,7 +301,7 @@ $badAdapter = new NativeMarketplaceAdapter(
         'package_format' => 'funadmin-native-app-v1',
         'tree_hash' => str_repeat('b', 64),
         'database_capability' => '',
-        'applications' => ['app' => true, 'console' => true],
+        'applications' => ['app' => true, 'admin' => true],
         'compatible_reason' => '',
     ]]]],
     $session,

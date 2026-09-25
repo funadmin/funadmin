@@ -157,9 +157,9 @@ foreach (['../escape.php','.env','.git/config','runtime/private/x','vendor/cache
 mkdir($root . '/outside', 0755, true);
 symlink($root . '/outside', $root . '/linked');
 phase4Reject(fn () => $service->validatePath('linked/file.php'), '符号链接');
-phase4Reject(fn () => $service->validateMigrationPath('database/migrations/archive/106_changed.sql'), '已登记');
-phase4Reject(fn () => $service->validateMigrationPath('database/migrations/archive/001_core_schema.sql', true), '修改或删除');
-phase4Expect($service->validateMigrationPath('database/migrations/archive/107_ai_change.sql') === 107, '新 migration 必须严格大于最大登记编号');
+phase4Reject(fn () => $service->validateMigrationPath('database/migrations/106_changed.sql'), '已登记');
+phase4Reject(fn () => $service->validateMigrationPath('database/migrations/001_core_schema.sql', true), '修改或删除');
+phase4Expect($service->validateMigrationPath('database/migrations/107_ai_change.sql') === 107, '新 migration 必须严格大于最大登记编号');
 
 $badApproval = array_replace($approval, ['status'=>'pending']);
 $clock = 1000;
@@ -231,7 +231,7 @@ $controller = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controll
 foreach (['changeSetDetail','changeSetPreview','changeSetApply','changeSetRecover','crudProposalPreview','crudProposalApply'] as $method) phase4Expect(str_contains($controller, "function {$method}("), "控制器缺少 {$method}");
 phase4Expect(!str_contains($controller, '尚未实现'), '阶段四 controller 不得保留 501 占位');
 foreach (['AiApproval', 'AiChangeSetTransactionService', 'AiCrudProposalService', 'apply_workspace', 'securityAudit'] as $wiring) phase4Expect(str_contains($controller, $wiring), '阶段四 controller 缺少生产安全接线：' . $wiring);
-phase4Expect(str_contains($controller, '[400, 401, 403, 404, 409]'), '阶段四 controller 必须保留 conflict HTTP 409');
+phase4Expect(preg_match('/in_array\(\$exception->getCode\(\), \[400, 401, 403, 404, 409\b[^\]]*\]/', $controller) === 1, '阶段四 controller 必须保留 conflict HTTP 409');
 phase4Expect(substr_count($controller, "'conversation_id'=>") >= 2, 'ChangeSet 审计必须绑定 conversation_id');
 phase4Expect(substr_count($controller, "'task_id'=>") >= 4, 'ChangeSet 与 CRUD 审计必须绑定真实 task_id');
 phase4Expect(str_contains($controller, "->where('conversation_id', (int) \$record['conversation_id'])->where('task_id', (int) \$record['task_id'])"), 'ChangeSet apply 查询最终审批时必须绑定当前 conversation/task，拒绝任意旧审批 ID');

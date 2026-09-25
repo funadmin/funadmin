@@ -66,13 +66,13 @@ $service = new DevPluginService(
 );
 
 try {
-    $preview = $service->previewCreate(['name' => 'shop', 'title' => '商城', 'application' => true, 'console' => true, 'adminWeb' => true]);
+    $preview = $service->previewCreate(['name' => 'shop', 'title' => '商城', 'application' => true, 'admin' => true, 'adminWeb' => true]);
     devPluginExpect(($preview['auditId'] ?? 0) === 1, 'preview 必须返回 auditId');
     devPluginExpect(($preview['conflicts'] ?? null) === [], '新插件 preview 不应有冲突');
     devPluginExpect(in_array('plugins/shop/plugin.json', array_column($preview['plan']['files'] ?? [], 'path'), true), 'preview 必须返回目标文件计划');
     devPluginExpect(!isset($preview['confirmToken']), '创建插件不得返回无用途 token');
 
-    $created = $service->create(['name' => 'shop', 'title' => '商城', 'application' => true, 'console' => true, 'adminWeb' => true]);
+    $created = $service->create(['name' => 'shop', 'title' => '商城', 'application' => true, 'admin' => true, 'adminWeb' => true]);
     devPluginExpect(($created['auditId'] ?? 0) === 2 && ($created['plan']['status'] ?? '') === 'created', 'create 必须原子生成并返回审计');
     devPluginExpect(is_file($root . '/plugins/shop/plugin.json'), 'create 必须调用 PluginScaffolder');
 
@@ -86,11 +86,11 @@ try {
 
     $options = $service->options();
     devPluginExpect(($options[0]['code'] ?? '') === 'shop', 'options 必须列出有效开发插件');
-    devPluginExpect(($options[0]['scopes'] ?? []) === ['application', 'console', 'both'], 'options 必须按插件目录返回可用 scope');
+    devPluginExpect(($options[0]['scopes'] ?? []) === ['application', 'admin', 'both'], 'options 必须按插件目录返回可用 scope');
 
     (new PluginScaffolder($root . '/plugins'))->scaffold('consoleonly', '纯管理插件', false, true, false);
     $consoleOnly = array_values(array_filter($service->options(), static fn (array $item): bool => ($item['code'] ?? '') === 'consoleonly'));
-    devPluginExpect(($consoleOnly[0]['scopes'] ?? []) === ['console'], '纯 Console 插件必须提供 console scope，不能依赖 adminWeb 声明');
+    devPluginExpect(($consoleOnly[0]['scopes'] ?? []) === ['admin'], '纯 Console 插件必须提供 console scope，不能依赖 adminWeb 声明');
 
     mkdir($root . '/plugins/broken', 0755, true);
     file_put_contents($root . '/plugins/broken/plugin.json', '{}');

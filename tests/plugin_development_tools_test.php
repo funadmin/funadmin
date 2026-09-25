@@ -121,7 +121,7 @@ try {
     }
 
     developmentReject(static fn () => $scaffolder->scaffold('Demo', '非法'), '格式');
-    developmentReject(static fn () => $scaffolder->scaffold('console', '保留名'), '保留');
+    developmentReject(static fn () => $scaffolder->scaffold('admin', '保留名'), '保留');
     developmentReject(static fn () => $scaffolder->scaffold('frontend', '保留名'), '保留');
     developmentReject(static fn () => $scaffolder->scaffold('demo', '重复'), '已存在');
 
@@ -131,11 +131,11 @@ try {
     developmentExpect(Manifest::fromDirectory($optional['directory'])->code() === 'minimal', '关闭可选骨架后 manifest 仍须有效');
     $applicationOnly = $scaffolder->scaffold('applicationonly', '仅独立应用', true, false, false);
     developmentExpect(is_dir($applicationOnly['directory'] . '/app/applicationonly'), '单独启用 application 必须生成同名应用');
-    developmentExpect(!is_dir($applicationOnly['directory'] . '/app/console'), '--no-console 必须允许仅生成独立应用');
+    developmentExpect(!is_dir($applicationOnly['directory'] . '/app/admin'), '--no-console 必须允许仅生成独立应用');
     developmentExpect(Manifest::fromDirectory($applicationOnly['directory'])->code() === 'applicationonly', '仅独立应用结构必须有效');
     $consoleOnly = $scaffolder->scaffold('consoleonly', '仅管理应用', false, true, false);
     developmentExpect(!is_dir($consoleOnly['directory'] . '/app/consoleonly'), '--no-application 必须允许仅生成 Console 应用');
-    developmentExpect(is_dir($consoleOnly['directory'] . '/app/console'), '单独启用 console 必须生成管理应用');
+    developmentExpect(is_dir($consoleOnly['directory'] . '/app/admin'), '单独启用 console 必须生成管理应用');
     developmentExpect(Manifest::fromDirectory($consoleOnly['directory'])->code() === 'consoleonly', '仅 Console 应用结构必须有效');
 
     $invalid = $scaffolder->scaffold('invalidgroup', '非法分组');

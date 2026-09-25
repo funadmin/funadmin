@@ -95,7 +95,7 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
     $ownersPolicy = new BusinessTargetService(dirname(__DIR__), 'archive');
     $owners = $ownersMethod->invoke($ownersPolicy);
     $expect(($owners[$prefix . 'admin'] ?? '') === 'core', '采纳拒绝表必须使用连接实际前缀保护核心表');
-    $policy = new BusinessTargetService(dirname(__DIR__), 'archive', static fn () => true, static fn () => [], static fn () => [['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true]], static fn () => [], static fn () => false);
+    $policy = new BusinessTargetService(dirname(__DIR__), 'archive', static fn () => true, static fn () => [], static fn () => [['code' => 'sample', 'name' => '示例', 'scopes' => ['admin'], 'businessWritable' => true]], static fn () => [], static fn () => false);
     try {
         $policy->assertSelection(BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created'), 'archive', $prefix . 'sample_entry');
     } catch (InvalidArgumentException $e) {
@@ -104,7 +104,7 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
 }
 $designerSource = file_get_contents(dirname(__DIR__) . '/app/admin/form/service/FormDesignerService.php');
 $expect(str_contains($designerSource, "Db::connect((string) (\$payload['connection'] ?? 'mysql'))->getTables()"), 'DDL 表结构检查必须使用目标连接');
-$expect(str_contains($designerSource, "Db::connect((string) (\$payload['connection'] ?? 'mysql'))->execute"), '动态 DDL 必须使用目标连接');
+$expect(str_contains($designerSource, "\$connection = Db::connect((string) (\$payload['connection'] ?? 'mysql'));") && str_contains($designerSource, '$connection->execute(') && !str_contains($designerSource, 'Db::execute('), '动态 DDL 必须使用目标连接');
 $designerUi = file_get_contents(dirname(__DIR__) . '/admin-web/src/views/form/designer/index.vue');
 $expect(!str_contains($designerUi, 'fun_'), '设计器不得推导硬编码前缀表名');
 $rewrite = new ReflectionMethod(\app\common\service\MigrationService::class, 'rewritePrefix');
@@ -121,7 +121,7 @@ mkdir($resourceRoot, 0700);
 try {
     $resourceSql = "INSERT INTO `fun_permission` (`name`) SELECT 'fun_permission' WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu`);";
     file_put_contents($resourceRoot . '/resources.sql', $resourceSql);
-    $resourceDefinition = \app\common\crud\CrudDefinition::fromArray(['entity' => 'entry', 'connection' => 'archive', 'generationTargets' => ['permissionMigration' => 'resources.sql']]);
+    $resourceDefinition = \app\common\crud\CrudDefinition::fromArray(['entity' => 'entry', 'connection' => 'archive', 'generationTargets' => ['permissionMigration' => 'resources.sql', 'langMigration' => '']]);
     $manifest = ['definitionHash' => $resourceDefinition->hash(), 'files' => [['path' => 'resources.sql', 'hash' => hash('sha256', $resourceSql)]]];
     foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => $prefix], 'archive' => ['prefix' => 'wrong_']]], 'database');

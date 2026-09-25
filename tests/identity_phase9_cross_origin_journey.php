@@ -225,6 +225,8 @@ try {
     $server->execute('CREATE DATABASE ' . phase9Quote($database) . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
     $isolated = $original;
     $isolated['connections']['mysql']['database'] = $database;
+    // 隔离库固定使用旅程 SQL 约定的 fun_ 前缀，不依赖本机安装时选择的前缀。
+    $isolated['connections']['mysql']['prefix'] = 'fun_';
     $app->config->set($isolated, 'database');
     Db::connect('mysql', true);
     (new MigrationService())->runDirectory($root . '/database/migrations', 'core');
@@ -257,7 +259,7 @@ try {
     (new SigningKeyService($keyDirectory))->rotate(1, 3600);
 
     $mysql = $original['connections']['mysql'];
-    $environmentFile = implode("\n", ['APP_DEBUG = true', 'ENV_NAME = testing', 'PHP_APP_ENV = testing', 'APP_ENV = testing', 'DB_TYPE = ' . $mysql['type'], 'DB_HOST = ' . $mysql['hostname'], 'DB_NAME = ' . $database, 'DB_USER = "' . addcslashes((string) $mysql['username'], "\\\"") . '"', 'DB_PASS = "' . addcslashes((string) $mysql['password'], "\\\"") . '"', 'DB_PORT = ' . $mysql['hostport'], 'DB_CHARSET = ' . $mysql['charset'], 'DB_PREFIX = ' . $mysql['prefix'], 'IDENTITY_ISSUER = ' . $issuer, 'OIDC_SUBJECT_PEPPER = phase9-pepper']) . "\n";
+    $environmentFile = implode("\n", ['APP_DEBUG = true', 'ENV_NAME = testing', 'PHP_APP_ENV = testing', 'APP_ENV = testing', 'DB_TYPE = ' . $mysql['type'], 'DB_HOST = ' . $mysql['hostname'], 'DB_NAME = ' . $database, 'DB_USER = "' . addcslashes((string) $mysql['username'], "\\\"") . '"', 'DB_PASS = "' . addcslashes((string) $mysql['password'], "\\\"") . '"', 'DB_PORT = ' . $mysql['hostport'], 'DB_CHARSET = ' . $mysql['charset'], 'DB_PREFIX = fun_', 'IDENTITY_ISSUER = ' . $issuer, 'OIDC_SUBJECT_PEPPER = phase9-pepper']) . "\n";
     foreach (['app', 'config', 'plugins', 'public', 'route', 'vendor'] as $link) phase9Expect(symlink($root . '/' . $link, $shadowRoot . '/' . $link), '无法创建临时目录链接：' . $link);
     phase9Expect(file_put_contents($environmentPath, $environmentFile, LOCK_EX) !== false && chmod($environmentPath, 0600), '无法创建受限临时 env');
     $controlToken = bin2hex(random_bytes(32));

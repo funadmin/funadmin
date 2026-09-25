@@ -32,7 +32,7 @@ foreach ($reflection->getMethods() as $target) {
                 }
             }
         })->option($group->options);
-        $path = $group->name . '/' . str_replace([':id', ':stream'], ['2', 'stdout'], $expected->rule);
+        $path = $group->name . '/' . str_replace([':attachmentId', ':id', ':stream'], ['3', '2', 'stdout'], $expected->rule);
         $actual = $router->check($path);
         $dispatch = $actual ? $actual->getDispatch() : false;
         if ($dispatch !== ['ai.Ai', $target->name]) $failures[] = "$expected->method $path: " . json_encode($dispatch) . ' != ' . $target->name;

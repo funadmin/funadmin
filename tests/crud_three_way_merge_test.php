@@ -200,7 +200,7 @@ try {
     $ordered = $structured->merge([], [['resourceType' => 'menu', 'sourceName' => 'z', 'href' => '/z', 'id' => 99]], [['resourceType' => 'menu', 'sourceName' => 'a', 'href' => '/a', 'id' => 1]]);
     threeWayExpect(array_column($ordered['resources'], 'sourceName') === ['a', 'z'] && !isset($ordered['resources'][0]['id']), '结构化集合必须不依赖 ID 且确定排序');
 
-    $artifactTypes = ['migration', 'model', 'validate', 'service', 'controller', 'permissionMigration', 'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest'];
+    $artifactTypes = ['migration', 'model', 'validate', 'service', 'controller', 'permissionMigration', 'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest', 'langMigration', 'langZh', 'langEn'];
     $targets = [];
     $templates = [];
     foreach ($artifactTypes as $artifactType) {

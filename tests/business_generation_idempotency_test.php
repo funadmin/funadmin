@@ -277,7 +277,7 @@ try {
     $draftReads = 0;
     $pluginPolicy = new \app\admin\development\service\BusinessTargetService($root, 'mysql',
         static fn (): bool => true, static fn (): array => [],
-        static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true]],
+        static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['admin'], 'businessWritable' => true]],
         static fn (): array => [], static fn (): bool => false);
     $pluginForm = array_replace($form, ['table_name' => 'fun_sample_item']);
     $pluginDocument = $schema->document();

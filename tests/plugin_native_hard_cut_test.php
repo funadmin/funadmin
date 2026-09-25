@@ -87,7 +87,13 @@ nativeHardCutExpect(
     'Attribute 扫描必须递归覆盖发布后的 console/controller/plugin/code'
 );
 
-$definition = \app\common\crud\CrudDefinition::fromArray(['entity' => 'native-fixture', 'table' => 'shop_native_fixture']);
+$definition = \app\common\crud\CrudDefinition::fromArray([
+    'entity' => 'native-fixture', 'table' => 'shop_native_fixture', 'title' => '原生夹具', 'apiPrefix' => '/native-fixture', 'permissionPrefix' => 'shop:native-fixture',
+    'fields' => [['name' => 'id', 'dbType' => 'bigint unsigned', 'nullable' => false, 'primary' => true, 'list' => true]],
+    'relations' => [], 'optionsSource' => [],
+    'features' => ['batchDelete' => false, 'status' => false, 'detail' => true, 'import' => false, 'export' => false, 'upload' => false, 'dictionary' => false, 'referenceProtection' => false, 'formMode' => 'dialog', 'importLimit' => 100, 'exportLimit' => 100],
+    'dataScope' => ['enabled' => false, 'field' => ''],
+]);
 $consoleController = \app\common\crud\PluginTemplateContext::build($definition, 'shop', true)['controllerContent'];
 nativeHardCutExpect(str_contains($consoleController, "#[Group('plugin/shop/native-fixture')]"), '隔离生成的 Console controller 必须保留 Attribute 路由');
 foreach (['routes/plugin.php', 'config/services.php', 'config/events.php'] as $legacyRuntimeSource) {

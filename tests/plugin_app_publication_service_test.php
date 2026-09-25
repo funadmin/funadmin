@@ -101,7 +101,7 @@ $plugins = $root . '/plugins';
 $app = $root . '/app';
 $runtime = $root . '/runtime/plugins';
 mkdir($plugins, 0755, true);
-mkdir($app . '/console', 0755, true);
+mkdir($app . '/admin', 0755, true);
 $repository = new MemoryPluginAppPublicationRepository();
 $publisher = new PluginAppPublicationService($app, $runtime, $repository);
 
@@ -110,7 +110,7 @@ try {
     $handle = $publisher->publish($demo, 'install-demo');
     appPublicationExpect(is_file($app . '/demo/service/Domain.php'), '独立应用必须整体映射到 app/demo');
     foreach (['controller', 'model', 'service', 'validate', 'middleware'] as $layer) {
-        appPublicationExpect(is_file($app . '/console/' . $layer . '/plugin/demo/Entry.php'), 'Console 固定层映射失败：' . $layer);
+        appPublicationExpect(is_file($app . '/admin/' . $layer . '/plugin/demo/Entry.php'), 'Console 固定层映射失败：' . $layer);
     }
     appPublicationExpect(($handle['token'] ?? '') === 'install-demo', 'publish 必须返回恢复 token');
     appPublicationExpect(($publisher->inspect('install-demo')['state'] ?? '') === 'registry_committed', '发布后 journal 必须持久化 registry_committed');
@@ -184,7 +184,7 @@ try {
         static fn (array $row): bool => ($row['plugin_code'] ?? '') === 'demo'
     ), 'publication_unit')));
     appPublicationExpect(in_array('application:demo', $demoUnits, true), 'application registry 必须使用 application:<code> unit');
-    appPublicationExpect(in_array('console-plugin:controller:demo', $demoUnits, true), 'Console registry 必须使用 console-plugin:<layer>:<code> unit');
+    appPublicationExpect(in_array('admin-plugin:controller:demo', $demoUnits, true), 'Console registry 必须使用 admin-plugin:<layer>:<code> unit');
     appPublicationExpect(str_contains((string) file_get_contents($app . '/demo/service/Domain.php'), 'VERSION = 2'), '更新必须原子替换完整目录');
     appPublicationExpect(!is_dir($app . '/.publication-update-demo-application-demo'), 'swap 后不得残留目标临时目录');
     $updateJournal = $publisher->inspect('update-demo');

@@ -63,8 +63,8 @@ $service->deleteConversationGroup($group['id'], 7);
 $check($store->conversations[$id]['group_id'] === null && $store->conversations[$id]['is_archived'], '删组归档并移出');
 $check($service->listConversationGroups(7) !== [$group] && $service->listConversationGroups(8) === [$other], '删除隔离');
 foreach (['conversationGroupIndex'=>'conversationindex', 'conversationGroupCreate'=>'conversationcreate', 'conversationGroupUpdate'=>'conversationupdate', 'conversationGroupDelete'=>'conversationdelete', 'conversationStateUpdate'=>'conversationupdate'] as $action => $expected) {
-    $resource = PermissionResource::fromParts('console', 'ai.Ai', $action);
-    $check($resource['code'] === 'console/development.ai:' . $expected, '既有权限映射：' . $action);
+    $resource = PermissionResource::fromParts('admin', 'ai.Ai', $action);
+    $check($resource['code'] === 'development.ai:' . $expected, '既有权限映射：' . $action);
 }
 // 模型选择仅限服务端当前供应商，任务创建时冻结，不保存连接凭据。
 \think\facade\Config::set(['provider' => ['name' => 'trusted', 'model' => 'default-model', 'api_key' => 'server-only-secret']], 'ai');

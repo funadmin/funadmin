@@ -146,7 +146,7 @@ publishExpect($definition->get('routePath') === '/generated/activity-form', '空
 publishExpect($definition->get('menu')['name'] === '活动报名', '空菜单名称必须回退到表单名称');
 publishExpect($definition->get('formSchemaHash') === $compiled->hash(), '配置回退不得改变 schema hash');
 $rendered = (new \app\common\crud\CrudGenerator(dirname(__DIR__)))->renderManagedBundle($definition);
-publishExpect(count($rendered) === 12, '默认配置必须能纯内存渲染全部制品');
+publishExpect(array_keys($rendered) === array_values($definition->get('generationTargets')), '默认配置必须能纯内存渲染全部制品');
 $custom = ['apiPrefix' => '/custom/api', 'routePath' => '/custom/page', 'menuName' => '自定义菜单'];
 $customDefinition = $factory->createFromSchema($compiled, $storedForm, $custom);
 publishExpect($customDefinition->get('apiPrefix') === $custom['apiPrefix'] && $customDefinition->get('routePath') === $custom['routePath'] && $customDefinition->get('menu')['name'] === $custom['menuName'], '非空配置必须保持原有优先级');

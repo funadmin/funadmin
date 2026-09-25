@@ -962,7 +962,7 @@ TS
                 '@/views/generated/*' => ['src/views/generated/*'],
                 '@/*' => ['src/*', dirname(__DIR__, 2) . '/admin-web/src/*'],
             ],
-            'types' => ['node', 'vite/client', 'element-plus/global'],
+            'types' => ['node', 'vite/client', 'element-plus/global', 'pinia-plugin-persistedstate'],
         ],
         'include' => [
             'src/**/*.ts', 'src/**/*.vue', 'tests/**/*.ts', 'generated-support.d.ts',

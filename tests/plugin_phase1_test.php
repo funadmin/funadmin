@@ -30,7 +30,7 @@ function expectException(callable $callback, string $contains): void
 
 $root = sys_get_temp_dir() . '/funadmin-plugin-phase1-' . bin2hex(random_bytes(4));
 mkdir($root . '/demo/app/demo', 0755, true);
-mkdir($root . '/demo/app/console', 0755, true);
+mkdir($root . '/demo/app/admin', 0755, true);
 mkdir($root . '/demo/admin-web', 0755, true);
 file_put_contents($root . '/demo/admin-web/Index.vue', '<template>demo</template>');
 file_put_contents($root . '/demo/Plugin.php', '<?php namespace plugins\\demo; final class Plugin {}');
@@ -187,7 +187,10 @@ expect(str_contains((string) $functionsSource, 'PluginActivationReader'), '实�
 expect(str_contains((string) $functionsSource, 'ActivationGate'), '实例获取必须通过激活门禁');
 $activationGateSource = file_get_contents(dirname(__DIR__) . '/app/common/plugin/sdk/ActivationGate.php');
 expect(str_contains((string) $activationGateSource, "['needs_reinstall']"), '激活门禁必须排除 needs_reinstall 插件');
-expect(preg_match('/function\s+run_plugin_migrations\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留正式 MigrationService 薄门面');
+$infrastructureSource = (string) file_get_contents(dirname(__DIR__) . '/app/admin/plugin/service/PluginInfrastructureService.php');
+expect(!preg_match('/function\s+run_plugin_migrations\s*\(/', (string) $functionsSource)
+    && str_contains($infrastructureSource, '->runDirectory($directory, $scope)') && str_contains($infrastructureSource, "'plugin:' . strtolower(\$code)"),
+    '插件迁移必须由生命周期基础设施经 MigrationService 按 plugin:<code> 作用域执行，plugin.php 不再保留全局薄门面');
 expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
 expect(!is_file(dirname(__DIR__) . '/app/common/plugin/sdk/Route.php'), '旧插件通配路由执行器必须移除');
 expect(!is_file(dirname(__DIR__) . '/app/common/plugin/sdk/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');

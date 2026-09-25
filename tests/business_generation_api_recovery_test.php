@@ -153,7 +153,7 @@ try {
     apiRecoveryReject(static fn () => $transactions->recoverGeneration(41, 'recovery_required', 'tester'), 'GENERATION_BINDING_CONFLICT');
 
     $state->record['transaction_id'] = $transactionId;
-    $state->record['definition'] = ['target' => ['type' => 'plugin', 'plugin' => 'closeout', 'scope' => 'console']];
+    $state->record['definition'] = ['target' => ['type' => 'plugin', 'plugin' => 'closeout', 'scope' => 'admin']];
     $state->transitions = [];
     $authorization = new \app\admin\development\service\BusinessTargetService($root, authorized: fn (): bool => false);
     $denied = new GenerationTransactionService($root, $tokens, new GeneratedFileBaselineRepository($root, $state), $state,

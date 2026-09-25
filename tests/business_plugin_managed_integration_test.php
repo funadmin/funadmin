@@ -29,7 +29,12 @@ $config = (array) config('database');
 $source = Db::connect('mysql');
 $tables = ['form', 'form_field', 'form_schema_version', 'business_module', 'crud_generation', 'generated_file_baseline'];
 $ddl = [];
-foreach ($tables as $table) $ddl[] = array_values($source->query('SHOW CREATE TABLE `fun_' . $table . '`')[0])[1];
+// 按本机实际前缀读取表结构，在隔离库统一重命名为测试约定的 fun_ 前缀，不依赖安装时选择的前缀。
+$sourcePrefix = (string) ($config['connections']['mysql']['prefix'] ?? '');
+foreach ($tables as $table) {
+    $sql = array_values($source->query('SHOW CREATE TABLE `' . $sourcePrefix . $table . '`')[0])[1];
+    $ddl[] = preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE `fun_' . $table . '`', $sql);
+}
 $name = 'funadmin_managed_test_' . bin2hex(random_bytes(6));
 $serverConfig = $config;
 $serverConfig['connections']['isolated_server'] = $config['connections']['mysql'];
@@ -39,6 +44,7 @@ $server = Db::connect('isolated_server', true);
 $server->execute('CREATE DATABASE `' . $name . '` CHARACTER SET utf8mb4');
 try {
     $config['connections']['mysql']['database'] = $name;
+    $config['connections']['mysql']['prefix'] = 'fun_';
     $app->config->set($config, 'database');
     Db::connect('mysql', true);
     managedExpect(Db::query('SELECT DATABASE() AS db')[0]['db'] === $name, '必须使用隔离数据库');
@@ -70,7 +76,7 @@ try {
     $module = \app\admin\development\model\BusinessModule::create(['code' => 'entry', 'name' => '条目', 'form_id' => $form->id,
         'origin' => 'visual', 'connection_name' => 'mysql', 'table_name' => 'fun_sample_item', 'metadata' => ['target' => $target]]);
     $policy = new \app\admin\development\service\BusinessTargetService($root, 'mysql', static fn () => true, static fn () => [],
-        static fn () => [['code' => 'sample', 'name' => '隔离插件', 'scopes' => ['console'], 'businessWritable' => true]], static fn () => [], static fn () => false);
+        static fn () => [['code' => 'sample', 'name' => '隔离插件', 'scopes' => ['admin'], 'businessWritable' => true]], static fn () => [], static fn () => false);
     $service = new \app\admin\development\service\ManagedGenerationService($root, targetService: $policy);
     // 使用真实 DB 冲突记录验证采纳与三层锁、提交前 CAS 的边界。
     $adoptPath = 'plugins/sample/app/admin/model/Entry.php';
@@ -227,7 +233,7 @@ try {
     session('admin.id', null);
     $recoveryId = bin2hex(random_bytes(16));
     $journal = ['transaction_id' => $recoveryId, 'state' => 'prepared', 'history' => ['prepared'], 'module_id' => (int) $module->id,
-        'target' => ['type' => 'plugin', 'plugin' => 'sample', 'scope' => 'console'], 'allowed_paths' => [],
+        'target' => ['type' => 'plugin', 'plugin' => 'sample', 'scope' => 'admin'], 'allowed_paths' => [],
         'generation_id' => $actorPreview['generationId'], 'plan_digest' => str_repeat('a', 64),
                 'files' => [['path' => 'plugins/foreign/plugin.json']]];
     file_put_contents($root . '/runtime/private/business-development/wal/' . $recoveryId . '.json', json_encode($journal));

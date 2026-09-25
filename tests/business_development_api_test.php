@@ -139,10 +139,10 @@ businessApiExpect(BusinessDevelopmentService::pagination(0, 500) === [1, 100], '
 // 目标配置只接受业务选择，不接受客户端控制的路径、scope、表所有权或锁定状态。
 businessApiExpect(method_exists(BusinessModuleService::class, 'normalizeTarget'), '业务目标缺少服务端规范化边界');
 $coreTarget = BusinessModuleService::normalizeTarget([], 'created');
-businessApiExpect($coreTarget === ['type' => 'core', 'pluginCode' => null, 'scope' => 'console', 'tableStrategy' => 'owned', 'locked' => false], '默认核心目标必须由服务端派生');
+businessApiExpect($coreTarget === ['type' => 'core', 'pluginCode' => null, 'scope' => 'admin', 'tableStrategy' => 'owned', 'locked' => false], '默认核心目标必须由服务端派生');
 foreach (['created' => 'owned', 'adopted' => 'external'] as $source => $strategy) {
     $target = BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], $source);
-    businessApiExpect($target === ['type' => 'plugin', 'pluginCode' => 'sample', 'scope' => 'console', 'tableStrategy' => $strategy, 'locked' => false], '插件目标必须根据表来源派生策略');
+    businessApiExpect($target === ['type' => 'plugin', 'pluginCode' => 'sample', 'scope' => 'admin', 'tableStrategy' => $strategy, 'locked' => false], '插件目标必须根据表来源派生策略');
 }
 foreach ([
     ['type' => 'application'],
@@ -261,9 +261,9 @@ businessApiExpect(str_contains($controllerSource, "nodeAccess('development/busin
 
 // 加载真实注解路由并仅检查调度目标，不执行控制器或访问业务数据库。
 $app = new \think\App($root);
-$app->http->name('console');
+$app->http->name('admin');
 $app->setAppPath($root . 'app/admin/');
-$app->setNamespace('app\\console');
+$app->setNamespace('app\\admin');
 $app->initialize();
 set_exception_handler(static function (Throwable $exception): void {
     fwrite(STDERR, $exception->getMessage() . "\n");
@@ -271,9 +271,12 @@ set_exception_handler(static function (Throwable $exception): void {
 });
 $authorization = new \app\admin\authorization\service\AdminAuthorizationService($app->request);
 $alias = new ReflectionMethod($authorization, 'aliasResource');
-$resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'designActionCatalog');
+$resource = \app\admin\authorization\service\PermissionResource::fromParts('admin', 'development.Business', 'designActionCatalog');
 $mappedResource = $alias->invoke($authorization, 'development/business/modules/42/schema/design-action-catalog', $resource);
-businessApiExpect($mappedResource['code'] === 'console/development.business:saveschema', '设计目录中间件必须复用现有 Schema 设计权限，无需新增数据库权限');
+businessApiExpect($mappedResource['code'] === 'development.business:saveschema' && $mappedResource['obj'] === 'admin/development.business' && $mappedResource['act'] === 'saveschema', '设计目录中间件必须复用现有 Schema 设计权限，无需新增数据库权限');
+$publishConfigResource = \app\admin\authorization\service\PermissionResource::fromParts('admin', 'development.Business', 'savePublishConfig');
+$mappedPublishConfig = $alias->invoke($authorization, 'development/business/modules/42/publish-config', $publishConfigResource);
+businessApiExpect($mappedPublishConfig['obj'] === 'admin/development.business' && $mappedPublishConfig['act'] === 'saveschema', '保存发布设置必须复用 Schema 设计权限，无需新增数据库权限');
 $app->event->trigger(\think\event\RouteLoaded::class);
 (new ReflectionProperty(\think\Route::class, 'request'))->setValue($app->route, $app->request);
 foreach ($routes as $action => [$attribute, $path]) {

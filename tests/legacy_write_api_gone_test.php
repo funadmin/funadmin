@@ -24,9 +24,9 @@ foreach ([
 
 // 加载真实注解路由，不执行控制器或访问业务数据库。
 $app = new App($root . '/');
-$app->http->name('console');
+$app->http->name('admin');
 $app->setAppPath($root . '/app/admin/');
-$app->setNamespace('app\\console');
+$app->setNamespace('app\\admin');
 $app->initialize();
 set_exception_handler(static function (Throwable $exception): void {
     fwrite(STDERR, $exception->getMessage() . "\n");

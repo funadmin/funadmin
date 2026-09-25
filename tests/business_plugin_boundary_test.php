@@ -35,10 +35,10 @@ $policy = new BusinessTargetService(
     static function () use (&$authorized): bool { return $authorized; },
     static function () use (&$state): array { return $state; },
     static fn (): array => [
-        ['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true],
-        ['code' => 'readonly', 'name' => '只读', 'scopes' => ['console'], 'businessWritable' => false],
+        ['code' => 'sample', 'name' => '示例', 'scopes' => ['admin'], 'businessWritable' => true],
+        ['code' => 'readonly', 'name' => '只读', 'scopes' => ['admin'], 'businessWritable' => false],
         ['code' => 'noconsole', 'name' => '无后台', 'scopes' => [], 'businessWritable' => true],
-        ['code' => '../secret', 'name' => 'secret-content', 'scopes' => ['console'], 'businessWritable' => true],
+        ['code' => '../secret', 'name' => 'secret-content', 'scopes' => ['admin'], 'businessWritable' => true],
     ],
     static fn (): array => ['fun_admin' => 'core', 'fun_other_item' => 'other'],
     static fn (string $table): bool => $table === 'fun_legacy'
@@ -49,7 +49,7 @@ boundaryExpect(count($candidates) === 4, '安全的不可用插件也必须逐�
 $byCode = array_column($candidates, null, 'pluginCode');
 boundaryExpect($byCode['sample']['available'] === true && $byCode['sample']['reason'] === null, '可用候选显式声明状态');
 boundaryExpect($byCode['readonly']['available'] === false && $byCode['readonly']['reason'] === ['code' => 'BUSINESS_TARGET_READ_ONLY', 'message' => '插件目录或必要文件不可写'], '只读候选必须有安全原因');
-boundaryExpect($byCode['noconsole']['reason']['code'] === 'BUSINESS_TARGET_CONSOLE_MISSING', '缺少 console 必须有原因');
+boundaryExpect($byCode['noconsole']['reason']['code'] === 'BUSINESS_TARGET_ADMIN_MISSING', '缺少 console 必须有原因');
 boundaryExpect(!str_contains(json_encode($candidates), 'secret'), '非法标识及内容不可泄露');
 boundaryReject(fn () => $policy->assertSelection(['type' => 'plugin', 'pluginCode' => 'readonly'], 'mysql', 'fun_legacy'), 'BUSINESS_TARGET_UNAVAILABLE');
 foreach ([
@@ -90,7 +90,7 @@ $schema = (new FormSchemaCompiler(new FormSchemaValidator()))->compile([
 $factory = new FormCrudDefinitionFactory();
 $core = $factory->createFromSchema($schema, []);
 $definition = $factory->forBusinessTarget($core, $owned);
-boundaryExpect($definition->get('target') === ['type' => 'plugin', 'plugin' => 'sample', 'scope' => 'console'], '插件目标必须派生');
+boundaryExpect($definition->get('target') === ['type' => 'plugin', 'plugin' => 'sample', 'scope' => 'admin'], '插件目标必须派生');
 boundaryExpect($definition->get('generationTargets') === null, '不得携带核心制品路径');
 boundaryExpect($definition->get('formSchema') === $core->get('formSchema'), '必须保留完整表单语义');
 boundaryExpect($definition->get('permissionPrefix') === 'sample:item', '插件权限派生');
@@ -118,9 +118,9 @@ foreach ([false, true] as $nullable) {
 $coreFields = array_column($core->fields(), null, 'name');
 boundaryExpect($coreFields['created_at']['nullable'] && !$coreFields['id']['nullable'], '新建表受管字段默认值不得改变');
 $enforcer = new \Casbin\Enforcer(dirname(__DIR__) . '/config/casbin/rbac_model.conf');
-$enforcer->addPolicy('role:42', 'default', 'console/development.business', 'modules');
+$enforcer->addPolicy('role:42', 'default', 'admin/development.business', 'modules');
 $enforcer->addGroupingPolicy('admin:42', 'role:42', 'default');
-$resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'targets');
+$resource = \app\admin\authorization\service\PermissionResource::fromParts('admin', 'development.Business', 'targets');
 boundaryExpect($enforcer->enforce('admin:42', 'default', $resource['obj'], $resource['act']), '候选读取须复用业务列表授权');
 $effects = 0;
 $publisher = new \app\admin\form\service\FormPublishService(
@@ -134,7 +134,7 @@ foreach (['previewDynamic', 'publishDynamic'] as $method) {
 boundaryExpect($effects === 0, '插件动态发布在编译、保存、DDL 之前拒绝');
 // 运行默认授权分支：只隔离框架环境与数据库适配器，不替换授权服务。
 function request(): \think\Request { return new \think\Request(); }
-function app(string $name): object { return new class { public function getName(): string { return 'console'; } }; }
+function app(string $name): object { return new class { public function getName(): string { return 'admin'; } }; }
 function config(string $name, mixed $default = null): mixed {
     return match ($name) {
         'funadmin' => ['auth_on' => true], 'funadmin.superAdminId' => 1,
@@ -144,13 +144,13 @@ function config(string $name, mixed $default = null): mixed {
 function session(string $name): int { return $GLOBALS['boundaryAdminId']; }
 function db_cache(string $key, callable $reader): array { return []; }
 $GLOBALS['boundaryAdminId'] = 42;
-$enforcer->addPolicy('role:42', 'default', 'console/development.devplugin', 'options');
+$enforcer->addPolicy('role:42', 'default', 'admin/development.devplugin', 'options');
 $shared = new ReflectionProperty(\app\admin\authorization\service\CasbinService::class, 'sharedEnforcer');
 $shared->setAccessible(true);
 $shared->setValue(null, $enforcer);
 $productionPolicy = new BusinessTargetService(dirname(__DIR__), 'mysql',
     states: static fn (): array => [],
-    options: static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true]]);
+    options: static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['admin'], 'businessWritable' => true]]);
 boundaryExpect(count($productionPolicy->candidates()['list']) === 2, '默认授权必须使用普通角色的插件 options 权限');
 $GLOBALS['boundaryAdminId'] = 43;
 boundaryExpect(count($productionPolicy->candidates()['list']) === 1, '默认授权不得向未授权角色泄露候选');
@@ -165,7 +165,7 @@ $scaffolder->scaffold('unsafe', 'secret-symlink', false, true, true);
 symlink($fixtureRoot . '/plugins/noweb/plugin.json', $fixtureRoot . '/plugins/unsafe/secret');
 $diskPolicy = new BusinessTargetService($fixtureRoot, authorized: static fn (): bool => true, states: static fn (): array => []);
 $diskCandidates = array_column($diskPolicy->candidates()['list'], null, 'pluginCode');
-boundaryExpect(($diskCandidates['emptyplugin']['reason']['code'] ?? '') === 'BUSINESS_TARGET_CONSOLE_MISSING', '无任何应用目录的本地插件也应返回缺 console 原因');
+boundaryExpect(($diskCandidates['emptyplugin']['reason']['code'] ?? '') === 'BUSINESS_TARGET_ADMIN_MISSING', '无任何应用目录的本地插件也应返回缺 console 原因');
 boundaryExpect(($diskCandidates['noweb']['reason']['code'] ?? '') === 'BUSINESS_TARGET_ADMIN_WEB_MISSING', '无 admin-web 必须给出安全原因');
 boundaryExpect(($diskCandidates['diskreadonly']['reason']['code'] ?? '') === 'BUSINESS_TARGET_READ_ONLY', '真实磁盘只读必须被识别');
 boundaryExpect(!isset($diskCandidates['unsafe']) && !str_contains(json_encode($diskCandidates), 'secret'), '非法符号链接插件不能出现在候选中');
