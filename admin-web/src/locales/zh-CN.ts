@@ -1,5 +1,6 @@
 export default {
   aiComposer: {
+    states: { uploading: '上传中', ready: '已就绪', failed: '上传失败' }, sendHint: 'Enter 发送 · Shift + Enter 换行',
     approval: '审批模式', attach: '添加附件', attachment: '私有附件', retry: '重试', remove: '移除', download: '安全下载',
     privacy: '消息和附件中的敏感材料将发送给当前档案的 Provider。仅支持 PNG/JPEG/WebP（每图 5MiB）和 UTF-8 代码文本（128KiB），最多 4 个，总计 12MiB。',
     invalid: '附件类型、名称、大小或数量不符合限制，已明确拒绝。', uploadFailed: '附件上传失败或不是有效 UTF-8 文本，请重试或移除；不会忽略失败附件。',
@@ -107,7 +108,7 @@ export default {
     noPendingRisk: '暂无待审批风险',
     noActiveTask: '暂无活动任务',
     toolLog: '工具日志',
-    messages: { empty: '开始一个新的 AI 会话', roles: { system: '系统', user: '你', assistant: 'AI 助手', tool: '工具' } },
+    messages: { empty: '开始一个新的 AI 会话', copy: '复制', copied: '已复制', roles: { system: '系统', user: '你', assistant: 'AI 助手', tool: '工具' } },
     approvalModes: {
       request: '请求批准', agent: '替我审批', fullAccess: '完全访问权限',
       requestBoundary: '危险工具执行前逐次请求批准。',
@@ -121,6 +122,7 @@ export default {
       feedbackPlaceholder: '拒绝时可填写反馈', allowOnce: '仅本次允许', allowSession: '允许会话操作', reject: '拒绝'
     },
     changeSet: {
+      selectedCount: '已选择 {selected} / {total} 个文件',
       entity: 'ChangeSet', title: 'ChangeSet / Diff', test: '测试：{status}', security: '安全：{status}', fileSelectionOnly: '按文件选择，不支持逐块选择',
       conflictBlocked: '冲突阻断：请取消冲突文件或重新生成 ChangeSet', previewRequired: '预览后才能应用；最终应用总是需要二次确认',
       close: '关闭', preview: '预览', confirmApply: '二次确认并应用', applyConfirm: '将把选中的文件应用到工作区。请再次确认。',
@@ -128,6 +130,7 @@ export default {
     },
     diff: { binary: '二进制文件无法显示文本 Diff', omitted: '内容已省略：文件为二进制或超过展示上限', missing: 'Diff 正文未由后端返回，仅展示文件状态与哈希。' },
     profiles: {
+      basicTitle: '基本信息', unsaved: '未保存', defaultTag: '默认', listEmpty: '还没有档案，点击上方按钮新建', keySaved: '已存密钥', keyMissing: '未设密钥',
       title: '配置档案', create: '创建档案', general: '档案设置', name: '档案名称（修改后保存即改名）', enabled: '启用', copy: '复制', default: '设为默认', copyHint: '复制不包含 API key，也不继承默认状态。删除默认档案不会自动选择其他档案。',
       protocolHint: '当前仅支持 openai-chat（OpenAI Chat Completions 兼容协议）。Provider 为标识，不代表支持其他协议。', keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
       models: '模型设置', fetchModels: '获取已保存档案的模型', modelsHint: '查询仅使用已保存的 URL 和密钥，不使用当前未保存修改。模型可搜索、选择或手动输入，不推断能力。', favorites: '常用模型', limits: '上下文与运行限制', context_window: '上下文窗口（留空不指定）', max_input_tokens: '最大输入 token（留空不指定）', max_output_tokens: '最大输出 token（留空不指定）', max_iterations: '最大迭代次数', connect_timeout: '连接超时（秒）', request_timeout: '请求超时（秒）', max_retries: '最大重试次数', stream_usage: '流式 usage',
@@ -141,13 +144,14 @@ export default {
       title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
       configured: '已配置：{masked}', connectTimeout: '连接超时', requestTimeout: '请求超时', testConnection: '测试连接', testSuccess: 'Provider 连接测试成功'
     },
-    toolCalls: { viewStdout: '查看 stdout', viewStderr: '查看 stderr', stdout: '标准输出', stderr: '标准错误' },
+    welcome: { description: '用自然语言描述需求，助手会分析代码、调用工具生成变更，并在高风险操作前请求你的审批。', analyze: '理解需求与代码', tools: '调用工具生成变更', approval: '高风险操作先审批', action: '新建会话' },
+    toolCalls: { title: '工具调用', viewStdout: '查看 stdout', viewStderr: '查看 stderr', stdout: '标准输出', stderr: '标准错误' },
     statuses: {
       running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理', reviewing: '审核中', applying: '应用中', proposed: '待应用', completed: '已完成', recovery_required: '需要恢复',
       approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过'
     },
     enums: {
-      statuses: { running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理', reviewing: '审核中', applying: '应用中', proposed: '待应用', completed: '已完成', recovery_required: '需要恢复', approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过' },
+      statuses: { active: '活跃', running: '运行中', paused: '已暂停', succeeded: '已成功', failed: '失败', cancelled: '已取消', pending: '待处理', reviewing: '审核中', applying: '应用中', proposed: '待应用', completed: '已完成', recovery_required: '需要恢复', approved: '已批准', rejected: '已拒绝', awaiting_approval: '等待审批', denied: '已拒绝', unknown: '未知', passed: '已通过' },
       riskLevels: { low: '低风险', medium: '中风险', high: '高风险', critical: '严重风险' },
       operations: { apply_workspace: '应用工作区', write_workspace: '写入工作区', read_workspace: '读取工作区', run_command: '运行命令' },
       fileStatuses: { create: '新建', update: '更新', 'auto-merged': '自动合并', delete: '删除', 'keep-local': '保留本地', conflict: '文本冲突', 'binary-conflict': '二进制冲突', 'conflict-no-base': '无基线冲突' },
@@ -1626,7 +1630,7 @@ export default {
     account: '市场账号', uploadZip: '上传本地 ZIP', create: '创建插件', validate: '校验插件', package: '打包插件', refresh: '刷新',
     tabInstalled: '已安装', tabLocal: '本地插件', tabMarket: '云市场',
     localFound: '已发现 {n} 个本地插件，来源目录：plugins/', emptyLocal: 'plugins/ 目录下暂无符合 Manifest v2 的本地插件', emptyInstalled: '暂无已安装插件',
-    colCode: '插件标识', colName: '名称', colVersion: '当前版本', colLatest: '最新版本', colDbVersion: '数据库版本', colState: '状态', colDeps: '依赖插件', colPending: '待迁移', colSource: '来源', colLastError: '最近错误', colActions: '操作', colDescription: '描述', colAuthor: '作者', colCapabilities: '能力',
+    colCode: '插件标识', colName: '名称', colVersion: '当前版本', colLatest: '最新版本', colDbVersion: '数据库版本', colState: '状态', colDeps: '依赖插件', colPending: '待迁移', colSource: '来源', colLastError: '最近错误', colActions: '操作', colDescription: '描述', colAuthor: '作者', colCapabilities: '能力', colPrice: '价格', buy: '购买', buyInStore: '前往市场购买',
     yes: '是', no: '否',
     install: '安装', localUpdate: '本地 ZIP 更新', update: '更新', migrate: '迁移', enable: '启用', disable: '禁用', developBusiness: '开发业务', config: '配置', history: '历史', uninstall: '卸载', purge: '清除数据', deletePackage: '删除包', detail: '详情',
     searchPlaceholder: '搜索插件', search: '搜索',

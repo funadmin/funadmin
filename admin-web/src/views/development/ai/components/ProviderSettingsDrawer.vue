@@ -1,21 +1,48 @@
 <template>
-  <el-drawer class="provider-drawer" :model-value="modelValue" :title="t('aiDevelopment.profiles.title')" size="min(1080px, 100vw)" @update:model-value="$emit('update:modelValue', $event)">
-    <el-form class="provider-form" :model="form" :disabled="busy" label-width="136px" @submit.prevent="submit">
-      <div class="profile-toolbar">
-        <el-form-item :label="t('aiDevelopment.profiles.selectProfile', '配置档案')">
-          <el-select data-testid="profile-select" :model-value="selectedId" :placeholder="t('aiDevelopment.profiles.newProfile', '新建档案')" @update:model-value="select(profiles.find(p => p.id === $event))">
-            <el-option v-for="item in profiles" :key="item.id" :value="item.id" :label="`${item.name}${item.is_default ? t('aiDevelopment.profiles.defaultBadge', '（默认档案）') : ''} · ${item.model}`" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('aiDevelopment.profiles.nameLabel', '档案名称')"><el-input v-model="form.name" required maxlength="100" /></el-form-item>
+  <el-drawer class="provider-drawer" :model-value="modelValue" :title="t('aiDevelopment.profiles.title')" size="min(1120px, 100vw)" @update:model-value="$emit('update:modelValue', $event)">
+    <div class="provider-layout">
+      <aside class="profile-sidebar">
+        <el-button type="primary" class="profile-sidebar__create" data-testid="profile-create" :disabled="busy" @click="select()"><i class="i-ep-plus" />{{ t('aiDevelopment.profiles.create') }}</el-button>
+        <div class="profile-list">
+          <button v-if="selectedId === null" type="button" class="profile-item active is-draft" aria-current="true">
+            <span class="profile-item__top"><strong>{{ form.name || t('aiDevelopment.profiles.newProfile', '新建档案') }}</strong><el-tag size="small" type="warning" effect="light" round>{{ t('aiDevelopment.profiles.unsaved') }}</el-tag></span>
+            <span class="profile-item__model">{{ form.model || '—' }}</span>
+          </button>
+          <button v-for="item in sortedProfiles" :key="item.id" type="button" class="profile-item" :class="{ active: item.id === selectedId, 'is-off': !item.enabled }" :aria-current="item.id === selectedId ? 'true' : undefined" :disabled="busy" @click="select(item)">
+            <span class="profile-item__top"><strong>{{ item.name }}</strong><el-tag v-if="item.is_default" size="small" effect="light" round>{{ t('aiDevelopment.profiles.defaultTag') }}</el-tag></span>
+            <span class="profile-item__model">{{ item.model }}</span>
+            <span class="profile-item__meta"><span class="profile-dot" :class="{ on: item.enabled }" />{{ t(item.enabled ? 'aiDevelopment.profiles.enabled' : 'aiDevelopment.profiles.disabled') }}<span class="profile-item__key" :class="{ on: item.has_api_key }"><i class="i-ep-lock" />{{ t(item.has_api_key ? 'aiDevelopment.profiles.keySaved' : 'aiDevelopment.profiles.keyMissing') }}</span></span>
+          </button>
+          <p v-if="!profiles.length && selectedId !== null" class="profile-list__empty">{{ t('aiDevelopment.profiles.listEmpty') }}</p>
+        </div>
+      </aside>
+    <el-form class="provider-form" :model="form" :disabled="busy" label-position="top" @submit.prevent="submit">
+      <div class="profile-switcher">
+        <el-select data-testid="profile-select" :model-value="selectedId" :placeholder="t('aiDevelopment.profiles.newProfile', '新建档案')" :aria-label="t('aiDevelopment.profiles.selectProfile', '配置档案')" @update:model-value="select(profiles.find(p => p.id === $event))">
+          <el-option v-for="item in profiles" :key="item.id" :value="item.id" :label="`${item.name}${item.is_default ? t('aiDevelopment.profiles.defaultBadge', '（默认档案）') : ''} · ${item.model}`" />
+        </el-select>
+        <el-button :aria-label="t('aiDevelopment.profiles.create')" :icon="Plus" @click="select()" />
+      </div>
+      <div class="profile-header">
+        <div class="profile-header__title">
+          <strong>{{ form.name || t('aiDevelopment.profiles.newProfile', '新建档案') }}</strong>
+          <el-tag v-if="!selectedId" size="small" type="warning" effect="light" round>{{ t('aiDevelopment.profiles.unsaved') }}</el-tag>
+          <el-tag v-else-if="currentProfile?.is_default" size="small" effect="light" round>{{ t('aiDevelopment.profiles.defaultTag') }}</el-tag>
+          <el-tag v-if="!form.enabled" size="small" type="info" effect="light" round>{{ t('aiDevelopment.profiles.disabled') }}</el-tag>
+          <small>{{ form.provider || '—' }} · {{ form.model || '—' }}</small>
+        </div>
         <div class="profile-actions">
-          <el-button data-testid="profile-create" @click="select()">{{ t('aiDevelopment.profiles.create') }}</el-button>
-          <el-tooltip :content="t('aiDevelopment.profiles.copyHint')"><el-button :disabled="!selectedId" @click="$emit('copy', selectedId!)">{{ t('aiDevelopment.profiles.copy') }}</el-button></el-tooltip>
-          <el-button :disabled="!selectedId" type="danger" plain @click="$emit('remove', selectedId!)">{{ t('aiDevelopment.management.delete') }}</el-button>
-          <el-button :disabled="!selectedId" @click="$emit('default', selectedId!)">{{ t('aiDevelopment.profiles.default') }}</el-button>
+          <el-tooltip :content="t('aiDevelopment.profiles.copyHint')"><el-button :disabled="!selectedId" @click="$emit('copy', selectedId!)"><i class="i-ep-copy-document" />{{ t('aiDevelopment.profiles.copy') }}</el-button></el-tooltip>
+          <el-button :disabled="!selectedId || currentProfile?.is_default" @click="$emit('default', selectedId!)"><i class="i-ep-star" />{{ t('aiDevelopment.profiles.default') }}</el-button>
+          <el-button :disabled="!selectedId" type="danger" plain @click="$emit('remove', selectedId!)"><i class="i-ep-delete" />{{ t('aiDevelopment.management.delete') }}</el-button>
         </div>
       </div>
       <div class="profile-content" data-testid="profile-content">
+        <section class="profile-section profile-basic">
+          <h3>{{ t('aiDevelopment.profiles.basicTitle') }}</h3>
+          <el-form-item :label="t('aiDevelopment.profiles.nameLabel', '档案名称')"><el-input v-model="form.name" required maxlength="100" /></el-form-item>
+          <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
+        </section>
         <section class="profile-section profile-fields">
           <h3>{{ t('aiDevelopment.profiles.connectionTitle', '连接与模型') }}</h3>
           <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.preset', '供应商预设')"><div class="model-control"><el-select v-model="presetId" data-testid="provider-preset"><el-option v-for="preset in presets" :key="preset.id" :value="preset.id" :label="preset.label" /></el-select><el-button data-testid="apply-preset" @click="applyPreset">{{ t('aiDevelopment.profiles.applyPreset', '应用到连接') }}</el-button></div></el-form-item>
@@ -38,8 +65,7 @@
               <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" @click="$emit('models', selectedId!)">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
             </div>
           </el-form-item>
-          <el-form-item :label="t('aiDevelopment.profiles.enabled')"><el-switch v-model="form.enabled" :aria-label="t('aiDevelopment.profiles.enabled')" /></el-form-item>
-          <el-form-item :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
+          <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
         </section>
         <section class="profile-section">
           <h3>{{ t('aiDevelopment.profiles.fallbackTitle', '备用模型') }}</h3>
@@ -61,18 +87,18 @@
         <section class="profile-section">
           <h3>{{ t('aiDevelopment.profiles.tokenLimits', 'Token 限制') }}</h3>
           <div class="token-grid">
-            <el-form-item v-for="field in numericFields.slice(0, 3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)" label-position="top">
+            <el-form-item v-for="field in numericFields.slice(0, 3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)">
               <el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" :value-on-clear="null" controls-position="right" :placeholder="t('aiDevelopment.profiles.unspecified', '不指定')" />
             </el-form-item>
           </div>
-          <el-form-item :label="t('aiDevelopment.reasoning.profile')"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" :label="t('aiDevelopment.reasoning.defaultOption')" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
+          <el-form-item class="profile-reasoning" :label="t('aiDevelopment.reasoning.profile')"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" :label="t('aiDevelopment.reasoning.defaultOption')" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
           <p v-if="form.reasoning_effort && !legalEfforts.includes(form.reasoning_effort)" role="alert">{{ t('aiDevelopment.profiles.savedEffortIncompatible', { effort: form.reasoning_effort }, { default: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。' }) }}</p>
         </section>
         <details class="profile-section profile-advanced" data-testid="profile-advanced">
           <summary>{{ t('aiDevelopment.profiles.advancedTitle', '高级参数与模型能力') }}</summary>
           <div class="profile-fields advanced-fields">
-            <el-form-item v-for="field in numericFields.slice(3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)" label-position="top"><el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" controls-position="right" /></el-form-item>
-            <el-form-item :label="t('aiDevelopment.profiles.stream_usage')" label-position="top"><el-switch v-model="form.stream_usage" :aria-label="t('aiDevelopment.profiles.stream_usage')" /></el-form-item>
+            <el-form-item v-for="field in numericFields.slice(3)" :key="field.key" :label="t(`aiDevelopment.profiles.${field.key}`)"><el-input-number v-model="form[field.key]" :min="field.min" :max="field.max" :step="1" :precision="0" controls-position="right" /></el-form-item>
+            <el-form-item :label="t('aiDevelopment.profiles.stream_usage')"><el-switch v-model="form.stream_usage" :aria-label="t('aiDevelopment.profiles.stream_usage')" /></el-form-item>
           </div>
           <h3>{{ t('aiDevelopment.profiles.capabilitiesTitle', '模型能力（管理员声明）') }}</h3>
           <div v-for="(cap, index) in form.model_capabilities" :key="index" class="capability-row">
@@ -92,22 +118,26 @@
       <footer class="profile-footer" data-testid="profile-footer">
         <div class="profile-feedback"><p v-if="error || validationError" role="alert">{{ error || validationError }}</p><p v-if="notice" role="status">{{ notice }}</p></div>
         <div class="profile-actions">
-          <el-tooltip :content="t('aiDevelopment.profiles.testHint')"><el-button data-testid="profile-test" :disabled="busy" @click="test">{{ t('aiDevelopment.providerSettings.testConnection') }}</el-button></el-tooltip>
+          <el-tooltip :content="t('aiDevelopment.profiles.testHint')"><el-button data-testid="profile-test" :disabled="busy" @click="test"><i class="i-ep-connection" />{{ t('aiDevelopment.providerSettings.testConnection') }}</el-button></el-tooltip>
           <el-button data-testid="profile-save" type="primary" native-type="submit" :loading="busy">{{ t('aiDevelopment.profiles.save') }}</el-button>
         </div>
       </footer>
     </el-form>
+    </div>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Plus } from '@element-plus/icons-vue';
 import { AI_REASONING_EFFORTS, profileCapabilityError, profileModelCapability, type AiCatalogModel, type AiReasoningEffort, type AiProfile, type AiProfileInput, type AiProviderSettings } from '@/api/development/ai';
 const props = withDefaults(defineProps<{ modelValue: boolean; settings?: AiProviderSettings; profiles?: AiProfile[]; busy?: boolean; models?: AiCatalogModel[]; error?: string; notice?: string; savedProfile?: AiProfile | null }>(), { profiles: () => [], models: () => [] });
 const { t } = useI18n();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [payload: AiProfileInput, id: number | null]; test: [payload: Record<string, unknown>]; copy: [id: number]; remove: [id: number]; default: [id: number]; models: [id: number]; select: [] }>();
 const selectedId = ref<number | null>(null);
+const currentProfile = computed(() => props.profiles.find((item) => item.id === selectedId.value));
+const sortedProfiles = computed(() => [...props.profiles].sort((left, right) => Number(right.is_default) - Number(left.is_default) || Number(right.enabled) - Number(left.enabled) || left.name.localeCompare(right.name)));
 const apiKey = ref('');
 const clearKey = ref(false);
 const hasKey = ref(false);
@@ -190,7 +220,10 @@ function select(profile?: AiProfile) {
   emit('select');
 }
 watch(() => props.savedProfile, (profile) => { if (profile) select(profile); });
-watch(() => props.modelValue, (visible) => { if (!visible) { apiKey.value = ''; clearKey.value = false; } else select(props.profiles.find((p) => p.id === selectedId.value)); });
+watch(() => props.modelValue, (visible) => {
+  if (!visible) { apiKey.value = ''; clearKey.value = false; return; }
+  select(props.profiles.find((p) => p.id === selectedId.value) ?? props.profiles.find((p) => p.is_default) ?? sortedProfiles.value[0]);
+});
 function submit() {
   if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = t('aiDevelopment.profiles.targetChangedNeedKey', '连接目标已变更，请提供新密钥或明确清空旧密钥。'); return; }
   if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.reasoningProtocolUnsupported', 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'); return; }
@@ -219,63 +252,103 @@ function test() {
 
 <style scoped>
 :global(.provider-drawer) { --profile-space: calc(var(--app-gap, 16px) * .75); }
-:global(.provider-drawer .el-drawer__body) { display: flex; min-height: 0; overflow: hidden; padding: 0 var(--app-gap); }
-:global(.provider-drawer .el-drawer__header) { margin-bottom: 0; padding: var(--profile-space) var(--app-gap); border-bottom: 1px solid var(--el-border-color-lighter); }
-.provider-form { display: flex; flex-direction: column; width: 100%; max-width: 1000px; height: 100%; min-height: 0; min-width: 0; margin: 0 auto; }
-.profile-toolbar { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 4px var(--profile-space); padding: var(--profile-space) 0; border-bottom: 1px solid var(--el-border-color-lighter); }
-.profile-toolbar :deep(.el-form-item) { flex-direction: column; margin-bottom: 0; }
-.profile-toolbar :deep(.el-form-item__label) { width: auto !important; height: auto; justify-content: flex-start; margin-bottom: 4px; line-height: 1.4; }
-.profile-toolbar :deep(.el-form-item__content) { margin-left: 0 !important; }
-.profile-toolbar .profile-actions { justify-content: flex-end; padding-bottom: 1px; }
-.profile-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: var(--profile-space) calc(var(--profile-space) / 2) var(--profile-space) 0; }
-.profile-section { margin-bottom: var(--profile-space); padding: var(--profile-space); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
-.profile-section h3 { margin: 0 0 var(--profile-space); font-size: 15px; font-weight: 600; }
-.profile-fields, .capability-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--profile-space); }
-.profile-fields > h3, .profile-wide, .capability-row > .profile-actions { grid-column: 1 / -1; }
+:global(.provider-drawer .el-drawer__header) { margin-bottom: 0; padding: 14px 20px; border-bottom: 1px solid var(--el-border-color-lighter); color: var(--el-text-color-primary); font-weight: 600; }
+:global(.provider-drawer .el-drawer__body) { display: flex; min-height: 0; overflow: hidden; padding: 0; }
+.provider-layout { display: grid; flex: 1; grid-template-columns: 256px minmax(0, 1fr); min-width: 0; min-height: 0; }
+
+.profile-sidebar { display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 16px 12px; overflow-y: auto; border-right: 1px solid var(--el-border-color-lighter); background: var(--el-fill-color-lighter); }
+.profile-sidebar__create { width: 100%; }
+.profile-sidebar__create i, .profile-actions :deep(.el-button i) { margin-right: 4px; }
+.profile-list { display: grid; align-content: start; gap: 6px; }
+.profile-item { position: relative; display: grid; gap: 4px; width: 100%; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--el-text-color-regular); font: inherit; text-align: left; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+.profile-item:hover:not(:disabled) { background: var(--el-bg-color); border-color: var(--el-border-color-lighter); }
+.profile-item.active { border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent); background: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color)); }
+.profile-item.active::before { position: absolute; top: 12px; bottom: 12px; left: -1px; width: 3px; border-radius: 0 3px 3px 0; background: var(--el-color-primary); content: ''; }
+.profile-item.is-draft { border-style: dashed; cursor: default; }
+.profile-item:disabled { cursor: not-allowed; opacity: .7; }
+.profile-item:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 1px; }
+.profile-item__top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.profile-item__top strong { min-width: 0; overflow: hidden; color: var(--el-text-color-primary); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.profile-item.active .profile-item__top strong { color: var(--el-color-primary); }
+.profile-item__model { overflow: hidden; color: var(--el-text-color-secondary); font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-item__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--el-text-color-secondary); font-size: 11px; }
+.profile-item.is-off .profile-item__top strong, .profile-item.is-off .profile-item__model { color: var(--el-text-color-placeholder); }
+.profile-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--el-text-color-placeholder); }
+.profile-dot.on { background: var(--el-color-success); }
+.profile-item__key { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; color: var(--el-color-warning); }
+.profile-item__key.on { color: var(--el-text-color-secondary); }
+.profile-list__empty { margin: 0; padding: 16px 8px; color: var(--el-text-color-secondary); font-size: 12px; text-align: center; }
+
+.provider-form { display: flex; flex-direction: column; width: 100%; max-width: 1000px; height: 100%; min-height: 0; min-width: 0; }
+.profile-switcher { display: none; }
+.profile-header { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 24px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.profile-header__title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.profile-header__title strong { min-width: 0; overflow: hidden; color: var(--el-text-color-primary); font-size: 16px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.profile-header__title small { flex-basis: 100%; color: var(--el-text-color-secondary); font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.profile-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 20px 24px 8px; }
+.profile-section { margin-bottom: var(--profile-space); padding: var(--profile-space); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); }
+.profile-section h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--profile-space); color: var(--el-text-color-primary); font-size: 14px; font-weight: 600; }
+.profile-section h3::before { width: 3px; height: 14px; border-radius: 2px; background: var(--el-color-primary); content: ''; }
+.profile-basic, .profile-fields, .capability-row, .fallback-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: calc(var(--profile-space) * 1.5); }
+.profile-basic > h3, .profile-fields > h3, .profile-wide, .capability-row > .profile-actions, .profile-reasoning { grid-column: 1 / -1; }
 .profile-section :deep(.el-form-item) { min-width: 0; margin-bottom: var(--profile-space); }
+.provider-form :deep(.el-form-item__label) { margin-bottom: 4px; color: var(--el-text-color-regular); font-size: 13px; line-height: 1.5; }
 .provider-form :deep(.el-form-item__content) { min-width: 0; }
 .provider-form :deep(.el-select), .provider-form :deep(.el-input-number) { width: 100%; min-width: 0; }
 .provider-form :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .provider-form :deep(.el-checkbox) { margin-right: 0; }
-.control-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; min-width: 0; }
 .key-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; width: 100%; min-width: 0; }
 .key-control .el-input { flex: 1; min-width: 220px; }
-.key-status { flex: none; font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
-.fallback-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--profile-space); }
-.fallback-list { display: flex; flex-direction: column; gap: 8px; }
-.profile-fields.advanced-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.profile-fields.advanced-fields :deep(.el-form-item__label) { line-height: 1.4; margin-bottom: 4px; }
+.key-status { flex: none; padding: 0 8px; border-radius: 999px; background: var(--el-fill-color); color: var(--el-text-color-secondary); font-size: 12px; line-height: 22px; white-space: nowrap; }
 .model-control { display: flex; gap: 8px; width: 100%; min-width: 0; }
 .model-control .el-select { flex: 1; }
-.token-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--profile-space); }
+.fallback-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--profile-space); }
+.fallback-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 6px 8px 6px 12px; border-radius: 8px; background: var(--el-fill-color-light); }
+.fallback-row > span { flex: 1; min-width: 100px; font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; overflow-wrap: anywhere; }
+.token-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: calc(var(--profile-space) * 1.5); }
+.profile-fields.advanced-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .profile-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .profile-actions :deep(.el-button + .el-button), .fallback-row :deep(.el-button + .el-button) { margin-left: 0; }
-.fallback-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
-.fallback-row > span { flex: 1; min-width: 100px; overflow-wrap: anywhere; }
-.profile-advanced > summary { cursor: pointer; }
-.profile-advanced > summary { font-weight: 600; }
+.profile-advanced > summary { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-primary); font-size: 14px; font-weight: 600; list-style: none; cursor: pointer; }
+.profile-advanced > summary::-webkit-details-marker { display: none; }
+.profile-advanced > summary::before { width: 3px; height: 14px; border-radius: 2px; background: var(--el-color-primary); content: ''; }
+.profile-advanced > summary::after { margin-left: auto; color: var(--el-text-color-secondary); font-size: 14px; transition: transform .2s ease; content: '▾'; }
+.profile-advanced[open] > summary::after { transform: rotate(180deg); }
 .profile-advanced[open] > summary { margin-bottom: var(--profile-space); }
+.profile-advanced h3 { margin-top: var(--profile-space); }
 .profile-section p, .profile-footer p { margin: 4px 0; overflow-wrap: anywhere; }
-.capability-row { padding: var(--profile-space); margin: var(--profile-space) 0; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
-.profile-footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--profile-space); padding: var(--profile-space) 0; border-top: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
+.capability-row { padding: var(--profile-space); margin: var(--profile-space) 0; border: 1px dashed var(--el-border-color); border-radius: 10px; background: var(--el-fill-color-lighter); }
+.capability-row > .profile-actions { justify-content: space-between; }
+.capability-row small { color: var(--el-text-color-secondary); }
+.profile-footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--profile-space); padding: 12px 24px; border-top: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
 .profile-feedback { flex: 1; min-width: 0; font-size: 12px; }
+.profile-feedback [role="status"] { color: var(--el-color-success); }
 .provider-form [role="alert"] { color: var(--el-color-danger); }
+
+@media (max-width: 900px) {
+  .profile-fields.advanced-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .provider-layout { grid-template-columns: minmax(0, 1fr); }
+  .profile-sidebar { display: none; }
+  .profile-switcher { flex: none; display: flex; gap: 8px; padding: 12px 16px 0; }
+  .profile-header { padding: 12px 16px; }
+  .profile-content { padding: 16px 16px 8px; }
+  .profile-footer { padding: 10px 16px; }
+}
 @media (max-width: 640px) {
-  :global(.provider-drawer .el-drawer__body) { padding: 0 12px; }
-  .profile-toolbar { grid-template-columns: 1fr; padding: 10px 0; }
-  .profile-toolbar .profile-actions { justify-content: flex-start; }
-  .profile-fields, .capability-row, .token-grid, .fallback-grid { grid-template-columns: 1fr; gap: 0; }
+  .profile-basic, .profile-fields, .capability-row, .token-grid, .fallback-grid { grid-template-columns: 1fr; gap: 0; }
   .profile-fields.advanced-fields { grid-template-columns: 1fr; }
-  .provider-form :deep(.el-form-item) { flex-direction: column; }
-  .provider-form :deep(.el-form-item__label) { width: auto !important; height: auto; justify-content: flex-start; margin-bottom: 6px; line-height: 1.5; }
-  .provider-form :deep(.el-form-item__content) { margin-left: 0 !important; }
-  .profile-footer { flex-wrap: wrap; padding: 10px 0; }
+  .profile-header .profile-actions { width: 100%; }
+  .profile-footer { flex-wrap: wrap; }
   .profile-feedback:empty { display: none; }
   .profile-footer .profile-actions { margin-left: auto; }
 }
 /* 矮窗口取消固定栏夹层，让全部字段和保存操作可通过正文滚动访问。 */
 @media (max-height: 600px) {
   :global(.provider-drawer .el-drawer__body) { display: block; overflow-y: auto; }
+  .provider-layout { height: auto; }
+  .profile-sidebar { overflow-y: visible; }
   .provider-form { height: auto; }
   .profile-content { flex: none; overflow-y: visible; }
 }

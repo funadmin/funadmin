@@ -12,14 +12,21 @@
       <section v-if="regionVisible('conversations')" ref="conversationPane" class="ai-conversations-pane" data-ai-region="conversations" @scroll="loadAtBottom">
         <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" :filters="conversationFilters" :has-more="store.conversationsHasMore" :loading="store.conversationsLoading" @filter="changeFilters" @load-more="store.loadMoreConversations()" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
           <template #actions>
-            <el-button size="small" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
+            <el-button size="small" :aria-label="t('aiDevelopment.profiles.title')" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
           </template>
         </ConversationList>
       </section>
 
       <main v-show="regionVisible('workspace')" class="ai-workspace-pane" data-ai-region="workspace">
         <header class="workspace-header">
-          <div><strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong><small v-if="store.activeTask">{{ store.activeTask.stage }} · {{ statusLabel(store.activeTask.status) }}</small></div>
+          <div class="workspace-title">
+            <span class="workspace-title__icon" aria-hidden="true"><i class="i-ep-chat-dot-round" /></span>
+            <div class="workspace-title__text">
+              <strong>{{ selectedConversation?.title || t('aiDevelopment.selectConversation') }}</strong>
+              <small v-if="store.activeTask" class="workspace-meta"><el-tag size="small" effect="light" round :type="statusTagType(store.activeTask.status)">{{ statusLabel(store.activeTask.status) }}</el-tag><span>{{ aiEnumLabel(t, 'taskTypes', store.activeTask.type || 'unknown') }} · {{ aiEnumLabel(t, 'taskStages', store.activeTask.stage || 'unknown') }}</span></small>
+              <small v-else-if="selectedConversation?.model" class="workspace-meta"><span class="workspace-meta__model"><i class="i-ep-cpu" />{{ selectedConversation.model }}</span></small>
+            </div>
+          </div>
           <div class="workspace-actions">
             <el-badge class="task-permissions-badge" data-testid="pending-approvals-badge" :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
               <el-button size="small" data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
@@ -28,10 +35,24 @@
           </div>
         </header>
         <div ref="messagePane" class="workspace-scroll" data-scroll-container="primary" @scroll="messageScrolled">
-                  <el-button v-if="store.messagesHasMore" data-testid="load-older-messages" :loading="store.olderMessagesLoading" :disabled="store.olderMessagesLoading" @click="loadOlderMessages">{{ t('aiDevelopment.pagination.older') }}</el-button>
-          <el-alert v-if="store.syncError" type="error" :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
-          <MessageTimeline :messages="store.messages" />
-          <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
+          <div v-if="store.messagesHasMore" class="workspace-older"><el-button size="small" round data-testid="load-older-messages" :loading="store.olderMessagesLoading" :disabled="store.olderMessagesLoading" @click="loadOlderMessages">{{ t('aiDevelopment.pagination.older') }}</el-button></div>
+          <el-alert v-if="store.syncError" class="workspace-alert" type="error" show-icon :title="t('aiDevelopment.management.syncFailed')" :closable="false" />
+          <section v-if="!store.selectedConversationId && !store.messages.length" class="workspace-welcome">
+            <span class="workspace-welcome__icon" aria-hidden="true"><i class="i-ep-magic-stick" /></span>
+            <h2>{{ t('aiDevelopment.messages.empty') }}</h2>
+            <p>{{ t('aiDevelopment.welcome.description') }}</p>
+            <ul class="workspace-welcome__features">
+              <li><i class="i-ep-search" /><span>{{ t('aiDevelopment.welcome.analyze') }}</span></li>
+              <li><i class="i-ep-operation" /><span>{{ t('aiDevelopment.welcome.tools') }}</span></li>
+              <li><i class="i-ep-lock" /><span>{{ t('aiDevelopment.welcome.approval') }}</span></li>
+            </ul>
+            <el-button type="primary" round @click="createConversation"><i class="i-ep-plus" />{{ t('aiDevelopment.welcome.action') }}</el-button>
+          </section>
+          <MessageTimeline v-else :messages="store.messages" />
+          <section v-show="store.toolCalls.length" class="workspace-tools">
+            <h4><i class="i-ep-operation" />{{ t('aiDevelopment.toolCalls.title') }}<span>{{ store.toolCalls.length }}</span></h4>
+            <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
+          </section>
         </div>
         <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="store.cancelActiveTask()">
           <template #models>
@@ -325,6 +346,7 @@ const running = computed(() => store.activeTask?.status === 'running' || store.a
 const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
 const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
 const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
+const statusTagType = (status: string) => ({ running: 'primary', pending: 'primary', paused: 'warning', recovery_required: 'warning', succeeded: 'success', failed: 'danger', cancelled: 'info' } as Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'>)[status] || 'info';
 const toggleInspector = () => { inspectorOpen.value = true; };
 const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobile.value = event.matches; };
 
@@ -348,7 +370,7 @@ const ContextPanel = defineComponent({
           h(ElDescriptionsItem, { label: t('aiDevelopment.status') }, () => h(ElTag, { size: 'small' }, () => statusLabel(store.activeTask?.status || 'unknown'))),
           h(ElDescriptionsItem, { label: t('aiDevelopment.test') }, () => store.activeTask?.test_result ? JSON.stringify(store.activeTask.test_result) : '-')
         ]) : h('p', { class: 'empty-context' }, t('aiDevelopment.noActiveTask')),
-        store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, `${t('aiDevelopment.changeSet.entity')} #${store.changeSet.id} · ${aiEnumLabel(t, 'changeSetStatuses', store.changeSet.status)}`) : null
+        store.changeSet ? h('button', { class: 'changeset-link', onClick: () => { changeSetOpen.value = true; void ensurePreview(); } }, [h('i', { class: 'i-ep-files', 'aria-hidden': 'true' }), h('span', `${t('aiDevelopment.changeSet.entity')} #${store.changeSet.id} · ${aiEnumLabel(t, 'changeSetStatuses', store.changeSet.status)}`), h('i', { class: 'i-ep-arrow-right', 'aria-hidden': 'true' })]) : null
       ])
     ]);
   }
@@ -537,47 +559,87 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 
 <style scoped>
 .ai-page { height: 100%; min-height: 0; }
-.ai-page :deep(> main > div:last-child) { overflow: hidden; }
-header small { color: var(--el-text-color-secondary); }
-.ai-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); height: 100%; min-height: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; background: var(--el-bg-color); }
+.ai-page :deep(> main > div:last-child) { overflow: hidden; padding: 0; }
+.ai-layout { display: grid; grid-template-columns: minmax(248px, 288px) minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--el-bg-color); }
+.ai-conversations-pane { min-width: 0; min-height: 0; overflow: auto; border-right: 1px solid var(--el-border-color-lighter); background: var(--el-fill-color-lighter); }
+.ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: color-mix(in srgb, var(--el-fill-color-lighter) 55%, var(--el-bg-color)); }
+
+.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-height: 60px; padding: 10px 16px; box-sizing: border-box; border-bottom: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
+.workspace-title { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.workspace-title__icon { display: grid; flex: none; width: 36px; height: 36px; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color)); color: var(--el-color-primary); font-size: 18px; }
+.workspace-title__text { display: grid; gap: 3px; min-width: 0; }
+.workspace-title__text strong { overflow: hidden; color: var(--el-text-color-primary); font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--el-text-color-secondary); font-size: 12px; }
+.workspace-meta__model { display: inline-flex; align-items: center; gap: 4px; font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); }
+.workspace-actions { display: flex; align-items: center; gap: 8px; }
+.workspace-actions :deep(.el-button--small), .mobile-actions :deep(.el-button--small) { margin-left: 0; min-height: 28px; padding: 5px 12px; }
+.workspace-actions :deep(.el-button i), .mobile-actions :deep(.el-button i) { margin-right: 4px; }
+.workspace-scroll { display: flex; flex-direction: column; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.workspace-older { display: flex; justify-content: center; padding: 16px 16px 0; }
+.workspace-alert { flex: none; width: auto; margin: 16px 16px 0; }
+.workspace-tools { display: grid; gap: 10px; margin: -6px 16px 24px 56px; padding: 14px 16px; border: 1px solid var(--el-border-color-lighter); border-radius: 14px; background: var(--el-bg-color); }
+.workspace-tools h4 { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--el-text-color-primary); font-size: 13px; font-weight: 600; }
+.workspace-tools h4 span { padding: 0 7px; border-radius: 10px; background: var(--el-fill-color); color: var(--el-text-color-secondary); font-size: 11px; font-weight: 500; line-height: 18px; }
+
+.workspace-welcome { display: grid; justify-items: center; align-content: center; gap: 14px; flex: 1; padding: 48px 24px; text-align: center; }
+.workspace-welcome__icon { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 18px; background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 55%, #a855f7)); box-shadow: 0 10px 30px color-mix(in srgb, var(--el-color-primary) 30%, transparent); color: #fff; font-size: 28px; }
+.workspace-welcome h2 { margin: 4px 0 0; color: var(--el-text-color-primary); font-size: 20px; font-weight: 600; }
+.workspace-welcome p { max-width: 460px; margin: 0; color: var(--el-text-color-secondary); font-size: 13px; line-height: 1.7; }
+.workspace-welcome__features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: min(560px, 100%); margin: 6px 0; padding: 0; list-style: none; }
+.workspace-welcome__features li { display: grid; justify-items: center; gap: 8px; padding: 14px 10px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); color: var(--el-text-color-regular); font-size: 12px; }
+.workspace-welcome__features i { color: var(--el-color-primary); font-size: 18px; }
+.workspace-welcome :deep(.el-button i) { margin-right: 4px; }
+
 .task-permissions-drawer { max-width: 100vw; }
-.task-permissions-drawer :deep(.el-drawer__header) { margin-bottom: 0; padding: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
-.task-permissions-drawer :deep(.el-drawer__body) { padding: 16px; overflow: auto; }
-.task-permissions-scroll { display: grid; align-content: start; gap: 16px; min-width: 0; overflow-wrap: anywhere; }
-.task-permissions-scroll :deep(.context-panel) { display: grid; gap: 16px; padding: 0; }
-.task-permissions-scroll :deep(.task-permissions-section) { display: grid; align-content: start; gap: 10px; min-width: 0; }
-.task-permissions-scroll :deep(h3) { margin: 0; font-size: 14px; line-height: 1.5; color: var(--el-text-color-primary); }
-.task-permissions-scroll :deep(.empty-context) { margin: 0; font-size: 12px; color: var(--el-text-color-secondary); }
+.task-permissions-drawer :deep(.el-drawer__header) { margin-bottom: 0; padding: 16px 20px; border-bottom: 1px solid var(--el-border-color-lighter); color: var(--el-text-color-primary); font-weight: 600; }
+.task-permissions-drawer :deep(.el-drawer__body) { padding: 16px; overflow: auto; background: var(--el-fill-color-lighter); }
+.task-permissions-scroll { display: grid; align-content: start; gap: 12px; min-width: 0; overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.context-panel) { display: grid; gap: 12px; padding: 0; }
+.task-permissions-scroll :deep(.task-permissions-section) { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 14px 16px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); }
+.task-permissions-scroll :deep(h3) { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--el-text-color-primary); }
+.task-permissions-scroll :deep(h3)::before { width: 3px; height: 14px; border-radius: 2px; background: var(--el-color-primary); content: ''; }
+.task-permissions-scroll :deep(.empty-context) { margin: 0; padding: 12px; border-radius: 8px; background: var(--el-fill-color-lighter); color: var(--el-text-color-secondary); font-size: 12px; text-align: center; }
 .task-permissions-scroll :deep(.el-descriptions__table) { table-layout: fixed; width: 100%; }
 .task-permissions-scroll :deep(.el-descriptions__label) { width: 76px; vertical-align: top; }
 .task-permissions-scroll :deep(.el-descriptions__content) { overflow-wrap: anywhere; }
 .task-permissions-scroll :deep(.el-radio-group) { display: flex; flex-wrap: wrap; gap: 6px; }
-.task-permissions-scroll :deep(.el-radio-button__inner) { border: 1px solid var(--el-border-color); border-radius: 4px; box-shadow: none; white-space: normal; overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.el-radio-button__inner) { white-space: normal; overflow-wrap: anywhere; }
 .task-permissions-scroll :deep(.el-radio-button) { max-width: 100%; }
 .task-permissions-scroll :deep(.approval-card__title) { flex-wrap: wrap; }
-.task-permissions-scroll :deep(.el-card__header), .task-permissions-scroll :deep(.el-card__body) { padding: 10px; }
 .task-permissions-scroll :deep(.el-button) { margin-left: 0; max-width: 100%; height: auto; min-height: 24px; white-space: normal; }
 .task-permissions-scroll :deep(.el-tag) { max-width: 100%; height: auto; white-space: normal; }
-.task-permissions-scroll :deep(.el-timeline) { padding-left: 0; margin: 0; }
-.task-permissions-scroll :deep(.changeset-link) { padding: 8px 10px; text-align: left; overflow-wrap: anywhere; }
-.ai-conversations-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--el-fill-color-extra-light); }
-.ai-conversations-pane { border-right: 1px solid var(--el-border-color-lighter); }
-.ai-workspace-pane { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
-.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--el-border-color-lighter); }
-.workspace-header > div:first-child { display: grid; gap: 2px; }.workspace-actions { display: flex; gap: 8px; }.workspace-scroll { min-height: 0; overflow: auto; }.composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
-.workspace-actions, .mobile-actions { align-items: center; }
-.workspace-actions :deep(.el-button--small), .mobile-actions :deep(.el-button--small) { margin-left: 0; min-height: 24px; padding: 5px 8px; }
-.model-form { min-width: 0; display: grid; gap: 8px; overflow-wrap: anywhere; }
+.task-permissions-scroll :deep(.changeset-link) { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--el-color-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color)); color: var(--el-color-primary); font: inherit; font-size: 13px; text-align: left; overflow-wrap: anywhere; cursor: pointer; transition: background-color .15s ease; }
+.task-permissions-scroll :deep(.changeset-link span) { flex: 1; min-width: 0; }
+.task-permissions-scroll :deep(.changeset-link:hover) { background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-bg-color)); }
+
+.model-form { display: grid; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.model-form > label, .model-controls label { color: var(--el-text-color-secondary); font-size: 12px; }
+.model-form > small { color: var(--el-text-color-secondary); font-size: 12px; }
 .model-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .model-controls label { grid-column: 1 / -1; }
 .model-form :deep(.el-button) { margin-left: 0; }
 .model-form :deep(.el-select), .model-controls .el-input { min-width: 0; width: 100%; }
 .model-help-trigger { justify-self: end; }
 .model-help { max-width: 320px; overflow-wrap: anywhere; }
-.favorite-models { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.favorite-models { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--el-text-color-secondary); font-size: 12px; }
 .favorite-models .el-button { max-width: 100%; height: auto; min-height: 24px; white-space: normal; overflow-wrap: anywhere; }
 .model-error { margin: 0; color: var(--el-color-danger); overflow-wrap: anywhere; }
-.context-panel { display: grid; gap: 14px; padding: 16px; }.context-panel h3 { margin: 0; }.empty-context { color: var(--el-text-color-secondary); }.changeset-link { border: 1px solid var(--el-color-primary-light-5); border-radius: 8px; padding: 10px; background: var(--el-color-primary-light-9); color: var(--el-color-primary); cursor: pointer; }.tool-log { overflow: auto; max-height: 60vh; white-space: pre-wrap; }.mobile-actions { display: none; }
-@media (max-width: 1024px) { .mobile-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; }.ai-layout { display: block; min-height: 0; }.ai-conversations-pane { height: 100%; border-right: 0; }.ai-workspace-pane { height: 100%; }.workspace-actions .task-permissions-badge { display: none; } }
-@media (max-width: 680px) { .composer { grid-template-columns: 1fr; } }
+.tool-log { overflow: auto; max-height: 60vh; margin: 0; padding: 12px 14px; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+
+.mobile-actions { display: none; }
+@media (max-width: 1024px) {
+  .mobile-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+  .mobile-actions :deep(.el-button[aria-pressed="true"]) { border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent); background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color)); color: var(--el-color-primary); }
+  .ai-layout { display: block; min-height: 0; }
+  .ai-conversations-pane { height: 100%; border-right: 0; }
+  .ai-workspace-pane { height: 100%; }
+  .workspace-actions .task-permissions-badge { display: none; }
+  .workspace-tools { margin-left: 16px; }
+}
+@media (max-width: 680px) {
+  .workspace-header { min-height: 52px; padding: 8px 12px; }
+  .workspace-title__icon { display: none; }
+  .workspace-welcome { padding: 32px 16px; }
+  .workspace-welcome__features { grid-template-columns: 1fr; }
+}
 </style>

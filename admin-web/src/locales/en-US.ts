@@ -1,5 +1,6 @@
 export default {
   aiComposer: {
+    states: { uploading: 'Uploading', ready: 'Ready', failed: 'Upload failed' }, sendHint: 'Enter to send · Shift + Enter for newline',
     approval: 'Approval mode', attach: 'Attach files', attachment: 'Private attachment', retry: 'Retry', remove: 'Remove', download: 'Download safely',
     privacy: 'Sensitive material in messages and attachments will be sent to the profile Provider. PNG/JPEG/WebP: 5MiB each; UTF-8 code/text: 128KiB each. Up to 4 files and 12MiB total.',
     invalid: 'File type, name, size or count exceeds the supported limits. The file was rejected.', uploadFailed: 'Upload failed or the file is not valid UTF-8 text. Retry or remove it; failed attachments are never silently skipped.',
@@ -106,7 +107,7 @@ export default {
     noPendingRisk: 'No risks awaiting approval',
     noActiveTask: 'No active task',
     toolLog: 'Tool log',
-    messages: { empty: 'Start a new AI conversation', roles: { system: 'System', user: 'You', assistant: 'AI Assistant', tool: 'Tool' } },
+    messages: { empty: 'Start a new AI conversation', copy: 'Copy', copied: 'Copied', roles: { system: 'System', user: 'You', assistant: 'AI Assistant', tool: 'Tool' } },
     approvalModes: {
       request: 'Request approval', agent: 'Approve for me', fullAccess: 'Full access',
       requestBoundary: 'Ask for approval before each dangerous tool execution.',
@@ -120,6 +121,7 @@ export default {
       feedbackPlaceholder: 'Optional feedback when rejecting', allowOnce: 'Allow once', allowSession: 'Allow for session operation', reject: 'Reject'
     },
     changeSet: {
+      selectedCount: '{selected} / {total} files selected',
       entity: 'ChangeSet', title: 'ChangeSet / Diff', test: 'Tests: {status}', security: 'Security: {status}', fileSelectionOnly: 'Select whole files; hunk selection is unavailable',
       conflictBlocked: 'Blocked by conflicts. Deselect conflicting files or regenerate the ChangeSet.', previewRequired: 'Preview before applying. Final application always requires confirmation.',
       close: 'Close', preview: 'Preview', confirmApply: 'Confirm and apply', applyConfirm: 'The selected files will be applied to the workspace. Confirm again.',
@@ -127,6 +129,7 @@ export default {
     },
     diff: { binary: 'Binary files cannot display a text diff', omitted: 'Content omitted because the file is binary or exceeds the display limit', missing: 'The backend did not return diff content; only file status and hashes are shown.' },
     profiles: {
+      basicTitle: 'Basics', unsaved: 'Unsaved', defaultTag: 'Default', listEmpty: 'No profiles yet. Create one above.', keySaved: 'Key saved', keyMissing: 'No key',
       title: 'Configuration profiles', create: 'Create profile', general: 'Profile settings', name: 'Name (save to rename)', enabled: 'Enabled', copy: 'Copy', default: 'Set default', copyHint: 'Copies exclude credentials and default status. Deleting the default does not select another profile.',
       protocolHint: 'Only openai-chat (OpenAI Chat Completions compatible) is supported. Provider is an identifier, not support for other protocols.', keyHint: 'Leave blank to keep the saved key', hasKey: 'Key saved (never displayed)', noKey: 'No saved key', clearKey: 'Clear key on save',
       models: 'Models', fetchModels: 'Fetch saved profile models', modelsHint: 'Uses saved URL and credentials, not unsaved edits. Search, select or enter an ID; capabilities are not inferred.', favorites: 'Favorite models', limits: 'Context and runtime limits', context_window: 'Context window (blank: unspecified)', max_input_tokens: 'Max input tokens (blank: unspecified)', max_output_tokens: 'Max output tokens (blank: unspecified)', max_iterations: 'Max iterations', connect_timeout: 'Connect timeout (seconds)', request_timeout: 'Request timeout (seconds)', max_retries: 'Max retries', stream_usage: 'Stream usage',
@@ -139,13 +142,14 @@ export default {
       title: 'Provider settings', securityNotice: 'The API key is sent only for this connection test. It is never displayed or stored in the browser.', apiKeyPlaceholder: 'Send only; never display',
       configured: 'Configured: {masked}', connectTimeout: 'Connection timeout', requestTimeout: 'Request timeout', testConnection: 'Test connection', testSuccess: 'Provider connection test succeeded'
     },
-    toolCalls: { viewStdout: 'View stdout', viewStderr: 'View stderr', stdout: 'stdout', stderr: 'stderr' },
+    welcome: { description: 'Describe what you need in plain language. The assistant analyzes code, uses tools to prepare changes, and asks for your approval before risky operations.', analyze: 'Understand requirements and code', tools: 'Use tools to prepare changes', approval: 'Approve risky operations first', action: 'New conversation' },
+    toolCalls: { title: 'Tool calls', viewStdout: 'View stdout', viewStderr: 'View stderr', stdout: 'stdout', stderr: 'stderr' },
     statuses: {
       running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending', reviewing: 'Reviewing', applying: 'Applying', proposed: 'Proposed', completed: 'Completed', recovery_required: 'Recovery required',
       approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed'
     },
     enums: {
-      statuses: { running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending', reviewing: 'Reviewing', applying: 'Applying', proposed: 'Proposed', completed: 'Completed', recovery_required: 'Recovery required', approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed' },
+      statuses: { active: 'Active', running: 'Running', paused: 'Paused', succeeded: 'Succeeded', failed: 'Failed', cancelled: 'Cancelled', pending: 'Pending', reviewing: 'Reviewing', applying: 'Applying', proposed: 'Proposed', completed: 'Completed', recovery_required: 'Recovery required', approved: 'Approved', rejected: 'Rejected', awaiting_approval: 'Awaiting approval', denied: 'Denied', unknown: 'Unknown', passed: 'Passed' },
       riskLevels: { low: 'Low risk', medium: 'Medium risk', high: 'High risk', critical: 'Critical risk' },
       operations: { apply_workspace: 'Apply to workspace', write_workspace: 'Write to workspace', read_workspace: 'Read workspace', run_command: 'Run command' },
       fileStatuses: { create: 'Create', update: 'Update', 'auto-merged': 'Auto-merged', delete: 'Delete', 'keep-local': 'Keep local', conflict: 'Text conflict', 'binary-conflict': 'Binary conflict', 'conflict-no-base': 'Conflict without base' },
@@ -425,6 +429,9 @@ export default {
     colActions: 'Actions',
     colDescription: 'Description',
     colAuthor: 'Author',
+    colPrice: 'Price',
+    buy: 'Buy',
+    buyInStore: 'Buy in marketplace',
     colCapabilities: 'Capabilities',
     yes: 'Yes',
     no: 'No',

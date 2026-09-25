@@ -1,30 +1,34 @@
 <template>
   <section class="ai-composer" @dragover.prevent @drop.prevent="addFiles(Array.from($event.dataTransfer?.files || []))">
-    <div class="draft-files">
-      <article v-for="item in draft.files" :key="item.key">
-        <img v-if="item.preview" :src="item.preview" :alt="item.file.name" />
-        <span>{{ item.file.name }}</span><small>{{ item.state }}</small>
-        <el-button v-if="item.state === 'failed'" size="small" :disabled="locked" @click="upload(item)">{{ t('aiComposer.retry') }}</el-button>
-        <el-button size="small" :disabled="locked || item.state === 'uploading'" @click="remove(item)">{{ t('aiComposer.remove') }}</el-button>
-      </article>
+    <div class="ai-composer__box" :class="{ 'is-disabled': locked || !conversationId }">
+      <div v-if="draft.files.length" class="draft-files">
+        <article v-for="item in draft.files" :key="item.key" class="draft-file" :class="`draft-file--${item.state}`">
+          <img v-if="item.preview" :src="item.preview" :alt="item.file.name" />
+          <span v-else class="draft-file__icon"><i class="i-ep-document" /></span>
+          <span class="draft-file__body"><span class="draft-file__name">{{ item.file.name }}</span><small>{{ t(`aiComposer.states.${item.state}`) }}</small></span>
+          <el-button v-if="item.state === 'failed'" size="small" link type="primary" :disabled="locked" @click="upload(item)">{{ t('aiComposer.retry') }}</el-button>
+          <el-button size="small" link :disabled="locked || item.state === 'uploading'" @click="remove(item)">{{ t('aiComposer.remove') }}</el-button>
+        </article>
+      </div>
+      <el-input v-model="draft.text" type="textarea" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" :rows="3" resize="none" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
+      <div class="toolbar">
+        <el-popover v-model:visible="modelsOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="approvalOpen = false">
+          <template #reference><el-button size="small" round ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><i class="i-ep-cpu" /><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
+          <div v-if="modelsOpen" @keydown.esc.stop="closeModels"><slot name="models" /></div>
+        </el-popover>
+        <el-popover v-model:visible="approvalOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="modelsOpen = false">
+          <template #reference><el-button size="small" round :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false"><i class="i-ep-lock" />{{ t('aiComposer.approval') }}</el-button></template>
+          <div v-if="approvalOpen"><slot name="approval" /></div>
+        </el-popover>
+        <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
+        <el-button size="small" circle :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId" @click="fileInput?.click()" />
+        <span class="send-hint">{{ t('aiComposer.sendHint') }}</span>
+        <el-button v-if="running" size="small" round class="send" type="danger" @click="$emit('stop')"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+        <el-button v-else size="small" round class="send" type="primary" :disabled="!canSend" @click="send"><i class="i-ep-promotion" />{{ t('aiDevelopment.send') }}</el-button>
+      </div>
     </div>
-    <el-input v-model="draft.text" type="textarea" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" :rows="4" resize="vertical" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
-    <div class="toolbar">
-      <el-popover v-model:visible="modelsOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="approvalOpen = false">
-        <template #reference><el-button size="small" ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
-        <div v-if="modelsOpen" @keydown.esc.stop="closeModels"><slot name="models" /></div>
-      </el-popover>
-      <el-popover v-model:visible="approvalOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="modelsOpen = false">
-        <template #reference><el-button size="small" :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false">{{ t('aiComposer.approval') }}</el-button></template>
-        <div v-if="approvalOpen"><slot name="approval" /></div>
-      </el-popover>
-      <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
-      <el-button size="small" :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId" @click="fileInput?.click()" />
-      <el-button v-if="running" size="small" class="send" type="danger" @click="$emit('stop')">{{ t('aiDevelopment.stop') }}</el-button>
-      <el-button v-else size="small" class="send" type="primary" :disabled="!canSend" @click="send">{{ t('aiDevelopment.send') }}</el-button>
-    </div>
-    <p class="privacy">{{ t('aiComposer.privacy') }}</p>
     <p v-if="draft.error || imageError" role="alert">{{ draft.error || imageError }}</p>
+    <p class="privacy"><i class="i-ep-lock" />{{ t('aiComposer.privacy') }}</p>
   </section>
 </template>
 
@@ -147,15 +151,32 @@ async function send() {
 </script>
 
 <style scoped>
-.ai-composer { position: relative; width: 100%; min-width: 0; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--el-border-color); border-radius: 18px; background: var(--el-bg-color); box-sizing: border-box; }
-.ai-composer :deep(.el-textarea__inner) { min-height: 94px; max-height: 220px; }
-.ai-composer > .el-textarea { margin-bottom: 10px; }
+.ai-composer { position: relative; width: 100%; min-width: 0; padding: 12px 16px; box-sizing: border-box; border-top: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
+.ai-composer__box { display: grid; gap: 8px; min-width: 0; padding: 10px 12px; border: 1px solid var(--el-border-color); border-radius: 16px; background: var(--el-bg-color); box-shadow: 0 2px 10px rgba(15, 23, 42, .05); transition: border-color .15s ease, box-shadow .15s ease; }
+.ai-composer__box:focus-within { border-color: var(--el-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 16%, transparent); }
+.ai-composer__box.is-disabled { background: var(--el-fill-color-lighter); box-shadow: none; }
+.ai-composer :deep(.el-textarea__inner) { min-height: 72px !important; max-height: 220px; padding: 2px 2px; border: 0; background: transparent; box-shadow: none; font-size: 14px; line-height: 1.7; }
+.ai-composer :deep(.el-textarea.is-disabled .el-textarea__inner) { background: transparent; }
 .toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.toolbar :deep(.el-button) { margin-left: 0; min-height: 24px; padding: 5px 8px; }
-.toolbar .send { margin-left: auto; }
+.toolbar :deep(.el-button) { margin-left: 0; min-height: 28px; }
+.toolbar :deep(.el-button:not(.is-circle)) { padding: 5px 12px; }
+.toolbar :deep(.el-button i) { margin-right: 4px; font-size: 13px; }
+.toolbar .send { margin-left: 8px; }
+.send-hint { margin-left: auto; color: var(--el-text-color-placeholder); font-size: 12px; white-space: nowrap; }
 .model-menu { min-width: 0; max-width: 100%; }
-.model-menu :deep(span) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.privacy { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 0; } [role=alert] { color: var(--el-color-danger); }
-.draft-files { display: flex; flex-wrap: wrap; gap: 8px; } article { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 100%; overflow-wrap: anywhere; } article img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
-@media(max-width: 520px) { .ai-composer { padding: 10px 16px; } .model-menu { max-width: 100%; } .toolbar { gap: 4px; } }
+.model-menu :deep(span) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.privacy { display: flex; gap: 6px; align-items: flex-start; margin: 8px 4px 0; color: var(--el-text-color-placeholder); font-size: 11px; line-height: 1.5; }
+.privacy i { flex: none; margin-top: 2px; }
+[role=alert] { margin: 8px 4px 0; color: var(--el-color-danger); font-size: 12px; }
+.draft-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.draft-file { display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 6px 10px 6px 6px; border: 1px solid var(--el-border-color-lighter); border-radius: 10px; background: var(--el-fill-color-lighter); overflow-wrap: anywhere; }
+.draft-file--failed { border-color: color-mix(in srgb, var(--el-color-danger) 45%, transparent); }
+.draft-file img, .draft-file__icon { flex: none; width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.draft-file__icon { display: grid; place-items: center; background: var(--el-bg-color); color: var(--el-text-color-secondary); font-size: 16px; }
+.draft-file__body { display: grid; min-width: 0; }
+.draft-file__name { overflow: hidden; max-width: 180px; color: var(--el-text-color-primary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.draft-file small { color: var(--el-text-color-secondary); font-size: 11px; }
+.draft-file--failed small { color: var(--el-color-danger); }
+.draft-file :deep(.el-button + .el-button) { margin-left: 0; }
+@media(max-width: 520px) { .ai-composer { padding: 10px 16px; } .model-menu { max-width: 100%; } .toolbar { gap: 4px; } .send-hint { display: none; } .toolbar .send { margin-left: auto; } }
 </style>

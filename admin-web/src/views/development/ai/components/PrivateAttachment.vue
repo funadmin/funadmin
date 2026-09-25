@@ -1,8 +1,8 @@
 <template>
-  <div data-testid="private-attachment">
+  <div class="private-attachment" data-testid="private-attachment">
     <img v-if="preview" :src="preview" :alt="t('aiComposer.attachment')" />
-    <button type="button" :disabled="busy" @click="download">{{ t('aiComposer.download') }} #{{ attachmentId }}</button>
-    <p v-if="error" role="alert">{{ t('aiComposer.downloadFailed') }} <button type="button" @click="load">{{ t('aiComposer.retry') }}</button></p>
+    <button type="button" class="private-attachment__download" :disabled="busy" @click="download"><i :class="busy ? 'i-ep-loading' : 'i-ep-download'" />{{ t('aiComposer.download') }} #{{ attachmentId }}</button>
+    <p v-if="error" role="alert">{{ t('aiComposer.downloadFailed') }} <button type="button" class="private-attachment__retry" @click="load">{{ t('aiComposer.retry') }}</button></p>
   </div>
 </template>
 <script setup lang="ts">
@@ -40,5 +40,12 @@ watch(() => [props.conversationId, props.attachmentId], () => void load(), { imm
 onBeforeUnmount(() => { generation++; clear(); downloads.forEach(url => URL.revokeObjectURL(url)); downloads.clear(); });
 </script>
 <style scoped>
-img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; } button { cursor: pointer; } [role=alert] { color: var(--el-color-danger); }
+.private-attachment { display: grid; justify-items: start; gap: 8px; min-width: 0; }
+img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; border: 1px solid var(--el-border-color-lighter); border-radius: 10px; }
+button { font: inherit; cursor: pointer; }
+.private-attachment__download { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--el-border-color); border-radius: 999px; background: var(--el-bg-color); color: var(--el-text-color-regular); font-size: 12px; transition: border-color .15s ease, color .15s ease; }
+.private-attachment__download:hover:not(:disabled) { border-color: var(--el-color-primary); color: var(--el-color-primary); }
+.private-attachment__download:disabled { cursor: progress; opacity: .7; }
+[role=alert] { margin: 0; color: var(--el-color-danger); font-size: 12px; }
+.private-attachment__retry { padding: 0; border: 0; background: none; color: var(--el-color-primary); }
 </style>

@@ -28,7 +28,12 @@ function updateMode(value: string | number | boolean | undefined) { emit('update
 </script>
 
 <style scoped>
-.approval-mode-selector { display: grid; gap: 8px; }
-.mode-boundary, .capability-error { margin: 0; color: var(--el-text-color-secondary); font-size: 12px; }
+.approval-mode-selector { display: grid; gap: 10px; min-width: 0; }
+.approval-mode-selector :deep(.el-radio-group) { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.approval-mode-selector :deep(.el-radio-button) { flex: 1 1 auto; }
+.approval-mode-selector :deep(.el-radio-button__inner) { width: 100%; padding-inline: 10px; border: 1px solid var(--el-border-color); border-radius: 8px !important; box-shadow: none !important; }
+.approval-mode-selector :deep(.el-radio-button.is-active .el-radio-button__inner) { border-color: var(--el-color-primary); }
+.mode-boundary, .capability-error { margin: 0; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.6; }
+.mode-boundary { padding: 8px 10px; border-radius: 8px; background: var(--el-fill-color-light); }
 .capability-error { color: var(--el-color-danger); }
 </style>
