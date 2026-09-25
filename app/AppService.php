@@ -36,6 +36,8 @@ class AppService extends Service
 
     public function boot(): void
     {
-        // 服务启动
+        // 框架 Error 初始化器以 E_ALL 把所有告警转为异常；弃用告警按 php.ini-production 惯例排除，
+        // 否则第三方库在新版 PHP 下会让整个请求 500（如 think-captcha 在 8.5 调用 imagedestroy()）。
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
     }
 }
