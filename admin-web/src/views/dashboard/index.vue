@@ -119,7 +119,13 @@
               :type="t.type"
               :hollow="t.hollow"
             >
-              <span v-html="t.content"></span>
+              <span>
+                <template v-for="(segment, index) in richSegments(t.content)" :key="index">
+                  <b v-if="segment.tag === 'b'">{{ segment.text }}</b>
+                  <i v-else-if="segment.tag === 'i'">{{ segment.text }}</i>
+                  <template v-else>{{ segment.text }}</template>
+                </template>
+              </span>
             </el-timeline-item>
           </el-timeline>
         </el-card>
@@ -470,6 +476,21 @@ const timeline = computed<{ id: number; time: string; type: TimelineItemType; ho
   { id: 4, time: t('dashboard.tl4Time', '昨天'), type: 'danger', hollow: false, content: t('dashboard.tl4Content', '<b>王强</b> 处理了一个高优先级工单') },
   { id: 5, time: '03-19', type: 'info', hollow: true, content: t('dashboard.tl5Content', '月度数据报表已生成，请前往<b>报表中心</b>查看') }
 ]);
+
+/* 译文可在后台编辑，只识别 <b>/<i>，其余内容一律按文本渲染。 */
+type RichSegment = { tag: '' | 'b' | 'i'; text: string };
+function richSegments(content: string): RichSegment[] {
+  const segments: RichSegment[] = [];
+  const pattern = /<(b|i)>([^<]*)<\/\1>/g;
+  let cursor = 0;
+  for (const match of content.matchAll(pattern)) {
+    if (match.index > cursor) segments.push({ tag: '', text: content.slice(cursor, match.index) });
+    segments.push({ tag: match[1] as 'b' | 'i', text: match[2] });
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < content.length) segments.push({ tag: '', text: content.slice(cursor) });
+  return segments;
+}
 
 /* ---------- 团队 ---------- */
 const members = ref([
