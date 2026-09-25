@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const projectRoot = resolve(process.cwd(), '..');
-const controllerRoot = resolve(projectRoot, 'app/console/controller');
+const controllerRoot = resolve(projectRoot, 'app/admin/controller');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 const authControllers = ['AdminAuth', 'AdminProfile'];
@@ -25,13 +25,13 @@ const systemControllers = [
 const authorizationControllers = ['SystemMenu', 'SystemPermission', 'SystemRole'];
 const movedControllers = ['AdminApiController', ...authControllers, ...systemControllers, ...authorizationControllers];
 
-const routeSource = readProjectFile('app/console/route/app.php');
-const authSource = readProjectFile('app/console/controller/authentication/AdminAuth.php');
-const profileSource = readProjectFile('app/console/controller/authentication/AdminProfile.php');
-const uploadSource = readProjectFile('app/console/controller/system/AdminUpload.php');
-const roleSource = readProjectFile('app/console/controller/authorization/SystemRole.php');
-const dictSource = readProjectFile('app/console/controller/system/SystemDict.php');
-const permissionSource = readProjectFile('app/console/authorization/service/PermissionResource.php');
+const routeSource = readProjectFile('app/admin/route/app.php');
+const authSource = readProjectFile('app/admin/controller/authentication/AdminAuth.php');
+const profileSource = readProjectFile('app/admin/controller/authentication/AdminProfile.php');
+const uploadSource = readProjectFile('app/admin/controller/system/AdminUpload.php');
+const roleSource = readProjectFile('app/admin/controller/authorization/SystemRole.php');
+const dictSource = readProjectFile('app/admin/controller/system/SystemDict.php');
+const permissionSource = readProjectFile('app/admin/authorization/service/PermissionResource.php');
 
 describe('后台控制器目录重组源码契约', () => {
   it('已移动控制器仅存在于对应子目录', () => {
@@ -69,6 +69,6 @@ describe('后台控制器目录重组源码契约', () => {
     expect(permissionSource).toMatch(/auth\.adminprofile[\s\S]*adminprofile/);
     expect(permissionSource).toMatch(/auth\.adminauth[\s\S]*adminauth/);
     expect(permissionSource).toMatch(/system\.adminupload[\s\S]*adminupload/);
-    expect(permissionSource).toContain("preg_replace('/^system\\.(system[a-z0-9_]+)$/', '$1', $normalized)");
+    expect(permissionSource).toContain("preg_replace('/^(?:system|authorization)\\.(system[a-z0-9_]+)$/', '$1', $normalized)");
   });
 });

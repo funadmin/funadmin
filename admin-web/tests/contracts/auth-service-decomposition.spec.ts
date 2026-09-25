@@ -19,16 +19,16 @@ const phpFilesUnder = (relativePath: string): string[] => {
 
 const productionPhpFiles = ['app', 'extend', 'config'].flatMap(phpFilesUnder);
 const productionPhp = productionPhpFiles.map((file) => `${file}\n${readProjectFile(file)}`).join('\n');
-const consoleRoute = readProjectFile('app/console/route/app.php');
-const adminAuthController = readProjectFile('app/console/controller/authentication/AdminAuth.php');
-const uploadController = readProjectFile('app/console/controller/system/AdminUpload.php');
-const roleController = readProjectFile('app/console/controller/authorization/SystemRole.php');
-const adminController = readProjectFile('app/console/controller/system/SystemAdmin.php');
-const menuControllerRoutes = readProjectFile('app/console/controller/authorization/SystemMenu.php');
+const consoleRoute = readProjectFile('app/admin/route/app.php');
+const adminAuthController = readProjectFile('app/admin/controller/authentication/AdminAuth.php');
+const uploadController = readProjectFile('app/admin/controller/system/AdminUpload.php');
+const roleController = readProjectFile('app/admin/controller/authorization/SystemRole.php');
+const adminController = readProjectFile('app/admin/controller/system/SystemAdmin.php');
+const menuControllerRoutes = readProjectFile('app/admin/controller/authorization/SystemMenu.php');
 const funadminConfig = readProjectFile('config/funadmin.php');
 const crudConfig = readProjectFile('config/crud.php');
-const menuController = readProjectFile('app/console/controller/authorization/SystemMenu.php');
-const apiRoleMiddleware = readProjectFile('app/console/middleware/CheckAdminApiRole.php');
+const menuController = readProjectFile('app/admin/controller/authorization/SystemMenu.php');
+const apiRoleMiddleware = readProjectFile('app/admin/middleware/CheckAdminApiRole.php');
 
 const expectFileMissing = (relativePath: string) => {
   expect(existsSync(projectPath(relativePath)), `${relativePath} 应已删除`).toBe(false);
@@ -44,20 +44,20 @@ const countMatches = (source: string, pattern: RegExp) => source.match(pattern)?
 describe('管理员认证最终架构契约', () => {
   it('M8 删除旧菜单、控制器、中间件和认证兼容入口', () => {
     for (const file of [
-      'app/console/service/AdminLegacyMenuService.php',
-      'app/console/service/AuthService.php',
-      'app/console/controller/Index.php',
-      'app/console/controller/Login.php',
-      'app/console/controller/Ajax.php',
-      'app/console/controller/Error.php',
-      'app/console/middleware/CheckRole.php',
-      'app/console/middleware/ViewNode.php',
+      'app/admin/service/AdminLegacyMenuService.php',
+      'app/admin/service/AuthService.php',
+      'app/admin/controller/Index.php',
+      'app/admin/controller/Login.php',
+      'app/admin/controller/Ajax.php',
+      'app/admin/controller/Error.php',
+      'app/admin/middleware/CheckRole.php',
+      'app/admin/middleware/ViewNode.php',
       'app/common/controller/Backend.php',
     ]) {
       expectFileMissing(file);
     }
 
-    const csrfPath = 'app/console/middleware/CheckCsrf.php';
+    const csrfPath = 'app/admin/middleware/CheckCsrf.php';
     const csrfReferences = productionPhpFiles
       .filter((file) => file !== csrfPath)
       .filter((file) => /\bCheckCsrf\b/.test(readProjectFile(file)));
@@ -71,16 +71,16 @@ describe('管理员认证最终架构契约', () => {
   });
 
   it('调用方直接使用会话、授权和角色范围服务', () => {
-    const adminAuth = readRequiredFile('app/console/controller/authentication/AdminAuth.php');
-    const profile = readRequiredFile('app/console/controller/authentication/AdminProfile.php');
-    const business = readRequiredFile('app/console/controller/development/Business.php');
-    const roleGuard = readRequiredFile('app/console/authorization/service/RoleGuardService.php');
+    const adminAuth = readRequiredFile('app/admin/controller/authentication/AdminAuth.php');
+    const profile = readRequiredFile('app/admin/controller/authentication/AdminProfile.php');
+    const business = readRequiredFile('app/admin/controller/development/Business.php');
+    const roleGuard = readRequiredFile('app/admin/authorization/service/RoleGuardService.php');
     const systemCallers = [
-      'app/console/controller/system/SystemAdmin.php',
-      'app/console/controller/system/SystemDepartment.php',
-      'app/console/controller/authorization/SystemMenu.php',
-      'app/console/controller/authorization/SystemPermission.php',
-      'app/console/controller/authorization/SystemRole.php',
+      'app/admin/controller/system/SystemAdmin.php',
+      'app/admin/controller/system/SystemDepartment.php',
+      'app/admin/controller/authorization/SystemMenu.php',
+      'app/admin/controller/authorization/SystemPermission.php',
+      'app/admin/controller/authorization/SystemRole.php',
     ].map(readRequiredFile).join('\n');
 
     expect(adminAuth).toContain('AdminSessionService');
@@ -110,7 +110,7 @@ describe('管理员认证最终架构契约', () => {
     expect(funadminConfig).not.toMatch(/public_ajax_url|auth_super_only_routes[^;]*(?:index|ajax)\//is);
     for (const source of [crudConfig, menuController]) {
       expect(source).not.toMatch(/\b(?:Index|Login|Ajax)(?:::|\.php|\/)/);
-      expect(source).not.toMatch(/app\\console\\controller\\(?:Index|Login|Ajax)\b/);
+      expect(source).not.toMatch(/app\\admin\\controller\\(?:Index|Login|Ajax)\b/);
     }
   });
 
@@ -124,12 +124,12 @@ describe('管理员认证最终架构契约', () => {
 
   it('新 auth、upload、system API 文件与 Attribute 路由继续存在', () => {
     for (const file of [
-      'app/console/controller/authentication/AdminAuth.php',
-      'app/console/controller/authentication/AdminProfile.php',
-      'app/console/controller/system/AdminUpload.php',
-      'app/console/controller/authorization/SystemMenu.php',
-      'app/console/controller/authorization/SystemRole.php',
-      'app/console/controller/system/SystemAdmin.php',
+      'app/admin/controller/authentication/AdminAuth.php',
+      'app/admin/controller/authentication/AdminProfile.php',
+      'app/admin/controller/system/AdminUpload.php',
+      'app/admin/controller/authorization/SystemMenu.php',
+      'app/admin/controller/authorization/SystemRole.php',
+      'app/admin/controller/system/SystemAdmin.php',
     ]) {
       readRequiredFile(file);
     }

@@ -132,7 +132,7 @@ function dependencies(value: Record<string, string>) { return Object.entries(val
 function marketCapabilities(item: MarketplacePlugin) {
   const version = item.versions[0];
   if (!version) return '-';
-  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => applicationLabel(name)).join(', ');
+  const apps = Object.entries(version.applications || {}).filter(([, enabled]) => enabled).map(([name]) => applicationLabel(name)).join('、');
   const signature = version.signatureAlgorithm === 'ed25519' ? t('plugin.capSigned', 'Ed25519 签名') : (version.signatureAlgorithm ? t('plugin.capSignedBy', { alg: version.signatureAlgorithm }, { default: '{alg} 签名' }) : t('plugin.capUnsigned', '未签名'));
   const database = version.databaseCapability ? t('plugin.capDb', { v: version.databaseCapability }, { default: '数据库 {v}' }) : t('plugin.capDbNone', '数据库无迁移要求');
   const compatibility = version.compatibleReason ? ` · ${version.compatibleReason}` : '';

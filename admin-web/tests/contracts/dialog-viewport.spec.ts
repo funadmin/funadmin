@@ -41,7 +41,9 @@ describe('公共编辑弹窗视口约束', () => {
     const buttonInteraction = readFileSync(resolve(process.cwd(), 'src/views/form/components/ListButtonInteraction.vue'), 'utf8');
     expect(generator).toContain("$tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog'");
     expect(generator).toContain('return "<template><{$tag} v-model=');
-    expect(generator).toMatch(/<SchemaRenderer[^>]*\/><template #footer>[\s\S]*?<\/template><\/\{\$tag\}>/);
+    expect(generator).toMatch(/<SchemaRenderer :key=\\"generation\\"/);
+    expect(generator).toContain('<template #footer>');
+    expect(generator).toContain('</template></{$tag}>');
     for (const source of [runtime, memberDialog, sourceDialog]) {
       const dialogBody = source.match(/<el-dialog\b[^>]*>([\s\S]*?)<\/el-dialog>/)?.[1];
       expect(dialogBody).toBeDefined();

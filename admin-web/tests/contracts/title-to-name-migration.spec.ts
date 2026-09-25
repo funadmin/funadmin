@@ -44,22 +44,27 @@ describe('015 title→name 改名迁移契约', () => {
   });
 
   it('后端菜单 API 以 name 暴露名称并以 routeName 暴露路由名', () => {
-    const authService = readProjectFile('app/console/controller/authentication/AdminAuth.php');
-    const systemMenu = readProjectFile('app/console/controller/authorization/SystemMenu.php');
-    for (const source of [authService, systemMenu]) {
-      expect(source).toContain("'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id))");
-      expect(source).toContain("'name' => (string) $menu->name,");
-      expect(source).not.toContain('$menu->title');
-    }
+    const authService = readProjectFile('app/admin/controller/authentication/AdminAuth.php');
+    const systemMenu = readProjectFile('app/admin/controller/authorization/SystemMenu.php');
+    const menuModel = readProjectFile('app/admin/authorization/model/AdminMenu.php');
+    expect(authService).toContain('toWebMenuData(');
+    expect(systemMenu).toContain('toManagementData(');
+    expect(menuModel).toContain("'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $this->id))");
+    expect(menuModel).toContain("'name' => (string) $this->getAttr('name'),");
+    expect(menuModel).not.toContain('$this->title');
   });
 
   it('角色与权限 API 统一使用 name 字段', () => {
-    const role = readProjectFile('app/console/controller/authorization/SystemRole.php');
-    const permission = readProjectFile('app/console/controller/authorization/SystemPermission.php');
-    expect(role).toContain("'name' => (string) $role->name,");
-    expect(role).not.toContain('$role->title');
-    expect(permission).toContain("'name' => (string) $permission->name,");
-    expect(permission).not.toContain('$permission->title');
+    const role = readProjectFile('app/admin/controller/authorization/SystemRole.php');
+    const permission = readProjectFile('app/admin/controller/authorization/SystemPermission.php');
+    const roleModel = readProjectFile('app/admin/authorization/model/AuthGroup.php');
+    const permissionModel = readProjectFile('app/admin/authorization/model/Permission.php');
+    expect(role).toContain('$role->toRoleData()');
+    expect(roleModel).toContain("'name' => (string) $this->name,");
+    expect(roleModel).not.toContain('$this->title');
+    expect(permission).toContain('$permission->toApiData()');
+    expect(permissionModel).toContain("'name' => (string) $this->getAttr('name'),");
+    expect(permissionModel).not.toContain('$this->title');
   });
 
   it('前端路由转换从 routeName 取路由名、从 name 取标题', () => {

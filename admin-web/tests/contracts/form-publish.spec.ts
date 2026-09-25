@@ -13,11 +13,11 @@ describe('统一表单发布引擎契约', () => {
     for (const column of ['publish_config', 'publish_status', 'published_at', 'crud_generation_id', 'published_definition_hash']) {
       expect(migration).toContain(column);
     }
-    expect(read('app/console/form/model/Form.php')).toContain("'publish_config'");
+    expect(read('app/admin/form/model/Form.php')).toContain("'publish_config'");
   });
 
   it('通过独立工厂把表单元数据转换为 CRUD Definition', () => {
-    const factoryPath = resolve(root, 'app/console/development/service/FormCrudDefinitionFactory.php');
+    const factoryPath = resolve(root, 'app/admin/development/service/FormCrudDefinitionFactory.php');
     expect(existsSync(factoryPath)).toBe(true);
     const factory = readFileSync(factoryPath, 'utf8');
     expect(factory).toContain('final class FormCrudDefinitionFactory');
@@ -32,9 +32,9 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('动态发布与正式生成统一由 Business API 暴露', () => {
-    const dynamic = read('app/console/form/service/FormPublishService.php');
-    const business = read('app/console/controller/development/Business.php');
-    const orchestration = read('app/console/development/service/BusinessDevelopmentService.php');
+    const dynamic = read('app/admin/form/service/FormPublishService.php');
+    const business = read('app/admin/controller/development/Business.php');
+    const orchestration = read('app/admin/development/service/BusinessDevelopmentService.php');
     expect(dynamic).toContain('public function previewDynamic(');
     expect(dynamic).toContain('public function publishDynamic(');
     expect(dynamic).toContain('applyDynamicDdl($payload)');
@@ -47,7 +47,7 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
-    const authorization = read('app/console/authorization/service/AdminAuthorizationService.php');
+    const authorization = read('app/admin/authorization/service/AdminAuthorizationService.php');
     expect(authorization).toContain("preg_match('/^[a-z][a-z0-9_.-]*$/', $object)");
     const migration = read('database/migrations/archive/066_form_publish_engine.sql');
     for (const code of ['console/form.designer:previewpublish', 'console/form.designer:publish', 'console/form.designer:publishstatus', 'console/form.designer:retryresources', 'form:publish:overwrite', 'form:publish:apply-resources']) {
@@ -69,6 +69,14 @@ describe('统一表单发布引擎契约', () => {
     }
     const definition = read('app/common/crud/CrudDefinition.php');
     expect(definition).toContain("'layoutSchema'");
+  });
+
+  it('基本信息提供所属菜单选择，并将选择纳入发布配置', () => {
+    const designer = read('admin-web/src/views/form/designer/index.vue');
+    expect(designer).toContain("t('formDesigner.parentMenu', '所属菜单')");
+    expect(designer).toContain(':model-value="publishConfig.parentSourceName"');
+    expect(designer).toContain('menuApi.tree()');
+    expect(designer).toContain('sourceType');
   });
 
   it('设计器隔离动态发布与正式生成，并对冲突 fail closed', () => {
@@ -104,7 +112,9 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).toContain('retryGenerationQuery');
     expect(designer).toContain('查询生成结果');
     expect(designer).toContain('useBusinessMenuRefresh');
-    expect(designer).toContain("ElMessage.warning('生成成功，菜单刷新失败')");
+    expect(designer).toContain("t('formDesigner.menuRefreshFailed', '生成成功，菜单刷新失败')");
+    expect(read('app/admin/development/service/ManagedGenerationService.php')).toContain("'parentSourceName'");
+    expect(read('app/admin/development/service/GenerationResourceTransaction.php')).toContain("'parentSourceName'");
     expect(designer).not.toContain('permissionStore.fetchMenus()');
   });
 

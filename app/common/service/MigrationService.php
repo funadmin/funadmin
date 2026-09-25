@@ -91,6 +91,9 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('安装插件前必须先完成核心 migration');
             }
 
+            if ($scope === 'core' && $version === '006_schema_integrity') {
+                $this->preflightSchemaIntegrity006($scope, $version);
+            }
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
                 throw new RuntimeException('无法读取 migration：' . $file);
@@ -110,7 +113,6 @@ class MigrationService extends AbstractService
                 $executed[] = $version;
                 continue;
             }
-            $this->preflightSchemaIntegrity006($scope, $version);
             $this->preflightBusinessDevelopment077($scope, $version);
             $this->preflightAiPhase4Migrations($scope, $version);
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);

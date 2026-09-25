@@ -11,7 +11,7 @@ const migration = readProjectFile('../database/migrations/archive/006_schema_int
 const integrityFollowup = readProjectFile('../database/migrations/archive/018_schema_integrity_followup.sql');
 const followup = readProjectFile('../database/migrations/archive/020_schema_integrity_finalize.sql');
 const migrationService = readProjectFile('../app/common/service/MigrationService.php');
-const systemMember = readProjectFile('../app/console/controller/system/SystemMember.php');
+const systemMember = readProjectFile('../app/admin/controller/system/SystemMember.php');
 
 const normalizedSql = migration.replace(/\s+/g, ' ');
 const normalizedIntegrityFollowup = integrityFollowup.replace(/\s+/g, ' ');
@@ -101,7 +101,7 @@ describe('006_schema_integrity migration 源码契约', () => {
 
   it('所有 migration 表前缀均可由 MigrationService 统一替换', () => {
     expect(migrationService).toMatch(
-      /str_replace\(config\('funadmin\.mysqlPrefix'\),\s*config\('database\.connections\.mysql\.prefix'\),\s*\$sql\)/
+      /rewritePrefix\(\$sql,\s*config\('funadmin\.mysqlPrefix'\),\s*\(string\) config\('database\.connections\.mysql\.prefix'\)\)/
     );
     expect(migration).not.toMatch(/CONCAT\(\s*['"]fun_['"]\s*,/i);
   });

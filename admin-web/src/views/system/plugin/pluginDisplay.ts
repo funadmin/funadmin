@@ -36,6 +36,7 @@ const operationLabels: Record<string, string> = {
 const applicationLabels: Record<string, string> = {
   app: '独立应用',
   admin: '管理后台',
+  console: '管理后台',
   adminWeb: '管理前端'
 };
 
@@ -58,8 +59,9 @@ export const operationLabel = (value: string) => {
   return fallback ? t(`plugin.operation.${value}`, fallback) : t('plugin.operationUnknown', '未知操作');
 };
 export const applicationLabel = (value: string) => {
-  const fallback = applicationLabels[value];
-  return fallback ? t(`plugin.application.${value}`, fallback) : t('plugin.applicationUnknown', '其他能力');
+  const normalized = value === 'console' ? 'admin' : value;
+  const fallback = applicationLabels[normalized];
+  return fallback ? t(`plugin.application.${normalized}`, fallback) : t('plugin.applicationUnknown', '其他能力');
 };
 export const scopeLabel = (value: string) => {
   const fallback = scopeLabels[value];

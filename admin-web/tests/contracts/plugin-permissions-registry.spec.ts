@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), '..', p), 'utf8');
 
-const registry = read('app/console/service/ResourceRegistryService.php');
-const infrastructure = read('app/console/plugin/service/PluginInfrastructureService.php');
-const pluginService = read('app/console/plugin/service/PluginService.php')
-  + read('app/console/plugin/service/concern/PluginServiceSupport.php');
+const registry = read('app/admin/service/ResourceRegistryService.php');
+const infrastructure = read('app/admin/plugin/service/PluginInfrastructureService.php');
+const pluginService = read('app/admin/plugin/service/PluginService.php')
+  + read('app/admin/plugin/service/concern/PluginServiceSupport.php');
 
 describe('插件权限节点注入契约', () => {
   it('资源注册表提供权限节点的写入/停用/回收', () => {

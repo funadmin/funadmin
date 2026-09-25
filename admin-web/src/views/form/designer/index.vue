@@ -100,6 +100,20 @@
             </el-alert>
           </div>
         </el-form-item>
+        <el-form-item :label="t('formDesigner.parentMenu', '所属菜单')">
+          <el-tree-select
+            :model-value="publishConfig.parentSourceName"
+            :data="parentMenus"
+            node-key="sourceName"
+            :props="menuTreeProps"
+            check-strictly
+            clearable
+            class="w-full"
+            :placeholder="t('formDesigner.parentMenuPlaceholder', '选择生成后挂载的菜单，不选择则创建一级菜单')"
+            @update:model-value="updateParentMenu"
+          />
+          <div class="form-tip">{{ t('formDesigner.parentMenuTip', '生成正式模块后，菜单将挂载到所选菜单下；留空则作为一级菜单。') }}</div>
+        </el-form-item>
         <el-divider />
         <el-form-item :label="t('formDesigner.treeList', '树形列表')">
           <el-switch :model-value="treeConfig.enabled === true" @change="enabled => updateTree({ enabled: Boolean(enabled) })" />
@@ -307,6 +321,7 @@ import type { FormPublishConfig } from '@/api/form';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessModule, type BusinessDatabaseTable, type BusinessFormalGenerationPreview, type BusinessFormalGenerationResult, type BusinessGeneration } from '@/api/development/business';
 import { formDataApi } from '@/api/formData';
 import { dictApi } from '@/api/system/dict';
+import { menuApi } from '@/api/system/menu';
 import type { FormDataSourceRequest } from '../dataSource/useFormDataSource';
 import { flattenSchemaNodes } from '../schema/types';
 import { CONTROL_REGISTRY, controlMeta } from '../registry';
@@ -372,12 +387,18 @@ const invalidateGenerationPreview = () => {
 };
 watch([() => store.schemaDocument.value, () => store.form.value.schema_hash, businessTarget, moduleId], invalidateGenerationPreview, { deep: true, flush: 'sync' });
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
-const parentMenus = ref<Array<Record<string, unknown>>>([]);
+const parentMenus = ref<API.MenuItem[]>([]);
 const databaseTables = ref<BusinessDatabaseTable[]>([]);
 const tableLoading = ref(false);
 const tableLoadError = ref('');
 const icons = ref<string[]>([]);
 const menuTreeProps = { label: 'name', children: 'children', value: 'sourceName' };
+const updateParentMenu = (value: string | undefined) => {
+  const parentSourceName = String(value ?? '');
+  publishConfig.value.parentSourceName = parentSourceName;
+  publishConfig.value.parentId = null;
+  store.updateForm({ publish_config: { ...store.form.value.publish_config, parentSourceName } });
+};
 const publishConfig = ref<FormPublishConfig>({
   module: 'generated', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
   parentSourceName: '', menuName: '', icon: 'i-ep-document', sortOrder: 999,
@@ -525,6 +546,18 @@ const tableHelp = computed(() => isPluginTarget.value
   ? t('formDesigner.tableHelpCreated', { name: suggestedTableName.value || t('formDesigner.suggestedTablePlaceholder', '业务标识') }, '新表将在保存或发布时按画布字段创建；建议表名：{name}')
   : t('formDesigner.tableHelpAdopted', '仅可选择数据库中已存在的表，系统会读取其字段、主键和索引。'));
 const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
+const loadParentMenus = async () => {
+  try {
+    const tree = await menuApi.tree();
+    const currentSourceName = String(store.form.value.form_key ?? '').replace(/_/g, '-');
+    const prune = (items: API.MenuItem[]): API.MenuItem[] => items
+      .filter((menu) => menu.sourceType && menu.sourceName && menu.sourceName !== currentSourceName)
+      .map((menu) => ({ ...menu, children: menu.children ? prune(menu.children) : undefined }));
+    parentMenus.value = prune(tree);
+  } catch {
+    parentMenus.value = [];
+  }
+};
 const loadDatabaseTables = async (force = false) => {
   if (tableLoading.value || (!force && databaseTables.value.length)) return;
   tableLoading.value = true;
@@ -946,6 +979,7 @@ onMounted(async () => {
   await load();
   localDraftRestorePending = true;
   void restoreLocalDraft();
+  void loadParentMenus();
 });
 onBeforeUnmount(() => {
   deactivateDesigner();

@@ -6,7 +6,7 @@
         <el-option v-for="item in nsOptions" :key="item" :label="item" :value="item" />
       </el-select>
       <el-button type="primary" plain @click="reload(1)"><i class="i-ep-search" /> {{ t('common.search', '查询') }}</el-button>
-      <el-button plain @click="openAdd"><i class="i-ep-plus" /> {{ t('systemLanguage.addLine', '新增译文') }}</el-button>
+      <el-button type="info" plain @click="openAdd"><i class="i-ep-plus" /> {{ t('systemLanguage.addLine', '新增译文') }}</el-button>
       <span class="text-xs text-[var(--el-text-color-secondary)]">{{ t('systemLanguage.inlineTip', '行内修改失焦即保存；保存后当前语言译文包即时刷新。') }}</span>
     </div>
     <el-table v-loading="loading" :data="rows" border>

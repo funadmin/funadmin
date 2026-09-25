@@ -127,11 +127,13 @@ describe('已执行迁移不可变与 020 最终修复契约', () => {
 });
 
 describe('字段类型、会员与唯一冲突源码契约', () => {
-  it('项目规则统一使用 Laravel 风格 datetime 公共时间字段', () => {
-    const projectRule = readProjectFile('.cursor/rules/funadmin.mdc');
+  it('模型基类统一使用 Laravel 风格 datetime 公共时间字段', () => {
+    const baseModel = readProjectFile('app/common/model/BaseModel.php');
 
-    expect(projectRule).toContain('- **时间字段**: 使用 `created_at`、`updated_at`、`deleted_at` 的 `datetime` 类型');
-    expect(projectRule).not.toMatch(/时间字段[^\n]*(?:Unix|UNIX)[^\n]*秒[^\n]*`?int`?/i);
+    expect(baseModel).toContain("'autoWriteTimestamp' => 'datetime'");
+    expect(baseModel).toContain("'createTime' => 'created_at'");
+    expect(baseModel).toContain("'updateTime' => 'updated_at'");
+    expect(baseModel).toContain("'deleteTime' => 'deleted_at'");
   });
 
   it('Member 注册邮箱限制 60、包含软删除判重并明确空值归一策略', () => {
@@ -155,7 +157,7 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
   });
 
   it('SystemRole 对 name/code 使用 withTrashed 判重并捕获数据库唯一冲突', () => {
-    const source = readProjectFile('app/console/controller/authorization/SystemRole.php');
+    const source = readProjectFile('app/admin/controller/authorization/SystemRole.php');
     const writes = source.match(/public function create\(\): Response[\s\S]*?(?=\n    public function delete)/)?.[0] ?? '';
 
     expect(writes).toMatch(/AuthGroup::withTrashed\(\)[\s\S]*['"]name['"]/);
@@ -165,7 +167,7 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
   });
 
   it('SystemConfig 配置分组写入捕获数据库唯一冲突', () => {
-    const source = readProjectFile('app/console/controller/system/SystemConfig.php');
+    const source = readProjectFile('app/admin/controller/system/SystemConfig.php');
     const groupWrites = source.match(/public function createGroup\(\): Response[\s\S]*?(?=\n    public function deleteGroup)/)?.[0] ?? '';
 
     expect(groupWrites).toMatch(/catch\s*\(\\Throwable\s+\$\w+\)/);

@@ -67,7 +67,7 @@ describe('Element Plus 按钮主题契约', () => {
 
   it('回收站入口使用 warning plain', () => {
     const definition = readFileSync(resolve(process.cwd(), '../app/admin/service/MemberPageDefinition.php'), 'utf8');
-    expect(definition).toContain("$action('recycled', '回收站', 'warning'");
+    expect(definition).toContain("$action('recycled', $t('回收站', 'Recycle Bin'), 'warning'");
     expect(definition).toContain("'inactiveColor' => 'info'");
     expect(definition).toContain("'activeWhen' => $recycled");
     const actions = readFileSync(resolve(process.cwd(), 'src/components/DataTable/PageActions.vue'), 'utf8');

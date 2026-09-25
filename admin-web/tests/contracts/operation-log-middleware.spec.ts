@@ -3,9 +3,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const readProjectFile = (path: string) => readFileSync(resolve(process.cwd(), '..', path), 'utf8');
-const middleware = readProjectFile('app/console/middleware/SystemLog.php');
+const middleware = readProjectFile('app/admin/middleware/SystemLog.php');
 const service = readProjectFile('app/common/service/AdminLogService.php');
-const controller = readProjectFile('app/console/controller/system/SystemOperationLog.php');
+const controller = readProjectFile('app/admin/controller/system/SystemOperationLog.php');
+const model = readProjectFile('app/admin/model/AdminLog.php');
 const api = readProjectFile('admin-web/src/api/system/log.ts');
 const view = readProjectFile('admin-web/src/views/system/log/operation.vue');
 const migration = readProjectFile('database/migrations/archive/012_admin_log_audit.sql');
@@ -32,7 +33,7 @@ describe('操作日志中间件契约', () => {
   it('记录响应状态、耗时、请求标识和异常摘要', () => {
     for (const field of ['response_code', 'duration_ms', 'request_id', 'error_message']) {
       expect(service).toContain(`'${field}'`);
-      expect(controller).toContain(`$log->${field}`);
+      expect(model).toContain(`$this->${field}`);
     }
     expect(middleware).toContain('microtime(true)');
     expect(middleware).toContain('$exception->getMessage()');
@@ -55,8 +56,9 @@ describe('操作日志中间件契约', () => {
   it('服务与前端统一使用应用及来源字段', () => {
     for (const field of ['app_name', 'source_type', 'source_name']) {
       expect(service).toContain(`'${field}'`);
-      expect(controller).toContain(`$log->${field}`);
+      expect(model).toContain(`$this->${field}`);
     }
+    expect(controller).toContain('$log->toApiData(');
     expect(service).not.toContain("'plugins' =>");
     expect(service).not.toContain("'module' =>");
     for (const field of ['appName', 'sourceType', 'sourceName', 'responseCode', 'durationMs', 'requestId', 'errorMessage']) {

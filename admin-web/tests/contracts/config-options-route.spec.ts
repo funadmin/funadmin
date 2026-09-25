@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const routeSource = readFileSync(resolve(process.cwd(), '../app/console/route/app.php'), 'utf8');
-const controllerSource = readFileSync(resolve(process.cwd(), '../app/console/controller/system/SystemConfig.php'), 'utf8');
+const routeSource = readFileSync(resolve(process.cwd(), '../app/admin/route/app.php'), 'utf8');
+const controllerSource = readFileSync(resolve(process.cwd(), '../app/admin/controller/system/SystemConfig.php'), 'utf8');
 const apiSource = readFileSync(resolve(process.cwd(), 'src/api/system/config.ts'), 'utf8');
 const dialogSource = readFileSync(resolve(process.cwd(), 'src/views/system/config/components/ConfigFormDialog.vue'), 'utf8');
 
@@ -21,6 +21,6 @@ describe('配置选项加载契约', () => {
 
   it('配置分组下拉有当前值兜底且不显示空面板', () => {
     expect(dialogSource).toContain('availableGroups');
-    expect(dialogSource).toContain('no-data-text="暂无可用配置分组"');
+    expect(dialogSource).toContain(":no-data-text=\"t('systemConfig.groupEmpty', '暂无可用配置分组')\"");
   });
 });

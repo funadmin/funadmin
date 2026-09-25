@@ -13,6 +13,6 @@ describe('父级选择器顶级文案', () => {
   it.each(files)('%s 使用文案表示值 0', (file) => {
     const source = readFileSync(resolve(process.cwd(), file), 'utf8');
     expect(source).toContain("id: 0");
-    expect(source).toMatch(/(title|name): '无上级'/);
+    expect(source).toMatch(/(?:title|name): t\('[^']+\.noParent', '无上级'\)/);
   });
 });

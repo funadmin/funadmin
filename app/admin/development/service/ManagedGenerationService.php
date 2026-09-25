@@ -608,6 +608,7 @@ final class ManagedGenerationService
                 'name' => (string) $menu['name'], 'href' => $href,
                 'query' => \app\common\crud\ProductionTemplateContext::menuQuery($data),
                 'permission' => (string) ($resources[0]['code'] ?? ''), 'icon' => (string) $menu['icon'],
+                'parentSourceName' => (string) ($menu['parentSourceName'] ?? ''),
                 'sortOrder' => (int) $menu['sortOrder'], 'visible' => ($menu['hidden'] ?? false) ? 0 : 1,
             ];
         }

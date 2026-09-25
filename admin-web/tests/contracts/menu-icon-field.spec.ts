@@ -15,7 +15,7 @@ const iconMigrationPath = resolve(process.cwd(), '../database/migrations/archive
 
 describe('菜单表单图标字段', () => {
   it('图标选择器不能放在无指令的原生 template 中', () => {
-    expect(source).toContain('<el-form-item label="图标" prop="icon">');
+    expect(source).toContain(`<el-form-item :label="t('systemMenu.icon', '图标')" prop="icon">`);
     expect(source).toContain('<IconSelect v-model="form.icon" />');
     expect(source).not.toMatch(/<template>\s*<el-row[\s\S]*?<IconSelect v-model="form\.icon" \/>[\s\S]*?<\/template>/);
   });

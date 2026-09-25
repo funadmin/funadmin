@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\development\service;
 
+use app\admin\authorization\model\AdminMenu;
 use app\admin\service\ResourceRegistryService;
 use RuntimeException;
 use think\facade\Db;
@@ -38,7 +39,11 @@ final class GenerationResourceTransaction
             $registry->removeSource('generated', $sourceName);
             $registry->registerPermissions($group['permissions'], 'generated', $sourceName);
             if ($group['menus'] !== []) {
-                $registry->registerTree($group['menus'], sourceType: 'generated', sourceName: $sourceName);
+                foreach ($group['menus'] as $menu) {
+                    $parentMenuId = $this->parentMenuId((string) ($menu['parentSourceName'] ?? ''));
+                    unset($menu['parentSourceName']);
+                    $registry->registerTree([$menu], parentMenuId: $parentMenuId, sourceType: 'generated', sourceName: $sourceName);
+                }
             }
             if ($group['languageLines'] !== []) {
                 $result = $registry->registerLanguageLines($group['languageLines'], 'generated', $sourceName);
@@ -109,6 +114,7 @@ final class GenerationResourceTransaction
                 'query' => (string) ($resource['query'] ?? ''),
                 'permission' => (string) ($resource['permission'] ?? ''),
                 'icon' => (string) ($resource['icon'] ?? 'i-ep-menu'),
+                'parentSourceName' => (string) ($resource['parentSourceName'] ?? ''),
                 'sort' => (int) ($resource['sortOrder'] ?? $resource['sort'] ?? 999),
                 'visible' => (int) ($resource['visible'] ?? 1),
                 'status' => (int) ($resource['status'] ?? 1),
@@ -130,6 +136,19 @@ final class GenerationResourceTransaction
             throw new RuntimeException('生成资源稳定键无效');
         }
         return [$type, $sourceName, $identity];
+    }
+
+    private function parentMenuId(string $sourceName): int
+    {
+        $sourceName = trim($sourceName);
+        if ($sourceName === '') {
+            return 0;
+        }
+        $parent = AdminMenu::managedQuery()->where('source_name', $sourceName)->find();
+        if (!$parent) {
+            throw new RuntimeException('所属菜单不存在或不可用：' . $sourceName);
+        }
+        return (int) $parent->id;
     }
 
     private function assertActive(): void

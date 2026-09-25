@@ -6,8 +6,8 @@ const source = readFileSync(resolve(process.cwd(), 'src/views/system/log/operati
 
 describe('操作日志短标签列', () => {
   it('方法和状态标签列禁用单元格省略号', () => {
-    expect(source).toMatch(/label="方法"[^>]*class-name="log-tag-column"/);
-    expect(source).toMatch(/label="状态"[^>]*class-name="log-tag-column"/);
+    expect(source).toMatch(/:label="t\('systemLog\.method', '方法'\)"[^>]*class-name="log-tag-column"/);
+    expect(source).toMatch(/:label="t\('common\.status', '状态'\)"[^>]*class-name="log-tag-column"/);
     expect(source).toMatch(/\.log-tag-column\s+:deep\(\.cell\)[^{]*\{[^}]*overflow:\s*visible;[^}]*text-overflow:\s*clip;/s);
   });
 });

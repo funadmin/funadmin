@@ -195,7 +195,10 @@ for (const [name, page] of [['data', DataPage], ['published', PublishedPage]] as
           const pending = handlers(wrapper)[mode]({ code: 'A' });
           const before = JSON.stringify(content(wrapper));
           if (interruption.startsWith('关闭')) {
-            wrapper.findComponent(mode === 'edit' ? ElDialog : ElDrawer).vm.$emit('update:modelValue', false);
+            const host = mode === 'edit'
+              ? wrapper.findAllComponents(ElDialog).find(dialog => dialog.props('modelValue') === true)
+              : wrapper.findComponent(ElDrawer);
+            host!.vm.$emit('update:modelValue', false);
             if (interruption === '关闭再打开') state(wrapper)[visible] = true;
           } else if (interruption === '切换表单并返回') {
             const params = mocks.route.params as Record<string, string>;
