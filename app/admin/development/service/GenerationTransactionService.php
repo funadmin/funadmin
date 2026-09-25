@@ -414,7 +414,7 @@ final class GenerationTransactionService
         foreach ($files as $file) {
             $path = (string) ($file['path'] ?? '');
             if (!in_array($path, $allowed, true) || !str_starts_with($path, 'plugins/' . $code . '/')
-                || preg_match('#^plugins/' . preg_quote($code, '#') . '/(?:plugin\\.json|app/admin/(?:model|validate|service|controller)/[A-Za-z0-9]+\\.php|admin-web/[a-z0-9-]+/(?:api\\.ts|index\\.vue|components/[A-Za-z0-9]+\\.vue)|database/migrations/[0-9]{3}_[a-z0-9_]+\\.sql)$#D', $path) !== 1) {
+                || preg_match('#^plugins/' . preg_quote($code, '#') . '/(?:plugin\\.json|app/(?:admin|' . preg_quote($code, '#') . ')/(?:model|validate|service|controller)/[A-Za-z0-9]+\\.php|admin-web/[a-z0-9-]+/(?:api\\.ts|index\\.vue|components/[A-Za-z0-9]+\\.vue)|database/migrations/[0-9]{3}_[a-z0-9_]+\\.sql)$#D', $path) !== 1) {
                 throw new \InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
             }
             PathGuard::resolve($this->projectRoot, $path, '插件目录');

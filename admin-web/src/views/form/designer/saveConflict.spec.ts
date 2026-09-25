@@ -6,7 +6,7 @@ import designerSource from './index.vue?raw';
 import zhCN from '@/locales/zh-CN';
 import enUS from '@/locales/en-US';
 
-const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
+const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), savePublishConfig: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
 vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
@@ -200,13 +200,25 @@ describe('插件业务生成闭环', () => {
     api.module.mockResolvedValue(pluginRemote());
     await start();
     Object.assign(state.publishConfig, { module: 'generated', apiPrefix: '/generated/orders', routePath: '/generated/orders', menuName: '订单' });
+    api.savePublishConfig.mockImplementationOnce(async (_id: number, publishConfig: object) => ({ publishConfig }));
     let finish!: (value: unknown) => void;
     api.previewFormalGeneration.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const pending = state.onPreviewPublish();
+    // 发布设置先落库，预览请求发出后再模拟编辑。
+    await vi.waitFor(() => expect(api.previewFormalGeneration).toHaveBeenCalled());
+    expect(api.savePublishConfig).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ apiPrefix: '/generated/orders' }));
     state.store.updateForm({ name: '预览中编辑' });
     finish(plan());
     await pending;
     expect(state.publishPreview).toBeNull();
+  });
+  it('启用前台接口但未选择整数归属字段时不保存发布设置也不预览', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    await start();
+    Object.assign(state.publishConfig, { module: 'generated', apiPrefix: '/generated/orders', routePath: '/generated/orders', menuName: '订单', memberApiEnabled: true, memberApiOwnerField: 'not_a_field' });
+    await state.onPreviewPublish();
+    expect(api.savePublishConfig).not.toHaveBeenCalled();
+    expect(api.previewFormalGeneration).not.toHaveBeenCalled();
   });
   it('执行期间 Schema 变化后网络失败仍查询原生成记录', async () => {
     api.module.mockResolvedValue(pluginRemote());

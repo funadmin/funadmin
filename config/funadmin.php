@@ -28,6 +28,7 @@ return [
     // 复用已有权限节点，避免同一能力出现多个授权口径。
     'auth_route_aliases'=>[
             'development.business:designactioncatalog' => 'development.business/saveschema',
+            'development.business:savepublishconfig' => 'development.business/saveschema',
         'plugin/localinstall' => 'plugin/install',
         'plugin/uninstall' => 'plugin/install',
         'system/role/all' => 'systemrole/index',

@@ -18,6 +18,9 @@ final class PluginTemplateContext
             'validateNamespace' => $console ? $namespace . '\\validate\\' . $pluginNamespace : $namespace . '\\validate',
             'serviceNamespace' => $console ? $namespace . '\\service\\' . $pluginNamespace : $namespace . '\\service',
             'controllerNamespace' => $console ? $namespace . '\\controller\\' . $pluginNamespace : $namespace . '\\controller',
+            // 前台会员控制器只渲染在插件 application 层（app\{plugin}\controller），路由为 /{plugin}/{entity}。
+            'memberControllerNamespace' => 'app\\' . $plugin . '\\controller',
+            'memberControllerGroup' => $entity,
             'controllerGroup' => $console ? 'plugin/' . $plugin . '/' . $entity : $entity,
             'apiPrefix' => $console ? '/plugin/' . $plugin . '/' . $entity : '/' . $entity,
             'frontendApiImport' => './api',

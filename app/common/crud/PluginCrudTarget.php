@@ -23,9 +23,11 @@ final class PluginCrudTarget
         $templates = (array) $definition->get('templates', []);
         $files = [];
 
-        if (in_array($scope, ['application', 'both'], true)) {
+        // 前台会员接口渲染在插件 application 层；未启用时 application/both 仍为只读控制器。
+        $memberApi = (((array) $definition->get('memberApi', []))['enabled'] ?? false) === true;
+        if (in_array($scope, ['application', 'both'], true) || $memberApi) {
             $context = PluginTemplateContext::build($definition, $plugin, false);
-            $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/{$plugin}", $class);
+            $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/{$plugin}", $class, $memberApi ? 'memberApiController' : 'controller');
         }
         if (in_array($scope, ['admin', 'both'], true)) {
             $context = PluginTemplateContext::build($definition, $plugin, true);
@@ -48,9 +50,9 @@ final class PluginCrudTarget
         return $files;
     }
 
-    private function renderBackend(array &$files, TemplateRenderer $renderer, array $templates, array $context, string $base, string $class): void
+    private function renderBackend(array &$files, TemplateRenderer $renderer, array $templates, array $context, string $base, string $class, string $controllerTemplate = 'controller'): void
     {
-        foreach (['model' => "model/{$class}.php", 'validate' => "validate/{$class}Validate.php", 'service' => "service/{$class}Service.php", 'controller' => "controller/{$class}Controller.php"] as $type => $path) {
+        foreach (['model' => "model/{$class}.php", 'validate' => "validate/{$class}Validate.php", 'service' => "service/{$class}Service.php", $controllerTemplate => "controller/{$class}Controller.php"] as $type => $path) {
             $files["{$base}/{$path}"] = $this->render($renderer, $templates, $type, $context);
         }
     }

@@ -94,6 +94,14 @@ final class CrudDefinition implements JsonSerializable
         }
         $data['menu'] = self::normalizeMenu($data);
         $data['permission'] = self::normalizePermission($data);
+        // 仅在声明时规范化：未启用前台接口的定义保持原结构，历史生成审计中的 definitionHash 不变。
+        if (array_key_exists('memberApi', $data)) {
+            $memberApi = is_array($data['memberApi']) ? $data['memberApi'] : [];
+            $data['memberApi'] = [
+                'enabled' => ($memberApi['enabled'] ?? false) === true,
+                'ownerField' => (string) ($memberApi['ownerField'] ?? 'member_id'),
+            ];
+        }
         unset($data['name'], $data['paths'], $data['metadata']);
         return $data;
     }

@@ -127,6 +127,10 @@ export interface FormPublishConfig {
   formMode: 'dialog' | 'drawer';
   dataScopeEnabled: boolean;
   dataScopeField: string;
+  /** 同时生成前台会员增删改查接口（核心 /api/v2/{实体}，插件 /{插件}/{实体}）。 */
+  memberApiEnabled?: boolean;
+  /** 会员归属字段（整数列）；前台接口只能操作归属等于当前会员的记录。 */
+  memberApiOwnerField?: string;
 }
 
 export interface FormDefinition {

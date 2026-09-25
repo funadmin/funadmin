@@ -161,6 +161,36 @@ final class BusinessDevelopmentService
         return $this->validateSchema($moduleId, $schema);
     }
 
+    private const PUBLISH_CONFIG_KEYS = [
+        'module', 'apiPrefix', 'routePath', 'menuEnabled', 'parentId', 'parentSourceName', 'menuName', 'icon', 'sortOrder',
+        'softDeletes', 'batchDelete', 'import', 'export', 'formMode', 'dataScopeEnabled', 'dataScopeField',
+        'memberApiEnabled', 'memberApiOwnerField',
+    ];
+
+    /**
+     * 正式生成读取表单记录上的 publish_config；设计器「发布设置」须先落库才会生效。
+     * 取值的合法性由生成时的 DefinitionValidator 严格校验，这里只拒绝未知键与非标量值。
+     */
+    public function savePublishConfig(int $moduleId, array $config): array
+    {
+        $unknown = array_diff(array_keys($config), self::PUBLISH_CONFIG_KEYS);
+        if ($unknown !== []) {
+            throw new InvalidArgumentException('发布设置包含未知字段：' . implode(', ', $unknown));
+        }
+        foreach ($config as $key => $value) {
+            if ($value !== null && !is_scalar($value)) {
+                throw new InvalidArgumentException('发布设置字段必须为标量：' . $key);
+            }
+        }
+        $form = \app\admin\form\model\Form::find($this->formId($moduleId));
+        if (!$form) {
+            throw new InvalidArgumentException('业务模块表单不存在');
+        }
+        $merged = array_replace((array) ($form->publish_config ?? []), $config);
+        $form->save(['publish_config' => $merged]);
+        return ['publishConfig' => (object) $merged];
+    }
+
     public function exportSchema(int $moduleId, array $schema): array
     {
         $detail = $this->module($moduleId);

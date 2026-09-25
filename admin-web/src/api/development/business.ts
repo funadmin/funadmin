@@ -1,5 +1,5 @@
 import http from '@/utils/http';
-import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
+import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormPublishConfig, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
 
 import type { FormListActionMetadata, FormListButtonLocation } from '@/views/form/schema/types';
 import type { ListResource } from '@/views/form/runtime/listResourceHost';
@@ -210,6 +210,8 @@ export const businessDevelopmentApi = {
     http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/validate`, { schema }),
   saveSchema: (id: number, schema: FormSchemaDocument, expectedSchemaHash: string, summary = '') =>
     http.post<{ schemaHash: string; document: FormSchemaDocument }>(`${PREFIX}/modules/${id}/schema/save`, { schema, expectedSchemaHash, summary }, { requestOptions: { showErrorMsg: false } }),
+  savePublishConfig: (id: number, publishConfig: Partial<FormPublishConfig>) =>
+    http.post<{ publishConfig: Partial<FormPublishConfig> }>(`${PREFIX}/modules/${id}/publish-config`, { publishConfig }, { requestOptions: { showErrorMsg: false } }),
   compileSchema: (id: number, schema: FormSchemaDocument) =>
     http.post<FormSchemaCompileResult>(`${PREFIX}/modules/${id}/schema/compile`, { schema }),
   exportSchema: (id: number, schema: FormSchemaDocument) =>

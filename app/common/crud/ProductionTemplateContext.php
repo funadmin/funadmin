@@ -30,6 +30,8 @@ final class ProductionTemplateContext
         $data['_validateNamespace'] = (string) ($target['validateNamespace'] ?? $data['_namespace'] . '\\validate');
         $data['_serviceNamespace'] = (string) ($target['serviceNamespace'] ?? $data['_namespace'] . '\\service');
         $data['_controllerNamespace'] = (string) ($target['controllerNamespace'] ?? $data['_namespace'] . '\\controller');
+        $data['_memberControllerNamespace'] = (string) ($target['memberControllerNamespace'] ?? 'app\\api\\controller\\generated');
+        $data['_memberControllerGroup'] = (string) ($target['memberControllerGroup'] ?? 'v2/' . $data['entity']);
         if (($target['type'] ?? 'core') === 'core') {
             foreach (['model', 'validate', 'service', 'controller'] as $artifact) {
                 if (str_contains((string) ($data['generationTargets'][$artifact] ?? ''), "/{$artifact}/generated/")) {
@@ -64,6 +66,7 @@ final class ProductionTemplateContext
             'validateContent' => self::validator($data, $class, $primary),
             'serviceContent' => self::service($data, $class, $primary),
             'controllerContent' => self::controller($data, $class, $primary),
+            'memberControllerContent' => ($data['memberApi']['enabled'] ?? false) === true ? self::memberController($data, $class, $primary) : '',
             'permissionMigrationContent' => self::permissionMigration($data),
             'apiContent' => self::api($data, $class, $primary),
             'viewContent' => self::view($data, $class, $primary),
@@ -320,7 +323,8 @@ final class ProductionTemplateContext
             . $optionsMethod . "}\n";
     }
 
-    private static function controller(array $data, string $class, array $primary): string
+    /** 后台与前台会员控制器共用的搜索/筛选/排序/输出契约，避免两份实现漂移。 */
+    private static function listContract(array $data): array
     {
         $search = $exact = $range = $operators = $sort = [];
         foreach ($data['fields'] as $field) {
@@ -346,6 +350,12 @@ final class ProductionTemplateContext
             if (in_array($relation['name'], array_column($data['fields'], 'name'), true)) continue;
             $dto[] = "            '{$relation['name']}' => \$model->{$relation['name']}?->toArray(),";
         }
+        return [$search, $exact, $range, $operators, $sort, $dto];
+    }
+
+    private static function controller(array $data, string $class, array $primary): string
+    {
+        [$search, $exact, $range, $operators, $sort, $dto] = self::listContract($data);
         $features = $data['features'];
         $enabled = self::enabledCapabilities($data);
         if (!$data['_consoleController']) {
@@ -472,6 +482,73 @@ final class ProductionTemplateContext
             . ($data['dataScope']['enabled']
                 ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return lang('{$data['entity']}.dataScopeRequired', ['field' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return lang('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
                 : '')
+            . "        \$validate = new {$class}Validate();\n"
+            . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
+            . "        return \$validate->check(\$data) ? null : \$validate->getError();\n    }\n"
+            . "    protected function beforeDelete(iterable \$models, bool \$force): ?Response\n    {\n"
+            . "        \$error = (new {$class}Service())->assertNotReferenced(\$models, \$force);\n"
+            . "        return \$error === null ? null : \$this->fail(msg: \$error, code: 422);\n    }\n"
+            . "    protected function transformData(Model \$model): array\n    {\n        return [\n"
+            . implode("\n", $dto) . "\n        ];\n    }\n"
+            . "    protected function resourceName(): string { return '" . addslashes($data['title']) . "'; }\n}\n";
+    }
+
+    /**
+     * 前台会员增删改查控制器：全部接口需会员登录（MApi），只能访问归属字段等于当前会员的记录。
+     * 不暴露批量、回收站、恢复、导入导出、状态与 options，缩小会员侧攻击面。
+     */
+    private static function memberController(array $data, string $class, array $primary): string
+    {
+        [$search, $exact, $range, $operators, $sort, $dto] = self::listContract($data);
+        $owner = (string) $data['memberApi']['ownerField'];
+        $enabled = self::enabledCapabilities($data);
+        $idRoute = "    #[Pattern('id', '[A-Za-z0-9_-]+')]\n";
+        $methods = ["    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }"];
+        if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n{$idRoute}    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
+        if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
+        if ($enabled['update']) $methods[] = "    #[Put(':id')]\n{$idRoute}    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
+        if ($enabled['delete']) $methods[] = "    #[Delete(':id')]\n{$idRoute}    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+        $hidden = '';
+        foreach (['index' => 'crudIndex', 'detail' => 'crudDetail', 'create' => 'crudCreate', 'update' => 'crudUpdate', 'status' => 'crudStatus',
+            'remove' => 'crudRemove', 'restoreOne' => 'crudRestoreOne', 'destroyOne' => 'crudDestroyOne', 'recycle' => 'crudRecycle',
+            'restore' => 'crudRestoreMany', 'destroy' => 'crudDestroyMany', 'import' => 'crudImport', 'export' => 'crudExport'] as $method => $alias) {
+            $hidden .= "        {$method} as private {$alias}; {$method} as private;\n";
+        }
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_memberControllerNamespace']};\n\n"
+            . "use app\\BaseController;\nuse app\\admin\\traits\\AdminCrudRequest;\nuse app\\admin\\traits\\AdminPagination;\n"
+            . "use app\\common\\middleware\\MApi;\nuse app\\common\\traits\\Crud;\nuse app\\common\\traits\\JsonResponse;\n"
+            . "use {$data['_modelNamespace']}\\{$class};\nuse {$data['_serviceNamespace']}\\{$class}Service;\nuse {$data['_validateNamespace']}\\{$class}Validate;\n"
+            . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
+            . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
+            . "use think\\Model;\nuse think\\Response;\n\n"
+            . "#[Group('{$data['_memberControllerGroup']}')]\nfinal class {$class}Controller extends BaseController\n{\n"
+            . "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n"
+            . "    use Crud {\n{$hidden}        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
+            . "    protected array \$middleware = [MApi::class];\n"
+            . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
+            . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"
+            . '    protected function exactFilters(): array { return ' . self::phpArray($exact) . "; }\n"
+            . '    protected function rangeFilters(): array { return ' . self::phpArray($range) . "; }\n"
+            . '    protected function operatorFilters(): array { return ' . self::phpArray($operators) . "; }\n"
+            . '    protected function sortFields(): array { return ' . self::phpArray($sort) . "; }\n"
+            . "    protected function primaryKey(): string { return '{$primary['name']}'; }\n"
+            . "    protected function primaryKeyType(): string { return '" . self::primaryKeyType($primary) . "'; }\n"
+            . "    protected function primaryKeyPattern(): ?string { return " . var_export(self::primaryKeyPattern($primary), true) . "; }\n"
+            . "    protected function usesSoftDeletes(): bool { return " . ($data['softDeletes'] ? 'true' : 'false') . "; }\n"
+            . "    // 所有读写查找都经此处：只命中当前会员自己的记录，且不可见回收站（忽略 recycled 与 withTrashed）。\n"
+            . "    protected function baseQuery(bool \$onlyTrashed, bool \$withTrashed)\n    {\n"
+            . "        return \$this->crudUnscopedBaseQuery(false, false)->where('{$owner}', \$this->memberId());\n    }\n"
+            . "    private function memberId(): int\n    {\n"
+            . "        \$memberId = (int) (\$this->request->member_id ?? 0);\n"
+            . "        return \$memberId > 0 ? \$memberId : -1;\n    }\n"
+            . "    protected function payload(?Model \$model = null): array\n    {\n"
+            . "        \$payload = array_intersect_key(\$this->request->post(), array_flip({$class}Service::WRITABLE_FIELDS));\n"
+            . "        // 归属只由登录会员决定：丢弃客户端提交值并回填当前会员（修改时记录已限定为本人，回填值不变，无法转移归属）。\n"
+            . "        unset(\$payload['{$owner}']);\n"
+            . "        if (\$model === null) \$payload = (new {$class}Service())->prepareCreatePayload(\$payload);\n"
+            . "        \$payload['{$owner}'] = \$this->memberId();\n"
+            . "        return \$payload;\n    }\n"
+            . "    protected function validatePayload(array &\$data, ?Model \$model = null): ?string\n    {\n"
             . "        \$validate = new {$class}Validate();\n"
             . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
             . "        return \$validate->check(\$data) ? null : \$validate->getError();\n    }\n"

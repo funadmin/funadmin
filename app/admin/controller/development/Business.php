@@ -114,6 +114,14 @@ final class Business extends AdminApiController
         return $this->execute(fn (): array => $this->business->saveSchema($id, $this->schema(), trim((string) $this->request->post('expectedSchemaHash', '')), $this->actor(), mb_substr(trim((string) $this->request->post('summary', '')), 0, 255)), 'Schema 版本保存成功');
     }
 
+    #[Post('modules/:id/publish-config')]
+    #[Pattern('id', '\d+')]
+    public function savePublishConfig(int $id): Response
+    {
+        $config = $this->request->post('publishConfig', []);
+        return $this->execute(fn (): array => $this->business->savePublishConfig($id, is_array($config) ? $config : []), '发布设置已保存');
+    }
+
     #[Post('modules/:id/schema/compile')]
     #[Pattern('id', '\d+')]
     public function compileSchema(int $id): Response

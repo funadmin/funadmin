@@ -49,6 +49,7 @@ final class FormCrudDefinitionFactory
         $entity = str_replace('_', '-', $key);
         $class = $this->studly($entity);
         $config = $this->config($form, $publishConfig, $entity);
+        $memberApi = (bool) $config['memberApiEnabled'];
         $adopted = (string) ($form['source_type'] ?? 'created') === 'adopted';
         $schemaColumns = array_column((array) ($schema['columns'] ?? []), null, 'name');
         $primaryKey = $adopted ? $this->adoptedPrimaryKey($schema) : 'id';
@@ -102,12 +103,12 @@ final class FormCrudDefinitionFactory
             'primaryKey' => $primaryKey,
             'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
             'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
-            'generationTargets' => $this->targets($entity, $class),
+            'generationTargets' => $this->targets($entity, $class, $memberApi),
             'permissionPrefix' => 'generated:' . $entity,
             'fields' => $fields,
             'relations' => array_values($relations),
             'optionsSource' => array_values($optionSources),
-            'templates' => $this->templates(),
+            'templates' => $this->templates($memberApi),
             'capabilities' => [
                 'list' => true, 'search' => true, 'form' => true, 'detail' => true,
                 'create' => true, 'update' => true, 'delete' => true,
@@ -136,7 +137,7 @@ final class FormCrudDefinitionFactory
             'formSchemaVersion' => $formSchema->version(),
             'formSchemaHash' => $formSchema->hash(),
             'formSchema' => $formSchema->document(),
-        ]);
+        ] + ($memberApi ? ['memberApi' => ['enabled' => true, 'ownerField' => (string) $config['memberApiOwnerField']]] : []));
     }
 
     /** 在表单定义完成后适配目标，保留布局、规则和选项源，不重新推断字段。 */
@@ -251,6 +252,7 @@ final class FormCrudDefinitionFactory
             'menuName' => (string) ($form['name'] ?? $entity), 'icon' => 'i-ep-document', 'sortOrder' => 999,
             'softDeletes' => true, 'batchDelete' => true, 'import' => true, 'export' => true, 'formMode' => 'dialog',
             'dataScopeEnabled' => false, 'dataScopeField' => '',
+            'memberApiEnabled' => false, 'memberApiOwnerField' => 'member_id',
         ], $stored, $config);
         // 动态发布允许保留空配置；正式生成须恢复派生默认值，不放宽非空值校验。
         foreach (['apiPrefix' => '/generated/' . $entity, 'routePath' => '/generated/' . $entity, 'menuName' => (string) ($form['name'] ?? $entity)] as $key => $default) {
@@ -259,9 +261,9 @@ final class FormCrudDefinitionFactory
         return $resolved;
     }
 
-    private function targets(string $entity, string $class): array
+    private function targets(string $entity, string $class, bool $memberApi = false): array
     {
-        return [
+        return ($memberApi ? ['memberApiController' => "app/api/controller/generated/{$class}Controller.php"] : []) + [
             'migration' => "database/generated/{$entity}.sql",
             'model' => "app/admin/model/generated/{$class}.php",
             'validate' => "app/admin/validate/generated/{$class}Validate.php",
@@ -280,9 +282,9 @@ final class FormCrudDefinitionFactory
         ];
     }
 
-    private function templates(): array
+    private function templates(bool $memberApi = false): array
     {
-        return [
+        return ($memberApi ? ['memberApiController' => 'admin/member-controller.php.tpl'] : []) + [
             'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
             'validate' => 'admin/validate.php.tpl', 'service' => 'admin/service.php.tpl',
             'controller' => 'admin/controller.php.tpl', 'permissionMigration' => 'database/permissions.sql.tpl',

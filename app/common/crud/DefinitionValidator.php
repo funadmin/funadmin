@@ -19,13 +19,15 @@ final class DefinitionValidator
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
         'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
-        'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list', 'tableIdentity',
+        'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list', 'tableIdentity', 'memberApi',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
         'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest',
         'langMigration', 'langZh', 'langEn',
     ];
+    /** 仅在 memberApi 启用时出现的附加制品。 */
+    private const OPTIONAL_ARTIFACT_KEYS = ['memberApiController'];
     private const COMPONENTS = [
         'input', 'password', 'textarea', 'mention', 'inputNumber', 'select', 'selectV2', 'treeSelect', 'cascader',
         'radio', 'checkbox', 'switch', 'transfer', 'datetime', 'date', 'daterange', 'datetimerange', 'time',
@@ -152,6 +154,7 @@ final class DefinitionValidator
         $this->capabilities($data['capabilities'] ?? null);
         $this->features($data['features'] ?? null, $fieldNames);
         $this->dataScope($data['dataScope'] ?? null, $fieldNames);
+        $this->memberApi($data, $fieldNames, $target['type']);
         if ($target['type'] === 'plugin' && $target['scope'] === 'application') {
             // 会员认证不是管理授权；当前没有可执行的会员授权及归属策略，禁止声明管理入口。
             foreach (['form', 'create', 'update', 'delete', 'import', 'export'] as $ability) {
@@ -207,7 +210,7 @@ final class DefinitionValidator
             throw new InvalidArgumentException('generationTargets 必须为非空对象');
         }
         foreach ($paths as $type => $path) {
-            if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)) {
+            if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true) || !is_string($path)) {
                 throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
             PathGuard::resolve($projectRoot, $path, '项目目录');
@@ -225,7 +228,7 @@ final class DefinitionValidator
             throw new InvalidArgumentException('templates 必须为非空对象');
         }
         foreach ($templates as $type => $path) {
-            if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)
+            if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true) || !is_string($path)
                 || !preg_match('#^(admin|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#D', $path)
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
@@ -478,6 +481,52 @@ final class DefinitionValidator
             if (!isset($features[$limit]) || !is_int($features[$limit]) || $features[$limit] < 1 || $features[$limit] > 10000) {
                 throw new InvalidArgumentException('features.' . $limit . ' 必须在 1..10000');
             }
+        }
+    }
+
+    /**
+     * 前台会员接口：会员只能操作归属字段等于自身 id 的记录，因此归属字段必须是可比较的整数列，
+     * 且不能是主键（主键无法表达归属）。
+     */
+    private function memberApi(array $data, array $fieldNames, string $targetType): void
+    {
+        $artifactPresent = isset($data['generationTargets']['memberApiController']) || isset($data['templates']['memberApiController']);
+        if (!array_key_exists('memberApi', $data)) {
+            if ($artifactPresent) throw new InvalidArgumentException('未启用 memberApi 时不得声明 memberApiController');
+            return;
+        }
+        $memberApi = $data['memberApi'];
+        if (!is_array($memberApi) || array_diff(array_keys($memberApi), ['enabled', 'ownerField']) !== [] || !is_bool($memberApi['enabled'] ?? null)) {
+            throw new InvalidArgumentException('memberApi 配置不合法');
+        }
+        if (!$memberApi['enabled']) {
+            if ($artifactPresent) throw new InvalidArgumentException('未启用 memberApi 时不得声明 memberApiController');
+            return;
+        }
+        $owner = (string) ($memberApi['ownerField'] ?? '');
+        $this->identifier($owner, 'memberApi.ownerField', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+        $field = $fieldNames[$owner] ?? null;
+        if ($field === null) {
+            throw new InvalidArgumentException('memberApi.ownerField 必须引用已定义字段：' . $owner);
+        }
+        if (($field['primary'] ?? false) === true) {
+            throw new InvalidArgumentException('memberApi.ownerField 不能是主键');
+        }
+        if (preg_match('/^(?:tinyint|smallint|mediumint|int|integer|bigint)\b/i', (string) ($field['dbType'] ?? '')) !== 1) {
+            throw new InvalidArgumentException('memberApi.ownerField 必须是整数字段');
+        }
+        if (($data['capabilities']['list'] ?? true) !== true) {
+            throw new InvalidArgumentException('memberApi 需要启用列表能力');
+        }
+        if (!isset($data['templates']['memberApiController'])) {
+            throw new InvalidArgumentException('templates 缺少制品：memberApiController');
+        }
+        if ($targetType === 'core' && !isset($data['generationTargets']['memberApiController'])) {
+            throw new InvalidArgumentException('generationTargets 缺少制品：memberApiController');
+        }
+        // 核心前台接口挂在 api 应用的 v2/{entity} 路由分组，不得与 app/api/controller/v2 已有分组冲突。
+        if ($targetType === 'core' && in_array((string) ($data['entity'] ?? ''), ['member', 'token'], true)) {
+            throw new InvalidArgumentException('memberApi 实体名与前台已有接口冲突：' . $data['entity']);
         }
     }
 

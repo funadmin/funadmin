@@ -244,6 +244,15 @@
         <el-form-item :label="t('formDesigner.fullFeatures', '完整功能')"><el-checkbox v-model="publishConfig.batchDelete">{{ t('common.batchRemove', '批量删除') }}</el-checkbox><el-checkbox v-model="publishConfig.import">{{ t('common.import', '导入') }}</el-checkbox><el-checkbox v-model="publishConfig.export">{{ t('common.export', '导出') }}</el-checkbox><el-checkbox v-model="publishConfig.softDeletes">{{ t('formDesigner.softDeletes', '软删除') }}</el-checkbox></el-form-item>
         <el-form-item :label="t('formDesigner.dataScope', '数据权限')"><el-switch v-model="publishConfig.dataScopeEnabled" /></el-form-item>
         <el-form-item v-if="publishConfig.dataScopeEnabled" :label="t('formDesigner.dataScopeField', '部门字段')"><el-select v-model="publishConfig.dataScopeField" filterable class="w-full"><el-option v-for="field in dataScopeFields" :key="field.field_name" :label="`${field.label} (${field.field_name})`" :value="field.field_name" /></el-select></el-form-item>
+        <el-form-item :label="t('formDesigner.memberApi', '前台接口')">
+          <el-switch v-model="publishConfig.memberApiEnabled" />
+          <span class="ml-3 text-xs" style="color: var(--el-text-color-secondary)">{{ t('formDesigner.memberApiHint', { path: memberApiPath }, '会员登录后调用 {path}，只能增删改查自己的记录') }}</span>
+        </el-form-item>
+        <el-form-item v-if="publishConfig.memberApiEnabled" :label="t('formDesigner.memberApiOwnerField', '会员归属字段')">
+          <el-select v-model="publishConfig.memberApiOwnerField" filterable class="w-full" :placeholder="t('formDesigner.memberApiOwnerPlaceholder', '选择整数类型字段，新增时自动写入当前会员')">
+            <el-option v-for="field in memberOwnerFields" :key="field.field_name" :label="`${field.label} (${field.field_name})`" :value="field.field_name" />
+          </el-select>
+        </el-form-item>
       </el-form>
 
       <template v-else-if="publishStep === 1">
@@ -252,6 +261,7 @@
           <el-descriptions-item :label="t('formDesigner.menuName', '菜单名称')">{{ publishConfig.menuName || t('formDesigner.notFilled', '（未填写）') }}</el-descriptions-item>
           <el-descriptions-item :label="t('formDesigner.parentMenu', '父级菜单')">{{ publishConfig.parentSourceName || t('formDesigner.topMenu', '顶级菜单') }}</el-descriptions-item>
           <el-descriptions-item :label="t('formDesigner.menuIcon', '菜单图标')">{{ publishConfig.icon }}</el-descriptions-item>
+          <el-descriptions-item :label="t('formDesigner.memberApi', '前台接口')">{{ publishConfig.memberApiEnabled ? `${memberApiPath}（${publishConfig.memberApiOwnerField}）` : t('formDesigner.memberApiOff', '未启用') }}</el-descriptions-item>
         </el-descriptions>
         <p class="mb-3 text-xs" style="color: var(--el-text-color-secondary)">{{ t('formDesigner.planHint', '生成后将按以上配置创建/更新后台菜单与权限资源；如需调整，') }}<el-button link type="primary" @click="publishStep = 0">{{ t('formDesigner.backToConfig', '返回发布设置') }}</el-button></p>
         <p v-if="isPluginTarget">{{ businessTarget?.tableStrategy === 'external' ? t('formDesigner.pluginExternalHint', '外部依赖：不生成该表 CREATE／ALTER，安装／更新时校验兼容性。') : t('formDesigner.pluginOwnedHint', '插件拥有新表：这里只生成迁移，安装／更新时才执行。') }}</p>
@@ -387,6 +397,13 @@ const invalidateGenerationPreview = () => {
 };
 watch([() => store.schemaDocument.value, () => store.form.value.schema_hash, businessTarget, moduleId], invalidateGenerationPreview, { deep: true, flush: 'sync' });
 const dataScopeFields = computed(() => store.fields.value.filter((field) => controlMeta(field.type).kind !== 'layout'));
+// 会员归属须为整数列，后端 DefinitionValidator 同样校验。
+const memberOwnerFields = computed(() => dataScopeFields.value.filter((field) => /^(?:tinyint|smallint|mediumint|int|integer|bigint)\b/i.test(String(field.column_type ?? ''))));
+const memberApiPath = computed(() => {
+  const entity = String(store.form.value.form_key ?? '').replace(/_/g, '-');
+  const plugin = businessTarget.value?.type === 'plugin' ? businessTarget.value.pluginCode : '';
+  return plugin ? `/${plugin}/${entity}` : `/api/v2/${entity}`;
+});
 const parentMenus = ref<API.MenuItem[]>([]);
 const databaseTables = ref<BusinessDatabaseTable[]>([]);
 const tableLoading = ref(false);
@@ -403,7 +420,7 @@ const publishConfig = ref<FormPublishConfig>({
   module: 'generated', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
   parentSourceName: '', menuName: '', icon: 'i-ep-document', sortOrder: 999,
   softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog',
-  dataScopeEnabled: false, dataScopeField: ''
+  dataScopeEnabled: false, dataScopeField: '', memberApiEnabled: false, memberApiOwnerField: 'member_id'
 });
 const paletteRef = ref<HTMLElement>();
 // 预览画布渲染草稿节点（含未保存草稿）：字典/静态选项按草稿节点客户端解析，
@@ -774,8 +791,20 @@ const onDynamicPublish = async () => {
   await businessDevelopmentApi.publish(moduleId, { ...payload, formDependencyHash: previewResult.formDependencyHash });
   ElMessage.success(t('formDesigner.publishSuccess', '动态发布成功'));
 };
+/** 以已落库的发布设置填充表单：正式生成读取的正是这份配置。 */
+const syncPublishConfig = () => {
+  const key = String(store.form.value.form_key ?? '').replace(/_/g, '-');
+  publishConfig.value = {
+    ...publishConfig.value,
+    ...store.form.value.publish_config,
+    apiPrefix: store.form.value.publish_config?.apiPrefix || `/generated/${key}`,
+    routePath: store.form.value.publish_config?.routePath || `/generated/${key}`,
+    menuName: store.form.value.publish_config?.menuName || String(store.form.value.name ?? key)
+  };
+};
 const openFormalGeneration = async () => {
   const moduleId = instanceModuleId;
+  syncPublishConfig();
   if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning(t('formDesigner.saveSchemaFirst', '请先保存业务 Schema')); return; }
   invalidateGenerationPreview();
   const revision = previewRevision;
@@ -798,14 +827,7 @@ const openPublish = async () => {
     ElMessage.warning(catalogDiagnostics.value.map((item) => item.message).join('；') || t('formDesigner.catalogNotLoaded', '插件组件目录尚未加载'));
     return;
   }
-  const key = String(store.form.value.form_key ?? '').replace(/_/g, '-');
-  publishConfig.value = {
-    ...publishConfig.value,
-    ...store.form.value.publish_config,
-    apiPrefix: store.form.value.publish_config?.apiPrefix || `/generated/${key}`,
-    routePath: store.form.value.publish_config?.routePath || `/generated/${key}`,
-    menuName: store.form.value.publish_config?.menuName || String(store.form.value.name ?? key)
-  };
+  syncPublishConfig();
   publishStep.value = 0;
   publishPreview.value = null;
   publishResult.value = null;
@@ -832,9 +854,26 @@ const validatePublishConfig = () => {
     ElMessage.warning(t('formDesigner.dataScopeFieldRequired', '启用数据权限后请选择部门字段'));
     return false;
   }
+  if (publishConfig.value.memberApiEnabled && !memberOwnerFields.value.some((field) => field.field_name === publishConfig.value.memberApiOwnerField)) {
+    ElMessage.warning(t('formDesigner.memberApiOwnerRequired', '启用前台接口后请选择整数类型的会员归属字段'));
+    return false;
+  }
   return true;
 };
-const onPreviewPublish = () => openFormalGeneration();
+// 发布设置须先保存到业务模块，正式生成预览才会采用。
+const onPreviewPublish = async () => {
+  if (!validatePublishConfig()) return;
+  if (instanceModuleId) {
+    try {
+      const saved = await businessDevelopmentApi.savePublishConfig(instanceModuleId, publishConfig.value);
+      store.form.value = { ...store.form.value, publish_config: saved.publishConfig };
+    } catch (error) {
+      ElMessage.error(isBusinessApiError(error) ? error.msg : t('formDesigner.publishConfigSaveFailed', '发布设置保存失败'));
+      return;
+    }
+  }
+  await openFormalGeneration();
+};
 const completeFormalGeneration = async (result: BusinessFormalGenerationResult) => {
   publishResult.value = result;
   generationQueryPending.value = false;
