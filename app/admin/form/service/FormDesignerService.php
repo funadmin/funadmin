@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\admin\form\service;
 
 use app\common\crud\SchemaInspector;
+use app\common\crud\SqlLiteral;
 use app\common\form\registry\FieldCapabilityRegistry;
 use app\common\model\SystemMigration;
 use app\admin\form\exception\FormMigrationException;
@@ -157,11 +158,11 @@ final class FormDesignerService
             }
             if ($sourceType === 'created' && !in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true) && $relationType !== 'has_many') {
                 $columnType = trim((string) ($field['column_type'] ?? ''));
-                if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/', $columnType)) {
+                if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/D', $columnType)) {
                     throw new InvalidArgumentException($label . '列类型不合法：' . $columnType);
                 }
                 $default = (string) ($field['default_value'] ?? '');
-                if ($default !== '' && preg_match('/^(tinyint|int|bigint|decimal)/', $columnType) && !preg_match('/^-?\d+(?:\.\d+)?$/', $default)) {
+                if ($default !== '' && preg_match('/^(tinyint|int|bigint|decimal)/', $columnType) && !preg_match('/^-?\d+(?:\.\d+)?$/D', $default)) {
                     throw new InvalidArgumentException($label . '数字默认值不合法');
                 }
             }
@@ -603,14 +604,18 @@ final class FormDesignerService
         $nullable = (int) ($field['nullable'] ?? 1) === 1;
         $default = (string) ($field['default_value'] ?? '');
         $numeric = (bool) preg_match('/^(tinyint|int|bigint|decimal)/', $type);
+        if ($numeric && $default !== '' && !preg_match('/^-?\d+(?:\.\d+)?$/D', $default)) {
+            throw new InvalidArgumentException('字段 ' . $name . ' 数字默认值不合法');
+        }
+        $defaultLiteral = $numeric ? $default : SqlLiteral::quote($default);
         if ($nullable) {
-            $nullDdl = $default === '' ? 'NULL DEFAULT NULL' : 'NULL DEFAULT ' . ($numeric ? $default : "'" . str_replace("'", "''", $default) . "'");
+            $nullDdl = $default === '' ? 'NULL DEFAULT NULL' : 'NULL DEFAULT ' . $defaultLiteral;
         } else {
-            $nullDdl = 'NOT NULL DEFAULT ' . ($default === '' ? ($numeric ? '0' : "''") : ($numeric ? $default : "'" . str_replace("'", "''", $default) . "'"));
+            $nullDdl = 'NOT NULL DEFAULT ' . ($default === '' ? ($numeric ? '0' : "''") : $defaultLiteral);
         }
         $ddl = '`' . $name . '` ' . $type . ' ' . $nullDdl;
         if ($comment !== '') {
-            $ddl .= " COMMENT '" . str_replace("'", "''", $comment) . "'";
+            $ddl .= ' COMMENT ' . SqlLiteral::quote($comment);
         }
         return $ddl;
     }

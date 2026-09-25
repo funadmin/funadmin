@@ -339,13 +339,13 @@ trait Crud
     protected function applyFilters($query)
     {
         foreach ($this->searchFields() as $parameter => $field) {
-            $value = trim((string) $this->request->get($parameter, ''));
+            $value = trim($this->crudScalarParam($parameter) ?? '');
             if ($value !== '') {
-                $query->whereLike($field, '%' . $value . '%');
+                $query->whereLike($field, '%' . $this->crudEscapeLike($value) . '%');
             }
         }
         foreach ($this->exactFilters() as $parameter => $field) {
-            $value = $this->request->get($parameter, null);
+            $value = $this->crudScalarParam($parameter);
             if ($value !== null && $value !== '') {
                 $query->where($field, $value);
             }
@@ -362,18 +362,19 @@ trait Crud
         foreach ($this->operatorFilters() as $parameter => $config) {
             $operator = (string) ($config['operator'] ?? 'eq');
             $field = (string) ($config['field'] ?? '');
-            $value = $this->request->get($parameter, null);
+            $value = $this->crudScalarParam($parameter);
             if (in_array($operator, ['is_null', 'not_null'], true)) {
-                if ((string) $value === '1') $operator === 'is_null' ? $query->whereNull($field) : $query->whereNotNull($field);
+                if ($value === '1') $operator === 'is_null' ? $query->whereNull($field) : $query->whereNotNull($field);
                 continue;
             }
             if ($value === null || $value === '') continue;
             if (in_array($operator, ['in', 'not_in'], true)) {
-                $values = array_values(array_filter(array_map('trim', explode(',', (string) $value)), static fn (string $item): bool => $item !== ''));
+                $values = array_values(array_filter(array_map('trim', explode(',', $value)), static fn (string $item): bool => $item !== ''));
                 if ($values !== []) $operator === 'in' ? $query->whereIn($field, $values) : $query->whereNotIn($field, $values);
                 continue;
             }
-            $patterns = ['not_like' => ['not like', '%' . $value . '%'], 'starts_with' => ['like', $value . '%'], 'ends_with' => ['like', '%' . $value]];
+            $like = $this->crudEscapeLike($value);
+            $patterns = ['not_like' => ['not like', '%' . $like . '%'], 'starts_with' => ['like', $like . '%'], 'ends_with' => ['like', '%' . $like]];
             if (isset($patterns[$operator])) {
                 $query->where($field, $patterns[$operator][0], $patterns[$operator][1]);
                 continue;
@@ -401,13 +402,24 @@ trait Crud
     private function crudRangeValue(mixed $value): array
     {
         if (is_array($value)) {
-            $parts = array_values($value);
+            $parts = array_map(static fn (mixed $part): string => is_scalar($part) ? (string) $part : '', array_values($value));
         } else {
-            $parts = preg_split('/\s+-\s+|,/', trim((string) $value), 2) ?: [];
+            $parts = preg_split('/\s+-\s+|,/', trim(is_scalar($value) ? (string) $value : ''), 2) ?: [];
         }
         $begin = isset($parts[0]) && $parts[0] !== '' ? $parts[0] : null;
         $end = isset($parts[1]) && $parts[1] !== '' ? $parts[1] : null;
         return [$begin, $end];
+    }
+
+    private function crudScalarParam(string $name): ?string
+    {
+        $value = $this->request->get($name, null);
+        return is_scalar($value) ? (string) $value : null;
+    }
+
+    private function crudEscapeLike(string $value): string
+    {
+        return addcslashes($value, '\\%_');
     }
 
     protected function mapImportRow(array $row): array

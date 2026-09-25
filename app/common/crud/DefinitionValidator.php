@@ -71,17 +71,17 @@ final class DefinitionValidator
         if ($definition->schemaVersion() !== '1.0') {
             throw new InvalidArgumentException('不支持的 schemaVersion');
         }
-        $this->identifier((string) ($data['connection'] ?? ''), 'connection', '/^[a-z][a-z0-9_]*$/');
-        $this->identifier((string) ($data['module'] ?? ''), 'module', '/^[a-z][a-z0-9-]*$/');
-        $this->identifier((string) ($data['entity'] ?? ''), 'entity', '/^[a-z][a-z0-9-]*$/');
-        $this->identifier((string) ($data['table'] ?? ''), 'table', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-        $this->identifier((string) ($data['primaryKey'] ?? ''), 'primaryKey', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+        $this->identifier((string) ($data['connection'] ?? ''), 'connection', '/^[a-z][a-z0-9_]*$/D');
+        $this->identifier((string) ($data['module'] ?? ''), 'module', '/^[a-z][a-z0-9-]*$/D');
+        $this->identifier((string) ($data['entity'] ?? ''), 'entity', '/^[a-z][a-z0-9-]*$/D');
+        $this->identifier((string) ($data['table'] ?? ''), 'table', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+        $this->identifier((string) ($data['primaryKey'] ?? ''), 'primaryKey', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
         $this->text((string) ($data['title'] ?? ''), 'title');
         if (isset($data['description']) && $data['description'] !== '') {
             $this->text((string) $data['description'], 'description');
         }
         foreach (['apiPrefix', 'routePath'] as $pathField) {
-            if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', (string) ($data[$pathField] ?? ''))) {
+            if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#D', (string) ($data[$pathField] ?? ''))) {
                 throw new InvalidArgumentException($pathField . ' 不合法');
             }
         }
@@ -90,7 +90,7 @@ final class DefinitionValidator
                 throw new InvalidArgumentException($flag . ' 必须是布尔值');
             }
         }
-        if (!preg_match('/^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/', (string) ($data['permissionPrefix'] ?? ''))) {
+        if (!preg_match('/^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/D', (string) ($data['permissionPrefix'] ?? ''))) {
             throw new InvalidArgumentException('权限前缀不合法');
         }
         $target = $this->target($data['target'] ?? null, $projectRoot);
@@ -226,7 +226,7 @@ final class DefinitionValidator
         }
         foreach ($templates as $type => $path) {
             if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)
-                || !preg_match('#^(admin|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#', $path)
+                || !preg_match('#^(admin|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#D', $path)
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
             }
@@ -261,9 +261,9 @@ final class DefinitionValidator
                 }
             }
             $name = (string) $field['name'];
-            $this->identifier($name, '字段名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+            $this->identifier($name, '字段名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             $this->text((string) $field['dbType'], '字段类型');
-            if (!preg_match('/^[a-z]+(?:\([0-9]+(?:,[0-9]+)?\))?(?: unsigned)?$/i', (string) $field['dbType'])) {
+            if (!preg_match('/^[a-z]+(?:\([0-9]+(?:,[0-9]+)?\))?(?: unsigned)?$/iD', (string) $field['dbType'])) {
                 throw new InvalidArgumentException('字段类型不合法');
             }
             if (!is_bool($field['nullable'])) {
@@ -313,15 +313,15 @@ final class DefinitionValidator
                 throw new InvalidArgumentException('字段 rules 必须是非空字符串数组');
             }
             if (isset($field['relation'])) {
-                $this->identifier((string) $field['relation'], '字段 relation', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-                if (!isset($field['references']) || !preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/', (string) $field['references'])) {
+                $this->identifier((string) $field['relation'], '字段 relation', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+                if (!isset($field['references']) || !preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D', (string) $field['references'])) {
                     throw new InvalidArgumentException('字段 references 不合法');
                 }
             } elseif (isset($field['references'])) {
                 throw new InvalidArgumentException('字段 references 必须与 relation 同时配置');
             }
             if (isset($field['optionsSource'])) {
-                $this->identifier((string) $field['optionsSource'], '字段 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+                $this->identifier((string) $field['optionsSource'], '字段 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             }
             if (($field['legacy'] ?? false) === true || in_array($name, ['create_time', 'update_time', 'delete_time'], true)) {
                 throw new InvalidArgumentException('发现 legacy 字段，必须先迁移为 Laravel 时间字段：' . $name);
@@ -357,7 +357,7 @@ final class DefinitionValidator
                     throw new InvalidArgumentException('关系缺少 ' . $required);
                 }
             }
-            $this->identifier($relation['name'], '关系名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+            $this->identifier($relation['name'], '关系名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             if (isset($names[$relation['name']])) {
                 throw new InvalidArgumentException('关系名重复：' . $relation['name']);
             }
@@ -367,12 +367,12 @@ final class DefinitionValidator
             if (!isset($fieldNames[$relation['field']])) {
                 throw new InvalidArgumentException('关系字段不存在：' . $relation['field']);
             }
-            $this->identifier($relation['targetField'], '目标字段', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-            if (!preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$/', $relation['target'])) {
+            $this->identifier($relation['targetField'], '目标字段', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            if (!preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$/D', $relation['target'])) {
                 throw new InvalidArgumentException('关系目标不合法');
             }
             if (isset($relation['optionsSource'])) {
-                $this->identifier($relation['optionsSource'], '关系 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+                $this->identifier($relation['optionsSource'], '关系 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             }
             if (isset($relation['optionsSource']) && !isset($optionSources[$relation['optionsSource']])) {
                 throw new InvalidArgumentException('关系 optionsSource 不存在');
@@ -382,7 +382,7 @@ final class DefinitionValidator
                     if (!isset($relation[$pivotIdentifier]) || !is_string($relation[$pivotIdentifier]) || $relation[$pivotIdentifier] === '') {
                         throw new InvalidArgumentException('belongsToMany 关系缺少 ' . $pivotIdentifier);
                     }
-                    $this->identifier($relation[$pivotIdentifier], $pivotIdentifier, '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+                    $this->identifier($relation[$pivotIdentifier], $pivotIdentifier, '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
                 }
             } else {
                 foreach (['pivotTable', 'pivotLocalKey', 'pivotTargetKey'] as $pivotIdentifier) {
@@ -413,17 +413,17 @@ final class DefinitionValidator
             if (!in_array($source['type'], ['relation', 'dictionary', 'endpoint'], true)) {
                 throw new InvalidArgumentException('optionsSource type 不合法');
             }
-            $this->identifier($source['name'], 'optionsSource 名称', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-            $this->identifier($source['labelField'], 'optionsSource labelField', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-            $this->identifier($source['valueField'], 'optionsSource valueField', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
-            if ($source['type'] === 'endpoint' && !preg_match('#^/[a-z0-9/_-]+$#', (string) ($source['endpoint'] ?? ''))) {
+            $this->identifier($source['name'], 'optionsSource 名称', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            $this->identifier($source['labelField'], 'optionsSource labelField', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            $this->identifier($source['valueField'], 'optionsSource valueField', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            if ($source['type'] === 'endpoint' && !preg_match('#^/[a-z0-9/_-]+$#D', (string) ($source['endpoint'] ?? ''))) {
                 throw new InvalidArgumentException('optionsSource endpoint 不合法');
             }
             if ($source['type'] === 'dictionary') {
                 if (empty($source['dictionary'])) {
                     throw new InvalidArgumentException('字典 optionsSource 缺少 dictionary');
                 }
-                $this->identifier((string) $source['dictionary'], 'dictionary', '/^[a-z][a-z0-9_.-]*$/');
+                $this->identifier((string) $source['dictionary'], 'dictionary', '/^[a-z][a-z0-9_.-]*$/D');
             }
             if (isset($names[$source['name']])) {
                 throw new InvalidArgumentException('optionsSource 名称重复');
@@ -467,7 +467,7 @@ final class DefinitionValidator
             if (($status['primary'] ?? false) || ($status['writable'] ?? true) === false) {
                 throw new InvalidArgumentException('features.status 要求 status 字段可写');
             }
-            if (preg_match('/^(?:tinyint|smallint|mediumint|int|bigint|bool|boolean)(?:\([0-9]+\))?(?: unsigned)?$/i', (string) $status['dbType']) !== 1) {
+            if (preg_match('/^(?:tinyint|smallint|mediumint|int|bigint|bool|boolean)(?:\([0-9]+\))?(?: unsigned)?$/iD', (string) $status['dbType']) !== 1) {
                 throw new InvalidArgumentException('features.status 要求 status 字段为整数或布尔兼容类型');
             }
         }
@@ -516,11 +516,11 @@ final class DefinitionValidator
         if ($menu['parentId'] !== null && (!is_int($menu['parentId']) || $menu['parentId'] < 1)) {
             throw new InvalidArgumentException('menu.parentId 必须是正整数或 null');
         }
-        if ($menu['parentSourceName'] !== '' && preg_match('/^[a-z][a-z0-9_]*$/', $menu['parentSourceName']) !== 1) {
+        if ($menu['parentSourceName'] !== '' && preg_match('/^[a-z][a-z0-9_]*$/D', $menu['parentSourceName']) !== 1) {
             throw new InvalidArgumentException('menu.parentSourceName 不合法');
         }
         $this->text((string) $menu['name'], 'menu.name');
-        if (preg_match('/^i-ep-[a-z0-9]+(?:-[a-z0-9]+)*$/', (string) $menu['icon']) !== 1) {
+        if (preg_match('/^i-ep-[a-z0-9]+(?:-[a-z0-9]+)*$/D', (string) $menu['icon']) !== 1) {
             throw new InvalidArgumentException('menu.icon 必须是 Element Plus i-ep-* 图标');
         }
         if (!is_int($menu['sortOrder']) || $menu['sortOrder'] < 0 || $menu['sortOrder'] > 9999) {
@@ -544,7 +544,7 @@ final class DefinitionValidator
                 throw new InvalidArgumentException('permission.actions 结构不合法');
             }
             foreach (['action', 'codeSuffix'] as $field) {
-                if (preg_match('/^[a-z][A-Za-z0-9-]*$/', (string) $action[$field]) !== 1) {
+                if (preg_match('/^[a-z][A-Za-z0-9-]*$/D', (string) $action[$field]) !== 1) {
                     throw new InvalidArgumentException("permission.actions.{$field} 不合法");
                 }
             }

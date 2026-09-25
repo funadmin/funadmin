@@ -157,7 +157,7 @@ final class PluginCrudTarget
         $null = $field['nullable'] ? 'NULL' : 'NOT NULL';
         $auto = ($field['primary'] ?? false) && str_contains(strtolower($field['dbType']), 'int') ? ' AUTO_INCREMENT' : '';
         $default = array_key_exists('default', $field) && $field['default'] !== null
-            ? ' DEFAULT ' . (is_numeric($field['default']) ? (string) $field['default'] : "'" . str_replace("'", "''", (string) $field['default']) . "'")
+            ? ' DEFAULT ' . (is_numeric($field['default']) ? (string) $field['default'] : SqlLiteral::quote((string) $field['default']))
             : '';
         return $field['dbType'] . ' ' . $null . $default . $auto;
     }

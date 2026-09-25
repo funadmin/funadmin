@@ -119,7 +119,15 @@ final class CrudResourceInstaller
         for ($index = $valuesAt + 6; $index < $length; $index++) {
             $char = $statement[$index];
             if ($quoted) {
-                if ($char === "'" && $statement[$index - 1] !== '\\') $quoted = false;
+                if ($char === '\\') {
+                    $index++;
+                } elseif ($char === "'") {
+                    if (($statement[$index + 1] ?? '') === "'") {
+                        $index++;
+                    } else {
+                        $quoted = false;
+                    }
+                }
                 continue;
             }
             if ($char === "'") { $quoted = true; continue; }
@@ -165,8 +173,23 @@ final class CrudResourceInstaller
         for ($index = 0; $index < $length; $index++) {
             $char = $sql[$index];
             $buffer .= $char;
-            if ($char === "'" && ($index === 0 || $sql[$index - 1] !== '\\')) $quoted = !$quoted;
-            if ($char === ';' && !$quoted) {
+            if ($quoted) {
+                if ($char === '\\' && $index + 1 < $length) {
+                    $buffer .= $sql[++$index];
+                } elseif ($char === "'") {
+                    if (($sql[$index + 1] ?? '') === "'") {
+                        $buffer .= $sql[++$index];
+                    } else {
+                        $quoted = false;
+                    }
+                }
+                continue;
+            }
+            if ($char === "'") {
+                $quoted = true;
+                continue;
+            }
+            if ($char === ';') {
                 if (trim($buffer, " \t\n\r;") !== '') $statements[] = trim($buffer);
                 $buffer = '';
             }

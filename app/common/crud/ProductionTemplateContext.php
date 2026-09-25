@@ -437,7 +437,7 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
-            . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
+            . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\authorization\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
@@ -1433,9 +1433,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
 
     private static function sqlLiteral(mixed $value): string
     {
-        if (is_bool($value)) return $value ? '1' : '0';
-        if (is_int($value) || is_float($value)) return (string) $value;
-        return "'" . str_replace("'", "''", (string) $value) . "'";
+        return SqlLiteral::quote($value);
     }
 
     private static function json(mixed $value): string

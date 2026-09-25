@@ -34,7 +34,7 @@ class AdminAuthorizationService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        if ($this->request->isPost() && $cfg['isDemo'] == 1) {
+        if ($cfg['isDemo'] == 1 && !in_array(strtoupper($this->request->method()), ['GET', 'HEAD', 'OPTIONS'], true)) {
             $this->error(lang('Demo is not allow to change data'));
         }
 
