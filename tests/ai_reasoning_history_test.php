@@ -3,10 +3,10 @@
 declare(strict_types=1);
 require __DIR__ . '/ai_phase2_services_test.php';
 
-use app\console\ai\service\AiAgentOrchestrator;
-use app\console\ai\service\AiConversationService;
-use app\console\ai\job\AiAgentJob;
-use app\console\ai\service\AiAuditService;
+use app\admin\ai\service\AiAgentOrchestrator;
+use app\admin\ai\service\AiConversationService;
+use app\admin\ai\job\AiAgentJob;
+use app\admin\ai\service\AiAuditService;
 
 $memory = new MemoryAiStore();
 $service = new AiConversationService($memory, ['max_rounds'=>3]);
@@ -36,7 +36,7 @@ phase2Expect(!str_contains(json_encode($service->getTask($nextTask['id'], 7)), '
 $audit = new AiAuditService(sys_get_temp_dir());
 phase2Expect(!str_contains(json_encode($audit->redact(['protocol_context'=>$context,'reasoning_content'=>'private-history-secret','signature'=>'private-history-secret','encrypted_content'=>'private-history-secret','block'=>['type'=>'redacted_thinking','data'=>'private-history-secret']])), 'private-history-secret'), '日志递归屏蔽协议私有字段和块');
 phase2Expect(!str_contains($audit->redact(json_encode(['output'=>[['type'=>'reasoning','encrypted_content'=>'private-history-secret']]])), 'private-history-secret'), '序列化协议日志同样隐藏私有内容');
-$approvalTool = new class implements \app\console\ai\contract\AiToolExecutor {
+$approvalTool = new class implements \app\admin\ai\contract\AiToolExecutor {
     public function execute(array $call): array { return ['status'=>'awaiting_approval','approvalId'=>1]; }
 };
 $pausedProvider = new class($context) {
@@ -63,7 +63,7 @@ foreach (['openai-chat','openai-responses','anthropic-messages'] as $protocolNam
         return \GuzzleHttp\Promise\Create::promiseFor(new \GuzzleHttp\Psr7\Response(200, [], json_encode($body)));
     }]);
     $gateway = new \app\common\ai\provider\OpenAiCompatibleGateway($client, ['base_url'=>'https://api.example.com/v1','api_key'=>'test','model'=>'m','protocol'=>$protocolName,'max_output_tokens'=>100], static fn()=>['93.184.216.34']);
-    $tool = new class implements \app\console\ai\contract\AiToolExecutor {
+    $tool = new class implements \app\admin\ai\contract\AiToolExecutor {
         public function execute(array $call): array { return isset($call['name']) ? ['status'=>'awaiting_approval','approvalId'=>1] : ['status'=>'succeeded']; }
     };
     $security = new MemorySecurityStore();

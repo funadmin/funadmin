@@ -45,9 +45,9 @@ cutoverExpect(!method_exists($manifest, 'title'), 'Manifest::title() 必须删�
 
 $productionRoots = [
     $root . '/app/common/plugin',
-    $root . '/app/console/controller/system',
-    $root . '/app/console/middleware/CheckPluginPermission.php',
-    $root . '/app/console/service',
+    $root . '/app/admin/controller/system',
+    $root . '/app/admin/middleware/CheckPluginPermission.php',
+    $root . '/app/admin/service',
     $root . '/app/common/plugin/sdk',
 ];
 $forbidden = [

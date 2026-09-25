@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-namespace app\console\ai\repository {
+namespace app\admin\ai\repository {
     // 仅替换数据库边界；不初始化应用、不连接真实数据库。
     final class DatabaseAiProfileRepository {
         public array $rows = [];
@@ -14,9 +14,9 @@ namespace app\console\ai\repository {
 }
 namespace {
     require dirname(__DIR__) . '/vendor/autoload.php';
-    use app\console\ai\repository\DatabaseAiProfileRepository;
-    use app\console\ai\service\AiConfigurationProfileService;
-    use app\console\ai\service\AiProfileSecret;
+    use app\admin\ai\repository\DatabaseAiProfileRepository;
+    use app\admin\ai\service\AiConfigurationProfileService;
+    use app\admin\ai\service\AiProfileSecret;
     use app\common\ai\provider\OpenAiCompatibleGateway;
     use GuzzleHttp\Client;
     use GuzzleHttp\Handler\MockHandler;
@@ -103,14 +103,14 @@ namespace {
     try { $service->models(7, 2); throw new \LogicException('历史未实现协议必须拒绝'); }
     catch (\InvalidArgumentException) {}
     catalogExpect(count($history) === 1, '越权和未实现协议不得发送请求');
-    $method = new \ReflectionMethod(\app\console\controller\ai\Profiles::class, 'models');
+    $method = new \ReflectionMethod(\app\admin\controller\ai\Profiles::class, 'models');
     $route = $method->getAttributes(\think\annotation\route\Post::class)[0]->newInstance();
     catalogExpect($route->rule === ':id/models', '目录 API 使用 POST id/models');
     $migration = dirname(__DIR__) . '/database/migrations/archive/119_ai_profile_catalog_permission.sql';
     catalogExpect(is_file($migration), '模型目录需要新增权限迁移，不得修改 118');
     $sql = file_get_contents($migration);
     catalogExpect(str_contains($sql, 'console/ai.profiles') && str_contains($sql, "'models'") && str_contains($sql, "'configure'"), '仅向 configure 授权目录 action');
-    $row = (new \ReflectionClass(\app\console\ai\model\AiConfigurationProfile::class))->newInstanceWithoutConstructor();
+    $row = (new \ReflectionClass(\app\admin\ai\model\AiConfigurationProfile::class))->newInstanceWithoutConstructor();
     $weak = new \ReflectionProperty(\think\Model::class, 'weakMap');
     $map = $weak->getValue() ?? new \WeakMap();
     $map[$row] = ['mapping'=>[], 'get'=>[], 'withAttr'=>[], 'data'=>['id'=>2,'name'=>'能力','configuration'=>$frozen['configuration'],'is_default'=>false,'secret_ciphertext'=>'','created_at'=>null,'updated_at'=>null]];

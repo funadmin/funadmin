@@ -8,7 +8,7 @@ require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 use app\ExceptionHandle;
 use app\common\service\identity\ApplicationCatalogService;
 use app\common\service\identity\EnterpriseApplicationUrlPolicy;
-use app\console\http\AdminResponse;
+use app\admin\http\AdminResponse;
 use think\App;
 use think\Request;
 use think\exception\HttpException;
@@ -34,7 +34,7 @@ $pipelineResponse = $app->middleware->pipeline('console-test')->send($request)->
     throw new ValidateException('管道验证失败');
 });
 consoleExpect($pipelineResponse->getCode() === 200 && $pipelineResponse->getData()['msg'] === '管道验证失败', '框架管道异常出口必须应用策略');
-consoleExpect(!is_file(dirname(__DIR__) . '/app/console/middleware/ConsoleResponsePolicy.php'), '响应中间件必须删除');
+consoleExpect(!is_file(dirname(__DIR__) . '/app/admin/middleware/ConsoleResponsePolicy.php'), '响应中间件必须删除');
 foreach ([400, 422] as $status) {
     $body = ['code' => $status, 'msg' => '明确业务失败', 'data' => ['field' => 'name']];
     $original = AdminResponse::create($body['msg'], $body['data'], $status, headers: ['X-CSRF-TOKEN' => 'next-token', 'Cache-Control' => 'no-store']);
@@ -58,7 +58,7 @@ foreach ([new InvalidArgumentException('secret SQL'), new DomainException('secre
     $response = $handler->render($request, $exception);
     consoleExpect($response->getCode() === 500 && !str_contains($response->getContent(), 'secret'), '未知异常必须为安全 500');
 }
-$aiClass = new ReflectionClass(\app\console\controller\ai\Ai::class);
+$aiClass = new ReflectionClass(\app\admin\controller\ai\Ai::class);
 $ai = $aiClass->newInstanceWithoutConstructor();
 $originalSession = $app->make('session');
 $app->instance('session', new class { public function get($name, $default = null) { return ''; } });

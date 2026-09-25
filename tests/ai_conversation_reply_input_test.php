@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/ai_phase2_services_test.php';
 
-use app\console\ai\job\AiAgentJob;
-use app\console\ai\service\AiAgentOrchestrator;
-use app\console\ai\service\AiConversationService;
-use app\console\controller\ai\Ai;
+use app\admin\ai\job\AiAgentJob;
+use app\admin\ai\service\AiAgentOrchestrator;
+use app\admin\ai\service\AiConversationService;
+use app\admin\controller\ai\Ai;
 
 $store = new MemoryAiStore();
 $service = new AiConversationService($store);

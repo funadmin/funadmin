@@ -73,9 +73,9 @@ foreach (['openai-responses','anthropic-messages'] as $protocol) {
 }
 foreach (['openai-responses','anthropic-messages'] as $protocol) {
     $config = ['name'=>'test','provider'=>'custom','protocol'=>$protocol,'base_url'=>'https://api.example.com/v1','model'=>'m','max_output_tokens'=>100];
-    providerExpect(\app\console\ai\service\AiConfigurationProfileService::validate($config)['protocol'] === $protocol, '档案接受新协议');
+    providerExpect(\app\admin\ai\service\AiConfigurationProfileService::validate($config)['protocol'] === $protocol, '档案接受新协议');
     $captured = [];
-    $settings = new \app\console\ai\service\AiProviderSettingsService(['base_url'=>'https://old.example.com/v1','api_key'=>'old-secret'], function ($c) use (&$captured) {
+    $settings = new \app\admin\ai\service\AiProviderSettingsService(['base_url'=>'https://old.example.com/v1','api_key'=>'old-secret'], function ($c) use (&$captured) {
         $captured = $c;
         return new class { public function chat($messages) { return ['finishReason'=>'stop']; } };
     });

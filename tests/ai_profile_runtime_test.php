@@ -6,7 +6,7 @@ $profiles = $service;
 $repository->rows[2]->configuration = ['provider'=>'custom','protocol'=>'openai-chat','base_url'=>'https://example.com/v1','model'=>'profile-model','max_output_tokens'=>42,'max_input_tokens'=>4000];
 require __DIR__ . '/ai_phase2_services_test.php';
 $store = new MemoryAiStore();
-$service = new \app\console\ai\service\AiConversationService($store, [], null, $profiles);
+$service = new \app\admin\ai\service\AiConversationService($store, [], null, $profiles);
 $conversation = $service->createConversation(7, ['title'=>'档案任务','profile_id'=>2]);
 phase2Expect($conversation['profile_id'] === 2 && $conversation['model'] === 'profile-model', '会话选择档案');
 $task = $service->createTask($conversation['id'], 7, ['idempotency_key'=>'profile', 'input'=>['messages'=>[['role'=>'user','content'=>'hello']], 'profile_snapshot'=>['api_key'=>'injected']]]);
@@ -21,9 +21,9 @@ $factory = static function (array $config) use (&$captured, &$httpRequests, $exe
         $httpRequests[] = ['body'=>json_decode((string) $request->getBody(), true), 'authorization'=>$request->getHeaderLine('Authorization')];
         return \GuzzleHttp\Promise\Create::promiseFor(new \GuzzleHttp\Psr7\Response(200, [], '{"choices":[{"message":{"content":"ok"}}],"usage":{"total_tokens":1}}'));
     }]);
-    return new \app\console\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $config, static fn () => ['93.184.216.34']), $executor);
+    return new \app\admin\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $config, static fn () => ['93.184.216.34']), $executor);
 };
-$runner = new \app\console\ai\job\AiAgentJob($store, $orchestrator, null, null, $factory, $profiles);
+$runner = new \app\admin\ai\job\AiAgentJob($store, $orchestrator, null, null, $factory, $profiles);
 $runner->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
 phase2Expect($captured['model'] === 'profile-model' && $captured['api_key'] === 'rotated-key', 'Job 使用冻结模型与当前凭据');
 phase2Expect($store->tasks[$task['id']]['status'] === 'succeeded', '档案 Job 接通');
@@ -32,7 +32,7 @@ $security = new MemorySecurityStore();
 $security->createToolCall(['task_id'=>$task['id'], 'conversation_id'=>$conversation['id'], 'status'=>'awaiting_approval', 'idempotency_key'=>'profile-resume']);
 $store->updateTask($task['id'], ['status'=>'resume_pending', 'output'=>['resume'=>['messages'=>[['role'=>'assistant','content'=>null,'tool_calls'=>[['id'=>'profile-resume','name'=>'stub','arguments'=>[]]]]]]]]);
 $repository->rows[2]->cipher = $secret->seal('resume-key', 7);
-$resumeRunner = new \app\console\ai\job\AiAgentJob($store, $orchestrator, null, $security, $factory, $profiles);
+$resumeRunner = new \app\admin\ai\job\AiAgentJob($store, $orchestrator, null, $security, $factory, $profiles);
 $resumeRunner->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
 phase2Expect($httpRequests[1]['authorization'] === 'Bearer resume-key' && $httpRequests[1]['body']['model'] === 'profile-model', '审批恢复保持冻结参数，读取当前凭据');
 $task = $service->createTask($conversation['id'], 7, ['idempotency_key'=>'disabled']);
@@ -47,23 +47,23 @@ phase2Expect($updated['model'] === 'selected', '会话更新档案模型');
 $next = $service->createTask($conversation['id'], 7, ['idempotency_key'=>'limits']);
 phase2Expect($next['max_rounds'] === 10 && $next['output_token_budget'] === 42 && $next['input_token_budget'] === 4000, '任务列同步冻结档案预算');
 phase2Expect(is_file(dirname(__DIR__) . '/database/migrations/archive/120_ai_conversation_profile.sql'), '会话引用需要新增迁移');
-$model = new ReflectionClass(\app\console\ai\model\AiConversation::class);
+$model = new ReflectionClass(\app\admin\ai\model\AiConversation::class);
 phase2Expect(($model->getDefaultProperties()['type']['profile_id'] ?? '') === 'integer', 'ORM 档案引用整数转换');
 $repository->rows[2]->configuration = ['provider'=>'custom','protocol'=>'openai-chat','base_url'=>'https://example.com/v1','model'=>'primary','fallback_enabled'=>true,'fallback_models'=>['backup'],'max_output_tokens'=>100,'max_retries'=>0,'reasoning_effort'=>'high','model_capabilities'=>array_map(static fn ($model) => ['model'=>$model,'reasoning_efforts'=>['high'],'output_token_parameter'=>'max_completion_tokens','context_window'=>8000,'max_output_tokens'=>500], ['primary','backup'])];
 $fallbackConversation = $service->createConversation(7, ['profile_id'=>2]);
 $fallbackTask = $service->createTask($fallbackConversation['id'], 7, ['idempotency_key'=>'fallback']);
 $wire = [];
 $executions = 0;
-$tool = new class($executions) implements \app\console\ai\contract\AiToolExecutor {
+$tool = new class($executions) implements \app\admin\ai\contract\AiToolExecutor {
     public function __construct(public int &$executions) {}
     public function execute(array $call): array { $this->executions++; return ['status'=>'done']; }
 };
 $responses = [new \GuzzleHttp\Psr7\Response(200, [], '{"model":"primary-actual","choices":[{"message":{"tool_calls":[{"id":"call","function":{"name":"stub","arguments":"{}"}}]}}],"usage":{"total_tokens":3}}'),new \GuzzleHttp\Psr7\Response(503),new \GuzzleHttp\Psr7\Response(200, [], '{"model":"backup-actual","choices":[{"message":{"content":"done"}}],"usage":{"total_tokens":4}}')];
 $fallbackFactory = static function ($config) use (&$wire, &$responses, $tool) {
     $client = new \GuzzleHttp\Client(['handler'=>static function ($request) use (&$wire, &$responses) { $wire[] = json_decode((string) $request->getBody(), true); return \GuzzleHttp\Promise\Create::promiseFor(array_shift($responses)); }]);
-    return new \app\console\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $config, static fn () => ['93.184.216.34']), $tool);
+    return new \app\admin\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client, $config, static fn () => ['93.184.216.34']), $tool);
 };
-$fallbackRunner = new \app\console\ai\job\AiAgentJob($store, $orchestrator, null, null, $fallbackFactory, $profiles);
+$fallbackRunner = new \app\admin\ai\job\AiAgentJob($store, $orchestrator, null, null, $fallbackFactory, $profiles);
 $fallbackRunner->fire($queueJob, ['taskId'=>$fallbackTask['id'],'operationToken'=>$fallbackTask['operation_token']]);
 $done = $store->task($fallbackTask['id']);
 phase2Expect(($done['output']['model'] ?? null) === 'backup-actual' && $done['model'] === 'primary', '实际模型落结果，原任务选择不修改');

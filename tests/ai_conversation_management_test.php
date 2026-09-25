@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/ai_phase2_services_test.php';
 
-use app\console\ai\service\AiConversationService;
-use app\console\authorization\service\PermissionResource;
+use app\admin\ai\service\AiConversationService;
+use app\admin\authorization\service\PermissionResource;
 
 $failures = [];
 $check = static function (bool $ok, string $label) use (&$failures): void { if (!$ok) $failures[] = $label; };

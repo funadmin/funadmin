@@ -3,9 +3,9 @@
 declare(strict_types=1);
 require __DIR__ . '/ai_configuration_profile_test.php';
 
-use app\console\ai\repository\DatabaseAiProfileRepository;
-use app\console\ai\service\AiConfigurationProfileService;
-use app\console\ai\service\AiProfileSecret;
+use app\admin\ai\repository\DatabaseAiProfileRepository;
+use app\admin\ai\service\AiConfigurationProfileService;
+use app\admin\ai\service\AiProfileSecret;
 use Defuse\Crypto\Key;
 use think\facade\Db;
 

@@ -6,13 +6,13 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\console\development\model\BusinessModule;
-use app\console\development\service\BusinessModuleService;
-use app\console\development\service\BusinessTargetService;
-use app\console\development\service\ManagedGenerationService;
-use app\console\form\model\Form;
-use app\console\form\repository\FormSchemaRepository;
-use app\console\plugin\service\PluginService;
+use app\admin\development\model\BusinessModule;
+use app\admin\development\service\BusinessModuleService;
+use app\admin\development\service\BusinessTargetService;
+use app\admin\development\service\ManagedGenerationService;
+use app\admin\form\model\Form;
+use app\admin\form\repository\FormSchemaRepository;
+use app\admin\plugin\service\PluginService;
 use think\App;
 use think\facade\Db;
 
@@ -151,14 +151,14 @@ try {
         $result = $generation->execute((int) $module->id, $preview['generationId'], $preview['sensitive']['confirmToken']);
         lifecycleExpect($result['resourceApplyStatus'] === 'pending_publication', '生成不得冒充发布');
         lifecycleExpect(!in_array($table, Db::connect()->getTables(), true), '生成时不得执行 DDL');
-        lifecycleExpect(is_file($directory . '/app/console/model/' . ucfirst($entity) . '.php'), '模块源码未生成');
+        lifecycleExpect(is_file($directory . '/app/admin/model/' . ucfirst($entity) . '.php'), '模块源码未生成');
         if ($index === 0) {
             // 真实生成快照与同名表：每次只改变索引，不改变列和主键。
             $createFile = glob($directory . '/database/migrations/*_create_entry.sql')[0];
             $createSql = (string) file_get_contents($createFile);
             lifecycleExpect(str_contains($createSql, 'UNIQUE KEY') && str_contains($createSql, 'idx_' . $table . '_category'), '测试必须生成唯一和普通索引');
             Db::execute($createSql);
-            $infrastructure = new \app\console\plugin\service\PluginInfrastructureService();
+            $infrastructure = new \app\admin\plugin\service\PluginInfrastructureService();
             $manifest = Manifest::fromDirectory($directory);
             $infrastructure->assertExternalTables($manifest);
             $failures = [];
@@ -203,7 +203,7 @@ try {
         lifecycleExpect($record->lifecycle_state === 'disabled' && (int) $record->migration_pending === 0 && !$record->operation_token, '生命周期终态不正确');
         lifecycleExpect(Db::name('plugin_resource')->where('plugin_code', $code)->count() > 0, '未登记发布资源');
     }
-    foreach (['Entry', 'Detail'] as $entity) lifecycleExpect(is_file($root . '/app/console/model/plugin/' . $code . '/' . $entity . '.php'), '两个模块必须都已原生发布：' . $entity);
+    foreach (['Entry', 'Detail'] as $entity) lifecycleExpect(is_file($root . '/app/admin/model/plugin/' . $code . '/' . $entity . '.php'), '两个模块必须都已原生发布：' . $entity);
     // 同一已生成模块新增字段，必须追加 forward migration，不能重写历史。
     $history = Db::name('system_migration')->where('scope', 'plugin:' . $code)->order('version')->select()->toArray();
     $historicalFiles = [];

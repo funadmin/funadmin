@@ -36,7 +36,7 @@ publishExpect(
 );
 publishExpect($compiled->key() === 'activity_form', '动态运行时路由必须由 canonical key 派生');
 
-$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/form/service/FormPublishService.php');
+$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/admin/form/service/FormPublishService.php');
 publishExpect(str_contains($serviceSource, 'previewDynamic(') && str_contains($serviceSource, 'publishDynamic('), '必须保留纯动态 API');
 publishExpect(str_contains($serviceSource, 'FormSchemaRepository'), '动态发布必须接入 FormSchema v2 仓库');
 publishExpect(str_contains($serviceSource, "'formSchemaHash'"), '动态发布预览必须返回 canonical FormSchema hash');
@@ -49,7 +49,7 @@ publishExpect(str_contains($serviceSource, 'return $this->publishDynamic($payloa
 publishExpect(str_contains($serviceSource, 'applyDynamicDdl($payload)'), '动态发布必须使用 forward-only DDL API');
 publishExpect(!str_contains($serviceSource, 'applyMigration($payload)'), '动态发布不得登记历史 migration 文件');
 
-$businessSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/development/service/BusinessDevelopmentService.php');
+$businessSource = (string) file_get_contents(dirname(__DIR__) . '/app/admin/development/service/BusinessDevelopmentService.php');
 publishExpect(str_contains($businessSource, 'ManagedGenerationService'), 'Business 正式生成必须编排 ManagedGenerationService');
 publishExpect(str_contains($businessSource, 'previewFormalGeneration(') && str_contains($businessSource, 'formalGeneration('), 'Business API 必须提供正式生成预览与执行');
 publishExpect(str_contains($businessSource, 'formalGeneration('), 'Business 正式生成必须使用统一编排入口');
@@ -136,7 +136,7 @@ publishExpect(str_contains($serviceSource, "'diagnostics'"), '动态 preview 必
 publishExpect(str_contains($serviceSource, "'formDependencyHash'"), '动态发布预览必须返回依赖版本哈希');
 
 // 动态发布保存的空配置不能覆盖正式生成的派生默认值；全程只在内存中渲染。
-$factory = new \app\console\development\service\FormCrudDefinitionFactory();
+$factory = new \app\admin\development\service\FormCrudDefinitionFactory();
 $emptyConfig = ['apiPrefix' => '', 'routePath' => '', 'menuName' => ''];
 $storedForm = array_replace($form, ['publish_config' => $emptyConfig]);
 $definition = $factory->createFromSchema($compiled, $storedForm, $emptyConfig);

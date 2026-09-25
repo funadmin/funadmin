@@ -14,9 +14,9 @@ use app\common\crud\ConfirmationToken;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaMigrator;
 use app\common\form\schema\FormSchemaValidator;
-use app\console\development\repository\GeneratedFileBaselineRepository;
-use app\console\development\service\FormCrudDefinitionFactory;
-use app\console\development\service\ManagedGenerationService;
+use app\admin\development\repository\GeneratedFileBaselineRepository;
+use app\admin\development\service\FormCrudDefinitionFactory;
+use app\admin\development\service\ManagedGenerationService;
 
 final class IdempotencyGenerationStateRepository
 {
@@ -275,7 +275,7 @@ try {
     idempotencyExpect($inspections === 2, '提案不能触发读取其他表');
 
     $draftReads = 0;
-    $pluginPolicy = new \app\console\development\service\BusinessTargetService($root, 'mysql',
+    $pluginPolicy = new \app\admin\development\service\BusinessTargetService($root, 'mysql',
         static fn (): bool => true, static fn (): array => [],
         static fn (): array => [['code' => 'sample', 'name' => '示例', 'scopes' => ['console'], 'businessWritable' => true]],
         static fn (): array => [], static fn (): bool => false);
@@ -285,7 +285,7 @@ try {
     $pluginSchema = (new FormSchemaCompiler(new FormSchemaValidator()))->compile($pluginDocument);
     $pluginService = new ManagedGenerationService($root, stateRepository: $state, tokens: $tokens,
         moduleReader: static fn (): array => ['id' => 7, 'form_id' => 31, 'code' => 'idempotent_sample', 'table_name' => 'fun_sample_item', 'connection_name' => 'mysql',
-            'metadata' => ['target' => \app\console\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
+            'metadata' => ['target' => \app\admin\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
         formReader: static fn (): array => $pluginForm,
         schemaReader: static function (): never { throw new RuntimeException('不得读取插件已发布 Schema'); },
         draftSchemaReader: static function () use (&$draftReads, $pluginSchema) { $draftReads++; return $pluginSchema; },
@@ -305,7 +305,7 @@ try {
         'manifest' => ['proposal' => ['type' => 'crud_definition'], 'managedNonce' => 'target-bypass-nonce']];
     $replayService = new ManagedGenerationService($root, stateRepository: $state, tokens: $tokens,
         moduleReader: static fn (): array => ['id' => 7, 'form_id' => 31, 'code' => 'idempotent_sample', 'table_name' => 'fun_sample_item', 'connection_name' => 'mysql',
-            'metadata' => ['target' => \app\console\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
+            'metadata' => ['target' => \app\admin\development\service\BusinessModuleService::normalizeTarget(['type' => 'plugin', 'pluginCode' => 'sample'], 'created')]],
         formReader: static fn (): array => $pluginForm,
         draftSchemaReader: static fn () => $pluginSchema,
         generationReader: static fn (): array => $replayed, targetService: $pluginPolicy);

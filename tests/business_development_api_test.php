@@ -6,19 +6,19 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 \think\Container::getInstance()->instance('env', new \think\Env());
 
 use app\common\form\registry\FieldCapabilityRegistry;
-use app\console\controller\base\AdminApiController;
-use app\console\controller\development\Business;
-use app\console\middleware\CheckAdminApiCsrf;
-use app\console\middleware\CheckAdminApiRole;
-use app\console\middleware\SystemLog;
-use app\console\development\service\BusinessDevelopmentService;
-use app\console\development\service\BusinessModuleService;
-use app\console\development\service\DevCrudService;
-use app\console\form\repository\FormSchemaRepository;
-use app\console\form\service\FormDataService;
-use app\console\form\service\FormDesignerService;
-use app\console\form\service\FormPublishService;
-use app\console\development\service\ManagedGenerationService;
+use app\admin\controller\base\AdminApiController;
+use app\admin\controller\development\Business;
+use app\admin\middleware\CheckAdminApiCsrf;
+use app\admin\middleware\CheckAdminApiRole;
+use app\admin\middleware\SystemLog;
+use app\admin\development\service\BusinessDevelopmentService;
+use app\admin\development\service\BusinessModuleService;
+use app\admin\development\service\DevCrudService;
+use app\admin\form\repository\FormSchemaRepository;
+use app\admin\form\service\FormDataService;
+use app\admin\form\service\FormDesignerService;
+use app\admin\form\service\FormPublishService;
+use app\admin\development\service\ManagedGenerationService;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Pattern;
@@ -30,9 +30,9 @@ function businessApiExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__) . '/';
-$controllerFile = $root . 'app/console/controller/development/Business.php';
-$developmentFile = $root . 'app/console/development/service/BusinessDevelopmentService.php';
-$moduleFile = $root . 'app/console/development/service/BusinessModuleService.php';
+$controllerFile = $root . 'app/admin/controller/development/Business.php';
+$developmentFile = $root . 'app/admin/development/service/BusinessDevelopmentService.php';
+$moduleFile = $root . 'app/admin/development/service/BusinessModuleService.php';
 
 businessApiExpect(is_file($controllerFile), '缺少 Business 控制器');
 businessApiExpect(is_file($developmentFile), '缺少 BusinessDevelopmentService');
@@ -228,8 +228,8 @@ businessApiExpect($adoptedFields['status']['options_source']['options'] === $inf
 businessApiExpect($adoptedFields['password']['list_show'] === 0, '敏感字段列表隐藏语义必须保留');
 (new FormSchemaRepository())->compile($adoptedPayload);
 
-$managedSource = (string) file_get_contents($root . 'app/console/development/service/ManagedGenerationService.php');
-$stateRepositorySource = (string) file_get_contents($root . 'app/console/development/repository/DatabaseGenerationStateRepository.php');
+$managedSource = (string) file_get_contents($root . 'app/admin/development/service/ManagedGenerationService.php');
+$stateRepositorySource = (string) file_get_contents($root . 'app/admin/development/repository/DatabaseGenerationStateRepository.php');
 businessApiExpect(str_contains($managedSource, 'public function adoptResolvedBaseline('), 'ManagedGenerationService 缺少严格 adopt-resolved');
 businessApiExpect(str_contains($managedSource, "'conflict-no-base'") && str_contains($managedSource, 'remoteHash') && str_contains($managedSource, 'localHash'), 'adopt-resolved 必须严格校验最近 conflict-no-base 的 Local/Remote hash');
 businessApiExpect(str_contains($managedSource, 'PathGuard::resolve(') && str_contains($managedSource, 'is_link('), 'adopt-resolved 必须拒绝路径逃逸与符号链接');
@@ -241,17 +241,17 @@ businessApiExpect(
 );
 businessApiExpect(str_contains($stateRepositorySource, "(string) \$generation->status !== 'conflict'"), 'baseline 仓储必须二次确认 generation 为 conflict');
 businessApiExpect(str_contains($stateRepositorySource, 'array_intersect_key($record, array_flip('), 'baseline 仓储必须对白名单字段持久化');
-$moduleServiceSource = (string) file_get_contents($root . 'app/console/development/service/BusinessModuleService.php');
+$moduleServiceSource = (string) file_get_contents($root . 'app/admin/development/service/BusinessModuleService.php');
 businessApiExpect(str_contains($moduleServiceSource, "'availableActions'") && str_contains($moduleServiceSource, "'recover'"), 'generation DTO 必须根据恢复状态返回可用操作');
 businessApiExpect(str_contains($moduleServiceSource, "'recoveryStatus'") && str_contains($moduleServiceSource, "'generationMode'"), 'generation DTO 必须提供前端统一 camelCase 字段');
-$schemaRepositorySource = (string) file_get_contents($root . 'app/console/form/repository/FormSchemaRepository.php');
+$schemaRepositorySource = (string) file_get_contents($root . 'app/admin/form/repository/FormSchemaRepository.php');
 businessApiExpect(str_contains($schemaRepositorySource, 'public function saveCompiledVersionIfCurrentHash(') && str_contains($schemaRepositorySource, 'Form::lock(true)') && str_contains($schemaRepositorySource, "InvalidArgumentException('FORM_SCHEMA_CONFLICT')"), 'Schema CAS 必须锁定 Form 后比较当前 hash');
 
 $controllerMethods = implode("\n", array_map(static function (ReflectionMethod $method) use ($controllerFile): string {
     $lines = file($controllerFile);
     return is_array($lines) ? implode('', array_slice($lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1)) : '';
 }, $controller->getMethods(ReflectionMethod::IS_PUBLIC)));
-$errorMapperSource = (string) file_get_contents($root . 'app/console/development/http/BusinessApiErrorMapper.php');
+$errorMapperSource = (string) file_get_contents($root . 'app/admin/development/http/BusinessApiErrorMapper.php');
 businessApiExpect(str_contains($controllerSource, 'BusinessApiErrorMapper::map('), '控制器必须委托专用错误映射器');
 businessApiExpect(str_contains($errorMapperSource, 'FORM_SCHEMA_CONFLICT') && str_contains($errorMapperSource, '409'), '错误映射器缺少 409 映射');
 businessApiExpect(str_contains($errorMapperSource, '410') && str_contains($errorMapperSource, '422') && str_contains($errorMapperSource, '500'), '错误映射器缺少 410/422/500 映射');
@@ -262,16 +262,16 @@ businessApiExpect(str_contains($controllerSource, "nodeAccess('development/busin
 // 加载真实注解路由并仅检查调度目标，不执行控制器或访问业务数据库。
 $app = new \think\App($root);
 $app->http->name('console');
-$app->setAppPath($root . 'app/console/');
+$app->setAppPath($root . 'app/admin/');
 $app->setNamespace('app\\console');
 $app->initialize();
 set_exception_handler(static function (Throwable $exception): void {
     fwrite(STDERR, $exception->getMessage() . "\n");
     exit(1);
 });
-$authorization = new \app\console\authorization\service\AdminAuthorizationService($app->request);
+$authorization = new \app\admin\authorization\service\AdminAuthorizationService($app->request);
 $alias = new ReflectionMethod($authorization, 'aliasResource');
-$resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'designActionCatalog');
+$resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'designActionCatalog');
 $mappedResource = $alias->invoke($authorization, 'development/business/modules/42/schema/design-action-catalog', $resource);
 businessApiExpect($mappedResource['code'] === 'console/development.business:saveschema', '设计目录中间件必须复用现有 Schema 设计权限，无需新增数据库权限');
 $app->event->trigger(\think\event\RouteLoaded::class);
@@ -301,7 +301,7 @@ foreach ([
     'BUSINESS_TABLE_ALREADY_EXISTS' => 409, 'BUSINESS_EXTERNAL_TABLE_MISSING' => 409,
     'BUSINESS_TABLE_STRATEGY_INVALID' => 422,
 ] as $code => $status) {
-    $mapped = \app\console\development\http\BusinessApiErrorMapper::map(new InvalidArgumentException($code), 'boundary-test');
+    $mapped = \app\admin\development\http\BusinessApiErrorMapper::map(new InvalidArgumentException($code), 'boundary-test');
     businessApiExpect($mapped['httpStatus'] === $status && $mapped['error']['code'] === $code, '业务目标错误契约必须保留：' . $code);
 }
 echo "business development API tests: PASS\n";

@@ -19,7 +19,7 @@ runtimeHardCutExpect(str_contains($factory, 'final class PluginEntryFactory'), '
 runtimeHardCutExpect(str_contains($factory, 'function create('), 'PluginEntryFactory 必须提供 create');
 runtimeHardCutExpect(str_contains($factory, 'vendor') && str_contains($factory, 'entry'), '入口工厂必须加载 vendor 与 Manifest entry');
 
-$support = (string) file_get_contents($root . '/app/console/plugin/service/concern/PluginServiceSupport.php');
+$support = (string) file_get_contents($root . '/app/admin/plugin/service/concern/PluginServiceSupport.php');
 runtimeHardCutExpect(str_contains($support, 'PluginEntryFactory'), 'PluginServiceSupport 必须改用 PluginEntryFactory');
 runtimeHardCutExpect(!str_contains($support, 'RuntimeLoader'), 'PluginServiceSupport 不得使用 RuntimeLoader');
 runtimeHardCutExpect(!str_contains($support, 'PluginRuntimeCache'), 'PluginServiceSupport 必须移除 runtime cache');
@@ -43,7 +43,7 @@ runtimeHardCutExpect(!str_contains($manifest, 'function loadPath('), 'Manifest �
 foreach (['RuntimeLoader.php', 'PluginRuntimeBooter.php', 'PluginRuntimeCache.php', 'RuntimeLoadFailureRecorder.php'] as $legacy) {
     runtimeHardCutExpect(!is_file($root . '/app/common/plugin/sdk/' . $legacy), '必须删除旧 runtime 类：' . $legacy);
 }
-runtimeHardCutExpect(!is_file($root . '/app/console/command/PluginRuntimeCacheRebuild.php'), '必须删除 runtime cache 命令');
+runtimeHardCutExpect(!is_file($root . '/app/admin/command/PluginRuntimeCacheRebuild.php'), '必须删除 runtime cache 命令');
 $config = (string) file_get_contents($root . '/config/console.php');
 runtimeHardCutExpect(!str_contains($config, 'plugin:runtime-cache'), 'console 不得注册 runtime cache 命令');
 

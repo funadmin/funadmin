@@ -16,9 +16,9 @@ final class HistoryQuery
         return $name === 'toArray' ? [] : $this;
     }
 }
-class_alias(HistoryQuery::class, 'app\\console\\ai\\model\\AiConversation');
-class_alias(HistoryQuery::class, 'app\\console\\ai\\model\\AiMessage');
-$repository = new app\console\ai\repository\DatabaseAiConversationStore();
+class_alias(HistoryQuery::class, 'app\\admin\\ai\\model\\AiConversation');
+class_alias(HistoryQuery::class, 'app\\admin\\ai\\model\\AiMessage');
+$repository = new app\admin\ai\repository\DatabaseAiConversationStore();
 $check = static function (bool $ok, string $label): void { if (!$ok) throw new RuntimeException($label); };
 $repository->conversationPageRows(7, ['is_archived'=>0,'is_unread'=>1,'group_id'=>0,'search'=>'100%_'], 90, 31);
 $calls = HistoryQuery::$calls;

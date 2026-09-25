@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\ai\contract\AiSecurityStore;
-use app\console\ai\contract\DockerProcessRunner;
-use app\console\ai\infrastructure\ContainerAiToolExecutor;
-use app\console\ai\infrastructure\ProcessResult;
-use app\console\ai\service\AgentSandboxManager;
-use app\console\ai\service\AgentToolRegistry;
-use app\console\ai\service\AiApprovalService;
-use app\console\ai\service\AiAuditService;
-use app\console\ai\service\ApprovalPolicyEngine;
+use app\admin\ai\contract\AiSecurityStore;
+use app\admin\ai\contract\DockerProcessRunner;
+use app\admin\ai\infrastructure\ContainerAiToolExecutor;
+use app\admin\ai\infrastructure\ProcessResult;
+use app\admin\ai\service\AgentSandboxManager;
+use app\admin\ai\service\AgentToolRegistry;
+use app\admin\ai\service\AiApprovalService;
+use app\admin\ai\service\AiAuditService;
+use app\admin\ai\service\ApprovalPolicyEngine;
 
 function phase3ExecutorExpect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 

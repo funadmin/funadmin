@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\plugin\contract\PluginAppPublicationRepository;
-use app\console\plugin\contract\PluginResourceRepository;
-use app\console\plugin\service\PluginAppPublicationService;
-use app\console\plugin\service\PluginInfrastructureService;
-use app\console\plugin\service\PluginResourcePublisher;
+use app\admin\plugin\contract\PluginAppPublicationRepository;
+use app\admin\plugin\contract\PluginResourceRepository;
+use app\admin\plugin\service\PluginAppPublicationService;
+use app\admin\plugin\service\PluginInfrastructureService;
+use app\admin\plugin\service\PluginResourcePublisher;
 use app\common\plugin\sdk\Manifest;
 
 $resourceTestRuntimeRoot = '';

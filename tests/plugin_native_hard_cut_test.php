@@ -60,7 +60,7 @@ foreach ($plugins as $code) {
     }
 
     foreach ($layers as $layer) {
-        $consoleRoot = $root . '/plugins/' . $code . '/app/console/' . $layer;
+        $consoleRoot = $root . '/plugins/' . $code . '/app/admin/' . $layer;
         if (!is_dir($consoleRoot)) {
             continue;
         }
@@ -71,8 +71,8 @@ foreach ($plugins as $code) {
             }
             $source = (string) file_get_contents($file->getPathname());
             nativeHardCutExpect(
-                str_contains($source, 'namespace app\\console\\' . $layer . '\\plugin\\' . $code . ';'),
-                $code . ' console 源码必须使用 app\\console\\layer\\plugin\\code 原生 namespace'
+                str_contains($source, 'namespace app\\admin\\' . $layer . '\\plugin\\' . $code . ';'),
+                $code . ' console 源码必须使用 app\\admin\\layer\\plugin\\code 原生 namespace'
             );
             nativeHardCutExpect(!str_contains($source, 'namespace plugin\\'), 'console 不得保留 plugin namespace');
         }

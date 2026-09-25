@@ -8,7 +8,7 @@ use app\common\form\dataSource\FormDataSourceException;
 use app\common\form\dataSource\FormDataSourceRegistry;
 use app\common\form\validation\FormAsyncValidationException;
 use app\common\form\validation\FormAsyncValidatorRegistry;
-use app\console\form\service\FormDataService;
+use app\admin\form\service\FormDataService;
 
 function dataExpect(bool $condition, string $message): void
 {
@@ -209,8 +209,8 @@ dataExpect(
     $service->sanitizeRecord($governedFields, ['title' => 'ok', 'secret' => 'stored']) === ['title' => 'ok'],
     'password/sensitive/writeOnly 不得从 detail/list 回显'
 );
-$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/Data.php');
-$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/console/form/service/FormDataService.php');
+$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/form/Data.php');
+$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/admin/form/service/FormDataService.php');
 dataExpect(str_contains($serviceSource, 'FormSchemaVersion'), '运行态 meta 必须从不可变版本表读取已发布 schema');
 dataExpect(str_contains($serviceSource, 'BusinessModule'), '运行态必须通过业务模块读取发布绑定');
 dataExpect(str_contains($serviceSource, "where('version', \$publishedVersion)") && str_contains($serviceSource, "where('schema_hash', \$publishedHash)"), '运行态必须按业务模块 version/hash 双重锁定发布快照，禁止草稿污染');
@@ -360,12 +360,12 @@ class FormDataMemoryQuery
     }
 }
 foreach ([
-    FormDataMemoryForm::class => 'app\\console\\form\\model\\Form',
-    FormDataMemoryField::class => 'app\\console\\form\\model\\FormField',
-    FormDataMemoryModule::class => 'app\\console\\development\\model\\BusinessModule',
-    FormDataMemoryVersion::class => 'app\\console\\form\\model\\FormSchemaVersion',
-    FormDataMemoryRepository::class => 'app\\console\\form\\repository\\FormSchemaRepository',
-    FormDataMemoryScope::class => 'app\\console\\authorization\\service\\DataScopeService',
+    FormDataMemoryForm::class => 'app\\admin\\form\\model\\Form',
+    FormDataMemoryField::class => 'app\\admin\\form\\model\\FormField',
+    FormDataMemoryModule::class => 'app\\admin\\development\\model\\BusinessModule',
+    FormDataMemoryVersion::class => 'app\\admin\\form\\model\\FormSchemaVersion',
+    FormDataMemoryRepository::class => 'app\\admin\\form\\repository\\FormSchemaRepository',
+    FormDataMemoryScope::class => 'app\\admin\\authorization\\service\\DataScopeService',
     FormDataMemoryDb::class => 'think\\facade\\Db',
 ] as $fake => $real) {
     dataExpect(!class_exists($real, false), '内存替身必须先于持久化类加载：' . $real);

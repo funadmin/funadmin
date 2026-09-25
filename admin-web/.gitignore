@@ -41,6 +41,7 @@ pnpm-debug.log*
 /messagebox-*.png
 /msgbox-*.png
 /tests/*
+!/tests/setup.ts
 !/tests/views/
 /tests/views/*
 !/tests/views/form-page-host-lifecycle.spec.ts

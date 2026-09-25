@@ -5,10 +5,10 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\crud\ConfirmationToken;
-use app\console\ai\service\AiChangeSetService;
-use app\console\ai\service\AiChangeSetTransactionService;
-use app\console\ai\service\AiCrudProposalService;
-use app\console\ai\service\AiChangeSetApplicationService;
+use app\admin\ai\service\AiChangeSetService;
+use app\admin\ai\service\AiChangeSetTransactionService;
+use app\admin\ai\service\AiCrudProposalService;
+use app\admin\ai\service\AiChangeSetApplicationService;
 
 function phase4Expect(bool $condition, string $message): void
 {
@@ -223,11 +223,11 @@ phase4Expect(($crudApplied['state'] ?? '') === 'completed' && count($crudCalls) 
 phase4Reject(fn () => $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'server-token','taskId'=>32], 7, 21, $crudApproval), '最终审批');
 phase4Reject(fn () => $proposalPipeline->apply(['moduleId'=>9,'generationId'=>77,'confirmToken'=>'fake','taskId'=>31,'bundle'=>[]], 7, 21, $crudApproval), '禁止');
 
-$businessService = (string) file_get_contents(dirname(__DIR__) . '/app/console/development/service/BusinessDevelopmentService.php');
-$crudProposalService = (string) file_get_contents(dirname(__DIR__) . '/app/console/ai/service/AiCrudProposalService.php');
+$businessService = (string) file_get_contents(dirname(__DIR__) . '/app/admin/development/service/BusinessDevelopmentService.php');
+$crudProposalService = (string) file_get_contents(dirname(__DIR__) . '/app/admin/ai/service/AiCrudProposalService.php');
 phase4Expect(str_contains($businessService, 'previewStructuredProposal('), 'BusinessDevelopmentService 必须提供结构化提案可信预览入口');
 phase4Expect(str_contains($crudProposalService, 'function production(') && str_contains($crudProposalService, 'BusinessDevelopmentService::production'), 'CRUD proposal 生产工厂必须复用 BusinessDevelopmentService');
-$controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/ai/Ai.php');
+$controller = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/ai/Ai.php');
 foreach (['changeSetDetail','changeSetPreview','changeSetApply','changeSetRecover','crudProposalPreview','crudProposalApply'] as $method) phase4Expect(str_contains($controller, "function {$method}("), "控制器缺少 {$method}");
 phase4Expect(!str_contains($controller, '尚未实现'), '阶段四 controller 不得保留 501 占位');
 foreach (['AiApproval', 'AiChangeSetTransactionService', 'AiCrudProposalService', 'apply_workspace', 'securityAudit'] as $wiring) phase4Expect(str_contains($controller, $wiring), '阶段四 controller 缺少生产安全接线：' . $wiring);
@@ -240,7 +240,7 @@ phase4Expect(str_contains($controller, 'recordPreview('), 'ChangeSet preview 必
 phase4Expect(str_contains($controller, 'changeSetApplication()->recover(') && str_contains($controller, "['recoveryVersion']"), 'ChangeSet recover 必须由数据库 recovery_version CAS 编排');
 phase4Expect(str_contains($controller, 'publicChangeSetRecord('), 'ChangeSet detail 必须通过公开记录脱敏');
 phase4Expect(str_contains($controller, 'SystemMigration::where(') && str_contains($controller, 'databaseMaximumMigration('), 'ChangeSet 生产服务必须同时读取数据库最大登记 migration');
-phase4Expect(str_contains((string)file_get_contents(dirname(__DIR__) . '/app/console/ai/model/AiChangeSet.php'), "'selection'"), 'ChangeSet selection 必须持久化为 JSON 字段');
+phase4Expect(str_contains((string)file_get_contents(dirname(__DIR__) . '/app/admin/ai/model/AiChangeSet.php'), "'selection'"), 'ChangeSet selection 必须持久化为 JSON 字段');
 phase4Expect(is_file(dirname(__DIR__) . '/database/migrations/archive/109_ai_phase4_change_sets.sql'), '阶段四 migration 必须使用初始最大 108 加一的 109');
 $permissionCompensation = dirname(__DIR__) . '/database/migrations/archive/110_ai_phase4_preview_permission.sql';
 phase4Expect(is_file($permissionCompensation), '109 执行后发现的 preview 权限缺口必须使用当前最大 109 加一的 110 补偿，不得修改已执行 migration');
@@ -262,7 +262,7 @@ phase4Expect(($replayedRecovery['state'] ?? '') === 'rolled_back', '恢复必须
 
 file_put_contents($root . '/src/A.php', "interrupt-before\n");
 $interruptPlan = ['blocked'=>false,'files'=>[['path'=>'src/A.php','status'=>'update','localHash'=>hash('sha256', "interrupt-before\n"),'baseHash'=>null,'remoteHash'=>hash('sha256', "interrupt-after\n"),'mergedHash'=>hash('sha256', "interrupt-after\n"),'contentKind'=>'text','content'=>"interrupt-after\n"]]];
-$interrupted = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_file_rename') throw new \app\console\ai\exception\AiChangeSetInterruptionException('模拟中断'); });
+$interrupted = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_file_rename') throw new \app\admin\ai\exception\AiChangeSetInterruptionException('模拟中断'); });
 $interruptWalBefore = glob($private . '/wal/*.json') ?: [];
 phase4Reject(fn () => $interrupted->execute(101, 7, 21, 31, $interruptPlan, $failedApproval), '模拟中断');
 $interruptWalFiles = array_values(array_diff(glob($private . '/wal/*.json') ?: [], $interruptWalBefore));
@@ -274,7 +274,7 @@ phase4Expect(($interruptRecovered['state'] ?? '') === 'rolled_back' && file_get_
 foreach (['after_prepared','after_staged'] as $stage) {
     file_put_contents($root . '/src/A.php', "{$stage}-before\n");
     $stagePlan = ['blocked'=>false,'files'=>[['path'=>'src/A.php','status'=>'update','localHash'=>hash('sha256', "{$stage}-before\n"),'baseHash'=>null,'remoteHash'=>hash('sha256', "{$stage}-after\n"),'mergedHash'=>hash('sha256', "{$stage}-after\n"),'contentKind'=>'text','content'=>"{$stage}-after\n"]]];
-    $stageTransaction = new AiChangeSetTransactionService($root, $private, static function (string $actual) use ($stage): void { if ($actual === $stage) throw new \app\console\ai\exception\AiChangeSetInterruptionException('阶段中断'); });
+    $stageTransaction = new AiChangeSetTransactionService($root, $private, static function (string $actual) use ($stage): void { if ($actual === $stage) throw new \app\admin\ai\exception\AiChangeSetInterruptionException('阶段中断'); });
     $stageWalBefore = glob($private . '/wal/*.json') ?: [];
     phase4Reject(fn () => $stageTransaction->execute(102, 7, 21, 31, $stagePlan, $approval), '阶段中断');
     $stageWalPath = array_values(array_diff(glob($private . '/wal/*.json') ?: [], $stageWalBefore))[0];
@@ -285,7 +285,7 @@ foreach (['after_prepared','after_staged'] as $stage) {
 
 file_put_contents($root . '/src/A.php', "verified-before\n");
 $verifiedPlan = ['blocked'=>false,'files'=>[['path'=>'src/A.php','status'=>'update','localHash'=>hash('sha256', "verified-before\n"),'baseHash'=>null,'remoteHash'=>hash('sha256', "verified-after\n"),'mergedHash'=>hash('sha256', "verified-after\n"),'contentKind'=>'text','content'=>"verified-after\n"]]];
-$verifiedTransaction = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_verified') throw new \app\console\ai\exception\AiChangeSetInterruptionException('verified 中断'); });
+$verifiedTransaction = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_verified') throw new \app\admin\ai\exception\AiChangeSetInterruptionException('verified 中断'); });
 $verifiedWalBefore = glob($private . '/wal/*.json') ?: [];
 phase4Reject(fn () => $verifiedTransaction->execute(103, 7, 21, 31, $verifiedPlan, $approval), 'verified 中断');
 $verifiedWalPath = array_values(array_diff(glob($private . '/wal/*.json') ?: [], $verifiedWalBefore))[0];
@@ -310,7 +310,7 @@ phase4Expect(($multiWal['state'] ?? '') === 'rolled_back' && file_get_contents($
 
 file_put_contents($root . '/src/A.php', "application-before\n");
 $applicationRecoveryPlan = ['blocked'=>false,'files'=>[['path'=>'src/A.php','status'=>'update','localHash'=>hash('sha256', "application-before\n"),'baseHash'=>null,'remoteHash'=>hash('sha256', "application-after\n"),'mergedHash'=>hash('sha256', "application-after\n"),'contentKind'=>'text','content'=>"application-after\n"]]];
-$applicationInterrupted = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_file_rename') throw new \app\console\ai\exception\AiChangeSetInterruptionException('application recovery 中断'); });
+$applicationInterrupted = new AiChangeSetTransactionService($root, $private, static function (string $stage): void { if ($stage === 'after_file_rename') throw new \app\admin\ai\exception\AiChangeSetInterruptionException('application recovery 中断'); });
 $applicationWalBefore = glob($private . '/wal/*.json') ?: [];
 phase4Reject(fn () => $applicationInterrupted->execute(104, 7, 21, 31, $applicationRecoveryPlan, $approval), 'application recovery 中断');
 $applicationWalPath = array_values(array_diff(glob($private . '/wal/*.json') ?: [], $applicationWalBefore))[0];

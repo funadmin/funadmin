@@ -42,7 +42,7 @@ foreach (['missing', 'type', 'nullable', 'primary'] as $case) {
     catch (InvalidArgumentException $exception) { externalExpect(str_contains($exception->getMessage(), 'EXTERNAL_TABLE'), $exception->getMessage()); }
     $schema = $bad;
 }
-$source = (string) file_get_contents(dirname(__DIR__) . '/app/console/plugin/service/PluginService.php');
+$source = (string) file_get_contents(dirname(__DIR__) . '/app/admin/plugin/service/PluginService.php');
 externalExpect(substr_count($source, 'assertExternalTables($manifest)') >= 2, '安装更新必须在迁移之前接通校验');
 $targetSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/crud/PluginCrudTarget.php');
 externalExpect(str_contains($targetSource, '!$definition->isAdopted()'), '外部表制品必须按统一采纳身份禁止迁移');
@@ -50,7 +50,7 @@ foreach ([['tableIdentity' => ['source' => 'adopted', 'kind' => 'physical']], ['
     externalExpect(CrudDefinition::fromArray($identity)->isAdopted(), 'CLI 与表单采纳来源必须统一识别');
 }
 foreach (['migratePlugin', 'setPluginEnabled', 'purgePluginData'] as $method) {
-    $reflection = new ReflectionMethod(\app\console\plugin\service\PluginService::class, $method);
+    $reflection = new ReflectionMethod(\app\admin\plugin\service\PluginService::class, $method);
     $body = implode('', array_slice(file($reflection->getFileName()), $reflection->getStartLine() - 1, $reflection->getEndLine() - $reflection->getStartLine() + 1));
     externalExpect(str_contains($body, $method === 'purgePluginData' ? 'assertPurgeAllowed' : 'assertExternalTables'), $method . ' 必须在执行边界检查外部表');
 }

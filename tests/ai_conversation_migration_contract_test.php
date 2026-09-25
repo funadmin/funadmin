@@ -15,7 +15,7 @@ foreach (['information_schema.COLUMNS', 'information_schema.STATISTICS', 'GENERA
 if (strpos($sql, 'ADD UNIQUE KEY') >= strpos($sql, 'DROP INDEX')) throw new RuntimeException('必须先建立新约束再移除旧索引');
 $method = new ReflectionMethod(app\common\service\MigrationService::class, 'statements');
 if (count($method->invoke(new app\common\service\MigrationService(), $sql)) !== 13) throw new RuntimeException('迁移语句解析错误');
-$controller = new ReflectionClass(app\console\controller\ai\Ai::class);
+$controller = new ReflectionClass(app\admin\controller\ai\Ai::class);
 foreach (['conversationGroupIndex', 'conversationGroupCreate', 'conversationGroupUpdate', 'conversationGroupDelete', 'conversationStateUpdate'] as $action) {
     if (!$controller->getMethod($action)->getAttributes()) throw new RuntimeException('缺少注解路由：' . $action);
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
-use app\console\ai\service\AiAttachmentStorage;
+use app\admin\ai\service\AiAttachmentStorage;
 function storageExpect(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 function storageReject(callable $call, string $message): void { try { $call(); } catch (InvalidArgumentException|RuntimeException) { return; } throw new LogicException($message); }
 if (($argv[1] ?? '') === '--cleanup-worker') {

@@ -14,10 +14,10 @@ function legacyGoneExpect(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 foreach ([
-    '/app/console/controller/development/DevCrud.php',
-    '/app/console/controller/form/Designer.php',
-    '/app/console/controller/form/FullPublish.php',
-    '/app/console/service/FormFullPublishService.php',
+    '/app/admin/controller/development/DevCrud.php',
+    '/app/admin/controller/form/Designer.php',
+    '/app/admin/controller/form/FullPublish.php',
+    '/app/admin/service/FormFullPublishService.php',
 ] as $retired) {
     legacyGoneExpect(!is_file($root . $retired), '旧实现不得恢复：' . $retired);
 }
@@ -25,7 +25,7 @@ foreach ([
 // 加载真实注解路由，不执行控制器或访问业务数据库。
 $app = new App($root . '/');
 $app->http->name('console');
-$app->setAppPath($root . '/app/console/');
+$app->setAppPath($root . '/app/admin/');
 $app->setNamespace('app\\console');
 $app->initialize();
 set_exception_handler(static function (Throwable $exception): void {
@@ -50,8 +50,8 @@ foreach ($app->route->getRuleList() as $route) {
     legacyGoneExpect(!is_string($target) || !str_contains($target, 'LegacyWriteApi'), '旧控制器不得注册路由：' . $rule);
 }
 legacyGoneExpect($retiredRoutes === [], '旧写入口不得注册：' . implode(', ', $retiredRoutes));
-legacyGoneExpect(!is_file($root . '/app/console/controller/legacy/LegacyWriteApi.php'), '旧控制器文件必须删除');
-legacyGoneExpect(!class_exists('app\\console\\controller\\legacy\\LegacyWriteApi'), '旧控制器不得再自动加载');
+legacyGoneExpect(!is_file($root . '/app/admin/controller/legacy/LegacyWriteApi.php'), '旧控制器文件必须删除');
+legacyGoneExpect(!class_exists('app\\admin\\controller\\legacy\\LegacyWriteApi'), '旧控制器不得再自动加载');
 
 foreach ([
     'get development/business/modules' => 'development.Business/modules',

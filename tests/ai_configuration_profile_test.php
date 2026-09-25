@@ -3,8 +3,8 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\ai\service\AiConfigurationProfileService as Profiles;
-use app\console\ai\service\AiProfileSecret;
+use app\admin\ai\service\AiConfigurationProfileService as Profiles;
+use app\admin\ai\service\AiProfileSecret;
 use Defuse\Crypto\Key;
 
 function profileExpect(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }

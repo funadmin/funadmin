@@ -9,12 +9,12 @@ require_once __DIR__ . '/fixtures/AiConversationGroupsFake.php';
 new \think\App(dirname(__DIR__));
 
 use app\common\ai\provider\AiProviderException;
-use app\console\ai\contract\AiConversationStore;
-use app\console\ai\contract\AiToolExecutor;
-use app\console\ai\job\AiAgentJob;
-use app\console\ai\service\AiAgentOrchestrator;
-use app\console\ai\service\AiConversationService;
-use app\console\ai\service\AiEventStreamService;
+use app\admin\ai\contract\AiConversationStore;
+use app\admin\ai\contract\AiToolExecutor;
+use app\admin\ai\job\AiAgentJob;
+use app\admin\ai\service\AiAgentOrchestrator;
+use app\admin\ai\service\AiConversationService;
+use app\admin\ai\service\AiEventStreamService;
 use think\queue\Job;
 
 function phase2Expect(bool $condition, string $message): void
@@ -86,7 +86,7 @@ $orchestrator = new AiAgentOrchestrator($provider, $executor);
 $result = $orchestrator->run([['role' => 'user', 'content' => 'go']], [], ['maxRounds' => 2, 'totalTokenBudget' => 10]);
 phase2Expect($result['status'] === 'succeeded' && $result['usage']['totalTokens'] === 5, '编排器应有限轮次完成工具循环');
 try { $orchestrator->run([], [], ['maxRounds' => 1, 'totalTokenBudget' => 1]); throw new RuntimeException('预算超限必须失败'); } catch (AiProviderException $e) { phase2Expect($e->category() === 'budget_exceeded', '预算错误分类错误'); }
-phase2Expect(!str_contains((string) file_get_contents(dirname(__DIR__) . '/app/console/ai/service/AiAgentOrchestrator.php'), 'shell_exec'), '编排器不得调用宿主 Shell');
+phase2Expect(!str_contains((string) file_get_contents(dirname(__DIR__) . '/app/admin/ai/service/AiAgentOrchestrator.php'), 'shell_exec'), '编排器不得调用宿主 Shell');
 
 $queueJob = new class extends Job {
     public bool $wasDeleted = false;
@@ -197,22 +197,22 @@ foreach ([
 $snapshotDb = new \think\DbManager();
 $snapshotDb->setConfig(['default' => 'snapshot_test', 'connections' => ['snapshot_test' => ['type' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'fields_strict' => true]]]);
 $snapshotDb->execute('CREATE TABLE ai_change_set (id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id INTEGER, task_id INTEGER, created_by INTEGER, idempotency_key TEXT, digest TEXT, base_digest TEXT, patch_path TEXT, patch_sha256 TEXT, base_file_hashes JSON, manifest JSON, summary JSON, status TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT)');
-$sandboxProcess = new class implements \app\console\ai\contract\DockerProcessRunner {
+$sandboxProcess = new class implements \app\admin\ai\contract\DockerProcessRunner {
     public array $calls = [];
     public array $task = [];
     public bool $failExport = false;
-    public function run(array $argv, int $timeoutSeconds): \app\console\ai\infrastructure\ProcessResult {
+    public function run(array $argv, int $timeoutSeconds): \app\admin\ai\infrastructure\ProcessResult {
         $this->calls[] = $argv;
         if (($argv[1] ?? '') === 'exec' && in_array('diff', $argv, true)) {
-            return new \app\console\ai\infrastructure\ProcessResult($this->failExport ? 1 : 0, 'retained patch', $this->failExport ? 'export unavailable' : '');
+            return new \app\admin\ai\infrastructure\ProcessResult($this->failExport ? 1 : 0, 'retained patch', $this->failExport ? 'export unavailable' : '');
         }
         if (($argv[1] ?? '') === 'cp') file_put_contents(end($argv) . '/retained.txt', '已有改动');
         $labels = ['com.funadmin.ai-agent' => 'true', 'com.funadmin.ai-task' => (string) $this->task['id'], 'com.funadmin.ai-session' => (string) $this->task['conversation_id'], 'com.funadmin.ai-volume' => 'retained-volume'];
-        return new \app\console\ai\infrastructure\ProcessResult(0, json_encode($labels), '');
+        return new \app\admin\ai\infrastructure\ProcessResult(0, json_encode($labels), '');
     }
 };
 $privateRoot = sys_get_temp_dir() . '/ai-job-snapshot-' . bin2hex(random_bytes(5));
-$sandboxManager = new \app\console\ai\service\AgentSandboxManager($sandboxProcess, dirname(__DIR__), $privateRoot, []);
+$sandboxManager = new \app\admin\ai\service\AgentSandboxManager($sandboxProcess, dirname(__DIR__), $privateRoot, []);
 $factoryCalls = 0;
 $factoryFailure = new RuntimeException('gateway factory unavailable');
 $brokenFactory = static function (array $resolved) use (&$factoryCalls, $factoryFailure): AiAgentOrchestrator { $factoryCalls++; throw $factoryFailure; };
@@ -246,7 +246,7 @@ foreach (['missing', 'cross-provider', 'factory', 'export-failure'] as $scenario
         phase2Expect(($latest['error']['category'] ?? '') === 'artifact_export_failed', '导出失败必须记录既有错误分类');
     } else {
         phase2Expect($failure === $factoryFailure && $latest['sandbox_status'] === 'cleaned', '安全导出清理后仍抛出原工厂异常');
-        $changeSet = \app\console\ai\model\AiChangeSet::find($latest['change_set_id']);
+        $changeSet = \app\admin\ai\model\AiChangeSet::find($latest['change_set_id']);
         phase2Expect($changeSet !== null && $changeSet->status === 'proposed' && file_get_contents($changeSet->patch_path) === 'retained patch', '清理前必须真实持久化变更集和 patch');
         phase2Expect(file_get_contents($privateRoot . '/exports/' . $scenario . '/tree/retained.txt') === '已有改动', '清理后既有改动必须仍可读取');
         phase2Expect(!is_dir($workspace), '成功收尾必须清理原 sandbox workspace');

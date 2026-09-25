@@ -5,8 +5,8 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\service\MigrationService;
-use app\console\development\model\CrudGeneration;
-use app\console\development\repository\DatabaseGenerationStateRepository;
+use app\admin\development\model\CrudGeneration;
+use app\admin\development\repository\DatabaseGenerationStateRepository;
 use think\App;
 use think\facade\Db;
 

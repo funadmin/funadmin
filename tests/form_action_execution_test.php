@@ -5,7 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\form\action\FormActionRegistry;
-use app\console\form\service\FormDataService;
+use app\admin\form\service\FormDataService;
 
 function actionExpect(bool $condition, string $message): void
 {
@@ -143,7 +143,7 @@ try {
     actionExpect($exception->getMessage() === 'FORM_ACTION_NOT_DECLARED', '未声明动作必须返回稳定错误码');
 }
 
-$controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/form/Data.php');
+$controller = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/form/Data.php');
 actionExpect(str_contains($controller, "#[Post('action/:key/:action')]"), '必须提供 POST action/:key/:action endpoint');
 actionExpect(str_contains($controller, "header('Idempotency-Key'"), 'endpoint 必须读取 Idempotency-Key');
 

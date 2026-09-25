@@ -3,7 +3,7 @@
 declare(strict_types=1);
 require __DIR__ . '/ai_phase2_services_test.php';
 
-use app\console\ai\service\AiConversationService;
+use app\admin\ai\service\AiConversationService;
 
 function attachmentReject(callable $call, string $label, ?int $code = null): void
 {
@@ -45,9 +45,9 @@ $provider = new class($captured) {
     public function __construct(public array &$captured) {}
     public function chat(array $messages, array $tools): array { $this->captured = $messages; return ['content'=>'完成','toolCalls'=>[],'usage'=>[]]; }
 };
-(new \app\console\ai\job\AiAgentJob($store, new \app\console\ai\service\AiAgentOrchestrator($provider, $executor)))->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
+(new \app\admin\ai\job\AiAgentJob($store, new \app\admin\ai\service\AiAgentOrchestrator($provider, $executor)))->fire($queueJob, ['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
 phase2Expect($captured === $task['input']['messages'], 'Job 使用服务端冻结历史');
-$controllerSource = file_get_contents(dirname(__DIR__) . '/app/console/controller/ai/Ai.php');
+$controllerSource = file_get_contents(dirname(__DIR__) . '/app/admin/controller/ai/Ai.php');
 phase2Expect(str_contains($controllerSource, '$this->ai->appendUserMessage($id, $this->adminId(), $this->input())'), '公开消息路由必须使用严格入口');
 phase2Expect(str_contains($controllerSource, '$this->ai->createPublicTask($id, $this->adminId(), $this->input())'), '公开任务路由必须使用冻结入口');
 echo "AI attachment history: PASS\n";

@@ -5,8 +5,8 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\traits\Crud;
-use app\console\controller\system\SystemMemberGroup;
-use app\console\controller\system\SystemMemberLevel;
+use app\admin\controller\system\SystemMemberGroup;
+use app\admin\controller\system\SystemMemberLevel;
 
 function hookExpect(bool $condition, string $message): void
 {

@@ -95,10 +95,10 @@ try {
         'title' => 'M5 <记录> "安全"',
         'paths' => [
             'migration' => 'database/m5_record.sql',
-            'model' => 'app/console/model/M5Record.php',
-            'validate' => 'app/console/validate/M5RecordValidate.php',
-            'service' => 'app/console/service/M5RecordService.php',
-            'controller' => 'app/console/controller/generated/M5RecordController.php',
+            'model' => 'app/admin/model/M5Record.php',
+            'validate' => 'app/admin/validate/M5RecordValidate.php',
+            'service' => 'app/admin/service/M5RecordService.php',
+            'controller' => 'app/admin/controller/generated/M5RecordController.php',
             'permissionMigration' => 'database/m5_record_permissions.sql',
             'api' => 'admin-web/src/api/generated/m5-record.ts',
             'view' => 'admin-web/src/views/generated/m5-record/index.vue',
@@ -200,7 +200,7 @@ try {
     $withoutStatusPlan = $generator->plan($withoutStatusDefinition);
     $withoutStatusGenerated = $generator->generate($withoutStatusDefinition, $withoutStatusPlan['confirmToken'], [], 'm5-runtime-without-status-test');
     m5Expect(($withoutStatusGenerated['write']['status'] ?? '') === 'written', '无 status fixture 必须真实生成');
-    $withoutStatusController = file_get_contents($fixtureRoot . '/app/console/controller/generated/M5WithoutStatusController.php');
+    $withoutStatusController = file_get_contents($fixtureRoot . '/app/admin/controller/generated/M5WithoutStatusController.php');
     $withoutStatusApi = file_get_contents($fixtureRoot . '/admin-web/src/api/generated/m5-without-status.ts');
     $withoutStatusView = file_get_contents($fixtureRoot . '/admin-web/src/views/generated/m5-without-status/index.vue');
     m5Expect(!str_contains($withoutStatusController, "#[Post(':id/status')]") && !str_contains($withoutStatusApi, 'status: (id:') && !str_contains($withoutStatusView, 'changeStatus'), '无 status 生成制品不得残留状态能力');
@@ -261,21 +261,18 @@ try {
     Db::name('dict_item')->insert(['type_id' => $dictTypeId, 'label' => '甲类', 'value' => 'a', 'status' => 1, 'sort_order' => 10]);
 
     foreach (['M5RecordValidate.php', 'M5UuidRecordValidate.php', 'M5WithoutStatusValidate.php'] as $validatorFixture) {
-        m5PrepareValidatorFixture($fixtureRoot . '/app/console/validate/' . $validatorFixture);
-    }
-    if (!class_exists('app\\console\\service\\DataScopeService')) {
-        class_alias(\app\console\authorization\service\DataScopeService::class, 'app\\console\\service\\DataScopeService');
+        m5PrepareValidatorFixture($fixtureRoot . '/app/admin/validate/' . $validatorFixture);
     }
     foreach (['model/M5Record.php', 'validate/M5RecordValidate.php', 'service/M5RecordService.php', 'controller/generated/M5RecordController.php', 'model/M5UuidRecord.php', 'validate/M5UuidRecordValidate.php', 'service/M5UuidRecordService.php', 'controller/generated/M5UuidRecordController.php', 'model/M5WithoutStatus.php', 'validate/M5WithoutStatusValidate.php', 'service/M5WithoutStatusService.php', 'controller/generated/M5WithoutStatusController.php'] as $file) {
-        require_once $fixtureRoot . '/app/console/' . $file;
+        require_once $fixtureRoot . '/app/admin/' . $file;
     }
-    $modelClass = 'app\\console\\model\\M5Record';
+    $modelClass = 'app\\admin\\model\\M5Record';
     $modelName = new ReflectionProperty($modelClass, 'name');
     $modelName->setAccessible(true);
     m5Expect($modelName->getValue(new $modelClass()) === 'm5_record', '生成 model 必须去除数据库前缀');
-    $validatorClass = 'app\\console\\validate\\M5RecordValidate';
-    $serviceClass = 'app\\console\\service\\M5RecordService';
-    $controllerClass = 'app\\console\\controller\\generated\\M5RecordController';
+    $validatorClass = 'app\\admin\\validate\\M5RecordValidate';
+    $serviceClass = 'app\\admin\\service\\M5RecordService';
+    $controllerClass = 'app\\admin\\controller\\generated\\M5RecordController';
 
     $same = $modelClass::create(['name' => 'same', 'amount' => '1.00', 'department_id' => 1, 'category' => 'a', 'status' => 1]);
     $validator = (new $validatorClass())->forUpdate($same->id);
@@ -353,8 +350,8 @@ try {
     m5Request($app, ['ids' => [$id]], []);
     m5Expect(m5Data($controller->destroyMany())['data']['removed'] === 1 && $modelClass::withTrashed()->find($id) === null, '批量 forceDelete 必须永久删除');
 
-    $uuidModelClass = 'app\\console\\model\\M5UuidRecord';
-    $uuidControllerClass = 'app\\console\\controller\\generated\\M5UuidRecordController';
+    $uuidModelClass = 'app\\admin\\model\\M5UuidRecord';
+    $uuidControllerClass = 'app\\admin\\controller\\generated\\M5UuidRecordController';
     $uuidController = new $uuidControllerClass($app);
     m5Request($app, [], ['uuid' => '550e8400-e29b-41d4-a716-446655440000', 'name' => 'uuid-created', 'status' => 1]);
     $uuidCreated = m5Data($uuidController->create());
@@ -371,7 +368,7 @@ try {
         m5Expect(Uuid::isValid((string) $importedUuid) && !in_array($importedUuid, ['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002'], true), 'controller import 必须忽略客户端 UUID');
     }
     m5Request($app, [], ['name' => 'without-status']);
-    $withoutStatusControllerClass = 'app\\console\\controller\\generated\\M5WithoutStatusController';
+    $withoutStatusControllerClass = 'app\\admin\\controller\\generated\\M5WithoutStatusController';
     $withoutStatusRuntimeController = new $withoutStatusControllerClass($app);
     m5Expect(m5Data($withoutStatusRuntimeController->create())['code'] === 200, '无 status controller create 必须可运行');
 
@@ -393,9 +390,9 @@ try {
     m5Request($app, ['ids' => ['not-a-uuid']], []);
     m5Expect(m5Data($uuidController->recycle())['code'] === 422, '批量动作必须拒绝异常主键');
 
-    $controllerDirectory = $fixtureRoot . '/app/console/controller';
+    $controllerDirectory = $fixtureRoot . '/app/admin/controller';
     $annotationConfig = config('annotation');
-    $annotationConfig['route']['controllers'] = [$controllerDirectory => ['namespace' => 'app\\console\\controller']];
+    $annotationConfig['route']['controllers'] = [$controllerDirectory => ['namespace' => 'app\\admin\\controller']];
     $app->config->set($annotationConfig, 'annotation');
     $app->event->trigger(RouteLoaded::class);
     $routes = array_column($app->route->getRuleList(), 'rule');

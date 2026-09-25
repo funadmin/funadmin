@@ -3,7 +3,7 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\controller\ai\Ai;
+use app\admin\controller\ai\Ai;
 use think\annotation\route\Group;
 use think\annotation\route\Route;
 use think\annotation\route\Pattern;

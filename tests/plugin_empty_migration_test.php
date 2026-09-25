@@ -69,7 +69,7 @@ namespace {
     use app\common\plugin\sdk\Manifest;
     use app\common\plugin\sdk\PluginScaffolder;
     use app\common\service\MigrationService;
-    use app\console\plugin\service\PluginInfrastructureService;
+    use app\admin\plugin\service\PluginInfrastructureService;
     use think\facade\Db;
 
     function migrationExpect(bool $ok, string $message): void

@@ -191,7 +191,7 @@ expect(preg_match('/function\s+run_plugin_migrations\s*\(/', (string) $functions
 expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
 expect(!is_file(dirname(__DIR__) . '/app/common/plugin/sdk/Route.php'), '旧插件通配路由执行器必须移除');
 expect(!is_file(dirname(__DIR__) . '/app/common/plugin/sdk/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');
-$pluginServiceSource = file_get_contents(dirname(__DIR__) . '/app/console/plugin/service/PluginService.php');
+$pluginServiceSource = file_get_contents(dirname(__DIR__) . '/app/admin/plugin/service/PluginService.php');
 expect(str_contains((string) $pluginServiceSource, 'LifecycleLock'), '生命周期服务必须使用互斥锁');
 expect(str_contains((string) $pluginServiceSource, 'finally'), '生命周期服务必须统一 finally 释放锁并清缓存');
 expect(str_contains((string) $pluginServiceSource, 'operation_token'), '生命周期操作必须持久化 operation_token');

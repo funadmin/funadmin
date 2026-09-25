@@ -18,7 +18,7 @@ import * as fieldPresentation from './fieldPresentation';
 
 const root = resolve(process.cwd(), '..');
 const permission = Vue.reactive({ permissions: [] as string[] });
-const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+const php = process.env.PHP_BINARY || 'php';
 function generate(empty: boolean | 'defaults' = false, batch = true, soft = true, plugin = false, search = true, presentation: Record<string, unknown> = {}) {
   return JSON.parse(execFileSync(php, ['-r', `require 'vendor/autoload.php';
 $s = ['schemaVersion'=>2,'key'=>'host_demo','title'=>'宿主测试','nodes'=>[['id'=>'title','kind'=>'field','type'=>'input','field'=>'order_title','title'=>'标题','database'=>['columnType'=>'varchar','length'=>100]]]];

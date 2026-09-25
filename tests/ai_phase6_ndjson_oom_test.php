@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\ai\contract\DockerProcessRunner;
-use app\console\ai\infrastructure\ProcessResult;
-use app\console\ai\service\AgentSandboxManager;
-use app\console\ai\service\AiChangeSetService;
+use app\admin\ai\contract\DockerProcessRunner;
+use app\admin\ai\infrastructure\ProcessResult;
+use app\admin\ai\service\AgentSandboxManager;
+use app\admin\ai\service\AiChangeSetService;
 
 function phase6NdjsonExpect(bool $condition, string $message): void
 {

@@ -7,9 +7,9 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 define('FUNADMIN_CRUD_HELPER_TESTING', true);
 
 use app\common\crud\ConfirmationToken;
-use app\console\development\exception\BusinessOperationException;
-use app\console\development\repository\GeneratedFileBaselineRepository;
-use app\console\development\service\GenerationTransactionService;
+use app\admin\development\exception\BusinessOperationException;
+use app\admin\development\repository\GeneratedFileBaselineRepository;
+use app\admin\development\service\GenerationTransactionService;
 final class ApiRecoveryState
 {
     public array $record = [
@@ -155,7 +155,7 @@ try {
     $state->record['transaction_id'] = $transactionId;
     $state->record['definition'] = ['target' => ['type' => 'plugin', 'plugin' => 'closeout', 'scope' => 'console']];
     $state->transitions = [];
-    $authorization = new \app\console\development\service\BusinessTargetService($root, authorized: fn (): bool => false);
+    $authorization = new \app\admin\development\service\BusinessTargetService($root, authorized: fn (): bool => false);
     $denied = new GenerationTransactionService($root, $tokens, new GeneratedFileBaselineRepository($root, $state), $state,
         new ApiRecoveryResources(), fn (): array => [], targetService: $authorization);
     try {
@@ -165,7 +165,7 @@ try {
         apiRecoveryExpect($error->getMessage() === 'BUSINESS_TARGET_FORBIDDEN', '必须按 DB 目标授权');
     }
     apiRecoveryExpect($state->transitions === [], '未授权恢复不得 claim');
-    $allowed = new \app\console\development\service\BusinessTargetService($root, authorized: fn (): bool => true,
+    $allowed = new \app\admin\development\service\BusinessTargetService($root, authorized: fn (): bool => true,
         states: fn (): array => ['closeout' => ['lifecycle_state' => 'failed', 'recovery_token' => 'stale']]);
     $authorizedTransactions = new GenerationTransactionService($root, $tokens, new GeneratedFileBaselineRepository($root, $state), $state,
         new ApiRecoveryResources(), fn (): array => throw new RuntimeException('恢复不得执行新生成状态校验'), targetService: $allowed);
@@ -175,7 +175,7 @@ try {
     $journal['target'] = $state->record['definition']['target'];
     $journal['state'] = 'prepared';
     $journalFactory->invoke($transactions, $journal);
-    $held = \app\console\plugin\service\PluginInfrastructureService::lifecycleLock($root)->acquire('closeout');
+    $held = \app\admin\plugin\service\PluginInfrastructureService::lifecycleLock($root)->acquire('closeout');
     try {
         try { $authorizedTransactions->recoverGeneration(41, 'recovery_required', 'tester'); throw new LogicException('恢复必须取生命周期锁'); }
         catch (RuntimeException $error) { apiRecoveryExpect(str_contains($error->getMessage(), '生命周期'), '恢复必须被生命周期锁阻断'); }

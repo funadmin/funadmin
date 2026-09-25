@@ -101,8 +101,8 @@ try {
     $adminId = (int) Db::query("SELECT id FROM fun_admin WHERE username='same-user'")[0]['id'];
     Db::execute("INSERT INTO fun_member (username,password,email,mobile,nickname,status,level_id,created_at,updated_at) VALUES ('same-user',?,NULL,'13900000002','Member Same',1,1,NOW(),NOW())", [password_hash('MemberPass!1', PASSWORD_BCRYPT)]);
     $memberId = (int) Db::query("SELECT id FROM fun_member WHERE username='same-user'")[0]['id'];
-    $admin = \app\console\authentication\model\Admin::find($adminId);
-    $member = \app\console\model\Member::find($memberId);
+    $admin = \app\admin\authentication\model\Admin::find($adminId);
+    $member = \app\admin\model\Member::find($memberId);
     $adminUser = (new AdminIdentityAdapter())->sync($admin, [1]);
     $memberUser = (new MemberIdentityAdapter())->sync($member);
     identityMysqlExpect((int) $adminUser->id !== (int) $memberUser->id, 'admin/member 同 ID 或同用户名绝不能合并');
@@ -152,7 +152,7 @@ try {
         });
     } catch (Throwable) {
     }
-    identityMysqlExpect((string) \app\console\authentication\model\Admin::find($adminId)->email === $before, 'identity dual-write 失败必须回滚 legacy');
+    identityMysqlExpect((string) \app\admin\authentication\model\Admin::find($adminId)->email === $before, 'identity dual-write 失败必须回滚 legacy');
 
     echo "identity phase1 mysql tests passed; temporary database cleaned\n";
 } finally {

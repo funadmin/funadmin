@@ -10,11 +10,11 @@ describe('公共页面声明', () => {
   it('CRUD 日期区间、主键、排序、树表及工具双端协议', () => {
     const value = { ...page(), primaryKey: 'record_id', search: [{ field: 'created_at', label: '日期', type: 'date' }, { field: 'price', label: '价格', type: 'range' }], columns: [{ key: 'price', prop: 'price', label: '价格', sortable: true }], pagination: { pageSize: 20, pageSizes: [20], enabled: false }, list: { tree: { enabled: true, parentField: 'parent_id' }, tools: { search: false, refresh: false } } };
     expect(parsePageSchema(value)).toEqual(value);
-    const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+    const php = process.env.PHP_BINARY || 'php';
     expect(execFileSync(php, ['-r', "require 'vendor/autoload.php'; \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1],true)); echo 'ok';", JSON.stringify(value)], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' })).toBe('ok');
   });
   it('Builder 显式主键及分页开关编译后保真', () => {
-    const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+    const php = process.env.PHP_BINARY || 'php';
     const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(\\app\\common\\form\\builder\\Page::make('demo')->primaryKey('record_id')->pagination(20, [20], false)->compile());"], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output))).toMatchObject({ primaryKey: 'record_id', pagination: { enabled: false } });
   });
@@ -27,14 +27,14 @@ describe('公共页面声明', () => {
   ])('两端拒绝非法 CRUD 展示能力 %j', patch => {
     const value = { ...page(), ...patch };
     expect(() => parsePageSchema(value)).toThrow('PAGE_SCHEMA_INVALID');
-    const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+    const php = process.env.PHP_BINARY || 'php';
     const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; try { \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1], true)); echo 'accepted'; } catch (InvalidArgumentException $e) { echo $e->getMessage(); }", JSON.stringify(value)], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' });
     expect(output).toBe('PAGE_SCHEMA_INVALID');
   });
   it('接收 PHP 编译产物，空集合保持为空', () => {
     expect(parsePageSchema(page()).columns).toEqual([]);
     const root = resolve(process.cwd(), '..');
-    const php = process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+    const php = process.env.PHP_BINARY || 'php';
     const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\admin\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output)).columns).toHaveLength(12);
   });
@@ -93,7 +93,7 @@ describe('公共页面声明', () => {
     add('搜索小数', false, { search: [{ field: 'id', label: '编号', type: 'select', options: [{ label: '一', value: 1.5 }] }] });
     add('列null', false, { columns: [{ key: 'id', label: '编号', width: null }] });
     const json = JSON.stringify(cases);
-    const phpResults = JSON.parse(execFileSync(process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php', ['-r',
+    const phpResults = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', ['-r',
       "require 'vendor/autoload.php'; $results=[]; foreach(json_decode(stream_get_contents(STDIN),true) as $case) { try { \\app\\common\\form\\builder\\Page::validate($case['value']); $results[]=true; } catch (InvalidArgumentException $e) { $results[]=$e->getMessage(); } } echo json_encode($results);"
     ], { cwd: resolve(process.cwd(), '..'), input: json, encoding: 'utf8' }));
     JSON.parse(json).forEach((test: typeof cases[number], index: number) => {

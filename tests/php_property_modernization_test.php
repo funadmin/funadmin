@@ -14,14 +14,14 @@ use app\common\service\McpService;
 use app\common\service\PredisService;
 use app\common\service\UploadService;
 use app\common\model\UpgradeManifest;
-use app\console\controller\plugin\SystemPlugin;
-use app\console\authorization\service\AdminAuthorizationService;
-use app\console\development\service\DevCrudService;
-use app\console\plugin\service\PluginCenterService;
-use app\console\plugin\service\PluginMarketplaceService;
-use app\console\plugin\service\PluginPackagePipeline;
-use app\console\plugin\service\PluginPackageService;
-use app\console\plugin\service\PluginService;
+use app\admin\controller\plugin\SystemPlugin;
+use app\admin\authorization\service\AdminAuthorizationService;
+use app\admin\development\service\DevCrudService;
+use app\admin\plugin\service\PluginCenterService;
+use app\admin\plugin\service\PluginMarketplaceService;
+use app\admin\plugin\service\PluginPackagePipeline;
+use app\admin\plugin\service\PluginPackageService;
+use app\admin\plugin\service\PluginService;
 use app\common\helper\CtrHelper;
 use app\common\plugin\sdk\Plugin;
 use Mcp\Server;
@@ -672,32 +672,32 @@ $ormPropertyExemptions = [
     \app\common\model\SystemMigration::class => ['name', 'autoWriteTimestamp'],
     UpgradeManifest::class => ['name', 'json', 'jsonAssoc'],
     \app\common\model\UpgradeTask::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\authorization\model\AdminMenu::class => ['name'],
-    \app\console\ai\model\AiApproval::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiChangeSet::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiConversation::class => ['name', 'type', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiConversationGroup::class => ['name'],
-    \app\console\ai\model\AiMessage::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiOutbox::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiStreamNonce::class => ['name', 'updateTime'],
-    \app\console\ai\model\AiTask::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\ai\model\AiTaskEvent::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
-    \app\console\ai\model\AiToolCall::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\authorization\model\AdminDepartment::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\console\authorization\model\AuthGroupDepartment::class => ['name', 'autoWriteTimestamp'],
-    \app\console\authorization\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
-    \app\console\authorization\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],
-    \app\console\development\model\BusinessModule::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\development\model\CrudGeneration::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\development\model\GeneratedFileBaseline::class => ['name'],
-    \app\console\form\model\FormSchemaVersion::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
-    \app\console\model\Department::class => ['name'],
-    \app\console\model\MemberGroupRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\console\model\MemberTag::class => ['name'],
-    \app\console\model\MemberTagRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
-    \app\console\authorization\model\Permission::class => ['name'],
-    \app\console\form\model\Form::class => ['name', 'json', 'jsonAssoc'],
-    \app\console\form\model\FormField::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\authorization\model\AdminMenu::class => ['name'],
+    \app\admin\ai\model\AiApproval::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiChangeSet::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiConversation::class => ['name', 'type', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiConversationGroup::class => ['name'],
+    \app\admin\ai\model\AiMessage::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiOutbox::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiStreamNonce::class => ['name', 'updateTime'],
+    \app\admin\ai\model\AiTask::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\ai\model\AiTaskEvent::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
+    \app\admin\ai\model\AiToolCall::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\authorization\model\AdminDepartment::class => ['name', 'pk', 'autoWriteTimestamp'],
+    \app\admin\authorization\model\AuthGroupDepartment::class => ['name', 'autoWriteTimestamp'],
+    \app\admin\authorization\model\AuthGroupInherit::class => ['name', 'autoWriteTimestamp'],
+    \app\admin\authorization\model\CasbinRule::class => ['name', 'autoWriteTimestamp'],
+    \app\admin\development\model\BusinessModule::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\development\model\CrudGeneration::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\development\model\GeneratedFileBaseline::class => ['name'],
+    \app\admin\form\model\FormSchemaVersion::class => ['name', 'json', 'jsonAssoc', 'updateTime'],
+    \app\admin\model\Department::class => ['name'],
+    \app\admin\model\MemberGroupRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
+    \app\admin\model\MemberTag::class => ['name'],
+    \app\admin\model\MemberTagRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
+    \app\admin\authorization\model\Permission::class => ['name'],
+    \app\admin\form\model\Form::class => ['name', 'json', 'jsonAssoc'],
+    \app\admin\form\model\FormField::class => ['name', 'json', 'jsonAssoc'],
 ];
 $propertyExemptions = [
     ExceptionHandle::class . '::$ignoreReport' => '父类 think\\exception\\Handle::isIgnoreReport() 直接读取该无类型扩展点',

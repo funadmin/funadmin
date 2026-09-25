@@ -3,7 +3,7 @@
 declare(strict_types=1);
 require __DIR__ . '/ai_configuration_profile_test.php';
 
-use app\console\controller\ai\Profiles;
+use app\admin\controller\ai\Profiles;
 use think\annotation\route\Group;
 use think\annotation\route\Route;
 use think\annotation\route\Pattern;

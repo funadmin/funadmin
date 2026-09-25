@@ -5,7 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\ai\provider\AiProviderException;
-use app\console\ai\service\AiProviderSettingsService;
+use app\admin\ai\service\AiProviderSettingsService;
 use app\common\service\AdminLogService;
 
 function phase5ProviderExpect(bool $condition, string $message): void
@@ -18,8 +18,8 @@ function phase5ProviderExpect(bool $condition, string $message): void
 phase5ProviderExpect(class_exists(AiProviderSettingsService::class), '阶段五缺少 Provider settings 服务');
 
 $adminLogServiceSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/service/AdminLogService.php');
-phase5ProviderExpect(str_contains($adminLogServiceSource, 'use app\\console\\model\\AdminLog;'), 'AdminLogService 必须引用实际存在的 AdminLog 模型');
-phase5ProviderExpect(class_exists(app\console\model\AdminLog::class), '日志保存使用的 AdminLog 模型必须可解析');
+phase5ProviderExpect(str_contains($adminLogServiceSource, 'use app\\admin\\model\\AdminLog;'), 'AdminLogService 必须引用实际存在的 AdminLog 模型');
+phase5ProviderExpect(class_exists(app\admin\model\AdminLog::class), '日志保存使用的 AdminLog 模型必须可解析');
 
 $serverConfig = [
     'name' => 'server-provider',
@@ -132,7 +132,7 @@ $sanitized = $sanitize->invoke(AdminLogService::instance(), ['api_key' => 'sk-au
 phase5ProviderExpect($sanitized['api_key'] === '[REDACTED]' && $sanitized['nested']['apiKey'] === '[REDACTED]', '操作日志必须脱敏临时 api_key/apiKey');
 phase5ProviderExpect(!str_contains(json_encode($sanitized, JSON_THROW_ON_ERROR), 'sk-audit-secret'), '操作日志不得记录临时 key');
 
-$controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/ai/Ai.php');
+$controller = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/ai/Ai.php');
 phase5ProviderExpect(str_contains($controller, 'AiProviderSettingsService'), 'Provider 控制器必须委托 settings 服务');
 phase5ProviderExpect(str_contains($controller, '$this->input()'), 'settingsTest 必须读取本次请求体');
 

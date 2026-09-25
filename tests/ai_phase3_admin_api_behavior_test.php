@@ -5,11 +5,11 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 require_once __DIR__ . '/fixtures/AiConversationGroupsFake.php';
 
-use app\console\ai\contract\AiConversationStore;
-use app\console\ai\service\AiConversationService;
-use app\console\middleware\CheckAdminApiRole;
-use app\console\authorization\service\AdminAuthorizationService;
-use app\console\authentication\service\AdminSessionService;
+use app\admin\ai\contract\AiConversationStore;
+use app\admin\ai\service\AiConversationService;
+use app\admin\middleware\CheckAdminApiRole;
+use app\admin\authorization\service\AdminAuthorizationService;
+use app\admin\authentication\service\AdminSessionService;
 use think\App;
 use think\exception\HttpResponseException;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\plugin\contract\PluginAppPublicationRepository;
-use app\console\plugin\service\PluginAppPublicationService;
+use app\admin\plugin\contract\PluginAppPublicationRepository;
+use app\admin\plugin\service\PluginAppPublicationService;
 use app\common\plugin\sdk\Manifest;
 
 final class MemoryPluginAppPublicationRepository implements PluginAppPublicationRepository
@@ -76,11 +76,11 @@ function appPublicationPlugin(string $plugins, string $code, array $consoleLayer
         '<?php namespace app\\' . $code . '\\service; final class Domain { public const VERSION = 1; }'
     );
     foreach ($consoleLayers as $layer) {
-        mkdir($directory . '/app/console/' . $layer, 0755, true);
+        mkdir($directory . '/app/admin/' . $layer, 0755, true);
         $attribute = $layer === 'controller' ? ' use think\\annotation\\route\\Group; #[Group("plugin/' . $code . '")]' : '';
         file_put_contents(
-            $directory . '/app/console/' . $layer . '/Entry.php',
-            '<?php namespace app\\console\\' . $layer . '\\plugin\\' . $code . ';' . $attribute . ' final class Entry {}'
+            $directory . '/app/admin/' . $layer . '/Entry.php',
+            '<?php namespace app\\admin\\' . $layer . '\\plugin\\' . $code . ';' . $attribute . ' final class Entry {}'
         );
     }
     file_put_contents($directory . '/plugin.json', json_encode([
@@ -120,7 +120,7 @@ try {
         'registry source_path 必须保持插件根目录相对路径'
     );
     appPublicationExpect(
-        in_array('app/console/controller/Entry.php', array_column($repository->records, 'source_path'), true),
+        in_array('app/admin/controller/Entry.php', array_column($repository->records, 'source_path'), true),
         'Console registry source_path 必须保持插件根目录相对路径'
     );
     $publisher->complete('install-demo');
@@ -143,8 +143,8 @@ try {
 
     $unknown = appPublicationPlugin($plugins, 'unknown', ['config']);
     appPublicationReject(static fn () => $publisher->publish($unknown, 'unknown-layer'), '未知 Console layer');
-    appPublicationRemoveTree($plugins . '/unknown/app/console/config');
-    file_put_contents($plugins . '/unknown/app/console/root.php', '<?php namespace app\\console\\root\\plugin\\unknown; final class RootFile {}');
+    appPublicationRemoveTree($plugins . '/unknown/app/admin/config');
+    file_put_contents($plugins . '/unknown/app/admin/root.php', '<?php namespace app\\admin\\root\\plugin\\unknown; final class RootFile {}');
     $unknown = Manifest::fromDirectory($plugins . '/unknown');
     appPublicationReject(static fn () => $publisher->publish($unknown, 'console-file'), 'Console 根目录只允许固定 layer');
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$controller = (string) file_get_contents($root . '/app/console/controller/form/Data.php');
+$controller = (string) file_get_contents($root . '/app/admin/controller/form/Data.php');
 $config = (string) file_get_contents($root . '/config/form.php');
 
 function dataObservabilityExpect(bool $condition, string $message): void

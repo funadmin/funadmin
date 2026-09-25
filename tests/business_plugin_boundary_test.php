@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\development\service\BusinessTargetService;
-use app\console\development\service\BusinessModuleService;
-use app\console\development\service\FormCrudDefinitionFactory;
+use app\admin\development\service\BusinessTargetService;
+use app\admin\development\service\BusinessModuleService;
+use app\admin\development\service\FormCrudDefinitionFactory;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaValidator;
 
@@ -120,11 +120,11 @@ boundaryExpect($coreFields['created_at']['nullable'] && !$coreFields['id']['null
 $enforcer = new \Casbin\Enforcer(dirname(__DIR__) . '/config/casbin/rbac_model.conf');
 $enforcer->addPolicy('role:42', 'default', 'console/development.business', 'modules');
 $enforcer->addGroupingPolicy('admin:42', 'role:42', 'default');
-$resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'targets');
+$resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'development.Business', 'targets');
 boundaryExpect($enforcer->enforce('admin:42', 'default', $resource['obj'], $resource['act']), '候选读取须复用业务列表授权');
 $effects = 0;
-$publisher = new \app\console\form\service\FormPublishService(
-    new \app\console\form\service\FormDesignerService(dirname(__DIR__)),
+$publisher = new \app\admin\form\service\FormPublishService(
+    new \app\admin\form\service\FormDesignerService(dirname(__DIR__)),
     previewDdl: static function () use (&$effects): array { $effects++; return []; },
     moduleTargetReader: static fn (): array => $owned
 );
@@ -145,7 +145,7 @@ function session(string $name): int { return $GLOBALS['boundaryAdminId']; }
 function db_cache(string $key, callable $reader): array { return []; }
 $GLOBALS['boundaryAdminId'] = 42;
 $enforcer->addPolicy('role:42', 'default', 'console/development.devplugin', 'options');
-$shared = new ReflectionProperty(\app\console\authorization\service\CasbinService::class, 'sharedEnforcer');
+$shared = new ReflectionProperty(\app\admin\authorization\service\CasbinService::class, 'sharedEnforcer');
 $shared->setAccessible(true);
 $shared->setValue(null, $enforcer);
 $productionPolicy = new BusinessTargetService(dirname(__DIR__), 'mysql',

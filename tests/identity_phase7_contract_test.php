@@ -39,12 +39,12 @@ $requiredFiles = [
     'app/identity/service/BackchannelLogoutWorker.php',
     'app/identity/service/BackchannelUrlPolicy.php',
     'app/identity/controller/Logout.php',
-    'app/console/controller/identity/OidcSession.php',
+    'app/admin/controller/identity/OidcSession.php',
 ];
 foreach ($requiredFiles as $file) {
     phase7ContractExpect(is_file($root . '/' . $file), '缺少 Phase7 实现：' . $file);
 }
-phase7ContractExpect(is_file($root . '/app/console/command/IdentityLogoutDeliveriesWork.php'), '缺少 backchannel worker 命令');
+phase7ContractExpect(is_file($root . '/app/admin/command/IdentityLogoutDeliveriesWork.php'), '缺少 backchannel worker 命令');
 $console = (string) file_get_contents($root . '/config/console.php');
 phase7ContractExpect(str_contains($console, "'identity:logout-deliveries:work'"), 'worker 命令必须注册');
 $authorization = (string) file_get_contents($root . '/app/identity/service/AuthorizationTransactionService.php');

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\form\repository\FormSchemaRepository;
-use app\console\form\service\FormDataService;
+use app\admin\form\repository\FormSchemaRepository;
+use app\admin\form\service\FormDataService;
 use think\App;
 use think\facade\Db;
 
@@ -40,7 +40,7 @@ function relationMysqlFailure(callable $operation, string $message): void
 $projectRoot = dirname(__DIR__);
 $app = new App($projectRoot . '/');
 $app->http->name('console');
-$app->setAppPath($projectRoot . '/app/console/');
+$app->setAppPath($projectRoot . '/app/admin/');
 $app->setNamespace('app\\console');
 $app->initialize();
 $originalDatabaseConfig = (array) config('database');
@@ -389,11 +389,11 @@ UPDATE fun_business_module SET metadata='{"publishConfig":{"dataScopeEnabled":tr
 INSERT INTO fun_fd_string_order (code,title,category_id,dept_id,deleted_at) VALUES
 ('DENIED','节点',0,8,NULL), ('DELETED','节点',0,7,NOW()), ('VISIBLE','节点',0,7,NULL);
 SQL);
-    $domain = \app\console\authorization\service\PermissionResource::domain();
+    $domain = \app\admin\authorization\service\PermissionResource::domain();
     $database->prepare("INSERT INTO fun_casbin_rule (id,ptype,v0,v1,v2) VALUES (1,'g','admin:987654','role:987654',?)")->execute([$domain]);
     session('admin.id', 987654);
     Db::connect('mysql', true);
-    relationMysqlExpect((new \app\console\authorization\service\DataScopeService())->resolve()['departmentIds'] === [7], '测试必须使用真实的非超级管理员部门授权');
+    relationMysqlExpect((new \app\admin\authorization\service\DataScopeService())->resolve()['departmentIds'] === [7], '测试必须使用真实的非超级管理员部门授权');
     foreach ([0, '0'] as $category) {
         try {
             $service->listing('fd_string_orders', ['__category' => $category], '', 'asc', 1, 20);
@@ -583,9 +583,9 @@ SQL);
     relationMysqlExpect(in_array('console/generated.fdstringorderscontroller/index', $formalPermissions, true), '正式来源权限必须依据生成用表单 key 而非业务 code');
     $database->exec('CREATE TABLE fun_permission (id bigint PRIMARY KEY, status int, is_public int, code varchar(200), deleted_at datetime NULL)');
     $app->config->set(['auth_on' => true, 'superAdminId' => 1], 'funadmin');
-    $authorization = new \app\console\authorization\service\AdminAuthorizationService();
+    $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
     $authorizedTree = new FormDataService(permissionChecker: [$authorization, 'nodeAccess']);
-    $casbin = \app\console\authorization\service\CasbinService::instance();
+    $casbin = \app\admin\authorization\service\CasbinService::instance();
     foreach ([[], ['index'], ['index', 'create'], ['index', 'update'], ['index', 'remove']] as $grants) {
         $database->exec("DELETE FROM fun_casbin_rule WHERE ptype='p'");
         foreach ($grants as $offset => $grant) $database->prepare("INSERT INTO fun_casbin_rule (id,ptype,v0,v1,v2,v3) VALUES (?,'p','role:987654',?,'console/generated.fdstringorderscontroller',?)")->execute([10 + $offset, $domain, $grant]);
@@ -610,8 +610,8 @@ SQL);
     }
     $generatedSchema = $repository->compile($selfValueDocument);
     $generatedColumns = array_map(static fn (array $column): array => $column + ['nullable' => !($column['notnull'] ?? false)], array_values(Db::connect('mysql')->getFields('fun_fd_string_order')));
-    $definition = (new \app\console\development\service\FormCrudDefinitionFactory())->createFromSchema($generatedSchema, ['table_name' => 'fun_fd_string_order'], [], ['primaryKey' => ['code'], 'columns' => $generatedColumns]);
-    $generated = \app\common\crud\ProductionTemplateContext::build($definition, ['modelBaseImport' => 'use app\\console\\model\\BackendModel;']);
+    $definition = (new \app\admin\development\service\FormCrudDefinitionFactory())->createFromSchema($generatedSchema, ['table_name' => 'fun_fd_string_order'], [], ['primaryKey' => ['code'], 'columns' => $generatedColumns]);
+    $generated = \app\common\crud\ProductionTemplateContext::build($definition, ['modelBaseImport' => 'use app\\admin\\model\\BackendModel;']);
     eval(substr($generated['modelContent'], 5));
     preg_match('/namespace ([^;]+);/', $generated['modelContent'], $namespace);
     preg_match('/final class (\w+)/', $generated['modelContent'], $className);

@@ -6,13 +6,13 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\model\concern\LaravelSoftDelete;
 use app\common\service\MigrationService;
-use app\console\ai\model\AiApproval;
-use app\console\ai\model\AiChangeSet;
-use app\console\ai\model\AiConversation;
-use app\console\ai\model\AiMessage;
-use app\console\ai\model\AiTask;
-use app\console\ai\model\AiToolCall;
-use app\console\ai\service\ApprovalPolicyEngine;
+use app\admin\ai\model\AiApproval;
+use app\admin\ai\model\AiChangeSet;
+use app\admin\ai\model\AiConversation;
+use app\admin\ai\model\AiMessage;
+use app\admin\ai\model\AiTask;
+use app\admin\ai\model\AiToolCall;
+use app\admin\ai\service\ApprovalPolicyEngine;
 use think\App;
 
 function aiPhase1Expect(bool $condition, string $message): void
@@ -114,7 +114,7 @@ foreach ($modelContracts as $class => $contract) {
     aiPhase1Expect($usesSoftDelete === $contract['softDelete'], $class . ' 软删除策略错误');
 }
 foreach (['AiSession', 'AiExecution', 'AiArtifact', 'AiAuditLog'] as $wrongModel) {
-    aiPhase1Expect(!class_exists('app\\console\\model\\' . $wrongModel), '不得保留错误模型：' . $wrongModel);
+    aiPhase1Expect(!class_exists('app\\admin\\model\\' . $wrongModel), '不得保留错误模型：' . $wrongModel);
 }
 $modelRelations = [
     AiConversation::class => ['messages', 'tasks'],

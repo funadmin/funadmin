@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\development\model\BusinessModule;
-use app\console\form\exception\FormMigrationException;
-use app\console\form\model\Form;
-use app\console\form\model\FormSchemaVersion;
-use app\console\form\repository\FormSchemaRepository;
-use app\console\form\service\FormDesignerService;
-use app\console\form\service\FormPublishService;
+use app\admin\development\model\BusinessModule;
+use app\admin\form\exception\FormMigrationException;
+use app\admin\form\model\Form;
+use app\admin\form\model\FormSchemaVersion;
+use app\admin\form\repository\FormSchemaRepository;
+use app\admin\form\service\FormDesignerService;
+use app\admin\form\service\FormPublishService;
 use think\App;
 use think\facade\Db;
 
@@ -41,10 +41,10 @@ function dynamicPublishSchema(string $source = 'created'): array
 }
 
 $root = dirname(__DIR__) . '/';
-$serviceSource = (string) file_get_contents($root . 'app/console/form/service/FormPublishService.php');
-$designerSource = (string) file_get_contents($root . 'app/console/form/service/FormDesignerService.php');
-$dataSource = (string) file_get_contents($root . 'app/console/form/service/FormDataService.php');
-$businessController = (string) file_get_contents($root . 'app/console/controller/development/Business.php');
+$serviceSource = (string) file_get_contents($root . 'app/admin/form/service/FormPublishService.php');
+$designerSource = (string) file_get_contents($root . 'app/admin/form/service/FormDesignerService.php');
+$dataSource = (string) file_get_contents($root . 'app/admin/form/service/FormDataService.php');
+$businessController = (string) file_get_contents($root . 'app/admin/controller/development/Business.php');
 
 preg_match('/public function previewDynamic\([^}]+\n    }/s', $serviceSource, $previewDynamicMatch);
 preg_match('/public function publishDynamic\([\s\S]+?\n    }\n\n    public function status/s', $serviceSource, $publishDynamicMatch);
@@ -298,7 +298,7 @@ try {
 
 $app = new App($root);
 $app->http->name('console');
-$app->setAppPath($root . 'app/console/');
+$app->setAppPath($root . 'app/admin/');
 $app->setNamespace('app\\console');
 $app->initialize();
 $originalDatabaseConfig = (array) config('database');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/ai_phase2_services_test.php';
 
-use app\console\ai\service\AiConversationService;
+use app\admin\ai\service\AiConversationService;
 
 $store = new MemoryAiStore();
 $service = new AiConversationService($store);
@@ -48,7 +48,7 @@ foreach ([['before'=>'1:1','after'=>'2:2'], ['before'=>'x'], ['after'=>[]], ['li
 try { $service->messagePage($c['id'], 8, []); throw new RuntimeException('越权'); } catch (RuntimeException $e) { phase2Expect($e->getCode() === 404, '每页校验会话归属'); }
 $origin = $service->messagePage($c['id'], 7, ['after'=>'0:0']);
 phase2Expect(array_column($origin['items'], 'sequence') === range(1,50), '空首屏增量起点必须读取最早新增');
-$controller = file_get_contents(dirname(__DIR__).'/app/console/controller/ai/Ai.php');
+$controller = file_get_contents(dirname(__DIR__).'/app/admin/controller/ai/Ai.php');
 phase2Expect(str_contains($controller, '$this->ai->conversationPage($this->adminId(), $this->request->get())'), 'Controller 必须转发原始会话查询参数');
 phase2Expect(str_contains($controller, '$this->ai->messagePage($id, $this->adminId(), $this->request->get())'), 'Controller 必须转发原始消息查询参数');
 echo "AI history pagination tests passed\n";

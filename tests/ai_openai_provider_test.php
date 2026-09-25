@@ -148,7 +148,7 @@ foreach ([''=>'/v1', '/'=>'/v1', '/v1'=>'/v1', '/v1/'=>'/v1', '/proxy/v1'=>'/pro
         $body = $operation === 'models' ? '{"data":[{"id":"test-model"}]}' : ($operation === 'stream' ? "data: [DONE]\n\n" : '{"choices":[{"message":{"content":"ok"}}]}');
         $config = ['base_url'=>'https://api.example.com' . $basePath];
         if ($operation === 'test') {
-            $settings = new \app\console\ai\service\AiProviderSettingsService($config, static function ($resolved) use (&$history, $body) {
+            $settings = new \app\admin\ai\service\AiProviderSettingsService($config, static function ($resolved) use (&$history, $body) {
                 return providerGateway([new Response(200, [], $body)], $history, $resolved);
             });
             $settings->test([]);

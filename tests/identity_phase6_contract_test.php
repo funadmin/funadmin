@@ -35,7 +35,7 @@ $claimService = (string) file_get_contents($root . '/app/identity/service/OidcCl
 foreach (['email_verified', 'phone_number_verified', "'tenant'", "'departments'"] as $claim) {
     phase6Expect(str_contains($claimService, $claim), 'Phase 6 claim policy 缺少：' . $claim);
 }
-$controller = (string) file_get_contents($root . '/app/console/controller/identity/EnterpriseApplication.php');
+$controller = (string) file_get_contents($root . '/app/admin/controller/identity/EnterpriseApplication.php');
 foreach (['saveClaimPolicy', 'saveClientClaimPolicy'] as $needle) {
     phase6Expect(str_contains($controller, $needle), 'Phase 6 管理 API 缺少：' . $needle);
 }

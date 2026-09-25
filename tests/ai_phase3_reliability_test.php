@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\ai\service\AiOutboxDispatcher;
-use app\console\ai\service\AiResumeOutboxService;
+use app\admin\ai\service\AiOutboxDispatcher;
+use app\admin\ai\service\AiResumeOutboxService;
 
 function aiReliabilityExpect(bool $condition, string $message): void
 {
@@ -99,7 +99,7 @@ foreach (['processing', 'lease_owner', 'lease_expires_at', 'idx_ai_outbox_claim'
     aiReliabilityExpect(str_contains($migrationSql, $contract), "106 migration 缺少 {$contract}");
 }
 aiReliabilityExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME|DELETE)\b/i', preg_replace('/^\s*--.*$/m', '', $migrationSql) ?? $migrationSql), '106 migration 必须 forward-only');
-$jobSource = (string)file_get_contents($root . '/app/console/ai/job/AiAgentJob.php');
+$jobSource = (string)file_get_contents($root . '/app/admin/ai/job/AiAgentJob.php');
 aiReliabilityExpect(str_contains($jobSource, 'compareAndSetTaskOperation'), 'Job 必须以 operation_token 原子 claim，拒绝崩溃窗口产生的重复消息');
 
 echo "AI phase 3 reliability tests: PASS\n";

@@ -5,7 +5,7 @@ require __DIR__ . '/ai_phase2_services_test.php';
 require __DIR__ . '/ai_attachment_repository_test.php';
 
 $memory = new MemoryAiStore();
-$conversationService = new \app\console\ai\service\AiConversationService($memory, [], null, null, $service);
+$conversationService = new \app\admin\ai\service\AiConversationService($memory, [], null, null, $service);
 \think\facade\Config::set(['provider'=>['name'=>'trusted','model'=>'vision']], 'ai');
 $conversation = $conversationService->createConversation(7, ['provider'=>'trusted','model'=>'vision']);
 $memory->appendMessage($conversation['id'], ['role'=>'user','content'=>$imageMessage['content']]);
@@ -16,20 +16,20 @@ $task = $conversationService->createPublicTask($conversation['id'],7,['message_i
 repoExpect(is_array($task['input']['messages'][0]['content']), '公开图片任务冻结引用不再 409');
 $memory->tasks[$task['id']]['max_rounds'] = 3;
 $wire = [];
-$tool = new class implements \app\console\ai\contract\AiToolExecutor {
+$tool = new class implements \app\admin\ai\contract\AiToolExecutor {
     public function execute(array $call): array { return isset($call['name']) ? ['status'=>'awaiting_approval','approvalId'=>1] : ['status'=>'succeeded']; }
 };
-$factory = static function (array $resolved) use (&$wire, $tool): \app\console\ai\service\AiAgentOrchestrator {
+$factory = static function (array $resolved) use (&$wire, $tool): \app\admin\ai\service\AiAgentOrchestrator {
     $client = new \GuzzleHttp\Client(['handler'=>static function ($request) use (&$wire) {
         $wire[] = json_decode((string) $request->getBody(), true);
         $message = count($wire) === 1 ? ['content'=>null,'tool_calls'=>[['id'=>'vision-call','type'=>'function','function'=>['name'=>'write','arguments'=>'{}']]]] : ['content'=>'完成'];
         return \GuzzleHttp\Promise\Create::promiseFor(new \GuzzleHttp\Psr7\Response(200, [], json_encode(['choices'=>[['message'=>$message]]])));
     }]);
-    return new \app\console\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client,$resolved,static fn()=>['93.184.216.34']),$tool);
+    return new \app\admin\ai\service\AiAgentOrchestrator(new \app\common\ai\provider\OpenAiCompatibleGateway($client,$resolved,static fn()=>['93.184.216.34']),$tool);
 };
 \think\facade\Config::set(['provider'=>array_replace($config,['name'=>$task['provider'], 'model'=>$task['model'], 'model_capabilities'=>[['model'=>$task['model'],'image_input'=>true]]])], 'ai');
 $security = new MemorySecurityStore();
-$runner = new \app\console\ai\job\AiAgentJob($memory, new \app\console\ai\service\AiAgentOrchestrator(new stdClass(),$tool), null, $security, $factory, null, $service);
+$runner = new \app\admin\ai\job\AiAgentJob($memory, new \app\admin\ai\service\AiAgentOrchestrator(new stdClass(),$tool), null, $security, $factory, null, $service);
 $runner->fire($queueJob,['taskId'=>$task['id'],'operationToken'=>$task['operation_token']]);
 repoExpect($memory->tasks[$task['id']]['status'] === 'paused', '图片任务审批暂停');
 $resume = $memory->tasks[$task['id']]['output']['resume']['messages'];

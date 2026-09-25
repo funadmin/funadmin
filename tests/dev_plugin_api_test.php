@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\plugin\service\DevPluginService;
+use app\admin\plugin\service\DevPluginService;
 use app\common\plugin\sdk\PluginScaffolder;
 
 function devPluginExpect(bool $condition, string $message): void
@@ -111,7 +111,7 @@ try {
     $serializedAudits = json_encode($audits, JSON_THROW_ON_ERROR);
     devPluginExpect(!str_contains($serializedAudits, 'confirmToken'), '普通审计不得包含确认 token');
 
-    $controller = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/plugin/DevPlugin.php');
+    $controller = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/plugin/DevPlugin.php');
     foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class', "#[Group('development/plugin')]", "#[Post('create/preview')]", "#[Post('create')]", "#[Post('validate')]", "#[Post('package')]", "#[Get('package/{code}/download')]", "#[Get('options')]"] as $marker) {
         devPluginExpect(str_contains($controller, $marker), 'DevPlugin 控制器契约缺少：' . $marker);
     }
@@ -127,7 +127,7 @@ try {
     $enforcer = new \Casbin\Enforcer(dirname(__DIR__) . '/config/casbin/rbac_model.conf');
     $enforcer->addPolicy('role:42', 'default', 'console/development.devplugin', 'options');
     $enforcer->addGroupingPolicy('admin:42', 'role:42', 'default');
-    $resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'plugin.DevPlugin', 'options');
+    $resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'plugin.DevPlugin', 'options');
     devPluginExpect($enforcer->enforce('admin:42', 'default', $resource['obj'], $resource['act']), '普通角色旧 options 授权必须继续匹配当前控制器');
     devPluginExpect(!$enforcer->enforce('admin:43', 'default', $resource['obj'], $resource['act']), '无授权普通角色必须拒绝');
     devPluginExpect(!$enforcer->enforce('admin:42', 'default', $resource['obj'], 'create'), 'options 不得扩大为 create');

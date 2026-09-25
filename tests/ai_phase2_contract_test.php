@@ -36,7 +36,7 @@ aiPhase2ContractExpect(str_contains($queueSource, "'ai-agent' => ["), '缺少 ai
 aiPhase2ContractExpect(str_contains($queueSource, "'queue'      => 'ai-agent'"), 'AI queue 名称错误');
 aiPhase2ContractExpect(str_contains($queueSource, "'type'  => 'database'"), 'failed jobs 必须落数据库');
 
-$controller = (string) file_get_contents($root . '/app/console/controller/ai/Ai.php');
+$controller = (string) file_get_contents($root . '/app/admin/controller/ai/Ai.php');
 aiPhase2ContractExpect(str_contains($controller, 'extends AdminApiController'), 'AI 控制器必须继承 AdminApiController');
 foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class'] as $middleware) aiPhase2ContractExpect(str_contains($controller, $middleware), 'AI 控制器缺少中间件：' . $middleware);
 foreach (['conversationIndex', 'conversationCreate', 'conversationRead', 'conversationUpdate', 'conversationDelete', 'messageIndex', 'messageCreate', 'taskExecute', 'taskCancel', 'eventTicket', 'eventStream', 'settingsRead', 'settingsTest'] as $method) aiPhase2ContractExpect(str_contains($controller, "function {$method}("), 'AI 控制器缺少阶段二契约方法：' . $method);
@@ -44,11 +44,11 @@ foreach (['configurationUpdate', 'auditIndex'] as $futureMethod) aiPhase2Contrac
 aiPhase2ContractExpect(str_contains($controller, 'function changeSetApply('), '阶段四扩展不得破坏阶段二控制器契约');
 aiPhase2ContractExpect(!str_contains($controller, 'notImplemented'), '阶段二控制器不得保留可误认为已交付的 501 占位方法');
 aiPhase2ContractExpect(!str_contains($controller, 'OpenAiCompatibleGateway') || str_contains($controller, 'settingsTest'), 'Provider 只能由 settings test/服务使用');
-$jobSource = (string) file_get_contents($root . '/app/console/ai/job/AiAgentJob.php');
+$jobSource = (string) file_get_contents($root . '/app/admin/ai/job/AiAgentJob.php');
 aiPhase2ContractExpect(!str_contains($jobSource, 'StubAiToolExecutor'), '生产 Job 默认不得注入测试 stub');
 aiPhase2ContractExpect(str_contains($jobSource, 'ContainerAiToolExecutor'), '阶段三后生产 Job 必须接入真实容器工具执行器');
-aiPhase2ContractExpect(!is_file($root . '/app/console/ai/infrastructure/StubAiToolExecutor.php'), '测试 stub 不得作为生产服务保留');
-$notConfigured = new app\console\ai\infrastructure\NotConfiguredAiToolExecutor();
+aiPhase2ContractExpect(!is_file($root . '/app/admin/ai/infrastructure/StubAiToolExecutor.php'), '测试 stub 不得作为生产服务保留');
+$notConfigured = new app\admin\ai\infrastructure\NotConfiguredAiToolExecutor();
 try {
     $notConfigured->execute(['name' => 'write_file']);
     throw new RuntimeException('未配置工具执行器必须拒绝执行');

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\development\service\BusinessDevelopmentService;
-use app\console\development\service\BusinessModuleService;
-use app\console\development\service\BusinessTargetService;
-use app\console\development\service\FormCrudDefinitionFactory;
+use app\admin\development\service\BusinessDevelopmentService;
+use app\admin\development\service\BusinessModuleService;
+use app\admin\development\service\BusinessTargetService;
+use app\admin\development\service\FormCrudDefinitionFactory;
 use app\common\crud\ProductionTemplateContext;
 use app\common\crud\PluginTemplateContext;
 use app\common\form\schema\FormSchemaCompiler;
@@ -42,7 +42,7 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
             $expect($payload['table_name'] === $physical, '采纳必须保留物理表名');
         }
     }
-    $designer = new \app\console\form\service\FormDesignerService(dirname(__DIR__));
+    $designer = new \app\admin\form\service\FormDesignerService(dirname(__DIR__));
     $expect($designer->normalizeIdentifier($prefix . 'activity', true, 'archive') === 'activity', '表单标识推导必须使用指定连接前缀');
     $schemaPayload = new ReflectionMethod($designer, 'schemaPayload');
     foreach (['created', 'adopted'] as $source) {
@@ -75,7 +75,7 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
             $expect(str_starts_with($context['migrationContent'], "-- funadmin-physical-table\n"), '生成迁移必须声明物理表语义');
             $modelCode = preg_replace('/namespace [^;]+;/', 'namespace PrefixTest\\Case' . bin2hex(random_bytes(5)) . ';', $context['modelContent'], 1);
             preg_match('/namespace ([^;]+);/', $modelCode, $namespace);
-            $modelCode = str_replace('extends BackendModel', 'extends \\app\\console\\model\\BackendModel', $modelCode);
+            $modelCode = str_replace('extends BackendModel', 'extends \\app\\admin\\model\\BackendModel', $modelCode);
             eval(substr($modelCode, 5));
             $modelClass = $namespace[1] . '\\Entry';
             $validateCode = preg_replace('/namespace [^;]+;/', 'namespace ' . $namespace[1] . ';', $context['validateContent'], 1);
@@ -102,7 +102,7 @@ foreach (['', 'tenant_', 'fun_'] as $prefix) {
         $expect(false, "插件边界应接受 {$prefix}：" . $e->getMessage());
     }
 }
-$designerSource = file_get_contents(dirname(__DIR__) . '/app/console/form/service/FormDesignerService.php');
+$designerSource = file_get_contents(dirname(__DIR__) . '/app/admin/form/service/FormDesignerService.php');
 $expect(str_contains($designerSource, "Db::connect((string) (\$payload['connection'] ?? 'mysql'))->getTables()"), 'DDL 表结构检查必须使用目标连接');
 $expect(str_contains($designerSource, "Db::connect((string) (\$payload['connection'] ?? 'mysql'))->execute"), '动态 DDL 必须使用目标连接');
 $designerUi = file_get_contents(dirname(__DIR__) . '/admin-web/src/views/form/designer/index.vue');
@@ -147,7 +147,7 @@ foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         foreach ([ProductionTemplateContext::build($definition), PluginTemplateContext::build($definition, 'sample', true), PluginTemplateContext::build($definition, 'sample', false)] as $context) {
             $expect(str_contains($context['validateContent'], 'unique:\\\\') && !str_contains($context['validateContent'], 'unique:legacy_entry'), 'unique 必须通过模型引用使用物理表与目标连接');
             $code = preg_replace('/namespace [^;]+;/', 'namespace PrefixPivotTest\\Case' . bin2hex(random_bytes(5)) . ';', $context['modelContent'], 1);
-            $code = str_replace('extends BackendModel', 'extends \\app\\console\\model\\BackendModel', $code);
+            $code = str_replace('extends BackendModel', 'extends \\app\\admin\\model\\BackendModel', $code);
             preg_match('/namespace ([^;]+);/', $code, $namespace);
             eval(substr($code, 5));
             $pivotClass = $namespace[1] . '\\EntryTagsPivot';

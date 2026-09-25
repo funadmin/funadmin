@@ -12,7 +12,7 @@ function phase5TaskExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$controller = (string) file_get_contents($root . '/app/console/controller/ai/Ai.php');
+$controller = (string) file_get_contents($root . '/app/admin/controller/ai/Ai.php');
 $api = (string) file_get_contents($root . '/admin-web/src/api/development/ai.ts');
 $migration = (string) file_get_contents($root . '/database/migrations/archive/112_ai_admin_web_menu.sql');
 

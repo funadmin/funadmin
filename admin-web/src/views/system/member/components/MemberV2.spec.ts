@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ plugins: vi.fn(async () => {}), options: vi.fn
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:add'] }) }));
 vi.mock('@/views/form/schema/pluginComponentLoader', () => ({ loadPluginFormComponents: mocks.plugins }));
 vi.mock('@/api/formData', () => ({ formDataApi: { options: mocks.options } }));
-const php = process.env.PHP81_BINARY || '/opt/homebrew/opt/php@8.1/bin/php';
+const php = process.env.PHP81_BINARY || process.env.PHP_BINARY || 'php';
 const definition = JSON.parse(execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(\\app\\admin\\service\\MemberFormDefinition::build(['groups'=>[['id'=>7,'name'=>'组']], 'levels'=>[['id'=>3,'name'=>'等级']], 'tags'=>[]]), JSON_THROW_ON_ERROR);"], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' }));
 
 describe('PHP 真实会员 v2 文档', () => {

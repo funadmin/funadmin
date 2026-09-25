@@ -3,10 +3,10 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 new \think\App(dirname(__DIR__));
-use app\console\ai\repository\DatabaseAiAttachmentRepository;
-use app\console\ai\repository\DatabaseAiConversationStore;
-use app\console\ai\service\AiAttachmentStorage;
-use app\console\ai\service\AiAttachmentService;
+use app\admin\ai\repository\DatabaseAiAttachmentRepository;
+use app\admin\ai\repository\DatabaseAiConversationStore;
+use app\admin\ai\service\AiAttachmentStorage;
+use app\admin\ai\service\AiAttachmentService;
 function repoExpect(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 function repoReject(callable $call, int $code): void { try { $call(); } catch (RuntimeException|InvalidArgumentException $e) { repoExpect($e->getCode() === $code, '错误码不符: ' . $e->getMessage()); return; } throw new LogicException('应拒绝'); }
 repoExpect(class_exists(DatabaseAiAttachmentRepository::class), '缺少私有附件仓储');
@@ -52,13 +52,13 @@ $clock += 86401;
 repoReject(fn () => $service->content(1, 7, $expired['id']), 404);
 repoReject(fn () => $service->append(1, 7, [['type'=>'attachment','attachment_id'=>$expired['id']]], $store), 404);
 repoExpect($service->content(1, 7, $a['id'])['body'] === '<?php dangerous();', '绑定文件不受草稿 TTL 影响');
-$source = file_get_contents(dirname(__DIR__) . '/app/console/controller/ai/Ai.php');
+$source = file_get_contents(dirname(__DIR__) . '/app/admin/controller/ai/Ai.php');
 foreach (['attachments', 'attachmentCreate', 'attachmentContent', 'attachmentDelete'] as $symbol) repoExpect(str_contains($source, $symbol), '缺少附件路由: ' . $symbol);
 $migrations = glob(dirname(__DIR__) . '/database/migrations/archive/*_ai_private_attachments.sql');
 repoExpect(count($migrations) === 1 && (int) basename($migrations[0]) > 121, '新迁移必须大于121');
 $sql = file_get_contents($migrations[0]);
 foreach (['fun_ai_attachment','storage_path','expires_at','console/development.ai','attachmentcreate','attachmentcontent','attachmentdelete'] as $field) repoExpect(str_contains($sql, $field), '迁移缺少: ' . $field);
-$conversations = new \app\console\ai\service\AiConversationService($store, [], null, null, $service);
+$conversations = new \app\admin\ai\service\AiConversationService($store, [], null, null, $service);
 
 $retryFile = $service->upload(1, 7, 'retry.txt', 'retry');
 $retryInput = ['idempotency_key'=>'client-message-1', 'content'=>[['type'=>'attachment','attachment_id'=>$retryFile['id']]]];

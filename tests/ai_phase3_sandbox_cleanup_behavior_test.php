@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\ai\contract\DockerProcessRunner;
-use app\console\ai\infrastructure\ProcessResult;
-use app\console\ai\service\AgentSandboxManager;
+use app\admin\ai\contract\DockerProcessRunner;
+use app\admin\ai\infrastructure\ProcessResult;
+use app\admin\ai\service\AgentSandboxManager;
 
 function cleanupBehaviorExpect(bool $condition, string $message): void
 {
@@ -43,8 +43,8 @@ final class CleanupMissingContainerRunner implements DockerProcessRunner
 }
 
 $root = dirname(__DIR__);
-$controller = (string) file_get_contents($root . '/app/console/controller/ai/Ai.php');
-$commandPath = $root . '/app/console/command/AiSandboxCleanup.php';
+$controller = (string) file_get_contents($root . '/app/admin/controller/ai/Ai.php');
+$commandPath = $root . '/app/admin/command/AiSandboxCleanup.php';
 cleanupBehaviorExpect(is_file($commandPath), '缺少全局 CLI sandbox 清理命令');
 $command = (string) file_get_contents($commandPath);
 $console = (string) file_get_contents($root . '/config/console.php');

@@ -23,8 +23,8 @@ legacyFormOriginExpect(
     '093 migration 编号必须唯一且用于 legacy_form 来源退役'
 );
 
-$businessService = (string) file_get_contents($root . '/app/console/development/service/BusinessDevelopmentService.php');
-$publishService = (string) file_get_contents($root . '/app/console/form/service/FormPublishService.php');
+$businessService = (string) file_get_contents($root . '/app/admin/development/service/BusinessDevelopmentService.php');
+$publishService = (string) file_get_contents($root . '/app/admin/form/service/FormPublishService.php');
 legacyFormOriginExpect(!str_contains($businessService, 'legacy_form'), 'BusinessDevelopmentService 不得再接受 legacy_form 来源');
 legacyFormOriginExpect(!str_contains($publishService, 'legacy_form'), 'FormPublishService 不得再产生 legacy_form 来源');
 legacyFormOriginExpect(
@@ -33,12 +33,12 @@ legacyFormOriginExpect(
 );
 
 foreach ([
-    'app/console/form/model/Form.php',
-    'app/console/form/model/FormField.php',
-    'app/console/form/model/FormSchemaVersion.php',
-    'app/console/form/service/FormDesignerService.php',
-    'app/console/form/repository/FormSchemaRepository.php',
-    'app/console/form/service/FormPublishService.php',
+    'app/admin/form/model/Form.php',
+    'app/admin/form/model/FormField.php',
+    'app/admin/form/model/FormSchemaVersion.php',
+    'app/admin/form/service/FormDesignerService.php',
+    'app/admin/form/repository/FormSchemaRepository.php',
+    'app/admin/form/service/FormPublishService.php',
 ] as $preservedFile) {
     legacyFormOriginExpect(is_file($root . '/' . $preservedFile), '统一 Form 引擎文件不得删除：' . $preservedFile);
 }

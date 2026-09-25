@@ -12,9 +12,9 @@ use app\common\crud\CrudGenerator;
 use app\common\crud\DefinitionValidator;
 use app\common\crud\PluginCrudDefinitionFactory;
 use app\common\crud\TemplateRenderer;
-use app\console\command\PluginCrudGenerate;
-use app\console\command\PluginCrudPreview;
-use app\console\command\PluginMakeCrud;
+use app\admin\command\PluginCrudGenerate;
+use app\admin\command\PluginCrudPreview;
+use app\admin\command\PluginMakeCrud;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
 
@@ -228,7 +228,8 @@ try {
                 pluginCrudExpect(str_contains($controller, 'public function ' . $action . '('), 'Admin 不得丢失管理能力：' . $action);
             }
             $api = $files['plugins/shop/admin-web/product-item/api.ts'];
-            pluginCrudExpect(str_contains($api, '/admin/plugin/shop/product-item'), '插件 API URL 错误');
+            // 前端请求 baseURL 已是 /admin，API 地址必须相对于它，否则会请求 /admin/admin/...
+            pluginCrudExpect(str_contains($api, "'/plugin/shop/product-item'") && !str_contains($api, '/admin/plugin/'), '插件 API URL 错误');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/index.vue'], "from './api'"), '根 view 必须从 ./api 导入');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/components/ProductItemForm.vue'], "from '../api'"), 'Form 必须从 ../api 导入');
             pluginCrudExpect(str_contains($files['plugins/shop/admin-web/product-item/components/ProductItemDetail.vue'], "from '../api'"), 'Detail 必须从 ../api 导入');
@@ -396,7 +397,7 @@ try {
 
     $app = new \think\App($root);
     \think\Container::setInstance($app);
-    $loader = new class { use \app\console\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
+    $loader = new class { use \app\admin\command\CrudCommandSupport; public function load(string $path): CrudDefinition { return $this->loadDefinition($path); } };
     foreach (['', 'tenant_', 'tenant_fun_'] as $prefix) {
         $app->config->set(['default' => 'mysql', 'connections' => ['mysql' => ['prefix' => 'wrong_'], 'archive' => ['prefix' => $prefix]]], 'database');
         foreach (['shop_product_item', $prefix . 'shop_product_item'] as $table) {
@@ -487,7 +488,7 @@ try {
     foreach (['plugin:make-crud', 'plugin:crud-preview', 'plugin:crud-generate'] as $command) {
         pluginCrudExpect(isset($console['commands'][$command]), '缺少命令注册：' . $command);
     }
-    $makeCommand = (string) file_get_contents($repository . '/app/console/command/PluginMakeCrud.php');
+    $makeCommand = (string) file_get_contents($repository . '/app/admin/command/PluginMakeCrud.php');
     pluginCrudExpect(str_contains($makeCommand, "addOption('table'") && str_contains($makeCommand, '->infer('), 'plugin:make-crud 必须支持 table inspect/infer');
     $commandContracts = [
         new PluginMakeCrud(),
@@ -502,8 +503,8 @@ try {
     pluginCrudExpect($commandContracts[1]->getName() === 'plugin:crud-preview' && $commandContracts[1]->getDefinition()->getArgument('definition')->isRequired(), 'plugin:crud-preview contract 错误');
     pluginCrudExpect($commandContracts[1]->getDefinition()->getOption('token-output')->acceptValue(), 'plugin:crud-preview 必须提供 0600 token 输出文件');
     pluginCrudExpect($commandContracts[2]->getName() === 'plugin:crud-generate' && $commandContracts[2]->getDefinition()->getOption('confirm-token-file')->acceptValue(), 'plugin:crud-generate contract 错误');
-    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/console/command/PluginMakeCrud.php'), 'confirmToken'), 'plugin:make-crud 不得生成或输出 token');
-    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/console/command/PluginCrudPreview.php'), "'sensitive'"), 'plugin:crud-preview stdout 不得包含 token');
+    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/admin/command/PluginMakeCrud.php'), 'confirmToken'), 'plugin:make-crud 不得生成或输出 token');
+    pluginCrudExpect(!str_contains((string) file_get_contents($repository . '/app/admin/command/PluginCrudPreview.php'), "'sensitive'"), 'plugin:crud-preview stdout 不得包含 token');
 
     $schema = json_decode((string) file_get_contents($repository . '/app/common/crud/schema/crud-definition-v1.schema.json'), true, 512, JSON_THROW_ON_ERROR);
     pluginCrudExpect(isset($schema['properties']['target']) && in_array('target', $schema['required'], true), 'Schema 未同步 plugin target');

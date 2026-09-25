@@ -5,11 +5,11 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 
-use app\console\controller\development\Business;
-use app\console\development\exception\BusinessOperationException;
-use app\console\development\http\BusinessApiErrorMapper;
-use app\console\development\http\BusinessResponseSanitizer;
-use app\console\development\service\BusinessDevelopmentService;
+use app\admin\controller\development\Business;
+use app\admin\development\exception\BusinessOperationException;
+use app\admin\development\http\BusinessApiErrorMapper;
+use app\admin\development\http\BusinessResponseSanitizer;
+use app\admin\development\service\BusinessDevelopmentService;
 use think\annotation\route\Post;
 
 function businessSafetyExpect(bool $condition, string $message): void
@@ -29,8 +29,8 @@ function businessSafetyReject(callable $operation, string $contains): void
 }
 
 $root = dirname(__DIR__);
-$controllerFile = $root . '/app/console/controller/development/Business.php';
-$serviceFile = $root . '/app/console/development/service/BusinessDevelopmentService.php';
+$controllerFile = $root . '/app/admin/controller/development/Business.php';
+$serviceFile = $root . '/app/admin/development/service/BusinessDevelopmentService.php';
 $controllerSource = (string) file_get_contents($controllerFile);
 $serviceSource = (string) file_get_contents($serviceFile);
 

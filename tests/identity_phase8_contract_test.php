@@ -26,10 +26,10 @@ foreach (['console/identity.ssoconfiguration:config', 'console/identity.scopecla
     phase8Expect(str_contains($sql, $permission), 'migration 缺少真实控制器权限：' . $permission);
 }
 foreach ([
-    'IdentityUsers' => 'app/console/controller/identity/IdentityUser.php',
-    'ScopeClaim' => 'app/console/controller/identity/ScopeClaim.php',
-    'SsoConfiguration' => 'app/console/controller/identity/SsoConfiguration.php',
-    'IdentityAudit' => 'app/console/controller/identity/IdentityAudit.php',
+    'IdentityUsers' => 'app/admin/controller/identity/IdentityUser.php',
+    'ScopeClaim' => 'app/admin/controller/identity/ScopeClaim.php',
+    'SsoConfiguration' => 'app/admin/controller/identity/SsoConfiguration.php',
+    'IdentityAudit' => 'app/admin/controller/identity/IdentityAudit.php',
 ] as $name => $relative) {
     phase8Expect(is_file($root . '/' . $relative), $name . ' controller 缺失');
 }

@@ -56,11 +56,11 @@ foreach (['IdentityUserService', 'IdentityCredentialService', 'LegacyIdentityLin
 }
 
 $integrationSources = [
-    $root . '/app/console/authentication/service/AdminSessionService.php' => 'AdminIdentityAdapter',
+    $root . '/app/admin/authentication/service/AdminSessionService.php' => 'AdminIdentityAdapter',
     $root . '/app/common/service/MemberAuthService.php' => 'MemberIdentityAdapter',
-    $root . '/app/console/controller/system/SystemAdmin.php' => 'AdminIdentityAdapter',
-    $root . '/app/console/controller/system/SystemMember.php' => 'MemberIdentityAdapter',
-    $root . '/app/console/controller/authentication/AdminProfile.php' => 'AdminIdentityAdapter',
+    $root . '/app/admin/controller/system/SystemAdmin.php' => 'AdminIdentityAdapter',
+    $root . '/app/admin/controller/system/SystemMember.php' => 'MemberIdentityAdapter',
+    $root . '/app/admin/controller/authentication/AdminProfile.php' => 'AdminIdentityAdapter',
 ];
 foreach ($integrationSources as $file => $adapter) {
     identityPhase1Expect(str_contains((string) file_get_contents($file), $adapter), basename($file) . ' 尚未接入 ' . $adapter);
@@ -69,7 +69,7 @@ $memberAuthSource = (string) file_get_contents($root . '/app/common/service/Memb
 foreach (['email', 'mobile', 'status', 'avatar'] as $field) {
     identityPhase1Expect(str_contains($memberAuthSource, $field), '会员登录同步缺少 legacy 字段：' . $field);
 }
-$memberControllerSource = (string) file_get_contents($root . '/app/console/controller/system/SystemMember.php');
+$memberControllerSource = (string) file_get_contents($root . '/app/admin/controller/system/SystemMember.php');
 $importStart = strpos($memberControllerSource, 'public function import(): Response');
 $importEnd = strpos($memberControllerSource, 'private function filteredQuery', $importStart ?: 0);
 $importSource = $importStart !== false && $importEnd !== false ? substr($memberControllerSource, $importStart, $importEnd - $importStart) : '';

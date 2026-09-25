@@ -76,11 +76,11 @@ try {
         'app/demo/lang/zh-cn.php',
         'app/demo/event.php',
         'app/demo/provider.php',
-        'app/console/controller/Index.php',
-        'app/console/model/.gitkeep',
-        'app/console/service/.gitkeep',
-        'app/console/validate/.gitkeep',
-        'app/console/middleware/.gitkeep',
+        'app/admin/controller/Index.php',
+        'app/admin/model/.gitkeep',
+        'app/admin/service/.gitkeep',
+        'app/admin/validate/.gitkeep',
+        'app/admin/middleware/.gitkeep',
         'admin-web/api.ts',
         'admin-web/types.ts',
         'admin-web/pages/Index.vue',
@@ -103,8 +103,8 @@ try {
         developmentExpect(str_contains($entrySource, 'function ' . $hook . '('), 'Plugin.php 必须显式生成生命周期模板：' . $hook);
     }
     developmentExpect(preg_match('/function purgeData\([^)]*\): bool\s*\{\s*return false;\s*\}/s', $entrySource) === 1, 'purge.supported=false 时 purgeData 必须安全返回 false');
-    $consoleController = (string) file_get_contents($plugin . '/app/console/controller/Index.php');
-    developmentExpect(str_contains($consoleController, 'namespace app\\console\\controller\\plugin\\demo;'), 'Console controller 必须使用原生 layer namespace');
+    $consoleController = (string) file_get_contents($plugin . '/app/admin/controller/Index.php');
+    developmentExpect(str_contains($consoleController, 'namespace app\\admin\\controller\\plugin\\demo;'), 'Console controller 必须使用原生 layer namespace');
     developmentExpect(str_contains($consoleController, 'extends AdminApiController'), 'Console controller 必须继承 AdminApiController');
     foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class'] as $middleware) {
         developmentExpect(str_contains($consoleController, $middleware), 'Console controller 缺少中间件：' . $middleware);
@@ -139,19 +139,19 @@ try {
     developmentExpect(Manifest::fromDirectory($consoleOnly['directory'])->code() === 'consoleonly', '仅 Console 应用结构必须有效');
 
     $invalid = $scaffolder->scaffold('invalidgroup', '非法分组');
-    $controller = $invalid['directory'] . '/app/console/controller/Index.php';
+    $controller = $invalid['directory'] . '/app/admin/controller/Index.php';
     file_put_contents($controller, str_replace("#[Group('plugin/invalidgroup')]", "#[Group('other')]", (string) file_get_contents($controller)));
     developmentReject(static fn () => Manifest::fromDirectory($invalid['directory']), 'Group');
     $commentBypass = $scaffolder->scaffold('commentbypass', '注释绕过');
-    $commentController = $commentBypass['directory'] . '/app/console/controller/Index.php';
-    file_put_contents($commentController, "<?php\n// namespace app\\console\\controller\\plugin\\commentbypass;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
+    $commentController = $commentBypass['directory'] . '/app/admin/controller/Index.php';
+    file_put_contents($commentController, "<?php\n// namespace app\\admin\\controller\\plugin\\commentbypass;\n// #[Group('plugin/commentbypass')]\nnamespace invalid;\nfinal class Index {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($commentBypass['directory']), 'namespace');
     $entryBypass = $scaffolder->scaffold('entrybypass', '入口绕过');
     file_put_contents($entryBypass['directory'] . '/Plugin.php', "<?php\n// namespace plugins\\entrybypass;\n// class Plugin {}\nnamespace attacker;\nfinal class Other {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($entryBypass['directory']), 'Plugin.php');
     $attributeBypass = $scaffolder->scaffold('attributebypass', '属性绕过');
-    $attributeController = $attributeBypass['directory'] . '/app/console/controller/Index.php';
-    file_put_contents($attributeController, "<?php\nnamespace app\\console\\controller\\plugin\\attributebypass;\n#[Other(\"\\\\Group('plugin/attributebypass')\")]\nfinal class Index {}\n");
+    $attributeController = $attributeBypass['directory'] . '/app/admin/controller/Index.php';
+    file_put_contents($attributeController, "<?php\nnamespace app\\admin\\controller\\plugin\\attributebypass;\n#[Other(\"\\\\Group('plugin/attributebypass')\")]\nfinal class Index {}\n");
     developmentReject(static fn () => Manifest::fromDirectory($attributeBypass['directory']), 'Group');
 
     $migrationPlugin = $scaffolder->scaffold('badmigration', '非法迁移');
@@ -164,7 +164,7 @@ try {
         static function (string $archive) use (&$verifiedStages): void {
             $verifiedStages++;
             developmentExpect(is_file($archive), '打包后必须调用完整 stage 重验');
-            $packages = new \app\console\plugin\service\PluginPackageService();
+            $packages = new \app\admin\plugin\service\PluginPackageService();
             $pair = sodium_crypto_sign_seed_keypair(str_repeat('t', SODIUM_CRYPTO_SIGN_SEEDBYTES));
             $packages->signLocalArchive($archive, base64_encode(sodium_crypto_sign_secretkey($pair)));
             $zip = new ZipArchive();

@@ -22,7 +22,7 @@ const render = (fields: FormFieldDef[], values: Record<string, unknown>) => moun
 beforeEach(() => vi.clearAllMocks());
 describe('PHP 生成 schema 的 renderer 能力', () => {
   it.each([false, true])('字典与上传开关 %s 保留关联、只读、日期能力', async (enabled) => {
-    const output = JSON.parse(execFileSync(process.env.PHP_BINARY || '/opt/homebrew/opt/php@8.1/bin/php', ['-r', `
+    const output = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', ['-r', `
 require 'vendor/autoload.php';
 $nodes = [];
 foreach (['dictionary_value'=>'dictionary', 'owner'=>'select', 'attachment'=>'file', 'event_date'=>'date', 'read_value'=>'readonly'] as $field=>$type) {

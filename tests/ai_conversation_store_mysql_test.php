@@ -5,8 +5,8 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\service\MigrationService;
-use app\console\ai\repository\DatabaseAiConversationStore;
-use app\console\ai\service\AiConversationService;
+use app\admin\ai\repository\DatabaseAiConversationStore;
+use app\admin\ai\service\AiConversationService;
 use think\facade\Db;
 
 if (getenv('AI_CONVERSATION_MYSQL') !== '1') { echo "AI conversation MySQL: SKIP (AI_CONVERSATION_MYSQL=1 required)\n"; return; }

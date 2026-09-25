@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\console\plugin\service {
+namespace app\admin\plugin\service {
     function root_path(): string { return $GLOBALS['packageTestRoot'] . '/'; }
     function runtime_path(string $path = ''): string { return $GLOBALS['packageTestRoot'] . '/runtime/' . $path; }
     function config(string $key, mixed $default = null): mixed { return $GLOBALS['packageTestPublicKey'] ?? $default; }
@@ -17,8 +17,8 @@ function convergenceExpect(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$serviceDirectory = $root . '/app/console/plugin/service';
-$controllerFile = $root . '/app/console/controller/plugin/SystemPlugin.php';
+$serviceDirectory = $root . '/app/admin/plugin/service';
+$controllerFile = $root . '/app/admin/controller/plugin/SystemPlugin.php';
 
 $expectedServices = [
     'PluginService',
@@ -141,7 +141,7 @@ function packagePayload(array $files): string
     return "funadmin-plugin-files-v1\n" . json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 }
 try {
-    $service = new \app\console\plugin\service\PluginPackageService();
+    $service = new \app\admin\plugin\service\PluginPackageService();
     $pair = sodium_crypto_sign_keypair();
     $secret = sodium_crypto_sign_secretkey($pair);
     $GLOBALS['packageTestPublicKey'] = base64_encode(sodium_crypto_sign_publickey($pair));
@@ -207,7 +207,7 @@ try {
         $zip->setExternalAttributesName('demo/config.php', ZipArchive::OPSYS_UNIX, 0120777 << 16); $zip->close();
         packageReject(fn () => $service->inspect($temporaryRoot . '/symlink.zip'), '符号链接');
     });
-    $center = new \app\console\plugin\service\PluginCenterService();
+    $center = new \app\admin\plugin\service\PluginCenterService();
     mkdir($temporaryRoot . '/plugins'); mkdir($temporaryRoot . '/outside');
     file_put_contents($temporaryRoot . '/outside/sentinel', 'keep');
     packageCase('删除拒绝根符号链接', function () use ($center, $temporaryRoot): void {

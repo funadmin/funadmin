@@ -118,7 +118,7 @@ try {
     phase8RuntimeExpect(Db::query('SELECT status FROM fun_oauth_authorization WHERE id=?', [$otherAuthorizationId])[0]['status'] === 'completed', '跨 tenant authorization 不得被撤销');
 
     Db::execute("INSERT INTO fun_admin (username,password,email,mobile,real_name,dept_id,status,avatar,token,created_at,updated_at) VALUES ('phase8-shadow-admin',?,'admin@example.test','13900000008','Shadow Admin',1,1,'','',NOW(),NOW())", [password_hash('ShadowAdmin!1', PASSWORD_BCRYPT)]);
-    $admin = \app\console\authentication\model\Admin::where('username', 'phase8-shadow-admin')->findOrFail();
+    $admin = \app\admin\authentication\model\Admin::where('username', 'phase8-shadow-admin')->findOrFail();
     $adminIdentity = (new AdminIdentityAdapter())->sync($admin, [1]);
     IdentityUser::forTenant(1)->where('id', (int) $adminIdentity->id)->update(['display_name' => 'stale-admin-name']);
     $auditBefore = IdentityAuditLog::forTenant(1)->where('event_type', 'identity.shadow_read_mismatch')->count();
@@ -132,7 +132,7 @@ try {
     phase8RuntimeExpect(IdentityAuditLog::forTenant(1)->where('event_type', 'identity.shadow_read_mismatch')->count() === $auditBefore + 1, 'audit=false 的 shadow-read 不得写审计');
 
     Db::execute("INSERT INTO fun_member (username,password,email,mobile,nickname,status,level_id,created_at,updated_at) VALUES ('phase8-shadow-member',?,'member@example.test','13900000009','Shadow Member',1,1,NOW(),NOW())", [password_hash('ShadowMember!1', PASSWORD_BCRYPT)]);
-    $member = \app\console\model\Member::where('username', 'phase8-shadow-member')->findOrFail();
+    $member = \app\admin\model\Member::where('username', 'phase8-shadow-member')->findOrFail();
     $memberIdentity = (new MemberIdentityAdapter())->sync($member);
     IdentityUser::forTenant(1)->where('id', (int) $memberIdentity->id)->update(['email' => 'stale-member@example.test']);
     $memberDifferences = (new MemberIdentityAdapter())->shadowRead($member);

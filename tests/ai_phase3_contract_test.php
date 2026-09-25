@@ -6,11 +6,11 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 function phase3ContractExpect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 $root = dirname(__DIR__);
-$controller = (string)file_get_contents($root.'/app/console/controller/ai/Ai.php');
+$controller = (string)file_get_contents($root.'/app/admin/controller/ai/Ai.php');
 foreach (['approvalIndex','approvalDecide','taskToolCalls','toolCallLog','sandboxStatus','sandboxCleanup'] as $method) phase3ContractExpect(str_contains($controller,"function {$method}("),"控制器缺少 {$method}");
 foreach (["#[Get('approvals')]","#[Post('approvals/:id/decision')]","#[Get('tasks/:id/tool-calls')]","#[Get('tool-calls/:id/logs/:stream')]","#[Get('sandbox/status')]","#[Post('sandbox/cleanup')]"] as $route) phase3ContractExpect(str_contains($controller,$route),"缺少真实 API {$route}");
 phase3ContractExpect(str_contains($controller,'changeSetApply('),'阶段四扩展不得破坏阶段三安全控制器契约');
-$job = (string)file_get_contents($root.'/app/console/ai/job/AiAgentJob.php');
+$job = (string)file_get_contents($root.'/app/admin/ai/job/AiAgentJob.php');
 phase3ContractExpect(str_contains($job,'ContainerAiToolExecutor') && !str_contains($job,'NotConfiguredAiToolExecutor'), '生产 Job 默认必须使用真实容器执行器');
 phase3ContractExpect(str_contains($job,"new AgentToolRegistry((array) config('ai.tools.allowlist', []))"), '生产 Job 必须应用 AI_TOOL_ALLOWLIST 且默认 deny');
 phase3ContractExpect(str_contains($job,'container_task_id') && str_contains($job,'cleanup('), 'Job 必须管理 sandbox 生命周期');
@@ -18,7 +18,7 @@ phase3ContractExpect(str_contains($job, "!== 'paused'") && str_contains($job,'ex
 phase3ContractExpect(str_contains($job,'AiChangeSet::create') && str_contains($job, 'AiChangeSetService::attributes'), 'Job 必须将导出 artifact 保存为 proposed AiChangeSet');
 phase3ContractExpect(!preg_match('/catch \(Throwable \$exportException\)[\s\S]*?finally\s*\{[\s\S]*?cleanup\(/', $job), 'artifact 导出失败必须保留 sandbox，禁止 finally cleanup 丢失结果');
 phase3ContractExpect(str_contains($controller, 'exportChanges(') && str_contains($controller, 'AiChangeSet::create') && strpos($controller, 'exportChanges(') < strpos($controller, 'cleanup('), '拒绝或过期清理前必须持久化 proposed AiChangeSet');
-$resumeOutbox = (string)file_get_contents($root.'/app/console/ai/service/AiResumeOutboxService.php');
+$resumeOutbox = (string)file_get_contents($root.'/app/admin/ai/service/AiResumeOutboxService.php');
 phase3ContractExpect(str_contains($controller, 'AiResumeOutboxService') && str_contains($controller, 'Db::transaction') && str_contains($controller, 'AiOutbox::create'), '审批 Controller 必须将事务、状态 CAS 与 outbox 持久化注入恢复服务');
 phase3ContractExpect(str_contains($resumeOutbox, "'status'=>'resume_pending'") && str_contains($resumeOutbox, 'appendOutbox') && str_contains($resumeOutbox, '$this->transaction'), '恢复服务必须在同一事务内写 resume_pending 与 outbox');
 phase3ContractExpect(!preg_match("/if \(\(\$approval\['status'\].*?Queue::connection/s", $controller), '审批决定请求不得直接投递队列');
@@ -28,7 +28,7 @@ phase3ContractExpect(str_contains($controller, "['status'=>'denied','approval_de
 phase3ContractExpect(str_contains($controller, "\$hasChangeSet = (int)(\$task['change_set_id'] ?? 0) > 0") && str_contains($controller, 'if (!$hasChangeSet) {') && !str_contains($controller, "if ((int)(\$task['change_set_id'] ?? 0) > 0) return;"), '终止审批重复请求必须跳过重复导出，但仍补偿 cleanup');
 phase3ContractExpect(str_contains($job, "['paused', 'resume_pending']") && str_contains($job, 'container_task_id') && str_contains($job, 'workspace_path'), 'paused 与 resume_pending 任务必须复用原 sandbox，不得重新创建');
 phase3ContractExpect(str_contains($job, 'awaitingToolCall(') && str_contains($job, 'resume('), '恢复必须由数据库 awaiting_approval 工具调用驱动，不依赖模型携带 approvalId');
-$securityStore = (string)file_get_contents($root.'/app/console/ai/repository/DatabaseAiSecurityStore.php');
+$securityStore = (string)file_get_contents($root.'/app/admin/ai/repository/DatabaseAiSecurityStore.php');
 phase3ContractExpect(str_contains($securityStore, "where('status', 'approved')->update(['status' => 'consumed'])") && !str_contains($securityStore, 'lock(true)'), 'once 审批必须以单条条件 UPDATE 原子消费');
 $migrations = glob($root.'/database/migrations/archive/094_*.sql') ?: [];
 phase3ContractExpect(count($migrations) === 1 && basename($migrations[0]) === '094_ai_agent_runtime.sql', '已有 093 时阶段三迁移必须顺延为唯一 094');
@@ -44,7 +44,7 @@ phase3ContractExpect(str_contains($latest, "enum(\\'pending\\',\\'approved\\',\\
 $sql = (string)file_get_contents($migrations[0]); $withoutComments=preg_replace('/^\s*--.*$/m','',$sql)??$sql;
 phase3ContractExpect(!preg_match('/\b(?:DROP|TRUNCATE|RENAME)\b/i',$withoutComments), '094 必须 forward-only');
 foreach (['approvalIndex','approvalDecide','taskToolCalls','toolCallLog','sandboxStatus','sandboxCleanup'] as $permission) {
-    $resource = \app\console\authorization\service\PermissionResource::fromParts('console', 'ai\\Ai', $permission);
+    $resource = \app\admin\authorization\service\PermissionResource::fromParts('console', 'ai\\Ai', $permission);
     phase3ContractExpect($resource['obj'] === 'console/development.ai', "AI Controller 目录变化不得改变稳定权限资源：{$resource['obj']}");
     phase3ContractExpect(str_contains($compensation, "'{$resource['act']}'"), "101 必须启用运行时 action：{$resource['act']}");
 }

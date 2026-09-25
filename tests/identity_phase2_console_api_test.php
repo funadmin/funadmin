@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use app\console\controller\base\AdminApiController;
-use app\console\controller\identity\EnterpriseApplication;
-use app\console\middleware\CheckAdminApiCsrf;
-use app\console\middleware\CheckAdminApiRole;
-use app\console\middleware\SystemLog;
+use app\admin\controller\base\AdminApiController;
+use app\admin\controller\identity\EnterpriseApplication;
+use app\admin\middleware\CheckAdminApiCsrf;
+use app\admin\middleware\CheckAdminApiRole;
+use app\admin\middleware\SystemLog;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -38,7 +38,7 @@ foreach ($routes as $method => [$attribute, $rule]) {
     enterpriseApiExpect(count($attributes) === 1 && $attributes[0]->newInstance()->rule === $rule, $method . ' 路由不匹配');
     if ($method !== 'index' && $method !== 'save') enterpriseApiExpect(count($controller->getMethod($method)->getAttributes(Pattern::class)) === 1, $method . ' 缺少 id Pattern');
 }
-$source = (string) file_get_contents(dirname(__DIR__) . '/app/console/controller/identity/EnterpriseApplication.php');
+$source = (string) file_get_contents(dirname(__DIR__) . '/app/admin/controller/identity/EnterpriseApplication.php');
 enterpriseApiExpect(!str_contains($source, 'Db::'), 'Controller 禁止直接访问数据库');
 enterpriseApiExpect(str_contains($source, 'private function tenantId(): int'), 'Controller 必须显式解析 tenant');
 enterpriseApiExpect(!str_contains($source, "header('X-Tenant-Id'"), 'tenant 禁止由客户端请求头任意覆盖');
