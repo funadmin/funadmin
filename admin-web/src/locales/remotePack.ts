@@ -1,5 +1,6 @@
 import { i18n } from './index';
 import { languageApi } from '@/api/system/language';
+import { hasSession } from '@/utils/auth';
 
 const cacheKey = (locale: string) => `funadmin-i18n-pack-${locale}`;
 const versionKey = (locale: string) => `funadmin-i18n-pack-version-${locale}`;
@@ -68,6 +69,12 @@ const writeCache = (locale: string, messages: Record<string, string>, version: n
  */
 export async function applyRemotePack(locale: string): Promise<void> {
   let messages: Record<string, string> | null = null;
+  if (!hasSession()) {
+    // 译文包接口需要登录；登录前只用缓存/静态包，登录成功后再拉取。
+    messages = readCache(locale);
+    if (messages) i18n.global.mergeLocaleMessage(locale, unflattenMessages(messages));
+    return;
+  }
   try {
     const pack = await languageApi.pack(locale, readVersion(locale));
     if (pack.unchanged) {

@@ -43,7 +43,10 @@ export interface LanguageLineQuery {
 
 export const languageApi = {
   pack: (locale: string, version = 0, signal?: AbortSignal) =>
-    http.get<LanguagePack>(`${PREFIX}/pack`, version > 0 ? { locale, version } : { locale }, signal ? { signal } : undefined),
+    http.get<LanguagePack>(`${PREFIX}/pack`, version > 0 ? { locale, version } : { locale }, {
+      ...(signal ? { signal } : {}),
+      requestOptions: { showErrorMsg: false, ignoreUnauthorized: true }
+    }),
   namespaces: (locale: string) => http.get<string[]>(`${PREFIX}/ns`, { locale }),
   lines: (params: LanguageLineQuery) => http.get<API.PageResult<LanguageLineModel>>(`${PREFIX}/lines`, params),
   saveLine: (data: { locale: string; key: string; value: string }) =>

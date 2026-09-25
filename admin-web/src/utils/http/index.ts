@@ -17,6 +17,8 @@ interface RequestOptions {
   showErrorMsg?: boolean;
   isReturnNativeResponse?: boolean;
   errorMessageMode?: 'message' | 'modal' | 'none';
+  /** 401 时不弹「重新登录」，由调用方自行回退（如登录前也会触发的后台请求）。 */
+  ignoreUnauthorized?: boolean;
 }
 
 interface AdminRequestConfig<D = any> extends AxiosRequestConfig<D> {
@@ -31,7 +33,8 @@ const DEFAULT_REQUEST_OPTIONS: Required<RequestOptions> = {
   showSuccessMsg: false,
   showErrorMsg: true,
   isReturnNativeResponse: false,
-  errorMessageMode: 'message'
+  errorMessageMode: 'message',
+  ignoreUnauthorized: false
 };
 
 export const service: AxiosInstance = axios.create({
@@ -72,6 +75,7 @@ service.interceptors.response.use(
       return data;
     }
     if (code === RESP_CODE.UNAUTHORIZED) {
+      if (opt.ignoreUnauthorized) return Promise.reject(response.data);
       return handleUnauthorized(msg || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
     if (opt.showErrorMsg) showError(msg || tr('http.requestFailed', '请求失败'), opt.errorMessageMode);
@@ -91,6 +95,7 @@ service.interceptors.response.use(
     }
     const safeMessage = businessMessage(payload);
     if (status === 401 || payload?.code === RESP_CODE.UNAUTHORIZED) {
+      if (opt.ignoreUnauthorized) return Promise.reject(payload || error);
       return handleUnauthorized(safeMessage || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
 
@@ -122,18 +127,30 @@ function showError(message: string, mode: RequestOptions['errorMessageMode']) {
   }
 }
 
+let unauthorizedPrompting = false;
+
 function handleUnauthorized(message: string): Promise<never> {
   clearAuth();
+  const current = location.hash.replace(/^#/, '');
+  // 已在登录页无需提示；并发 401 只弹一次。
+  if (current.startsWith('/login') || unauthorizedPrompting) return Promise.reject(new Error(message));
+  unauthorizedPrompting = true;
   ElMessageBox.confirm(message, tr('http.systemTip', '系统提示'), {
     confirmButtonText: tr('http.relogin', '重新登录'),
     cancelButtonText: tr('common.cancel', '取消'),
     type: 'warning'
   })
     .then(() => {
-      const redirect = encodeURIComponent(location.pathname + location.search);
-      location.href = `${import.meta.env.BASE_URL}login?redirect=${redirect}`;
+      const redirect = current ? `?redirect=${encodeURIComponent(current)}` : '';
+      const onBasePath = location.pathname === import.meta.env.BASE_URL;
+      location.href = `${import.meta.env.BASE_URL}#/login${redirect}`;
+      // 仅 hash 变化不会刷新页面，内存中的登录态仍在，守卫会把 /login 弹回首页。
+      if (onBasePath) location.reload();
     })
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => {
+      unauthorizedPrompting = false;
+    });
   return Promise.reject(new Error(message));
 }
 

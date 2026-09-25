@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 import { authApi } from '@/api/auth';
+import { applyRemotePack } from '@/locales/remotePack';
+import { useAppStore } from '@/store/modules/app';
 import { clearAuth, hasSession, markSession, setCsrfToken } from '@/utils/auth';
 
 interface UserState {
@@ -35,6 +37,7 @@ export const useUserStore = defineStore('user', {
       const result = await authApi.login(params);
       markSession();
       this.authenticated = true;
+      void applyRemotePack(useAppStore().locale);
       return result;
     },
 

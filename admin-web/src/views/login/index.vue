@@ -159,7 +159,7 @@
               {{ t('login.submit') }}
             </el-button>
 
-            <div class="login__tip">
+            <div v-if="mockMode" class="login__tip">
               <span>{{ t('login.defaultAccount') }}</span>
             </div>
           </el-form>
@@ -176,7 +176,7 @@ import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { authApi } from '@/api/auth';
-import { APP_CONFIG } from '@/config';
+import { APP_CONFIG, isMockModeEnabled } from '@/config';
 import Captcha from '@/components/Captcha/index.vue';
 import LogoMark from '@/components/LogoMark.vue';
 
@@ -193,10 +193,12 @@ const formRef = ref<FormInstance>();
 const captchaRef = ref<InstanceType<typeof Captcha>>();
 const loading = ref(false);
 const captchaEnabled = ref(true);
+// 演示账号只存在于 Mock 数据；真实环境密码由安装向导设置（须含字母和数字），不可预填或提示。
+const mockMode = isMockModeEnabled();
 
 const form = reactive({
   username: 'admin',
-  password: '123456',
+  password: mockMode ? '123456' : '',
   captcha: '',
   remember: true
 });

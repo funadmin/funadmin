@@ -35,6 +35,11 @@ function idsFrom(body: Record<string, any>, pathId?: string): number[] {
 export const languageMockHandlers: MockRoute[] = [
   {
     method: 'GET',
+    url: '/system/language/pack',
+    handler: ({ params }) => ok({ locale: String(params.locale || 'zh-cn').toLowerCase(), version: 1, messages: {} })
+  },
+  {
+    method: 'GET',
     url: '/system/language',
     handler: ({ params }) => {
       const keyword = String(params.name || '').trim().toLowerCase();
