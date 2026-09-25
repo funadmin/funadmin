@@ -59,6 +59,10 @@ $forbidden = [
 foreach ($productionRoots as $productionRoot) {
     $files = is_dir($productionRoot) ? cutoverPhpFiles($productionRoot) : [$productionRoot];
     foreach ($files as $file) {
+        // 插件安装时发布到 app/admin/<层>/plugin/<code>/ 的代码归插件所有，不受核心命名硬切约束。
+        if (preg_match('#^app/admin/(?:controller|model|service|validate|middleware)/plugin/[a-z][a-z0-9]*/#', str_replace($root . '/', '', $file)) === 1) {
+            continue;
+        }
         $source = (string) file_get_contents($file);
         foreach ($forbidden as $pattern => $label) {
             cutoverExpect(preg_match($pattern, $source) !== 1, str_replace($root . '/', '', $file) . " 仍引用 {$label}");
