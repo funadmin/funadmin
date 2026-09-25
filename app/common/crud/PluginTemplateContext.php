@@ -19,7 +19,7 @@ final class PluginTemplateContext
             'serviceNamespace' => $console ? $namespace . '\\service\\' . $pluginNamespace : $namespace . '\\service',
             'controllerNamespace' => $console ? $namespace . '\\controller\\' . $pluginNamespace : $namespace . '\\controller',
             'controllerGroup' => $console ? 'plugin/' . $plugin . '/' . $entity : $entity,
-            'apiPrefix' => $console ? '/admin/plugin/' . $plugin . '/' . $entity : '/' . $entity,
+            'apiPrefix' => $console ? '/plugin/' . $plugin . '/' . $entity : '/' . $entity,
             'frontendApiImport' => './api',
             'frontendComponentApiImport' => '../api',
             'modelBaseImport' => $console ? 'use app\\admin\\model\\BackendModel;' : 'use think\\Model;',

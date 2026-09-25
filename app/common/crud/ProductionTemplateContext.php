@@ -492,11 +492,11 @@ final class ProductionTemplateContext
         $groupId = '0';
         if ($permission['enabled']) {
             $groupName = self::sqlLiteral($permission['groupName']);
-            $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-                . "SELECT 0,'admin',NULL,'','',{$groupName},'group',1,0,0,'generated',{$sourceName},NOW(),NOW(),0,NULL\n"
+            $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
+                . "SELECT 0,'admin',NULL,'','',{$groupName},'group',1,0,'generated',{$sourceName},NOW(),NOW(),0,NULL\n"
                 . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group');\n"
                 . "SET @permission_group_id = (SELECT `id` FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group' ORDER BY `id` LIMIT 1);\n"
-                . "UPDATE `fun_permission` SET `pid`=0,`app_name`='admin',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
+                . "UPDATE `fun_permission` SET `pid`=0,`app_name`='admin',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
             $groupId = '@permission_group_id';
             $controller = self::sqlLiteral('admin/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
             $codes = [];
@@ -506,10 +506,10 @@ final class ProductionTemplateContext
                 $label = self::sqlLiteral($action['label']);
                 $act = self::sqlLiteral($action['action']);
                 $sort = ($index + 1) * 10;
-                $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-                    . "SELECT @permission_group_id, 'admin', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, {$sort}, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
+                $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
+                    . "SELECT @permission_group_id, 'admin', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
                     . "WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'route' AND `code` = {$code});\n"
-                    . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='admin',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
+                    . "UPDATE `fun_permission` SET `pid`=@permission_group_id,`app_name`='admin',`obj`={$controller},`act`={$act},`name`={$label},`status`=1,`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route' AND `code`={$code};\n";
             }
             $sql .= $codes === []
                 ? "UPDATE `fun_permission` SET `status`=0,`updated_at`=NOW() WHERE `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='route';\n"
@@ -532,10 +532,10 @@ final class ProductionTemplateContext
         [$name, $path, $menuQuery, $target, $icon] = $fields;
         $sort = (int) $menu['sortOrder'];
         return $sql
-            . "INSERT INTO `fun_admin_menu` (pid, permission_id, app_name, name, href, query, target, icon, status, sort, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
-            . "SELECT {$parent},@menu_permission_id,'admin',{$name},{$path},{$menuQuery},{$target},{$icon},1,{$sort},'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
+            . "INSERT INTO `fun_admin_menu` (pid, permission_id, app_name, name, href, query, target, icon, status, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
+            . "SELECT {$parent},@menu_permission_id,'admin',{$name},{$path},{$menuQuery},{$target},{$icon},1,'generated',{$sourceName},NOW(),NOW(),{$sort},NULL\n"
             . "WHERE @menu_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName});\n"
-            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`=@menu_permission_id,`app_name`='admin',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort`={$sort},`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE @menu_permission_id IS NOT NULL AND `source_type`='generated' AND `source_name`={$sourceName};\n";
+            . "UPDATE `fun_admin_menu` SET `pid`={$parent},`permission_id`=@menu_permission_id,`app_name`='admin',`name`={$name},`href`={$path},`query`={$menuQuery},`target`={$target},`icon`={$icon},`status`=1,`sort_order`={$sort},`updated_at`=NOW(),`deleted_at`=NULL WHERE @menu_permission_id IS NOT NULL AND `source_type`='generated' AND `source_name`={$sourceName};\n";
     }
 
     /** SQL 模板与受管资源事务共享菜单元数据，避免正式生成丢失组件身份。 */
