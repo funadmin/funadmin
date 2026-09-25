@@ -98,7 +98,7 @@
           <el-table-column
             v-if="columnKeys.includes('action')"
             :label="t('systemUser.colActions', '操作')"
-            width="300"
+            width="220"
             align="center"
             fixed="right"
           >

@@ -3,6 +3,7 @@
     <button
       type="button"
       class="app-tabs__scroll-button is-left"
+      v-show="canScrollLeft || canScrollRight"
       :title="t('tabs.scrollLeft')"
       :aria-label="t('tabs.scrollLeft')"
       :disabled="!canScrollLeft"
@@ -46,6 +47,7 @@
     <button
       type="button"
       class="app-tabs__scroll-button is-right"
+      v-show="canScrollLeft || canScrollRight"
       :title="t('tabs.scrollRight')"
       :aria-label="t('tabs.scrollRight')"
       :disabled="!canScrollRight"

@@ -308,9 +308,9 @@ const trendOption = computed(() => {
   const order = visit.map((v) => Math.round(v * (0.3 + Math.random() * 0.2)));
 
   return {
-    color: [tokens.value.primary, tokens.value.success],
-    grid: { left: 12, right: 12, top: 36, bottom: 8, containLabel: true },
-    legend: { top: 0, right: 0, textStyle: { color: tokens.value.textRegular } },
+    color: [tokens.value.primary, chartTokens.value.primaryAlpha(chartTokens.value.isDark ? 0.5 : 0.35)],
+    grid: { left: 12, right: 12, top: 40, bottom: 8, containLabel: true },
+    legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 16, textStyle: { color: tokens.value.textRegular } },
     tooltip: {
       trigger: 'axis',
       backgroundColor: tokens.value.bgElevated,
@@ -345,8 +345,8 @@ const trendOption = computed(() => {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(64, 158, 255, 0.28)' },
-              { offset: 1, color: 'rgba(64, 158, 255, 0)' }
+              { offset: 0, color: chartTokens.value.primaryAlpha(0.22) },
+              { offset: 1, color: chartTokens.value.primaryAlpha(0) }
             ]
           }
         }
@@ -354,8 +354,9 @@ const trendOption = computed(() => {
       {
         name: t('dashboard.orders', '订单量'),
         type: 'bar',
-        barWidth: 14,
-        itemStyle: { borderRadius: [6, 6, 0, 0] },
+        barMaxWidth: 18,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { itemStyle: { color: chartTokens.value.primaryAlpha(0.6) } },
         data: order
       }
     ]
@@ -364,28 +365,29 @@ const trendOption = computed(() => {
 
 /* ---------- 来源饼图 ---------- */
 const sourceOption = computed(() => ({
-  color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+  color: chartTokens.value.palette.slice(0, 5),
   tooltip: { trigger: 'item' },
   legend: {
     bottom: 0,
     icon: 'circle',
     itemWidth: 8,
     itemHeight: 8,
+    itemGap: 14,
     textStyle: { color: tokens.value.textRegular }
   },
   series: [
     {
       name: t('dashboard.source', '来源'),
       type: 'pie',
-      radius: ['52%', '74%'],
-      center: ['50%', '46%'],
+      radius: ['50%', '70%'],
+      center: ['50%', '44%'],
       avoidLabelOverlap: true,
       label: { show: false },
       labelLine: { show: false },
       itemStyle: {
         borderRadius: 6,
         borderColor: tokens.value.bgElevated,
-        borderWidth: 2
+        borderWidth: 3
       },
       data: [
         { value: 1048, name: t('dashboard.srcDirect', '直接访问') },
@@ -523,7 +525,7 @@ const shortcuts = ref([
     flex-wrap: wrap;
     gap: 16px;
     padding: 20px 24px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-bg-color-page));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color)), var(--el-bg-color-page));
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 12px;
 

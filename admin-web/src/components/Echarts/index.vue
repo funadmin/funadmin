@@ -39,10 +39,13 @@ const appStore = useAppStore();
 const el = ref<HTMLDivElement>();
 const inst = shallowRef<echarts.ECharts>();
 
+/* 内置 dark 主题自带 #100C2A 底色，与卡片底不一致；默认透明，option 可显式覆盖 */
+const withBackground = () => ({ backgroundColor: 'transparent', ...(props.option || {}) });
+
 function init() {
   if (!el.value) return;
   inst.value = echarts.init(el.value, appStore.themeMode === 'dark' ? 'dark' : undefined);
-  inst.value.setOption(props.option || {});
+  inst.value.setOption(withBackground());
   if (props.loading) inst.value.showLoading();
 }
 
@@ -50,7 +53,7 @@ const resize = useDebounceFn(() => inst.value?.resize(), 80);
 
 // 节流式 setOption：把同一 tick 内多次 option 重算合并为一次渲染，避免主色 / 主题切换时连续重绘
 const applyOption = useDebounceFn((notMerge = false) => {
-  inst.value?.setOption(props.option || {}, notMerge);
+  inst.value?.setOption(withBackground(), notMerge);
 }, 16);
 
 let ro: ResizeObserver | null = null;

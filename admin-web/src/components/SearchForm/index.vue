@@ -10,10 +10,10 @@
       <slot :model="model" />
       <el-form-item class="search-form__actions !mb-0">
         <div class="inline-flex flex-nowrap items-center gap-2">
-          <el-button type="primary" plain :loading="loading" @click="onSearch">
+          <el-button type="primary" :loading="loading" @click="onSearch">
             <i class="i-ep-search" /> {{ t('table.search') }}
           </el-button>
-          <el-button type="primary" plain @click="onReset">
+          <el-button @click="onReset">
             <i class="i-ep-refresh-right" /> {{ t('table.reset') }}
           </el-button>
           <slot name="extra" />

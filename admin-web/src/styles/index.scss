@@ -89,6 +89,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   overflow: hidden;
   font-size: 13.5px;
 }
+/* EP 的 .el-table--default 会把字号重置为 14px，导致 170px 时间列在部分行折行 */
+.el-table.el-table--default {
+  font-size: 13.5px;
+}
 .el-table th.el-table__cell {
   font-weight: 600;
   font-size: 13px;
