@@ -1,45 +1,126 @@
 {
-  "schema_version": 2,
-  "code": "example",
-  "name": "示例插件",
-  "description": "Admin Web 源码构建插件示例",
-  "author": "FunAdmin",
-  "version": "1.0.0",
-  "requires": {
-    "php": ">=8.1",
-    "funadmin": ">=1.0.0",
-    "plugins": {}
-  },
-  "entry": {
-    "class": "plugins\\example\\Plugin",
-    "file": "Plugin.php"
-  },
-  "adminWeb": {
-    "source": "admin-web",
-    "components": { "Index": "Index.vue" },
-    "minFrontendVersion": "1.0.0",
-    "permissions": [
-      { "code": "example:dashboard:view", "name": "查看示例插件" }
-    ],
-    "menu": [
-      { "name": "示例插件", "path": "/plugin/example/index", "permission": "example:dashboard:view" }
-    ],
-    "routes": [
-      {
-        "path": "/plugin/example/index",
-        "name": "Plugin_example_Index",
-        "component": "Index",
-        "meta": {
-          "title": "示例插件",
-          "permission": "example:dashboard:view"
+    "schema_version": 2,
+    "code": "example",
+    "name": "示例插件",
+    "description": "Admin Web 源码构建插件示例",
+    "author": "FunAdmin",
+    "version": "1.0.0",
+    "requires": {
+        "php": ">=8.1",
+        "funadmin": ">=1.0.0",
+        "plugins": {}
+    },
+    "entry": {
+        "class": "plugins\\example\\Plugin",
+        "file": "Plugin.php"
+    },
+    "adminWeb": {
+        "source": "admin-web",
+        "components": {
+            "Index": "Index.vue",
+            "Test": "test/index.vue"
+        },
+        "minFrontendVersion": "1.0.0",
+        "permissions": [
+            {
+                "code": "example:dashboard:view",
+                "name": "查看示例插件"
+            },
+            {
+                "code": "example:test:batch-delete",
+                "name": "批量删除"
+            },
+            {
+                "code": "example:test:batch-destroy",
+                "name": "批量永久删除"
+            },
+            {
+                "code": "example:test:batch-restore",
+                "name": "批量恢复"
+            },
+            {
+                "code": "example:test:create",
+                "name": "新增"
+            },
+            {
+                "code": "example:test:delete",
+                "name": "删除"
+            },
+            {
+                "code": "example:test:destroy",
+                "name": "永久删除"
+            },
+            {
+                "code": "example:test:detail",
+                "name": "查看详情"
+            },
+            {
+                "code": "example:test:export",
+                "name": "导出"
+            },
+            {
+                "code": "example:test:import",
+                "name": "导入"
+            },
+            {
+                "code": "example:test:list",
+                "name": "查看列表"
+            },
+            {
+                "code": "example:test:restore",
+                "name": "恢复"
+            },
+            {
+                "code": "example:test:update",
+                "name": "编辑"
+            }
+        ],
+        "menu": [
+            {
+                "name": "示例插件",
+                "path": "/plugin/example/index",
+                "permission": "example:dashboard:view"
+            },
+            {
+                "name": "test",
+                "path": "/plugin/example/test",
+                "permission": "example:test:list"
+            }
+        ],
+        "routes": [
+            {
+                "path": "/plugin/example/index",
+                "name": "Plugin_example_Index",
+                "component": "Index",
+                "meta": {
+                    "title": "示例插件",
+                    "permission": "example:dashboard:view"
+                }
+            },
+            {
+                "path": "/plugin/example/test",
+                "name": "Plugin_example_Test",
+                "component": "Test",
+                "meta": {
+                    "title": "test",
+                    "permission": "example:test:list"
+                }
+            }
+        ]
+    },
+    "resources": {
+        "public": {
+            "source": "resources/public",
+            "target": "plugin-assets/example/public"
         }
-      }
-    ]
-  },
-  "resources": {
-    "public": { "source": "resources/public", "target": "plugin-assets/example/public" }
-  },
-  "migrations": { "path": "database/migrations" },
-  "storage": { "path": "storage" },
-  "purge": { "supported": false }
+    },
+    "migrations": {
+        "path": "database/migrations"
+    },
+    "storage": {
+        "path": "storage"
+    },
+    "purge": {
+        "supported": false
+    }
 }
