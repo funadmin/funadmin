@@ -7,7 +7,6 @@ namespace app\admin\form\service;
 use app\common\crud\SchemaInspector;
 use app\common\crud\SqlLiteral;
 use app\common\form\registry\FieldCapabilityRegistry;
-use app\common\model\SystemMigration;
 use app\admin\form\exception\FormMigrationException;
 use app\admin\form\model\Form;
 use app\admin\form\model\FormField;
@@ -359,46 +358,6 @@ final class FormDesignerService
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
         }
         return array_diff_key($preview, ['file' => true]) + ['applied' => true];
-    }
-
-    /** 应用 DDL：写守卫式迁移文件→执行→登记仓库。 */
-    public function applyMigration(array $payload): array
-    {
-        $preview = $this->previewMigration($payload);
-        if ($preview['mode'] === 'none') {
-            return $preview;
-        }
-        if ($preview['sql'] === '') {
-            return $preview;
-        }
-        $file = $preview['file'];
-        $dir = dirname($file);
-        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new InvalidArgumentException('无法创建迁移目录：' . $dir);
-        }
-        if (!is_file($file) && file_put_contents($file, $preview['sql']) === false) {
-            throw new InvalidArgumentException('迁移文件写入失败：' . basename($file));
-        }
-        $version = pathinfo($file, PATHINFO_FILENAME);
-        $ddlApplied = false;
-        try {
-            Db::transaction(function () use ($preview, $file, $version, &$ddlApplied): void {
-                Db::execute(rtrim(trim((string) $preview['sql']), ';'));
-                $ddlApplied = true;
-                $registered = SystemMigration::where('scope', 'generated')->where('version', $version)->find();
-                if (!$registered) {
-                    SystemMigration::create([
-                        'scope' => 'generated',
-                        'version' => $version,
-                        'checksum' => hash_file('sha256', $file) ?: '',
-                        'executed_at' => time(),
-                    ]);
-                }
-            });
-        } catch (Throwable $exception) {
-            throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
-        }
-        return $preview + ['applied' => true];
     }
 
     private function assertDynamicForwardSql(string $sql): void

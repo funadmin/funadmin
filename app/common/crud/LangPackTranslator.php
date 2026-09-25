@@ -14,12 +14,12 @@ use think\facade\Cache;
  */
 final class LangPackTranslator
 {
-    /** @var callable|null 测试注入网关工厂，避免真实网络调用。 */
-    private $gatewayFactory;
+    /** 测试注入网关工厂，避免真实网络调用。 */
+    private ?\Closure $gatewayFactory;
 
     public function __construct(?callable $gatewayFactory = null)
     {
-        $this->gatewayFactory = $gatewayFactory;
+        $this->gatewayFactory = $gatewayFactory === null ? null : \Closure::fromCallable($gatewayFactory);
     }
 
     /**

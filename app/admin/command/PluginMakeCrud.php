@@ -21,7 +21,7 @@ final class PluginMakeCrud extends Command
             ->addArgument('plugin', Argument::REQUIRED, '插件名称')
             ->addArgument('entity', Argument::REQUIRED, '实体名称')
             ->addOption('table', null, Option::VALUE_REQUIRED, '待 inspect 的数据表', '')
-            ->addOption('target', null, Option::VALUE_REQUIRED, 'application、console 或 both', 'both')
+            ->addOption('target', null, Option::VALUE_REQUIRED, 'application、admin 或 both', 'both')
             ->addOption('connection', null, Option::VALUE_REQUIRED, '配置连接名', 'mysql')
             ->addOption('definition-output', null, Option::VALUE_REQUIRED, '可选 Definition JSON 输出路径', '');
     }

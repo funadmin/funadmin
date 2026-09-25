@@ -23,6 +23,11 @@ final class FormRegistryFactory
         $config = function_exists('config') ? config('form', []) : [];
         if (!is_array($config) || $config === []) {
             $path = dirname(__DIR__, 4) . '/config/form.php';
+            // 未启动应用时（CLI 工具、隔离测试）容器没有 env，配置文件中的 Env 门面会直接崩溃。
+            $container = \think\Container::getInstance();
+            if (!$container->bound('env')) {
+                $container->instance('env', new \think\Env());
+            }
             $config = is_file($path) ? require $path : [];
         }
         return new self(is_array($config) ? $config : [], $enabledPluginManifests);

@@ -67,7 +67,8 @@ final class ProductionTemplateContext
             'serviceContent' => self::service($data, $class, $primary),
             'controllerContent' => self::controller($data, $class, $primary),
             'memberControllerContent' => ($data['memberApi']['enabled'] ?? false) === true ? self::memberController($data, $class, $primary) : '',
-            'permissionMigrationContent' => self::permissionMigration($data),
+            // 权限菜单 SQL 仅核心目标使用；插件的权限与菜单由 plugin.json 声明，不得因其约束阻断插件生成。
+            'permissionMigrationContent' => ($data['target']['type'] ?? 'core') === 'plugin' ? '' : self::permissionMigration($data),
             'apiContent' => self::api($data, $class, $primary),
             'viewContent' => self::view($data, $class, $primary),
             'formContent' => self::form($data, $class),
