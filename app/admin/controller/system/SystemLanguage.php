@@ -25,7 +25,12 @@ use think\facade\Cache;
 #[Group('system/language')]
 class SystemLanguage extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    // pack 是登录页启动即拉取的公开 UI 文案，不能要求登录，否则未登录访问必然 401。
+    protected array $middleware = [
+        CheckAdminApiRole::class => ['except' => ['pack']],
+        CheckAdminApiCsrf::class,
+        SystemLog::class,
+    ];
 
     #[Get('')]
     public function index(): Response
