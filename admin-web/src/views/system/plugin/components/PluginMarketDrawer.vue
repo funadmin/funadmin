@@ -2,6 +2,10 @@
   <el-drawer v-model="visible" :title="detail?.name || t('plugin.marketDetailTitle', '市场详情')" size="720px">
     <div v-loading="loading">
       <p class="text-sm text-gray-500">{{ detail?.description }}</p>
+      <div v-if="detail?.priceText" class="mt-2 flex items-center gap-3 text-sm">
+        <span>{{ t('plugin.colPrice', '价格') }}：<strong>{{ detail.priceText }}</strong></span>
+        <el-link v-if="detail.storeUrl && /^https?:\/\//i.test(detail.storeUrl) && detail.priceText !== '免费'" type="warning" :href="detail.storeUrl" target="_blank" rel="noopener">{{ t('plugin.buyInStore', '前往市场购买') }}</el-link>
+      </div>
       <el-table :data="detail?.versions || []" class="mt-4">
         <el-table-column prop="version" :label="t('plugin.version', '版本')" width="100" />
         <el-table-column :label="t('plugin.packageInfo', '插件包信息')" min-width="280">

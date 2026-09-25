@@ -1,0 +1,23 @@
+{extend name="store/layout" /}
+{block name="main"}
+<div class="auth">
+  <div class="card card__body">
+    <h1 style="font-size:22px;margin-bottom:6px">注册市场账号</h1>
+    <p class="muted" style="margin:0 0 18px">账号可用于购买插件，以及在客户端插件中心登录安装。</p>
+    <form class="form" method="post" action="{$basePath}/register">
+      <input type="hidden" name="_csrf" value="{$csrf}">
+      <div class="field"><label for="username">用户名</label><input class="input" id="username" name="username" value="{$form.username}" autocomplete="username" required minlength="4" maxlength="20" pattern="[A-Za-z][A-Za-z0-9_]{3,19}" title="以字母开头，4 到 20 位字母、数字或下划线"></div>
+      <div class="field"><label for="email">邮箱</label><input class="input" id="email" type="email" name="email" value="{$form.email}" autocomplete="email" required maxlength="60"></div>
+      <div class="field"><label for="nickname">昵称（选填）</label><input class="input" id="nickname" name="nickname" value="{$form.nickname}" maxlength="50"></div>
+      <div class="field"><label for="password">密码</label><input class="input" id="password" type="password" name="password" autocomplete="new-password" required minlength="8" maxlength="64" placeholder="至少 8 位，包含字母和数字"></div>
+      <div class="field"><label for="password_confirm">确认密码</label><input class="input" id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" required minlength="8" maxlength="64"></div>
+      <div class="field"><label for="captcha">验证码</label>
+        <div class="captcha"><input class="input" id="captcha" name="captcha" autocomplete="off" required maxlength="8"><img src="{$basePath}/captcha" data-captcha="{$basePath}/captcha" alt="点击刷新验证码" title="点击刷新"></div>
+      </div>
+      <label class="check"><input type="checkbox" name="agree" value="1" required>我已阅读并同意用户协议与隐私政策</label>
+      <button class="btn btn--primary btn--block" type="submit">注册</button>
+      <p class="muted" style="margin:0;text-align:center">已有账号？<a href="{$basePath}/login">去登录</a></p>
+    </form>
+  </div>
+</div>
+{/block}

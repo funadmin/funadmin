@@ -75,6 +75,9 @@ export interface MarketplacePlugin {
   description: string;
   author: string;
   versions: MarketplaceVersion[];
+  /** 自建市场提供的价格说明与购买页地址；官方或旧版市场可能不返回。 */
+  priceText?: string;
+  storeUrl?: string;
 }
 
 export interface PluginConfigDefinition {

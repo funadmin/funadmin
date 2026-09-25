@@ -10,6 +10,8 @@
 !/plugins/example/**
 !/plugins/shop/
 !/plugins/shop/**
+!/plugins/market/
+!/plugins/market/**
 /runtime
 /public/static/plugins
 /public/static/cms

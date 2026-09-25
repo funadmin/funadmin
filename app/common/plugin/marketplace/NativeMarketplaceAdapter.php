@@ -217,7 +217,9 @@ final class NativeMarketplaceAdapter implements PluginMarketplaceGateway
             $this->requiredString($item, 'name'),
             $this->requiredString($item, 'description', true),
             $this->requiredString($item, 'author', true),
-            $versions
+            $versions,
+            is_string($item['price_text'] ?? null) ? mb_substr($item['price_text'], 0, 100) : '',
+            is_string($item['store_url'] ?? null) && strlen($item['store_url']) <= 500 ? $item['store_url'] : ''
         );
     }
 

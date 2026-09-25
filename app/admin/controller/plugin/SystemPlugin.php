@@ -13,6 +13,7 @@ use app\admin\plugin\service\PluginMarketplaceService;
 use app\admin\plugin\service\PluginPackagePipeline;
 use app\admin\plugin\service\PluginPackageService;
 use app\admin\plugin\service\PluginService;
+use app\common\plugin\marketplace\MarketplaceTelemetry;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
 use app\common\plugin\marketplace\dto\UpdateCheckRequestDto;
 use InvalidArgumentException;
@@ -40,6 +41,7 @@ final class SystemPlugin extends AdminApiController
     private readonly PluginCenterService $center;
     private readonly PluginPackagePipeline $pipeline;
     private readonly PluginPackageService $packages;
+    private readonly MarketplaceTelemetry $telemetry;
 
     public function __construct(App $app)
     {
@@ -49,6 +51,7 @@ final class SystemPlugin extends AdminApiController
         $this->center = app(PluginCenterService::class);
         $this->packages = PluginPackageService::instance();
         $this->pipeline = PluginPackagePipeline::forPluginService($this->plugins, $this->packages);
+        $this->telemetry = MarketplaceTelemetry::create();
     }
 
     #[Post('account/login')]
@@ -191,7 +194,11 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('code', '[a-z][a-z0-9]*')]
     public function installCloud(string $code): Response
     {
-        return $this->execute(fn () => $this->marketplace->installCloud($code, $this->version()), '安装成功');
+        return $this->execute(function () use ($code): array {
+            $result = $this->marketplace->installCloud($code, $this->version());
+            $this->telemetry->report('install', MarketplaceTelemetry::pluginRecord($code));
+            return $result;
+        }, '安装成功');
     }
 
     #[Post('local/:code/update')]
@@ -213,11 +220,11 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('code', '[a-z][a-z0-9]*')]
     public function update(string $code): Response
     {
-        return $this->execute(fn () => $this->marketplace->updateCloud(
-            $code,
-            $this->version(),
-            $this->boolean('migrate', true)
-        ), '更新成功');
+        return $this->execute(function () use ($code): array {
+            $result = $this->marketplace->updateCloud($code, $this->version(), $this->boolean('migrate', true));
+            $this->telemetry->report('update', MarketplaceTelemetry::pluginRecord($code), (string) ($result['from_version'] ?? ''));
+            return $result;
+        }, '更新成功');
     }
 
     #[Post(':code/migrate')]
@@ -231,14 +238,22 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('code', '[a-z][a-z0-9]*')]
     public function enable(string $code): Response
     {
-        return $this->execute(fn () => $this->plugins->enablePlugin($code), '启用成功');
+        return $this->execute(function () use ($code): mixed {
+            $result = $this->plugins->enablePlugin($code);
+            $this->telemetry->report('enable', MarketplaceTelemetry::pluginRecord($code));
+            return $result;
+        }, '启用成功');
     }
 
     #[Post(':code/disable')]
     #[Pattern('code', '[a-z][a-z0-9]*')]
     public function disable(string $code): Response
     {
-        return $this->execute(fn () => $this->plugins->disablePlugin($code), '禁用成功');
+        return $this->execute(function () use ($code): mixed {
+            $result = $this->plugins->disablePlugin($code);
+            $this->telemetry->report('disable', MarketplaceTelemetry::pluginRecord($code));
+            return $result;
+        }, '禁用成功');
     }
 
     #[Get(':code/config')]
@@ -263,7 +278,9 @@ final class SystemPlugin extends AdminApiController
     public function uninstall(string $code): Response
     {
         return $this->execute(function () use ($code): array {
+            $record = MarketplaceTelemetry::pluginRecord($code);
             $this->plugins->uninstallPlugin($code);
+            $this->telemetry->report('uninstall', $record);
             return ['uninstalled' => true];
         }, '卸载成功，业务数据与迁移历史已保留');
     }
@@ -393,6 +410,8 @@ final class SystemPlugin extends AdminApiController
             'description' => $item->description,
             'author' => $item->author,
             'versions' => array_map(fn ($version): array => $this->versionItem($version), $item->versions),
+            'priceText' => $item->priceText,
+            'storeUrl' => $item->storeUrl,
         ];
     }
 

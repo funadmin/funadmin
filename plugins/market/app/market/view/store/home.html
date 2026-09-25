@@ -1,0 +1,48 @@
+{extend name="store/layout" /}
+{block name="main"}
+<section class="hero">
+  <h1>为 FunAdmin 发现好用的插件</h1>
+  <p>市场中的插件均经过签名，在插件中心登录市场账号即可一键安装与升级。</p>
+  <form class="search" method="get" action="{$basePath}">
+    <input type="search" name="q" value="{$keyword}" placeholder="搜索插件名称、标识或简介" maxlength="50">
+    {if $categoryId}<input type="hidden" name="category" value="{$categoryId}">{/if}
+    <button class="btn btn--primary" type="submit">搜索</button>
+  </form>
+</section>
+
+<div class="chips">
+  <a class="chip {if !$categoryId}is-active{/if}" href="{$basePath}{if $keyword}?q={$keyword|urlencode}{/if}">全部</a>
+  {foreach $categories as $category}
+  <a class="chip {if $categoryId == $category.id}is-active{/if}" href="{$basePath}?category={$category.id}{if $keyword}&amp;q={$keyword|urlencode}{/if}">{$category.name}</a>
+  {/foreach}
+</div>
+
+{if $items}
+<div class="grid">
+  {foreach $items as $item}
+  <a class="card plugin-card" href="{$basePath}/plugin/{$item.code}">
+    <div class="cover">{if $item.cover}<img src="{$item.cover}" alt="" loading="lazy">{else /}<div class="cover__initial">{$item.initial}</div>{/if}</div>
+    <div class="plugin-card__body">
+      <div class="plugin-card__title"><strong>{$item.name}</strong><span class="price {if !$item.paid}price--free{/if}">{$item.price_text}</span></div>
+      <p class="plugin-card__summary">{$item.summary|default='暂无简介'}</p>
+      <div class="plugin-card__meta">
+        {if $item.category}<span>{$item.category}</span>{/if}
+        <span>v{$item.latest_version}</span>
+        <span>{$item.downloads} 次下载</span>
+        {if $item.author}<span>{$item.author}</span>{/if}
+      </div>
+    </div>
+  </a>
+  {/foreach}
+</div>
+{if $pages}
+<nav class="pager">
+  {foreach $pages as $link}
+  {if $link.active}<span class="is-active">{$link.n}</span>{else /}<a href="{$link.url}">{$link.n}</a>{/if}
+  {/foreach}
+</nav>
+{/if}
+{else /}
+<div class="card empty">{if $keyword}没有找到与「{$keyword}」相关的插件{else /}市场里还没有已发布的插件{/if}</div>
+{/if}
+{/block}

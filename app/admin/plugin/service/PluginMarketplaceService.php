@@ -41,7 +41,7 @@ final class PluginMarketplaceService extends AbstractService
         $gateway = new NativeMarketplaceAdapter(
             new NativeMarketplaceHttpTransport(
                 $client,
-                (string) config('funadmin.api_domain'),
+                (string) (($marketplace['url'] ?? '') ?: config('funadmin.api_domain')),
                 (int) ($marketplace['request_timeout'] ?? 30),
                 (int) ($marketplace['connect_timeout'] ?? 10)
             ),

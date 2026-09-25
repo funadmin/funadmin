@@ -1,0 +1,20 @@
+{extend name="store/layout" /}
+{block name="main"}
+<div class="auth">
+  <div class="card card__body">
+    <h1 style="font-size:22px;margin-bottom:6px">登录插件市场</h1>
+    <p class="muted" style="margin:0 0 18px">登录后可购买插件，并在客户端插件中心使用同一账号安装。</p>
+    <form class="form" method="post" action="{$basePath}/login">
+      <input type="hidden" name="_csrf" value="{$csrf}">
+      <input type="hidden" name="next" value="{$next}">
+      <div class="field"><label for="account">用户名或邮箱</label><input class="input" id="account" name="account" value="{$account}" autocomplete="username" required maxlength="100"></div>
+      <div class="field"><label for="password">密码</label><input class="input" id="password" type="password" name="password" autocomplete="current-password" required maxlength="64"></div>
+      <div class="field"><label for="captcha">验证码</label>
+        <div class="captcha"><input class="input" id="captcha" name="captcha" autocomplete="off" required maxlength="8"><img src="{$basePath}/captcha" data-captcha="{$basePath}/captcha" alt="点击刷新验证码" title="点击刷新"></div>
+      </div>
+      <button class="btn btn--primary btn--block" type="submit">登录</button>
+      <p class="muted" style="margin:0;text-align:center">还没有账号？<a href="{$basePath}/register">立即注册</a></p>
+    </form>
+  </div>
+</div>
+{/block}

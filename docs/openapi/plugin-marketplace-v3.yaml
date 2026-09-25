@@ -242,6 +242,48 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/ValidationError'
+  /api/v3/telemetry/installs:
+    post:
+      tags: [Telemetry]
+      operationId: reportInstallEvents
+      summary: 上报云市场插件的安装统计事件（可选）
+      description: |
+        客户端仅在配置了自建市场地址时，于插件安装、升级、卸载、启用、禁用成功后尽力上报；
+        只包含匿名站点 UUID 与插件标识/版本，令牌可选（本地卸载等操作可能未登录市场账号）。
+        服务端按站点去重计算活跃安装数，重复上报不放大统计。
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MarketplaceContext'
+                - $ref: '#/components/schemas/TelemetryRequest'
+              unevaluatedProperties: false
+      responses:
+        '200':
+          description: 已记录的事件数（未知插件或非法事件会被忽略）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [recorded]
+                        properties:
+                          recorded:
+                            type: integer
+                            minimum: 0
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          description: 上报过于频繁
 components:
   securitySchemes:
     bearerAuth:
@@ -500,6 +542,41 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PluginVersion'
+        price_text:
+          type: string
+          description: 可选。价格说明，例如「免费」「买断 ¥199.00 · ¥59.00/年」。
+        store_url:
+          type: string
+          format: uri
+          pattern: '^https?://'
+          description: 可选。市场前台的插件购买页地址。
+    TelemetryRequest:
+      type: object
+      required: [site_id, events]
+      properties:
+        site_id:
+          type: string
+          format: uuid
+        events:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, event]
+            properties:
+              code:
+                $ref: '#/components/schemas/PluginCode'
+              event:
+                type: string
+                enum: [install, update, uninstall, enable, disable]
+              version:
+                $ref: '#/components/schemas/SemanticVersion'
+              from_version:
+                type: string
+              occurred_at:
+                type: string
+                format: date-time
     InstalledPlugin:
       type: object
       additionalProperties: false

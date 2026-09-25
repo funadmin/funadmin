@@ -1,0 +1,92 @@
+{
+    "schema_version": 2,
+    "code": "market",
+    "name": "插件市场服务端",
+    "description": "FunAdmin 插件市场服务端：/api/v3 云市场接口、前台商店（注册登录、在线购买、用户主页）、支付宝/微信支付、Ed25519 发布签名与安装统计。",
+    "author": "FunAdmin",
+    "version": "1.1.0",
+    "requires": {
+        "php": ">=8.1",
+        "funadmin": ">=1.0.0",
+        "plugins": {}
+    },
+    "entry": {
+        "class": "plugins\\market\\Plugin",
+        "file": "Plugin.php"
+    },
+    "adminWeb": {
+        "source": "admin-web",
+        "components": {
+            "Index": "Index.vue"
+        },
+        "minFrontendVersion": "1.0.0",
+        "permissions": [
+            {
+                "code": "market:plugin:view",
+                "name": "查看市场插件"
+            },
+            {
+                "code": "market:plugin:manage",
+                "name": "管理市场插件与版本"
+            },
+            {
+                "code": "market:category:manage",
+                "name": "管理市场分类"
+            },
+            {
+                "code": "market:grant:manage",
+                "name": "管理插件授权"
+            },
+            {
+                "code": "market:setting:manage",
+                "name": "管理市场签名与设置"
+            },
+            {
+                "code": "market:order:view",
+                "name": "查看市场订单"
+            },
+            {
+                "code": "market:order:manage",
+                "name": "管理市场订单（人工确认收款、关闭）"
+            },
+            {
+                "code": "market:stat:view",
+                "name": "查看市场统计"
+            }
+        ],
+        "menu": [
+            {
+                "name": "插件市场",
+                "path": "/plugin/market/index",
+                "permission": "market:plugin:view"
+            }
+        ],
+        "routes": [
+            {
+                "path": "/plugin/market/index",
+                "name": "Plugin_market_Index",
+                "component": "Index",
+                "meta": {
+                    "title": "插件市场",
+                    "icon": "i-ep-box",
+                    "permission": "market:plugin:view"
+                }
+            }
+        ]
+    },
+    "resources": {
+        "public": {
+            "source": "resources/public",
+            "target": "plugin-assets/market/public"
+        }
+    },
+    "migrations": {
+        "path": "database/migrations"
+    },
+    "storage": {
+        "path": "storage"
+    },
+    "purge": {
+        "supported": false
+    }
+}

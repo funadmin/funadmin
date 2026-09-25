@@ -63,9 +63,10 @@
       <el-table v-loading="loading" :data="marketItems" border>
         <el-table-column prop="code" :label="t('plugin.colCode', '插件标识')" width="130" /><el-table-column prop="name" :label="t('plugin.colName', '名称')" width="150" />
         <el-table-column prop="description" :label="t('plugin.colDescription', '描述')" min-width="240" show-overflow-tooltip /><el-table-column prop="author" :label="t('plugin.colAuthor', '作者')" width="120" />
+        <el-table-column :label="t('plugin.colPrice', '价格')" width="150"><template #default="{ row }">{{ row.priceText || '-' }}</template></el-table-column>
         <el-table-column :label="t('plugin.colLatest', '最新版本')" width="110"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
         <el-table-column :label="t('plugin.colCapabilities', '能力')" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
-        <el-table-column :label="t('plugin.colActions', '操作')" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">{{ t('plugin.detail', '详情') }}</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">{{ t('plugin.install', '安装') }}</el-button></template></el-table-column>
+        <el-table-column :label="t('plugin.colActions', '操作')" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">{{ t('plugin.detail', '详情') }}</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">{{ t('plugin.install', '安装') }}</el-button><el-link v-if="purchasable(row as MarketplacePlugin)" class="ml-2" type="warning" :href="row.storeUrl" target="_blank" rel="noopener">{{ t('plugin.buy', '购买') }}</el-link></template></el-table-column>
       </el-table>
     </template>
 
@@ -129,6 +130,7 @@ function openDevelopment(mode: 'create' | 'maintain') {
   developmentVisible.value = true;
 }
 function dependencies(value: Record<string, string>) { return Object.entries(value || {}).map(([name, version]) => `${name} ${version}`).join(', ') || '-'; }
+const purchasable = (item: MarketplacePlugin) => Boolean(item.storeUrl && /^https?:\/\//i.test(item.storeUrl) && item.priceText && item.priceText !== '免费');
 function marketCapabilities(item: MarketplacePlugin) {
   const version = item.versions[0];
   if (!version) return '-';
