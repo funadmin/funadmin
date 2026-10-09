@@ -1,0 +1,112 @@
+{extend name="store/layout" /}
+{block name="main"}
+<div class="profile">
+  <aside class="card profile__card">
+    <div class="avatar">{if $member.avatar}<img src="{$member.avatar}" alt="">{else /}{$member.username|mb_substr=0,1|mb_strtoupper}{/if}</div>
+    <strong style="font-size:16px">{$member.nickname|default=$member.username}</strong>
+    <span class="faint">@{$member.username} · 注册于 {$member.created_at|substr=0,10}</span>
+    {if $member.motto}<p class="muted" style="margin:0;font-size:13px">{$member.motto}</p>{/if}
+    <div class="stats">
+      <div><strong>{$stats.plugins}</strong><span>已拥有</span></div>
+      <div><strong>{$stats.orders}</strong><span>订单</span></div>
+      <div><strong>¥{$stats.spent}</strong><span>累计消费</span></div>
+    </div>
+  </aside>
+
+  <section>
+    <nav class="tabs">
+      <a href="{$basePath}/user?tab=plugins" class="{if $tab == 'plugins'}is-active{/if}">我的插件</a>
+      <a href="{$basePath}/user?tab=orders" class="{if $tab == 'orders'}is-active{/if}">我的订单</a>
+      <a href="{$basePath}/user?tab=client" class="{if $tab == 'client'}is-active{/if}">客户端接入</a>
+      <a href="{$basePath}/user?tab=settings" class="{if $tab == 'settings'}is-active{/if}">账号设置</a>
+    </nav>
+
+    {if $tab == 'plugins'}
+      {if $grants}
+      <div class="list">
+        {foreach $grants as $grant}
+        <div class="card row">
+          <div class="cover">{if $grant.cover}<img src="{$grant.cover}" alt="">{else /}<div class="cover__initial">{$grant.initial}</div>{/if}</div>
+          <div>
+            <div class="row__title"><a href="{$basePath}/plugin/{$grant.code}"><strong>{$grant.name}</strong></a><code class="faint">{$grant.code}</code>
+              {if $grant.expired}<span class="tag tag--danger">已过期</span>{elseif !$grant.expires_at /}<span class="tag tag--ok">永久</span>{else /}<span class="tag">按年</span>{/if}
+            </div>
+            <div class="faint">{if $grant.expires_at}有效期至 {$grant.expires_at}{else /}永久授权{/if} · {if $grant.source == 'order'}购买获得{else /}管理员授予{/if}</div>
+          </div>
+          <div class="row__actions">
+            {if $grant.renewable}<a class="btn btn--sm" href="{$basePath}/plugin/{$grant.code}">{if $grant.expired}重新购买{else /}续费{/if}</a>{/if}
+          </div>
+        </div>
+        {/foreach}
+      </div>
+      {else /}
+      <div class="card empty">还没有插件授权，<a href="{$basePath}">去市场看看</a>。免费插件无需购买，在客户端直接安装即可。</div>
+      {/if}
+    {/if}
+
+    {if $tab == 'orders'}
+      {if $orders}
+      <div class="card table-wrap">
+        <table class="table">
+          <thead><tr><th>订单号</th><th>插件</th><th>方案</th><th>金额</th><th>状态</th><th>时间</th><th></th></tr></thead>
+          <tbody>
+          {foreach $orders as $order}
+          <tr>
+            <td><code>{$order.order_no}</code></td>
+            <td><a href="{$basePath}/plugin/{$order.code}">{$order.name}</a></td>
+            <td>{$order.plan_text}</td>
+            <td>¥{$order.amount_text}</td>
+            <td>{if $order.status == 'paid'}<span class="tag tag--ok">已支付</span>{elseif $order.status == 'pending' /}<span class="tag tag--warn">待支付</span>{else /}<span class="tag tag--muted">已关闭</span>{/if}</td>
+            <td class="faint">{$order.paid_at|default=$order.created_at}</td>
+            <td>{if $order.status == 'pending'}<a href="{$basePath}/order/{$order.order_no}">去支付</a>{else /}<a href="{$basePath}/order/{$order.order_no}">详情</a>{/if}</td>
+          </tr>
+          {/foreach}
+          </tbody>
+        </table>
+      </div>
+      {else /}
+      <div class="card empty">暂无订单</div>
+      {/if}
+    {/if}
+
+    {if $tab == 'client'}
+      <div class="card card__body" style="display:grid;gap:14px">
+        <h2 class="section-title" style="margin:0">在你的 FunAdmin 站点中使用本市场</h2>
+        <ol class="steps">
+          <li>把下面两行加入站点根目录的 <code>.env</code>：</li>
+        </ol>
+        <pre class="codebox" id="client-env">PLUGIN_MARKETPLACE_URL = {$marketUrl}
+PLUGIN_MARKETPLACE_PUBLIC_KEY = {$publicKey|default='（市场尚未配置签名公钥，请联系管理员）'}</pre>
+        <div><button class="btn btn--sm" type="button" data-copy="#client-env">复制配置</button></div>
+        <ol class="steps" start="2">
+          <li>进入后台「插件中心」，点击「市场账号」，使用 <strong>{$member.username}</strong> 与本站密码登录。</li>
+          <li>在「云市场」中搜索并安装插件；已购买的插件可随时安装和升级。卸载在插件中心本地完成。</li>
+        </ol>
+      </div>
+    {/if}
+
+    {if $tab == 'settings'}
+      <div style="display:grid;gap:16px">
+        <form class="card card__body form" method="post" action="{$basePath}/user/profile">
+          <h2 class="section-title" style="margin:0">基本资料</h2>
+          <input type="hidden" name="_csrf" value="{$csrf}">
+          <div class="field"><label>用户名</label><input class="input" value="{$member.username}" disabled></div>
+          <div class="field"><label>邮箱</label><input class="input" value="{$member.email}" disabled></div>
+          <div class="field"><label for="nickname">昵称</label><input class="input" id="nickname" name="nickname" value="{$member.nickname}" required maxlength="50"></div>
+          <div class="field"><label for="avatar">头像地址（https）</label><input class="input" id="avatar" name="avatar" value="{$member.avatar}" maxlength="255" placeholder="https://"></div>
+          <div class="field"><label for="motto">个人简介</label><textarea class="input" id="motto" name="motto" rows="3" maxlength="255">{$member.motto}</textarea></div>
+          <div><button class="btn btn--primary" type="submit">保存资料</button></div>
+        </form>
+        <form class="card card__body form" method="post" action="{$basePath}/user/password" data-confirm="修改密码后，客户端插件中心需要重新登录市场账号，确定修改？">
+          <h2 class="section-title" style="margin:0">修改密码</h2>
+          <input type="hidden" name="_csrf" value="{$csrf}">
+          <div class="field"><label for="current">当前密码</label><input class="input" id="current" type="password" name="current" autocomplete="current-password" required></div>
+          <div class="field"><label for="new-password">新密码</label><input class="input" id="new-password" type="password" name="password" autocomplete="new-password" required minlength="8" maxlength="64" placeholder="至少 8 位，包含字母和数字"></div>
+          <div class="field"><label for="new-password-confirm">确认新密码</label><input class="input" id="new-password-confirm" type="password" name="password_confirm" autocomplete="new-password" required minlength="8" maxlength="64"></div>
+          <div><button class="btn btn--primary" type="submit">修改密码</button></div>
+        </form>
+      </div>
+    {/if}
+  </section>
+</div>
+{/block}

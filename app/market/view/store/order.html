@@ -1,0 +1,59 @@
+{extend name="store/layout" /}
+{block name="main"}
+<div class="checkout">
+  <section class="card card__body">
+    {if $order.status == 'paid'}
+      <div class="result">
+        <div class="result__icon result__icon--ok">✓</div>
+        <h1 style="font-size:20px">支付成功</h1>
+        <p class="muted" style="margin:0">「{$order.plugin_name}」授权已开通，现在可以在客户端插件中心安装。</p>
+        <div style="display:flex;gap:8px"><a class="btn btn--primary" href="{$basePath}/user?tab=plugins">查看我的插件</a><a class="btn" href="{$basePath}/user?tab=client">客户端接入说明</a></div>
+      </div>
+    {elseif $order.status == 'closed' /}
+      <div class="result">
+        <div class="result__icon result__icon--muted">×</div>
+        <h1 style="font-size:20px">订单已关闭</h1>
+        <p class="muted" style="margin:0">{$order.remark|default='订单已关闭'}，如需购买请重新下单。</p>
+        <a class="btn btn--primary" href="{$basePath}/plugin/{$order.plugin_code}">返回插件页</a>
+      </div>
+    {else /}
+      <h1 style="font-size:20px;margin-bottom:6px">{$order.channel_text}</h1>
+      <p class="muted" style="margin:0 0 14px">请在 {$order.expire_at} 前完成支付，超时订单将自动关闭。</p>
+      {if $paymentError}<div class="alert alert--error">{$paymentError}</div>{/if}
+      {if $order.channel == 'alipay'}
+        <a class="btn btn--primary" href="{$basePath}/order/{$order.order_no}/pay">前往支付宝支付 ¥{$order.amount_text}</a>
+        <p class="faint">支付完成后会自动返回本页；若未跳转，本页会自动刷新支付结果。</p>
+      {elseif $payment && $payment.type == 'qrcode' /}
+        <div class="qr">
+          <div class="qr__box" data-qrcode="{$payment.code_url}"></div>
+          <span class="muted">请使用微信扫一扫完成支付</span>
+        </div>
+      {elseif $payment && $payment.type == 'mock' && $mockAllowed /}
+        <div class="alert alert--warn">这是开发环境的模拟支付，不会产生真实扣款。</div>
+        <form method="post" action="{$basePath}/order/{$order.order_no}/mock" class="inline">
+          <input type="hidden" name="_csrf" value="{$csrf}">
+          <button class="btn btn--primary" type="submit">模拟支付成功</button>
+        </form>
+      {/if}
+      <span data-order-status="{$basePath}/order/{$order.order_no}/status" hidden></span>
+      <form method="post" action="{$basePath}/order/{$order.order_no}/cancel" style="margin-top:16px" data-confirm="确定取消这个订单？">
+        <input type="hidden" name="_csrf" value="{$csrf}">
+        <button class="link" type="submit">取消订单</button>
+      </form>
+    {/if}
+  </section>
+
+  <aside class="card card__body">
+    <h2 class="section-title">订单信息</h2>
+    <dl class="summary">
+      <div><dt>插件</dt><dd><a href="{$basePath}/plugin/{$order.plugin_code}">{$order.plugin_name}</a></dd></div>
+      <div><dt>方案</dt><dd>{$order.plan_text}</dd></div>
+      <div><dt>订单号</dt><dd><code>{$order.order_no}</code></dd></div>
+      <div><dt>下单时间</dt><dd>{$order.created_at}</dd></div>
+      {if $order.paid_at}<div><dt>支付时间</dt><dd>{$order.paid_at}</dd></div>{/if}
+      <div><dt>应付金额</dt><dd class="amount">¥{$order.amount_text}</dd></div>
+    </dl>
+  </aside>
+</div>
+{/block}
+{block name="scripts"}{if $payment && $payment.type == 'qrcode'}<script src="{$assets}/vendor/qrcode.js"></script>{/if}{/block}

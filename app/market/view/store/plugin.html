@@ -1,0 +1,99 @@
+{extend name="store/layout" /}
+{block name="main"}
+<div class="detail">
+  <div style="display:grid;gap:20px">
+    <section class="card card__body">
+      <div class="detail__head">
+        <div class="cover">{if $plugin.cover}<img src="{$plugin.cover}" alt="">{else /}<div class="cover__initial">{$plugin.initial}</div>{/if}</div>
+        <div>
+          <h1>{$plugin.name}</h1>
+          <div class="detail__meta">
+            <span><code>{$plugin.code}</code></span>
+            {if $plugin.author}<span>作者 {$plugin.author}</span>{/if}
+            {if $plugin.category}<span>{$plugin.category}</span>{/if}
+            <span>最新 v{$plugin.latest_version}</span>
+          </div>
+          <div class="detail__meta">
+            <span><strong>{$plugin.counters.downloads}</strong> 次下载</span>
+            <span><strong>{$plugin.counters.activeInstalls}</strong> 个站点在用</span>
+            {if $plugin.homepage}<a href="{$plugin.homepage}" target="_blank" rel="noopener noreferrer nofollow">项目主页</a>{/if}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card card__body">
+      <h2 class="section-title">插件介绍</h2>
+      <div class="prose muted">{$plugin.description|default='作者暂未填写介绍。'}</div>
+    </section>
+
+    <section class="card card__body">
+      <h2 class="section-title">版本记录</h2>
+      <div class="versions">
+        {foreach $plugin.versions as $version}
+        <div class="version">
+          <div class="version__head">
+            <strong>v{$version.code_version}</strong>
+            <span class="faint">{$version.published_at}{if $version.requires_text} · 需要 {$version.requires_text}{/if}</span>
+          </div>
+          {if $version.changelog}<pre>{$version.changelog}</pre>{/if}
+        </div>
+        {/foreach}
+      </div>
+    </section>
+  </div>
+
+  <aside class="card card__body buy">
+    {if !$plugin.paid}
+      <div><span class="tag tag--ok">免费</span></div>
+      <p class="muted" style="margin:0">登录市场账号后，在客户端「插件中心 → 云市场」中直接安装。</p>
+    {elseif $plugin.owned /}
+      <div><span class="tag tag--ok">已拥有</span></div>
+      <p class="muted" style="margin:0">{if $plugin.owned_until}授权有效期至 {$plugin.owned_until}{else /}永久授权{/if}，可在客户端插件中心安装和升级。</p>
+    {/if}
+
+    {if $plugin.paid && $plugin.plans && !($plugin.owned && !$plugin.owned_until)}
+      {if $member}
+      <form method="post" action="{$basePath}/order" class="form">
+        <input type="hidden" name="_csrf" value="{$csrf}">
+        <input type="hidden" name="code" value="{$plugin.code}">
+        <div class="options">
+          {foreach $plugin.plans as $index => $plan}
+          <label class="option">
+            <span class="option__label"><input type="radio" name="plan" value="{$plan.plan}" {if $index == 0}checked{/if}>{$plan.label}</span>
+            <span class="price">¥{$plan.price_text}</span>
+          </label>
+          {/foreach}
+        </div>
+        {if $channels}
+        <div class="options">
+          {foreach $channels as $index => $channel}
+          <label class="option"><span class="option__label"><input type="radio" name="channel" value="{$channel.value}" {if $index == 0}checked{/if}>{$channel.label}</span></label>
+          {/foreach}
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">{if $plugin.owned}续费{else /}立即购买{/if}</button>
+        {else /}
+        <div class="alert alert--warn" style="margin:0">站点暂未开通在线支付，请联系市场管理员开通授权。</div>
+        {/if}
+      </form>
+      {else /}
+      <div class="options">
+        {foreach $plugin.plans as $plan}<div class="option"><span>{$plan.label}</span><span class="price">¥{$plan.price_text}</span></div>{/foreach}
+      </div>
+      <a class="btn btn--primary btn--block" href="{$basePath}/login?next={$basePath}/plugin/{$plugin.code}">登录后购买</a>
+      {/if}
+    {elseif $plugin.paid && !$plugin.plans && !$plugin.owned /}
+      <div class="alert alert--warn" style="margin:0">该插件需要授权使用，请联系市场管理员。</div>
+    {/if}
+
+    <div>
+      <h3 class="section-title" style="font-size:14px">如何安装</h3>
+      <ol class="steps">
+        <li>在你的 FunAdmin 站点 <code>.env</code> 中配置本市场地址与公钥（见「我的主页 → 客户端接入」）。</li>
+        <li>在「插件中心 → 市场账号」使用本站账号登录。</li>
+        <li>在「云市场」搜索 <code>{$plugin.code}</code> 并安装，安装后在插件中心启用。</li>
+      </ol>
+    </div>
+  </aside>
+</div>
+{/block}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<title>{if $title}{$title} - {/if}{$siteName} 插件市场</title>
+<link rel="stylesheet" href="{$assets}/store.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar__inner">
+    <a class="brand" href="{$basePath}"><span class="brand__mark">F</span><span>{$siteName}<small>插件市场</small></span></a>
+    <nav class="topnav">
+      <a href="{$basePath}">全部插件</a>
+      {if $member}
+      <a href="{$basePath}/user">{$member.nickname|default=$member.username}</a>
+      <form method="post" action="{$basePath}/logout" class="inline"><input type="hidden" name="_csrf" value="{$csrf}"><button class="link" type="submit">退出</button></form>
+      {else /}
+      <a href="{$basePath}/login">登录</a>
+      <a class="btn btn--primary btn--sm" href="{$basePath}/register">注册</a>
+      {/if}
+    </nav>
+  </div>
+</header>
+<main class="wrap main">
+  {if $flash}<div class="alert alert--ok">{$flash}</div>{/if}
+  {if $flashError}<div class="alert alert--error">{$flashError}</div>{/if}
+  {block name="main"}{/block}
+</main>
+<footer class="footer">
+  <div class="wrap">{$siteCopyright|default=''} {if $siteIcp}· {$siteIcp}{/if} · 插件由 {$siteName} 插件市场 Ed25519 签名分发</div>
+</footer>
+{block name="scripts"}{/block}
+<script src="{$assets}/store.js" defer></script>
+</body>
+</html>
