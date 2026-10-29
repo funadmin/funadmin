@@ -43,6 +43,7 @@ class Config extends Command
         //判断文件是否存在
         if (is_file($configFile)) {
             $output->info(sprintf('The config file "%s" already exists', $configFile));
+            return;
         }
 
         if (false === file_put_contents($configFile, $content)) {

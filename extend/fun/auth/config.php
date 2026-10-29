@@ -12,8 +12,8 @@
  */
 //配置api 接口
 return [
-    'jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
-    'refresh_jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
+    'jwt_secret'=>env('JWT_SECRET', ''),
+    'refresh_jwt_secret'=>env('JWT_REFRESH_SECRET', ''),
     'access_token_ttl' => 3600 * 2,//token-有效期
     'refresh_token_ttl' => 3600 * 24 * 30,   //刷新token过期时间
 ];

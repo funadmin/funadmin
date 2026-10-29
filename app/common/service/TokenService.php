@@ -13,6 +13,18 @@ class TokenService extends AbstractService
     {
         // 如果 AbstractService 有构造函数参数或初始化逻辑，可以在需要时调用 parent::__construct();
         parent::__construct($app);
+        $this->getSecret('access');
+        $this->getSecret('refresh');
+    }
+
+    private function getSecret(string $type): string
+    {
+        $configKey = $type === 'access' ? 'jwt_secret' : 'refresh_jwt_secret';
+        $secret = config('api.' . $configKey);
+        if (!is_string($secret) || trim($secret) === '' || strlen($secret) < 32 || trim($secret) === 'funadmin') {
+            throw new \RuntimeException('Configure api.' . $configKey . ' with a unique random secret of at least 32 bytes.');
+        }
+        return $secret;
     }
 
     /**
@@ -25,7 +37,7 @@ class TokenService extends AbstractService
      */
     public function build(array $payload, string $type = 'access'): string
     {
-        $secretKey = $type === 'access' ? config('api.jwt_secret') : config('api.refresh_jwt_secret');
+        $secretKey = $this->getSecret($type);
         $issuedAt = time();
         $ttl = $type === 'access' ? config('api.access_token_ttl') : config('api.refresh_expires');
         $expirationTime = $issuedAt + $ttl;
@@ -51,7 +63,7 @@ class TokenService extends AbstractService
      */
     public function validateToken(string $token, string $type = 'access')
     {
-        $secretKey = $type === 'access' ? config('api.jwt_secret') : config('api.refresh_jwt_secret');
+        $secretKey = $this->getSecret($type);
         try {
             JWT::$leeway = 30;//当前时间减去60，把时间留点余地
             $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));

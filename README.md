@@ -124,6 +124,17 @@ FunAdmin 基于thinkphp8.X +Layui2.11.*+requirejs开发权限(RBAC)管理框架�
 * Mysql 5.7及以上
 * Apache 或 Nginx
 
+### API JWT 密钥配置
+
+使用 API 前，在安装后的 `.env` 中分别设置 `JWT_SECRET` 和 `JWT_REFRESH_SECRET`。
+每个值使用一次 `openssl rand -hex 32` 独立生成，不要使用公开示例值。
+也可以直接在 `config/api.php` 中配置两个密钥；`auth:config` 不会覆盖已有配置。
+
+缺失、空白或不足 32 字节的密钥，以及原默认值 `funadmin`，会使 `TokenService` 初始化失败，
+而不是继续签发或接受令牌。已有安装中仍使用 `funadmin` 的配置也必须更新。
+妥善保存密钥，重启后保持不变；共享令牌的实例须使用相同配置。
+更换密钥会使原来由该密钥签发的令牌失效，用户需要重新登录。
+
 ### 功能特性
 
 - **严谨规范：** 提供一套有利于团队协作的结构设计、编码、数据等规范。
