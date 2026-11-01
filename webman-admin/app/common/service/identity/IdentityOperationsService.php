@@ -14,6 +14,8 @@ use app\common\model\identity\OAuthAuthorizationCode;
 use app\common\model\identity\OAuthClient;
 use app\common\model\identity\OAuthToken;
 use app\common\model\identity\OidcSession;
+use app\common\model\identity\TenantScopedIdentityModel;
+use Illuminate\Database\Eloquent\Builder;
 use RuntimeException;
 use support\Db;
 
@@ -27,6 +29,7 @@ final class IdentityOperationsService
         $now = date('Y-m-d H:i:s');
         $auditBefore = date('Y-m-d H:i:s', time() - max(1, $auditRetentionDays) * 86400);
         return Db::transaction(function () use ($tenantId, $limit, $dryRun, $now, $auditBefore): array {
+            /** @var array<string, array{class-string<TenantScopedIdentityModel>, \Closure(Builder): Builder}> $targets */
             $targets = [
                 'authorization_codes' => [OAuthAuthorizationCode::class, static fn ($query) => $query->where('expires_at', '<=', $now)],
                 'tokens' => [OAuthToken::class, static fn ($query) => $query->where('expires_at', '<=', $now)],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\admin\service\plugin\market;
+namespace app\admin\plugin\business\market\service;
 
 use app\admin\plugin\service\PluginPackageService;
 use app\market\service\MarketProtocol;

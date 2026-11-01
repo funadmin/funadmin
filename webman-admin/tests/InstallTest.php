@@ -169,9 +169,16 @@ final class InstallTest extends TestCase
         self::assertStringContainsString('no-store', (string) $response);
         if (!$data['installed']) {
             self::assertArrayHasKey('csrfToken', $data);
+            self::assertStringNotContainsString('Max-Age=0', (string) $response);
+            self::assertStringContainsString('Path=/install; HttpOnly; SameSite=Strict', (string) $response);
             self::assertContains('migrations', array_column($data['checks'], 'key'));
             $response = $controller->step3(new Request("POST /install/index/step3 HTTP/1.1\r\nHost: localhost\r\n\r\n"));
             self::assertSame(403, $response->getStatusCode());
+            $token = $data['csrfToken'];
+            $request = new Request("POST /install/index/step3 HTTP/1.1\r\nHost: localhost\r\nCookie: funadmin_install_csrf=$token\r\nX-CSRF-TOKEN: $token\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}");
+            $response = $controller->step3($request);
+            self::assertSame(422, $response->getStatusCode());
+            self::assertStringNotContainsString('安全校验失败', $response->rawBody());
         }
     }
 }

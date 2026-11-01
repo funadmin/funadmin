@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\admin\plugin\business\market\service;
 
+use app\admin\plugin\business\market\service\MarketPackageInspector;
 use app\common\model\Member;
 use app\market\service\MarketOrderService;
 use app\market\service\MarketProtocol;
-use app\market\service\MarketSettings;
 use app\market\service\MarketSigner;
 use app\market\service\MarketStatsService;
 use app\market\service\payment\PaymentConfig;

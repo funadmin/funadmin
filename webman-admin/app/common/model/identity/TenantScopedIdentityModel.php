@@ -17,6 +17,7 @@ abstract class TenantScopedIdentityModel extends BaseModel
 
     /**
      * 创建包含租户条件的查询。
+     * @return Builder<static>
      */
     public static function forTenant(int $tenantId): Builder
     {

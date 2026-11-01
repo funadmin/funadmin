@@ -33,7 +33,7 @@ final class Index
         return $this->result([
             'installed' => false, 'siteName' => 'FunAdmin', 'siteVersion' => 'Webman',
             'csrfToken' => $token, 'checks' => $this->buildEnvironmentChecks(),
-        ], '环境检测完成')->cookie(self::COOKIE, $token, 0, '/install', '', $this->secure(), true, 'Strict');
+        ], '环境检测完成')->cookie(self::COOKIE, $token, null, '/install', '', $this->secure(), true, 'Strict');
     }
 
     #[Post('/step3')]
@@ -62,7 +62,7 @@ final class Index
             $this->assertCsrf($request);
             if (!$this->installed()) throw new DomainException('系统尚未完成安装', 409);
             return $this->result(['installed' => true, 'backend' => '/admin-web/#/admin/login'], '安装完成')
-                ->cookie(self::COOKIE, '', time() - 3600, '/install', '', $this->secure(), true, 'Strict');
+                ->cookie(self::COOKIE, '', 0, '/install', '', $this->secure(), true, 'Strict');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());
         }

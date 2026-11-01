@@ -4,11 +4,37 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\AdminRouteInventory;
 
 final class AdminRouteInventoryTest extends TestCase
 {
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_every_inventory_route_is_registered_by_native_annotations(): void
+    {
+        \Webman\Route::load([config_path()]);
+        $registered = [];
+        foreach (\Webman\Route::getRoutes() as $route) {
+            foreach ($route->getMethods() as $method) {
+                $registered[$method . ' ' . $route->getPath()] = $route->getCallback();
+            }
+        }
+        $missing = [];
+        foreach (AdminRouteInventory::collect() as $route) {
+            $key = $route['method'] . ' ' . $route['path'];
+            if (!isset($registered[$key])) {
+                $missing[] = $key;
+                continue;
+            }
+            self::assertTrue($route['native'], '不得通过旁路注册掩盖旧注解：' . $key);
+            self::assertSame([$route['controller'], $route['action']], $registered[$key]);
+        }
+        self::assertSame([], $missing, '以下后台接口尚未通过原生注解注册：' . implode('，', $missing));
+    }
+
     public function test_module_route_contracts_do_not_disappear_during_migration(): void
     {
         $expected = [
