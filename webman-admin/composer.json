@@ -1,0 +1,91 @@
+{
+  "name": "workerman/webman",
+  "type": "project",
+  "keywords": [
+    "high performance",
+    "http service"
+  ],
+  "homepage": "https://www.workerman.net",
+  "license": "MIT",
+  "description": "High performance HTTP Service Framework.",
+  "authors": [
+    {
+      "name": "walkor",
+      "email": "walkor@workerman.net",
+      "homepage": "https://www.workerman.net",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "walkor@workerman.net",
+    "issues": "https://github.com/walkor/webman/issues",
+    "forum": "https://wenda.workerman.net/",
+    "wiki": "https://workerman.net/doc/webman",
+    "source": "https://github.com/walkor/webman"
+  },
+  "require": {
+    "php": ">=8.5",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "ext-pcntl": "*",
+    "ext-mbstring": "*",
+    "workerman/webman-framework": "^2.2.5",
+    "monolog/monolog": "^3.12.1",
+    "webman/database": "^2.1",
+    "illuminate/database": "^13.0",
+    "illuminate/events": "^13.39",
+    "illuminate/pagination": "^13.0",
+    "vlucas/phpdotenv": "^5.8",
+    "webman/event": "^1.0",
+    "workerman/crontab": "^1.0",
+    "webman/captcha": "^1.0",
+    "intervention/image": "^4.4",
+    "symfony/translation": "^8.1",
+    "jasongrimes/paginator": "^1.0.3",
+    "webman/validation": "^2.2",
+    "webman/console": "^2.3",
+    "webman/cache": "^2.1",
+    "webman/redis": "^2.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^13.0"
+  },
+  "repositories": {
+    "packagist.org": {
+      "type": "composer",
+      "url": "https://repo.packagist.org"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {"Tests\\": "tests/"}
+  },
+  "scripts-description": {
+    "test": "运行隔离数据库认证测试"
+  },
+  "suggest": {
+    "ext-event": "For better performance. "
+  },
+  "autoload": {
+    "psr-4": {
+      "support\\": "./support",
+      "app\\": "./app",
+      "App\\": "./app",
+      "app\\View\\Components\\": "./app/view/components"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "lint": "php tests/lint.php",
+    "post-package-install": [
+      "support\\Plugin::install"
+    ],
+    "post-package-update": [
+      "support\\Plugin::install"
+    ],
+    "pre-package-uninstall": [
+      "support\\Plugin::uninstall"
+    ]
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

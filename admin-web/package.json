@@ -7,6 +7,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "dev:webman": "vite --mode webman",
+    "build:webman": "vue-tsc --noEmit && vite build --mode webman --outDir ../webman-admin/public/admin-web --emptyOutDir",
     "dev:backend": "cd .. && php think run -H 0.0.0.0 -p 8000",
     "dev:force": "vite --force",
     "gen:crud": "node scripts/crud-gen.mjs",

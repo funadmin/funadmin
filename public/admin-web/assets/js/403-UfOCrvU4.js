@@ -1,0 +1,1 @@
+import{_n as e,jn as t,ln as n}from"./element-Bpuryqbo.js";import{t as r}from"./ErrorPage-DV0MW3-Y.js";var i=e({__name:`403`,setup(e){return(e,i)=>(t(),n(r,{code:`403`}))}});export{i as default};
