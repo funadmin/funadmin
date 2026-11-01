@@ -270,9 +270,9 @@ export default {
       fresh: { label: '清新', desc: '浅色 + 青蓝' },
       classic: { label: '经典', desc: '深色侧栏 + 蓝' },
       minimal: { label: '极简', desc: '浅色 + 石墨' },
-      vibrant: { label: '活力', desc: '清新渐变 + 紫' },
+      vibrant: { label: '活力', desc: '浅色 + 活力蓝' },
       sunset: { label: '暖阳', desc: '浅色 + 橙红' },
-      midnight: { label: '暗夜', desc: '深色 + 蓝紫' }
+      midnight: { label: '暗夜', desc: '深色 + 蓝' }
     }
   },
   common: {

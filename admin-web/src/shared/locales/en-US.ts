@@ -268,9 +268,9 @@ export default {
       fresh: { label: 'Fresh', desc: 'Light + cyan' },
       classic: { label: 'Classic', desc: 'Dark sidebar + blue' },
       minimal: { label: 'Minimal', desc: 'Light + slate' },
-      vibrant: { label: 'Vibrant', desc: 'Fresh gradient + purple' },
+      vibrant: { label: 'Vibrant', desc: 'Light + vivid blue' },
       sunset: { label: 'Sunset', desc: 'Light + orange' },
-      midnight: { label: 'Midnight', desc: 'Dark + indigo' }
+      midnight: { label: 'Midnight', desc: 'Dark + blue' }
     }
   },
   common: {

@@ -36,7 +36,7 @@ export const PRESET_THEMES: PresetThemeConfig[] = [
   { value: 'fresh',    label: i18n.global.t('setting.preset.fresh.label', '清新'),    desc: i18n.global.t('setting.preset.fresh.desc', '浅色 + 青蓝'),    themeMode: 'light', primaryColor: '#13c2c2', menuTheme: 'light' },
   { value: 'classic',  label: i18n.global.t('setting.preset.classic.label', '经典'),  desc: i18n.global.t('setting.preset.classic.desc', '深色侧栏 + 蓝'),  themeMode: 'light', primaryColor: '#1677ff', menuTheme: 'dark'  },
   { value: 'minimal',  label: i18n.global.t('setting.preset.minimal.label', '极简'),  desc: i18n.global.t('setting.preset.minimal.desc', '浅色 + 石墨'),    themeMode: 'light', primaryColor: '#0f172a', menuTheme: 'light' },
-  { value: 'vibrant',  label: i18n.global.t('setting.preset.vibrant.label', '活力'),  desc: i18n.global.t('setting.preset.vibrant.desc', '清新渐变 + 蓝'),  themeMode: 'light', primaryColor: '#2f80ed', menuTheme: 'light' },
+  { value: 'vibrant',  label: i18n.global.t('setting.preset.vibrant.label', '活力'),  desc: i18n.global.t('setting.preset.vibrant.desc', '浅色 + 活力蓝'),  themeMode: 'light', primaryColor: '#2f80ed', menuTheme: 'light' },
   { value: 'sunset',   label: i18n.global.t('setting.preset.sunset.label', '暖阳'),   desc: i18n.global.t('setting.preset.sunset.desc', '浅色 + 橙红'),   themeMode: 'light', primaryColor: '#f97316', menuTheme: 'light' },
   { value: 'midnight', label: i18n.global.t('setting.preset.midnight.label', '暗夜'), desc: i18n.global.t('setting.preset.midnight.desc', '深色 + 蓝'),     themeMode: 'dark',  primaryColor: '#1677ff', menuTheme: 'dark'  }
 ];
@@ -335,10 +335,10 @@ export const useAppStore = defineStore('app', {
      * 仅当用户当前主色 == 某个历史默认值时才替换，自定义过的颜色不受影响。
      */
     migrateLegacyPrimary() {
-      const LEGACY_DEFAULT_PRIMARIES = ['#2c7be5', '#165dff'];
-      const current = (this.primaryColor || '').toLowerCase();
+      const LEGACY_DEFAULT_PRIMARIES = [0x2c7be5, 0x165dff, 0x5d87ff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
+      const current = parseInt((this.primaryColor || '').replace('#', ''), 16);
       if (LEGACY_DEFAULT_PRIMARIES.includes(current)) {
-        this.primaryColor = '#1677ff';
+        this.primaryColor = PRESET_THEMES.find((item) => item.value === this.preset)?.primaryColor || '#1677ff';
       }
     },
 

@@ -10,7 +10,7 @@
     <script>
       (function () {
         var KEY = 'ADMIN_THEME';
-        var primary = '#2c7be5';
+        var primary = '#1677ff';
         var themeMode = 'light';
         try {
           var raw = localStorage.getItem(KEY);
@@ -21,7 +21,11 @@
               if (/^#[0-9A-Fa-f]{3}$/.test(c)) {
                 c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
               }
-              if (/^#[0-9A-Fa-f]{6}$/.test(c)) primary = c;
+              if (/^#[0-9A-Fa-f]{6}$/.test(c)) {
+                var legacy = [0x2c7be5, 0x165dff, 0x5d87ff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
+                var value = parseInt(c.slice(1), 16);
+                primary = legacy.indexOf(value) >= 0 ? (d.preset === 'vibrant' ? '#2f80ed' : '#1677ff') : c;
+              }
             }
             if (d && typeof d.themeMode === 'string') themeMode = d.themeMode;
           }
@@ -107,7 +111,7 @@
         color: #f7f8fa;
       }
       .ml-brand-accent {
-        color: var(--app-boot-primary, #2c7be5);
+        color: var(--app-boot-primary, #1677ff);
       }
 
       /* 副标题：纯灰，无渐变无装饰 */
@@ -131,7 +135,7 @@
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: var(--app-boot-primary, #2c7be5);
+        background: var(--app-boot-primary, #1677ff);
         animation: dotPulse 1.2s ease-in-out infinite;
       }
       .ml-dots span:nth-child(2) {
