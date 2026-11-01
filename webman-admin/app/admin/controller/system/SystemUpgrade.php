@@ -8,7 +8,7 @@ use app\admin\controller\base\AdminApiController;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
-use app\admin\service\UpgradeService;
+use app\admin\system\service\UpgradeService;
 use InvalidArgumentException;
 use RuntimeException;
 use think\annotation\route\Get;

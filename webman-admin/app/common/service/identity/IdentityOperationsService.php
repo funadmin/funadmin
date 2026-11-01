@@ -15,7 +15,7 @@ use app\common\model\identity\OAuthClient;
 use app\common\model\identity\OAuthToken;
 use app\common\model\identity\OidcSession;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 
 /** SSO 日常清理、告警与健康检查；所有数据访问均显式限定租户。 */
 final class IdentityOperationsService
@@ -35,8 +35,8 @@ final class IdentityOperationsService
             ];
             $result = [];
             foreach ($targets as $name => [$model, $scope]) {
-                $query = $scope($model::forTenant($tenantId))->order('id')->limit($limit);
-                $ids = array_map('intval', $query->column('id'));
+                $query = $scope($model::forTenant($tenantId))->orderBy('id')->limit($limit);
+                $ids = $query->pluck('id')->map('intval')->all();
                 $result[$name] = count($ids);
                 if (!$dryRun && $ids !== []) $model::forTenant($tenantId)->whereIn('id', $ids)->delete();
             }
@@ -49,14 +49,15 @@ final class IdentityOperationsService
         $this->requireTenant($tenantId);
         $now = date('Y-m-d H:i:s');
         $warningAt = date('Y-m-d H:i:s', time() + max(1, $secretWarningDays) * 86400);
-        $secretRows = ClientSecret::forTenant($tenantId)->whereNull('revoked_at')->whereNotNull('expires_at')->where('expires_at', '<=', $warningAt)->withoutField('secret_hash')->select()->toArray();
+        $secretRows = ClientSecret::forTenant($tenantId)->whereNull('revoked_at')->whereNotNull('expires_at')
+            ->where('expires_at', '<=', $warningAt)->get()->toArray();
         $dead = BackchannelLogoutDelivery::forTenant($tenantId)->where('status', 'dead')->count();
         $replays = IdentityAuditLog::forTenant($tenantId)->where('event_type', 'oauth.refresh_replay')->where('created_at', '>=', date('Y-m-d H:i:s', time() - 86400))->count();
-        $applications = EnterpriseApplication::forTenant($tenantId)->whereNull('deleted_at')->select()->toArray();
+        $applications = EnterpriseApplication::forTenant($tenantId)->whereNull('deleted_at')->get()->toArray();
         $applicationHealth = [];
         foreach ($applications as $application) {
             $id = (int) $application['id'];
-            $domains = ApplicationDomain::forTenant($tenantId)->where('application_id', $id)->where('status', 1)->whereNull('deleted_at')->select()->toArray();
+            $domains = ApplicationDomain::forTenant($tenantId)->where('application_id', $id)->where('status', 1)->whereNull('deleted_at')->get()->toArray();
             $clients = OAuthClient::forTenant($tenantId)->where('application_id', $id)->where('status', 'active')->whereNull('deleted_at')->count();
             $domainIssues = [];
             foreach ($domains as $domain) {
@@ -84,19 +85,24 @@ final class IdentityOperationsService
 
     public function withLock(int $tenantId, string $operation, callable $callback): mixed
     {
+        $this->requireTenant($tenantId);
+        $connection = Db::connection();
+        if ($connection->getDriverName() !== 'mysql') {
+            throw new RuntimeException('Identity 运维锁需要 MySQL 连接');
+        }
         $name = 'identity:' . $tenantId . ':' . preg_replace('/[^a-z0-9:_-]/i', '', $operation);
-        $locked = (int) (Db::query('SELECT GET_LOCK(?, 0) AS acquired', [$name])[0]['acquired'] ?? 0);
+        $locked = (int) ($connection->selectOne('SELECT GET_LOCK(?, 0) AS acquired', [$name])->acquired ?? 0);
         if ($locked !== 1) throw new RuntimeException('同租户运维任务正在执行');
         try {
             return $callback();
         } finally {
-            Db::query('SELECT RELEASE_LOCK(?)', [$name]);
+            $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$name]);
         }
     }
 
     private function requireTenant(int $tenantId): void
     {
-        if ($tenantId <= 0 || !IdentityTenant::forTenant($tenantId)->where('status', 1)->whereNull('deleted_at')->find()) {
+        if ($tenantId <= 0 || !IdentityTenant::forTenant($tenantId)->where('status', 1)->whereNull('deleted_at')->first()) {
             throw new RuntimeException('租户不存在或不可用');
         }
     }

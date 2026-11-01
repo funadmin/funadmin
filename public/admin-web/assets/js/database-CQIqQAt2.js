@@ -1,0 +1,1 @@
+import{_n as e,jn as t,ln as n,qt as r}from"./element-Bpuryqbo.js";import{t as i}from"./visual-DN-lkY-k.js";var a=e(r(r({},{name:`BusinessDatabase`}),{},{__name:`database`,setup(e){return(e,r)=>(t(),n(i,{"initial-mode":`adopted`}))}}));export{a as default};

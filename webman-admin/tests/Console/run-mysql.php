@@ -1,0 +1,61 @@
+<?php
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__, 2);
+$database = 'webman_console_test_' . bin2hex(random_bytes(6));
+$user = 'console_' . bin2hex(random_bytes(6));
+$password = bin2hex(random_bytes(24));
+$container = 'funadmin-console-test-' . bin2hex(random_bytes(6));
+$rootPassword = bin2hex(random_bytes(24));
+
+function executeConsoleTestProcess(array $argv, string $stdin = ''): int
+{
+    $process = proc_open($argv, [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes);
+    if (!is_resource($process)) throw new RuntimeException('无法启动隔离测试进程');
+    fwrite($pipes[0], $stdin);
+    fclose($pipes[0]);
+    return proc_close($process);
+}
+
+function executeConsoleTestSql(string $sql): int
+{
+    global $container;
+    return executeConsoleTestProcess([
+        'docker', 'exec', '-i', $container, 'sh', '-c',
+        'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --user=root --batch',
+    ], $sql);
+}
+
+$status = 1;
+try {
+    if (executeConsoleTestProcess([
+        'docker', 'run', '--rm', '-d', '--name', $container, '--network', 'funadmin-webman-test',
+        '-e', 'MYSQL_ROOT_PASSWORD=' . $rootPassword, 'mysql:8.0',
+    ]) !== 0) throw new RuntimeException('无法启动专用 MySQL 测试实例');
+    $ready = false;
+    for ($attempt = 0; $attempt < 60; $attempt++) {
+        sleep(1);
+        if (executeConsoleTestProcess([
+            'docker', 'exec', $container, 'sh', '-c',
+            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --user=root --batch --execute="SELECT 1" >/dev/null 2>&1',
+        ]) === 0) { $ready = true; break; }
+    }
+    if (!$ready) throw new RuntimeException('专用 MySQL 测试实例启动超时');
+    if (executeConsoleTestSql("CREATE DATABASE `$database`; CREATE USER '$user'@'%' IDENTIFIED BY '$password'; GRANT ALL ON `$database`.* TO '$user'@'%';") !== 0) {
+        throw new RuntimeException('隔离数据库初始化失败');
+    }
+    $status = executeConsoleTestProcess([
+        'docker', 'run', '--rm', '--network', 'funadmin-webman-test',
+        '-v', $root . ':/app', '-w', '/app',
+        '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $container,
+        '-e', 'DB_DATABASE=' . $database, '-e', 'DB_USERNAME=' . $user, '-e', 'DB_PASSWORD=' . $password,
+        'funadmin-webman-php:8.5', 'php', 'vendor/bin/phpunit',
+        '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlIdentityCommandTest.php',
+    ]);
+} catch (Throwable $error) {
+    fwrite(STDERR, $error->getMessage() . PHP_EOL);
+} finally {
+    if (executeConsoleTestProcess(['docker', 'stop', $container]) !== 0) $status = 1;
+}
+exit($status);

@@ -14,7 +14,7 @@ final class InstallSupport
     public static function validate(array $db, array $admin): string
     {
         foreach (array_merge($db, $admin) as $value) {
-            if (!is_string($value) || str_contains($value, "\0") || preg_match('/\R/', $value)) {
+            if (!is_string($value) || str_contains($value, "\0") || preg_match('/[\r\n]/', $value)) {
                 return '安装配置必须为字符串，且不能包含换行或空字节';
             }
         }
@@ -139,7 +139,8 @@ final class InstallSupport
             fclose($mutex);
             throw new DomainException('其他安装任务正在执行，请稍后重试', 409);
         }
-        $manager = Db::getInstance()->getDatabaseManager();
+        class_exists(Db::class);
+        $manager = \Illuminate\Database\Eloquent\Model::getConnectionResolver();
         $previous = $manager->getDefaultConnection();
         try {
             clearstatcache(true, $paths['lock']);
@@ -150,7 +151,7 @@ final class InstallSupport
             self::prepareDatabase($db, $minMysqlVersion);
             $connection = self::databaseConfig($db, config('database'))['connections']['mysql'];
             $name = 'installer_' . bin2hex(random_bytes(8));
-            Db::getInstance()->addConnection($connection, $name);
+            self::registerConnection($name, $connection);
             $manager->setDefaultConnection($name);
             self::assertNoAdministrator();
             $progress?->__invoke('schema');
@@ -185,9 +186,18 @@ final class InstallSupport
             'username' => $env['DB_USERNAME'], 'password' => $env['DB_PASSWORD'], 'prefix' => $env['DB_PREFIX'],
         ];
         $name = 'installed_' . $hash;
-        Db::getInstance()->addConnection(self::databaseConfig($db, config('database'))['connections']['mysql'], $name);
-        Db::getInstance()->getDatabaseManager()->setDefaultConnection($name);
+        class_exists(Db::class);
+        self::registerConnection($name, self::databaseConfig($db, config('database'))['connections']['mysql']);
+        \Illuminate\Database\Eloquent\Model::getConnectionResolver()->setDefaultConnection($name);
         $activated[$hash] = true;
+    }
+
+    private static function registerConnection(string $name, array $connection): void
+    {
+        $config = \Illuminate\Container\Container::getInstance()['config'];
+        $connections = $config['database.connections'];
+        $connections[$name] = $connection;
+        $config['database.connections'] = $connections;
     }
 
     private static function writeFile(string $path, string $content, int $mode): void
@@ -225,7 +235,7 @@ final class InstallSupport
 
     private static function mergeEnv(string $content, array $updates): string
     {
-        $lines = preg_split('/\R/', $content) ?: [];
+        $lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
         $found = [];
         foreach ($lines as $i => $line) {
             if (preg_match('/^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=/', $line, $m) && array_key_exists($m[1], $updates)) {

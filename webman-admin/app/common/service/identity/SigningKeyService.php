@@ -9,7 +9,7 @@ use app\common\model\identity\OidcSigningKey;
 use DomainException;
 use RuntimeException;
 use Throwable;
-use think\facade\Db;
+use support\Db;
 
 final class SigningKeyService
 {
@@ -53,11 +53,11 @@ final class SigningKeyService
         $material = $this->generateKeyMaterial($tenantId);
         try {
             return Db::transaction(function () use ($tenantId, $publishWindowSeconds, $material): array {
-                if (!IdentityTenant::forTenant($tenantId)->lock(true)->find()) throw new DomainException('租户不存在或跨租户');
+                if (!IdentityTenant::forTenant($tenantId)->lockForUpdate()->first()) throw new DomainException('租户不存在或跨租户');
                 $now = date('Y-m-d H:i:s');
                 $publishUntil = date('Y-m-d H:i:s', time() + $publishWindowSeconds);
                 OidcSigningKey::forTenant($tenantId)->where('status', 'retiring')->where('publish_until', '<=', $now)->update(['status' => 'retired', 'retired_at' => $now]);
-                $active = OidcSigningKey::forTenant($tenantId)->where('status', 'active')->lock(true)->select()->toArray();
+                $active = OidcSigningKey::forTenant($tenantId)->where('status', 'active')->lockForUpdate()->get()->toArray();
                 if (count($active) > 1) throw new DomainException('检测到多个 active 签名 key，拒绝继续 rotation');
                 $record = OidcSigningKey::create($material + ['tenant_id' => $tenantId]);
                 if ($active !== []) {
@@ -65,7 +65,7 @@ final class SigningKeyService
                 }
                 $activated = OidcSigningKey::forTenant($tenantId)->where('id', (int) $record->id)->where('status', 'pending')->update(['status' => 'active', 'activated_at' => $now]);
                 if ($activated !== 1) throw new DomainException('签名 key 激活发生并发冲突');
-                $activatedKey = OidcSigningKey::forTenant($tenantId)->where('id', (int) $record->id)->find();
+                $activatedKey = OidcSigningKey::forTenant($tenantId)->where('id', (int) $record->id)->first();
                 if (!$activatedKey) throw new DomainException('签名 key 激活后不可读取');
                 return $activatedKey->toArray();
             });
@@ -78,9 +78,9 @@ final class SigningKeyService
     public function retireExpired(int $tenantId, int $limit = 100, bool $dryRun = false): array
     {
         $limit = max(1, min(1000, $limit));
-        $ids = array_map('intval', OidcSigningKey::forTenant($tenantId)
+        $ids = OidcSigningKey::forTenant($tenantId)
             ->where('status', 'retiring')->whereNotNull('publish_until')
-            ->where('publish_until', '<=', date('Y-m-d H:i:s'))->order('id')->limit($limit)->column('id'));
+            ->where('publish_until', '<=', date('Y-m-d H:i:s'))->orderBy('id')->limit($limit)->pluck('id')->map('intval')->all();
         if (!$dryRun && $ids !== []) {
             OidcSigningKey::forTenant($tenantId)->whereIn('id', $ids)->where('status', 'retiring')
                 ->update(['status' => 'retired', 'retired_at' => date('Y-m-d H:i:s')]);
@@ -90,17 +90,17 @@ final class SigningKeyService
 
     public function list(int $tenantId): array
     {
-        return OidcSigningKey::forTenant($tenantId)->order('id', 'desc')->select()->toArray();
+        return OidcSigningKey::forTenant($tenantId)->orderBy('id', 'desc')->get()->toArray();
     }
 
     public function listPublishable(int $tenantId, ?string $at = null): array
     {
         $at ??= date('Y-m-d H:i:s');
         return OidcSigningKey::forTenant($tenantId)->where(function ($query) use ($at): void {
-            $query->where('status', 'active')->whereOr(function ($retiring) use ($at): void {
+            $query->where('status', 'active')->orWhere(function ($retiring) use ($at): void {
                 $retiring->where('status', 'retiring')->where('publish_until', '>', $at);
             });
-        })->field('kid,algorithm,status,public_jwk,activated_at,publish_until')->order('id', 'desc')->select()->toArray();
+        })->select(['kid', 'algorithm', 'status', 'public_jwk', 'activated_at', 'publish_until'])->orderBy('id', 'desc')->get()->toArray();
     }
 
     public function deleteKeyMaterial(string $reference): void

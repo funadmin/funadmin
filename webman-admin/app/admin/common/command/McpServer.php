@@ -73,26 +73,24 @@ class McpServer extends Command
      */
     protected function startServer(Input $input, Output $output): int
     {
-        $io = new SymfonyStyle($input, $output);
         try {
             $transport = $input->getOption('transport');
             $mcpService = Container::get(McpService::class);
 
-
             if ($transport !== 'stdio') {
-                $io->error("不支持的传输协议: {$transport}");
-                $io->info('官方 SDK 的 HTTP transport 需要由 PSR-7 Web 入口逐请求接入，不能在 CLI 内直接监听端口');
+                fwrite(STDERR, "不支持的传输协议: {$transport}\n");
+                fwrite(STDERR, "官方 SDK 的 HTTP transport 需要由 PSR-7 Web 入口逐请求接入，不能在 CLI 内直接监听端口\n");
                 return 1;
             }
             if (PHP_OS_FAMILY === 'Windows') {
-                $io->error('在Windows系统上，STDIO传输不支持非阻塞管道');
+                fwrite(STDERR, "在Windows系统上，STDIO传输不支持非阻塞管道\n");
                 return 1;
             }
 
             return $mcpService->startWithStdio();
 
         } catch (\Throwable $e) {
-            $io->error('启动MCP服务器失败: ' . $e->getMessage());
+            fwrite(STDERR, '启动MCP服务器失败: ' . $e->getMessage() . PHP_EOL);
             return 1;
         }
     }
@@ -127,7 +125,7 @@ class McpServer extends Command
                 'user-management' => '用户管理相关操作',
                 'system-info' => '获取系统运行信息',
                 'crud' => '生成后台 API 与 Vue CRUD 页面只读预览',
-                'think-command' => '执行安全白名单内的 ThinkPHP 命令',
+                'think-command' => '执行安全白名单内的 Webman 命令',
             ];
             
             foreach ($tools as $name => $description) {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\plugin\service;
 
 use app\admin\authorization\model\AdminMenu;
-use app\admin\service\ResourceRegistryService;
+use app\admin\authorization\service\ResourceRegistryService;
 use app\common\service\MigrationService;
 use app\admin\plugin\repository\DatabasePluginAppPublicationRepository;
 use app\admin\plugin\repository\DatabasePluginResourceRepository;

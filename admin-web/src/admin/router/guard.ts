@@ -3,7 +3,9 @@ import NProgress from 'nprogress';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
-import { APP_CONFIG, ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, ROUTE_WHITELIST } from '@/config';
+import { memberSession } from '@/web/session/memberSession';
+import { APP_CONFIG, ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, MEMBER_LOGIN_PATH, ROUTE_WHITELIST, isWebmanBackend } from '@/config';
+import { isSystemInstalled } from '@/api/install';
 import { i18n } from '@/locales';
 import { loadPluginModulesSafely } from '@/router/pluginStartup';
 
@@ -26,7 +28,15 @@ export function setupRouterGuard(router: Router) {
     const userStore = useUserStore();
     const permissionStore = usePermissionStore();
 
+    if (to.meta.member) {
+      if (to.meta.public) return next();
+      if (memberSession.authenticated()) return next();
+      return next({ path: MEMBER_LOGIN_PATH, query: { redirect: to.fullPath } });
+    }
     if (to.meta.public) return next();
+    if (to.path === LOGIN_PATH && isWebmanBackend() && !(await isSystemInstalled())) {
+      return next({ path: `${ADMIN_ROUTE_PREFIX}/install`, replace: true });
+    }
     if (!userStore.isLoggedIn) {
       if (ROUTE_WHITELIST.includes(to.path)) return next();
       return next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });

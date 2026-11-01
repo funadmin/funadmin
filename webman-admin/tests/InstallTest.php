@@ -34,6 +34,8 @@ final class InstallTest extends TestCase
         self::assertSame('root', $parsed['DB_USERNAME']);
         self::assertSame('value', $parsed['CUSTOM']);
         self::assertSame('', InstallSupport::validate(...$this->inputs()));
+        $parsedTemplate = \Dotenv\Dotenv::parse(InstallSupport::renderEnv(base_path() . '/.env.example', null, $db, false));
+        self::assertSame('false', $parsedTemplate['COOKIE_SECURE']);
     }
 
     public function test_input_rejects_invalid_ports_and_missing_passwords(): void
@@ -80,7 +82,81 @@ final class InstallTest extends TestCase
 
     public function test_installed_configuration_activates_in_each_worker_without_reusing_old_pools(): void
     {
-        self::assertTrue(method_exists(InstallSupport::class, 'activateInstalledConfiguration'));
+        $root = sys_get_temp_dir() . '/funadmin-install-' . bin2hex(random_bytes(8));
+        mkdir($root . '/public', 0700, true);
+        $db = $this->inputs()[0];
+        $content = InstallSupport::renderEnv(base_path() . '/.env.example', null, $db, false);
+        file_put_contents($root . '/.env', $content);
+        file_put_contents($root . '/public/install.lock', json_encode(['env_hash' => hash('sha256', $content)]));
+        $manager = \Illuminate\Database\Eloquent\Model::getConnectionResolver();
+        $previous = $manager->getDefaultConnection();
+        try {
+            InstallSupport::activateInstalledConfiguration($root);
+            $name = $manager->getDefaultConnection();
+            self::assertSame('installed_' . hash('sha256', $content), $name);
+            $connection = \Illuminate\Container\Container::getInstance()['config']['database.connections'][$name];
+            self::assertSame('install_test', $connection['database']);
+            self::assertSame('custom_', $connection['prefix']);
+            self::assertSame('', $connection['password']);
+            InstallSupport::activateInstalledConfiguration($root);
+            self::assertSame($name, $manager->getDefaultConnection());
+        } finally {
+            $manager->setDefaultConnection($previous);
+            unlink($root . '/public/install.lock');
+            unlink($root . '/.env');
+            rmdir($root . '/public');
+            rmdir($root);
+        }
+    }
+
+    public function test_installation_lock_prevents_database_access_and_is_released(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-install-' . bin2hex(random_bytes(8));
+        mkdir($root . '/public', 0700, true);
+        mkdir($root . '/runtime', 0700);
+        file_put_contents($root . '/public/install.lock', '');
+        try {
+            foreach (range(1, 2) as $_) {
+                try {
+                    InstallSupport::install(...[...$this->inputs(), false, $root]);
+                    self::fail('已安装时必须拒绝');
+                } catch (\DomainException $error) {
+                    self::assertSame(409, $error->getCode());
+                    self::assertStringContainsString('系统已安装', $error->getMessage());
+                }
+            }
+            $mutex = fopen($root . '/runtime/install.mutex', 'c');
+            self::assertTrue(flock($mutex, LOCK_EX | LOCK_NB));
+            try {
+                InstallSupport::install(...[...$this->inputs(), false, $root]);
+                self::fail('并发安装必须拒绝');
+            } catch (\DomainException $error) {
+                self::assertStringContainsString('正在执行', $error->getMessage());
+            } finally {
+                flock($mutex, LOCK_UN);
+                fclose($mutex);
+            }
+        } finally {
+            unlink($root . '/public/install.lock');
+            unlink($root . '/runtime/install.mutex');
+            rmdir($root . '/public');
+            rmdir($root . '/runtime');
+            rmdir($root);
+        }
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function test_admin_web_directory_serves_the_spa_document(): void
+    {
+        \Webman\Route::load([config_path()]);
+        foreach (['/admin-web', '/admin-web/'] as $path) {
+            $routes = array_values(array_filter(\Webman\Route::getRoutes(), static fn ($route): bool => $route->getPath() === $path));
+            self::assertCount(1, $routes, '后台目录入口必须有显式路由：' . $path);
+            $response = ($routes[0]->getCallback())(new Request("GET $path HTTP/1.1\r\n\r\n"));
+            self::assertSame(200, $response->getStatusCode());
+            self::assertStringContainsString('no-cache', (string) $response);
+        }
     }
 
     public function test_environment_and_csrf_rejection_do_not_require_a_database(): void

@@ -1,0 +1,1 @@
+import{_n as e,jn as t,ln as n}from"./element-Bpuryqbo.js";import{t as r}from"./ErrorPage-O6xfuHbm.js";var i=e({__name:`404`,setup(e){return(e,i)=>(t(),n(r,{code:`404`}))}});export{i as default};

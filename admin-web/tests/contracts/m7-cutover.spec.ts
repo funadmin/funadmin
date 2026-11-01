@@ -35,7 +35,6 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/common/crud/DefinitionValidator.php',
       'app/common/crud/FieldInference.php',
       'app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php',
-      'app/common/service/MaintenanceContractService.php',
       'app/admin/development/service/FormCrudDefinitionFactory.php',
     ]);
     for (const file of ['app', 'config', 'route', 'plugins'].filter((directory) => existsSync(resolve(root, directory))).flatMap(phpFiles).filter((path) => !allowed.has(path))) {
@@ -74,13 +73,12 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     expect(infrastructure).toMatch(/registerTree\([^;]*'plugin'/s);
   });
 
-  it('普通 MigrationService 只扫描 migrations 根目录且 contract drop 仅存在于 maintenance', () => {
+  it('普通 MigrationService 不扫描 maintenance contract 且 legacy contract 已移除', () => {
     const service = read('app/common/service/MigrationService.php');
     expect(service).toContain("DIRECTORY_SEPARATOR . '*.sql'");
     expect(service).not.toMatch(/maintenance/i);
-    expect(existsSync(resolve(root, 'database/migrations/archive/034_drop_legacy_time_columns.sql'))).toBe(false);
-    expect(existsSync(resolve(root, 'database/maintenance/001_drop_legacy_time_columns.sql'))).toBe(true);
-    expect(read('database/maintenance/001_drop_legacy_time_columns.sql')).toMatch(/DROP COLUMN/i);
-    expect(read('database/migrations/archive/039_plugin_resource_schema_convergence.sql')).not.toMatch(/DROP\s+(?:COLUMN|TABLE)/i);
+    expect(existsSync(resolve(root, 'database/maintenance/001_drop_legacy_time_columns.sql'))).toBe(false);
+    expect(existsSync(resolve(root, 'webman-admin/app/admin/common/command/MaintenanceContractMigrate.php'))).toBe(false);
+    expect(existsSync(resolve(root, 'webman-admin/app/common/service/MaintenanceContractService.php'))).toBe(false);
   });
 });

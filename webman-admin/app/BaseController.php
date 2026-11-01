@@ -12,11 +12,9 @@ declare (strict_types = 1);
 
 namespace app;
 
-use think\App;
-use think\exception\ValidateException;
-use think\facade\View;
-use think\Request;
-use think\Validate;
+use LogicException;
+use support\Request;
+use Webman\Validation\Validator;
 
 
 /**
@@ -24,17 +22,9 @@ use think\Validate;
  */
 abstract class BaseController
 {
-    /**
-     * Request实例
-     * @var \think\Request
-     */
-    protected Request $request;
-
-    /**
-     * 应用实例
-     * @var \think\App
-     */
-    protected App $app;
+    protected Request $request {
+        get => request() ?? throw new LogicException('当前请求上下文不存在');
+    }
 
     /**
      * 是否批量验证
@@ -48,26 +38,14 @@ abstract class BaseController
      */
     protected array $middleware = [];
 
-    /**
-     * 构造方法
-     * @access public
-     * @param  App  $app  应用对象
-     */
-    public function __construct(App $app)
+    public function __construct()
     {
-        $this->app     = $app;
-        $this->request = $this->app->request;
-        // 控制器初始化
         $this->initialize();
     }
 
     // 初始化
     protected function initialize()
     {
-        View::assign('ACTION',request()->action());
-        View::assign('CONTROLLER',request()->controller());
-        View::assign('APP',app('http')->getName());
-
     }
 
     /**
@@ -78,32 +56,24 @@ abstract class BaseController
      * @param  array        $message  提示信息
      * @param  bool         $batch    是否批量验证
      * @return array|string|true
-     * @throws ValidateException
+     * @throws \Webman\Validation\ValidationException
      */
     protected function validateData(array $data, $validate, array $message = [], bool $batch = false)
     {
         if (is_array($validate)) {
-            $v = new Validate();
-            $v->rule($validate);
+            $validator = Validator::make($data, $validate, $message);
         } else {
-            if (strpos($validate, '.')) {
-                // 支持场景
-                [$validate, $scene] = explode('.', $validate);
+            [$class, $scene] = array_pad(explode('.', (string) $validate, 2), 2, null);
+            if (!is_subclass_of($class, Validator::class)) {
+                throw new LogicException('验证器必须继承 Webman Validator');
             }
-            $class = false !== strpos($validate, '\\') ? $validate : $this->app->parseClass('validate', $validate);
-            $v     = new $class();
-            if (!empty($scene)) {
-                $v->scene($scene);
+            $validator = $class::make($data);
+            if ($scene !== null) {
+                $validator = $validator->withScene($scene);
             }
         }
-
-        $v->message($message);
-
-        // 是否批量验证
-        if ($batch || $this->batchValidate) {
-            $v->batch(true);
-        }
-        return $v->failException(true)->check($data);
+        $validator->validate();
+        return true;
     }
 
 

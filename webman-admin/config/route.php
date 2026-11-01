@@ -16,4 +16,7 @@ use Webman\Route;
 
 Route::disableDefaultRoute();
 Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'webman-admin']));
+$adminWeb = static fn () => response()->withFile(public_path('admin-web/index.html'))->withHeader('Cache-Control', 'no-cache');
+Route::get('/admin-web', $adminWeb);
+Route::get('/admin-web/', $adminWeb);
 Route::fallback(static fn () => json(['code' => 404, 'message' => '接口不存在', 'data' => null])->withStatus(404));

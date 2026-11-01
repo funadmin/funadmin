@@ -24,7 +24,7 @@ final class BusinessModuleLayoutTest extends TestCase
             'ai:change-set-recover', 'ai:outbox-dispatch', 'ai:sandbox-cleanup',
             'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
             'identity:cleanup', 'identity:health', 'identity:logout-deliveries:work', 'identity:signing-key',
-            'maintenance:contract-migrate', 'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
+            'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
             'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:package',
             'plugin:publication-recover', 'plugin:validate', 'upgrade:recover-stale',
         ] as $name) {
@@ -35,7 +35,6 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertSame('1000', $commands['identity:cleanup']['definition']['options']['limit']['default']);
         self::assertTrue($commands['crud:generate']['definition']['arguments']['definition']['is_required']);
         self::assertArrayHasKey('confirm-token-file', $commands['crud:generate']['definition']['options']);
-        self::assertArrayHasKey('backup-confirm', $commands['maintenance:contract-migrate']['definition']['options']);
         self::assertArrayHasKey('start', $commands);
         self::assertArrayHasKey('make:command', $commands);
     }
@@ -197,7 +196,7 @@ final class BusinessModuleLayoutTest extends TestCase
                 'PluginValidate' => 'plugin:validate',
             ],
             'system' => ['UpgradeRecover' => 'upgrade:recover-stale'],
-            'common' => ['MaintenanceContractMigrate' => 'maintenance:contract-migrate', 'McpServer' => 'mcp'],
+            'common' => ['McpServer' => 'mcp'],
         ] as $module => $commands) {
             foreach ($commands as $class => $command) {
                 $file = __DIR__ . '/../app/admin/' . $module . '/command/' . $class . '.php';
@@ -279,6 +278,20 @@ final class BusinessModuleLayoutTest extends TestCase
         }
     }
 
+    public function test_authorization_and_plugin_platform_controllers_have_explicit_module_ownership(): void
+    {
+        foreach ([
+            'app\\admin\\authorization\\controller\\SystemAdmin' => 'authorization/controller/SystemAdmin.php',
+            'app\\admin\\authorization\\controller\\SystemDepartment' => 'authorization/controller/SystemDepartment.php',
+            'app\\admin\\plugin\\controller\\DevPlugin' => 'plugin/controller/DevPlugin.php',
+            'app\\admin\\plugin\\controller\\SystemPlugin' => 'plugin/controller/SystemPlugin.php',
+        ] as $class => $relativePath) {
+            self::assertTrue(class_exists($class));
+            self::assertSame(realpath(__DIR__ . '/../app/admin/' . $relativePath), (new ReflectionClass($class))->getFileName());
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/' . ($class === 'app\\admin\\authorization\\controller\\SystemAdmin' ? 'system/SystemAdmin.php' : ($class === 'app\\admin\\authorization\\controller\\SystemDepartment' ? 'system/SystemDepartment.php' : 'plugin/' . basename($relativePath))));
+        }
+    }
+
     public function test_member_association_models_live_in_system_with_unchanged_table_names(): void
     {
         foreach (['MemberGroupRelation' => 'member_group_relation', 'MemberTagRelation' => 'member_tag_relation'] as $name => $table) {
@@ -349,6 +362,57 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertStringContainsString("protected \$name = 'member_tag';", $source);
         self::assertStringContainsString('use think\\model\\concern\\SoftDelete;', $source);
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/MemberTag.php');
+    }
+
+
+
+    public function test_plugin_example_business_layers_live_under_business_code(): void
+    {
+        foreach ([
+            'controller/Index.php' => 'app\\admin\\plugin\\business\\example\\controller\\Index',
+            'controller/TestController.php' => 'app\\admin\\plugin\\business\\example\\controller\\TestController',
+            'model/Test.php' => 'app\\admin\\plugin\\business\\example\\model\\Test',
+            'service/TestService.php' => 'app\\admin\\plugin\\business\\example\\service\\TestService',
+        ] as $relativePath => $class) {
+            self::assertTrue(class_exists($class), '插件业务类应归入 plugin/business：' . $class);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/business/example/' . $relativePath), (new ReflectionClass($class))->getFileName());
+        }
+        $validate = file_get_contents(__DIR__ . '/../app/admin/plugin/business/example/validate/TestValidate.php');
+        token_get_all($validate, TOKEN_PARSE);
+        self::assertStringContainsString('namespace app\\admin\\plugin\\business\\example\\validate;', $validate);
+
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/example/Index.php');
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/example/TestController.php');
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/plugin/example/Test.php');
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/service/plugin/example/TestService.php');
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/validate/plugin/example/TestValidate.php');
+    }
+
+    public function test_plugin_market_controllers_live_under_business_code(): void
+    {
+        foreach (['CategoryController', 'GrantController', 'OrderController', 'PluginController', 'SettingController', 'StatController'] as $class) {
+            $fqcn = 'app\\admin\\plugin\\business\\market\\controller\\' . $class;
+            self::assertTrue(class_exists($fqcn), '插件市场控制器应归入 plugin/business：' . $fqcn);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/business/market/controller/' . $class . '.php'), (new ReflectionClass($fqcn))->getFileName());
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/market/' . $class . '.php');
+        }
+    }
+
+    public function test_authorization_registry_and_system_upgrade_services_have_module_ownership(): void
+    {
+        foreach ([
+            'app\\admin\\authorization\\service\\ResourceRegistryService' => 'authorization/service/ResourceRegistryService.php',
+            'app\\admin\\system\\service\\UpgradeDatabaseBackup' => 'system/service/UpgradeDatabaseBackup.php',
+            'app\\admin\\system\\service\\UpgradeManifestVerifier' => 'system/service/UpgradeManifestVerifier.php',
+            'app\\admin\\system\\service\\UpgradePackageVerifier' => 'system/service/UpgradePackageVerifier.php',
+            'app\\admin\\system\\service\\UpgradeService' => 'system/service/UpgradeService.php',
+        ] as $class => $relativePath) {
+            self::assertTrue(class_exists($class), '服务应归入业务模块：' . $class);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/' . $relativePath), (new ReflectionClass($class))->getFileName());
+        }
+        foreach (['ResourceRegistryService', 'UpgradeDatabaseBackup', 'UpgradeManifestVerifier', 'UpgradePackageVerifier', 'UpgradeService'] as $name) {
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/service/' . $name . '.php');
+        }
     }
 
     public function test_application_autoload_does_not_redirect_controllers_to_a_flat_directory(): void

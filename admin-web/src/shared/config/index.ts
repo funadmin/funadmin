@@ -89,6 +89,11 @@ export const RESP_CODE = {
 } as const;
 
 export const ADMIN_ROUTE_PREFIX = '/admin';
+export const MEMBER_LOGIN_PATH = '/web/login';
+export const MEMBER_REGISTER_PATH = '/web/register';
+export const MEMBER_PROFILE_PATH = '/web/profile';
+
+
 export const ADMIN_LOGIN_PATH = `${ADMIN_ROUTE_PREFIX}/login`;
 export const ADMIN_HOME_PATH = `${ADMIN_ROUTE_PREFIX}/dashboard`;
 

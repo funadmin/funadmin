@@ -1,0 +1,9 @@
+-- 原生 App publication registry：在现有逐文件资源登记上增加根类型、发布单元与恢复关联字段。
+SET @schema_name = DATABASE();
+SET @table_name = 'fun_plugin_resource';
+
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND COLUMN_NAME='resource_type'),'ALTER TABLE `fun_plugin_resource` ADD COLUMN `resource_type` varchar(32) NOT NULL DEFAULT ''file'' AFTER `version`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND COLUMN_NAME='publication_unit'),'ALTER TABLE `fun_plugin_resource` ADD COLUMN `publication_unit` varchar(190) NULL AFTER `resource_type`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND COLUMN_NAME='operation_token'),'ALTER TABLE `fun_plugin_resource` ADD COLUMN `operation_token` varchar(128) NULL AFTER `publication_unit`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND COLUMN_NAME='tree_hash'),'ALTER TABLE `fun_plugin_resource` ADD COLUMN `tree_hash` char(64) NULL AFTER `sha256`','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql=IF(NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME=@table_name AND INDEX_NAME='idx_plugin_resource_publication_unit'),'ALTER TABLE `fun_plugin_resource` ADD KEY `idx_plugin_resource_publication_unit` (`plugin_code`,`resource_type`,`publication_unit`)','DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

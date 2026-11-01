@@ -19,10 +19,9 @@ use Mcp\Server;
 use Mcp\Server\Transport\StdioTransport;
 use Mcp\Server\Transport\TransportInterface;
 use InvalidArgumentException;
-use think\facade\Db;
-use think\facade\Log;
-use think\facade\App;
-use think\Exception;
+use RuntimeException;
+use support\Db;
+use support\Log;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -97,15 +96,15 @@ class McpService extends AbstractService
     {
         try {
             if (empty($query)) {
-                throw new Exception('SQL查询语句不能为空');
+                throw new RuntimeException('SQL查询语句不能为空');
             }
 
             // 安全检查：只允许SELECT查询
             if (!preg_match('/^\s*select\s+/i', trim($query))) {
-                throw new Exception('出于安全考虑，只允许执行SELECT查询');
+                throw new RuntimeException('出于安全考虑，只允许执行SELECT查询');
             }
 
-            $result = Db::query($query, $params);
+            $result = Db::select($query, $params);
 
             return [
                 'success' => true,
@@ -114,7 +113,7 @@ class McpService extends AbstractService
                 'message' => '查询执行成功'
             ];
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP数据库查询错误: ' . $e->getMessage());
             return [
                 'success' => false,
@@ -153,7 +152,7 @@ class McpService extends AbstractService
                 return ['value' => config($key), 'key' => $key];
             }
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP配置获取错误: ' . $e->getMessage());
             throw $e;
         }
@@ -170,7 +169,7 @@ class McpService extends AbstractService
     {
         try {
             if (empty($message)) {
-                throw new Exception('日志消息不能为空');
+                throw new RuntimeException('日志消息不能为空');
             }
 
             // 支持的日志级别
@@ -180,11 +179,11 @@ class McpService extends AbstractService
                 $level = 'info';
             }
 
-            Log::record($message, $level, $context);
+            Log::log($level, $message, $context);
 
             return "日志记录成功 [级别: {$level}]";
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP日志写入错误: ' . $e->getMessage());
             throw $e;
         }
@@ -200,7 +199,7 @@ class McpService extends AbstractService
     {
         try {
             if (empty($operation) || empty($filepath)) {
-                throw new Exception('操作类型和文件路径不能为空');
+                throw new RuntimeException('操作类型和文件路径不能为空');
             }
 
             // 安全检查：限制文件路径范围
@@ -223,13 +222,13 @@ class McpService extends AbstractService
             }
 
             if (!$isAllowed) {
-                throw new Exception('文件路径不在允许的范围内');
+                throw new RuntimeException('文件路径不在允许的范围内');
             }
 
             switch ($operation) {
                 case 'read':
                     if (!file_exists($filepath)) {
-                        throw new Exception('文件不存在');
+                        throw new RuntimeException('文件不存在');
                     }
                     return [
                         'content' => file_get_contents($filepath),
@@ -242,7 +241,7 @@ class McpService extends AbstractService
 
                 case 'info':
                     if (!file_exists($filepath)) {
-                        throw new Exception('文件不存在');
+                        throw new RuntimeException('文件不存在');
                     }
                     return [
                         'size' => filesize($filepath),
@@ -254,10 +253,10 @@ class McpService extends AbstractService
                     ];
 
                 default:
-                    throw new Exception('不支持的操作类型: ' . $operation);
+                    throw new RuntimeException('不支持的操作类型: ' . $operation);
             }
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP文件操作错误: ' . $e->getMessage());
             throw $e;
         }
@@ -275,10 +274,10 @@ class McpService extends AbstractService
         try {
             switch ($action) {
                 case 'list':
-                    $users = Db::name('admin')
-                        ->field('id,username,email,mobile,created_at,status')
+                    $users = Db::table('admin')
+                        ->select(['id', 'username', 'email', 'mobile', 'created_at', 'status'])
                         ->limit($limit)
-                        ->select();
+                        ->get();
                     
                     return [
                         'users' => $users->toArray(),
@@ -287,23 +286,23 @@ class McpService extends AbstractService
 
                 case 'info':
                     if (!$userId) {
-                        throw new Exception('用户ID不能为空');
+                        throw new RuntimeException('用户ID不能为空');
                     }
 
-                    $user = Db::name('admin')
-                        ->field('id,username,nickname,email,mobile,created_at,status')
+                    $user = Db::table('admin')
+                        ->select(['id', 'username', 'nickname', 'email', 'mobile', 'created_at', 'status'])
                         ->where('id', $userId)
-                        ->find();
+                        ->first();
 
                     if (!$user) {
-                        throw new Exception('用户不存在');
+                        throw new RuntimeException('用户不存在');
                     }
 
                     return $user;
 
                 case 'count':
-                    $total = Db::name('admin')->count();
-                    $active = Db::name('admin')->where('status', 1)->count();
+                    $total = Db::table('admin')->count();
+                    $active = Db::table('admin')->where('status', 1)->count();
                     
                     return [
                         'total' => $total,
@@ -312,10 +311,10 @@ class McpService extends AbstractService
                     ];
 
                 default:
-                    throw new Exception('不支持的操作类型: ' . $action);
+                    throw new RuntimeException('不支持的操作类型: ' . $action);
             }
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP用户管理错误: ' . $e->getMessage());
             throw $e;
         }
@@ -333,8 +332,8 @@ class McpService extends AbstractService
                 case 'general':
                     return [
                         'php_version' => PHP_VERSION,
-                        'framework' => 'ThinkPHP',
-                        'framework_version' => App::version(),
+                        'framework' => 'Webman',
+                        'framework_version' => '2.2',
                         'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
                         'memory_limit' => ini_get('memory_limit'),
                         'max_execution_time' => ini_get('max_execution_time'),
@@ -345,9 +344,9 @@ class McpService extends AbstractService
                 case 'database':
                     $version = 'Unknown';
                     try {
-                        $versionResult = Db::query('SELECT VERSION() as version');
+                        $versionResult = Db::select('SELECT VERSION() as version');
                         $version = $versionResult[0]['version'] ?? 'Unknown';
-                    } catch (Exception $e) {
+                    } catch (RuntimeException $e) {
                         // 数据库连接失败时使用默认值
                     }
                     
@@ -374,10 +373,10 @@ class McpService extends AbstractService
                     ];
 
                 default:
-                    throw new Exception('不支持的系统信息类型: ' . $type);
+                    throw new RuntimeException('不支持的系统信息类型: ' . $type);
             }
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP系统信息错误: ' . $e->getMessage());
             throw $e;
         }
@@ -430,20 +429,20 @@ class McpService extends AbstractService
     {
         try {
             // 获取所有表名
-            $tables = Db::query('SHOW TABLES');
+            $tables = Db::select('SHOW TABLES');
             $schema = [];
 
             foreach ($tables as $table) {
-                $tableName = array_values($table)[0];
+                $tableName = array_values((array) $table)[0];
                 
                 // 获取表结构
-                $columns = Db::query("SHOW COLUMNS FROM `{$tableName}`");
+                $columns = Db::select("SHOW COLUMNS FROM `{$tableName}`");
                 $schema[$tableName] = $columns;
             }
 
             return json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('MCP数据库模式获取错误: ' . $e->getMessage());
             return json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
@@ -564,7 +563,7 @@ class McpService extends AbstractService
             $root = rtrim(root_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $path = trim($configPath);
             if ($path === '' || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'json') {
-                throw new InvalidArgumentException('必须指定项目目录内的 JSON 配置文件');
+                throw new InvalidArgumentRuntimeException('必须指定项目目录内的 JSON 配置文件');
             }
             $candidate = str_starts_with($path, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $path) === 1
                 ? $path
@@ -572,18 +571,18 @@ class McpService extends AbstractService
             $resolved = realpath($candidate);
             $resolvedRoot = realpath($root);
             if ($resolved === false || !is_file($resolved)) {
-                throw new InvalidArgumentException('CRUD 配置文件不存在');
+                throw new InvalidArgumentRuntimeException('CRUD 配置文件不存在');
             }
             if ($resolvedRoot === false || !str_starts_with($resolved . DIRECTORY_SEPARATOR, $resolvedRoot . DIRECTORY_SEPARATOR)) {
-                throw new InvalidArgumentException('CRUD 配置文件必须位于项目目录内');
+                throw new InvalidArgumentRuntimeException('CRUD 配置文件必须位于项目目录内');
             }
             $json = file_get_contents($resolved);
             if ($json === false) {
-                throw new \RuntimeException('无法读取 CRUD Definition');
+                throw new \RuntimeRuntimeException('无法读取 CRUD Definition');
             }
             $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($data) || !isset($data['schemaVersion'])) {
-                throw new InvalidArgumentException('必须使用版本化 CRUD Definition');
+                throw new InvalidArgumentRuntimeException('必须使用版本化 CRUD Definition');
             }
             $plan = (new CrudGenerator($root))->plan(CrudDefinition::fromArray($data));
             unset($plan['confirmToken']);
@@ -617,21 +616,8 @@ class McpService extends AbstractService
         try {
             // 验证命令是否为安全的内置命令
             $allowedCommands = [
-                // 基础命令
-                'list', 'help', 'version', 'clear', 'build',
-                // optimize 命令组
-                'optimize:config', 'optimize:route', 'optimize:schema',
-                // route 命令组
-                'route:list',
-                // service 命令组
-                'service:discover',
-                // vendor 命令组
-                'vendor:publish',
-                // queue 命令组（只允许查看相关的）
-                'queue:failed', 'queue:failed-table', 'queue:table',
-                // auth 命令组
-                'auth:config',
-                // FunAdmin 特有命令
+                'list', 'help', 'version', 'start', 'restart', 'stop', 'status', 'reload', 'connections',
+                'make:controller', 'make:model', 'make:middleware', 'make:command', 'make:crud',
                 'crud:inspect', 'crud:validate', 'crud:preview', 'mcp'
             ];
 
@@ -644,7 +630,7 @@ class McpService extends AbstractService
             }
 
             // 构建完整的命令
-            $fullCommand = 'php think ' . $command;
+            $fullCommand = 'php webman ' . $command;
             
             // 添加参数
             if (!empty($params)) {
@@ -667,7 +653,7 @@ class McpService extends AbstractService
             }
 
             // 切换到项目根目录执行命令
-            $rootPath = App::getRootPath();
+            $rootPath = root_path();
             $originalDir = getcwd();
             
             if ($originalDir !== $rootPath) {
@@ -685,7 +671,7 @@ class McpService extends AbstractService
             }
 
             // 记录命令执行日志
-            $this->handleWriteLog("执行ThinkPHP命令: {$fullCommand}", 'info', [
+            $this->handleWriteLog("执行 Webman 命令: {$fullCommand}", 'info', [
                 'return_code' => $returnCode,
                 'output_lines' => count($output)
             ]);
@@ -702,8 +688,8 @@ class McpService extends AbstractService
                 'output_lines' => $output
             ];
 
-        } catch (\Exception $e) {
-            $this->handleWriteLog('执行ThinkPHP命令时出错: ' . $e->getMessage(), 'error', [
+        } catch (\RuntimeException $e) {
+            $this->handleWriteLog('执行 Webman 命令时出错: ' . $e->getMessage(), 'error', [
                 'command' => $command,
                 'params' => $params,
                 'options' => $options,

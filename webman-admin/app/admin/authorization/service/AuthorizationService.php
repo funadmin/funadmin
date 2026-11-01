@@ -20,7 +20,7 @@ final class AuthorizationService
             throw new DomainException('登录已失效', 401);
         }
         $roles = $this->roleRows((int) $current->id);
-        $isSuper = (int) $current->id === 1 || in_array('super_admin', array_column($roles, 'code'), true);
+        $isSuper = (int) $current->id === (int) config('auth.super_admin_id', 1);
         return [
             'id' => (int) $current->id,
             'username' => (string) $current->username,

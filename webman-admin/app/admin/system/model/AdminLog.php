@@ -18,6 +18,7 @@ use app\common\model\concern\LaravelSoftDelete;
 
 class AdminLog extends BackendModel
 {
+    protected $table = 'admin_log';
 
     /**
      * @var bool

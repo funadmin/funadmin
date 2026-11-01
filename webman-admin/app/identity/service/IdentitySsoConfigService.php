@@ -28,7 +28,7 @@ final class IdentitySsoConfigService
     /** @return array<string,mixed>|null */
     public function read(int $tenantId): ?array
     {
-        $row = IdentitySsoConfig::forTenant($tenantId)->find();
+        $row = IdentitySsoConfig::forTenant($tenantId)->first();
         return $row?->toArray();
     }
 

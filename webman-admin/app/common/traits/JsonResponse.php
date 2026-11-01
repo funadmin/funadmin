@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\traits;
 
-use think\Response;
+use support\Response;
 
 /**
  * 统一 JSON 响应协议。

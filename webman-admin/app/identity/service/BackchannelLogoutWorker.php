@@ -10,8 +10,11 @@ use Throwable;
 /** 使用数据库条件更新实现 backchannel 投递的单 owner claim。 */
 final class BackchannelLogoutWorker
 {
-    public function __construct(private readonly ?string $workerId = null, private readonly int $leaseSeconds = 30)
+    private readonly ?\Closure $sender;
+
+    public function __construct(private readonly ?string $workerId = null, private readonly int $leaseSeconds = 30, ?callable $sender = null)
     {
+        $this->sender = $sender === null ? null : \Closure::fromCallable($sender);
     }
 
     public function work(int $limit = 100, ?int $tenantId = null): int
@@ -26,7 +29,7 @@ final class BackchannelLogoutWorker
                     $completed += $this->cancel((int) $row['tenant_id'], (int) $row['id'], $workerId, $lockToken);
                     continue;
                 }
-                $responseStatus = (new BackchannelLogoutDispatcher())->send($row);
+                $responseStatus = $this->sender !== null ? ($this->sender)($row) : (new BackchannelLogoutDispatcher())->send($row);
                 $completed += $this->complete((int) $row['tenant_id'], (int) $row['id'], $workerId, $lockToken, $responseStatus);
             } catch (Throwable $exception) {
                 $this->fail((int) $row['tenant_id'], (int) $row['id'], $workerId, $lockToken, (int) $row['attempts'], substr($exception->getMessage(), 0, 64));
@@ -50,7 +53,7 @@ final class BackchannelLogoutWorker
             if (!(new IdentitySsoConfigService())->allowsBackchannelLogout((int) $row['tenant_id'])) {
                 return $this->cancel($tenantId, $deliveryId, $workerId, $lockToken) === 1;
             }
-            $status = (new BackchannelLogoutDispatcher())->send($row);
+            $status = $this->sender !== null ? ($this->sender)($row) : (new BackchannelLogoutDispatcher())->send($row);
             return $this->complete($tenantId, $deliveryId, $workerId, $lockToken, $status) === 1;
         } catch (Throwable $exception) {
             $this->fail($tenantId, $deliveryId, $workerId, $lockToken, (int) $row['attempts'], substr($exception->getMessage(), 0, 64));
@@ -63,14 +66,14 @@ final class BackchannelLogoutWorker
     {
         $now = date('Y-m-d H:i:s');
         $lease = date('Y-m-d H:i:s', time() + $this->leaseSeconds);
-        $query = BackchannelLogoutDelivery::whereRaw("(`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?)", [$now, $now]);
+        $query = BackchannelLogoutDelivery::whereRaw("((`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?))", [$now, $now]);
         if ($tenantId !== null) $query->where('tenant_id', $tenantId);
-        $rows = $query->order('id')->limit($limit)->select()->toArray();
+        $rows = $query->orderBy('id')->limit($limit)->get()->toArray();
         $claimed = [];
         foreach ($rows as $row) {
             $lockToken = hash('sha256', $workerId . '|' . $row['id'] . '|' . bin2hex(random_bytes(16)));
             $updated = BackchannelLogoutDelivery::forTenant((int) $row['tenant_id'])->where('id', (int) $row['id'])
-                ->whereRaw("(`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?)", [$now, $now])
+                ->whereRaw("((`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?))", [$now, $now])
                 ->update(['status' => 'processing', 'worker_id' => $workerId, 'lock_token' => $lockToken, 'lease_expires_at' => $lease, 'locked_at' => $now, 'updated_at' => $now]);
             if ($updated === 1) $claimed[] = array_replace($row, ['status' => 'processing', 'worker_id' => $workerId, 'lock_token' => $lockToken, 'lease_expires_at' => $lease]);
         }
@@ -81,8 +84,8 @@ final class BackchannelLogoutWorker
     {
         $now = date('Y-m-d H:i:s');
         return BackchannelLogoutDelivery::forTenant($tenantId)
-            ->whereRaw("(`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?)", [$now, $now])
-            ->limit(max(1, min(1000, $limit)))->count();
+            ->whereRaw("((`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?))", [$now, $now])
+            ->limit(max(1, min(1000, $limit)))->pluck('id')->count();
     }
 
     private function claimOne(int $tenantId, int $deliveryId, string $workerId): ?array
@@ -90,13 +93,13 @@ final class BackchannelLogoutWorker
         $now = date('Y-m-d H:i:s');
         $lease = date('Y-m-d H:i:s', time() + $this->leaseSeconds);
         $lockToken = hash('sha256', $workerId . '|' . $deliveryId . '|' . bin2hex(random_bytes(16)));
-        $claimable = "(`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?)";
+        $claimable = "((`status` = 'pending' AND `next_attempt_at` <= ?) OR (`status` = 'processing' AND `lease_expires_at` <= ?))";
         $updated = BackchannelLogoutDelivery::forTenant($tenantId)->where('id', $deliveryId)->whereRaw($claimable, [$now, $now])->update([
             'status' => 'processing', 'worker_id' => $workerId, 'lock_token' => $lockToken,
             'lease_expires_at' => $lease, 'locked_at' => $now, 'updated_at' => $now,
         ]);
         if ($updated !== 1) return null;
-        $row = BackchannelLogoutDelivery::forTenant($tenantId)->where('id', $deliveryId)->where('worker_id', $workerId)->where('lock_token', $lockToken)->find();
+        $row = BackchannelLogoutDelivery::forTenant($tenantId)->where('id', $deliveryId)->where('worker_id', $workerId)->where('lock_token', $lockToken)->first();
         return $row?->toArray();
     }
 

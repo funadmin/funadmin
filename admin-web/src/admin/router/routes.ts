@@ -1,7 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 // Layout 在 dynamic.ts 中也是静态导入，这里同样静态导入避免「dynamic + static 混用」打包警告
 import Layout from '@/layout/index.vue';
-import { ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, ADMIN_HOME_PATH } from '@/config';
+import { ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, ADMIN_HOME_PATH, MEMBER_LOGIN_PATH, MEMBER_REGISTER_PATH, MEMBER_PROFILE_PATH } from '@/config';
 
 /**
  * 静态路由（无需登录或所有用户共享）
@@ -25,6 +25,24 @@ export const staticRoutes: RouteRecordRaw[] = [
     component: () => import('@/web/layout/public.vue'),
     name: 'PublicQuickStart',
     meta: { title: '快速开始', hidden: true, public: true }
+  },
+  {
+    path: MEMBER_LOGIN_PATH,
+    name: 'MemberLogin',
+    component: () => import('@/web/views/MemberLogin.vue'),
+    meta: { title: '前台登录', hidden: true, public: true, member: true }
+  },
+  {
+    path: MEMBER_REGISTER_PATH,
+    name: 'MemberRegister',
+    component: () => import('@/web/views/MemberRegister.vue'),
+    meta: { title: '前台注册', hidden: true, public: true, member: true }
+  },
+  {
+    path: MEMBER_PROFILE_PATH,
+    name: 'MemberProfile',
+    component: () => import('@/web/views/MemberProfile.vue'),
+    meta: { title: '前台个人中心', hidden: true, member: true }
   },
   {
     path: `${ADMIN_ROUTE_PREFIX}/install`,

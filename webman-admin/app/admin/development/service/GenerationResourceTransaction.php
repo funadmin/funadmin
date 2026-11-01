@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\development\service;
 
 use app\admin\authorization\model\AdminMenu;
-use app\admin\service\ResourceRegistryService;
+use app\admin\authorization\service\ResourceRegistryService;
 use RuntimeException;
 use think\facade\Db;
 

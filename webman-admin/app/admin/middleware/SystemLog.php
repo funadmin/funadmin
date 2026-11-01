@@ -5,24 +5,24 @@ declare(strict_types=1);
 namespace app\admin\middleware;
 
 use app\common\service\AdminLogService;
-use Closure;
-use think\facade\Log;
-use think\Request;
-use think\Response;
+use support\Log;
+use Webman\Http\Request;
+use Webman\Http\Response;
+use Webman\MiddlewareInterface;
 use Throwable;
 
 /**
  * 在后台请求完成后统一记录操作审计。
  */
-class SystemLog
+class SystemLog implements MiddlewareInterface
 {
-    public function handle(Request $request, Closure $next): Response
+    public function process(Request $request, callable $handler): Response
     {
         $startedAt = microtime(true);
         try {
-            $response = $next($request);
+            $response = $handler($request);
         } catch (Throwable $exception) {
-            $this->record($request, null, 0, $startedAt, $exception->getMessage());
+            $this->record($request, null, 0, $startedAt, get_class($exception));
             throw $exception;
         }
 
@@ -41,7 +41,10 @@ class SystemLog
             $durationMs = max(0, (int) round((microtime(true) - $startedAt) * 1000));
             AdminLogService::instance()->save($request, $response, $status, $durationMs, $errorMessage);
         } catch (Throwable $exception) {
-            Log::error('后台操作日志写入失败：' . $exception->getMessage());
+            try {
+                Log::error('后台操作日志写入失败：' . get_class($exception));
+            } catch (Throwable) {
+            }
         }
     }
 }

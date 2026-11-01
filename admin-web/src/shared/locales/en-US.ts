@@ -1535,6 +1535,7 @@ export default {
     requestFailed: 'Installation request failed',
     validation: {
       dbIncomplete: 'Database configuration is incomplete', adminRequired: 'Admin username is required', passwordLength: 'Admin password must be 6-16 characters',
+      webmanPasswordLength: 'Admin password must be 12–72 bytes',
       passwordAlphaNum: 'Admin password must contain both letters and digits', passwordMismatch: 'The two passwords do not match',
       emailTooLong: 'Admin email must not exceed 60 characters', emailInvalid: 'Please enter a valid email address'
     },
@@ -1546,6 +1547,7 @@ export default {
     envFailed: 'Environment check failed',
     installFailed: 'Installation failed',
     agreementP1: 'Thank you for choosing FunAdmin. FunAdmin is a modular admin system built on ThinkPHP 8.',
+    agreementWebman: 'Thank you for choosing FunAdmin. FunAdmin is a modular admin system built on Webman.',
     agreementP2: 'By using this software you agree to comply with the applicable open-source license, and you must not use it for illegal activities.',
     agreementP3: 'Before installing, make sure the server meets the runtime requirements, and keep the database credentials and administrator password safe.',
   },

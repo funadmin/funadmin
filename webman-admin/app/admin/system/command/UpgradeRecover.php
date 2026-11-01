@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\system\command;
 
-use app\admin\service\UpgradeService;
+use app\admin\system\service\UpgradeService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface as Input;

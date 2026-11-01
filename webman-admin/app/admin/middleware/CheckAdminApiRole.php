@@ -2,33 +2,45 @@
 
 namespace app\admin\middleware;
 
-use app\admin\authorization\service\AdminAuthorizationService;
-use app\admin\authentication\service\AdminSessionService;
-use think\exception\HttpResponseException;
+use app\admin\authentication\service\BrowserAuthService;
+use app\admin\authorization\service\AuthorizationService;
+use app\admin\authorization\service\PermissionResource;
+use app\admin\authorization\model\Permission;
+use app\admin\http\AdminResponse;
+use DomainException;
+use Webman\Http\Request;
+use support\Response;
+use Webman\MiddlewareInterface;
 
 /**
  * Admin Web API 登录与 Casbin 权限校验。
  */
-class CheckAdminApiRole
+class CheckAdminApiRole implements MiddlewareInterface
 {
-    public function __construct(
-        private readonly AdminSessionService $session = new AdminSessionService,
-        private readonly AdminAuthorizationService $authorization = new AdminAuthorizationService
-    ) {
-    }
-
-    public function handle($request, \Closure $next)
+    public function process(Request $request, callable $handler): Response
     {
-        if (!$this->session->isLogin()) {
-            return \app\admin\http\AdminResponse::create('登录已失效，请重新登录', null, 401);
-        }
-
+        unset($request->context['admin'], $request->context['admin_permissions'], $request->context['admin_csrf_token']);
         try {
-            $this->authorization->roleAccess(true);
-        } catch (HttpResponseException $e) {
-            return \app\admin\http\AdminResponse::create('没有访问权限', null, 403);
+            $cookie = (string) $request->cookie(BrowserAuthService::COOKIE, '');
+            $auth = new BrowserAuthService();
+            $admin = $auth->user($cookie);
+            $authorization = new AuthorizationService();
+            $info = $authorization->userInfo($admin);
+            $resource = PermissionResource::fromRequest($request);
+            $permission = Permission::where('obj', $resource['obj'])->where('act', $resource['act'])
+                ->where('status', 1)->whereNull('deleted_at')->first();
+            $public = $permission !== null && (bool) $permission->is_public;
+            $profile = $resource['obj'] === 'admin/adminprofile';
+            if (!in_array('*', $info['permissions'], true) && !$public && !$profile
+                && ($permission === null || !in_array((string) $permission->code, $info['permissions'], true))) {
+                throw new DomainException('没有访问权限', 403);
+            }
+            $request->context['admin'] = $admin;
+            $request->context['admin_permissions'] = $info['permissions'];
+            $request->context['admin_csrf_token'] = $auth->bootstrap($cookie)['csrfToken'];
+        } catch (DomainException $error) {
+            return AdminResponse::create($error->getMessage(), null, $error->getCode());
         }
-
-        return $next($request);
+        return $handler($request);
     }
 }

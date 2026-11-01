@@ -61,17 +61,17 @@ export const installApi = {
   environment: () => installHttp.get<never, InstallEnvironment>('/step2'),
   install: async (form: InstallForm) => {
     const result = await installHttp.post<never, InstallResult>('/step3', {
-    hostname: form.hostname,
-    port: form.port,
-    database: form.database,
-    prefix: form.prefix,
-    username: form.username,
-    password: form.password,
-    adminUserName: form.adminUserName,
-    adminPassword: form.adminPassword,
-    rePassword: form.rePassword,
-    email: form.email,
-    app_debug: form.appDebug ? 1 : 0
+      hostname: form.hostname,
+      port: form.port,
+      database: form.database,
+      prefix: form.prefix,
+      username: form.username,
+      password: form.password,
+      adminUserName: form.adminUserName,
+      adminPassword: form.adminPassword,
+      rePassword: form.rePassword,
+      email: form.email,
+      app_debug: form.appDebug ? 1 : 0
     });
     installedCache = Promise.resolve(true);
     return result;

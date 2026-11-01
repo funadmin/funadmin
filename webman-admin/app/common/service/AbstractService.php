@@ -13,9 +13,8 @@
 
 namespace app\common\service;
 
-use think\App;
-use think\Container;
-use think\facade\Cache;
+use support\Container;
+use support\Cache;
 
 /**
  * 自定义服务基类
@@ -54,7 +53,7 @@ abstract class AbstractService
      */
     public static function instance(...$args)
     {
-        return Container::getInstance()->make(static::class, $args);
+        return $args === [] ? Container::get(static::class) : Container::make(static::class, $args);
     }
 
     /**

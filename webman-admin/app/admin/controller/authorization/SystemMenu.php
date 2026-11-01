@@ -10,7 +10,7 @@ use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\Permission;
-use app\admin\service\ResourceRegistryService;
+use app\admin\authorization\service\ResourceRegistryService;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;

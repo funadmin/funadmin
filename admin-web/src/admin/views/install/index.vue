@@ -15,7 +15,7 @@
         <template v-if="active === 0">
           <h2>{{ t('install.agreementTitle', 'FunAdmin 软件许可协议') }}</h2>
           <div class="agreement">
-            <p>{{ t('install.agreementP1', '感谢您选择 FunAdmin。FunAdmin 是基于 ThinkPHP 8 开发的模块化后台管理系统。') }}</p>
+            <p>{{ isWebmanBackend() ? t('install.agreementWebman', '感谢您选择 FunAdmin。FunAdmin 是基于 Webman 开发的模块化后台管理系统。') : t('install.agreementP1', '感谢您选择 FunAdmin。FunAdmin 是基于 ThinkPHP 8 开发的模块化后台管理系统。') }}</p>
             <p>{{ t('install.agreementP2', '使用本软件即表示您同意遵守适用的开源许可协议，不得利用本软件从事违法活动。') }}</p>
             <p>{{ t('install.agreementP3', '安装前请确认服务器满足运行要求，并妥善保管数据库凭据和管理员密码。') }}</p>
             <p>{{ t('install.agreementSite', '项目官网：') }}<a href="https://www.funadmin.com" target="_blank" rel="noopener">www.funadmin.com</a></p>
@@ -81,7 +81,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import LogoMark from '@/components/LogoMark.vue';
-import { ADMIN_LOGIN_PATH } from '@/config';
+import { ADMIN_LOGIN_PATH, isWebmanBackend } from '@/config';
 import { installApi, type InstallResult } from '@/api/install';
 import { canContinueInstallation, validateInstallForm, type EnvironmentCheck, type InstallForm } from './install';
 
@@ -95,17 +95,19 @@ const siteName = ref('FunAdmin');
 const siteVersion = ref('');
 const environmentChecks = ref<EnvironmentCheck[]>([]);
 const result = ref<InstallResult>();
-const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: '', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
+const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
 const canNext = computed(() => active.value === 0 ? agreed.value : canContinueInstallation(environmentChecks.value));
 
 const loadEnvironment = async () => {
   loading.value = true;
+  environmentChecks.value = [];
   try {
     const data = await installApi.environment();
     if (data.installed) return location.replace(`/admin-web/#${ADMIN_LOGIN_PATH}`);
     siteName.value = data.siteName;
     siteVersion.value = data.siteVersion;
     environmentChecks.value = data.checks;
+    return true;
   } catch (error: any) {
     ElMessage.error(error?.message || t('install.envFailed', '环境检测失败'));
   } finally { loading.value = false; }
@@ -113,8 +115,8 @@ const loadEnvironment = async () => {
 
 const next = async () => {
   if (active.value === 0) {
-    await loadEnvironment();
-    if (!canContinueInstallation(environmentChecks.value)) return;
+    const ready = await loadEnvironment();
+    if (!ready) return;
   }
   active.value++;
 };
@@ -125,6 +127,9 @@ const submitInstall = async () => {
   installing.value = true;
   try {
     result.value = await installApi.install(form);
+    form.password = '';
+    form.adminPassword = '';
+    form.rePassword = '';
     active.value = 3;
   } catch (error: any) {
     ElMessage.error(error?.message || t('install.installFailed', '安装失败'));

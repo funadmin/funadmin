@@ -15,7 +15,7 @@ use app\admin\form\repository\FormSchemaRepository;
 use app\admin\form\service\FormDataService;
 use app\admin\form\service\FormDesignerService;
 use app\admin\form\service\FormPublishService;
-use app\admin\service\ResourceRegistryService;
+use app\admin\authorization\service\ResourceRegistryService;
 use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use InvalidArgumentException;

@@ -13,7 +13,7 @@ class BaseModel extends EloquentModel
 
     public function getTable(): string
     {
-        if (isset($this->name) && is_string($this->name) && $this->name !== '') {
+        if (property_exists($this, 'name') && is_string($this->name) && $this->name !== '') {
             return $this->name;
         }
         return parent::getTable();

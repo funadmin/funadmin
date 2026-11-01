@@ -12,19 +12,23 @@ use RuntimeException;
 /** 生成符合 Back-Channel Logout 规范且不包含 nonce 的 RS256 logout_token。 */
 final class LogoutTokenService
 {
+    public function __construct(private readonly ?SigningKeyService $keys = null, private readonly ?IssuerService $issuer = null)
+    {
+    }
+
     public function issue(int $tenantId, string $audience, string $sid, string $jti): string
     {
-        $key = OidcSigningKey::forTenant($tenantId)->where('status', 'active')->find();
+        $key = OidcSigningKey::forTenant($tenantId)->where('status', 'active')->first();
         if (!$key) throw new RuntimeException('OIDC active key 不可用');
         $claims = [
-            'iss' => (new IssuerService((string) config('identity.issuer', '')))->getIssuer(),
+            'iss' => ($this->issuer ?? new IssuerService((string) config('identity.issuer', '')))->getIssuer(),
             'aud' => $audience,
             'iat' => time(),
             'jti' => $jti,
             'events' => ['http://schemas.openid.net/event/backchannel-logout' => new \stdClass()],
             'sid' => $sid,
         ];
-        $privateKey = (new SigningKeyService())->readPrivateKey((string) $key->getData('private_key_ref'));
+        $privateKey = ($this->keys ?? new SigningKeyService())->readPrivateKey((string) $key->getAttribute('private_key_ref'));
         try {
             return JWT::encode($claims, $privateKey, 'RS256', (string) $key->kid);
         } finally {

@@ -1,0 +1,23 @@
+-- 时间列统一不带默认值：逐列移除既有默认值，保留原类型/可空性/注释
+ALTER TABLE `fun_admin_log` MODIFY COLUMN `create_time` int unsigned NOT NULL COMMENT '日志时间';
+ALTER TABLE `fun_admin_menu` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_auth_group_department` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_auth_group_inherit` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_blacklist` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_blacklist` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_config` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_config` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_config_group` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_config_group` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_department` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_department` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_dict_item` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_dict_item` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_dict_type` MODIFY COLUMN `create_time` int NOT NULL;
+ALTER TABLE `fun_dict_type` MODIFY COLUMN `update_time` int NOT NULL;
+ALTER TABLE `fun_languages` MODIFY COLUMN `create_time` int NULL COMMENT '创建时间';
+ALTER TABLE `fun_languages` MODIFY COLUMN `update_time` int NULL COMMENT '更新时间';
+ALTER TABLE `fun_member` MODIFY COLUMN `create_time` int unsigned NULL COMMENT '注册时间';
+ALTER TABLE `fun_member` MODIFY COLUMN `update_time` int NULL COMMENT '更新时间';
+ALTER TABLE `fun_member_group_relation` MODIFY COLUMN `create_time` int unsigned NOT NULL COMMENT '创建时间';
+ALTER TABLE `fun_permission` MODIFY COLUMN `create_time` int NOT NULL;

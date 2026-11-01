@@ -13,7 +13,7 @@ use app\admin\authorization\model\Permission;
 use app\admin\controller\authorization\SystemMenu;
 use app\admin\controller\authorization\SystemPermission;
 use app\admin\controller\authorization\SystemRole;
-use app\admin\controller\system\SystemAdmin;
+use app\admin\authorization\controller\SystemAdmin;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 

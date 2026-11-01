@@ -11,10 +11,15 @@ use app\admin\traits\AdminDataScope;
 use app\admin\traits\AdminJsonResponse;
 use app\admin\traits\AdminPagination;
 use app\admin\traits\AdminTree;
+use app\admin\middleware\CheckAdminApiRole;
+use app\admin\middleware\CheckAdminApiCsrf;
+use app\admin\middleware\SystemLog;
+use support\annotation\Middleware;
 
 /**
  * Admin Web CRUD API 基类：只提供协议与查询边界，不承载业务规则。
  */
+#[Middleware(CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class)]
 abstract class AdminApiController extends BaseController
 {
     use AdminCrudRequest;
@@ -25,7 +30,7 @@ abstract class AdminApiController extends BaseController
     use AdminTree;
 
     /** 列表动作只公开精确协议码，不信任处理器提供的异常文本。 */
-    protected function listActionFailure(\Throwable $error): \think\Response
+    protected function listActionFailure(\Throwable $error): \support\Response
     {
         if (!$error instanceof \InvalidArgumentException) {
             return $this->fail(msg: '服务器内部错误', code: 500);

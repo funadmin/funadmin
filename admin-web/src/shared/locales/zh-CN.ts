@@ -1313,6 +1313,7 @@ export default {
     requestFailed: '安装请求失败',
     validation: {
       dbIncomplete: '数据库配置不完整', adminRequired: '管理员账号不能为空', passwordLength: '管理员密码必须为6-16位',
+      webmanPasswordLength: '管理员密码需为12～72字节',
       passwordAlphaNum: '管理员密码必须同时包含字母和数字', passwordMismatch: '两次输入密码不一致',
       emailTooLong: '管理员邮箱不能超过60个字符', emailInvalid: '请输入正确的邮箱'
     },
@@ -1324,6 +1325,7 @@ export default {
     envFailed: '环境检测失败',
     installFailed: '安装失败',
     agreementP1: '感谢您选择 FunAdmin。FunAdmin 是基于 ThinkPHP 8 开发的模块化后台管理系统。',
+    agreementWebman: '感谢您选择 FunAdmin。FunAdmin 是基于 Webman 开发的模块化后台管理系统。',
     agreementP2: '使用本软件即表示您同意遵守适用的开源许可协议，不得利用本软件从事违法活动。',
     agreementP3: '安装前请确认服务器满足运行要求，并妥善保管数据库凭据和管理员密码。',
   },

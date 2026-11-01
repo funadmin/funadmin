@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\http;
 
 use app\common\http\JsonEnvelope;
-use think\response\Json;
+use support\Response;
 
 /** 仅由明确后台业务出口调用，不检查请求路径或改写已有响应。 */
 final class AdminResponse
@@ -15,7 +15,7 @@ final class AdminResponse
         return in_array($code, [400, 422], true) ? 200 : $code;
     }
 
-    public static function create(string $msg, mixed $data, int $code, ?int $httpStatus = null, array $headers = []): Json
+    public static function create(string $msg, mixed $data, int $code, ?int $httpStatus = null, array $headers = []): Response
     {
         $httpStatus ??= self::httpStatus($code);
         if ($httpStatus >= 500) {

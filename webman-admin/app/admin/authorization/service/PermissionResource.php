@@ -21,11 +21,11 @@ class PermissionResource
 {
     public static function fromRequest($request, ?string $app = null): array
     {
-        return self::fromParts(
-            $app ?: app('http')->getName(),
-            (string) $request->controller(true),
-            (string) ($request->action() ?: 'index')
-        );
+        $controller = (string) ($request->controller ?? '');
+        if (preg_match('/^app\\\\admin\\\\(?:(.+)\\\\)?controller\\\\(.+)$/', $controller, $matches) === 1) {
+            $controller = ($matches[1] !== '' ? $matches[1] . '\\' : '') . $matches[2];
+        }
+        return self::fromParts($app ?: 'admin', $controller, (string) ($request->action ?: 'index'));
     }
 
     public static function fromRoute(string $appName, string $href): ?array

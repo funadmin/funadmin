@@ -1,1 +1,0 @@
-import{Fn as e,jn as t,ln as n}from"./element-Bpuryqbo.js";import{f as r}from"./index-Ctn49eNE.js";var i={};function a(r,i){let a=e(`router-view`);return t(),n(a,{key:r.$route.fullPath})}var o=r(i,[[`render`,a]]);export{o as default};

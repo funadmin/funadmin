@@ -6,12 +6,18 @@ namespace app\identity\service;
 
 use app\common\model\identity\BackchannelLogoutDelivery;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Handler\CurlHandler;
 use Ramsey\Uuid\Uuid;
 use Throwable;
 
 /** 可由队列 worker 或测试直接调用的可靠 backchannel 投递器。 */
 final class BackchannelLogoutDispatcher
 {
+    public function __construct(private readonly ?ClientInterface $client = null)
+    {
+    }
+
     public function enqueue(int $tenantId, int $opSessionId, array $clientSession, string $clientIdentifier, string $uri): ?array
     {
         if (!(new IdentitySsoConfigService())->allowsBackchannelLogout($tenantId)) return null;
@@ -42,7 +48,9 @@ final class BackchannelLogoutDispatcher
     {
         $target = (new BackchannelUrlPolicy())->validate((string) $delivery['logout_uri']);
         $resolve = array_map(static fn (string $ip): string => $target['host'] . ':443:' . $ip, $target['addresses']);
-        $response = (new Client(['timeout' => 3.0, 'connect_timeout' => 1.0, 'allow_redirects' => false, 'http_errors' => false]))->post($target['url'], [
+        $response = ($this->client ?? new Client(['handler' => new CurlHandler()]))->request('POST', $target['url'], [
+            'timeout' => 3.0, 'connect_timeout' => 1.0, 'allow_redirects' => false, 'http_errors' => false,
+            'proxy' => '',
             'form_params' => ['logout_token' => (string) $delivery['logout_token']],
             'headers' => ['Accept' => 'application/json', 'Content-Type' => 'application/x-www-form-urlencoded'],
             'curl' => [CURLOPT_RESOLVE => $resolve, CURLOPT_MAXFILESIZE => 65536],

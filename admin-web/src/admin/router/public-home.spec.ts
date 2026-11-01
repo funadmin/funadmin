@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { staticRoutes } from './routes';
-import { ADMIN_HOME_PATH, ADMIN_LOGIN_PATH } from '@/config';
+import { ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, MEMBER_LOGIN_PATH, MEMBER_REGISTER_PATH, MEMBER_PROFILE_PATH } from '@/config';
 
 vi.mock('@/layout/index.vue', () => ({ default: { template: '<div />' } }));
 
@@ -21,6 +21,14 @@ describe('公开展示站点路由', () => {
     expect(home?.meta.hidden).toBe(true);
   });
 
+  it('提供前台会员登录、注册和个人中心路由', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });
+
+    expect(router.resolve(MEMBER_LOGIN_PATH).name).toBe('MemberLogin');
+    expect(router.resolve(MEMBER_REGISTER_PATH).name).toBe('MemberRegister');
+    expect(router.resolve(MEMBER_PROFILE_PATH).name).toBe('MemberProfile');
+    expect(router.getRoutes().find((route) => route.name === 'MemberProfile')?.meta.member).toBe(true);
+  });
   it('后台登录和首页使用 admin 路由前缀', () => {
     const router = createRouter({ history: createMemoryHistory(), routes: staticRoutes });
 

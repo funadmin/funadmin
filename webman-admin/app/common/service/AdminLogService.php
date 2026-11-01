@@ -15,9 +15,8 @@ namespace app\common\service;
 use app\admin\system\model\AdminLog;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\PermissionResource;
-use think\facade\Session;
-use think\Request;
-use think\Response;
+use Webman\Http\Request;
+use Webman\Http\Response;
 
 class AdminLogService extends AbstractService
 {
@@ -29,13 +28,13 @@ class AdminLogService extends AbstractService
         string $errorMessage = ''
     ): void {
         $pluginCode = trim((string) ($request->plugin ?? ''));
-        $appName = trim((string) ($request->plugin_app_name ?? app('http')->getName()));
+        $appName = 'admin';
         $sourceType = $pluginCode === '' ? 'system' : 'plugin';
         $sourceName = $pluginCode === '' ? 'core' : $pluginCode;
-        $controller = (string) $request->controller(true);
-        $action = (string) ($request->action() ?: 'index');
-        $url = str_replace('.' . config('view.view_suffix'), '', $request->pathinfo());
-        $resource = PermissionResource::fromParts($appName, $controller, $action);
+        $resource = PermissionResource::fromRequest($request, $appName);
+        $controller = substr($resource['obj'], strlen($appName) + 1);
+        $action = $resource['act'];
+        $url = $request->path();
         $title = (string) (Permission::where('code', $resource['code'])->value('name') ?: '');
         if ($title === '') {
             $title = $controller . '/' . $action;
@@ -47,17 +46,24 @@ class AdminLogService extends AbstractService
                 unset($headers[$name]);
             }
         }
-        $responseCode = $response?->getCode() ?? 500;
-        $succeeded = $status ?? ($responseCode >= 200 && $responseCode < 400 ? 1 : 0);
+        $responseCode = $response?->getStatusCode() ?? 500;
+        $businessCode = null;
+        if ($response !== null && str_contains((string) $response->getHeader('Content-Type'), 'application/json')) {
+            $body = json_decode($response->rawBody(), true);
+            $businessCode = is_array($body) ? ($body['code'] ?? null) : null;
+        }
+        $succeeded = $status ?? ($responseCode >= 200 && $responseCode < 400
+            && ($businessCode === null || in_array($businessCode, [0, 200], true)) ? 1 : 0);
         $requestId = trim((string) $request->header('X-Request-ID', ''));
         if ($requestId === '' || strlen($requestId) > 64) {
             $requestId = bin2hex(random_bytes(16));
         }
 
-        AdminLog::create([
+        $log = new AdminLog();
+        $log->forceFill([
             'name' => $title,
-            'admin_id' => (int) Session::get('admin.id', 0),
-            'username' => (string) Session::get('admin.username', 'Unknown'),
+            'admin_id' => (int) ($request->context['admin']['id'] ?? 0),
+            'username' => (string) ($request->context['admin']['username'] ?? 'Unknown'),
             'url' => $url,
             'app_name' => $appName,
             'source_type' => $sourceType,
@@ -67,15 +73,15 @@ class AdminLogService extends AbstractService
             'get_data' => $this->encode($this->sanitize($request->get())),
             'post_data' => $this->encode($this->sanitize($request->post())),
             'header_data' => $this->encode($headers),
-            'agent' => (string) $request->server('HTTP_USER_AGENT', ''),
-            'ip' => MemberInput::normalizeIp($request->ip()),
+            'agent' => (string) $request->header('user-agent', ''),
+            'ip' => MemberInput::normalizeIp($request->getRemoteIp()),
             'method' => $request->method(),
             'status' => $succeeded,
             'response_code' => $responseCode,
             'duration_ms' => $durationMs,
             'request_id' => $requestId,
             'error_message' => mb_substr($errorMessage, 0, 500),
-        ]);
+        ])->save();
     }
 
     private function encode(array $data): string
@@ -85,7 +91,7 @@ class AdminLogService extends AbstractService
 
     private function sanitize(array $data): array
     {
-        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', 'api_key', 'apikey', '__token__'];
+        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', 'api_key', 'apikey', 'client_secret', 'signing_key', 'private_key', 'authorization', 'cookie', 'x-csrf-token', 'csrf_token', '__token__'];
         foreach ($data as $key => $value) {
             if (in_array(strtolower((string) $key), $sensitive, true)) {
                 $data[$key] = '[REDACTED]';

@@ -12,7 +12,7 @@ final class BackchannelUrlPolicy
     public function validate(string $url): array
     {
         $parts = parse_url(trim($url));
-        if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https' || empty($parts['host']) || isset($parts['user'], $parts['pass'], $parts['fragment'])) {
+        if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment'])) {
             throw new DomainException('unsafe_backchannel_uri');
         }
         $host = strtolower(rtrim(trim((string) $parts['host'], '[]'), '.'));

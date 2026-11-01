@@ -14,9 +14,15 @@ final class AiTask extends BackendModel
 
     protected $name = 'ai_task';
 
-    protected $json = ['input', 'output', 'error', 'usage', 'test_result'];
+    protected $guarded = [];
 
-    protected $jsonAssoc = true;
+    protected $casts = [
+        'input' => 'array',
+        'output' => 'array',
+        'error' => 'array',
+        'usage' => 'array',
+        'test_result' => 'array',
+    ];
 
     public function conversation()
     {
