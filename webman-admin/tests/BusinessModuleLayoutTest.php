@@ -336,7 +336,7 @@ final class BusinessModuleLayoutTest extends TestCase
     public function test_log_attachment_and_department_models_have_explicit_module_ownership(): void
     {
         foreach ([
-            'system' => ['AdminLog' => 'admin_logs', 'AttachGroup' => 'attach_groups'],
+            'system' => ['AdminLog' => 'admin_log', 'AttachGroup' => 'attach_groups'],
             'authorization' => ['Department' => 'department'],
         ] as $module => $models) {
             foreach ($models as $name => $table) {

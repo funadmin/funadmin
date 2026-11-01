@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
+ * 采用最新webman实现
  * ============================================================================
  * Author: AI Assistant
  * Date: 2024
@@ -76,7 +76,7 @@ class McpService extends AbstractService
             ->addTool([$this, 'handleUserManagement'], 'user-management', description: '用户管理相关操作')
             ->addTool([$this, 'handleSystemInfo'], 'system-info', description: '获取系统运行信息')
             ->addTool([$this, 'handleCrud'], 'crud', description: '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面只读预览')
-            ->addTool([$this, 'handleThinkCommand'], 'think-command', description: '执行ThinkPHP内置命令')
+            ->addTool([$this, 'handleThinkCommand'], 'think-command', description: '执行安全白名单内的 Webman 命令')
             ->addResource([$this, 'handleConfigResource'], 'config://system', 'config-system', description: '系统配置信息资源', mimeType: 'application/json')
             ->addResource([$this, 'handleSchemaResource'], 'schema://database', 'schema-database', description: '数据库表结构信息资源', mimeType: 'application/json')
             ->build();
@@ -113,7 +113,7 @@ class McpService extends AbstractService
                 'message' => '查询执行成功'
             ];
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP数据库查询错误: ' . $e->getMessage());
             return [
                 'success' => false,
@@ -152,7 +152,7 @@ class McpService extends AbstractService
                 return ['value' => config($key), 'key' => $key];
             }
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP配置获取错误: ' . $e->getMessage());
             throw $e;
         }
@@ -183,7 +183,7 @@ class McpService extends AbstractService
 
             return "日志记录成功 [级别: {$level}]";
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP日志写入错误: ' . $e->getMessage());
             throw $e;
         }
@@ -256,7 +256,7 @@ class McpService extends AbstractService
                     throw new RuntimeException('不支持的操作类型: ' . $operation);
             }
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP文件操作错误: ' . $e->getMessage());
             throw $e;
         }
@@ -314,7 +314,7 @@ class McpService extends AbstractService
                     throw new RuntimeException('不支持的操作类型: ' . $action);
             }
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP用户管理错误: ' . $e->getMessage());
             throw $e;
         }
@@ -346,7 +346,7 @@ class McpService extends AbstractService
                     try {
                         $versionResult = Db::select('SELECT VERSION() as version');
                         $version = $versionResult[0]['version'] ?? 'Unknown';
-                    } catch (RuntimeException $e) {
+                    } catch (\Throwable $e) {
                         // 数据库连接失败时使用默认值
                     }
                     
@@ -376,7 +376,7 @@ class McpService extends AbstractService
                     throw new RuntimeException('不支持的系统信息类型: ' . $type);
             }
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP系统信息错误: ' . $e->getMessage());
             throw $e;
         }
@@ -442,7 +442,7 @@ class McpService extends AbstractService
 
             return json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('MCP数据库模式获取错误: ' . $e->getMessage());
             return json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
@@ -605,7 +605,7 @@ class McpService extends AbstractService
     }
 
     /**
-     * 执行ThinkPHP内置命令
+     * 执行 Webman 内置命令
      * @param string $command 命令名称
      * @param array $params 命令参数 (可选)
      * @param array $options 命令选项 (可选)

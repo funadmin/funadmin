@@ -39,6 +39,28 @@ final class ExceptionTest extends TestCase
         self::assertSame(['code' => 403, 'msg' => '安全令牌已失效', 'data' => null], json_decode($response->rawBody(), true));
     }
 
+    public function test_native_validation_errors_preserve_admin_business_protocol(): void
+    {
+        $response = (new ExceptionHandle(new NullLogger(), false))->render(
+            new Request("PUT /admin/system/role/2 HTTP/1.1\r\n\r\n"),
+            new \support\validation\ValidationException('角色名称不能为空', 400),
+        );
+        self::assertSame(200, $response->getStatusCode());
+        $body = json_decode($response->rawBody(), true);
+        self::assertSame(422, $body['code']);
+        self::assertSame('角色名称不能为空', $body['msg']);
+    }
+
+    public function test_missing_model_is_not_reported_as_an_internal_error(): void
+    {
+        $error = (new \Illuminate\Database\Eloquent\ModelNotFoundException())->setModel('private\\Model', [42]);
+        $response = (new ExceptionHandle(new NullLogger(), false))->render(
+            new Request("GET /admin/identity/scopes/42 HTTP/1.1\r\n\r\n"), $error,
+        );
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringNotContainsString('private', $response->rawBody());
+    }
+
     public function test_internal_exception_is_json_with_http_500_and_no_sensitive_details(): void
     {
         self::assertTrue(is_subclass_of(ExceptionHandle::class, \Webman\Exception\ExceptionHandler::class));
