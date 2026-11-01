@@ -415,6 +415,23 @@ final class BusinessModuleLayoutTest extends TestCase
         }
     }
 
+    public function test_remaining_system_and_feature_controllers_have_module_ownership(): void
+    {
+        foreach ([
+            'system' => ['AdminUpload', 'SystemAttachment', 'SystemAttachmentGroup', 'SystemBlacklist', 'SystemConfig', 'SystemDict', 'SystemLanguage', 'SystemMember', 'SystemMemberGroup', 'SystemMemberLevel', 'SystemOperationLog', 'SystemStorage', 'SystemUpgrade'],
+            'ai' => ['Ai', 'Profiles'],
+            'form' => ['Data'],
+            'development' => ['Business'],
+        ] as $module => $classes) {
+            foreach ($classes as $name) {
+                $fqcn = 'app\\admin\\' . $module . '\\controller\\' . $name;
+                self::assertTrue(class_exists($fqcn), '控制器应归入模块：' . $fqcn);
+                self::assertSame(realpath(__DIR__ . '/../app/admin/' . $module . '/controller/' . $name . '.php'), (new ReflectionClass($fqcn))->getFileName());
+                self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/' . $module . '/' . $name . '.php');
+            }
+        }
+    }
+
     public function test_application_autoload_does_not_redirect_controllers_to_a_flat_directory(): void
     {
         $composer = json_decode(file_get_contents(__DIR__ . '/../composer.json'), true, 512, JSON_THROW_ON_ERROR);

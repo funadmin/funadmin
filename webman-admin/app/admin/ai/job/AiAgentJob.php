@@ -21,7 +21,6 @@ use app\admin\ai\service\AiChangeSetService;
 use app\admin\ai\service\ApprovalPolicyEngine;
 use GuzzleHttp\Client;
 use RuntimeException;
-use think\queue\Job;
 use Throwable;
 
 /** 幂等 AI 队列消费者；Provider 重试由网关有限执行，副作用工具不在 Job 层重试。 */
@@ -49,13 +48,13 @@ final class AiAgentJob
         }
         $security = new DatabaseAiSecurityStore();
         $this->securityStore = $security;
-        $this->sandboxManager = new AgentSandboxManager(new NativeDockerProcessRunner(), root_path(), (string) config('ai.storage.private_path'), $sandboxConfig);
+        $this->sandboxManager = new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), $sandboxConfig);
         $tools = new ContainerAiToolExecutor(new AgentToolRegistry((array) config('ai.tools.allowlist', [])), new ApprovalPolicyEngine(), new AiApprovalService($security), new AiAuditService((string) config('ai.storage.log_path'), (int) config('ai.storage.log_max_bytes')), $security, $this->sandboxManager, $sandboxConfig);
         $this->orchestrator = null;
         $this->orchestratorFactory = static fn (array $providerConfig): AiAgentOrchestrator => new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(), $providerConfig), $tools);
     }
 
-    public function fire(Job $job, array $data): void
+    public function consume(array $data): void
     {
         $taskId = (int) ($data['taskId'] ?? 0);
         $operationToken = (string) ($data['operationToken'] ?? '');
@@ -64,13 +63,11 @@ final class AiAgentJob
             throw new RuntimeException('AI task operation token 无效');
         }
         if (in_array($task['status'], ['succeeded', 'failed', 'cancelled'], true)) {
-            $job->delete();
             return;
         }
         $retainedSandbox = in_array(($task['status'] ?? ''), ['paused', 'resume_pending'], true);
         $wasPaused = $retainedSandbox && ($task['status'] ?? '') === 'resume_pending';
         if (!$this->store->compareAndSetTaskOperation($taskId, $operationToken, ['pending', 'resume_pending'], ['status' => 'running', 'started_at' => date('Y-m-d H:i:s')])) {
-            $job->delete();
             return;
         }
 
@@ -95,7 +92,7 @@ final class AiAgentJob
                     if ($task['model'] !== $providerConfig['model'] || $task['provider'] !== $providerConfig['provider']) throw new RuntimeException('任务档案快照不一致', 409);
                 } else {
                 // 首次与审批恢复共用任务模型；凭据每次从服务端读取，不写入快照。
-                $providerConfig = (array) \think\facade\Config::get('ai.provider', []);
+                $providerConfig = (array) config('ai.provider', []);
                 $provider = trim((string) ($providerConfig['name'] ?? ''));
                 $model = $task['model'] ?? null;
                 $snapshotProvider = $task['provider'] ?? null;
@@ -115,7 +112,6 @@ final class AiAgentJob
                     if ($this->store->compareAndSetTask($taskId, ['running'], ['status' => 'paused', 'error' => $block, 'output' => $output])) {
                         $this->store->appendEvent($taskId, 'task.paused', $block);
                     }
-                    $job->delete();
                     return;
                 }
                 $providerConfig['model'] = $model;
@@ -179,7 +175,6 @@ final class AiAgentJob
                     $this->store->appendEvent($taskId, 'task.succeeded', ['usage' => $result['usage']]);
                 }
             }
-            $job->delete();
         } catch (Throwable $exception) {
             $category = method_exists($exception, 'category') ? $exception->category() : 'internal';
             $failed = $this->store->compareAndSetTask($taskId, ['running'], ['status' => 'failed', 'error' => ['category' => $category], 'completed_at' => date('Y-m-d H:i:s')]);

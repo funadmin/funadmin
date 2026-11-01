@@ -10,7 +10,7 @@ use app\admin\model\BackendModel;
 final class AiTaskEvent extends BackendModel
 {
     protected $name = 'ai_task_event';
-    protected $json = ['payload'];
-    protected $jsonAssoc = true;
-    protected $updateTime = false;
+    protected $fillable = ['task_id', 'sequence', 'type', 'payload'];
+    protected $casts = ['payload' => 'array'];
+    public const UPDATED_AT = null;
 }

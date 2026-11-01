@@ -8,6 +8,7 @@ $user = 'console_' . bin2hex(random_bytes(6));
 $password = bin2hex(random_bytes(24));
 $container = 'funadmin-console-test-' . bin2hex(random_bytes(6));
 $rootPassword = bin2hex(random_bytes(24));
+$redisContainer = 'funadmin-console-redis-' . bin2hex(random_bytes(6));
 
 function executeConsoleTestProcess(array $argv, string $stdin = ''): int
 {
@@ -45,17 +46,22 @@ try {
     if (executeConsoleTestSql("CREATE DATABASE `$database`; CREATE USER '$user'@'%' IDENTIFIED BY '$password'; GRANT ALL ON `$database`.* TO '$user'@'%';") !== 0) {
         throw new RuntimeException('隔离数据库初始化失败');
     }
+    if (executeConsoleTestProcess(['docker', 'run', '--rm', '-d', '--name', $redisContainer, '--network', 'funadmin-webman-test', 'redis:7', 'redis-server', '--save', '', '--appendonly', 'no']) !== 0) {
+        throw new RuntimeException('无法启动专用 Redis 测试实例');
+    }
     $status = executeConsoleTestProcess([
         'docker', 'run', '--rm', '--network', 'funadmin-webman-test',
         '-v', $root . ':/app', '-w', '/app',
         '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $container,
         '-e', 'DB_DATABASE=' . $database, '-e', 'DB_USERNAME=' . $user, '-e', 'DB_PASSWORD=' . $password,
-        'funadmin-webman-php:8.5', 'php', 'vendor/bin/phpunit',
-        '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlIdentityCommandTest.php',
+        '-e', 'AI_QUEUE_REDIS_URL=redis://' . $redisContainer . ':6379',
+        'funadmin-webman-console:8.5', 'php', 'vendor/bin/phpunit',
+        '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlIdentityCommandTest.php', 'tests/Console/MySqlAiQueueTest.php',
     ]);
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . PHP_EOL);
 } finally {
+    executeConsoleTestProcess(['docker', 'stop', $redisContainer]);
     if (executeConsoleTestProcess(['docker', 'stop', $container]) !== 0) $status = 1;
 }
 exit($status);

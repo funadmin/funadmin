@@ -14,9 +14,9 @@ final class AiMessage extends BackendModel
 
     protected $name = 'ai_message';
 
-    protected $json = ['content', 'metadata', 'usage'];
+    protected $fillable = ['conversation_id', 'sequence', 'role', 'content', 'metadata', 'usage', 'idempotency_key', 'payload_digest'];
 
-    protected $jsonAssoc = true;
+    protected $casts = ['content' => 'array', 'metadata' => 'array', 'usage' => 'array'];
 
     public function conversation()
     {

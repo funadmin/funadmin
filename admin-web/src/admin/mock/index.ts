@@ -155,6 +155,6 @@ if (import.meta.env.VITE_APP_MOCK === 'true') {
    
   console.info(
     `%c[mock] 已启用前端 Mock，命中 ${routes.length} 条路由（admin / 123456 登录）`,
-    'color:#7c3aed;font-weight:bold'
+    'color:#1677ff;font-weight:bold'
   );
 }

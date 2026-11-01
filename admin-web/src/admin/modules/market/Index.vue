@@ -50,7 +50,7 @@ const stats = computed(() => [
   { label: '市场插件', value: overview.value?.plugins ?? '-', icon: 'i-ep-box', tone: 'var(--el-color-primary)' },
   { label: '活跃安装', value: overview.value?.activeInstalls ?? '-', icon: 'i-ep-monitor', tone: 'var(--el-color-success)' },
   { label: '累计下载', value: overview.value?.downloads ?? '-', icon: 'i-ep-download', tone: 'var(--el-color-warning)' },
-  { label: `累计收入（${overview.value?.paidOrders ?? 0} 单）`, value: overview.value ? `¥${yuan(overview.value.revenue)}` : '-', icon: 'i-ep-wallet', tone: '#8b5cf6' }
+  { label: `累计收入（${overview.value?.paidOrders ?? 0} 单）`, value: overview.value ? `¥${yuan(overview.value.revenue)}` : '-', icon: 'i-ep-wallet', tone: '#08979c' }
 ]);
 
 async function loadOverview() {

@@ -10,6 +10,6 @@ use app\admin\model\BackendModel;
 final class AiOutbox extends BackendModel
 {
     protected $name = 'ai_outbox';
-    protected $json = ['payload'];
-    protected $jsonAssoc = true;
+    protected $fillable = ['payload', 'status', 'attempts', 'available_at', 'lease_owner', 'lease_expires_at', 'dispatched_at', 'last_error'];
+    protected $casts = ['payload' => 'array', 'attempts' => 'integer'];
 }

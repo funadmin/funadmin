@@ -43,7 +43,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer));
 .message--user { align-self: flex-end; border-color: transparent; border-radius: 16px 4px 16px 16px; background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color)); box-shadow: none; }
 .message:not(.message--user) { align-self: flex-start; }
 .message--assistant { margin-left: 40px; }
-.message--assistant::before { position: absolute; top: 0; left: -40px; display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px; background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 55%, #a855f7)); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em; content: 'AI'; }
+.message--assistant::before { position: absolute; top: 0; left: -40px; display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px; background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 55%, #13c2c2)); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em; content: 'AI'; }
 .message--system { align-self: center !important; max-width: min(86%, 640px); padding: 6px 14px; border-style: dashed; border-radius: 999px; background: transparent; color: var(--el-text-color-secondary); font-size: 12px; box-shadow: none; }
 .message--tool { margin-left: 40px; border-radius: 10px; background: var(--el-fill-color-light); color: var(--el-text-color-regular); font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; box-shadow: none; }
 .message-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

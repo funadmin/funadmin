@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\admin\ai\service;
 
-use app\admin\ai\job\AiAgentJob;
 use app\admin\ai\model\AiOutbox;
 use Closure;
-use think\facade\Queue;
+use Webman\RedisQueue\Redis;
+use RuntimeException;
 use Throwable;
 
 /** 以短租约原子认领 AI outbox，并通过 owner fencing 防止旧投递器覆盖接管结果。 */
@@ -30,13 +30,13 @@ final class AiOutboxDispatcher
         $this->leaseSeconds = $leaseSeconds;
     }
 
-    public static function database(): self
+    public static function database(?callable $enqueue = null): self
     {
         return new self(
             static function (int $limit, string $owner, int $now, int $leaseExpiresAt): array {
                 $nowAt = date('Y-m-d H:i:s', $now);
-                $claimable = '(`status` = \'pending\' AND `available_at` <= ?) OR (`status` = \'processing\' AND `lease_expires_at` <= ?)';
-                $candidates = AiOutbox::whereRaw($claimable, [$nowAt, $nowAt])->order('id')->limit($limit)->select()->toArray();
+                $claimable = '((`status` = \'pending\' AND `available_at` <= ?) OR (`status` = \'processing\' AND `lease_expires_at` <= ?))';
+                $candidates = AiOutbox::whereRaw($claimable, [$nowAt, $nowAt])->orderBy('id')->limit($limit)->get()->toArray();
                 $claimed = [];
                 foreach ($candidates as $candidate) {
                     $updated = AiOutbox::where('id', (int) $candidate['id'])->whereRaw($claimable, [$nowAt, $nowAt])->update([
@@ -55,7 +55,7 @@ final class AiOutboxDispatcher
                 }
                 return $claimed;
             },
-            static fn (array $payload) => Queue::connection('ai-agent')->push(AiAgentJob::class . '@fire', $payload, 'ai-agent'),
+            $enqueue ?? static fn (array $payload): bool => Redis::connection('ai-agent')->send('ai-agent', $payload),
             static fn (int $id, string $owner, array $data): bool => AiOutbox::where('id', $id)->where('status', 'processing')->where('lease_owner', $owner)->update(array_merge($data, ['updated_at' => date('Y-m-d H:i:s')])) === 1
         );
     }
@@ -68,7 +68,9 @@ final class AiOutboxDispatcher
         foreach ($rows as $row) {
             $id = (int) $row['id'];
             try {
-                ($this->enqueue)((array) $row['payload']);
+                if (($this->enqueue)((array) $row['payload']) !== true) {
+                    throw new RuntimeException('AI 队列投递未确认');
+                }
                 if (($this->transition)($id, $this->owner, [
                     'status' => 'dispatched',
                     'dispatched_at' => date('Y-m-d H:i:s', $now),

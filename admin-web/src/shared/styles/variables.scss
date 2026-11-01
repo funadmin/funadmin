@@ -167,12 +167,13 @@ html[data-preset='minimal'] {
   --app-shadow: 0 0 0 1px var(--app-border);
 }
 
-/* 活力：品牌渐变侧栏 + 紫色 */
+/* 活力：浅蓝底色与蓝色高亮 */
 html[data-preset='vibrant'] {
-  --app-app-bg: #f6f4ff;
-  --app-content-bg: #f6f4ff;
+  --app-app-bg: #f2f7ff;
+  --app-content-bg: #f2f7ff;
   --app-card-bg: #ffffff;
-  --app-border: #ece8fb;
+  --app-border: #e1ebf8;
+  --app-divider: #edf3fb;
 }
 
 /* 暖阳：浅色 + 橙红，底色微暖 */

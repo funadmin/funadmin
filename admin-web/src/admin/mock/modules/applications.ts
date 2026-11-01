@@ -2,7 +2,7 @@ import { ok, page, type MockRoute } from '../types';
 
 const applications = [
   { id: 1, code: 'crm', name: '客户中心', description: '统一客户管理', runtime_type: 'internal', launch_url: '/applications/crm', logo_url: '/logo.png', brand_config: { color: '#409eff' }, database_mode: 'shared', status: 'published' },
-  { id: 2, code: 'analytics', name: '数据分析', description: '独立分析应用', runtime_type: 'standalone', launch_url: 'https://analytics.example.com/launch', logo_url: '', brand_config: { color: '#7c3aed' }, database_mode: 'external', status: 'draft' }
+  { id: 2, code: 'analytics', name: '数据分析', description: '独立分析应用', runtime_type: 'standalone', launch_url: 'https://analytics.example.com/launch', logo_url: '', brand_config: { color: '#08979c' }, database_mode: 'external', status: 'draft' }
 ];
 let nextId = 3;
 let nextClientId = 2;

@@ -11,7 +11,7 @@ use app\admin\ai\model\AiMessage;
 use app\admin\ai\model\AiStreamNonce;
 use app\admin\ai\model\AiTask;
 use app\admin\ai\model\AiTaskEvent;
-use think\facade\Db;
+use support\Db;
 use Throwable;
 
 /** 基于既定模型的生产持久化适配器。 */
@@ -25,7 +25,7 @@ final class DatabaseAiConversationStore implements AiConversationStore
             return $this->conversation((int) $created->id, (int) $data['admin_id']);
         });
     }
-    public function conversations(int $adminId): array { return AiConversation::where('admin_id', $adminId)->order('id', 'desc')->select()->toArray(); }
+    public function conversations(int $adminId): array { return AiConversation::where('admin_id', $adminId)->orderBy('id', 'desc')->get()->toArray(); }
     public function conversationPageRows(int $adminId, array $filters, ?int $cursor, int $limit): array
     {
         $query = AiConversation::where('admin_id', $adminId);
@@ -36,7 +36,7 @@ final class DatabaseAiConversationStore implements AiConversationStore
             else $query->where('group_id', $filters['group_id']);
         }
         if (($filters['search'] ?? '') !== '') $query->whereLike('title', '%' . addcslashes($filters['search'], '\\%_') . '%');
-        return $query->order('id', 'desc')->limit($limit)->select()->toArray();
+        return $query->orderBy('id', 'desc')->limit($limit)->get()->toArray();
     }
 
     public function messagePageRows(int $conversationId, ?array $cursor, bool $forward, int $limit): array
@@ -45,16 +45,16 @@ final class DatabaseAiConversationStore implements AiConversationStore
         if ($cursor !== null) {
             $operator = $forward ? '>' : '<';
             $query->where(function ($query) use ($cursor, $operator): void {
-                $query->where('sequence', $operator, $cursor[0])->whereOr(function ($query) use ($cursor, $operator): void {
+                $query->where('sequence', $operator, $cursor[0])->orWhere(function ($query) use ($cursor, $operator): void {
                     $query->where('sequence', $cursor[0])->where('id', $operator, $cursor[1]);
                 });
             });
         }
         $order = $forward ? 'asc' : 'desc';
-        return $query->order(['sequence'=>$order, 'id'=>$order])->limit($limit)->select()->toArray();
+        return $query->orderBy('sequence', $order)->orderBy('id', $order)->limit($limit)->get()->toArray();
     }
 
-    public function conversation(int $id, int $adminId): ?array { return AiConversation::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
+    public function conversation(int $id, int $adminId): ?array { return AiConversation::where('id', $id)->where('admin_id', $adminId)->first()?->toArray(); }
     public function updateConversation(int $id, int $adminId, array $data): bool
     {
         return Db::transaction(function () use ($id, $adminId, $data): bool {
@@ -66,11 +66,11 @@ final class DatabaseAiConversationStore implements AiConversationStore
 
     private function lockGroup(?int $id, int $adminId): void
     {
-        if ($id !== null && !AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->lock(true)->find()) throw new \RuntimeException('分组不存在', 404);
+        if ($id !== null && !AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->lockForUpdate()->first()) throw new \RuntimeException('分组不存在', 404);
     }
-    public function deleteConversation(int $id, int $adminId): bool { $model = AiConversation::where('id', $id)->where('admin_id', $adminId)->find(); return $model ? (bool) $model->delete() : false; }
-    public function conversationGroups(int $adminId): array { return AiConversationGroup::where('admin_id', $adminId)->order('id')->select()->toArray(); }
-    public function conversationGroup(int $id, int $adminId): ?array { return AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->find()?->toArray(); }
+    public function deleteConversation(int $id, int $adminId): bool { $model = AiConversation::where('id', $id)->where('admin_id', $adminId)->first(); return $model ? (bool) $model->delete() : false; }
+    public function conversationGroups(int $adminId): array { return AiConversationGroup::where('admin_id', $adminId)->orderBy('id')->get()->toArray(); }
+    public function conversationGroup(int $id, int $adminId): ?array { return AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->first()?->toArray(); }
     public function createConversationGroup(array $data): array
     {
         return $this->groupWrite(function () use ($data): array {
@@ -85,16 +85,15 @@ final class DatabaseAiConversationStore implements AiConversationStore
 
     private function groupWrite(callable $write): mixed
     {
-        try { return $write(); } catch (\think\db\exception\PDOException $exception) {
-            $info = $exception->getData()['PDO Error Info'] ?? [];
-            if ((int) ($info['Driver Error Code'] ?? 0) === 1062) throw new \RuntimeException('分组名称已存在', 409, $exception);
+        try { return $write(); } catch (\Illuminate\Database\QueryException $exception) {
+            if (in_array((int) ($exception->errorInfo[1] ?? 0), [1062, 19], true)) throw new \RuntimeException('分组名称已存在', 409, $exception);
             throw $exception;
         }
     }
     public function deleteConversationGroup(int $id, int $adminId): bool
     {
         return Db::transaction(function () use ($id, $adminId): bool {
-            $model = AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->lock(true)->find();
+            $model = AiConversationGroup::where('id', $id)->where('admin_id', $adminId)->lockForUpdate()->first();
             if (!$model) return false;
             $this->archiveGroupConversations($id, $adminId);
             if (!$model->delete()) throw new \RuntimeException('删除分组失败');
@@ -106,7 +105,7 @@ final class DatabaseAiConversationStore implements AiConversationStore
     public function appendMessage(int $conversationId, array $data): array
     {
         return Db::transaction(function () use ($conversationId, $data): array {
-            AiConversation::where('id', $conversationId)->lock(true)->findOrFail();
+            AiConversation::where('id', $conversationId)->lockForUpdate()->firstOrFail();
             $sequence = (int) AiMessage::where('conversation_id', $conversationId)->withTrashed()->max('sequence') + 1;
             $message = AiMessage::create(array_merge($data, ['conversation_id' => $conversationId, 'sequence' => $sequence]))->toArray();
             if (($data['role'] ?? '') === 'assistant') AiConversation::where('id', $conversationId)->update(['is_unread' => 1]);
@@ -117,8 +116,8 @@ final class DatabaseAiConversationStore implements AiConversationStore
     public function idempotentMessage(int $conversationId, int $adminId, string $key, string $digest, callable $create): array
     {
         return Db::transaction(function () use ($conversationId, $adminId, $key, $digest, $create): array {
-            if (!AiConversation::where('id', $conversationId)->where('admin_id', $adminId)->lock(true)->find()) throw new \RuntimeException('资源不存在', 404);
-            $existing = AiMessage::withTrashed()->where('conversation_id', $conversationId)->where('idempotency_key', $key)->lock(true)->find();
+            if (!AiConversation::where('id', $conversationId)->where('admin_id', $adminId)->lockForUpdate()->first()) throw new \RuntimeException('资源不存在', 404);
+            $existing = AiMessage::withTrashed()->where('conversation_id', $conversationId)->where('idempotency_key', $key)->lockForUpdate()->first();
             if ($existing) {
                 if (!hash_equals((string) $existing->payload_digest, $digest)) throw new \RuntimeException('幂等键对应的消息内容不一致', 409);
                 return $existing->toArray();
@@ -129,14 +128,14 @@ final class DatabaseAiConversationStore implements AiConversationStore
         });
     }
 
-    public function messages(int $conversationId): array { return AiMessage::where('conversation_id', $conversationId)->order('sequence')->select()->toArray(); }
+    public function messages(int $conversationId): array { return AiMessage::where('conversation_id', $conversationId)->orderBy('sequence')->get()->toArray(); }
 
     public function createTask(array $data): array
     {
-        $existing = AiTask::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->find();
+        $existing = AiTask::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->first();
         if ($existing) return $existing->toArray();
         try { return AiTask::create($data)->toArray(); } catch (Throwable) {
-            return AiTask::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->findOrFail()->toArray();
+            return AiTask::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->firstOrFail()->toArray();
         }
     }
 
@@ -148,7 +147,7 @@ final class DatabaseAiConversationStore implements AiConversationStore
     private function writeTask(int $id, array $data, ?array $from = null, ?string $operationToken = null): bool
     {
         return Db::transaction(function () use ($id, $data, $from, $operationToken): bool {
-            $task = AiTask::where('id', $id)->lock(true)->find();
+            $task = AiTask::where('id', $id)->lockForUpdate()->first();
             if (!$task || ($from !== null && !in_array($task->status, $from, true))
                 || ($operationToken !== null && !hash_equals((string) $task->operation_token, $operationToken))) return false;
             $changed = AiTask::where('id', $id)->update($data) === 1;
@@ -163,13 +162,13 @@ final class DatabaseAiConversationStore implements AiConversationStore
     public function appendEvent(int $taskId, string $type, array $payload): array
     {
         return Db::transaction(function () use ($taskId, $type, $payload): array {
-            AiTask::where('id', $taskId)->lock(true)->findOrFail();
+            AiTask::where('id', $taskId)->lockForUpdate()->firstOrFail();
             $sequence = (int) AiTaskEvent::where('task_id', $taskId)->max('sequence') + 1;
             return AiTaskEvent::create(['task_id' => $taskId, 'sequence' => $sequence, 'type' => $type, 'payload' => $payload])->toArray();
         });
     }
 
-    public function events(int $taskId, int $afterId, int $limit): array { return AiTaskEvent::where('task_id', $taskId)->where('id', '>', $afterId)->order('id')->limit($limit)->select()->toArray(); }
+    public function events(int $taskId, int $afterId, int $limit): array { return AiTaskEvent::where('task_id', $taskId)->where('id', '>', $afterId)->orderBy('id')->limit($limit)->get()->toArray(); }
 
     public function consumeNonce(string $nonce, int $expiresAt): bool
     {

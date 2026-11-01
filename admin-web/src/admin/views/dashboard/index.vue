@@ -289,9 +289,9 @@ const cards = ref([
     title: t('dashboard.cardNewUsers', '新增用户'),
     value: '326',
     delta: 5.4,
-    color: '#8b5cf6',
+    color: '#08979c',
     icon: 'i-ep-user-filled',
-    option: makeSpark('#8b5cf6', [40, 60, 50, 80, 70, 95, 88, 110, 105, 130])
+    option: makeSpark('#08979c', [40, 60, 50, 80, 70, 95, 88, 110, 105, 130])
   }
 ]);
 
@@ -501,7 +501,7 @@ const members = ref([
   { id: 2, name: t('dashboard.member2Name', '李娜'), role: t('dashboard.member2Role', '前端开发'), online: true, color: '#10b981' },
   { id: 3, name: t('dashboard.member3Name', '王强'), role: t('dashboard.member3Role', '后端开发'), online: false, color: '#f59e0b' },
   { id: 4, name: t('dashboard.member4Name', '赵敏'), role: t('dashboard.member4Role', 'UI 设计'), online: true, color: '#ef4444' },
-  { id: 5, name: t('dashboard.member5Name', '孙浩'), role: t('dashboard.member5Role', '测试工程师'), online: false, color: '#8b5cf6' }
+  { id: 5, name: t('dashboard.member5Name', '孙浩'), role: t('dashboard.member5Role', '测试工程师'), online: false, color: '#08979c' }
 ]);
 
 /* ---------- 快捷入口 ---------- */
@@ -509,7 +509,7 @@ const shortcuts = ref([
   { title: t('dashboard.shortcutUsers', '用户管理'), icon: 'i-ep-user', color: '#3b82f6', path: adminRoutePath('/system/user') },
   { title: t('dashboard.shortcutRoles', '角色管理'), icon: 'i-ep-avatar', color: '#10b981', path: adminRoutePath('/system/role') },
   { title: t('dashboard.shortcutMenus', '菜单管理'), icon: 'i-ep-menu', color: '#f59e0b', path: adminRoutePath('/system/menu') },
-  { title: t('dashboard.shortcutMonitor', '系统监控'), icon: 'i-ep-monitor', color: '#8b5cf6', path: adminRoutePath('/monitor/server') },
+  { title: t('dashboard.shortcutMonitor', '系统监控'), icon: 'i-ep-monitor', color: '#08979c', path: adminRoutePath('/monitor/server') },
   { title: t('dashboard.shortcutLogs', '日志查看'), icon: 'i-ep-document', color: '#ef4444', path: adminRoutePath('/monitor/log') },
   { title: t('dashboard.shortcutSettings', '系统设置'), icon: 'i-ep-setting', color: '#06b6d4', path: adminRoutePath('/system/config') }
 ]);

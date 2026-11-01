@@ -70,12 +70,12 @@ async function submit() {
 </script>
 
 <style scoped>
-.member-page { position: relative; min-height: 100vh; overflow: hidden; display: grid; place-items: center; padding: 40px 20px; color: #202846; background: linear-gradient(135deg, #f4f1ff 0%, #f6f8ff 55%, #edf8ff 100%); }
+.member-page { position: relative; min-height: 100vh; overflow: hidden; display: grid; place-items: center; padding: 40px 20px; color: #1f2937; background: linear-gradient(135deg, #eef5ff 0%, #f7faff 55%, #edfafa 100%); }
 .member-shell { position: relative; z-index: 1; width: min(100%, 430px); }
-.member-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; color: #252b4e; font-size: 20px; font-weight: 800; }
-.member-brand :deep(.logo-mark) { color: #7659df; }
-.member-card { padding: 36px; border: 1px solid rgba(255,255,255,.8); border-radius: 22px; background: rgba(255,255,255,.88); box-shadow: 0 24px 70px rgba(69,66,126,.15); backdrop-filter: blur(20px); }
-.member-card__heading { margin-bottom: 26px; text-align: center; }.member-kicker { color: #7659df; font-size: 10px; font-weight: 800; letter-spacing: .15em; }.member-card h1 { margin: 11px 0 8px; color: #202846; font-size: 28px; letter-spacing: -.04em; }.member-card p { margin: 0; color: #8992a9; font-size: 13px; line-height: 1.7; }
-.member-submit { width: 100%; margin-top: 8px; border: 0; border-radius: 10px; background: linear-gradient(100deg, #6954dc, #8b6de8); }.member-card__footer { display: flex; justify-content: center; gap: 5px; margin-top: 22px; color: #929bb0; font-size: 12px; }.member-card__footer a,.member-back { color: #7659df; font-weight: 700; }.member-back { display: block; margin-top: 20px; text-align: center; font-size: 12px; }.member-decoration { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .55; }.member-decoration--one { width: 360px; height: 360px; top: -150px; right: -100px; background: #d9d0ff; }.member-decoration--two { width: 280px; height: 280px; bottom: -100px; left: -90px; background: #ccecff; }
+.member-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; color: #1f2937; font-size: 20px; font-weight: 800; }
+.member-brand :deep(.logo-mark) { color: #1677ff; }
+.member-card { padding: 36px; border: 1px solid rgba(255,255,255,.8); border-radius: 14px; background: rgba(255,255,255,.92); box-shadow: 0 18px 48px rgba(31,41,55,.12); backdrop-filter: blur(20px); }
+.member-card__heading { margin-bottom: 26px; text-align: center; }.member-kicker { color: #1677ff; font-size: 10px; font-weight: 800; letter-spacing: .15em; }.member-card h1 { margin: 11px 0 8px; color: #1f2937; font-size: 28px; letter-spacing: -.04em; }.member-card p { margin: 0; color: #6b7280; font-size: 13px; line-height: 1.7; }
+.member-submit { width: 100%; margin-top: 8px; border: 0; border-radius: 8px; background: #1677ff; }.member-card__footer { display: flex; justify-content: center; gap: 5px; margin-top: 22px; color: #6b7280; font-size: 12px; }.member-card__footer a,.member-back { color: #1677ff; font-weight: 700; }.member-back { display: block; margin-top: 20px; text-align: center; font-size: 12px; }.member-decoration { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .55; }.member-decoration--one { width: 360px; height: 360px; top: -150px; right: -100px; background: #cfe2ff; }.member-decoration--two { width: 280px; height: 280px; bottom: -100px; left: -90px; background: #cceff0; }
 @media (max-width: 520px) { .member-card { padding: 28px 22px; } }
 </style>

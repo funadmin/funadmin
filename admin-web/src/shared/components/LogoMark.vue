@@ -65,12 +65,12 @@ const maskId = useId();
 <style scoped>
 /*
  * 扁平化规范：
- * - 纯实色（violet-600 #7C3AED，现代 SaaS 主流紫，比纯蓝有性格）
+ * - 纯实色（blue-600 #1677FF，Ant Design Pro 风格主色）
  * - 零阴影、零渐变、零滤镜
  * - color 跟随主题：外层包一层 .logo-mark { color: var(--brand) } 即可换色
  */
 .logo-mark {
-  color: #7c3aed;
+  color: #1677ff;
   display: block;
 }
 </style>

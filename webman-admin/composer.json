@@ -52,7 +52,8 @@
     "ramsey/uuid": "^4.9",
     "webman/limiter": "^2.2",
     "webman/cors": "^1.0",
-    "mcp/sdk": "^0.8.1"
+    "mcp/sdk": "^0.8.1",
+    "webman/redis-queue": "^2.1"
   },
   "require-dev": {
     "phpunit/phpunit": "^13.0"

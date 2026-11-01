@@ -69,7 +69,7 @@ final class AdminAuth
     {
         try {
             (new BrowserAuthService())->logout($this->cookie($request), $request->header('x-csrf-token', ''));
-            return $this->result(null, '退出成功')->cookie(BrowserAuthService::COOKIE, '', time() - 3600, '/admin', '', $this->secure(), true, 'Lax');
+            return $this->result(null, '退出成功')->cookie(BrowserAuthService::COOKIE, '', 0, '/admin', '', $this->secure(), true, 'Lax');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());
         }
@@ -87,7 +87,7 @@ final class AdminAuth
 
     private function attachCookie(Response $response, array $session): Response
     {
-        return $response->cookie(BrowserAuthService::COOKIE, $session['cookie'], 0, '/admin', '', $this->secure(), true, 'Lax')
+        return $response->cookie(BrowserAuthService::COOKIE, $session['cookie'], null, '/admin', '', $this->secure(), true, 'Lax')
             ->withHeader('X-CSRF-TOKEN', $session['csrfToken']);
     }
 

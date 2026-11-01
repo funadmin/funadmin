@@ -89,7 +89,7 @@ export function useChartTheme(): {
   const tokens = computed<ChartTokens>(() => {
     void tick.value;
 
-    const primary = readVar('--el-color-primary', '#5D87FF');
+    const primary = readVar('--el-color-primary', '#1677ff');
     const success = readVar('--el-color-success', '#22c55e');
     const warning = readVar('--el-color-warning', '#f59e0b');
     const danger = readVar('--el-color-danger', '#ef4444');
@@ -111,7 +111,7 @@ export function useChartTheme(): {
       border,
       cardBg,
       primaryAlpha: (a: number) => toRgba(primary, a),
-      palette: [primary, success, warning, danger, '#8b5cf6', '#0ea5e9', '#ec4899'],
+      palette: [primary, success, warning, danger, '#08979c', '#0ea5e9', '#64748b'],
       isDark
     };
   });

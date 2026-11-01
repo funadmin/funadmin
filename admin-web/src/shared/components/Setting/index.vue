@@ -127,7 +127,7 @@
             :model-value="appStore.primaryColor"
             size="small"
             class="setting__color-picker"
-            @change="(v: string | null) => appStore.setPrimaryColor(v || '#6366f1')"
+            @change="(v: string | null) => appStore.setPrimaryColor(v || '#1677ff')"
           />
         </div>
       </div>
@@ -404,8 +404,8 @@ const menuThemes = computed(() => {
 
 /** 系统主题色（柔和清新风格） */
 const colors = [
-  '#5D87FF', // 雅致 清新蓝（默认）
-  '#a78bfa', // 淡紫
+  '#1677ff', // 雅致 清新蓝（默认）
+  '#13c2c2', // 青色
   '#2563eb', // 宝蓝
   '#10b981', // 翠绿
   '#38bdf8', // 天青

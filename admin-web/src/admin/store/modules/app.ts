@@ -32,13 +32,13 @@ export interface PresetThemeConfig {
 
 /** 预设主题方案：一键切换氛围 */
 export const PRESET_THEMES: PresetThemeConfig[] = [
-  { value: 'elegant',  label: i18n.global.t('setting.preset.elegant.label', '雅致'),  desc: i18n.global.t('setting.preset.elegant.desc', '浅色 + 清新蓝'),  themeMode: 'light', primaryColor: '#5D87FF', menuTheme: 'light' },
+  { value: 'elegant',  label: i18n.global.t('setting.preset.elegant.label', '雅致'),  desc: i18n.global.t('setting.preset.elegant.desc', '浅色 + 清新蓝'),  themeMode: 'light', primaryColor: '#1677ff', menuTheme: 'light' },
   { value: 'fresh',    label: i18n.global.t('setting.preset.fresh.label', '清新'),    desc: i18n.global.t('setting.preset.fresh.desc', '浅色 + 青蓝'),    themeMode: 'light', primaryColor: '#13c2c2', menuTheme: 'light' },
   { value: 'classic',  label: i18n.global.t('setting.preset.classic.label', '经典'),  desc: i18n.global.t('setting.preset.classic.desc', '深色侧栏 + 蓝'),  themeMode: 'light', primaryColor: '#1677ff', menuTheme: 'dark'  },
   { value: 'minimal',  label: i18n.global.t('setting.preset.minimal.label', '极简'),  desc: i18n.global.t('setting.preset.minimal.desc', '浅色 + 石墨'),    themeMode: 'light', primaryColor: '#0f172a', menuTheme: 'light' },
-  { value: 'vibrant',  label: i18n.global.t('setting.preset.vibrant.label', '活力'),  desc: i18n.global.t('setting.preset.vibrant.desc', '清新渐变 + 紫'),  themeMode: 'light', primaryColor: '#8b5cf6', menuTheme: 'fresh' },
-  { value: 'sunset',   label: i18n.global.t('setting.preset.sunset.label', '暖阳'),   desc: i18n.global.t('setting.preset.sunset.desc', '浅色 + 橙红'),    themeMode: 'light', primaryColor: '#f97316', menuTheme: 'light' },
-  { value: 'midnight', label: i18n.global.t('setting.preset.midnight.label', '暗夜'), desc: i18n.global.t('setting.preset.midnight.desc', '深色 + 蓝紫'),   themeMode: 'dark',  primaryColor: '#6366f1', menuTheme: 'dark'  }
+  { value: 'vibrant',  label: i18n.global.t('setting.preset.vibrant.label', '活力'),  desc: i18n.global.t('setting.preset.vibrant.desc', '清新渐变 + 蓝'),  themeMode: 'light', primaryColor: '#2f80ed', menuTheme: 'light' },
+  { value: 'sunset',   label: i18n.global.t('setting.preset.sunset.label', '暖阳'),   desc: i18n.global.t('setting.preset.sunset.desc', '浅色 + 橙红'),   themeMode: 'light', primaryColor: '#f97316', menuTheme: 'light' },
+  { value: 'midnight', label: i18n.global.t('setting.preset.midnight.label', '暗夜'), desc: i18n.global.t('setting.preset.midnight.desc', '深色 + 蓝'),     themeMode: 'dark',  primaryColor: '#1677ff', menuTheme: 'dark'  }
 ];
 
 interface AppState {
@@ -127,7 +127,7 @@ export const useAppStore = defineStore('app', {
     _savedLayoutMode: null,
     // 默认：雅致风格
     themeMode: 'light',
-    primaryColor: '#5D87FF',
+    primaryColor: '#1677ff',
     locale: 'zh-CN',
     layoutMode: 'vertical',
     menuTheme: 'light',
@@ -338,7 +338,7 @@ export const useAppStore = defineStore('app', {
       const LEGACY_DEFAULT_PRIMARIES = ['#2c7be5', '#165dff'];
       const current = (this.primaryColor || '').toLowerCase();
       if (LEGACY_DEFAULT_PRIMARIES.includes(current)) {
-        this.primaryColor = '#5D87FF';
+        this.primaryColor = '#1677ff';
       }
     },
 
@@ -346,7 +346,7 @@ export const useAppStore = defineStore('app', {
     resetSettings() {
       this.preset = 'elegant';
       this.themeMode = 'light';
-      this.primaryColor = '#5D87FF';
+      this.primaryColor = '#1677ff';
       this.layoutMode = 'vertical';
       this.menuTheme = 'light';
       this.showTabs = true;
