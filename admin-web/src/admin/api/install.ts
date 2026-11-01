@@ -3,7 +3,7 @@ import type { EnvironmentCheck, InstallForm } from '@/views/install/install';
 import { i18n } from '@/locales';
 
 export const installHttp = axios.create({
-  baseURL: '/install.php/index',
+  baseURL: import.meta.env.VITE_APP_BACKEND === 'webman' ? '/install/index' : '/install.php/index',
   timeout: 120_000,
   withCredentials: true,
   headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -12,7 +12,11 @@ export const installHttp = axios.create({
 installHttp.interceptors.response.use(
   (response) => {
     const payload = response.data as API.Response;
-    if (payload.code === 200) return payload.data;
+    if (payload.code === 200) {
+      const token = (payload.data as { csrfToken?: string } | null)?.csrfToken;
+      if (token) installHttp.defaults.headers.common['X-CSRF-TOKEN'] = token;
+      return payload.data;
+    }
     return Promise.reject(new Error(payload.msg || i18n.global.t('install.requestFailed', '安装请求失败')));
   },
   (error) => {
@@ -24,6 +28,7 @@ installHttp.interceptors.response.use(
 
 export interface InstallEnvironment {
   installed: boolean;
+  csrfToken?: string;
   siteName: string;
   siteVersion: string;
   checks: Array<EnvironmentCheck & {
@@ -35,7 +40,7 @@ export interface InstallEnvironment {
 
 export interface InstallResult {
   username: string;
-  password: string;
+  password?: string;
   backend: string;
 }
 
@@ -54,7 +59,8 @@ export const isSystemInstalled = (): Promise<boolean> => {
 
 export const installApi = {
   environment: () => installHttp.get<never, InstallEnvironment>('/step2'),
-  install: (form: InstallForm) => installHttp.post<never, InstallResult>('/step3', {
+  install: async (form: InstallForm) => {
+    const result = await installHttp.post<never, InstallResult>('/step3', {
     hostname: form.hostname,
     port: form.port,
     database: form.database,
@@ -66,6 +72,9 @@ export const installApi = {
     rePassword: form.rePassword,
     email: form.email,
     app_debug: form.appDebug ? 1 : 0
-  }),
-  finish: () => installHttp.post<never, InstallResult>('/step4')
+    });
+    installedCache = Promise.resolve(true);
+    return result;
+  },
+  finish: () => installHttp.post<never, { installed: boolean; backend: string }>('/step4')
 };

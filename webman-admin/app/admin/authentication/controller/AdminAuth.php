@@ -8,18 +8,24 @@ use app\admin\authentication\service\BrowserAuthService;
 use DomainException;
 use support\Request;
 use support\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 
 /**
  * Admin Web 认证 HTTP 适配层。
  */
+#[RouteGroup('/admin/auth')]
 final class AdminAuth
 {
+    #[Get('/csrf')]
     public function csrf(Request $request): Response
     {
         $session = (new BrowserAuthService())->bootstrap($this->cookie($request));
         return $this->attachCookie($this->result(['csrfToken' => $session['csrfToken'], 'captchaEnabled' => false]), $session);
     }
 
+    #[Post('/login')]
     public function login(Request $request): Response
     {
         try {
@@ -36,6 +42,7 @@ final class AdminAuth
         }
     }
 
+    #[Get('/me')]
     public function me(Request $request): Response
     {
         try {
@@ -46,6 +53,7 @@ final class AdminAuth
         }
     }
 
+    #[Get('/menus')]
     public function menus(Request $request): Response
     {
         try {
@@ -56,6 +64,7 @@ final class AdminAuth
         }
     }
 
+    #[Post('/logout')]
     public function logout(Request $request): Response
     {
         try {

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace app\admin\development\command;
 
 use app\common\crud\CrudGenerator;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'crud:preview')]
 final class CrudPreview extends Command
 {
     use CrudCommandSupport;
@@ -24,13 +27,13 @@ final class CrudPreview extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $plan = (new CrudGenerator(app()->getRootPath()))->plan($this->loadDefinition((string) $input->getArgument('definition')));
+            $plan = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->plan($this->loadDefinition((string) $input->getArgument('definition')));
             $token = (string) ($plan['confirmToken'] ?? '');
             unset($plan['confirmToken']);
             $output->writeln($this->json(['plan' => $plan, 'sensitive' => ['confirmToken' => $token]]));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

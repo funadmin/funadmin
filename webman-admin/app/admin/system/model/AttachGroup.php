@@ -1,5 +1,4 @@
 <?php
-
 /**
  * FunAdmin
  * ============================================================================
@@ -11,12 +10,16 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace app\admin\model;
 
 
+namespace app\admin\system\model;
+
+
+use app\admin\model\BackendModel;
 use app\common\model\concern\LaravelSoftDelete;
 
-class MemberGroup extends BackendModel {
+class AttachGroup extends BackendModel
+{
 
     /**
      * @var bool
@@ -24,12 +27,11 @@ class MemberGroup extends BackendModel {
     use LaravelSoftDelete;
 
 
-    
-
 
     public function __construct(array $data = [])
     {
         parent::__construct($data);
     }
+
 
 }

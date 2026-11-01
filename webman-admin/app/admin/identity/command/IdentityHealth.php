@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace app\admin\identity\command;
 
 use app\common\service\identity\IdentityOperationsService;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
-use think\console\input\Option;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'identity:health')]
 final class IdentityHealth extends Command
 {
     protected function configure(): void
@@ -29,7 +32,7 @@ final class IdentityHealth extends Command
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
             return ($result['healthy'] ?? false) ? 0 : 2;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

@@ -11,7 +11,7 @@ use app\admin\middleware\SystemLog;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroupDepartment;
-use app\admin\model\Department;
+use app\admin\authorization\model\Department;
 use app\admin\authorization\service\RoleScopeService;
 use app\admin\authorization\service\DataScopeService;
 use think\annotation\route\Delete;

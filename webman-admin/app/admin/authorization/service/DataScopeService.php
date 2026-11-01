@@ -8,7 +8,7 @@ use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupDepartment;
-use app\admin\model\Department;
+use app\admin\authorization\model\Department;
 use app\admin\authorization\service\RoleScopeService;
 
 /**

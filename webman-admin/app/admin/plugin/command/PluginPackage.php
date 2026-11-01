@@ -6,14 +6,18 @@ namespace app\admin\plugin\command;
 
 use app\admin\plugin\service\PluginPackageService;
 use app\common\plugin\sdk\PluginArchiveService;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use support\Container;
 use Throwable;
 
 /** 创建确定性插件包并通过安装暂存链重验。 */
+#[AsCommand(name: 'plugin:package')]
 final class PluginPackage extends Command
 {
     protected function configure(): void
@@ -26,20 +30,20 @@ final class PluginPackage extends Command
 
     protected function execute(Input $input, Output $output): int
     {
-        $packageService = app(PluginPackageService::class);
         try {
+            $packageService = Container::get(PluginPackageService::class);
             $keyFile = (string) $input->getOption('sign-key-file');
             $secretKey = '';
             if ($keyFile !== '') {
                 $realKey = realpath($keyFile);
-                $pluginsRoot = realpath(root_path('plugins'));
+                $pluginsRoot = realpath(base_path('plugins'));
                 if ($realKey === false || !is_file($realKey) || !is_readable($realKey)
                     || ($pluginsRoot !== false && str_starts_with($realKey, $pluginsRoot . DIRECTORY_SEPARATOR))) {
                     throw new \RuntimeException('签名私钥必须是插件目录外的可读文件');
                 }
                 $secretKey = (string) file_get_contents($realKey);
             }
-            $archive = new PluginArchiveService(root_path('plugins'), static function (string $file) use ($packageService, $secretKey): void {
+            $archive = new PluginArchiveService(base_path('plugins'), static function (string $file) use ($packageService, $secretKey): void {
                 if ($secretKey !== '') $packageService->signLocalArchive($file, $secretKey);
                 // 无密钥时只生成开发包，不能作为可信本地包安装。
                 $staged = $packageService->stage($file, '', '', $secretKey !== '');
@@ -52,7 +56,7 @@ final class PluginPackage extends Command
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

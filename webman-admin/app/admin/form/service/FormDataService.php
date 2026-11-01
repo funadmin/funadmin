@@ -18,7 +18,7 @@ use app\admin\form\model\FormSchemaVersion;
 use app\admin\form\repository\FormSchemaRepository;
 use app\admin\development\model\BusinessModule;
 use app\admin\authentication\model\Admin;
-use app\admin\model\Department;
+use app\admin\authorization\model\Department;
 use app\admin\authorization\service\DataScopeService;
 use Closure;
 use InvalidArgumentException;

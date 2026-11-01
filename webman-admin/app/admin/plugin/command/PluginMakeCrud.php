@@ -6,13 +6,16 @@ namespace app\admin\plugin\command;
 
 use app\common\crud\PluginCrudDefinitionFactory;
 use app\admin\development\service\DevCrudService;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'plugin:make-crud')]
 final class PluginMakeCrud extends Command
 {
     protected function configure(): void
@@ -29,7 +32,7 @@ final class PluginMakeCrud extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $root = app()->getRootPath();
+            $root = base_path() . DIRECTORY_SEPARATOR;
             $connection = (string) $input->getOption('connection');
             $table = (string) $input->getOption('table');
             $inspection = (new DevCrudService($root, (array) config('crud.connections', [])))->infer($connection, $table);
@@ -50,7 +53,7 @@ final class PluginMakeCrud extends Command
             $output->writeln(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

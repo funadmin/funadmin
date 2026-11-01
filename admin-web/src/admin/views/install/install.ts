@@ -30,7 +30,10 @@ export const canContinueInstallation = (checks: EnvironmentCheck[]) =>
 export const validateInstallForm = (form: InstallForm): string => {
   if (!form.hostname.trim() || !form.port.trim() || !form.database.trim()) return i18n.global.t('install.validation.dbIncomplete', '数据库配置不完整');
   if (!form.adminUserName.trim()) return i18n.global.t('install.validation.adminRequired', '管理员账号不能为空');
-  if (!/^[A-Za-z0-9_$]{6,16}$/.test(form.adminPassword)) return i18n.global.t('install.validation.passwordLength', '管理员密码必须为6-16位');
+  if (import.meta.env.VITE_APP_BACKEND === 'webman') {
+    const bytes = new TextEncoder().encode(form.adminPassword).length;
+    if (bytes < 12 || bytes > 72) return i18n.global.t('install.validation.webmanPasswordLength', '管理员密码需为12～72字节');
+  } else if (!/^[A-Za-z0-9_$]{6,16}$/.test(form.adminPassword)) return i18n.global.t('install.validation.passwordLength', '管理员密码必须为6-16位');
   if (!/[A-Za-z]/.test(form.adminPassword) || !/[0-9]/.test(form.adminPassword)) return i18n.global.t('install.validation.passwordAlphaNum', '管理员密码必须同时包含字母和数字');
   if (form.adminPassword !== form.rePassword) return i18n.global.t('install.validation.passwordMismatch', '两次输入密码不一致');
   if (form.email.length > 60) return i18n.global.t('install.validation.emailTooLong', '管理员邮箱不能超过60个字符');

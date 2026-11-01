@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AxiosResponse } from 'axios';
 import { installApi, installHttp } from '@/api/install';
+import { vi } from 'vitest';
 
 /* 用自定义 adapter 模拟后端响应，不发起真实请求 */
 function stub(status: number, body: unknown) {
@@ -9,6 +10,16 @@ function stub(status: number, body: unknown) {
 }
 
 describe('安装接口客户端', () => {
+  it('Webman 使用原生安装路由并携带环境检测返回的 CSRF', async () => {
+    vi.stubEnv('VITE_APP_BACKEND', 'webman');
+    vi.resetModules();
+    const client = await import('@/api/install');
+    expect(client.installHttp.defaults.baseURL).toBe('/install/index');
+    client.installHttp.defaults.adapter = async (config) => ({ data: { code: 200, data: { csrfToken: 'test-csrf', installed: false } }, status: 200, statusText: 'OK', headers: {}, config });
+    await client.installApi.environment();
+    expect(client.installHttp.defaults.headers.common['X-CSRF-TOKEN']).toBe('test-csrf');
+    vi.unstubAllEnvs();
+  });
   it('2xx 且 code=200 时解包 data', async () => {
     stub(200, { code: 200, msg: 'ok', data: { installed: false } });
     await expect(installApi.environment()).resolves.toEqual({ installed: false });

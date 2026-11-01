@@ -6,13 +6,16 @@ namespace app\admin\plugin\command;
 
 use app\admin\development\command\CrudCommandSupport;
 use app\common\crud\CrudGenerator;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'plugin:crud-preview')]
 final class PluginCrudPreview extends Command
 {
     use CrudCommandSupport;
@@ -31,14 +34,14 @@ final class PluginCrudPreview extends Command
             if (($definition->get('target')['type'] ?? '') !== 'plugin') {
                 throw new \InvalidArgumentException('plugin:crud-preview 仅接受插件 target');
             }
-            $plan = (new CrudGenerator(app()->getRootPath()))->plan($definition);
+            $plan = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->plan($definition);
             $token = (string) ($plan['confirmToken'] ?? '');
             unset($plan['confirmToken']);
             $this->writeToken((string) $input->getOption('token-output'), $token);
             $output->writeln($this->json(['plan' => $plan, 'tokenFile' => (string) $input->getOption('token-output')]));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

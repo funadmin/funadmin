@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace app\admin\ai\command;
 
 use app\admin\ai\service\AiChangeSetTransactionService;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 按 WAL hash 证明恢复 AI ChangeSet。 */
+#[AsCommand(name: 'ai:change-set-recover')]
 final class AiChangeSetRecover extends Command
 {
     protected function configure(): void
@@ -24,12 +27,12 @@ final class AiChangeSetRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $service = new AiChangeSetTransactionService(root_path(), (string) config('ai.storage.private_path'));
+            $service = new AiChangeSetTransactionService(base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'));
             $result = $service->recover(trim((string) $input->getArgument('transaction')));
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

@@ -120,6 +120,15 @@ final class MarketAccountService
         Session::regenerate(true);
     }
 
+    public function profile(int $memberId): ?array
+    {
+        $member = Member::where('id', $memberId)
+            ->where('status', 1)
+            ->field('id,username,nickname,email,mobile,avatar,motto,created_at,last_login')
+            ->find();
+        return $member?->toArray();
+    }
+
     public function updateProfile(int $memberId, array $input): void
     {
         $nickname = trim((string) ($input['nickname'] ?? ''));

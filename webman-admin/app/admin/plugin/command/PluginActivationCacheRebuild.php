@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace app\admin\plugin\command;
 
 use app\admin\plugin\service\PluginService;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use support\Container;
 
 /** 手动重建可信插件激活状态清单。 */
+#[AsCommand(name: 'plugin:activation-cache')]
 final class PluginActivationCacheRebuild extends Command
 {
     protected function configure(): void
@@ -19,7 +22,7 @@ final class PluginActivationCacheRebuild extends Command
 
     protected function execute(Input $input, Output $output): int
     {
-        app(PluginService::class)->refreshActivationCache();
+        Container::get(PluginService::class)->refreshActivationCache();
         $output->writeln('<info>可信插件激活状态清单已重建</info>');
         return 0;
     }

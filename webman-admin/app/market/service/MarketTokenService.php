@@ -43,6 +43,31 @@ final class MarketTokenService
         });
     }
 
+    public function memberId(string $accessToken): ?int
+    {
+        if (!$this->wellFormed($accessToken)) {
+            return null;
+        }
+        $row = Db::name('market_token')
+            ->where('access_hash', hash('sha256', $accessToken))
+            ->whereNull('revoked_at')
+            ->find();
+        if (!$row || (int) $row['access_expires_at'] <= time()) {
+            return null;
+        }
+        return (int) $row['member_id'];
+    }
+
+    public function revoke(string $accessToken): void
+    {
+        if (!$this->wellFormed($accessToken)) {
+            return;
+        }
+        Db::name('market_token')
+            ->where('access_hash', hash('sha256', $accessToken))
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => date('Y-m-d H:i:s')]);
+    }
     /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
     public function authenticate(string $accessToken): ?array
     {

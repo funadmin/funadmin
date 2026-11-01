@@ -10,7 +10,8 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace app\admin\model;
+namespace app\admin\system\model;
+use app\admin\model\BackendModel;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\traits\AdminDataFormat;
 use app\common\model\concern\LaravelSoftDelete;

@@ -60,6 +60,15 @@ export default defineConfig(({ mode }) => {
               changeOrigin: true,
               ws: true
             },
+            '^/api(?:/|$)': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true,
+              ws: true
+            },
+            '^/install(?:/|$)': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
+            },
             '/install.php': {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true

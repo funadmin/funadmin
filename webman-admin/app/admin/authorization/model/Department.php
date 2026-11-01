@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\admin\model;
+namespace app\admin\authorization\model;
 
+use app\admin\model\BackendModel;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleScopeService;
 use app\admin\traits\AdminDataFormat;

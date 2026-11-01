@@ -8,7 +8,7 @@ use app\admin\controller\base\AdminApiController;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
-use app\admin\model\AttachGroup;
+use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;

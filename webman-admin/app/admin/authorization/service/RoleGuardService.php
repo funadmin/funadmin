@@ -6,7 +6,7 @@ namespace app\admin\authorization\service;
 
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
-use app\admin\model\Department;
+use app\admin\authorization\model\Department;
 use app\admin\authentication\model\Admin;
 use InvalidArgumentException;
 

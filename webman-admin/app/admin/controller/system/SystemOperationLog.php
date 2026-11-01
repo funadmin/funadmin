@@ -7,7 +7,7 @@ namespace app\admin\controller\system;
 use app\admin\controller\base\AdminApiController;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
-use app\admin\model\AdminLog;
+use app\admin\system\model\AdminLog;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;

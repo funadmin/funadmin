@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace app\admin\development\command;
 
 use app\common\crud\DefinitionValidator;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'crud:validate')]
 final class CrudValidate extends Command
 {
     use CrudCommandSupport;
@@ -25,11 +28,11 @@ final class CrudValidate extends Command
     {
         try {
             $definition = $this->loadDefinition((string) $input->getArgument('definition'));
-            (new DefinitionValidator())->validate($definition, app()->getRootPath());
+            (new DefinitionValidator())->validate($definition, base_path() . DIRECTORY_SEPARATOR);
             $output->writeln($this->json(['valid' => true, 'definitionHash' => $definition->hash()]));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

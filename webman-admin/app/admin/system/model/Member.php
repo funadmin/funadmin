@@ -11,9 +11,15 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace app\admin\model;
+namespace app\admin\system\model;
 
 
+use app\admin\model\BackendModel;
+use app\admin\system\model\MemberTag;
+use app\admin\system\model\MemberGroup;
+use app\admin\system\model\MemberLevel;
+use app\admin\system\model\MemberGroupRelation;
+use app\admin\system\model\MemberTagRelation;
 use app\admin\traits\AdminDataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 

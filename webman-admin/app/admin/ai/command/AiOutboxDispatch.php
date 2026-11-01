@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace app\admin\ai\command;
 
 use app\admin\ai\service\AiOutboxDispatcher;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 投递审批恢复 outbox，可由常驻进程或计划任务重复执行。 */
+#[AsCommand(name: 'ai:outbox-dispatch')]
 final class AiOutboxDispatch extends Command
 {
     protected function configure(): void
@@ -24,7 +27,7 @@ final class AiOutboxDispatch extends Command
             $output->writeln(json_encode(['dispatched'=>AiOutboxDispatcher::database()->dispatch()], JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

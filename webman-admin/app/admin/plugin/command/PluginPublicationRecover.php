@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace app\admin\plugin\command;
 
 use app\admin\plugin\service\PluginInfrastructureService;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 检查并恢复插件 publication journal。 */
+#[AsCommand(name: 'plugin:publication-recover')]
 final class PluginPublicationRecover extends Command
 {
     protected function configure(): void
@@ -27,16 +30,14 @@ final class PluginPublicationRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            // publication journal 由 admin 应用（Web 请求）写入 runtime/admin/plugins，
-            // CLI 默认 runtime 路径不同，必须先对齐再检查或恢复。
-            app()->setRuntimePath(root_path('runtime') . 'admin' . DIRECTORY_SEPARATOR);
+            // Webman 的 CLI 与 Web 请求共用 runtime_path()，不切换历史 TP8 应用路径。
             $infrastructure = new PluginInfrastructureService();
             $publisher = $infrastructure->appPublisher();
             $token = trim((string) $input->getArgument('token'));
             $all = (bool) $input->getOption('all-stale');
             $inspect = (bool) $input->getOption('inspect');
             if ($token === '' && !$all) {
-                $output->error('请提供 token 或 --all-stale');
+                (new SymfonyStyle($input, $output))->error('请提供 token 或 --all-stale');
                 return 1;
             }
             if ($token !== '') {
@@ -59,7 +60,7 @@ final class PluginPublicationRecover extends Command
             $output->writeln(json_encode($results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

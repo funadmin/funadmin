@@ -6,13 +6,16 @@ namespace app\admin\plugin\command;
 
 use app\admin\development\command\CrudCommandSupport;
 use app\common\crud\CrudGenerator;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
+#[AsCommand(name: 'plugin:crud-generate')]
 final class PluginCrudGenerate extends Command
 {
     use CrudCommandSupport;
@@ -31,7 +34,7 @@ final class PluginCrudGenerate extends Command
             if (($definition->get('target')['type'] ?? '') !== 'plugin') {
                 throw new \InvalidArgumentException('plugin:crud-generate 仅接受插件 target');
             }
-            $result = (new CrudGenerator(app()->getRootPath()))->generate(
+            $result = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->generate(
                 $definition,
                 $this->readToken((string) $input->getOption('confirm-token-file')),
                 [],
@@ -41,7 +44,7 @@ final class PluginCrudGenerate extends Command
             $output->writeln($this->json($result));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

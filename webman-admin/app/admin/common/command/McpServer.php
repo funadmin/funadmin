@@ -14,22 +14,26 @@
 namespace app\admin\common\command;
 
 use app\common\service\McpService;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
-use think\console\input\Argument;
-use think\console\input\Option;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use support\Container;
 
 /**
  * MCP服务器命令行工具
  * 用于启动和管理MCP服务器
  */
+#[AsCommand(name: 'mcp')]
 class McpServer extends Command
 {
     /**
      * 配置命令
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('mcp')
             ->setDescription('启动MCP(Model Context Protocol)服务器')
@@ -44,7 +48,7 @@ class McpServer extends Command
      * @param Output $output
      * @return int
      */
-    protected function execute(Input $input, Output $output)
+    protected function execute(Input $input, Output $output): int
     {
         $action = $input->getArgument('action');
 
@@ -56,7 +60,7 @@ class McpServer extends Command
                 return $this->showInfo($input, $output);
                 
             default:
-                $output->error("未知的操作: {$action}");
+                (new SymfonyStyle($input, $output))->error("未知的操作: {$action}");
                 return 1;
         }
     }
@@ -69,26 +73,26 @@ class McpServer extends Command
      */
     protected function startServer(Input $input, Output $output): int
     {
+        $io = new SymfonyStyle($input, $output);
         try {
             $transport = $input->getOption('transport');
-            $mcpService = app(McpService::class);
+            $mcpService = Container::get(McpService::class);
 
 
             if ($transport !== 'stdio') {
-                $output->error("不支持的传输协议: {$transport}");
-                $output->info('官方 SDK 的 HTTP transport 需要由 PSR-7 Web 入口逐请求接入，不能在 CLI 内直接监听端口');
+                $io->error("不支持的传输协议: {$transport}");
+                $io->info('官方 SDK 的 HTTP transport 需要由 PSR-7 Web 入口逐请求接入，不能在 CLI 内直接监听端口');
                 return 1;
             }
             if (PHP_OS_FAMILY === 'Windows') {
-                $output->error('在Windows系统上，STDIO传输不支持非阻塞管道');
+                $io->error('在Windows系统上，STDIO传输不支持非阻塞管道');
                 return 1;
             }
 
             return $mcpService->startWithStdio();
 
-        } catch (\Exception $e) {
-            $output->error('启动MCP服务器失败: ' . $e->getMessage());
-            $output->error('错误详情: ' . $e->getTraceAsString());
+        } catch (\Throwable $e) {
+            $io->error('启动MCP服务器失败: ' . $e->getMessage());
             return 1;
         }
     }
@@ -101,19 +105,20 @@ class McpServer extends Command
      */
     protected function showInfo(Input $input, Output $output): int
     {
+        $io = new SymfonyStyle($input, $output);
         try {
-            $mcpService = McpService::instance();
+            $mcpService = Container::get(McpService::class);
             $serviceInfo = $mcpService->getServiceInfo();
 
-            $output->info('=== FunAdmin MCP服务器信息 ===');
-            $output->info("服务名称: {$serviceInfo['name']}");
-            $output->info("服务版本: {$serviceInfo['version']}");
-            $output->info("工具数量: {$serviceInfo['tools']}");
-            $output->info("资源数量: {$serviceInfo['resources']}");
-            $output->info("服务状态: {$serviceInfo['status']}");
+            $io->info('=== FunAdmin MCP服务器信息 ===');
+            $io->info("服务名称: {$serviceInfo['name']}");
+            $io->info("服务版本: {$serviceInfo['version']}");
+            $io->info("工具数量: {$serviceInfo['tools']}");
+            $io->info("资源数量: {$serviceInfo['resources']}");
+            $io->info("服务状态: {$serviceInfo['status']}");
             
-            $output->info('');
-            $output->info('=== 可用工具 ===');
+            $io->newLine();
+            $io->info('=== 可用工具 ===');
             $tools = [
                 'db-query' => '执行数据库查询操作（仅支持SELECT语句）',
                 'sys-config' => '获取系统配置信息',
@@ -126,29 +131,29 @@ class McpServer extends Command
             ];
             
             foreach ($tools as $name => $description) {
-                $output->info("  - {$name}: {$description}");
+                $io->info("  - {$name}: {$description}");
             }
             
-            $output->info('');
-            $output->info('=== 可用资源 ===');
+            $io->newLine();
+            $io->info('=== 可用资源 ===');
             $resources = [
                 'config://system' => '系统配置信息',
                 'schema://database' => '数据库表结构信息',
             ];
             
             foreach ($resources as $uri => $description) {
-                $output->info("  - {$uri}: {$description}");
+                $io->info("  - {$uri}: {$description}");
             }
             
-            $output->info('');
-            $output->info('=== 使用说明 ===');
-            $output->info('启动STDIO服务器: php think mcp start --transport=stdio');
-            $output->info('查看服务器信息: php think mcp info');
+            $io->newLine();
+            $io->info('=== 使用说明 ===');
+            $io->info('启动STDIO服务器: php webman mcp start --transport=stdio');
+            $io->info('查看服务器信息: php webman mcp info');
 
             return 0;
 
-        } catch (\Exception $e) {
-            $output->error('获取服务器信息失败: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            $io->error('获取服务器信息失败: ' . $e->getMessage());
             return 1;
         }
     }

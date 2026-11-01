@@ -12,8 +12,9 @@
  * Date: 2017/8/2
  */
 
-namespace app\admin\model;
+namespace app\admin\system\model;
 
+use app\admin\model\BackendModel;
 use app\common\model\concern\LaravelSoftDelete;
 
 class MemberLevel extends BackendModel

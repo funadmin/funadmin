@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\admin\model;
+namespace app\admin\system\model;
+
+use app\admin\model\BackendModel;
 
 /**
  * 会员与会员组关联模型。

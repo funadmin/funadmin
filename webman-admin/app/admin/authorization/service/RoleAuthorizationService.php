@@ -10,7 +10,7 @@ use app\admin\authorization\model\AuthGroupFieldPermission;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\model\PermissionField;
-use app\admin\model\Department;
+use app\admin\authorization\model\Department;
 use InvalidArgumentException;
 use think\facade\Cache;
 use think\facade\Db;

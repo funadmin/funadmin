@@ -8,13 +8,16 @@ use app\common\plugin\model\Plugin;
 use app\common\plugin\sdk\DependencyValidator;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Argument;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputArgument as Argument;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 校验插件 Manifest v2 与原生目录约定。 */
+#[AsCommand(name: 'plugin:validate')]
 final class PluginValidate extends Command
 {
     protected function configure(): void
@@ -28,9 +31,9 @@ final class PluginValidate extends Command
         try {
             $name = (string) $input->getArgument('name');
             PluginScaffolder::assertValidName($name);
-            $manifest = Manifest::fromDirectory(root_path('plugins/' . $name));
+            $manifest = Manifest::fromDirectory(base_path('plugins/' . $name));
             $records = [];
-            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
+            foreach (Plugin::whereNull('deleted_at')->get() as $record) {
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,
@@ -46,7 +49,7 @@ final class PluginValidate extends Command
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

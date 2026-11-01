@@ -11,7 +11,7 @@ use app\common\model\SystemMigration;
  */
 class MigrationService extends AbstractService
 {
-    public function run(): array
+    public function run(?string $directory = null): array
     {
         $schema = Db::schema();
         if (!$schema->hasTable('migrations')) {
@@ -23,7 +23,8 @@ class MigrationService extends AbstractService
             });
         }
         $executed = [];
-        $files = glob(base_path() . '/database/migrations/*.php') ?: [];
+        $files = glob(($directory ?? base_path() . '/database/migrations') . '/*.php') ?: [];
+        if (!$files) throw new RuntimeException('数据库迁移文件不存在');
         sort($files);
         foreach ($files as $file) {
             $name = basename($file);

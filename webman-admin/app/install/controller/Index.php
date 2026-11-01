@@ -1,154 +1,153 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\install\controller;
 
-use app\BaseController;
 use app\common\service\InstallSupport;
-use app\common\traits\JsonResponse;
+use DomainException;
+use support\Request;
+use support\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 
-/**
- * 安装向导后端接口（Vue 安装页 /admin-web/#/admin/install 调用）。
- * step2 环境检测 / step3 执行安装 / step4 读取并清理安装结果。
- */
-class Index extends BaseController
+/** 不依赖数据库和后台认证的安装向导。 */
+#[RouteGroup('/install/index')]
+final class Index
 {
-    use JsonResponse;
+    private const COOKIE = 'funadmin_install_csrf';
 
-    /**
-     * 入口：按安装状态引导到 Vue 安装页或登录页。
-     */
-    public function index()
+    #[Get('')]
+    public function index(Request $request): Response
     {
-        $route = file_exists($this->lockFile()) ? 'login' : 'install';
-        return redirect('/admin-web/#/' . $route);
+        return redirect('/admin-web/#/admin/' . ($this->installed() ? 'login' : 'install'));
     }
 
-    /**
-     * 返回 Vue 安装向导所需的运行环境检查结果。
-     * 已安装时只返回安装状态，不暴露服务器环境详情。
-     */
-    public function step2()
+    #[Get('/step2')]
+    public function step2(Request $request): Response
     {
-        if (file_exists($this->lockFile())) {
-            return $this->ok('系统已安装', ['installed' => true]);
-        }
-        return $this->ok('环境检测完成', [
-            'installed' => false,
-            'siteName' => 'FunAdmin',
-            'siteVersion' => config('app.version'),
-            'checks' => $this->buildEnvironmentChecks(),
-        ]);
+        if ($this->installed()) return $this->result(['installed' => true]);
+        $token = $request->cookie(self::COOKIE, '');
+        if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/', $token)) $token = bin2hex(random_bytes(32));
+        return $this->result([
+            'installed' => false, 'siteName' => 'FunAdmin', 'siteVersion' => 'Webman',
+            'csrfToken' => $token, 'checks' => $this->buildEnvironmentChecks(),
+        ], '环境检测完成')->cookie(self::COOKIE, $token, 0, '/install', '', $this->secure(), true, 'Strict');
     }
 
-    /**
-     * 执行安装：校验 → 建库 → 写配置 → 迁移与初始管理员 → 落锁。
-     */
-    public function step3()
+    #[Post('/step3')]
+    public function step3(Request $request): Response
     {
-        if (!request()->isPost()) {
-            return $this->fail('请求方法不正确', code: 405);
-        }
-        if (file_exists($this->lockFile())) {
-            return $this->fail('当前版本已经安装了，如果需要重新安装请先删除install.lock', code: 409);
-        }
-        set_time_limit(0);
-        $input = $this->collectInstallInput();
-        $this->assertEnvironmentReady();
         try {
-            $result = InstallSupport::install(
-                $input['db'],
-                $input['admin'],
-                $input['debug'],
-                root_path()
-            );
-        } catch (\Throwable $e) {
-            return $this->fail($e->getMessage() ?: '安装失败', code: 422);
+            if ($this->installed()) throw new DomainException('系统已安装，禁止重复安装', 409);
+            $this->assertCsrf($request);
+            foreach ($this->buildEnvironmentChecks() as $check) {
+                if ($check['required'] && !$check['passed']) throw new DomainException($check['label'] . '不满足安装要求', 422);
+            }
+            $input = $this->collectInstallInput($request);
+            $result = InstallSupport::install($input['db'], $input['admin'], $input['debug'], base_path());
+            return $this->result($result, '安装成功');
+        } catch (DomainException $error) {
+            return $this->result(null, $error->getMessage(), $error->getCode());
+        } catch (\Throwable) {
+            return $this->result(null, '安装失败，请检查数据库权限、迁移文件及安装目录写入权限', 422);
         }
-        session('admin_install', $result);
-        return $this->ok('安装成功', $result);
     }
 
-    /**
-     * 读取安装结果；POST 时清理安装会话，避免凭据残留。
-     */
-    public function step4()
+    #[Post('/step4')]
+    public function step4(Request $request): Response
     {
-        $admin = session('admin_install');
-        if (!$admin) {
-            return $this->fail('安装信息不存在', code: 404);
+        try {
+            $this->assertCsrf($request);
+            if (!$this->installed()) throw new DomainException('系统尚未完成安装', 409);
+            return $this->result(['installed' => true, 'backend' => '/admin-web/#/admin/login'], '安装完成')
+                ->cookie(self::COOKIE, '', time() - 3600, '/install', '', $this->secure(), true, 'Strict');
+        } catch (DomainException $error) {
+            return $this->result(null, $error->getMessage(), $error->getCode());
         }
-        if (request()->isPost()) {
-            session('admin_install', null);
-        }
-        return $this->ok('安装完成', $admin);
     }
 
-    /**
-     * 组装环境检测项：运行依赖、上传限制与安装目录权限。
-     */
+    private function assertCsrf(Request $request): void
+    {
+        $cookie = $request->cookie(self::COOKIE, '');
+        $header = $request->header('x-csrf-token', '');
+        if (!is_string($cookie) || !is_string($header) || !preg_match('/\A[a-f0-9]{64}\z/', $cookie) || !hash_equals($cookie, $header)) {
+            throw new DomainException('安装安全校验失败，请刷新安装页面后重试', 403);
+        }
+    }
+
+    private function secure(): bool
+    {
+        return filter_var(getenv('COOKIE_SECURE') ?: 'false', FILTER_VALIDATE_BOOL);
+    }
+
+    private function installed(): bool
+    {
+        $lock = InstallSupport::paths(base_path())['lock'];
+        clearstatcache(true, $lock);
+        return is_file($lock);
+    }
+
+    private function result(mixed $data, string $msg = '成功', int $code = 200): Response
+    {
+        return json(compact('code', 'msg', 'data'))->withStatus($code)
+            ->withHeaders(['Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    private function collectInstallInput(Request $request): array
+    {
+        $values = [];
+        foreach (['hostname', 'port', 'database', 'prefix', 'username', 'password', 'adminUserName', 'adminPassword', 'rePassword', 'email'] as $key) {
+            $value = $request->post($key, '');
+            if (!is_string($value)) throw new DomainException('安装配置必须为字符串', 422);
+            $values[$key] = $value;
+        }
+        $debug = filter_var($request->post('app_debug', false), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        if ($debug === null) throw new DomainException('开发模式参数不正确', 422);
+        return [
+            'db' => ['host' => $values['hostname'], 'port' => $values['port'], 'database' => $values['database'], 'prefix' => $values['prefix'], 'username' => $values['username'], 'password' => $values['password']],
+            'admin' => ['username' => $values['adminUserName'], 'password' => $values['adminPassword'], 'repassword' => $values['rePassword'], 'email' => $values['email']],
+            'debug' => $debug,
+        ];
+    }
+
     private function buildEnvironmentChecks(): array
     {
-        $uploadLimit = $this->sizeToBytes((string) ini_get('upload_max_filesize'));
+        $paths = InstallSupport::paths(base_path());
+        $files = glob($paths['migrations'] . '/*.php') ?: [];
+        $migrations = $files !== [];
+        foreach ($files as $file) {
+            if (!is_readable($file)) $migrations = false;
+        }
+        $upload = (string) ini_get('upload_max_filesize');
+        $bytes = (float) $upload * match (strtolower(substr($upload, -1))) { 'g' => 1024 ** 3, 'm' => 1024 ** 2, 'k' => 1024, default => 1 };
         return [
-            $this->environmentCheck('os', '操作系统', '不限', php_uname('s'), true, true),
-            $this->environmentCheck('php', 'PHP 版本', '>= 8.1.0', PHP_VERSION, version_compare(PHP_VERSION, '8.1.0', '>='), true),
-            $this->environmentCheck('php_int', 'PHP 架构', '64 位', PHP_INT_SIZE === 8 ? '64 位' : '32 位', PHP_INT_SIZE === 8, true),
-            $this->environmentCheck('json', 'JSON 扩展', '支持', $this->supportLabel(extension_loaded('json')), extension_loaded('json'), true),
-            $this->environmentCheck('session', 'Session', '支持', $this->supportLabel(function_exists('session_start')), function_exists('session_start'), true),
-            $this->environmentCheck('pdo', 'PDO 扩展', '支持', $this->supportLabel(extension_loaded('PDO')), extension_loaded('PDO'), true),
-            $this->environmentCheck('pdo_mysql', 'PDO MySQL 驱动', '支持', $this->supportLabel(extension_loaded('pdo_mysql')), extension_loaded('pdo_mysql'), true),
-            $this->environmentCheck('mysqli', 'MySQLi 扩展', '支持', $this->supportLabel(extension_loaded('mysqli')), extension_loaded('mysqli'), true),
-            $this->environmentCheck('openssl', 'OpenSSL 扩展', '支持', $this->supportLabel(extension_loaded('openssl')), extension_loaded('openssl'), true),
-            $this->environmentCheck('curl', 'CURL 扩展', '支持', $this->supportLabel(function_exists('curl_exec')), function_exists('curl_exec'), true),
-            $this->environmentCheck('fileinfo', 'Fileinfo 扩展', '支持', $this->supportLabel(extension_loaded('fileinfo')), extension_loaded('fileinfo'), true),
-            $this->environmentCheck('image', '图像扩展', 'GD 或 Imagick', $this->imageDriverLabel(), function_exists('gd_info') || class_exists('Imagick'), true),
-            $this->environmentCheck('freetype', 'FreeType', '支持', $this->supportLabel(function_exists('imageftbbox')), function_exists('imageftbbox'), false),
-            $this->environmentCheck('zip', 'ZIP 扩展', '支持', $this->supportLabel(extension_loaded('zip')), extension_loaded('zip'), false),
-            $this->environmentCheck('upload', '文件上传限制', '>= 10 MB', (string) ini_get('upload_max_filesize'), $uploadLimit >= 10 * 1024 * 1024, false),
-            $this->environmentCheck('runtime', 'runtime 目录', '可写', $this->writableLabel(runtime_path()), $this->isWritable(runtime_path()), true),
-            $this->environmentCheck('public', 'public 目录', '可写', $this->writableLabel(public_path()), $this->isWritable(public_path()), true),
-            $this->environmentCheck('env', '.env 配置', '可写', $this->writableLabel($this->envFile()), $this->isWritable($this->envFile()), true),
-            $this->environmentCheck('migrations', '数据库迁移', '目录可读且包含 SQL', $this->migrationStatus(), $this->hasMigrations(), true),
+            $this->environmentCheck('os', '操作系统', '不限', PHP_OS_FAMILY, true, true),
+            $this->environmentCheck('php', 'PHP 版本', '>= 8.5.0', PHP_VERSION, version_compare(PHP_VERSION, '8.5.0', '>='), true),
+            $this->environmentCheck('php_int', 'PHP 架构', '64 位', (string) (PHP_INT_SIZE * 8) . ' 位', PHP_INT_SIZE === 8, true),
+            $this->extensionCheck('json', 'JSON', true),
+            $this->extensionCheck('pdo', 'PDO', true),
+            $this->extensionCheck('pdo_mysql', 'PDO MySQL', true),
+            $this->extensionCheck('pcntl', 'PCNTL', PHP_OS_FAMILY !== 'Windows'),
+            $this->extensionCheck('mbstring', 'Mbstring', true),
+            $this->extensionCheck('openssl', 'OpenSSL', true),
+            $this->extensionCheck('curl', 'CURL', false),
+            $this->extensionCheck('fileinfo', 'Fileinfo', false),
+            $this->environmentCheck('image', '图像扩展', 'GD 或 Imagick（可选）', extension_loaded('gd') ? 'GD' : (extension_loaded('imagick') ? 'Imagick' : '未安装'), extension_loaded('gd') || extension_loaded('imagick'), false),
+            $this->extensionCheck('zip', 'ZIP', false),
+            $this->environmentCheck('upload', '文件上传限制', '>= 10 MB（可选）', $upload, $bytes >= 10 * 1024 * 1024, false),
+            $this->environmentCheck('runtime', 'runtime 目录', '可写', $this->writableLabel($paths['runtime']), is_writable($paths['runtime']), true),
+            $this->environmentCheck('public', 'public 目录', '可写', $this->writableLabel($paths['public']), is_writable($paths['public']), true),
+            $this->environmentCheck('env', '.env 配置目录', '可原子写入', $this->writableLabel(base_path()), is_writable(base_path()) && (!is_file($paths['env']) || is_writable($paths['env'])), true),
+            $this->environmentCheck('migrations', '数据库迁移', 'PHP 迁移文件可读', $files ? count($files) . ' 个迁移文件' : '无迁移文件', $migrations, true),
         ];
     }
 
-    /**
-     * 收集并归一化表单输入：主机头携带端口时自动拆分。
-     */
-    private function collectInstallInput(): array
+    private function extensionCheck(string $key, string $label, bool $required): array
     {
-        $db = [
-            'host' => request()->post('hostname') ?: '127.0.0.1',
-            'port' => request()->post('port') ?: '3306',
-            'username' => request()->post('username') ?: 'root',
-            'password' => (string) (request()->post('password') ?: 'root'),
-            'database' => request()->post('database') ?: 'funadmin',
-            'prefix' => (string) request()->post('prefix'),
-        ];
-        $db = InstallSupport::normalizeDatabaseInput($db);
-        $admin = [
-            'username' => request()->post('adminUserName') ?: 'admin',
-            'password' => request()->post('adminPassword') ?: '123456',
-            'repassword' => request()->post('rePassword') ?: '123456',
-            'email' => request()->post('email') ?: 'admin@admin.com',
-        ];
-        return ['db' => $db, 'admin' => $admin, 'debug' => (bool) request()->post('app_debug')];
-    }
-
-    /**
-     * 运行环境硬门槛：PHP 版本、数据库扩展与迁移文件。
-     */
-    private function assertEnvironmentReady(): void
-    {
-        if (version_compare(PHP_VERSION, '8.1.0', '<')) {
-            throw new \RuntimeException('当前 PHP 版本 ' . PHP_VERSION . ' 过低，请使用 PHP 8.1.0 以上版本');
-        }
-        if (!extension_loaded('PDO') || !extension_loaded('mysqli')) {
-            throw new \RuntimeException('当前未开启 PDO 或 MySQLi，无法进行安装');
-        }
-        if (!$this->hasMigrations()) {
-            throw new \RuntimeException('数据库迁移文件不存在，无法进行安装');
-        }
+        $passed = extension_loaded($key);
+        return $this->environmentCheck($key, $label . ' 扩展', $required ? '支持' : '支持（可选）', $passed ? '支持' : '未安装', $passed, $required);
     }
 
     private function environmentCheck(string $key, string $label, string $requiredValue, string $currentValue, bool $passed, bool $required): array
@@ -156,92 +155,8 @@ class Index extends BaseController
         return compact('key', 'label', 'requiredValue', 'currentValue', 'passed', 'required');
     }
 
-    /** 安装锁文件，存在即视为已安装 */
-    private function lockFile(): string
+    private function writableLabel(string $path): string
     {
-        return InstallSupport::paths(root_path())['lock'];
-    }
-
-    /** 安装时回写的 .env 文件 */
-    private function envFile(): string
-    {
-        return InstallSupport::paths(root_path())['env'];
-    }
-
-    private function isWritable(string $file): bool
-    {
-        return file_exists($file) ? is_writable($file) : is_writable(dirname($file));
-    }
-
-    private function writableLabel(string $file): string
-    {
-        return $this->isWritable($file) ? '可写' : '不可写';
-    }
-
-    private function supportLabel(bool $supported): string
-    {
-        return $supported ? '支持' : '未安装';
-    }
-
-    private function imageDriverLabel(): string
-    {
-        if (class_exists('Imagick')) {
-            return 'Imagick';
-        }
-        return function_exists('gd_info') ? 'GD' : '未安装';
-    }
-
-    private function sizeToBytes(string $value): int
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return 0;
-        }
-        $unit = strtolower(substr($value, -1));
-        $size = (float) $value;
-        return match ($unit) {
-            'g' => (int) ($size * 1024 * 1024 * 1024),
-            'm' => (int) ($size * 1024 * 1024),
-            'k' => (int) ($size * 1024),
-            default => (int) $size,
-        };
-    }
-
-    private function migrationFiles(): array
-    {
-        $sqlFileDir = InstallSupport::paths(root_path())['migrations'];
-        if (!is_dir($sqlFileDir) || !is_readable($sqlFileDir)) {
-            return [];
-        }
-        return glob($sqlFileDir . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-    }
-
-    private function hasMigrations(): bool
-    {
-        $files = $this->migrationFiles();
-        foreach ($files as $file) {
-            if (!is_readable($file)) {
-                return false;
-            }
-        }
-        return count($files) > 0;
-    }
-
-    private function migrationStatus(): string
-    {
-        $sqlFileDir = InstallSupport::paths(root_path())['migrations'];
-        if (!is_dir($sqlFileDir)) {
-            return '目录不存在';
-        }
-        if (!is_readable($sqlFileDir)) {
-            return '目录不可读';
-        }
-        $files = $this->migrationFiles();
-        foreach ($files as $file) {
-            if (!is_readable($file)) {
-                return basename($file) . ' 不可读';
-            }
-        }
-        return $files ? count($files) . ' 个迁移文件' : '无迁移文件';
+        return is_writable($path) ? '可写' : '不可写';
     }
 }

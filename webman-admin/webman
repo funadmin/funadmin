@@ -50,6 +50,12 @@ if (is_dir($command_path = Util::guessPath(app_path(), '/command', true))) {
     $cli->installCommands($command_path);
 }
 
+// 业务命令保留在模块内，避免为了 CLI 发现而搬回扁平目录。
+foreach (glob(app_path() . '/admin/*/command', GLOB_ONLYDIR) as $command_path) {
+    $namespace = 'app\\admin\\' . basename(dirname($command_path)) . '\\command';
+    $cli->installCommands($command_path, $namespace);
+}
+
 foreach (config('plugin', []) as $firm => $projects) {
     if (isset($projects['app'])) {
         foreach (['', '/app'] as $app) {

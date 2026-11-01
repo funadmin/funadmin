@@ -21,14 +21,22 @@ abstract class ApiController extends BaseController
         return json(['code' => $code, 'msg' => $msg, 'data' => null], $code);
     }
 
-    /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
-    protected function member(): ?array
+    protected function token(): string
     {
         $header = trim((string) $this->request->header('authorization', ''));
-        if (!preg_match('/^Bearer\s+(\S+)$/i', $header, $matches)) {
-            return null;
-        }
-        return (new MarketTokenService())->authenticate($matches[1]);
+        return preg_match('/^Bearer\s+(\S+)$/i', $header, $matches) ? $matches[1] : '';
+    }
+
+    protected function memberId(): ?int
+    {
+        $token = $this->token();
+        return $token === '' ? null : (new MarketTokenService())->memberId($token);
+    }
+
+    /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
+    protected function member(): ?array {
+        $memberId = $this->memberId();
+        return $memberId === null ? null : (new MarketTokenService())->account($memberId);
     }
 
     protected function context(): array

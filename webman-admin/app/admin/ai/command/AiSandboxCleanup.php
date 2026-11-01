@@ -8,12 +8,15 @@ use app\admin\ai\infrastructure\NativeDockerProcessRunner;
 use app\admin\ai\model\AiTask;
 use app\admin\ai\repository\DatabaseAiConversationStore;
 use app\admin\ai\service\AgentSandboxManager;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 运维专用：清理所有管理员名下满足租约与保留策略的 AI sandbox。 */
+#[AsCommand(name: 'ai:sandbox-cleanup')]
 final class AiSandboxCleanup extends Command
 {
     protected function configure(): void
@@ -29,9 +32,9 @@ final class AiSandboxCleanup extends Command
             $tasks = AiTask::whereIn('status', ['failed', 'cancelled', 'succeeded'])
                 ->whereIn('sandbox_status', ['created', 'running', 'exported', 'failed', 'cleaning'])
                 ->where('completed_at', '<=', $cutoff)
-                ->select()->toArray();
+                ->get()->toArray();
             $store = new DatabaseAiConversationStore();
-            $manager = new AgentSandboxManager(new NativeDockerProcessRunner(), root_path(), (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
+            $manager = new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
             $cleaned = $manager->cleanupOrphans(
                 $tasks,
                 $retention,
@@ -44,13 +47,13 @@ final class AiSandboxCleanup extends Command
                 null,
                 static fn (array $task, string $owner, int $expiresAt): bool => AiTask::where('id', (int)$task['id'])
                     ->whereIn('sandbox_status', ['created','running','exported','failed','cleaning'])
-                    ->where(static fn ($query) => $query->whereNull('cleanup_lease_expires_at')->whereOr('cleanup_lease_expires_at', '<=', date('Y-m-d H:i:s')))
+                    ->where(static fn ($query) => $query->whereNull('cleanup_lease_expires_at')->orWhere('cleanup_lease_expires_at', '<=', date('Y-m-d H:i:s')))
                     ->update(['sandbox_status'=>'cleaning','cleanup_lease_owner'=>$owner,'cleanup_lease_expires_at'=>date('Y-m-d H:i:s', $expiresAt)]) === 1
             );
             $output->writeln(json_encode(['cleaned' => $cleaned, 'candidates' => count($tasks)], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

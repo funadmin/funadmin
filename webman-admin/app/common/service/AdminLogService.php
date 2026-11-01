@@ -12,7 +12,7 @@
  */
 namespace app\common\service;
 
-use app\admin\model\AdminLog;
+use app\admin\system\model\AdminLog;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\PermissionResource;
 use think\facade\Session;

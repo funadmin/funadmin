@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\admin\controller\identity;
+namespace app\admin\identity\controller;
 
 use app\common\model\identity\OAuthScope;
 use app\common\service\identity\AdminIdentityAdapter;

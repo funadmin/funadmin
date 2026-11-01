@@ -34,7 +34,7 @@
     "webman/database": "^2.1",
     "illuminate/database": "^13.0",
     "illuminate/events": "^13.39",
-    "illuminate/pagination": "^13.0",
+    "illuminate/pagination": "^13.39",
     "vlucas/phpdotenv": "^5.8",
     "webman/event": "^1.0",
     "workerman/crontab": "^1.0",
@@ -45,7 +45,14 @@
     "webman/validation": "^2.2",
     "webman/console": "^2.3",
     "webman/cache": "^2.1",
-    "webman/redis": "^2.1"
+    "webman/redis": "^2.1",
+    "workerman/workerman": "~v5.2.3",
+    "firebase/php-jwt": "^7.0",
+    "guzzlehttp/guzzle": "^8.3.1",
+    "php-mcp/server": "^3.0",
+    "ramsey/uuid": "^4.9",
+    "webman/limiter": "^2.2",
+    "webman/cors": "^1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^13.0"

@@ -8,9 +8,14 @@ use app\admin\authentication\service\AdminSessionService;
 use DomainException;
 use support\Request;
 use support\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 
+#[RouteGroup('/api/auth')]
 final class ApiAuth
 {
+    #[Post('/login')]
     public function login(Request $request): Response
     {
         $username = $request->post('username');
@@ -25,6 +30,7 @@ final class ApiAuth
         }
     }
 
+    #[Get('/me')]
     public function me(Request $request): Response
     {
         try {
@@ -34,6 +40,7 @@ final class ApiAuth
         }
     }
 
+    #[Post('/logout')]
     public function logout(Request $request): Response
     {
         try {

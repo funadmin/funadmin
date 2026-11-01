@@ -7,13 +7,16 @@ namespace app\admin\identity\command;
 use app\common\service\identity\IdentityOperationsService;
 use app\identity\service\BackchannelLogoutWorker;
 use RuntimeException;
-use think\console\Command;
-use think\console\Input;
-use think\console\Output;
-use think\console\input\Option;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 扫描并投递 OIDC backchannel logout 队列。 */
+#[AsCommand(name: 'identity:logout-deliveries:work')]
 final class IdentityLogoutDeliveriesWork extends Command
 {
     protected function configure(): void
@@ -50,7 +53,7 @@ final class IdentityLogoutDeliveriesWork extends Command
             $output->writeln(json_encode(['tenant_id' => $tenantId, 'delivered' => $total], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }

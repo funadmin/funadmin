@@ -6,13 +6,16 @@ namespace app\admin\common\command;
 
 use app\common\service\MaintenanceContractService;
 use PDO;
-use think\console\Command;
-use think\console\Input;
-use think\console\input\Option;
-use think\console\Output;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface as Input;
+use Symfony\Component\Console\Input\InputOption as Option;
+use Symfony\Component\Console\Output\OutputInterface as Output;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /** 在显式维护窗口执行 Laravel 字段 contract migration。 */
+#[AsCommand(name: 'maintenance:contract-migrate')]
 final class MaintenanceContractMigrate extends Command
 {
     protected function configure(): void
@@ -30,7 +33,7 @@ final class MaintenanceContractMigrate extends Command
         try {
             $config = (array) config('database.connections.mysql');
             $connection = $this->connection($config);
-            $sqlFile = app()->getRootPath() . 'database/maintenance/001_drop_legacy_time_columns.sql';
+            $sqlFile = base_path('database/maintenance/001_drop_legacy_time_columns.sql');
             $database = (string) $connection->query('SELECT DATABASE()')->fetchColumn();
             $expectedHash = MaintenanceContractService::confirmationHash($database, $sqlFile);
             if ((bool) $input->getOption('show-confirm-hash')) {
@@ -46,15 +49,15 @@ final class MaintenanceContractMigrate extends Command
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {
-            $output->error($exception->getMessage());
+            (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;
         }
     }
 
     private function connection(array $config): PDO
     {
-        $host = (string) ($config['hostname'] ?? '127.0.0.1');
-        $port = (string) ($config['hostport'] ?? '3306');
+        $host = (string) ($config['host'] ?? '127.0.0.1');
+        $port = (string) ($config['port'] ?? '3306');
         $database = (string) ($config['database'] ?? '');
         $charset = (string) ($config['charset'] ?? 'utf8mb4');
         if ($database === '') {

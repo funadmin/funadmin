@@ -4,11 +4,92 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use support\annotation\route\Route as RouteAttribute;
+use support\annotation\route\RouteGroup;
+use Webman\Finder\ControllerFinder;
+use Webman\Route;
 
 final class BusinessModuleLayoutTest extends TestCase
 {
+    public function test_webman_console_discovers_all_business_module_commands(): void
+    {
+        [$status, $stdout, $stderr] = $this->runConsole(['list', '--format=json']);
+        self::assertSame(0, $status, $stderr);
+        $commands = array_column(json_decode($stdout, true, 512, JSON_THROW_ON_ERROR)['commands'], null, 'name');
+        foreach ([
+            'ai:change-set-recover', 'ai:outbox-dispatch', 'ai:sandbox-cleanup',
+            'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
+            'identity:cleanup', 'identity:health', 'identity:logout-deliveries:work', 'identity:signing-key',
+            'maintenance:contract-migrate', 'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
+            'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:package',
+            'plugin:publication-recover', 'plugin:validate', 'upgrade:recover-stale',
+        ] as $name) {
+            self::assertArrayHasKey($name, $commands, '业务命令未接入 webman/console：' . $name);
+            self::assertNotSame('', $commands[$name]['description']);
+        }
+        self::assertTrue($commands['identity:cleanup']['definition']['options']['dry-run']['accept_value'] === false);
+        self::assertSame('1000', $commands['identity:cleanup']['definition']['options']['limit']['default']);
+        self::assertTrue($commands['crud:generate']['definition']['arguments']['definition']['is_required']);
+        self::assertArrayHasKey('confirm-token-file', $commands['crud:generate']['definition']['options']);
+        self::assertArrayHasKey('backup-confirm', $commands['maintenance:contract-migrate']['definition']['options']);
+        self::assertArrayHasKey('start', $commands);
+        self::assertArrayHasKey('make:command', $commands);
+    }
+
+    public function test_webman_console_renders_every_business_command_help_without_execution(): void
+    {
+        foreach (glob(__DIR__ . '/../app/admin/*/command/*.php') as $file) {
+            $source = file_get_contents($file);
+            if (!preg_match('/->setName\(\'([^\']+)\'\)/', $source, $matches)) {
+                continue;
+            }
+            [$status, $stdout, $stderr] = $this->runConsole([$matches[1], '--help']);
+            self::assertSame(0, $status, $matches[1] . ': ' . $stderr . $stdout);
+            self::assertStringContainsString($matches[1], $stdout);
+        }
+    }
+
+    public function test_webman_console_returns_a_readable_error_for_missing_definition(): void
+    {
+        [$status, $stdout, $stderr] = $this->runConsole(['crud:validate', '/nonexistent/funadmin-definition.json']);
+        self::assertSame(1, $status);
+        self::assertStringContainsString('CRUD Definition 文件不存在', $stdout . $stderr);
+        self::assertStringNotContainsString('undefined method', $stdout . $stderr);
+    }
+
+    public function test_webman_plugin_make_preview_does_not_write_files(): void
+    {
+        $pluginPath = __DIR__ . '/../plugins/consolepreview';
+        self::assertDirectoryDoesNotExist($pluginPath);
+        [$status, $stdout, $stderr] = $this->runConsole(['plugin:make', 'consolepreview', '--preview', '--admin']);
+        self::assertSame(0, $status, $stderr . $stdout);
+        $plan = json_decode($stdout, true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($plan);
+        self::assertNotEmpty($plan);
+        self::assertDirectoryDoesNotExist($pluginPath);
+    }
+
+    private function runConsole(array $arguments): array
+    {
+        $process = proc_open(
+            [PHP_BINARY, __DIR__ . '/../webman', '--no-ansi', '--no-interaction', ...$arguments],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+            dirname(__DIR__)
+        );
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        return [proc_close($process), $stdout, $stderr];
+    }
+
     public function test_running_http_controllers_live_inside_their_business_modules(): void
     {
         $controllers = [
@@ -178,6 +259,98 @@ final class BusinessModuleLayoutTest extends TestCase
         }
     }
 
+    public function test_remaining_identity_controllers_preserve_the_copied_business_implementation(): void
+    {
+        foreach ([
+            'EnterpriseApplication' => 'identity/applications',
+            'IdentityUser' => 'identity/users',
+            'OAuthClient' => 'identity/oauth-clients',
+            'ScopeClaim' => 'identity/scopes',
+            'SsoConfiguration' => 'identity/sso',
+        ] as $class => $group) {
+            $file = __DIR__ . '/../app/admin/identity/controller/' . $class . '.php';
+            self::assertFileExists($file);
+            $source = file_get_contents($file);
+            token_get_all($source, TOKEN_PARSE);
+            self::assertStringContainsString('namespace app\\admin\\identity\\controller;', $source);
+            self::assertStringContainsString("#[Group('" . $group . "')]", $source);
+            self::assertStringContainsString('CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class', $source);
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/identity/' . $class . '.php');
+        }
+    }
+
+    public function test_member_association_models_live_in_system_with_unchanged_table_names(): void
+    {
+        foreach (['MemberGroupRelation' => 'member_group_relation', 'MemberTagRelation' => 'member_tag_relation'] as $name => $table) {
+            $class = 'app\\admin\\system\\model\\' . $name;
+            self::assertTrue(class_exists($class));
+            self::assertSame($table, (new $class())->getTable());
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/' . $name . '.php');
+            self::assertFalse(class_exists('app\\admin\\model\\' . $name));
+        }
+        $member = file_get_contents(__DIR__ . '/../app/admin/system/model/Member.php');
+        foreach (['MemberGroupRelation', 'MemberTagRelation'] as $name) {
+            self::assertStringContainsString('use app\\admin\\system\\model\\' . $name . ';', $member);
+        }
+    }
+
+    public function test_member_group_and_level_models_keep_logical_tables_and_soft_delete_scope(): void
+    {
+        foreach (['MemberGroup' => 'member_groups', 'MemberLevel' => 'member_levels'] as $name => $table) {
+            $class = 'app\\admin\\system\\model\\' . $name;
+            self::assertTrue(class_exists($class));
+            $model = new $class();
+            self::assertSame($table, $model->getTable());
+            self::assertStringContainsString('deleted_at', $model->newQuery()->toSql());
+            self::assertStringNotContainsString('deleted_at', $model->newQuery()->withTrashed()->toSql());
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/' . $name . '.php');
+            self::assertFalse(class_exists('app\\admin\\model\\' . $name));
+        }
+    }
+
+    public function test_member_model_is_in_system_and_keeps_its_implicit_table_and_validation(): void
+    {
+        $class = 'app\\admin\\system\\model\\Member';
+        self::assertTrue(class_exists($class));
+        self::assertSame('members', (new $class())->getTable());
+        self::assertSame('用户名长度必须为 2 至 80 个字符', $class::validateAttributes(['username' => 'a']));
+        self::assertSame('用户名已存在', $class::duplicateError(new \RuntimeException('1062 Duplicate entry username')));
+        self::assertNull($class::duplicateError(new \RuntimeException('not a duplicate')));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/Member.php');
+        self::assertFalse(class_exists('app\\admin\\model\\Member'));
+    }
+
+    public function test_log_attachment_and_department_models_have_explicit_module_ownership(): void
+    {
+        foreach ([
+            'system' => ['AdminLog' => 'admin_logs', 'AttachGroup' => 'attach_groups'],
+            'authorization' => ['Department' => 'department'],
+        ] as $module => $models) {
+            foreach ($models as $name => $table) {
+                $class = 'app\\admin\\' . $module . '\\model\\' . $name;
+                self::assertTrue(class_exists($class));
+                self::assertSame($table, (new $class())->getTable());
+                self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/' . $name . '.php');
+            }
+        }
+        $department = 'app\\admin\\authorization\\model\\Department';
+        self::assertSame('部门名称不能为空且不能超过 100 个字符', $department::validateAttributes([]));
+        self::assertSame('邮箱格式不正确', $department::validateAttributes(['name' => '部门', 'email' => 'bad']));
+        self::assertNull($department::validateAttributes(['name' => '部门', 'email' => 'valid@example.test']));
+    }
+
+    public function test_member_tag_source_is_owned_by_system_without_adding_runtime_adapters(): void
+    {
+        $file = __DIR__ . '/../app/admin/system/model/MemberTag.php';
+        self::assertFileExists($file);
+        $source = file_get_contents($file);
+        token_get_all($source, TOKEN_PARSE);
+        self::assertStringContainsString('namespace app\\admin\\system\\model;', $source);
+        self::assertStringContainsString("protected \$name = 'member_tag';", $source);
+        self::assertStringContainsString('use think\\model\\concern\\SoftDelete;', $source);
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/MemberTag.php');
+    }
+
     public function test_application_autoload_does_not_redirect_controllers_to_a_flat_directory(): void
     {
         $composer = json_decode(file_get_contents(__DIR__ . '/../composer.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -185,19 +358,75 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertArrayNotHasKey('app\\controller\\', $composer['autoload']['psr-4']);
     }
 
-    public function test_explicit_routes_reference_the_module_controllers_without_changing_urls(): void
+    public function test_running_controllers_are_discovered_with_native_route_attributes(): void
     {
-        $routes = file_get_contents(__DIR__ . '/../config/route.php');
+        $discovered = array_map(static fn ($file): string => $file->meta()['class'], ControllerFinder::files());
         foreach ([
-            'use app\\admin\\authentication\\controller\\AdminAuth;',
-            'use app\\admin\\authentication\\controller\\ApiAuth;',
-            'use app\\admin\\authorization\\controller\\Management;',
-            "Route::post('/api/auth/login', [ApiAuth::class, 'login'])",
-            "Route::post('/admin/auth/login', [AdminAuth::class, 'login'])",
-            "Route::get('/admin/auth/menus', [AdminAuth::class, 'menus'])",
-            "Route::disableDefaultRoute()",
-        ] as $contract) {
-            self::assertStringContainsString($contract, $routes);
+            'app\\admin\\authentication\\controller\\AdminAuth' => '/admin/auth',
+            'app\\admin\\authentication\\controller\\ApiAuth' => '/api/auth',
+            'app\\admin\\authorization\\controller\\Management' => '/admin/management',
+        ] as $class => $prefix) {
+            self::assertContains($class, $discovered);
+            $reflection = new ReflectionClass($class);
+            $groups = $reflection->getAttributes(RouteGroup::class);
+            self::assertCount(1, $groups);
+            self::assertSame($prefix, $groups[0]->newInstance()->prefix);
+            foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+                self::assertCount(1, $method->getAttributes(RouteAttribute::class, \ReflectionAttribute::IS_INSTANCEOF));
+            }
         }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_native_annotation_routes_preserve_urls_methods_and_parameter_constraints(): void
+    {
+        Route::load([config_path()]);
+        $admin = 'app\\admin\\authentication\\controller\\AdminAuth';
+        $api = 'app\\admin\\authentication\\controller\\ApiAuth';
+        $management = 'app\\admin\\authorization\\controller\\Management';
+        foreach ([
+            ['GET', '/admin/auth/csrf', $admin, 'csrf', []],
+            ['POST', '/admin/auth/login', $admin, 'login', []],
+            ['GET', '/admin/auth/me', $admin, 'me', []],
+            ['GET', '/admin/auth/menus', $admin, 'menus', []],
+            ['POST', '/admin/auth/logout', $admin, 'logout', []],
+            ['POST', '/api/auth/login', $api, 'login', []],
+            ['GET', '/api/auth/me', $api, 'me', []],
+            ['POST', '/api/auth/logout', $api, 'logout', []],
+        ] as [$verb, $path, $controller, $action, $params]) {
+            $matched = Route::dispatch($verb, $path);
+            self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
+            self::assertSame([$controller, $action], $matched[1]['callback']);
+            self::assertSame($params, $matched[2]);
+        }
+        foreach (['users', 'roles', 'permissions', 'menus'] as $resource) {
+            foreach (['GET' => 'listing', 'POST' => 'create', 'PUT' => 'update', 'DELETE' => 'remove'] as $verb => $action) {
+                $hasId = in_array($verb, ['PUT', 'DELETE'], true);
+                $path = '/admin/management/' . $resource . ($hasId ? '/42' : '');
+                $matched = Route::dispatch($verb, $path);
+                self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
+                self::assertSame([$management, $action], $matched[1]['callback']);
+                self::assertSame(['resource' => $resource] + ($hasId ? ['id' => '42'] : []), $matched[2]);
+            }
+        }
+        self::assertSame(\FastRoute\Dispatcher::FOUND, Route::dispatch('GET', '/health')[0]);
+        self::assertSame(\FastRoute\Dispatcher::METHOD_NOT_ALLOWED, Route::dispatch('GET', '/admin/auth/login')[0]);
+        self::assertSame(\FastRoute\Dispatcher::METHOD_NOT_ALLOWED, Route::dispatch('POST', '/api/auth/me')[0]);
+        foreach (['unknown/42', 'users/0', 'users/-1', 'users/abc', 'users/01'] as $invalid) {
+            self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('PUT', '/admin/management/' . $invalid)[0]);
+        }
+        self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('GET', '/admin/identity/scopes')[0]);
+        $routes = file_get_contents(__DIR__ . '/../config/route.php');
+        self::assertStringContainsString('Route::disableDefaultRoute()', $routes);
+        self::assertStringContainsString('Route::fallback(', $routes);
+        self::assertStringNotContainsString('/admin/auth/', $routes);
+        self::assertStringNotContainsString('/api/auth/', $routes);
+        self::assertStringNotContainsString('/admin/management/', $routes);
+        $businessRoutes = array_filter(Route::getRoutes(), static function ($route) use ($admin, $api, $management): bool {
+            $callback = $route->getCallback();
+            return is_array($callback) && in_array($callback[0], [$admin, $api, $management], true);
+        });
+        self::assertCount(12, $businessRoutes);
     }
 }
