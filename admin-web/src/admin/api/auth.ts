@@ -11,7 +11,7 @@ export const authApi = {
   csrf: () => http.get<CsrfResult>(`${PREFIX}/csrf`),
   login: (params: API.LoginParams) =>
     http.post<API.LoginResult>(`${PREFIX}/login`, params, {
-      requestOptions: { showSuccessMsg: true }
+      requestOptions: { showSuccessMsg: true, ignoreUnauthorized: true }
     }),
   logout: () => http.post<void>(`${PREFIX}/logout`),
   me: () => http.get<API.UserInfo>(`${PREFIX}/me`),

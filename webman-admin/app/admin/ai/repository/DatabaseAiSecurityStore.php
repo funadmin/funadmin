@@ -13,26 +13,26 @@ use Throwable;
 final class DatabaseAiSecurityStore implements AiSecurityStore
 {
     public function createApproval(array $data): array { return AiApproval::create($data)->toArray(); }
-    public function pendingApprovals(int $adminId): array { return AiApproval::where('requested_by', $adminId)->where('status', 'pending')->order('id')->select()->toArray(); }
-    public function approval(int $id, int $adminId): ?array { return AiApproval::where('id', $id)->where('requested_by', $adminId)->find()?->toArray(); }
+    public function pendingApprovals(int $adminId): array { return AiApproval::where('requested_by', $adminId)->where('status', 'pending')->orderBy('id')->get()->toArray(); }
+    public function approval(int $id, int $adminId): ?array { return AiApproval::where('id', $id)->where('requested_by', $adminId)->first()?->toArray(); }
     public function casApproval(int $id, int $version, string $status, array $data): bool { return AiApproval::where('id', $id)->where('cas_version', $version)->where('status', $status)->update(array_merge($data, ['cas_version' => $version + 1])) === 1; }
-    public function approvedSessionOperation(int $conversationId, int $adminId, string $operation, string $mode): ?array { return AiApproval::where('conversation_id', $conversationId)->where('requested_by', $adminId)->where('decided_by', $adminId)->where('operation', $operation)->where('mode_snapshot', $mode)->where('scope', 'session_operation')->where('status', 'approved')->where('expires_at', '>', date('Y-m-d H:i:s'))->order('id', 'desc')->find()?->toArray(); }
+    public function approvedSessionOperation(int $conversationId, int $adminId, string $operation, string $mode): ?array { return AiApproval::where('conversation_id', $conversationId)->where('requested_by', $adminId)->where('decided_by', $adminId)->where('operation', $operation)->where('mode_snapshot', $mode)->where('scope', 'session_operation')->where('status', 'approved')->where('expires_at', '>', date('Y-m-d H:i:s'))->orderBy('id', 'desc')->first()?->toArray(); }
     public function consumeOnceApproval(int $toolCallId, int $conversationId, int $adminId, string $operation, string $mode): ?array
     {
         $query = AiApproval::where('tool_call_id', $toolCallId)->where('conversation_id', $conversationId)->where('requested_by', $adminId)->where('decided_by', $adminId)->where('operation', $operation)->where('mode_snapshot', $mode)->where('scope', 'once');
         if ((clone $query)->where('status', 'approved')->update(['status' => 'consumed']) !== 1) return null;
-        return $query->where('status', 'consumed')->find()?->toArray();
+        return $query->where('status', 'consumed')->first()?->toArray();
     }
-    public function toolCall(int $id, int $conversationId, int $taskId): ?array { return AiToolCall::where('id', $id)->where('conversation_id', $conversationId)->where('task_id', $taskId)->find()?->toArray(); }
-    public function awaitingToolCall(int $taskId, int $conversationId): ?array { return AiToolCall::where('task_id', $taskId)->where('conversation_id', $conversationId)->where('status', 'awaiting_approval')->order('id', 'desc')->find()?->toArray(); }
+    public function toolCall(int $id, int $conversationId, int $taskId): ?array { return AiToolCall::where('id', $id)->where('conversation_id', $conversationId)->where('task_id', $taskId)->first()?->toArray(); }
+    public function awaitingToolCall(int $taskId, int $conversationId): ?array { return AiToolCall::where('task_id', $taskId)->where('conversation_id', $conversationId)->where('status', 'awaiting_approval')->orderBy('id', 'desc')->first()?->toArray(); }
     public function createToolCall(array $data): array
     {
-        $existing = AiToolCall::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->find();
+        $existing = AiToolCall::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->first();
         if ($existing) return $existing->toArray();
         try { return AiToolCall::create($data)->toArray(); } catch (Throwable) {
-            return AiToolCall::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->findOrFail()->toArray();
+            return AiToolCall::where('conversation_id', $data['conversation_id'])->where('idempotency_key', $data['idempotency_key'])->firstOrFail()->toArray();
         }
     }
     public function updateToolCall(int $id, array $data): void { AiToolCall::where('id', $id)->update($data); }
-    public function toolCalls(int $taskId): array { return AiToolCall::where('task_id', $taskId)->order('id')->select()->toArray(); }
+    public function toolCalls(int $taskId): array { return AiToolCall::where('task_id', $taskId)->orderBy('id')->get()->toArray(); }
 }

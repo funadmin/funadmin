@@ -4,6 +4,7 @@ services:
       context: .
       args:
         PHP_IMAGE: ${PHP_IMAGE:-php:8.5-cli}
+        COMPOSER_IMAGE: ${COMPOSER_IMAGE:-composer:2}
     image: funadmin-webman-php:8.5
     working_dir: /app
     volumes:
@@ -21,6 +22,14 @@ services:
       DB_PREFIX: ${DB_PREFIX-fun_}
       AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL:-7200}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      AI_QUEUE_ENABLED: ${AI_QUEUE_ENABLED:-false}
+      AI_QUEUE_WORKERS: ${AI_QUEUE_WORKERS:-1}
+      AI_QUEUE_REDIS_URL: ${AI_QUEUE_REDIS_URL:-redis://127.0.0.1:6379}
+      AI_QUEUE_REDIS_PASSWORD: ${AI_QUEUE_REDIS_PASSWORD:-}
+      AI_QUEUE_REDIS_DATABASE: ${AI_QUEUE_REDIS_DATABASE:-0}
+      AI_QUEUE_REDIS_PREFIX: ${AI_QUEUE_REDIS_PREFIX:-funadmin-ai:}
+      AI_SANDBOX_IMAGE: ${AI_SANDBOX_IMAGE:-}
+      OAUTH_ENCRYPTION_KEY: ${OAUTH_ENCRYPTION_KEY:-}
     networks:
       - existing-database
     ports:

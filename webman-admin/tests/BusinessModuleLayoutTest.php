@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -233,7 +234,7 @@ final class BusinessModuleLayoutTest extends TestCase
         $source = file_get_contents($file);
         token_get_all($source, TOKEN_PARSE);
         self::assertStringContainsString('namespace app\\admin\\authentication\\controller;', $source);
-        foreach (["#[Group('profile')]", "#[Get('')]", "#[Put('')]", "#[Post('password')]"] as $route) {
+        foreach (["#[RouteGroup('/admin/profile')]", "#[Get('')]", "#[Put('')]", "#[Post('/password')]"] as $route) {
             self::assertStringContainsString($route, $source);
         }
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/authentication/AdminProfile.php');
@@ -242,9 +243,9 @@ final class BusinessModuleLayoutTest extends TestCase
     public function test_identity_audit_and_oidc_controllers_keep_their_public_route_attributes(): void
     {
         foreach ([
-            'IdentityAudit' => ["#[Group('identity/audit')]", "#[Get('')]"],
-            'OidcSession' => ["#[Group('identity/oidc-sessions')]", "#[Post(':id/revoke')]", "#[Get('deliveries')]", "#[Post('deliveries/:id/retry')]"],
-            'OidcSigningKey' => ["#[Group('identity/signing-keys')]", "#[Post('rotate')]"],
+            'IdentityAudit' => ["#[RouteGroup('/admin/identity/audit')]", "#[Get('')]"],
+            'OidcSession' => ["#[RouteGroup('/admin/identity/oidc-sessions')]", "#[Post('/{id:\\d+}/revoke')]", "#[Get('/deliveries')]", "#[Post('/deliveries/{id:\\d+}/retry')]"],
+            'OidcSigningKey' => ["#[RouteGroup('/admin/identity/signing-keys')]", "#[Post('/rotate')]"],
         ] as $class => $routes) {
             $file = __DIR__ . '/../app/admin/identity/controller/' . $class . '.php';
             self::assertFileExists($file);
@@ -272,8 +273,14 @@ final class BusinessModuleLayoutTest extends TestCase
             $source = file_get_contents($file);
             token_get_all($source, TOKEN_PARSE);
             self::assertStringContainsString('namespace app\\admin\\identity\\controller;', $source);
-            self::assertStringContainsString("#[Group('" . $group . "')]", $source);
-            self::assertStringContainsString('CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class', $source);
+            if (in_array($class, ['ScopeClaim', 'SsoConfiguration', 'IdentityUser', 'OAuthClient'], true)) {
+                self::assertStringContainsString("#[RouteGroup('/admin/" . $group . "')]", $source);
+                $middleware = \Webman\Middleware::getMiddleware('', 'admin', ['app\\admin\\identity\\controller\\' . $class, $class === 'SsoConfiguration' ? 'config' : 'index'], null, false);
+                self::assertCount(3, $middleware);
+            } else {
+                self::assertStringContainsString("#[Group('" . $group . "')]", $source);
+                self::assertStringContainsString('CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class', $source);
+            }
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/identity/' . $class . '.php');
         }
     }
@@ -415,7 +422,16 @@ final class BusinessModuleLayoutTest extends TestCase
         }
     }
 
-    public function test_remaining_system_and_feature_controllers_have_module_ownership(): void
+    #[DataProvider('remainingControllerProvider')]
+    public function test_remaining_system_and_feature_controllers_have_module_ownership(string $module, string $name): void
+    {
+        $fqcn = 'app\\admin\\' . $module . '\\controller\\' . $name;
+        self::assertTrue(class_exists($fqcn), '控制器应归入模块：' . $fqcn);
+        self::assertSame(realpath(__DIR__ . '/../app/admin/' . $module . '/controller/' . $name . '.php'), (new ReflectionClass($fqcn))->getFileName());
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/' . $module . '/' . $name . '.php');
+    }
+
+    public static function remainingControllerProvider(): iterable
     {
         foreach ([
             'system' => ['AdminUpload', 'SystemAttachment', 'SystemAttachmentGroup', 'SystemBlacklist', 'SystemConfig', 'SystemDict', 'SystemLanguage', 'SystemMember', 'SystemMemberGroup', 'SystemMemberLevel', 'SystemOperationLog', 'SystemStorage', 'SystemUpgrade'],
@@ -424,11 +440,28 @@ final class BusinessModuleLayoutTest extends TestCase
             'development' => ['Business'],
         ] as $module => $classes) {
             foreach ($classes as $name) {
-                $fqcn = 'app\\admin\\' . $module . '\\controller\\' . $name;
-                self::assertTrue(class_exists($fqcn), '控制器应归入模块：' . $fqcn);
-                self::assertSame(realpath(__DIR__ . '/../app/admin/' . $module . '/controller/' . $name . '.php'), (new ReflectionClass($fqcn))->getFileName());
-                self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/' . $module . '/' . $name . '.php');
+                yield $module . '/' . $name => [$module, $name];
             }
+        }
+    }
+
+    public function test_shared_request_pagination_and_tree_traits_are_owned_by_admin_common(): void
+    {
+        foreach (['AdminCrudRequest', 'AdminPagination', 'AdminTree'] as $name) {
+            $class = 'app\\admin\\common\\traits\\' . $name;
+            self::assertTrue(trait_exists($class), '后台公共 Trait 应归入 common：' . $class);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/common/traits/' . $name . '.php'), (new ReflectionClass($class))->getFileName());
+            self::assertFalse(trait_exists('app\\admin\\traits\\' . $name));
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/traits/' . $name . '.php');
+        }
+        $traits = class_uses('app\\admin\\controller\\base\\AdminApiController');
+        foreach (['AdminCrudRequest', 'AdminPagination', 'AdminTree'] as $name) {
+            self::assertContains('app\\admin\\common\\traits\\' . $name, $traits);
+        }
+        $template = file_get_contents(__DIR__ . '/../app/common/crud/ProductionTemplateContext.php');
+        foreach (['AdminCrudRequest', 'AdminPagination'] as $name) {
+            self::assertStringContainsString('app\\\\admin\\\\common\\\\traits\\\\' . $name, $template);
+            self::assertStringNotContainsString('app\\\\admin\\\\traits\\\\' . $name, $template);
         }
     }
 
@@ -497,7 +530,7 @@ final class BusinessModuleLayoutTest extends TestCase
         foreach (['unknown/42', 'users/0', 'users/-1', 'users/abc', 'users/01'] as $invalid) {
             self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('PUT', '/admin/management/' . $invalid)[0]);
         }
-        self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('GET', '/admin/identity/scopes')[0]);
+        self::assertSame(\FastRoute\Dispatcher::FOUND, Route::dispatch('GET', '/admin/identity/scopes')[0]);
         $routes = file_get_contents(__DIR__ . '/../config/route.php');
         self::assertStringContainsString('Route::disableDefaultRoute()', $routes);
         self::assertStringContainsString('Route::fallback(', $routes);

@@ -4,120 +4,98 @@ declare(strict_types=1);
 
 namespace app\admin\authentication\controller;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\authentication\model\Admin;
 use app\admin\authentication\service\AdminSessionService;
-use app\common\service\identity\AdminIdentityAdapter;
-use app\common\helper\SignHelper;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
-use think\facade\Cache;
-use think\facade\Db;
-use think\facade\Session;
+use app\admin\authentication\service\BrowserAuthService;
+use DomainException;
+use support\Db;
+use support\Request;
+use support\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 
-/**
- * 当前登录管理员的个人资料与密码。
- */
-#[Group('profile')]
-class AdminProfile extends AdminApiController
+/** 当前登录管理员的个人资料与密码，不接受请求指定其他管理员。 */
+#[RouteGroup('/admin/profile')]
+final class AdminProfile
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
-
     #[Get('')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $admin = $this->currentAdmin();
-        return $admin ? $this->ok(data: $admin->toProfileData()) : $this->fail(msg: '管理员不存在', code: 404);
+        return $this->execute($request, static fn (Admin $admin): array => $admin->toProfileData());
     }
 
     #[Put('')]
-    public function update(): Response
+    public function update(Request $request): Response
     {
-        $admin = $this->currentAdmin();
-        if (!$admin) {
-            return $this->fail(msg: '管理员不存在', code: 404);
-        }
-
-        $input = $this->request->param();
-        $data = [];
-        $fieldMap = [
-            'nickname' => 'real_name',
-            'avatar' => 'avatar',
-            'email' => 'email',
-            'mobile' => 'mobile',
-        ];
-        foreach ($fieldMap as $inputField => $modelField) {
-            if (array_key_exists($inputField, $input)) {
-                $data[$modelField] = trim(strip_tags((string) $input[$inputField]));
+        return $this->execute($request, static function (Admin $admin) use ($request): array {
+            $data = [];
+            foreach (['nickname' => 'real_name', 'avatar' => 'avatar', 'email' => 'email', 'mobile' => 'mobile'] as $input => $field) {
+                if ($request->post($input) === null) continue;
+                $value = $request->post($input);
+                if (!is_string($value)) throw new DomainException('个人资料必须为字符串', 422);
+                $data[$field] = trim(strip_tags($value));
             }
-        }
-        $data['real_name'] = $data['real_name'] ?? (string) $admin->real_name;
-        if ($data['real_name'] === '' || mb_strlen($data['real_name']) > 50) {
-            return $this->fail(msg: '昵称不能为空且不能超过 50 个字符', code: 422);
-        }
-        if (isset($data['email']) && $data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return $this->fail(msg: '邮箱格式不正确', code: 422);
-        }
-        if (isset($data['mobile']) && $data['mobile'] !== '' && !preg_match('/^1[3-9]\d{9}$/', $data['mobile'])) {
-            return $this->fail(msg: '手机号格式不正确', code: 422);
-        }
-        if (isset($data['avatar']) && mb_strlen($data['avatar']) > 255) {
-            return $this->fail(msg: '头像地址过长', code: 422);
-        }
-
-        Db::transaction(function () use ($admin, $data): void {
-            $admin->save($data);
-            (new AdminIdentityAdapter())->sync($admin, $admin->departmentIds());
-        });
-        $sessionAdmin = Session::get('admin', []);
-        foreach ($data as $field => $value) {
-            $sessionAdmin[$field] = $value;
-        }
-        Session::set('admin', $sessionAdmin);
-        Cache::clear();
-        return $this->ok('资料已更新', $admin->toProfileData());
+            if (isset($data['real_name']) && ($data['real_name'] === '' || mb_strlen($data['real_name']) > 50)) {
+                throw new DomainException('昵称不能为空且不能超过 50 个字符', 422);
+            }
+            if (isset($data['email']) && (strlen($data['email']) > 60 || ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)))) {
+                throw new DomainException('邮箱格式不正确或超过 60 个字符', 422);
+            }
+            if (isset($data['mobile']) && $data['mobile'] !== '' && !preg_match('/\A1[3-9]\d{9}\z/', $data['mobile'])) {
+                throw new DomainException('手机号格式不正确', 422);
+            }
+            if (isset($data['avatar']) && (strlen($data['avatar']) > 255 || ($data['avatar'] !== '' && !preg_match('~\A(?:/storage/|https?://)[^\s<>"\x00-\x1f]+\z~i', $data['avatar'])))) {
+                throw new DomainException('头像地址格式不正确或过长', 422);
+            }
+            if ($data !== []) $admin->update($data);
+            return $admin->toProfileData();
+        }, '资料已更新');
     }
 
-    #[Post('password')]
-    public function password(): Response
+    #[Post('/password')]
+    public function password(Request $request): Response
     {
-        $admin = $this->currentAdmin();
-        if (!$admin) {
-            return $this->fail(msg: '管理员不存在', code: 404);
+        $response = $this->execute($request, static function (Admin $admin) use ($request): null {
+            $old = $request->post('oldPassword');
+            $new = $request->post('newPassword');
+            if (!is_string($old) || !is_string($new) || $old === '' || strlen($old) > 72 || strlen($new) < 12 || strlen($new) > 72 || str_contains($new, "\0")) {
+                throw new DomainException('原密码不能为空，新密码需为 12～72 字节', 422);
+            }
+            return Db::transaction(static function () use ($admin, $old, $new): null {
+                $current = Admin::where('id', $admin->id)->lockForUpdate()->first();
+                if (!password_verify($old, $current->password)) throw new DomainException('原密码错误', 422);
+                if (password_verify($new, $current->password)) throw new DomainException('新密码不能与原密码相同', 422);
+                $current->update(['password' => password_hash($new, PASSWORD_DEFAULT), 'token' => null]);
+                (new AdminSessionService())->revokeAll((int) $current->id);
+                return null;
+            });
+        }, '密码已更新，请重新登录');
+        if ($response->getStatusCode() === 200) {
+            $response->cookie(BrowserAuthService::COOKIE, '', 0, '/admin', '', filter_var(getenv('COOKIE_SECURE') ?: 'false', FILTER_VALIDATE_BOOL), true, 'Lax');
         }
-        $oldPassword = (string) $this->request->post('oldPassword', '');
-        $newPassword = (string) $this->request->post('newPassword', '');
-        if ($oldPassword === '' || mb_strlen($newPassword) < 8) {
-            return $this->fail(msg: '原密码不能为空，新密码至少 8 位', code: 422);
-        }
-        if (!password_verify($oldPassword, (string) $admin->password)) {
-            return $this->fail(msg: '原密码错误', code: 422);
-        }
-        if (password_verify($newPassword, (string) $admin->password)) {
-            return $this->fail(msg: '新密码不能与原密码相同', code: 422);
-        }
-
-        Db::transaction(function () use ($admin, $newPassword): void {
-            $admin->save([
-                'password' => password($newPassword),
-                'token' => SignHelper::salt(20),
-            ]);
-            (new AdminIdentityAdapter())->sync($admin, $admin->departmentIds());
-        });
-        Cache::clear();
-        (new AdminSessionService())->logout();
-        return $this->ok('密码已更新，请重新登录');
+        return $response;
     }
 
-    private function currentAdmin(): ?Admin
+    private function execute(Request $request, callable $callback, string $msg = '成功'): Response
     {
-        $adminId = (int) Session::get('admin.id', 0);
-        return $adminId > 0 ? Admin::find($adminId) : null;
+        try {
+            $auth = new BrowserAuthService();
+            $cookie = (string) $request->cookie(BrowserAuthService::COOKIE, '');
+            $identity = $auth->user($cookie);
+            if ($request->method() !== 'GET') $auth->assertCsrf($cookie, (string) $request->header('x-csrf-token', ''));
+            $admin = Admin::whereNull('deleted_at')->where('id', $identity['id'])->where('status', 1)->first();
+            if (!$admin) throw new DomainException('登录已失效', 401);
+            return $this->result($callback($admin), $msg);
+        } catch (DomainException $error) {
+            return $this->result(null, $error->getMessage(), $error->getCode());
+        }
+    }
+
+    private function result(mixed $data, string $msg, int $code = 200): Response
+    {
+        return json(compact('code', 'msg', 'data'))->withStatus($code)
+            ->withHeaders(['Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 }

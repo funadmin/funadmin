@@ -9,7 +9,7 @@ use app\admin\authorization\model\Permission;
 use app\admin\http\AdminResponse;
 use DomainException;
 use Webman\Http\Request;
-use support\Response;
+use Webman\Http\Response;
 use Webman\MiddlewareInterface;
 
 /**

@@ -140,6 +140,24 @@ final class AdminHttpFoundationTest extends TestCase
         self::assertSame('development.ai:conversationupdate', PermissionResource::fromRequest($request)['code']);
     }
 
+    public function test_relocated_system_controllers_keep_existing_permission_resources(): void
+    {
+        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
+        foreach ([
+            'SystemDict' => ['types', 'systemdict:types'],
+            'SystemLanguage' => ['pack', 'systemlanguage:pack'],
+            'SystemMemberLevel' => ['index', 'systemmemberlevel:index'],
+            'SystemOperationLog' => ['clear', 'systemoperationlog:delete'],
+        ] as $controller => [$action, $code]) {
+            $request->controller = 'app\\admin\\system\\controller\\' . $controller;
+            $request->action = $action;
+            $resource = PermissionResource::fromRequest($request);
+            self::assertSame($code, $resource['code']);
+            self::assertSame('admin/' . explode(':', $code)[0], $resource['obj']);
+            self::assertSame(explode(':', $code)[1], $resource['act']);
+        }
+    }
+
     public function test_csrf_rejects_missing_and_wrong_tokens_and_accepts_session_token(): void
     {
         (new MigrationService())->run();
@@ -160,9 +178,11 @@ final class AdminHttpFoundationTest extends TestCase
     public function test_denied_user_can_only_enter_after_a_live_permission_grant(): void
     {
         (new MigrationService())->run();
-        $cookie = str_repeat('b', 64);
-        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => 'unused', 'status' => 1, 'token' => hash('sha256', $cookie)]);
-        Db::table('browser_sessions')->insert(['session_hash' => hash('sha256', $cookie), 'csrf_token' => str_repeat('c', 64), 'expires_at' => date('Y-m-d H:i:s', time() + 600)]);
+        $password = 'foundation-test-password';
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => password_hash($password, PASSWORD_DEFAULT), 'status' => 1]);
+        $auth = new BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        $cookie = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'reader', $password, '127.0.0.1')['cookie'];
         $request = new Request("GET /admin/system/role HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . "=$cookie\r\n\r\n");
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';
@@ -244,11 +264,13 @@ final class AdminHttpFoundationTest extends TestCase
     public function test_authorized_request_does_not_authorize_a_later_anonymous_request(): void
     {
         (new MigrationService())->run();
-        Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => 'unused', 'status' => 1, 'token' => hash('sha256', str_repeat('a', 64))]);
-        $session = (new BrowserAuthService())->bootstrap(str_repeat('a', 64));
-        Db::table('browser_sessions')->where('session_hash', hash('sha256', $session['cookie']))->update(['session_hash' => hash('sha256', str_repeat('a', 64))]);
+        $password = 'foundation-test-password';
+        Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => password_hash($password, PASSWORD_DEFAULT), 'status' => 1]);
+        $auth = new BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        $session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'root', $password, '127.0.0.1');
         $middleware = new CheckAdminApiRole();
-        $request = new Request("GET /admin/system/role HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . '=' . str_repeat('a', 64) . "\r\n\r\n");
+        $request = new Request("GET /admin/system/role HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . '=' . $session['cookie'] . "\r\n\r\n");
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';
         $response = $middleware->process($request, static function (Request $current): Response {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 $private = getenv('AI_PRIVATE_PATH') ?: base_path('runtime/private/ai');
 return [
+    'encryption_key' => getenv('OAUTH_ENCRYPTION_KEY') ?: '',
     'storage' => [
         'private_path' => $private,
         'log_path' => $private . '/logs',
@@ -12,7 +13,7 @@ return [
     'provider' => [
         'name' => getenv('AI_PROVIDER') ?: '',
         'provider' => getenv('AI_PROVIDER') ?: '',
-        'protocol' => getenv('AI_PROTOCOL') ?: 'openai_chat_completions',
+        'protocol' => getenv('AI_PROTOCOL') ?: 'openai-chat',
         'base_url' => getenv('AI_BASE_URL') ?: '',
         'api_key' => getenv('AI_API_KEY') ?: '',
         'model' => getenv('AI_MODEL') ?: '',

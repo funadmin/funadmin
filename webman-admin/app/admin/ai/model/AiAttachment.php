@@ -11,4 +11,5 @@ final class AiAttachment extends BackendModel
 {
     use LaravelSoftDelete;
     protected $name = 'ai_attachment';
+    protected $fillable = ['conversation_id', 'admin_id', 'message_id', 'storage_path', 'expires_at', 'kind', 'name', 'mime', 'size', 'width', 'height', 'sha256'];
 }

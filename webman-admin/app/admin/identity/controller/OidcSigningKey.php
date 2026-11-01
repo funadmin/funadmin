@@ -7,19 +7,14 @@ namespace app\admin\identity\controller;
 use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\SigningKeyService;
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
-use InvalidArgumentException;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\Response;
 
-#[Group('identity/signing-keys')]
+#[RouteGroup('/admin/identity/signing-keys')]
 final class OidcSigningKey extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
     private readonly SigningKeyService $keys;
 
     protected function initialize(): void
@@ -31,16 +26,18 @@ final class OidcSigningKey extends AdminApiController
     #[Get('')]
     public function index(): Response { return $this->ok(data: $this->keys->list($this->tenantId())); }
 
-    #[Post('rotate')]
+    #[Post('/rotate')]
     public function rotate(): Response
     {
-        return $this->ok(data: $this->keys->rotate($this->tenantId(), (int) $this->request->post('publishWindowSeconds', 86400)), msg: '签名 key rotation 完成');
+        $window = $this->request->post('publishWindowSeconds', 86400);
+        if ((!is_int($window) && !(is_string($window) && ctype_digit($window))) || (int) $window < 300 || (int) $window > 31536000) {
+            return $this->fail(msg: '旧签名 key publish 窗口必须为 300 至 31536000 秒', code: 422);
+        }
+        return $this->ok(data: $this->keys->rotate($this->tenantId(), (int) $window), msg: '签名 key rotation 完成');
     }
 
     private function tenantId(): int
     {
-        $tenantId = AdminIdentityAdapter::TENANT_ID;
-        if ($tenantId <= 0) throw new InvalidArgumentException('租户 ID 无效');
-        return $tenantId;
+        return AdminIdentityAdapter::TENANT_ID;
     }
 }

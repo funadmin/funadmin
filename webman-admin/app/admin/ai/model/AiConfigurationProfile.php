@@ -10,7 +10,6 @@ final class AiConfigurationProfile extends BackendModel
 {
     protected $name = 'ai_configuration_profile';
     protected $hidden = ['secret_ciphertext', 'default_admin_id'];
-    protected $json = ['configuration'];
-    protected $jsonAssoc = true;
-    protected $type = ['id'=>'integer', 'admin_id'=>'integer', 'is_default'=>'boolean'];
+    protected $fillable = ['admin_id', 'name', 'configuration', 'secret_ciphertext', 'is_default'];
+    protected $casts = ['configuration' => 'array', 'id' => 'integer', 'admin_id' => 'integer', 'is_default' => 'boolean'];
 }

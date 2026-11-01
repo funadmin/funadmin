@@ -14,29 +14,28 @@ use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\MemberIdentityAdapter;
 use app\admin\authentication\model\Admin;
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\identity\service\AuthorizationRevocationService;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\Db;
+use support\Response;
 
-#[Group('identity/users')]
+#[RouteGroup('/admin/identity/users')]
 final class IdentityUser extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
-
     #[Get('')]
     public function index(): Response
     {
-        $query = IdentityUserModel::forTenant(AdminIdentityAdapter::TENANT_ID)->withoutField('metadata,password_version,session_version')->order('id', 'desc');
+        $query = IdentityUserModel::forTenant(AdminIdentityAdapter::TENANT_ID)->whereNull('deleted_at')->orderByDesc('id');
         $keyword = trim((string) $this->request->get('keyword', ''));
-        if ($keyword !== '') $query->whereLike('username|display_name|email|mobile', '%' . addcslashes($keyword, '%_') . '%');
+        if ($keyword !== '') {
+            $query->where(function ($search) use ($keyword): void {
+                foreach (['username', 'display_name', 'email', 'mobile'] as $field) $search->orWhereLike($field, '%' . addcslashes($keyword, '%_') . '%');
+            });
+        }
         $total = (clone $query)->count();
-        $rows = $query->page(max(1, (int) $this->request->get('page', 1)), min(100, max(1, (int) $this->request->get('pageSize', 20))))->select()->toArray();
+        $rows = $query->forPage($this->page(), min(100, max(1, (int) $this->request->get('pageSize', 20))))->get()->makeHidden(['metadata', 'password_version', 'session_version'])->toArray();
         foreach ($rows as &$row) {
             $row['email'] = $this->maskEmail($row['email'] ?? null);
             $row['mobile'] = $this->maskMobile($row['mobile'] ?? null);
@@ -45,67 +44,64 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: ['list' => $rows, 'total' => $total]);
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        $user = IdentityUserModel::forTenant($tenantId)->withoutField('metadata,password_version,session_version')->where('id', $id)->findOrFail()->toArray();
+        $user = IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->firstOrFail()->makeHidden(['metadata', 'password_version', 'session_version'])->toArray();
         $user['email'] = $this->maskEmail($user['email'] ?? null);
         $user['mobile'] = $this->maskMobile($user['mobile'] ?? null);
-        $user['links'] = ['admin' => IdentityAdminLink::forTenant($tenantId)->where('user_id', $id)->field('id,admin_id')->select()->toArray(), 'member' => IdentityMemberLink::forTenant($tenantId)->where('user_id', $id)->field('id,member_id')->select()->toArray()];
-        $user['sessions'] = OidcSession::forTenant($tenantId)->where('user_id', $id)->withoutField('session_token_hash,password_version,session_version')->order('id', 'desc')->select()->toArray();
-        $user['authorizations'] = OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->withoutField('transaction_hash,state,nonce,code_challenge,redirect_uri')->order('id', 'desc')->select()->toArray();
+        $user['links'] = ['admin' => IdentityAdminLink::forTenant($tenantId)->where('user_id', $id)->select(['id', 'admin_id'])->get()->toArray(), 'member' => IdentityMemberLink::forTenant($tenantId)->where('user_id', $id)->select(['id', 'member_id'])->get()->toArray()];
+        $user['sessions'] = OidcSession::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['session_token_hash', 'password_version', 'session_version'])->toArray();
+        $user['authorizations'] = OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['transaction_hash', 'state', 'nonce', 'code_challenge', 'redirect_uri'])->toArray();
         $user['shadowRead'] = $this->shadowRead($tenantId, $id);
         return $this->ok(data: $user);
     }
 
-    #[Get(':id/links')]
-    #[Pattern('id', '\d+')]
+    #[Get('/{id:\d+}/links')]
     public function links(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
+        IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->firstOrFail();
         return $this->ok(data: [
-            'admin' => IdentityAdminLink::forTenant($tenantId)->where('user_id', $id)->field('id,admin_id')->select()->toArray(),
-            'member' => IdentityMemberLink::forTenant($tenantId)->where('user_id', $id)->field('id,member_id')->select()->toArray(),
+            'admin' => IdentityAdminLink::forTenant($tenantId)->where('user_id', $id)->select(['id', 'admin_id'])->get()->toArray(),
+            'member' => IdentityMemberLink::forTenant($tenantId)->where('user_id', $id)->select(['id', 'member_id'])->get()->toArray(),
         ]);
     }
 
-    #[Get(':id/sessions')]
-    #[Pattern('id', '\d+')]
+    #[Get('/{id:\d+}/sessions')]
     public function sessions(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
-        return $this->ok(data: OidcSession::forTenant($tenantId)->where('user_id', $id)->withoutField('session_token_hash,password_version,session_version')->order('id', 'desc')->select()->toArray());
+        IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->firstOrFail();
+        return $this->ok(data: OidcSession::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['session_token_hash', 'password_version', 'session_version'])->toArray());
     }
 
-    #[Get(':id/authorizations')]
-    #[Pattern('id', '\d+')]
+    #[Get('/{id:\d+}/authorizations')]
     public function authorizations(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
-        return $this->ok(data: OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->withoutField('transaction_hash,state,nonce,code_challenge,redirect_uri')->order('id', 'desc')->select()->toArray());
+        IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->firstOrFail();
+        return $this->ok(data: OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['transaction_hash', 'state', 'nonce', 'code_challenge', 'redirect_uri'])->toArray());
     }
 
-    #[Post(':id/sessions/revoke')]
-    #[Pattern('id', '\d+')]
+    #[Post('/{id:\d+}/sessions/revoke')]
     public function revokeSessions(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityUserModel::forTenant($tenantId)->where('id', $id)->inc('session_version')->update();
-        OidcSession::forTenant($tenantId)->where('user_id', $id)->where('status', 'active')->update(['status' => 'ended', 'ended_at' => date('Y-m-d H:i:s')]);
+        Db::transaction(function () use ($tenantId, $id): void {
+            $user = IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->lockForUpdate()->firstOrFail();
+            $user->increment('session_version');
+            OidcSession::forTenant($tenantId)->where('user_id', $id)->where('status', 'active')->update(['status' => 'ended', 'ended_at' => date('Y-m-d H:i:s')]);
+        });
         return $this->ok(data: null, msg: '用户会话已撤销');
     }
 
-    #[Post(':id/authorizations/revoke')]
-    #[Pattern('id', '\d+')]
+    #[Post('/{id:\d+}/authorizations/revoke')]
     public function revokeAuthorizations(int $id): Response
     {
         $tenantId = AdminIdentityAdapter::TENANT_ID;
-        IdentityUserModel::forTenant($tenantId)->where('id', $id)->findOrFail();
+        IdentityUserModel::forTenant($tenantId)->whereNull('deleted_at')->where('id', $id)->firstOrFail();
         (new AuthorizationRevocationService())->revokeUser($tenantId, $id);
         return $this->ok(data: null, msg: '用户授权已撤销');
     }
@@ -115,14 +111,14 @@ final class IdentityUser extends AdminApiController
         $result = [];
         $adminId = IdentityAdminLink::forTenant($tenantId)->where('user_id', $userId)->value('admin_id');
         if ($adminId !== null) {
-            $admin = Admin::withTrashed()->where('id', (int) $adminId)->find();
+            $admin = Admin::where('id', (int) $adminId)->first();
             $result['admin'] = $admin
                 ? ['available' => true, 'fields' => (new AdminIdentityAdapter())->shadowRead($admin, false)]
                 : ['available' => false, 'fields' => ['legacy_record']];
         }
         $memberId = IdentityMemberLink::forTenant($tenantId)->where('user_id', $userId)->value('member_id');
         if ($memberId !== null) {
-            $member = Member::withTrashed()->where('id', (int) $memberId)->find();
+            $member = Member::withTrashed()->where('id', (int) $memberId)->first();
             $result['member'] = $member
                 ? ['available' => true, 'fields' => (new MemberIdentityAdapter())->shadowRead($member, false)]
                 : ['available' => false, 'fields' => ['legacy_record']];

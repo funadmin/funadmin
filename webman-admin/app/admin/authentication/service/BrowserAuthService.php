@@ -23,11 +23,16 @@ final class BrowserAuthService
     public function login(string $cookie, string $csrf, string $username, string $password, string $ip): array
     {
         $this->assertCsrf($cookie, $csrf);
-        $result = (new AdminSessionService())->login($username, $password, $ip);
-        return Db::transaction(function () use ($cookie, $result): array {
-            $this->revoke($cookie);
-            return $this->createSession($result['access_token'], $result['expires_in']);
-        });
+        $result = (new AdminSessionService())->login($username, $password, $ip, 'browser');
+        try {
+            return Db::transaction(function () use ($cookie, $result): array {
+                $this->revoke($cookie);
+                return $this->createSession($result['access_token'], $result['expires_in']);
+            });
+        } catch (\Throwable $error) {
+            (new AdminSessionService())->logout($result['access_token'], 'browser');
+            throw $error;
+        }
     }
 
     public function user(string $cookie): array
@@ -35,7 +40,7 @@ final class BrowserAuthService
         if (!$this->session($cookie)) {
             throw new DomainException('登录已失效', 401);
         }
-        return (new AdminSessionService())->authenticate($cookie);
+        return (new AdminSessionService())->authenticate($cookie, 'browser');
     }
 
     public function assertCsrf(string $cookie, string $csrf): void
@@ -54,7 +59,7 @@ final class BrowserAuthService
 
     private function revoke(string $cookie): void
     {
-        (new AdminSessionService())->logout($cookie);
+        (new AdminSessionService())->logout($cookie, 'browser');
         Db::table('browser_sessions')->where('session_hash', hash('sha256', $cookie))->delete();
     }
 

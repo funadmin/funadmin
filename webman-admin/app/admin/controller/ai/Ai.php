@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\controller\ai;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\ai\job\AiAgentJob;
+use Webman\RedisQueue\Redis;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
@@ -38,7 +38,6 @@ use think\annotation\route\Patch;
 use think\annotation\route\Post;
 use think\annotation\route\Put;
 use think\facade\Db;
-use think\facade\Queue;
 use think\facade\Session;
 use think\Response;
 use Throwable;
@@ -144,7 +143,9 @@ final class Ai extends AdminApiController
     {
         return $this->run(function () use ($id): array {
             $task = $this->ai->createPublicTask($id, $this->adminId(), $this->input());
-            Queue::connection('ai-agent')->push(AiAgentJob::class . '@fire', ['taskId' => $task['id'], 'operationToken' => $task['operation_token']], 'ai-agent');
+            if (!Redis::connection('ai-agent')->send('ai-agent', ['taskId' => $task['id'], 'operationToken' => $task['operation_token']])) {
+                throw new RuntimeException('AI 队列投递未确认');
+            }
             return $task;
         });
     }

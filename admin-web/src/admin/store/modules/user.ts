@@ -42,6 +42,7 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchUserInfo() {
+      await this.ensureCsrf();
       const info = await authApi.me();
       this.userInfo = info;
       this.roles = info.roles || [];
@@ -58,6 +59,7 @@ export const useUserStore = defineStore('user', {
 
     async logout() {
       try {
+        await this.ensureCsrf();
         await authApi.logout();
       } catch {
         // 服务端会话失效时仍需清理本地状态。

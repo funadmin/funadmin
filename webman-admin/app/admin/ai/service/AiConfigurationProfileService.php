@@ -16,7 +16,7 @@ final class AiConfigurationProfileService
 
     public static function production(): self
     {
-        return new self(new \app\admin\ai\repository\DatabaseAiProfileRepository(), new AiProfileSecret((string) config('oauth.encryption_key', '')));
+        return new self(new \app\admin\ai\repository\DatabaseAiProfileRepository(), new AiProfileSecret((string) config('ai.encryption_key', config('oauth.encryption_key', ''))));
     }
 
     /** 冻结经校验的配置，不读取密钥。 */
@@ -48,7 +48,7 @@ final class AiConfigurationProfileService
         foreach (['base_url', 'protocol', 'provider'] as $field) {
             if (($row->configuration[$field] ?? null) !== $config[$field]) throw new \RuntimeException('档案可信目标已变更，请创建新任务', 409);
         }
-        $cipher = (string) $row->getAttr('secret_ciphertext');
+        $cipher = (string) $row->getAttribute('secret_ciphertext');
         $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
         return $config;
     }
@@ -59,7 +59,7 @@ final class AiConfigurationProfileService
         $row = $this->repository->find($adminId, $id);
         $config = self::validate(array_merge($row->configuration, ['name'=>$row->name]));
         if (!$config['enabled']) throw new \RuntimeException('档案已停用', 409);
-        $cipher = (string) $row->getAttr('secret_ciphertext');
+        $cipher = (string) $row->getAttribute('secret_ciphertext');
         $config['api_key'] = $cipher === '' ? '' : $this->secrets->open($cipher, $adminId);
         $gateway = $this->gatewayFactory !== null
             ? ($this->gatewayFactory)($config)
@@ -72,7 +72,7 @@ final class AiConfigurationProfileService
         return array_merge($row->configuration, [
             'capabilities'=>self::capabilities($row->configuration, (string) ($row->configuration['model'] ?? '')),
             'runtime_capabilities'=>['reasoning_efforts'=>\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS, 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
-            'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttr('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
+            'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttribute('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
         ]);
     }
 
@@ -109,11 +109,11 @@ final class AiConfigurationProfileService
             $row = $this->repository->find($adminId, $id, true);
             $data = self::validate(array_replace($row->configuration, ['name'=>$row->name], $input));
             foreach (['base_url','protocol','provider'] as $field) {
-                if (($row->configuration[$field] ?? null) !== $data[$field] && !array_key_exists('api_key', $input) && (string) $row->getAttr('secret_ciphertext') !== '') {
+                if (($row->configuration[$field] ?? null) !== $data[$field] && !array_key_exists('api_key', $input) && (string) $row->getAttribute('secret_ciphertext') !== '') {
                     throw new InvalidArgumentException('可信目标已变更，请明确提供新密钥或清空旧密钥', 400);
                 }
             }
-            $row->save($this->attributes($adminId, $data));
+            $row->fill($this->attributes($adminId, $data))->save();
             return $this->publicRecord($row);
         });
     }

@@ -14,7 +14,6 @@ final class AiApproval extends BackendModel
 
     protected $name = 'ai_approval';
 
-    protected $json = ['request', 'decision', 'impact'];
-
-    protected $jsonAssoc = true;
+    protected $guarded = [];
+    protected $casts = ['request' => 'array', 'decision' => 'array', 'impact' => 'array'];
 }

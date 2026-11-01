@@ -21,7 +21,6 @@ use Mcp\Server\Transport\TransportInterface;
 use InvalidArgumentException;
 use RuntimeException;
 use support\Db;
-use support\Log;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -76,7 +75,7 @@ class McpService extends AbstractService
             ->addTool([$this, 'handleUserManagement'], 'user-management', description: '用户管理相关操作')
             ->addTool([$this, 'handleSystemInfo'], 'system-info', description: '获取系统运行信息')
             ->addTool([$this, 'handleCrud'], 'crud', description: '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面只读预览')
-            ->addTool([$this, 'handleThinkCommand'], 'think-command', description: '执行安全白名单内的 Webman 命令')
+            ->addTool([$this, 'handleWebmanCommand'], 'webman-command', description: '执行只读白名单内的 Webman 命令')
             ->addResource([$this, 'handleConfigResource'], 'config://system', 'config-system', description: '系统配置信息资源', mimeType: 'application/json')
             ->addResource([$this, 'handleSchemaResource'], 'schema://database', 'schema-database', description: '数据库表结构信息资源', mimeType: 'application/json')
             ->build();
@@ -99,12 +98,30 @@ class McpService extends AbstractService
                 throw new RuntimeException('SQL查询语句不能为空');
             }
 
-            // 安全检查：只允许SELECT查询
-            if (!preg_match('/^\s*select\s+/i', trim($query))) {
-                throw new RuntimeException('出于安全考虑，只允许执行SELECT查询');
+            if (strlen($query) > 16384 || !preg_match('/\A\s*SELECT\s+/i', $query)
+                || preg_match('/;|--|#|\/\*|\b(?:INTO|OUTFILE|DUMPFILE|LOAD_FILE|SLEEP|BENCHMARK|GET_LOCK|RELEASE_LOCK|FOR\s+UPDATE)\b/i', $query)) {
+                throw new RuntimeException('只允许单条无副作用 SELECT 查询');
             }
-
-            $result = Db::select($query, $params);
+            $connection = Db::connection();
+            if ($connection->transactionLevel() !== 0) throw new RuntimeException('只读查询不能复用外部事务');
+            $driver = $connection->getDriverName();
+            if (!in_array($driver, ['mysql', 'sqlite'], true)) throw new RuntimeException('当前连接未实现只读查询保护');
+            $pdo = $connection->getPdo();
+            $queryOnly = $driver === 'sqlite' ? (int) $pdo->query('PRAGMA query_only')->fetchColumn() : 0;
+            try {
+                if ($driver === 'mysql') $pdo->exec('START TRANSACTION READ ONLY');
+                else { $pdo->exec('PRAGMA query_only = ON'); $pdo->beginTransaction(); }
+                $statement = $pdo->prepare($query);
+                $statement->execute($params);
+                $result = [];
+                while (($row = $statement->fetch(\PDO::FETCH_ASSOC)) !== false) {
+                    if (count($result) >= 1000) throw new RuntimeException('查询结果超过 1000 行限制');
+                    $result[] = $row;
+                }
+            } finally {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                if ($driver === 'sqlite') $pdo->exec('PRAGMA query_only = ' . $queryOnly);
+            }
 
             return [
                 'success' => true,
@@ -114,10 +131,10 @@ class McpService extends AbstractService
             ];
 
         } catch (\Throwable $e) {
-            Log::error('MCP数据库查询错误: ' . $e->getMessage());
+            $this->logger->warning('MCP 数据库查询失败', ['type' => $e::class]);
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => '只读查询被拒绝或执行失败',
             ];
         }
     }
@@ -129,33 +146,17 @@ class McpService extends AbstractService
      */
     public function handleSysConfig(string $key = ''): array
     {
-        try {
-            if (empty($key)) {
-                // 返回常用配置的概览
-                return [
-                    'app' => [
-                        'debug' => config('app.debug'),
-                        'default_timezone' => config('app.default_timezone'),
-                        'default_lang' => config('app.default_lang'),
-                    ],
-                    'database' => [
-                        'type' => config('database.default.type'),
-                        'hostname' => config('database.default.hostname'),
-                        'database' => config('database.default.database'),
-                    ],
-                    'cache' => [
-                        'default' => config('cache.default'),
-                        'stores' => array_keys(config('cache.stores', [])),
-                    ]
-                ];
-            } else {
-                return ['value' => config($key), 'key' => $key];
-            }
-
-        } catch (\Throwable $e) {
-            Log::error('MCP配置获取错误: ' . $e->getMessage());
-            throw $e;
-        }
+        $connection = (array) config('database.connections.' . config('database.default'), []);
+        $public = [
+            'app' => ['debug' => (bool) config('app.debug'), 'default_timezone' => config('app.default_timezone')],
+            'database' => ['type' => $connection['driver'] ?? '', 'charset' => $connection['charset'] ?? null, 'collation' => $connection['collation'] ?? null],
+            'cache' => ['default' => config('cache.default')],
+        ];
+        if ($key === '') return $public;
+        $allowed = ['app.debug', 'app.default_timezone', 'database.type', 'database.charset', 'database.collation', 'cache.default'];
+        if (!in_array($key, $allowed, true)) throw new RuntimeException('配置不在公开白名单');
+        [$section, $field] = explode('.', $key, 2);
+        return ['key' => $key, 'value' => $public[$section][$field]];
     }
 
     /**
@@ -179,12 +180,14 @@ class McpService extends AbstractService
                 $level = 'info';
             }
 
-            Log::log($level, $message, $context);
+            $context = (new \app\admin\ai\service\AiAuditService(''))->redact($context);
+            $message = (string) (new \app\admin\ai\service\AiAuditService(''))->redact($message);
+            $this->logger->log($level, mb_substr($message, 0, 4096), $context);
 
             return "日志记录成功 [级别: {$level}]";
 
         } catch (\Throwable $e) {
-            Log::error('MCP日志写入错误: ' . $e->getMessage());
+            $this->logger->warning('MCP日志写入错误', ['type' => $e::class]);
             throw $e;
         }
     }
@@ -197,69 +200,20 @@ class McpService extends AbstractService
      */
     public function handleFileOperation(string $operation, string $filepath): array
     {
-        try {
-            if (empty($operation) || empty($filepath)) {
-                throw new RuntimeException('操作类型和文件路径不能为空');
-            }
-
-            // 安全检查：限制文件路径范围
-            $allowedPaths = [
-                root_path() . 'runtime/',
-                root_path() . 'public/uploads/',
-                root_path() . 'config/',
-            ];
-
-            $isAllowed = false;
-            $realFilePath = realpath($filepath);
-            if ($realFilePath) {
-                foreach ($allowedPaths as $allowedPath) {
-                    $realAllowedPath = realpath($allowedPath);
-                    if ($realAllowedPath && strpos($realFilePath, $realAllowedPath) === 0) {
-                        $isAllowed = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!$isAllowed) {
-                throw new RuntimeException('文件路径不在允许的范围内');
-            }
-
-            switch ($operation) {
-                case 'read':
-                    if (!file_exists($filepath)) {
-                        throw new RuntimeException('文件不存在');
-                    }
-                    return [
-                        'content' => file_get_contents($filepath),
-                        'size' => filesize($filepath),
-                        'modified' => date('Y-m-d H:i:s', filemtime($filepath))
-                    ];
-
-                case 'exists':
-                    return ['exists' => file_exists($filepath)];
-
-                case 'info':
-                    if (!file_exists($filepath)) {
-                        throw new RuntimeException('文件不存在');
-                    }
-                    return [
-                        'size' => filesize($filepath),
-                        'modified' => date('Y-m-d H:i:s', filemtime($filepath)),
-                        'is_file' => is_file($filepath),
-                        'is_dir' => is_dir($filepath),
-                        'is_readable' => is_readable($filepath),
-                        'is_writable' => is_writable($filepath)
-                    ];
-
-                default:
-                    throw new RuntimeException('不支持的操作类型: ' . $operation);
-            }
-
-        } catch (\Throwable $e) {
-            Log::error('MCP文件操作错误: ' . $e->getMessage());
-            throw $e;
+        $root = realpath(base_path('public/uploads'));
+        $candidate = str_starts_with($filepath, DIRECTORY_SEPARATOR) ? $filepath : base_path($filepath);
+        $resolved = realpath($candidate);
+        if ($root === false || $resolved === false || !str_starts_with($resolved, $root . DIRECTORY_SEPARATOR)
+            || preg_match('#(?:^|/)(?:\.env|.*\.(?:pem|key))$#i', $resolved)) {
+            throw new RuntimeException('文件路径不在公开范围');
         }
+        if ($operation === 'exists') return ['exists' => true];
+        if (!is_file($resolved) || !is_readable($resolved)) throw new RuntimeException('文件不可读');
+        $size = filesize($resolved);
+        if ($operation === 'info') return ['size' => $size, 'modified' => date('Y-m-d H:i:s', filemtime($resolved)), 'is_file' => true];
+        if ($operation !== 'read') throw new RuntimeException('不支持的操作类型');
+        if ($size > 1048576) throw new RuntimeException('文件超过 1MiB 读取限制');
+        return ['content' => file_get_contents($resolved), 'size' => $size, 'modified' => date('Y-m-d H:i:s', filemtime($resolved))];
     }
 
     /**
@@ -274,13 +228,13 @@ class McpService extends AbstractService
         try {
             switch ($action) {
                 case 'list':
-                    $users = Db::table('admin')
+                    $users = Db::table('admin')->whereNull('deleted_at')
                         ->select(['id', 'username', 'email', 'mobile', 'created_at', 'status'])
-                        ->limit($limit)
+                        ->limit(max(1, min(100, $limit)))
                         ->get();
                     
                     return [
-                        'users' => $users->toArray(),
+                        'users' => array_map(static fn (object $row): array => (array) $row, $users->all()),
                         'count' => count($users)
                     ];
 
@@ -289,8 +243,8 @@ class McpService extends AbstractService
                         throw new RuntimeException('用户ID不能为空');
                     }
 
-                    $user = Db::table('admin')
-                        ->select(['id', 'username', 'nickname', 'email', 'mobile', 'created_at', 'status'])
+                    $user = Db::table('admin')->whereNull('deleted_at')
+                        ->select(['id', 'username', 'real_name', 'email', 'mobile', 'created_at', 'status'])
                         ->where('id', $userId)
                         ->first();
 
@@ -298,11 +252,11 @@ class McpService extends AbstractService
                         throw new RuntimeException('用户不存在');
                     }
 
-                    return $user;
+                    return (array) $user;
 
                 case 'count':
-                    $total = Db::table('admin')->count();
-                    $active = Db::table('admin')->where('status', 1)->count();
+                    $total = Db::table('admin')->whereNull('deleted_at')->count();
+                    $active = Db::table('admin')->whereNull('deleted_at')->where('status', 1)->count();
                     
                     return [
                         'total' => $total,
@@ -315,7 +269,7 @@ class McpService extends AbstractService
             }
 
         } catch (\Throwable $e) {
-            Log::error('MCP用户管理错误: ' . $e->getMessage());
+            $this->logger->warning('MCP用户管理错误', ['type' => $e::class]);
             throw $e;
         }
     }
@@ -333,7 +287,7 @@ class McpService extends AbstractService
                     return [
                         'php_version' => PHP_VERSION,
                         'framework' => 'Webman',
-                        'framework_version' => '2.2',
+                        'framework_version' => \Composer\InstalledVersions::getPrettyVersion('workerman/webman-framework'),
                         'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
                         'memory_limit' => ini_get('memory_limit'),
                         'max_execution_time' => ini_get('max_execution_time'),
@@ -345,16 +299,16 @@ class McpService extends AbstractService
                     $version = 'Unknown';
                     try {
                         $versionResult = Db::select('SELECT VERSION() as version');
-                        $version = $versionResult[0]['version'] ?? 'Unknown';
+                        $version = $versionResult[0]->version ?? 'Unknown';
                     } catch (\Throwable $e) {
                         // 数据库连接失败时使用默认值
                     }
                     
                     return [
-                        'type' => config('database.default.type'),
+                        'type' => config('database.default'),
                         'version' => $version,
-                        'charset' => config('database.default.charset'),
-                        'collation' => config('database.default.collate'),
+                        'charset' => config('database.connections.' . config('database.default') . '.charset'),
+                        'collation' => config('database.connections.' . config('database.default') . '.collation'),
                     ];
 
                 case 'performance':
@@ -377,7 +331,7 @@ class McpService extends AbstractService
             }
 
         } catch (\Throwable $e) {
-            Log::error('MCP系统信息错误: ' . $e->getMessage());
+            $this->logger->warning('MCP系统信息错误', ['type' => $e::class]);
             throw $e;
         }
     }
@@ -406,19 +360,7 @@ class McpService extends AbstractService
      */
     public function handleConfigResource(): string
     {
-        $configs = [
-            'app' => config('app'),
-            'database' => [
-                'type' => config('database.default.type'),
-                'charset' => config('database.default.charset'),
-                'debug' => config('database.debug'),
-            ],
-            'cache' => config('cache'),
-            'session' => config('session'),
-            'log' => config('log'),
-        ];
-
-        return json_encode($configs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return json_encode($this->handleSysConfig(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -428,23 +370,20 @@ class McpService extends AbstractService
     public function handleSchemaResource(): string
     {
         try {
-            // 获取所有表名
-            $tables = Db::select('SHOW TABLES');
             $schema = [];
-
-            foreach ($tables as $table) {
-                $tableName = array_values((array) $table)[0];
-                
-                // 获取表结构
-                $columns = Db::select("SHOW COLUMNS FROM `{$tableName}`");
-                $schema[$tableName] = $columns;
+            $builder = Db::schema();
+            foreach ($builder->getTables() as $table) {
+                $name = (string) $table['name'];
+                $prefix = Db::connection()->getTablePrefix();
+                if ($prefix !== '' && !str_starts_with($name, $prefix)) continue;
+                $logical = $prefix === '' ? $name : substr($name, strlen($prefix));
+                $schema[$name] = $builder->getColumns($logical);
             }
-
-            return json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         } catch (\Throwable $e) {
-            Log::error('MCP数据库模式获取错误: ' . $e->getMessage());
-            return json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            $this->logger->warning('MCP数据库模式获取错误', ['type' => $e::class]);
+            return json_encode(['error' => '数据库模式不可用'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -474,10 +413,10 @@ class McpService extends AbstractService
     public function startWithTransport(TransportInterface $transport): mixed
     {
         try {
-            Log::info('MCP服务器启动成功');
+            $this->logger->info('MCP服务器启动');
             return $this->buildServer()->run($transport);
         } catch (\Throwable $exception) {
-            Log::error('MCP服务器启动失败: ' . $exception->getMessage());
+            $this->logger->error('MCP服务器启动失败', ['type' => $exception::class]);
             throw $exception;
         }
     }
@@ -560,10 +499,10 @@ class McpService extends AbstractService
     public function handleCrud(string $configPath): array
     {
         try {
-            $root = rtrim(root_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $root = rtrim(base_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $path = trim($configPath);
             if ($path === '' || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'json') {
-                throw new InvalidArgumentRuntimeException('必须指定项目目录内的 JSON 配置文件');
+                throw new InvalidArgumentException('必须指定项目目录内的 JSON 配置文件');
             }
             $candidate = str_starts_with($path, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $path) === 1
                 ? $path
@@ -571,18 +510,18 @@ class McpService extends AbstractService
             $resolved = realpath($candidate);
             $resolvedRoot = realpath($root);
             if ($resolved === false || !is_file($resolved)) {
-                throw new InvalidArgumentRuntimeException('CRUD 配置文件不存在');
+                throw new InvalidArgumentException('CRUD 配置文件不存在');
             }
             if ($resolvedRoot === false || !str_starts_with($resolved . DIRECTORY_SEPARATOR, $resolvedRoot . DIRECTORY_SEPARATOR)) {
-                throw new InvalidArgumentRuntimeException('CRUD 配置文件必须位于项目目录内');
+                throw new InvalidArgumentException('CRUD 配置文件必须位于项目目录内');
             }
             $json = file_get_contents($resolved);
             if ($json === false) {
-                throw new \RuntimeRuntimeException('无法读取 CRUD Definition');
+                throw new \RuntimeException('无法读取 CRUD Definition');
             }
             $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($data) || !isset($data['schemaVersion'])) {
-                throw new InvalidArgumentRuntimeException('必须使用版本化 CRUD Definition');
+                throw new InvalidArgumentException('必须使用版本化 CRUD Definition');
             }
             $plan = (new CrudGenerator($root))->plan(CrudDefinition::fromArray($data));
             unset($plan['confirmToken']);
@@ -596,7 +535,7 @@ class McpService extends AbstractService
                 ],
             ];
         } catch (\Throwable $e) {
-            Log::error('CRUD 生成错误: ' . $e->getMessage());
+            $this->logger->warning('CRUD 生成错误', ['type' => $e::class]);
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -611,97 +550,44 @@ class McpService extends AbstractService
      * @param array $options 命令选项 (可选)
      * @return array
      */
-    public function handleThinkCommand(string $command, array $params = [], array $options = []): array
+    public function handleWebmanCommand(string $command, array $params = [], array $options = []): array
     {
+        $allowed = ['version', 'list', 'help', 'route:list'];
         try {
-            // 验证命令是否为安全的内置命令
-            $allowedCommands = [
-                'list', 'help', 'version', 'start', 'restart', 'stop', 'status', 'reload', 'connections',
-                'make:controller', 'make:model', 'make:middleware', 'make:command', 'make:crud',
-                'crud:inspect', 'crud:validate', 'crud:preview', 'mcp'
-            ];
-
-            if (!in_array($command, $allowedCommands)) {
-                return [
-                    'success' => false,
-                    'message' => '不支持的命令或命令不安全',
-                    'allowed_commands' => $allowedCommands
-                ];
+            if (!in_array($command, $allowed, true) || $options !== [] || !array_is_list($params)
+                || ($command !== 'help' && $params !== []) || count($params) > 1) {
+                throw new InvalidArgumentException('命令或参数不在只读白名单');
             }
-
-            // 构建完整的命令
-            $fullCommand = 'php webman ' . $command;
-            
-            // 添加参数
-            if (!empty($params)) {
-                foreach ($params as $param) {
-                    $fullCommand .= ' ' . escapeshellarg($param);
-                }
+            foreach ($params as $param) {
+                if (!is_string($param) || !preg_match('/\A[a-z][a-z0-9:-]*\z/D', $param)) throw new InvalidArgumentException('命令参数无效');
             }
-            
-            // 添加选项
-            if (!empty($options)) {
-                foreach ($options as $option => $value) {
-                    if (is_numeric($option)) {
-                        // 简单选项，如 --verbose
-                        $fullCommand .= ' --' . $value;
-                    } else {
-                        // 带值选项，如 --name=value
-                        $fullCommand .= ' --' . $option . '=' . escapeshellarg($value);
+            $argv = [PHP_BINARY, base_path('webman'), '--no-ansi', '--no-interaction', $command, ...$params];
+            $process = proc_open($argv, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path());
+            if (!is_resource($process)) throw new RuntimeException('无法启动 Webman 命令');
+            fclose($pipes[0]);
+            stream_set_blocking($pipes[1], false);
+            stream_set_blocking($pipes[2], false);
+            $content = '';
+            $deadline = microtime(true) + 10;
+            try {
+                do {
+                    $content .= stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+                    $state = proc_get_status($process);
+                    if (strlen($content) > 1048576 || microtime(true) > $deadline) {
+                        proc_terminate($process, 9);
+                        throw new RuntimeException('命令输出或执行时间超过限制');
                     }
-                }
+                    if (!$state['running']) break;
+                    usleep(10000);
+                } while (true);
+                $content .= stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+            } finally {
+                fclose($pipes[1]); fclose($pipes[2]); proc_close($process);
             }
-
-            // 切换到项目根目录执行命令
-            $rootPath = root_path();
-            $originalDir = getcwd();
-            
-            if ($originalDir !== $rootPath) {
-                chdir($rootPath);
-            }
-
-            // 执行命令并捕获输出
-            $output = [];
-            $returnCode = 0;
-            exec($fullCommand . ' 2>&1', $output, $returnCode);
-            
-            // 恢复原始目录
-            if ($originalDir !== $rootPath) {
-                chdir($originalDir);
-            }
-
-            // 记录命令执行日志
-            $this->handleWriteLog("执行 Webman 命令: {$fullCommand}", 'info', [
-                'return_code' => $returnCode,
-                'output_lines' => count($output)
-            ]);
-
-            $content = implode("\n", $output);
-            $success = $returnCode === 0 || strpos($content, '成功') !== false;
-
-            return [
-                'success' => $success,
-                'message' => $success ? '命令执行成功' : '命令执行失败',
-                'command' => $fullCommand,
-                'return_code' => $returnCode,
-                'output' => $content,
-                'output_lines' => $output
-            ];
-
-        } catch (\RuntimeException $e) {
-            $this->handleWriteLog('执行 Webman 命令时出错: ' . $e->getMessage(), 'error', [
-                'command' => $command,
-                'params' => $params,
-                'options' => $options,
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'message' => '命令执行异常: ' . $e->getMessage(),
-                'command' => $command,
-                'error' => $e->getMessage()
-            ];
+            $code = (int) $state['exitcode'];
+            return ['success' => $code === 0, 'command' => $command, 'return_code' => $code, 'output' => $content, 'output_lines' => explode("\n", rtrim($content))];
+        } catch (\Throwable $error) {
+            return ['success' => false, 'command' => $command, 'error' => $error->getMessage()];
         }
     }
 }

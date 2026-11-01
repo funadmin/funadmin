@@ -15,7 +15,7 @@ final class AiAttachmentService
 
     public static function production(): self
     {
-        return new self(new DatabaseAiAttachmentRepository(), new AiAttachmentStorage(root_path() . 'runtime/private/ai-attachments'));
+        return new self(new DatabaseAiAttachmentRepository(), new AiAttachmentStorage(runtime_path('private/ai-attachments')));
     }
 
     private function now(): int { return $this->clock ? ($this->clock)() : time(); }

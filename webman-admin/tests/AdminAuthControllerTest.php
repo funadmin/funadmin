@@ -17,7 +17,7 @@ final class AdminAuthControllerTest extends TestCase
     protected function setUp(): void
     {
         $schema = Db::schema();
-        foreach (['browser_sessions', 'login_attempts', 'admin'] as $table) {
+        foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'admin'] as $table) {
             $schema->dropIfExists($table);
         }
         $schema->create('admin', static function (Blueprint $table): void {
@@ -45,11 +45,13 @@ final class AdminAuthControllerTest extends TestCase
             $table->string('csrf_token', 64);
             $table->dateTime('expires_at');
         });
+        $migration = require base_path() . '/database/migrations/005_admin_auth_tokens.php';
+        $migration();
     }
 
     protected function tearDown(): void
     {
-        foreach (['browser_sessions', 'login_attempts', 'admin'] as $table) {
+        foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'admin'] as $table) {
             Db::schema()->dropIfExists($table);
         }
     }

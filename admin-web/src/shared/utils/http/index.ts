@@ -75,7 +75,10 @@ service.interceptors.response.use(
       return data;
     }
     if (code === RESP_CODE.UNAUTHORIZED) {
-      if (opt.ignoreUnauthorized) return Promise.reject(response.data);
+      if (opt.ignoreUnauthorized) {
+        if (opt.showErrorMsg) showError(msg || tr('http.unauthorized', '登录已失效，请重新登录'), opt.errorMessageMode);
+        return Promise.reject(response.data);
+      }
       return handleUnauthorized(msg || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
     if (opt.showErrorMsg) showError(msg || tr('http.requestFailed', '请求失败'), opt.errorMessageMode);
@@ -95,7 +98,10 @@ service.interceptors.response.use(
     }
     const safeMessage = businessMessage(payload);
     if (status === 401 || payload?.code === RESP_CODE.UNAUTHORIZED) {
-      if (opt.ignoreUnauthorized) return Promise.reject(payload || error);
+      if (opt.ignoreUnauthorized) {
+        if (opt.showErrorMsg) showError(safeMessage || tr('http.unauthorized', '登录已失效，请重新登录'), opt.errorMessageMode);
+        return Promise.reject(payload || error);
+      }
       return handleUnauthorized(safeMessage || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
 

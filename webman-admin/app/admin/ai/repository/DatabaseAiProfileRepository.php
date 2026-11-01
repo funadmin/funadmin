@@ -5,12 +5,14 @@ namespace app\admin\ai\repository;
 
 use app\admin\ai\model\AiConfigurationProfile;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
+use Illuminate\Database\Eloquent\Builder;
 
 /** 所有查询均带管理员边界；写操作锁定档案，默认唯一性另由数据库约束兜底。 */
 final class DatabaseAiProfileRepository
 {
-    private function query(int $adminId): \think\db\Query
+    /** @return Builder<AiConfigurationProfile> */
+    private function query(int $adminId): Builder
     {
         if ($adminId <= 0) throw new RuntimeException('未登录', 401);
         return AiConfigurationProfile::where('admin_id', $adminId);
@@ -20,12 +22,12 @@ final class DatabaseAiProfileRepository
 
     public function find(int $adminId, int $id, bool $lock = false): AiConfigurationProfile
     {
-        $row = $this->query($adminId)->where('id', $id)->lock($lock)->find();
+        $row = $this->query($adminId)->where('id', $id)->lock($lock)->first();
         if (!$row) throw new RuntimeException('档案不存在', 404);
         return $row;
     }
 
-    public function all(int $adminId): array { return $this->query($adminId)->order('id')->select()->all(); }
+    public function all(int $adminId): array { return $this->query($adminId)->orderBy('id')->get()->all(); }
 
     public function create(int $adminId, array $data): AiConfigurationProfile
     {
@@ -37,10 +39,10 @@ final class DatabaseAiProfileRepository
     {
         return $this->transaction(function () use ($adminId, $id) {
             // 按固定顺序锁定管理员所有档案，避免切换默认时的反向加锁。
-            $this->query($adminId)->order('id')->lock(true)->select();
+            $this->query($adminId)->orderBy('id')->lockForUpdate()->get();
             $row = $this->find($adminId, $id, true);
             $this->query($adminId)->where('is_default', 1)->update(['is_default'=>0, 'updated_at'=>date('Y-m-d H:i:s')]);
-            $row->save(['is_default'=>true]);
+            $row->fill(['is_default'=>true])->save();
             return $row;
         });
     }

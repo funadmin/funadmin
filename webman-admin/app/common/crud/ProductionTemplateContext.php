@@ -433,7 +433,7 @@ final class ProductionTemplateContext
         $controllerImports = $data['_consoleController']
             ? "use app\\admin\\controller\\base\\AdminApiController;\nuse app\\admin\\middleware\\CheckAdminApiCsrf;\n"
                 . "use app\\admin\\middleware\\CheckAdminApiRole;\nuse app\\admin\\middleware\\SystemLog;\n"
-            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\traits\\AdminCrudRequest;\nuse app\\admin\\traits\\AdminPagination;\n"
+            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
                 . "use app\\common\\traits\\JsonResponse;\n";
         $controllerDeclaration = $data['_consoleController']
             ? "final class {$class}Controller extends AdminApiController"
@@ -516,7 +516,7 @@ final class ProductionTemplateContext
             $hidden .= "        {$method} as private {$alias}; {$method} as private;\n";
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_memberControllerNamespace']};\n\n"
-            . "use app\\BaseController;\nuse app\\admin\\traits\\AdminCrudRequest;\nuse app\\admin\\traits\\AdminPagination;\n"
+            . "use app\\BaseController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
             . "use app\\common\\middleware\\MApi;\nuse app\\common\\traits\\Crud;\nuse app\\common\\traits\\JsonResponse;\n"
             . "use {$data['_modelNamespace']}\\{$class};\nuse {$data['_serviceNamespace']}\\{$class}Service;\nuse {$data['_validateNamespace']}\\{$class}Validate;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"

@@ -11,9 +11,8 @@ final class AiToolCall extends BackendModel
 {
     protected $name = 'ai_tool_call';
 
-    protected $json = ['redacted_arguments', 'result', 'error', 'side_effects'];
-
-    protected $jsonAssoc = true;
+    protected $guarded = [];
+    protected $casts = ['redacted_arguments' => 'array', 'result' => 'array', 'error' => 'array', 'side_effects' => 'array'];
 
     public function task()
     {

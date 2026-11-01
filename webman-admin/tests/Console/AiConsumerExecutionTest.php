@@ -16,7 +16,7 @@ use support\Db;
 class AiConsumerExecutionTest extends TestCase
 {
     private bool $ready = false;
-    private const TABLES = ['ai_task', 'ai_conversation', 'ai_message', 'ai_task_event'];
+    private const TABLES = ['ai_task', 'ai_conversation', 'ai_message', 'ai_task_event', 'ai_conversation_group'];
 
     protected function setUp(): void
     {
@@ -47,7 +47,16 @@ class AiConsumerExecutionTest extends TestCase
                 }
                 if ($name === 'ai_conversation') {
                     $table->unsignedBigInteger('admin_id');
+                    $table->string('title')->default('');
+                    $table->unsignedBigInteger('group_id')->nullable();
+                    $table->boolean('is_archived')->default(false);
+                    $table->json('context')->nullable();
                     $table->boolean('is_unread')->default(false);
+                }
+                if ($name === 'ai_conversation_group') {
+                    $table->unsignedBigInteger('admin_id');
+                    $table->string('name');
+                    $table->unique(['admin_id', 'name']);
                 }
                 if ($name === 'ai_message') {
                     $table->unsignedBigInteger('conversation_id');
@@ -80,6 +89,29 @@ class AiConsumerExecutionTest extends TestCase
             public function execute(array $call): array { throw new \RuntimeException('此测试不允许副作用工具'); }
         };
         return new AiAgentJob(new DatabaseAiConversationStore(), new AiAgentOrchestrator($provider, $tools));
+    }
+
+    public function test_conversation_group_changes_preserve_ownership_and_json_context(): void
+    {
+        $store = new DatabaseAiConversationStore();
+        $group = $store->createConversationGroup(['admin_id' => 7, 'name' => '测试分组']);
+        $conversation = $store->createConversation(['admin_id' => 7, 'title' => '测试会话', 'group_id' => $group['id'], 'context' => ['project' => 'test']]);
+        self::assertSame(['project' => 'test'], $conversation['context']);
+        self::assertNull($store->conversation($conversation['id'], 8));
+        self::assertCount(1, $store->conversationPageRows(7, ['group_id' => $group['id']], null, 2));
+        self::assertFalse($store->deleteConversationGroup($group['id'], 8));
+        self::assertTrue($store->deleteConversationGroup($group['id'], 7));
+        self::assertNull($store->conversation($conversation['id'], 7)['group_id']);
+        self::assertTrue($store->conversation($conversation['id'], 7)['is_archived']);
+        self::assertSame([], $store->conversationGroups(7));
+    }
+
+    public function test_webman_consumer_rejects_malformed_payload_before_job_creation(): void
+    {
+        $consumer = new \app\admin\ai\queue\AiAgentConsumer();
+        self::assertInstanceOf(\Webman\RedisQueue\Consumer::class, $consumer);
+        $this->expectExceptionMessage('AI 队列消息格式无效');
+        $consumer->consume(['taskId' => 0]);
     }
 
     public function test_consumer_persists_response_events_and_is_idempotent(): void

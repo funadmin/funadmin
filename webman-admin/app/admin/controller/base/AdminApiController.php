@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace app\admin\controller\base;
 
 use app\BaseController;
-use app\admin\traits\AdminCrudRequest;
+use app\admin\common\traits\AdminCrudRequest;
 use app\admin\traits\AdminDataFormat;
 use app\admin\traits\AdminDataScope;
 use app\admin\traits\AdminJsonResponse;
-use app\admin\traits\AdminPagination;
-use app\admin\traits\AdminTree;
+use app\admin\common\traits\AdminPagination;
+use app\admin\common\traits\AdminTree;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\SystemLog;

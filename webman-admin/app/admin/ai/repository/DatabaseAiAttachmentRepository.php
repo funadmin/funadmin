@@ -5,7 +5,7 @@ namespace app\admin\ai\repository;
 
 use app\admin\ai\model\AiAttachment;
 use app\admin\ai\model\AiConversation;
-use think\facade\Db;
+use support\Db;
 use RuntimeException;
 
 /** 固定会话→附件锁序，绑定与删除串行化，避免检查后被另一请求删除。 */
@@ -15,7 +15,7 @@ final class DatabaseAiAttachmentRepository
 
     public function ownedConversation(int $conversationId, int $adminId, bool $lock = false): void
     {
-        if ($adminId <= 0 || $conversationId <= 0 || !AiConversation::where('id', $conversationId)->where('admin_id', $adminId)->lock($lock)->find()) throw new RuntimeException('资源不存在', 404);
+        if ($adminId <= 0 || $conversationId <= 0 || !AiConversation::where('id', $conversationId)->where('admin_id', $adminId)->lock($lock)->first()) throw new RuntimeException('资源不存在', 404);
     }
 
     public function create(array $data): array { return AiAttachment::create($data)->toArray(); }
@@ -23,7 +23,7 @@ final class DatabaseAiAttachmentRepository
     public function owned(int $conversationId, int $adminId, int $id, int $now, bool $lock = false): array
     {
         $this->ownedConversation($conversationId, $adminId, $lock);
-        $row = AiAttachment::where('id', $id)->where('conversation_id', $conversationId)->where('admin_id', $adminId)->lock($lock)->find()?->toArray();
+        $row = AiAttachment::where('id', $id)->where('conversation_id', $conversationId)->where('admin_id', $adminId)->lock($lock)->first()?->toArray();
         if (!$row || ($row['message_id'] === null && strtotime($row['expires_at']) <= $now)) throw new RuntimeException('资源不存在', 404);
         return $row;
     }
@@ -32,10 +32,10 @@ final class DatabaseAiAttachmentRepository
     public function removeExpiredFile(string $path, int $now, callable $remove): bool
     {
         return $this->transaction(function () use ($path, $now, $remove): bool {
-            $row = AiAttachment::withTrashed()->where('storage_path', $path)->lock(true)->find();
+            $row = AiAttachment::withTrashed()->where('storage_path', $path)->lockForUpdate()->first();
             if ($row !== null) {
-                if ($row->getAttr('message_id') !== null) return false;
-                $expiry = strtotime((string) $row->getAttr('expires_at'));
+                if ($row->getAttribute('message_id') !== null) return false;
+                $expiry = strtotime((string) $row->getAttribute('expires_at'));
                 if ($expiry === false || $expiry > $now) return false;
             }
             return $remove();

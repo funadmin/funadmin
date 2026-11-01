@@ -40,7 +40,9 @@ class MemberIdentityAdapter
     /** @return list<string> */
     public function shadowRead(object $member, bool $audit = true): array
     {
-        $user = (new LegacyIdentityLinkService())->ensureMember(self::TENANT_ID, $member);
+        $link = \app\common\model\identity\IdentityMemberLink::forTenant(self::TENANT_ID)->where('member_id', (int) $member->id)->first();
+        $user = $link ? IdentityUser::forTenant(self::TENANT_ID)->where('id', (int) $link->user_id)->first() : null;
+        if ($user === null) return ['identity_link'];
         $expected = [
             'username' => (string) $member->username,
             'display_name' => (string) (($member->nickname ?? '') ?: $member->username),
@@ -53,7 +55,7 @@ class MemberIdentityAdapter
         foreach ($expected as $field => $value) {
             if ((string) ($user->{$field} ?? null) !== (string) $value) $differences[] = $field;
         }
-        $credential = IdentityCredential::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->where('type', 'password')->find();
+        $credential = IdentityCredential::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->where('type', 'password')->first();
         if (!$credential || !hash_equals((string) $credential->secret_hash, (string) ($member->password ?? ''))) $differences[] = 'password';
         $differences = array_values(array_unique($differences));
         if ($audit && $differences !== []) {

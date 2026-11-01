@@ -38,10 +38,13 @@ final class LegacyAuthCompatibilityTest extends TestCase
             $table->unsignedInteger('attempts')->default(0);
             $table->unsignedBigInteger('window_start');
         });
+        $migration = require base_path() . '/database/migrations/005_admin_auth_tokens.php';
+        $migration();
     }
 
     protected function tearDown(): void
     {
+        Db::schema()->dropIfExists('admin_auth_tokens');
         Db::schema()->dropIfExists('login_attempts');
         Db::schema()->dropIfExists('admin');
     }
@@ -56,7 +59,8 @@ final class LegacyAuthCompatibilityTest extends TestCase
 
         $result = $service->login('legacy_admin', 'a-long-test-password', '127.0.0.1');
         self::assertSame($admin['id'], $service->authenticate($result['access_token'])['id']);
-        self::assertSame(hash('sha256', $result['access_token']), Db::table('admin')->value('token'));
+        self::assertNull(Db::table('admin')->value('token'));
+        self::assertSame(hash('sha256', $result['access_token']), Db::table('admin_auth_tokens')->value('token_hash'));
 
         $service->logout($result['access_token']);
         self::assertNull(Db::table('admin')->value('token'));

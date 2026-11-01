@@ -10,7 +10,7 @@
     <script>
       (function () {
         var KEY = 'ADMIN_THEME';
-        var primary = '#2c7be5';
+        var primary = '#1677ff';
         var themeMode = 'light';
         try {
           var raw = localStorage.getItem(KEY);
@@ -21,7 +21,11 @@
               if (/^#[0-9A-Fa-f]{3}$/.test(c)) {
                 c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
               }
-              if (/^#[0-9A-Fa-f]{6}$/.test(c)) primary = c;
+              if (/^#[0-9A-Fa-f]{6}$/.test(c)) {
+                var legacy = [0x2c7be5, 0x165dff, 0x5d87ff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
+                var value = parseInt(c.slice(1), 16);
+                primary = legacy.indexOf(value) >= 0 ? (d.preset === 'vibrant' ? '#2f80ed' : '#1677ff') : c;
+              }
             }
             if (d && typeof d.themeMode === 'string') themeMode = d.themeMode;
           }
@@ -107,7 +111,7 @@
         color: #f7f8fa;
       }
       .ml-brand-accent {
-        color: var(--app-boot-primary, #2c7be5);
+        color: var(--app-boot-primary, #1677ff);
       }
 
       /* 副标题：纯灰，无渐变无装饰 */
@@ -131,7 +135,7 @@
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: var(--app-boot-primary, #2c7be5);
+        background: var(--app-boot-primary, #1677ff);
         animation: dotPulse 1.2s ease-in-out infinite;
       }
       .ml-dots span:nth-child(2) {
@@ -165,18 +169,18 @@
         color: #4e5969;
       }
     </style>
-    <script type="module" crossorigin src="/admin-web/assets/js/index-CmZURPd2.js"></script>
+    <script type="module" crossorigin src="/admin-web/assets/js/index-BqIaiArt.js"></script>
     <link rel="modulepreload" crossorigin href="/admin-web/assets/js/rolldown-runtime-hePW80VL.js">
     <link rel="modulepreload" crossorigin href="/admin-web/assets/js/element-Bpuryqbo.js">
     <link rel="modulepreload" crossorigin href="/admin-web/assets/js/vue-D-KOkiar.js">
     <link rel="modulepreload" crossorigin href="/admin-web/assets/js/config-CvVH2jQY.js">
     <link rel="modulepreload" crossorigin href="/admin-web/assets/js/vendor-CLTBBYp2.js">
-    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/locales-CLaZkmyE.js">
-    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/http-KDAbQo4j.js">
-    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/language-uWETflyI.js">
-    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/remotePack-COfQob20.js">
+    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/locales-WAC086u8.js">
+    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/http-GsU3Zk2I.js">
+    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/language-D1E6UP75.js">
+    <link rel="modulepreload" crossorigin href="/admin-web/assets/js/remotePack-nuIA5NlH.js">
     <link rel="stylesheet" crossorigin href="/admin-web/assets/css/element-B_mtYXZp.css">
-    <link rel="stylesheet" crossorigin href="/admin-web/assets/css/index-ChIPRegJ.css">
+    <link rel="stylesheet" crossorigin href="/admin-web/assets/css/index-BO1Fzu_T.css">
   </head>
   <body>
     <div id="app">

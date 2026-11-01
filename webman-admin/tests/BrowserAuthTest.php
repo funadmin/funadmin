@@ -42,6 +42,18 @@ final class BrowserAuthTest extends TestCase
         $auth->user($login['cookie']);
     }
 
+    public function test_failed_browser_logins_are_rate_limited_across_requests(): void
+    {
+        $auth = new BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            try { $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'missing', 'wrong', 'browser-limit'); }
+            catch (DomainException $error) { self::assertSame(401, $error->getCode()); }
+        }
+        $this->expectExceptionCode(429);
+        $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'missing', 'wrong', 'browser-limit');
+    }
+
     public function test_missing_csrf_prevents_login_and_logout(): void
     {
         $auth = new BrowserAuthService();

@@ -17,6 +17,11 @@ use Throwable;
 #[AsCommand(name: 'ai:change-set-recover')]
 final class AiChangeSetRecover extends Command
 {
+    public function __construct(private readonly ?AiChangeSetTransactionService $transactions = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('ai:change-set-recover')
@@ -27,7 +32,7 @@ final class AiChangeSetRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $service = new AiChangeSetTransactionService(base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'));
+            $service = $this->transactions ?? new AiChangeSetTransactionService(base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'));
             $result = $service->recover(trim((string) $input->getArgument('transaction')));
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;

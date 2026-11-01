@@ -98,7 +98,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { profileApi, type ProfileInfo } from '@/api/profile';
 import { useUserStore } from '@/store/modules/user';
-import { ADMIN_LOGIN_PATH } from '@/config';
+import { ADMIN_LOGIN_PATH, isWebmanBackend } from '@/config';
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import Upload from '@/components/Upload/index.vue';
 
@@ -128,7 +128,14 @@ const pwdRules = computed<FormRules>(() => ({
   oldPassword: [{ required: true, message: t('profile.oldRequired', '请输入原密码'), trigger: 'blur' }],
   newPassword: [
     { required: true, message: t('profile.newRequired', '请输入新密码'), trigger: 'blur' },
-    { min: 8, message: t('profile.newMin', '新密码至少 8 位'), trigger: 'blur' }
+    {
+      validator: (_rule, value: string, callback) => {
+        if (!isWebmanBackend()) return value.length >= 8 ? callback() : callback(new Error(t('profile.newMin', '新密码至少 8 位')));
+        const bytes = new TextEncoder().encode(value).length;
+        return bytes < 12 || bytes > 72 ? callback(new Error(t('profile.passwordBytes', '新密码需为 12～72 字节'))) : callback();
+      },
+      trigger: 'blur'
+    }
   ],
   confirmPassword: [
     { required: true, message: t('profile.confirmRequired', '请再次输入新密码'), trigger: 'blur' },
@@ -181,6 +188,7 @@ async function onChangePwd() {
   try {
     await profileApi.changePassword({ oldPassword: pwdForm.oldPassword, newPassword: pwdForm.newPassword });
     userStore.resetState();
+    resetPassword();
     ElMessage.success(t('profile.passwordUpdated', '密码已更新，请重新登录'));
     await router.replace(ADMIN_LOGIN_PATH);
   } finally {

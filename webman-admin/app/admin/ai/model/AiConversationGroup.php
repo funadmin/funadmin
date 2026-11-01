@@ -14,5 +14,6 @@ final class AiConversationGroup extends BackendModel
 
     protected $name = 'ai_conversation_group';
 
-    protected $type = ['id' => 'integer', 'admin_id' => 'integer'];
+    protected $fillable = ['admin_id', 'name'];
+    protected $casts = ['id' => 'integer', 'admin_id' => 'integer'];
 }

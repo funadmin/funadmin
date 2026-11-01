@@ -10,9 +10,9 @@ use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\Permission;
-use app\admin\controller\authorization\SystemMenu;
-use app\admin\controller\authorization\SystemPermission;
-use app\admin\controller\authorization\SystemRole;
+use app\admin\authorization\controller\SystemMenu;
+use app\admin\authorization\controller\SystemPermission;
+use app\admin\authorization\controller\SystemRole;
 use app\admin\authorization\controller\SystemAdmin;
 use PHPUnit\Framework\TestCase;
 use support\Db;
@@ -61,14 +61,19 @@ final class AuthorizationLayoutContractTest extends TestCase
         }
     }
 
-    public function test_tp8_authorization_tree_classes_are_loadable_from_mirrored_paths(): void
+    public function test_authorization_controllers_are_loaded_only_from_the_business_module(): void
     {
         self::assertSame('permission', (new Permission())->getTable());
         self::assertSame('auth_group', (new AuthGroup())->getTable());
         self::assertSame('admin_menu', (new AdminMenu())->getTable());
         self::assertTrue(class_exists(SystemAdmin::class));
-        self::assertTrue(class_exists(SystemRole::class));
-        self::assertTrue(class_exists(SystemPermission::class));
-        self::assertTrue(class_exists(SystemMenu::class));
+        foreach ([SystemMenu::class, SystemPermission::class, SystemRole::class] as $class) {
+            self::assertTrue(class_exists($class), '授权控制器应归入业务模块：' . $class);
+            $name = (new \ReflectionClass($class))->getShortName();
+            self::assertSame(realpath(__DIR__ . '/../app/admin/authorization/controller/' . $name . '.php'), (new \ReflectionClass($class))->getFileName());
+            self::assertFalse(class_exists('app\\admin\\controller\\authorization\\' . $name));
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/authorization/' . $name . '.php');
+            self::assertStringContainsString("#[Group('system/" . strtolower(substr($name, 6)) . "')]", file_get_contents((new \ReflectionClass($class))->getFileName()));
+        }
     }
 }

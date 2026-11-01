@@ -48,7 +48,9 @@ final class MySqlAiQueueTest extends AiConsumerExecutionTest
         $error = null;
         try {
             Db::table('ai_outbox')->insert(['payload' => json_encode(['taskId' => 1, 'operationToken' => 'operation-one']), 'available_at' => '2000-01-01']);
-            self::assertSame(1, \app\admin\ai\service\AiOutboxDispatcher::database()->dispatch());
+            $command = new \Symfony\Component\Console\Tester\CommandTester(new \app\admin\ai\command\AiOutboxDispatch());
+            self::assertSame(0, $command->execute([]));
+            self::assertSame(1, json_decode($command->getDisplay(), true)['dispatched']);
             self::assertSame('dispatched', Db::table('ai_outbox')->value('status'));
             $queue = new \Workerman\RedisQueue\Client($url, ['prefix' => 'funadmin-ai:', 'db' => 0, 'retry_seconds' => 1, 'max_attempts' => 2]);
             $queue->logger(new \Psr\Log\NullLogger());

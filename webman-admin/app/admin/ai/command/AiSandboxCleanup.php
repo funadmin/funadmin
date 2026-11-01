@@ -19,6 +19,11 @@ use Throwable;
 #[AsCommand(name: 'ai:sandbox-cleanup')]
 final class AiSandboxCleanup extends Command
 {
+    public function __construct(private readonly ?AgentSandboxManager $sandbox = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('ai:sandbox-cleanup')->setDescription('全局清理已过期的终态 AI sandbox');
@@ -34,7 +39,7 @@ final class AiSandboxCleanup extends Command
                 ->where('completed_at', '<=', $cutoff)
                 ->get()->toArray();
             $store = new DatabaseAiConversationStore();
-            $manager = new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
+            $manager = $this->sandbox ?? new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
             $cleaned = $manager->cleanupOrphans(
                 $tasks,
                 $retention,

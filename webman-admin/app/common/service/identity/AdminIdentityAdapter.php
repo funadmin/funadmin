@@ -36,7 +36,9 @@ class AdminIdentityAdapter
     /** @return list<string> */
     public function shadowRead(object $admin, bool $audit = true): array
     {
-        $user = (new LegacyIdentityLinkService())->ensureAdmin(self::TENANT_ID, $admin);
+        $link = \app\common\model\identity\IdentityAdminLink::forTenant(self::TENANT_ID)->where('admin_id', (int) $admin->id)->first();
+        $user = $link ? IdentityUser::forTenant(self::TENANT_ID)->where('id', (int) $link->user_id)->first() : null;
+        if ($user === null) return ['identity_link'];
         $expected = [
             'username' => (string) $admin->username,
             'display_name' => (string) (($admin->real_name ?? '') ?: $admin->username),
@@ -51,13 +53,13 @@ class AdminIdentityAdapter
         }
         $legacyDepartments = array_values(array_unique(array_filter(array_merge(
             [(int) ($admin->dept_id ?? 0)],
-            array_map('intval', AdminDepartment::where('admin_id', (int) $admin->id)->column('dept_id'))
+            array_map('intval', AdminDepartment::where('admin_id', (int) $admin->id)->pluck('dept_id')->all())
         ))));
-        $identityDepartments = array_values(array_unique(array_map('intval', IdentityUserDepartment::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->column('department_id'))));
+        $identityDepartments = array_values(array_unique(array_map('intval', IdentityUserDepartment::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->pluck('department_id')->all())));
         sort($legacyDepartments);
         sort($identityDepartments);
         if ($legacyDepartments !== $identityDepartments) $differences[] = 'departments';
-        $credential = IdentityCredential::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->where('type', 'password')->find();
+        $credential = IdentityCredential::forTenant(self::TENANT_ID)->where('user_id', (int) $user->id)->where('type', 'password')->first();
         if (!$credential || !hash_equals((string) $credential->secret_hash, (string) ($admin->password ?? ''))) $differences[] = 'password';
         $differences = array_values(array_unique($differences));
         if ($audit && $differences !== []) {

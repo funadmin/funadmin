@@ -125,7 +125,7 @@ class McpServer extends Command
                 'user-management' => '用户管理相关操作',
                 'system-info' => '获取系统运行信息',
                 'crud' => '生成后台 API 与 Vue CRUD 页面只读预览',
-                'think-command' => '执行安全白名单内的 Webman 命令',
+                'webman-command' => '执行只读白名单内的 Webman 命令',
             ];
             
             foreach ($tools as $name => $description) {
