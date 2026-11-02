@@ -18,20 +18,20 @@ use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleGuardService;
 use app\common\service\identity\AdminIdentityAdapter;
 use InvalidArgumentException;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
-use think\facade\Cache;
-use think\facade\Db;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\Response;
+use support\Cache;
+use support\Db;
+use app\admin\authentication\service\AdminSessionService;
 
-#[Group('system/user')]
+#[RouteGroup('/admin/system/user')]
 class SystemAdmin extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+
 
     #[Get('')]
     public function index(): Response
@@ -43,13 +43,13 @@ class SystemAdmin extends AdminApiController
         $status = $this->request->get('status', null);
         if ($keyword !== '') {
             $query->where(function ($where) use ($keyword) {
-                $where->whereLike('username', '%' . $keyword . '%')->whereOr('real_name', 'like', '%' . $keyword . '%');
+                $where->where('username', 'like', '%' . $keyword . '%')->orWhere('real_name', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
-        $result = $query->order('id', 'asc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        $result = $query->orderBy('id', 'asc')->paginate($pageSize, ['*'], 'page', $page);
         return $this->ok(data: $this->paginationData(
             array_map(fn (Admin $admin): array => $this->adminData($admin), $result->items()),
             $result->total(),
@@ -58,11 +58,10 @@ class SystemAdmin extends AdminApiController
         ));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
-        $admin = $this->manageableQuery()->where('id', $id)->find();
+        $admin = $this->manageableQuery()->where('id', $id)->first();
         if (!$admin) {
             return $this->fail(msg: '管理员不存在或无权访问', code: 404);
         }
@@ -76,7 +75,7 @@ class SystemAdmin extends AdminApiController
         if ($error = $this->validatePayload($data, true)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Admin::where('username', $data['username'])->find()) {
+        if (Admin::where('username', $data['username'])->first()) {
             return $this->fail(msg: '账号已存在', code: 422);
         }
         try {
@@ -84,7 +83,7 @@ class SystemAdmin extends AdminApiController
             $admin = Db::transaction(function () use ($data): Admin {
                 $admin = Admin::create([
                     'username' => $data['username'],
-                    'password' => password($data['password']),
+                    'password' => password_hash($data['password'], PASSWORD_DEFAULT),
                     'real_name' => $data['nickname'],
                     'email' => $data['email'],
                     'mobile' => $data['mobile'],
@@ -95,7 +94,7 @@ class SystemAdmin extends AdminApiController
                 ]);
                 $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
                 $this->syncDepartments((int) $admin->id, $departmentIds);
-                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
+                $this->syncIdentity($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
                 return $admin;
             });
@@ -106,8 +105,7 @@ class SystemAdmin extends AdminApiController
         }
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $admin = Admin::find($id);
@@ -126,7 +124,7 @@ class SystemAdmin extends AdminApiController
             }
             $this->assertPayloadAccess($data);
             Db::transaction(function () use ($admin, $data): void {
-                $admin->save([
+                $admin->update([
                     'real_name' => $data['nickname'],
                     'email' => $data['email'],
                     'mobile' => $data['mobile'],
@@ -135,7 +133,7 @@ class SystemAdmin extends AdminApiController
                 ]);
                 $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
                 $this->syncDepartments((int) $admin->id, $departmentIds);
-                (new AdminIdentityAdapter())->sync($admin, $departmentIds);
+                $this->syncIdentity($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
             Cache::clear();
@@ -145,8 +143,7 @@ class SystemAdmin extends AdminApiController
         }
     }
 
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
@@ -163,7 +160,7 @@ class SystemAdmin extends AdminApiController
             return $this->fail(msg: '请选择要删除的管理员', code: 422);
         }
         try {
-            $admins = Admin::whereIn('id', $ids)->select();
+            $admins = Admin::whereIn('id', $ids)->get();
             if (count($admins) !== count($ids)) {
                 throw new InvalidArgumentException('包含不存在的管理员');
             }
@@ -178,6 +175,7 @@ class SystemAdmin extends AdminApiController
                 foreach ($admins as $admin) {
                     AdminDepartment::where('admin_id', (int) $admin->id)->delete();
                     CasbinService::instance()->deleteAdmin((int) $admin->id);
+                    (new AdminSessionService())->revokeAll((int) $admin->id);
                     $admin->delete();
                 }
             });
@@ -188,8 +186,7 @@ class SystemAdmin extends AdminApiController
         }
     }
 
-    #[Post(':id/reset-password')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/reset-password')]
     public function resetPassword(int $id): Response
     {
         $admin = Admin::find($id);
@@ -197,8 +194,8 @@ class SystemAdmin extends AdminApiController
             return $this->fail(msg: '管理员不存在', code: 404);
         }
         $password = (string) $this->request->post('password', '');
-        if (mb_strlen($password) < 8) {
-            return $this->fail(msg: '密码至少 8 位', code: 422);
+        if (strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0")) {
+            return $this->fail(msg: '密码需为 12～72 字节', code: 422);
         }
         try {
             (new RoleGuardService())->assertManageAdmin($admin);
@@ -206,8 +203,9 @@ class SystemAdmin extends AdminApiController
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
             Db::transaction(function () use ($admin, $password): void {
-                $admin->save(['password' => password($password), 'token' => '']);
-                (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
+                $admin->update(['password' => password_hash($password, PASSWORD_DEFAULT), 'token' => '']);
+                (new AdminSessionService())->revokeAll((int) $admin->id);
+                $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
             });
             return $this->ok('密码已重置');
         } catch (InvalidArgumentException $e) {
@@ -215,8 +213,7 @@ class SystemAdmin extends AdminApiController
         }
     }
 
-    #[Post(':id/status')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/status')]
     public function status(int $id): Response
     {
         $admin = Admin::find($id);
@@ -229,8 +226,9 @@ class SystemAdmin extends AdminApiController
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
             Db::transaction(function () use ($admin): void {
-                $admin->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-                (new AdminIdentityAdapter())->sync($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
+                $admin->update(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+                if (!$admin->status) (new AdminSessionService())->revokeAll((int) $admin->id);
+                $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
             });
             return $this->ok('状态已更新');
         } catch (InvalidArgumentException $e) {
@@ -240,7 +238,7 @@ class SystemAdmin extends AdminApiController
 
     private function manageableQuery()
     {
-        $query = $this->applyDataScope(Admin::where('id', '<>', (int) config('funadmin.superAdminId')), 'id', 'dept_id');
+        $query = $this->applyDataScope(Admin::where('id', '<>', (int) config('auth.super_admin_id', 1)), 'id', 'dept_id');
         $roleScope = new RoleScopeService();
         if ($roleScope->isSuperAdmin()) {
             return $query;
@@ -248,14 +246,14 @@ class SystemAdmin extends AdminApiController
         $currentLevel = (new RoleGuardService())->currentLevel();
         $branchRoleIds = $roleScope->manageableRoleIds();
         $allowedRoleIds = array_map('intval', AuthGroup::whereIn('id', $branchRoleIds ?: [0])
-            ->where('status', 1)->where('level', '>', $currentLevel)->column('id'));
+            ->where('status', 1)->where('level', '>', $currentLevel)->pluck('id')->all());
         $forbiddenRoleIds = array_map('intval', AuthGroup::where('status', 1)
             ->where(function ($where) use ($currentLevel, $branchRoleIds) {
                 $where->where('level', '<=', $currentLevel);
                 if ($branchRoleIds) {
-                    $where->whereOr('id', 'not in', $branchRoleIds);
+                    $where->orWhereNotIn('id', $branchRoleIds);
                 }
-            })->column('id'));
+            })->pluck('id')->all());
         $casbin = CasbinService::instance();
         $allowedAdminIds = $casbin->adminIdsByRoles($allowedRoleIds);
         $forbiddenAdminIds = $casbin->adminIdsByRoles($forbiddenRoleIds);
@@ -293,8 +291,8 @@ class SystemAdmin extends AdminApiController
         if ($data['nickname'] === '' || mb_strlen($data['nickname']) > 50) {
             return '昵称不能为空且不能超过 50 个字符';
         }
-        if ($create && mb_strlen($data['password']) < 8) {
-            return '密码至少 8 位';
+        if ($create && (strlen($data['password']) < 12 || strlen($data['password']) > 72 || str_contains($data['password'], "\0"))) {
+            return '密码需为 12～72 字节';
         }
         if ($data['email'] !== '' && (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 60)) {
             return '邮箱格式不正确或超过 60 个字符';
@@ -306,7 +304,7 @@ class SystemAdmin extends AdminApiController
     {
         $guard = new RoleGuardService();
         $guard->assertAssignableRoles($data['roleIds']);
-        $departmentIds = array_values(array_unique(array_merge([$data['deptId']], $data['departmentIds'])));
+        $departmentIds = array_values(array_unique(array_filter(array_merge([$data['deptId']], $data['departmentIds']))));
         if (Department::whereIn('id', $departmentIds)->where('status', 1)->count() !== count($departmentIds)) {
             throw new InvalidArgumentException('任职部门包含不存在或已停用的部门');
         }
@@ -331,9 +329,9 @@ class SystemAdmin extends AdminApiController
             'admin_id' => $adminId,
             'dept_id' => $departmentId,
             'created_at' => date('Y-m-d H:i:s'),
-        ], array_values(array_unique($departmentIds)));
+        ], array_values(array_unique(array_filter($departmentIds))));
         if ($rows !== []) {
-            (new AdminDepartment())->saveAll($rows);
+            AdminDepartment::insert($rows);
         }
     }
 
@@ -341,8 +339,13 @@ class SystemAdmin extends AdminApiController
     {
         return array_values(array_unique(array_filter(array_merge(
             [$primaryDepartmentId],
-            array_map('intval', AdminDepartment::where('admin_id', $adminId)->column('dept_id'))
+            array_map('intval', AdminDepartment::where('admin_id', $adminId)->pluck('dept_id')->all())
         ))));
+    }
+
+    private function syncIdentity(Admin $admin, array $departmentIds): void
+    {
+        if (Db::schema()->hasTable('identity_admin_link')) (new AdminIdentityAdapter())->sync($admin, $departmentIds);
     }
 
     private function adminData(Admin $admin): array

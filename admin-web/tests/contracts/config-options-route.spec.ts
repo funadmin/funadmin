@@ -2,16 +2,16 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const routeSource = readFileSync(resolve(process.cwd(), '../app/admin/route/app.php'), 'utf8');
-const controllerSource = readFileSync(resolve(process.cwd(), '../app/admin/controller/system/SystemConfig.php'), 'utf8');
-const apiSource = readFileSync(resolve(process.cwd(), 'src/api/system/config.ts'), 'utf8');
-const dialogSource = readFileSync(resolve(process.cwd(), 'src/views/system/config/components/ConfigFormDialog.vue'), 'utf8');
+const routeSource = readFileSync(resolve(process.cwd(), '../webman-admin/config/route.php'), 'utf8');
+const controllerSource = readFileSync(resolve(process.cwd(), '../webman-admin/app/admin/system/controller/SystemConfig.php'), 'utf8');
+const apiSource = readFileSync(resolve(process.cwd(), 'src/admin/api/system/config.ts'), 'utf8');
+const dialogSource = readFileSync(resolve(process.cwd(), 'src/admin/views/system/config/components/ConfigFormDialog.vue'), 'utf8');
 
 describe('配置选项加载契约', () => {
   it('options 使用明确 Attribute 路由且不再重复注册显式路由', () => {
-    expect(controllerSource).toContain("#[Group('system', ['complete_match' => true])]");
-    expect(controllerSource).toContain("#[Get('config/options')]");
-    expect(controllerSource).toContain("#[Get('config')]");
+    expect(controllerSource).toContain("#[RouteGroup('/admin/system')]");
+    expect(controllerSource).toContain("#[Get('/config/options')]");
+    expect(controllerSource).toContain("#[Get('/config')]");
     expect(routeSource).not.toContain("Route::get('system/config/options'");
   });
 

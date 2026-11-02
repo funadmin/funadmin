@@ -32,9 +32,15 @@ final class ProductionTemplateContext
         $data['_controllerNamespace'] = (string) ($target['controllerNamespace'] ?? $data['_namespace'] . '\\controller');
         $data['_memberControllerNamespace'] = (string) ($target['memberControllerNamespace'] ?? 'app\\api\\controller\\generated');
         $data['_memberControllerGroup'] = (string) ($target['memberControllerGroup'] ?? 'v2/' . $data['entity']);
+        $data['_memberRoutePrefix'] = (string) ($target['memberRoutePrefix'] ?? '/api/' . $data['_memberControllerGroup']);
         if (($target['type'] ?? 'core') === 'core') {
             foreach (['model', 'validate', 'service', 'controller'] as $artifact) {
-                if (str_contains((string) ($data['generationTargets'][$artifact] ?? ''), "/{$artifact}/generated/")) {
+                $path = (string) ($data['generationTargets'][$artifact] ?? '');
+                if (preg_match('~^app/admin/generated/([a-z][a-z0-9_]*)/' . $artifact . '/[A-Za-z][A-Za-z0-9]*\.php$~D', $path, $generated) === 1) {
+                    if (!isset($target[$artifact . 'Namespace'])) {
+                        $data['_' . $artifact . 'Namespace'] = 'app\\admin\\generated\\' . $generated[1] . '\\' . $artifact;
+                    }
+                } elseif (str_contains($path, "/{$artifact}/generated/")) {
                     $namespaceKey = '_' . $artifact . 'Namespace';
                     $data[$namespaceKey] .= '\\generated';
                 }
@@ -130,6 +136,11 @@ final class ProductionTemplateContext
             }
         }
         $names = array_column($data['fields'], 'name');
+        if ($data['timestamps']) {
+            foreach (['created_at', 'updated_at'] as $timestamp) {
+                if (!in_array($timestamp, $names, true)) $columns[] = "  `{$timestamp}` datetime NULL";
+            }
+        }
         if ($data['softDeletes'] && !in_array('deleted_at', $names, true)) {
             $columns[] = '  `deleted_at` datetime NULL';
         }
@@ -149,25 +160,29 @@ final class ProductionTemplateContext
                 $casts[$field['name']] = $cast;
             }
         }
+        $connectionName = (string) ($data['connection'] ?? 'mysql');
+        $prefix = (string) config('database.connections.' . $connectionName . '.prefix', '');
+        $logicalTable = static fn (string $table): string => $prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table;
         $methods = [];
         $pivotModels = [];
         foreach ($data['relations'] as $relation) {
             $pivotClass = $class . self::studly($relation['name']) . 'Pivot';
             if ($relation['type'] === 'belongsToMany') {
-                // ORM 的字符串 middle 按逻辑表处理；使用显式物理表模型避免二次前缀。
-                $pivotModels[] = "\nfinal class {$pivotClass} extends \\think\\model\\Pivot\n{\n"
-                    . '    protected string $table = ' . var_export($relation['pivotTable'], true) . ";\n"
-                    . '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n}\n";
+                $pivotModels[] = "\nfinal class {$pivotClass} extends \\Illuminate\\Database\\Eloquent\\Relations\\Pivot\n{\n"
+                    . '    protected $table = ' . var_export($logicalTable($relation['pivotTable']), true) . ";\n"
+                    . '    protected $connection = ' . var_export($connectionName, true) . ";\n}\n";
             }
             $target = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'] . '::class';
             $arguments = match ($relation['type']) {
                 'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
-                default => "$target, {$pivotClass}::class, '"
-                    . ($relation['pivotTargetKey'] ?? $relation['targetField']) . "', '"
-                    . ($relation['pivotLocalKey'] ?? $relation['field']) . "'",
+                default => "$target, '" . $logicalTable($relation['pivotTable']) . "', '"
+                    . $relation['pivotLocalKey'] . "', '" . $relation['pivotTargetKey'] . "', '" . $relation['field'] . "', '" . $relation['targetField'] . "'",
             };
             $methods[] = "    public function {$relation['name']}()\n    {\n"
-                . "        return \$this->{$relation['type']}({$arguments});\n    }";
+                . "        return \$this->{$relation['type']}({$arguments})" . ($relation['type'] === 'belongsToMany' ? "->using({$pivotClass}::class)" : '') . ";\n    }";
+        }
+        if (self::primaryKeyType($primary) === 'uuid') {
+            $methods[] = "    protected static function booted(): void\n    {\n        static::creating(static function (self \$model): void {\n            if (\$model->getKey() === null || \$model->getKey() === '') \$model->setAttribute(\$model->getKeyName(), \\Ramsey\\Uuid\\Uuid::uuid4()->toString());\n        });\n    }";
         }
         $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
@@ -175,20 +190,24 @@ final class ProductionTemplateContext
         if (!empty($data['formSchema']['key'])) {
             $key = $data['formSchema']['key'];
             $connection = var_export((string) ($data['connection'] ?? 'mysql'), true);
-            if ($data['softDeletes']) $softTrait = "    use LaravelSoftDelete { delete as private treeDelete; restore as private treeRestore; }\n\n";
-            $delete = $data['softDeletes'] ? '$this->treeDelete()' : 'parent::delete()';
-            $methods[] = "    public function save(array|object \$data = [], \$where = [], bool \$refresh = false): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$data, \$where, \$refresh): bool {\n            \$payload = array_replace(\$this->getData(), (array) \$data);\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) (\$payload['{$primary['name']}'] ?? ''), \$payload);\n            return parent::save(\$data, \$where, \$refresh);\n        });\n    }";
-            $methods[] = "    public function delete(): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function (): bool {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), [], true);\n            return {$delete};\n        });\n    }";
-            if ($data['softDeletes']) $methods[] = "    public function restore(array \$where = []): bool\n    {\n        return \\think\\facade\\Db::connect({$connection})->transaction(function () use (\$where): bool {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getAttr('{$primary['name']}'), \$this->getData());\n            return \$this->treeRestore(\$where);\n        });\n    }";
+            if ($data['softDeletes']) $softTrait = "    use LaravelSoftDelete { restore as private treeRestore; }\n\n";
+            $delete = 'parent::delete()';
+            $methods[] = "    public function save(array \$options = [])\n    {\n        return \$this->getConnection()->transaction(function () use (\$options) {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) (\$this->getKey() ?? ''), \$this->getAttributes());\n            return parent::save(\$options);\n        });\n    }";
+            $methods[] = "    public function delete()\n    {\n        return \$this->getConnection()->transaction(function () {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getKey(), [], true);\n            return {$delete};\n        });\n    }";
+            if ($data['softDeletes']) $methods[] = "    public function restore()\n    {\n        return \$this->getConnection()->transaction(function () {\n            (new \\app\\admin\\form\\service\\FormDataService())->guardTreeWrite('{$key}', (string) \$this->getKey(), \$this->getAttributes());\n            return \$this->treeRestore();\n        });\n    }";
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_modelNamespace']};\n\n"
             . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n")
             . $softImport
             . "\nfinal class {$class} extends {$data['_modelBaseClass']}\n{\n{$softTrait}"
-            . '    protected string $table = ' . var_export((string) $data['table'], true) . ";\n"
-            . '    protected $connection = ' . var_export((string) ($data['connection'] ?? 'mysql'), true) . ";\n"
-            . "    protected string \$pk = '{$primary['name']}';\n"
-            . '    protected array $type = ' . self::phpArray($casts) . ";\n\n"
+            . '    protected $table = ' . var_export($logicalTable((string) $data['table']), true) . ";\n"
+            . '    protected $connection = ' . var_export($connectionName, true) . ";\n"
+            . "    protected \$primaryKey = '{$primary['name']}';\n"
+            . '    public $timestamps = ' . ($data['timestamps'] ? 'true' : 'false') . ";\n"
+            . '    public $incrementing = ' . (self::primaryKeyType($primary) === 'integer' ? 'true' : 'false') . ";\n"
+            . "    protected \$keyType = '" . (self::primaryKeyType($primary) === 'integer' ? 'int' : 'string') . "';\n"
+            . '    protected $fillable = ' . self::phpArray(array_column(array_filter($data['fields'], static fn (array $field): bool => ($field['writable'] ?? true) && !($field['primary'] ?? false)), 'name')) . ";\n"
+            . '    protected $casts = ' . self::phpArray(array_map(static fn (string $cast): string => $cast === 'json' ? 'array' : $cast, $casts)) . ";\n\n"
             . implode("\n\n", $methods) . "\n}\n" . implode('', $pivotModels);
     }
 
@@ -200,11 +219,11 @@ final class ProductionTemplateContext
                 continue;
             }
             $parts = [];
-            if (($field['required'] ?? !$field['nullable']) === true) $parts[] = 'require';
+            if (($field['required'] ?? !$field['nullable']) === true) $parts[] = 'required';
             if (isset($field['minLength'])) $parts[] = 'min:' . $field['minLength'];
             if (isset($field['maxLength'])) $parts[] = 'max:' . $field['maxLength'];
-            if (isset($field['min'])) $parts[] = 'egt:' . $field['min'];
-            if (isset($field['max'])) $parts[] = 'elt:' . $field['max'];
+            if (isset($field['min'])) $parts[] = 'min:' . $field['min'];
+            if (isset($field['max'])) $parts[] = 'max:' . $field['max'];
             if (isset($field['enum'])) $parts[] = 'in:' . implode(',', $field['enum']);
             if (isset($field['format'])) {
                 $parts[] = match ($field['format']) {
@@ -212,22 +231,52 @@ final class ProductionTemplateContext
                     default => 'regex:/^[0-9a-f-]+$/i',
                 };
             }
+            if (preg_match('/int|decimal|float|double/', strtolower($field['dbType']))) $parts[] = 'numeric';
+            elseif (str_contains(strtolower($field['dbType']), 'json')) $parts[] = 'array';
+            else $parts[] = 'string';
+            if ($field['nullable']) $parts[] = 'nullable';
             if (($field['unique'] ?? false) === true) {
-                $parts[] = "unique:\\{$data['_modelNamespace']}\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
+                $parts[] = "unique:{$data['_modelNamespace']}\\{$class},{$field['name']},{{$primary['name']}},{$primary['name']}";
             }
-            $compiled = array_values(array_filter(array_merge($parts, $field['rules'] ?? []), static fn (string $rule): bool => $rule !== ''));
+            $extraRules = [];
+            foreach ($field['rules'] ?? [] as $rule) {
+                array_push($extraRules, ...self::validationRule($rule));
+            }
+            $compiled = array_values(array_filter(array_merge($parts, $extraRules), static fn (string $rule): bool => $rule !== ''));
             if ($compiled !== []) {
-                $rules[$field['name']] = implode('|', $compiled);
+                $rules[$field['name']] = $compiled;
             }
         }
-        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse think\\Validate;\n\n"
-            . "final class {$class}Validate extends Validate\n{\n"
-            . '    protected $rule = ' . self::phpArray($rules) . ";\n\n"
-            . "    public function forUpdate(int|string \$id, array \$data = []): self\n    {\n"
-            . '        foreach (' . self::phpArray(array_values(array_map(static fn (array $field): string => $field['name'], array_filter($data['fields'], static fn (array $field): bool => self::sensitiveField($field))))) . " as \$field) {\n            if (!array_key_exists(\$field, \$data)) unset(\$this->rule[\$field]);\n        }\n"
-            . "        foreach (\$this->rule as &\$rule) {\n"
-            . "            \$rule = str_replace('{{$primary['name']}}', (string) \$id, \$rule);\n"
-            . "        }\n        return \$this;\n    }\n}\n";
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_validateNamespace']};\n\nuse Webman\\Validation\\Validator;\n\n"
+            . "final class {$class}Validate\n{\n"
+            . '    private array $rules = ' . self::phpArray($rules) . ";\n    private string \$error = '';\n    private int|string|null \$updateId = null;\n\n"
+            . "    public function forUpdate(int|string \$id, array \$data = []): self\n    {\n        \$this->updateId = \$id;\n"
+            . '        foreach (' . self::phpArray(array_values(array_map(static fn (array $field): string => $field['name'], array_filter($data['fields'], static fn (array $field): bool => self::sensitiveField($field))))) . " as \$field) {\n            if (!array_key_exists(\$field, \$data)) unset(\$this->rules[\$field]);\n        }\n        return \$this;\n    }\n\n"
+            . "    public function check(array \$data): bool\n    {\n        \$rules = \$this->rules;\n        foreach (\$rules as &\$fieldRules) {\n            foreach (\$fieldRules as &\$rule) \$rule = str_replace('{{$primary['name']}}', \$this->updateId === null ? 'NULL' : (string) \$this->updateId, \$rule);\n            unset(\$rule);\n        }\n        unset(\$fieldRules);\n        if (\$rules === []) {\n            \$this->error = '';\n            return true;\n        }\n        \$validator = Validator::make(\$data, \$rules);\n        \$valid = \$validator->passes();\n        \$this->error = \$valid ? '' : (string) \$validator->errors()->first();\n        return \$valid;\n    }\n\n    public function getError(): string { return \$this->error; }\n}\n";
+    }
+
+    private static function validationRule(string $rule): array
+    {
+        [$name, $parameters] = array_pad(explode(':', $rule, 2), 2, '');
+        if ($name === 'length') {
+            $bounds = explode(',', $parameters);
+            if (count($bounds) > 2 || preg_match('/^\d+(?:,\d+)?$/D', $parameters) !== 1) {
+                throw new InvalidArgumentException('不支持的校验规则：' . $rule);
+            }
+            return ['string', 'min:' . $bounds[0], 'max:' . ($bounds[1] ?? $bounds[0])];
+        }
+        $name = match ($name) {
+            'require' => 'required', 'number' => 'numeric', 'integer' => 'integer',
+            'alphaNum' => 'alpha_num', 'alphaDash' => 'alpha_dash', 'dateFormat' => 'date_format',
+            'egt' => 'min', 'elt' => 'max', 'confirm' => 'same', 'different' => 'different',
+            'array' => 'array', 'bool' => 'boolean', 'notIn' => 'not_in',
+            default => $name,
+        };
+        $method = 'validate' . str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $name)));
+        if (!method_exists(\Illuminate\Validation\Validator::class, $method)) {
+            throw new InvalidArgumentException('不支持的校验规则：' . $rule);
+        }
+        return [$name . ($parameters === '' ? '' : ':' . $parameters)];
     }
 
     private static function service(array $data, string $class, array $primary): string
@@ -274,15 +323,15 @@ final class ProductionTemplateContext
                     if ($data['dataScope']['enabled'] && $relation['field'] === $data['dataScope']['field']) {
                         $method = self::camel($source['name']);
                         $optionArms[] = "            '{$source['name']}' => \$this->{$method}(\$departmentIds),";
-                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = {$relationModel}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}');\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->select()->toArray());\n    }\n";
+                        $relationOptionMethods[] = "\n    private function {$method}(?array \$departmentIds): array\n    {\n        \$query = {$relationModel}::orderBy('{$source['valueField']}', 'asc')->select(['{$source['valueField']}', '{$source['labelField']}']);\n        if (\$departmentIds !== null) \$query->whereIn('{$source['valueField']}', \$departmentIds ?: [0]);\n        return array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], \$query->get()->toArray());\n    }\n";
                     } else {
-                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], {$relationModel}::order('{$source['valueField']}', 'asc')->field('{$source['valueField']},{$source['labelField']}')->select()->toArray()),";
+                        $optionArms[] = "            '{$source['name']}' => array_map(static fn (array \$row): array => ['label' => (string) \$row['{$source['labelField']}'], 'value' => {$value}], {$relationModel}::orderBy('{$source['valueField']}', 'asc')->select(['{$source['valueField']}', '{$source['labelField']}'])->get()->toArray()),";
                     }
                 }
             }
         }
         $dictionaryMethod = $usesDictionary
-            ? "\n    private function dictionaryOptions(string \$code): array\n    {\n        \$type = \\app\\common\\model\\DictType::where('code', \$code)->where('status', 1)->find();\n        if (!\$type) return [];\n        return \\app\\common\\model\\DictItem::where('type_id', \$type->id)->where('status', 1)->order('sort_order', 'asc')->field('value,label')->select()->toArray();\n    }\n"
+            ? "\n    private function dictionaryOptions(string \$code): array\n    {\n        \$type = \\app\\common\\model\\DictType::where('code', \$code)->where('status', 1)->first();\n        if (!\$type) return [];\n        return \\app\\common\\model\\DictItem::where('type_id', \$type->id)->where('status', 1)->orderBy('sort_order', 'asc')->select(['value', 'label'])->get()->toArray();\n    }\n"
             : '';
         if ($optionArms !== []) {
             self::collectBackend('optionsParamsUndeclared', 'optionsSource 参数未声明');
@@ -290,9 +339,9 @@ final class ProductionTemplateContext
             self::collectBackend('optionsPageInvalid', '分页参数不合法');
             self::collectBackend('optionsSourceUnknown', '未知 optionsSource');
         }
-        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsParamsUndeclared'));\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsKeywordInvalid'));\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsPageInvalid'));\n        }\n        \$options = match (\$source) {\n"
+        $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsParamsUndeclared'));\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsKeywordInvalid'));\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsPageInvalid'));\n        }\n        \$options = match (\$source) {\n"
             . implode("\n", $optionArms)
-            . "\n            default => throw new \\InvalidArgumentException(lang('{$data['entity']}.optionsSourceUnknown')),\n        };\n        \$keyword = \$params['keyword'] ?? '';\n        if (\$keyword !== '') \$options = array_values(array_filter(\$options, static fn (array \$item): bool => str_contains((string) \$item['label'], \$keyword)));\n        if (isset(\$params['page']) || isset(\$params['pageSize'])) {\n            \$size = min(200, (int) (\$params['pageSize'] ?? 20));\n            \$options = array_slice(\$options, ((int) (\$params['page'] ?? 1) - 1) * \$size, \$size);\n        }\n        return \$options;\n    }\n"
+            . "\n            default => throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsSourceUnknown')),\n        };\n        \$keyword = \$params['keyword'] ?? '';\n        if (\$keyword !== '') \$options = array_values(array_filter(\$options, static fn (array \$item): bool => str_contains((string) \$item['label'], \$keyword)));\n        if (isset(\$params['page']) || isset(\$params['pageSize'])) {\n            \$size = min(200, (int) (\$params['pageSize'] ?? 20));\n            \$options = array_slice(\$options, ((int) (\$params['page'] ?? 1) - 1) * \$size, \$size);\n        }\n        return \$options;\n    }\n"
             . implode('', $relationOptionMethods)
             . $dictionaryMethod;
         $referenceProtection = ($data['features']['referenceProtection'] ?? false) === true;
@@ -301,13 +350,13 @@ final class ProductionTemplateContext
             self::collectBackend('referenced', '记录仍被 {:target} 引用，无法删除');
         }
         $referenceMethod = $referenceProtection
-            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) {\n            \$ids[] = \$model->{$primary['name']};\n        }\n        if (\$ids === []) return null;\n        \$references = Db::query('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) (\$reference['TABLE_NAME'] ?? \$reference['table_name'] ?? '');\n            \$column = (string) (\$reference['COLUMN_NAME'] ?? \$reference['column_name'] ?? '');\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) {\n                throw new \\RuntimeException(lang('{$data['entity']}.referenceMetadataInvalid'));\n            }\n            if (Db::table(\$table)->whereIn(\$column, \$ids)->limit(1)->count() > 0) {\n                return lang('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n            }\n        }\n        return null;\n    }\n"
+            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) \$ids[] = \$model->{$primary['name']};\n        if (\$ids === []) return null;\n        \$connection = (new {$class}())->getConnection();\n        \$references = \$connection->select('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) \$reference->TABLE_NAME;\n            \$column = (string) \$reference->COLUMN_NAME;\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) throw new \\RuntimeException(trans('{$data['entity']}.referenceMetadataInvalid'));\n            \$prefix = \$connection->getTablePrefix();\n            \$logical = \$prefix !== '' && str_starts_with(\$table, \$prefix) ? substr(\$table, strlen(\$prefix)) : \$table;\n            if (\$connection->table(\$logical)->whereIn(\$column, \$ids)->exists()) return trans('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
             : "        \$query = {$class}::with(self::WITH_RELATIONS);\n";
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_serviceNamespace']};\n\n"
-            . "use {$data['_modelNamespace']}\\{$class};\n{$uuidImport}use think\\facade\\Db;\n\n"
+            . "use {$data['_modelNamespace']}\\{$class};\n{$uuidImport}use support\\Db;\n\n"
             . "final class {$class}Service\n{\n"
             . '    public const WRITABLE_FIELDS = ' . self::phpArray($writable) . ";\n"
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
@@ -316,9 +365,9 @@ final class ProductionTemplateContext
             . $querySource
             . "{$scope}        return \$query;\n    }\n\n"
             . "    public function save(?{$class} \$model, array \$payload, callable \$relations): {$class}\n    {\n"
-            . "        return Db::transaction(function () use (\$model, \$payload, \$relations): {$class} {\n"
+            . "        return (new {$class}())->getConnection()->transaction(function () use (\$model, \$payload, \$relations): {$class} {\n"
             . "            \$model ??= new {$class}();\n"
-            . "            \$model->save(array_intersect_key(\$payload, array_flip(self::WRITABLE_FIELDS)));\n"
+            . "            \$model->fill(array_intersect_key(\$payload, array_flip(self::WRITABLE_FIELDS)))->save();\n"
             . "            \$relations(\$model, \$payload);\n            return \$model;\n        });\n    }\n\n"
             . $referenceMethod
             . $optionsMethod . "}\n";
@@ -376,8 +425,8 @@ final class ProductionTemplateContext
             $leftAlias = "        applyFilters as private crudOriginalFilters;\n";
             $leftMethods = "\n    private function treeService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(new \\app\\common\\form\\validation\\FormAsyncValidatorRegistry((array) config('form.validators', [])), \\app\\common\\form\\dataSource\\FormDataSourceRegistry::core((array) config('form.data_sources', [])), permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route));\n    }\n"
                 . "    #[Get('left-tree')]\n    public function leftTree(): Response { return \$this->ok(data: \$this->treeService()->leftTree('{$key}')); }\n"
-                . "    #[Get('left-tree-form/:operation')]\n    #[Pattern('operation', 'create|addChild|edit')]\n    public function leftTreeForm(string \$operation): Response { return \$this->ok(data: \$this->treeService()->leftTreeForm('{$key}', \$operation, (string) \$this->request->get('id', ''), '{$hash}', (string) \$this->request->get('optionField', ''), (array) \$this->request->get('context', []))); }\n"
-                . "    #[Post('left-tree/:operation')]\n    #[Pattern('operation', 'create|addChild|edit|delete')]\n    public function mutateLeftTree(string \$operation): Response\n    {\n        \$payload = \$this->request->post('data', []);\n        if (!is_array(\$payload)) throw new \\InvalidArgumentException('data 必须为对象');\n        \$post = \$this->request->post();\n        \$post['data'] = '[REDACTED]';\n        \$this->request->withPost(\$post);\n        return \$this->ok(data: \$this->treeService()->mutateLeftTree('{$key}', \$operation, (string) \$this->request->post('id', ''), \$payload, '{$hash}', (string) \$this->request->post('sourceSchemaHash', '')));\n    }\n"
+                . "    #[Get('/left-tree-form/{operation:create|addChild|edit}')]\n    public function leftTreeForm(string \$operation): Response { return \$this->ok(data: \$this->treeService()->leftTreeForm('{$key}', \$operation, (string) \$this->request->get('id', ''), '{$hash}', (string) \$this->request->get('optionField', ''), (array) \$this->request->get('context', []))); }\n"
+                . "    #[Post('/left-tree/{operation:create|addChild|edit|delete}')]\n    public function mutateLeftTree(string \$operation): Response\n    {\n        \$payload = \$this->request->post('data', []);\n        if (!is_array(\$payload)) throw new \\InvalidArgumentException('data 必须为对象');\n        \$post = \$this->request->post();\n        \$post['data'] = '[REDACTED]';\n        \$this->request->setPost(\$post);\n        return \$this->ok(data: \$this->treeService()->mutateLeftTree('{$key}', \$operation, (string) \$this->request->post('id', ''), \$payload, '{$hash}', (string) \$this->request->post('sourceSchemaHash', '')));\n    }\n"
                 . "    protected function applyFilters(\$query)\n    {\n        \$query = \$this->crudOriginalFilters(\$query);\n        \$selected = \$this->request->get('__leftTree', []);\n        if (is_string(\$selected)) \$selected = json_decode(\$selected, true, 512, JSON_THROW_ON_ERROR);\n        if (!is_array(\$selected)) throw new \\InvalidArgumentException('左树选择必须为数组');\n        \$values = \$this->treeService()->resolveLeftTreeFilter('{$key}', \$selected, '{$hash}');\n        return \$values === [] ? \$query : \$query->whereIn('{$field}', \$values);\n    }\n";
         }
         $statusTraitAlias = ($enabled['status'] || !$data['_consoleController']) ? "        status as private crudStatus; status as private;\n" : '';
@@ -387,22 +436,22 @@ final class ProductionTemplateContext
             $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
             $methods[] = "    private function listButtonService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
                 . "    #[Get('list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
-                . "    #[Post('list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->withPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
+                . "    #[Post('list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->setPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
                 . "    private function listButtonResponse(callable \$operation): Response\n    {\n        try { return \$this->ok(data: \$operation()); }\n        catch (\\Throwable \$error) {\n            return \$this->listActionFailure(\$error);\n        }\n    }";
         }
         if ($enabled['list']) {
             if (($data['list']['tree']['enabled'] ?? false) === true) {
                 self::collectBackend('treeLimit', '树形列表超过 1000 条，请缩小筛选范围');
-                $treeLimitExpr = "lang('{$data['entity']}.treeLimit')";
-                $methods[] = "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        \$models = \$query->limit(1001)->select()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }";
+                $treeLimitExpr = "trans('{$data['entity']}.treeLimit')";
+                $methods[] = "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        \$models = \$query->limit(1001)->get()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }";
             } else {
                 $methods[] = "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
             }
         }
-        if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
+        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
-        if ($enabled['update']) $methods[] = "    #[Put(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
-        if ($enabled['status']) $methods[] = "    #[Post(':id/status')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function status(int|string \$id): Response { return \$this->crudStatus(\$id); }";
+        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
+        if ($enabled['status']) $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/status')]\n    public function status(int|string \$id): Response { return \$this->crudStatus(\$id); }";
         if ($enabled['serverOptions']) {
             $optionsArguments = "\$source";
             $optionsScope = '';
@@ -412,14 +461,14 @@ final class ProductionTemplateContext
             }
             if (!$data['dataScope']['enabled']) $optionsArguments .= ', null';
             $optionsArguments .= ', $this->request->get()';
-            $methods[] = "    #[Get('options/:source')]\n    #[Pattern('source', '[a-z][a-z0-9_]*')]\n    public function options(string \$source): Response\n    {\n{$optionsScope}        return \$this->ok(data: (new {$class}Service())->options({$optionsArguments}));\n    }";
+            $methods[] = "    #[Get('/options/{source:[a-z][a-z0-9_]*}')]\n    public function options(string \$source): Response\n    {\n{$optionsScope}        return \$this->ok(data: (new {$class}Service())->options({$optionsArguments}));\n    }";
         }
         if ($enabled['delete']) {
-            $methods[] = "    #[Delete(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
         }
         if ($enabled['softDelete']) {
-            $methods[] = "    #[Post(':id/restore')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function restore(int|string \$id): Response { return \$this->crudRestoreOne(\$id); }";
-            $methods[] = "    #[Delete(':id/destroy')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function destroy(int|string \$id): Response { return \$this->crudDestroyOne(\$id); }";
+            $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/restore')]\n    public function restore(int|string \$id): Response { return \$this->crudRestoreOne(\$id); }";
+            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}/destroy')]\n    public function destroy(int|string \$id): Response { return \$this->crudDestroyOne(\$id); }";
         }
         if ($enabled['batchDelete']) {
             $methods[] = "    #[Delete('')]\n    public function recycle(): Response { return \$this->crudRecycle(); }";
@@ -431,17 +480,14 @@ final class ProductionTemplateContext
         if ($enabled['import']) $methods[] = "    #[Post('import')]\n    public function import(): Response { return \$this->crudImport(); }";
         if ($enabled['export']) $methods[] = "    #[Get('export')]\n    public function export(): Response { return \$this->crudExport(); }";
         $controllerImports = $data['_consoleController']
-            ? "use app\\admin\\controller\\base\\AdminApiController;\nuse app\\admin\\middleware\\CheckAdminApiCsrf;\n"
-                . "use app\\admin\\middleware\\CheckAdminApiRole;\nuse app\\admin\\middleware\\SystemLog;\n"
+            ? "use app\\admin\\controller\\base\\AdminApiController;\n"
             : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
-                . "use app\\common\\traits\\JsonResponse;\n";
+                . "use app\\common\\traits\\JsonResponse;\nuse support\\annotation\\Middleware;\n";
         $controllerDeclaration = $data['_consoleController']
             ? "final class {$class}Controller extends AdminApiController"
             : "final class {$class}Controller extends BaseController";
+        $controllerDeclaration = ($data['_consoleController'] ? '' : "#[Middleware(MApi::class)]\n") . $controllerDeclaration;
         $controllerTraits = $data['_consoleController'] ? '' : "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n";
-        $controllerMiddleware = $data['_consoleController']
-            ? "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
-            : "    protected array \$middleware = [MApi::class];\n";
         if ($data['dataScope']['enabled']) {
             self::collectBackend('dataScopeRequired', '数据范围字段 {:field} 必填');
             self::collectBackend('dataScopeDenied', '无权写入指定数据范围');
@@ -450,11 +496,10 @@ final class ProductionTemplateContext
             . $controllerImports
             . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\authorization\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
-            . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
-            . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
-            . "use think\\Model;\nuse think\\Response;\n\n#[Group('{$data['_controllerGroup']}')]\n"
+            . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"
+            . "use support\\annotation\\route\\Post;\nuse support\\annotation\\route\\Put;\n"
+            . "use Illuminate\\Database\\Eloquent\\Model;\nuse support\\Response;\n\n#[Group('/{$data['_controllerGroup']}')]\n"
             . "{$controllerDeclaration}\n{\n{$controllerTraits}    use Crud {\n{$leftAlias}        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
-            . $controllerMiddleware
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
             . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"
             . '    protected function exactFilters(): array { return ' . self::phpArray($exact) . "; }\n"
@@ -481,7 +526,7 @@ final class ProductionTemplateContext
             . "        return \$model === null ? (new {$class}Service())->prepareCreatePayload(\$payload) : \$payload;\n    }\n"
             . "    protected function validatePayload(array &\$data, ?Model \$model = null): ?string\n    {\n"
             . ($data['dataScope']['enabled']
-                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return lang('{$data['entity']}.dataScopeRequired', ['field' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return lang('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
+                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return trans('{$data['entity']}.dataScopeRequired', ['field' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return trans('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
                 : '')
             . "        \$validate = new {$class}Validate();\n"
             . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
@@ -503,12 +548,12 @@ final class ProductionTemplateContext
         [$search, $exact, $range, $operators, $sort, $dto] = self::listContract($data);
         $owner = (string) $data['memberApi']['ownerField'];
         $enabled = self::enabledCapabilities($data);
-        $idRoute = "    #[Pattern('id', '[A-Za-z0-9_-]+')]\n";
+        $idRoute = '';
         $methods = ["    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }"];
-        if ($enabled['detail']) $methods[] = "    #[Get(':id')]\n{$idRoute}    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
+        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
-        if ($enabled['update']) $methods[] = "    #[Put(':id')]\n{$idRoute}    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
-        if ($enabled['delete']) $methods[] = "    #[Delete(':id')]\n{$idRoute}    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
+        if ($enabled['delete']) $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
         $hidden = '';
         foreach (['index' => 'crudIndex', 'detail' => 'crudDetail', 'create' => 'crudCreate', 'update' => 'crudUpdate', 'status' => 'crudStatus',
             'remove' => 'crudRemove', 'restoreOne' => 'crudRestoreOne', 'destroyOne' => 'crudDestroyOne', 'recycle' => 'crudRecycle',
@@ -517,15 +562,14 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_memberControllerNamespace']};\n\n"
             . "use app\\BaseController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
-            . "use app\\common\\middleware\\MApi;\nuse app\\common\\traits\\Crud;\nuse app\\common\\traits\\JsonResponse;\n"
+            . "use app\\common\\middleware\\MApi;\nuse app\\common\\traits\\Crud;\nuse app\\common\\traits\\JsonResponse;\nuse support\\annotation\\Middleware;\n"
             . "use {$data['_modelNamespace']}\\{$class};\nuse {$data['_serviceNamespace']}\\{$class}Service;\nuse {$data['_validateNamespace']}\\{$class}Validate;\n"
-            . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
-            . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
-            . "use think\\Model;\nuse think\\Response;\n\n"
-            . "#[Group('{$data['_memberControllerGroup']}')]\nfinal class {$class}Controller extends BaseController\n{\n"
+            . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"
+            . "use support\\annotation\\route\\Post;\nuse support\\annotation\\route\\Put;\n"
+            . "use Illuminate\\Database\\Eloquent\\Model;\nuse support\\Response;\n\n"
+            . "#[Group('{$data['_memberRoutePrefix']}')]\n#[Middleware(MApi::class)]\nfinal class {$class}Controller extends BaseController\n{\n"
             . "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n"
             . "    use Crud {\n{$hidden}        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
-            . "    protected array \$middleware = [MApi::class];\n"
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
             . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"
             . '    protected function exactFilters(): array { return ' . self::phpArray($exact) . "; }\n"
@@ -876,6 +920,8 @@ final class ProductionTemplateContext
             $batchLabels['restoreselected'] = self::tCall(self::collectFrontend($data, 'action.batchRestore', '批量恢复'), '批量恢复');
             $batchLabels['destroyselected'] = self::tCall(self::collectFrontend($data, 'action.batchForceDestroy', '批量永久删除'), '批量永久删除');
         }
+        $destroyConfirmKey = 'crud.' . $data['entity'] . '.message.destroyConfirm';
+        $batchDestroyConfirmKey = $destroyConfirmKey;
         $withConfirmMessages = $enabled['delete'] || $enabled['batchSoftDelete'];
         if ($withConfirmMessages) {
             $destroyConfirmKey = $enabled['delete']
@@ -1281,9 +1327,9 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
 
     private static function phpTest(array $data, string $class): string
     {
-        return "<?php\n\ndeclare(strict_types=1);\n\nuse app\\admin\\model\\{$class};\n\n"
-            . "if (!is_subclass_of({$class}::class, \\think\\Model::class)) {\n"
-            . "    throw new RuntimeException('生成模型必须继承 ThinkPHP Model');\n}\n"
+        return "<?php\n\ndeclare(strict_types=1);\n\nuse {$data['_modelNamespace']}\\{$class};\n\n"
+            . "if (!is_subclass_of({$class}::class, \\Illuminate\\Database\\Eloquent\\Model::class)) {\n"
+            . "    throw new RuntimeException('生成模型必须继承 Eloquent Model');\n}\n"
             . "echo 'generated {$data['entity']} PHP contract: PASS' . PHP_EOL;\n";
     }
 

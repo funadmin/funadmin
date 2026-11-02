@@ -528,6 +528,39 @@ final class ScopeClaimHttpTest extends TestCase
         }
     }
 
+    public function test_oauth_secret_rotation_limits_active_keys_and_rejects_invalid_expiry(): void
+    {
+        $this->createOAuthClientTables();
+        $id = Db::table('oauth_client')->insertGetId(['tenant_id' => 1, 'application_id' => 1, 'name' => 'client', 'client_id' => 'rotating-client', 'client_type' => 'confidential', 'token_endpoint_auth_method' => 'client_secret_basic']);
+        $issued = [];
+        foreach (range(1, 3) as $_) {
+            $issued[] = json_decode($this->call('POST', '/admin/identity/oauth-clients/' . $id . '/secrets')->rawBody(), true)['data'];
+        }
+        self::assertSame(2, Db::table('client_secret')->whereNull('revoked_at')->count());
+        $service = new \app\common\service\identity\ClientSecretService();
+        self::assertFalse($service->verify(1, $id, $issued[0]['secret']));
+        self::assertTrue($service->verify(1, $id, $issued[2]['secret']));
+        foreach (['bad-date', '2000-01-01 00:00:00', []] as $expiresAt) {
+            self::assertSame(422, json_decode($this->call('POST', '/admin/identity/oauth-clients/' . $id . '/secrets', ['expiresAt' => $expiresAt])->rawBody(), true)['code']);
+        }
+        self::assertSame(3, Db::table('client_secret')->count());
+        Db::table('client_secret')->where('id', $issued[2]['id'])->update(['expires_at' => '2000-01-01 00:00:00']);
+        self::assertFalse($service->verify(1, $id, $issued[2]['secret']));
+    }
+
+    public function test_oauth_relation_payloads_cannot_clear_existing_data_by_type_coercion(): void
+    {
+        $this->createOAuthClientTables();
+        $id = Db::table('oauth_client')->insertGetId(['tenant_id' => 1, 'application_id' => 1, 'name' => 'client', 'client_id' => 'valid-client']);
+        foreach (['scopes', 'grants', 'redirect-uris'] as $path) {
+            $field = $path === 'redirect-uris' ? 'redirectUris' : $path;
+            foreach ([null, false, ''] as $invalid) {
+                $response = $this->call('PUT', '/admin/identity/oauth-clients/' . $id . '/' . $path, [$field => $invalid]);
+                self::assertSame(422, json_decode($response->rawBody(), true)['code']);
+            }
+        }
+    }
+
     private function createOAuthClientTables(): void
     {
         Db::schema()->create('enterprise_application', static function (Blueprint $table): void {
@@ -553,6 +586,184 @@ final class ScopeClaimHttpTest extends TestCase
             $table->id(); $table->integer('tenant_id'); $table->integer('client_id');
             $table->string('uri_type'); $table->string('redirect_uri'); $table->string('uri_hash'); $table->boolean('status'); $table->timestamps();
         });
+    }
+
+    public function test_enterprise_application_crud_publication_and_tenant_isolation(): void
+    {
+        $this->createApplicationTables();
+        $input = ['code' => 'sample', 'name' => '示例应用', 'runtimeType' => 'internal', 'launchUrl' => '/sample', 'visibility' => 'tenant'];
+        $response = $this->call('POST', '/admin/identity/applications', $input);
+        self::assertSame(200, json_decode($response->rawBody(), true)['code'], $response->rawBody() . ' ' . (string) $response->exception());
+        $row = json_decode($response->rawBody(), true)['data'];
+        $id = $row['id'];
+        self::assertSame('draft', $row['status']);
+        self::assertSame(1, $row['tenant_id']);
+        self::assertArrayNotHasKey('oauth_config', $row);
+        self::assertSame(1, json_decode($this->call('GET', '/admin/identity/applications?keyword=' . urlencode('示例'))->rawBody(), true)['data']['total']);
+        $input['name'] = '更新应用';
+        self::assertSame(200, json_decode($this->call('PUT', '/admin/identity/applications/' . $id, $input)->rawBody(), true)['code']);
+        self::assertSame('更新应用', json_decode($this->call('GET', '/admin/identity/applications/' . $id)->rawBody(), true)['data']['name']);
+        self::assertSame('published', json_decode($this->call('POST', '/admin/identity/applications/' . $id . '/publish')->rawBody(), true)['data']['status']);
+        self::assertSame(409, $this->call('DELETE', '/admin/identity/applications/' . $id)->getStatusCode());
+        self::assertSame('disabled', json_decode($this->call('POST', '/admin/identity/applications/' . $id . '/disable')->rawBody(), true)['data']['status']);
+        self::assertSame(200, json_decode($this->call('DELETE', '/admin/identity/applications/' . $id)->rawBody(), true)['code']);
+        self::assertFalse(Db::table('enterprise_application')->where('id', $id)->exists());
+        $otherId = Db::table('enterprise_application')->insertGetId(['tenant_id' => 2, 'code' => 'other', 'name' => '其他租户']);
+        foreach (['GET', 'PUT', 'DELETE'] as $method) self::assertSame(404, $this->call($method, '/admin/identity/applications/' . $otherId, $input)->getStatusCode());
+        self::assertSame(422, json_decode($this->call('POST', '/admin/identity/applications', $input + ['databaseMode' => 'invalid'])->rawBody(), true)['code']);
+    }
+
+    public function test_application_assignments_replace_atomically_and_reject_cross_tenant_users(): void
+    {
+        $this->createApplicationTables();
+        $this->createIdentityUserTables();
+        $id = Db::table('enterprise_application')->insertGetId(['tenant_id' => 1, 'code' => 'sample', 'name' => '应用']);
+        $url = '/admin/identity/applications/' . $id . '/assignments';
+        self::assertSame(200, json_decode($this->call('PUT', $url, ['assignments' => [['subjectType' => 'all', 'effect' => 'allow']]])->rawBody(), true)['code']);
+        self::assertCount(1, json_decode($this->call('GET', $url)->rawBody(), true)['data']);
+        $before = (array) Db::table('application_assignment')->first();
+        foreach ([[['subjectType' => 'invalid']], [['subjectType' => 'all'], ['subjectType' => 'user', 'subjectId' => 999]]] as $invalid) {
+            self::assertSame(422, json_decode($this->call('PUT', $url, ['assignments' => $invalid])->rawBody(), true)['code']);
+            self::assertSame($before, (array) Db::table('application_assignment')->first());
+        }
+        $otherUser = Db::table('identity_user')->insertGetId(['tenant_id' => 2, 'username' => 'other']);
+        self::assertSame(422, json_decode($this->call('PUT', $url, ['assignments' => [['subjectType' => 'user', 'subjectId' => $otherUser]]])->rawBody(), true)['code']);
+    }
+
+    public function test_application_database_and_claim_policy_never_expose_credential_references(): void
+    {
+        $this->createApplicationTables();
+        $id = Db::table('enterprise_application')->insertGetId(['tenant_id' => 1, 'code' => 'sample', 'name' => '应用']);
+        $url = '/admin/identity/applications/' . $id;
+        self::assertSame(200, json_decode($this->call('PUT', $url . '/database', ['mode' => 'dedicated', 'credentialRef' => 'vault://private/db'])->rawBody(), true)['code']);
+        $response = $this->call('GET', $url . '/database');
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringNotContainsString('vault://private/db', $response->rawBody());
+        self::assertSame(422, json_decode($this->call('PUT', $url . '/database', ['mode' => 'shared', 'password' => 'forbidden'])->rawBody(), true)['code']);
+        self::assertSame(200, json_decode($this->call('PUT', $url . '/claim-policy', ['allowedClaims' => ['sub', 'email']])->rawBody(), true)['code']);
+        self::assertSame(['allowed_claims' => ['sub', 'email']], json_decode(Db::table('enterprise_application')->where('id', $id)->value('claim_policy'), true));
+        self::assertSame(422, json_decode($this->call('PUT', $url . '/claim-policy', ['allowedClaims' => ['password']])->rawBody(), true)['code']);
+        self::assertSame('unknown', json_decode($this->call('POST', $url . '/health')->rawBody(), true)['data']['status']);
+    }
+
+    public function test_application_portal_and_launch_use_request_admin_link_and_explicit_deny(): void
+    {
+        $this->createApplicationTables();
+        $this->createIdentityUserTables();
+        Db::schema()->create('identity_user_department', static function (Blueprint $table): void { $table->id(); $table->integer('tenant_id'); $table->integer('user_id'); $table->integer('department_id'); });
+        $userId = Db::table('identity_user')->insertGetId(['tenant_id' => 1, 'username' => 'root']);
+        Db::table('identity_admin_link')->insert(['tenant_id' => 1, 'user_id' => $userId, 'admin_id' => 1]);
+        $id = Db::table('enterprise_application')->insertGetId(['tenant_id' => 1, 'code' => 'sample', 'name' => '应用', 'visibility' => 'tenant', 'status' => 'published', 'runtime_type' => 'internal', 'launch_url' => '/sample', 'oauth_config' => 'private-config']);
+        $portal = $this->call('GET', '/admin/identity/applications/portal');
+        self::assertSame(200, $portal->getStatusCode(), $portal->rawBody() . ' ' . (string) $portal->exception());
+        self::assertTrue(json_decode($portal->rawBody(), true)['data']['list'][0]['available']);
+        self::assertStringNotContainsString('private-config', $portal->rawBody());
+        self::assertSame('/sample', json_decode($this->call('GET', '/admin/identity/applications/' . $id . '/launch')->rawBody(), true)['data']['launchUrl']);
+        Db::table('application_assignment')->insert(['tenant_id' => 1, 'application_id' => $id, 'subject_type' => 'user', 'subject_id' => $userId, 'effect' => 'deny']);
+        self::assertSame(403, $this->call('GET', '/admin/identity/applications/' . $id . '/launch')->getStatusCode());
+    }
+
+    public function test_application_domains_replace_with_cas_and_rollback_invalid_input(): void
+    {
+        $this->createApplicationTables();
+        Db::schema()->create('application_domain', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('application_id');
+            foreach (['scheme', 'host', 'path', 'domain_type', 'identity_callback_path', 'logout_callback_path'] as $field) $table->string($field);
+            $table->integer('port'); $table->boolean('is_primary'); $table->boolean('status'); $table->timestamps();
+        });
+        $id = Db::table('enterprise_application')->insertGetId(['tenant_id' => 1, 'code' => 'sample', 'name' => '应用']);
+        $url = '/admin/identity/applications/' . $id . '/domains';
+        $domain = ['identityCallback' => 'https://8.8.8.8/callback', 'logoutCallback' => 'https://8.8.8.8/logout'];
+        $response = $this->call('PUT', $url, ['domains' => [$domain], 'expectedDomainIds' => []]);
+        self::assertSame(200, json_decode($response->rawBody(), true)['code'], $response->rawBody() . ' ' . (string) $response->exception());
+        $rows = json_decode($response->rawBody(), true)['data'];
+        self::assertCount(1, $rows);
+        $domainId = $rows[0]['id'];
+        self::assertSame('8.8.8.8', $rows[0]['host']);
+        self::assertSame(1, $rows[0]['is_primary']);
+        self::assertCount(1, json_decode($this->call('GET', $url)->rawBody(), true)['data']);
+        self::assertSame(409, $this->call('PUT', $url, ['domains' => [], 'expectedDomainIds' => []])->getStatusCode());
+        self::assertSame(422, json_decode($this->call('PUT', $url, ['domains' => [array_replace($domain, ['logoutCallback' => 'https://1.1.1.1/logout'])], 'expectedDomainIds' => [$domainId]])->rawBody(), true)['code']);
+        self::assertTrue(Db::table('application_domain')->where('id', $domainId)->exists());
+        self::assertSame(200, json_decode($this->call('PUT', $url, ['domains' => [], 'expectedDomainIds' => [$domainId]])->rawBody(), true)['code']);
+        self::assertSame(0, Db::table('application_domain')->count());
+    }
+
+    private function createApplicationTables(): void
+    {
+        Db::schema()->create('enterprise_application', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->string('code'); $table->string('name');
+            foreach (['public_id', 'description', 'icon', 'runtime_type', 'database_mode', 'visibility', 'launch_url', 'base_url', 'owner', 'logo_url', 'brand_config', 'claim_policy', 'oauth_config'] as $field) $table->text($field)->nullable();
+            $table->integer('sort_order')->default(0); $table->integer('owner_identity_user_id')->nullable();
+            $table->string('status')->default('draft'); $table->dateTime('published_at')->nullable(); $table->timestamps(); $table->softDeletes();
+            $table->unique(['tenant_id', 'code']);
+        });
+        Db::schema()->create('application_assignment', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('application_id'); $table->string('subject_type');
+            $table->integer('subject_id')->nullable(); $table->string('effect'); $table->boolean('status')->default(true); $table->timestamps();
+        });
+        Db::schema()->create('application_database', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('application_id'); $table->string('mode');
+            foreach (['credential_ref', 'health_path', 'health_status', 'last_checked_at'] as $field) $table->string($field)->nullable(); $table->timestamps();
+        });
+    }
+
+    public function test_identity_routes_require_live_resource_grants_for_non_super_administrators(): void
+    {
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => password_hash('reader-test-password', PASSWORD_DEFAULT), 'status' => 1]);
+        $auth = new BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        $session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'reader', 'reader-test-password', '127.0.0.2');
+        $this->cookie = $session['cookie'];
+        $this->csrf = $session['csrfToken'];
+        self::assertSame(403, $this->call('GET', '/admin/identity/scopes')->getStatusCode());
+        Db::table('auth_group')->insert(['id' => 2, 'name' => '身份查看', 'code' => 'identity_reader']);
+        Db::table('permission')->insert(['code' => 'identity:scope:list', 'obj' => 'admin/identity.scopeclaim', 'act' => 'index', 'name' => '查看 Scope']);
+        foreach ([['g', 'admin:2', 'role:2', 'default', ''], ['p', 'role:2', 'default', 'admin/identity.scopeclaim', 'index']] as [$type, $v0, $v1, $v2, $v3]) {
+            Db::table('casbin_rule')->insert(['ptype' => $type, 'v0' => $v0, 'v1' => $v1, 'v2' => $v2, 'v3' => $v3, 'rule_hash' => hash('sha256', "$type|$v0|$v1|$v2|$v3")]);
+        }
+        self::assertSame(200, $this->call('GET', '/admin/identity/scopes')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/identity/scopes', ['name' => 'forbidden'])->getStatusCode());
+        self::assertSame(403, $this->call('GET', '/admin/identity/audit')->getStatusCode());
+        Db::table('auth_group')->where('id', 2)->update(['status' => 0]);
+        self::assertSame(403, $this->call('GET', '/admin/identity/scopes')->getStatusCode());
+        self::assertSame(0, Db::table('scope')->count());
+    }
+
+    public function test_oidc_retry_of_terminal_delivery_never_resends_or_crosses_tenants(): void
+    {
+        $this->createSessionTables();
+        Db::schema()->table('backchannel_logout_delivery', static function (Blueprint $table): void {
+            $table->dateTime('next_attempt_at')->nullable(); $table->dateTime('lease_expires_at')->nullable();
+            $table->dateTime('dead_at')->nullable(); $table->dateTime('locked_at')->nullable();
+            $table->integer('attempts')->default(0); $table->string('worker_id')->nullable();
+        });
+        $id = Db::table('backchannel_logout_delivery')->insertGetId(['tenant_id' => 1, 'status' => 'delivered', 'logout_token' => 'private', 'lock_token' => '', 'payload_hash' => 'hash']);
+        $other = Db::table('backchannel_logout_delivery')->insertGetId(['tenant_id' => 2, 'status' => 'delivered', 'logout_token' => 'private', 'lock_token' => '', 'payload_hash' => 'hash']);
+        $response = $this->call('POST', '/admin/identity/oidc-sessions/deliveries/' . $id . '/retry');
+        self::assertSame(200, json_decode($response->rawBody(), true)['code'], $response->rawBody() . ' ' . (string) $response->exception());
+        self::assertFalse(json_decode($response->rawBody(), true)['data']['delivered']);
+        self::assertSame(404, $this->call('POST', '/admin/identity/oidc-sessions/deliveries/' . $other . '/retry')->getStatusCode());
+        self::assertSame('delivered', Db::table('backchannel_logout_delivery')->where('id', $id)->value('status'));
+    }
+
+    public function test_application_client_claim_policy_requires_application_ownership(): void
+    {
+        $this->createApplicationTables();
+        Db::schema()->create('oauth_client', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('application_id');
+            $table->string('subject_type')->nullable(); $table->string('sector_identifier')->nullable(); $table->text('allowed_claims')->nullable(); $table->timestamps();
+        });
+        foreach (['client_scope' => 'scope_id', 'client_grant' => 'grant_type'] as $name => $field) Db::schema()->create($name, static function (Blueprint $table) use ($field): void { $table->id(); $table->integer('tenant_id'); $table->integer('client_id'); $table->string($field); });
+        Db::schema()->create('redirect_uri', static function (Blueprint $table): void { $table->id(); $table->integer('tenant_id'); $table->integer('client_id'); $table->boolean('status'); });
+        Db::table('enterprise_application')->insert(['id' => 1, 'tenant_id' => 1, 'code' => 'sample', 'name' => '应用']);
+        $clientId = Db::table('oauth_client')->insertGetId(['tenant_id' => 1, 'application_id' => 1]);
+        $url = '/admin/identity/applications/1/oauth-clients/' . $clientId . '/claim-policy';
+        self::assertSame(200, json_decode($this->call('PUT', $url, ['subjectType' => 'pairwise', 'sectorIdentifier' => 'rp.example', 'allowedClaims' => ['sub', 'email']])->rawBody(), true)['code']);
+        self::assertSame(['sub', 'email'], json_decode(Db::table('oauth_client')->value('allowed_claims'), true));
+        $response = $this->call('PUT', '/admin/identity/applications/99/oauth-clients/' . $clientId . '/claim-policy', ['allowedClaims' => ['name']]);
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(['sub', 'email'], json_decode(Db::table('oauth_client')->value('allowed_claims'), true));
     }
 
     public function test_builtin_scope_cannot_be_deleted_and_duplicate_names_are_rejected(): void

@@ -84,7 +84,7 @@ final class BusinessTargetService
         $owners = ($this->owners)();
         if (isset($owners[$table]) && $owners[$table] !== $code) throw new InvalidArgumentException('BUSINESS_TABLE_FORBIDDEN');
         if (($target['tableStrategy'] ?? '') === 'owned') {
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
             if (!str_starts_with($table, $prefix . $code . '_')) throw new InvalidArgumentException('BUSINESS_TABLE_PREFIX_REQUIRED');
             if (!$generated && ($this->tableExists)($table)) throw new InvalidArgumentException('BUSINESS_TABLE_ALREADY_EXISTS');
         } elseif (($target['tableStrategy'] ?? '') === 'external') {
@@ -149,8 +149,8 @@ final class BusinessTargetService
             $owner = preg_match('#/plugins/([^/]+)/#', $file, $match) ? $match[1] : 'core';
             $sql = (string) file_get_contents($file);
             if (!str_starts_with($sql, "-- funadmin-physical-table\n")) {
-                $templatePrefix = \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_');
-                $prefix = (string) \think\facade\Config::get('database.connections.' . $this->defaultConnection . '.prefix', '');
+                $templatePrefix = config('funadmin.mysqlPrefix', 'fun_');
+                $prefix = (string) config('database.connections.' . $this->defaultConnection . '.prefix', '');
                 $sql = \app\common\service\MigrationService::rewritePrefix($sql, $templatePrefix, $prefix);
             }
             preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', $sql, $matches);

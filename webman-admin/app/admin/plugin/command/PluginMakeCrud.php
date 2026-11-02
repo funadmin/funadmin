@@ -18,6 +18,11 @@ use Throwable;
 #[AsCommand(name: 'plugin:make-crud')]
 final class PluginMakeCrud extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:make-crud')->setDescription('从数据表推断插件 CRUD Definition 并安全预览')
@@ -32,7 +37,7 @@ final class PluginMakeCrud extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $root = base_path() . DIRECTORY_SEPARATOR;
+            $root = $this->projectRoot ?? base_path();
             $connection = (string) $input->getOption('connection');
             $table = (string) $input->getOption('table');
             $inspection = (new DevCrudService($root, (array) config('crud.connections', [])))->infer($connection, $table);

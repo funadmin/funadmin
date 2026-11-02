@@ -10,7 +10,7 @@ use app\admin\development\http\BusinessResponseSanitizer;
 use app\admin\form\model\Form;
 use app\admin\form\service\FormDesignerService;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 
 /** 业务开发模块与生成记录的数据访问边界。 */
 final class BusinessModuleService
@@ -51,10 +51,10 @@ final class BusinessModuleService
 
     public function listing(int $page, int $pageSize, string $keyword, string $status, string $origin): array
     {
-        $query = BusinessModule::order('updated_at', 'desc')->order('id', 'desc');
+        $query = BusinessModule::query()->orderBy('updated_at', 'desc')->orderBy('id', 'desc');
         if ($keyword !== '') {
             $query->where(function ($builder) use ($keyword): void {
-                $builder->whereLike('name', '%' . $keyword . '%')->whereOr('code', 'like', '%' . $keyword . '%');
+                $builder->where('name', 'like', '%' . $keyword . '%')->orWhere('code', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== '') $query->where('lifecycle_status', $status);
@@ -70,9 +70,9 @@ final class BusinessModuleService
         if ($list !== []) {
             // 成功指针不代表最新尝试；按本页模块批量投影生成状态，不暴露制品内容。
             $latestIds = CrudGeneration::whereIn('business_module_id', array_column($list, 'id'))
-                ->group('business_module_id')->column('MAX(id)');
+                ->groupBy('business_module_id')->selectRaw('MAX(id) as id')->pluck('id')->all();
             $states = CrudGeneration::whereIn('id', $latestIds)
-                ->field('business_module_id,status,recovery_status')->select()->toArray();
+                ->select(['business_module_id', 'status', 'recovery_status'])->get()->toArray();
             $states = array_column($states, null, 'business_module_id');
             foreach ($list as &$module) {
                 $state = $states[$module['id']] ?? null;
@@ -87,7 +87,7 @@ final class BusinessModuleService
     /** 设计目录只读取模块身份，不加载字段、默认值或发布版本。 */
     public function designTarget(int $id): string
     {
-        $module = BusinessModule::where('id', $id)->field('id,metadata')->find();
+        $module = BusinessModule::where('id', $id)->select(['id', 'metadata'])->first();
         if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
         return (string) ($module->metadata['target']['type'] ?? 'core');
     }
@@ -97,13 +97,13 @@ final class BusinessModuleService
         $module = BusinessModule::find($id);
         if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
         $form = $module->form_id ? Form::find((int) $module->form_id) : null;
-        return ['module' => $module->toArray(), 'form' => $form?->toArray(), 'fields' => $form ? $form->fields()->order('sort_order')->select()->toArray() : []];
+        return ['module' => $module->toArray(), 'form' => $form?->toArray(), 'fields' => $form ? $form->fields()->orderBy('sort_order')->get()->toArray() : []];
     }
 
     public function createWithForm(array $formPayload, string $origin, string $actor, FormDesignerService $forms): array
     {
         $target = $formPayload['business_target'] ?? self::normalizeTarget([], (string) $formPayload['source_type']);
-        ($this->targets ?? new BusinessTargetService(root_path(), (string) config('database.default', 'mysql')))
+        ($this->targets ?? new BusinessTargetService(base_path(), (string) config('database.default', 'mysql')))
             ->assertSelection($target, (string) $formPayload['connection'], (string) $formPayload['table_name']);
         unset($formPayload['business_target']);
         return Db::transaction(function () use ($formPayload, $origin, $actor, $forms, $target): array {
@@ -111,7 +111,7 @@ final class BusinessModuleService
             $form = $saved['form'];
             $formId = (int) (is_object($form) ? $form->id : $form['id']);
             $code = (string) $formPayload['form_key'];
-            if (BusinessModule::where('code', $code)->find()) throw new InvalidArgumentException('业务模块标识已存在');
+            if (BusinessModule::where('code', $code)->first()) throw new InvalidArgumentException('业务模块标识已存在');
             $module = BusinessModule::create([
                 'code' => $code,
                 'name' => (string) $formPayload['name'],
@@ -134,7 +134,7 @@ final class BusinessModuleService
 
     public function generations(int $page, int $pageSize, int $moduleId = 0, string $status = ''): array
     {
-        $query = CrudGeneration::order('id', 'desc');
+        $query = CrudGeneration::query()->orderBy('id', 'desc');
         if ($moduleId > 0) $query->where('business_module_id', $moduleId);
         if ($status !== '') $query->where('status', $status);
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);

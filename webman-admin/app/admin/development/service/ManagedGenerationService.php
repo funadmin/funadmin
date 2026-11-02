@@ -21,7 +21,7 @@ use Closure;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
-use think\facade\Db;
+use support\Db;
 
 /** 为 business-managed 正式发布构造可信 bundle 并执行 WAL 事务。 */
 final class ManagedGenerationService
@@ -81,7 +81,7 @@ final class ManagedGenerationService
         $this->draftSchemaReader = Closure::fromCallable($draftSchemaReader ?? fn (int $id): FormSchema => $this->schemas->draft($id));
         $this->targetService = $targetService ?? new BusinessTargetService($projectRoot, function_exists('config') ? (string) config('database.default', 'mysql') : 'mysql');
         $this->databaseSchemaReader = Closure::fromCallable($databaseSchemaReader ?? static fn (string $connection, string $table): array =>
-            (new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)))->inspect($table)
+            (new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connection($connection)->select($sql, $bindings)))->inspect($table)
         );
         $this->moduleReader = Closure::fromCallable($moduleReader ?? static function (int $id): array {
             $module = BusinessModule::find($id);
@@ -105,7 +105,7 @@ final class ManagedGenerationService
         $this->latestConflictReader = Closure::fromCallable($latestConflictReader ?? static function (int $moduleId): ?int {
             $id = CrudGeneration::where('business_module_id', $moduleId)
                 ->where('status', 'conflict')
-                ->order('id', 'desc')
+                ->orderBy('id', 'desc')
                 ->value('id');
             return $id === null ? null : (int) $id;
         });

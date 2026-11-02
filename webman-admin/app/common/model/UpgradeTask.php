@@ -9,7 +9,6 @@ final class UpgradeTask extends BaseModel
 {
     protected $name = 'upgrade_task';
 
-    protected $json = ['metadata'];
-
-    protected $jsonAssoc = true;
+    protected $casts = ['metadata' => 'array'];
+    protected $guarded = [];
 }

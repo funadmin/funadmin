@@ -96,6 +96,43 @@ final class McpToolsExecutionTest extends TestCase
         } finally { Db::schema()->dropIfExists('admin'); }
     }
 
+    public function test_file_tool_reads_public_uploads_but_rejects_sibling_and_symlink_escape(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-mcp-files-' . bin2hex(random_bytes(8));
+        mkdir($root . '/public/uploads', 0700, true);
+        mkdir($root . '/public/uploads-private', 0700);
+        file_put_contents($root . '/public/uploads/example.txt', 'public');
+        file_put_contents($root . '/public/uploads-private/example.txt', 'private');
+        symlink($root . '/public/uploads-private/example.txt', $root . '/public/uploads/escape.txt');
+        try {
+            $service = new McpService($root);
+            self::assertSame('public', $service->handleFileOperation('read', 'public/uploads/example.txt')['content']);
+            self::assertSame(6, $service->handleFileOperation('info', 'public/uploads/example.txt')['size']);
+            foreach (['public/uploads-private/example.txt', 'public/uploads/escape.txt', 'public/uploads/../../config/database.php'] as $path) {
+                try { $service->handleFileOperation('read', $path); self::fail('越界文件应拒绝'); }
+                catch (\RuntimeException $error) { self::assertSame('文件路径不在公开范围', $error->getMessage()); }
+            }
+        } finally {
+            unlink($root . '/public/uploads/escape.txt');
+            unlink($root . '/public/uploads/example.txt');
+            unlink($root . '/public/uploads-private/example.txt');
+            rmdir($root . '/public/uploads'); rmdir($root . '/public/uploads-private'); rmdir($root . '/public'); rmdir($root);
+        }
+    }
+
+    public function test_log_tool_redacts_credentials_without_stdout_output(): void
+    {
+        $handler = new \Monolog\Handler\TestHandler();
+        $service = (new McpService())->setLogger(new \Monolog\Logger('mcp-test', [$handler]));
+        ob_start();
+        try { $service->handleWriteLog('password=hidden', 'info', ['api_key' => 'never-expose']); }
+        finally { $stdout = ob_get_clean(); }
+        self::assertSame('', $stdout);
+        $record = $handler->getRecords()[0];
+        self::assertStringNotContainsString('hidden', $record->message);
+        self::assertSame('[REDACTED]', $record->context['api_key']);
+    }
+
     public function test_missing_crud_definition_is_a_structured_failure(): void
     {
         $result = (new McpService())->handleCrud('nonexistent-definition.json');

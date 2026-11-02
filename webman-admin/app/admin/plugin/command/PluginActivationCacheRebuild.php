@@ -15,6 +15,11 @@ use support\Container;
 #[AsCommand(name: 'plugin:activation-cache')]
 final class PluginActivationCacheRebuild extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:activation-cache')->setDescription('重建可信插件激活状态清单');
@@ -22,8 +27,14 @@ final class PluginActivationCacheRebuild extends Command
 
     protected function execute(Input $input, Output $output): int
     {
-        Container::get(PluginService::class)->refreshActivationCache();
-        $output->writeln('<info>可信插件激活状态清单已重建</info>');
-        return 0;
+        try {
+            $service = $this->projectRoot === null ? Container::get(PluginService::class) : new PluginService($this->projectRoot);
+            $service->refreshActivationCache();
+            $output->writeln('<info>可信插件激活状态清单已重建</info>');
+            return 0;
+        } catch (\Throwable $exception) {
+            (new \Symfony\Component\Console\Style\SymfonyStyle($input, $output))->error($exception->getMessage());
+            return 1;
+        }
     }
 }

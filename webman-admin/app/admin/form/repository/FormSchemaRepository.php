@@ -18,7 +18,7 @@ use app\admin\form\model\FormField;
 use app\admin\form\model\FormSchemaVersion;
 use InvalidArgumentException;
 use JsonException;
-use think\facade\Db;
+use support\Db;
 
 final class FormSchemaRepository
 {
@@ -118,7 +118,7 @@ final class FormSchemaRepository
     public function saveCompiledVersionIfCurrentHash(int $formId, FormSchema $compiled, string $expectedHash, string $origin, string $actor, string $summary = ''): FormSchemaVersion
     {
         return Db::transaction(function () use ($formId, $compiled, $expectedHash, $origin, $actor, $summary): FormSchemaVersion {
-            $form = Form::lock(true)->find($formId);
+            $form = Form::lockForUpdate()->firstWhere('id', $formId);
             if (!$form) throw new InvalidArgumentException('表单不存在');
             // 乐观锁只对比客户端读取过的库存 hash 列；重编译库存文档的 hash 会随编译器
             // 规范化演进（如树形父级控件投影）而漂移，导致基线永不相等、保存死锁。
@@ -129,15 +129,15 @@ final class FormSchemaRepository
 
     public function saveCompiledVersion(int $formId, FormSchema $compiled, string $origin, string $actor, string $summary = ''): FormSchemaVersion
     {
-        $form = Form::lock(true)->find($formId);
+        $form = Form::lockForUpdate()->firstWhere('id', $formId);
         if (!$form) throw new InvalidArgumentException('表单不存在');
         $this->assertIdentity($form, $compiled);
-        $existing = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $compiled->hash())->find();
+        $existing = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $compiled->hash())->first();
         if ($existing) {
             $this->persistCurrent($form, $compiled, $origin);
             return $existing;
         }
-        $latest = FormSchemaVersion::where('form_id', $formId)->order('version', 'desc')->find();
+        $latest = FormSchemaVersion::where('form_id', $formId)->orderBy('version', 'desc')->first();
         $version = new FormSchemaVersion();
         $version->save([
             'form_id' => $formId,
@@ -176,7 +176,7 @@ final class FormSchemaRepository
         if (!$form || $hash === '') {
             throw new FormSchemaException('表单尚未发布', '/formId', 'FORM_SCHEMA_NOT_PUBLISHED');
         }
-        $record = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $hash)->find();
+        $record = FormSchemaVersion::where('form_id', $formId)->where('schema_hash', $hash)->first();
         if (!$record) {
             throw new FormSchemaException('已发布表单版本不存在', '/schemaHash', 'FORM_SCHEMA_VERSION_NOT_FOUND');
         }
@@ -188,12 +188,12 @@ final class FormSchemaRepository
         if (!Form::find($formId)) {
             throw new FormSchemaException('表单不存在', '/formId', 'FORM_NOT_FOUND');
         }
-        return FormSchemaVersion::where('form_id', $formId)->order('version', 'desc')->select()->toArray();
+        return FormSchemaVersion::where('form_id', $formId)->orderBy('version', 'desc')->get()->toArray();
     }
 
     public function findVersion(int $formId, int $version): FormSchemaVersion
     {
-        $record = FormSchemaVersion::where('form_id', $formId)->where('version', $version)->find();
+        $record = FormSchemaVersion::where('form_id', $formId)->where('version', $version)->first();
         if (!$record) {
             throw new FormSchemaException('表单版本不存在', '/version', 'FORM_SCHEMA_VERSION_NOT_FOUND');
         }
@@ -247,7 +247,7 @@ final class FormSchemaRepository
         string $summary = ''
     ): FormSchemaVersion {
         return Db::transaction(function () use ($formId, $targetVersion, $expectedHash, $actor, $summary): FormSchemaVersion {
-            $form = Form::lock(true)->find($formId);
+            $form = Form::lockForUpdate()->firstWhere('id', $formId);
             if (!$form) throw new InvalidArgumentException('表单不存在');
             // 与保存路径一致：对比库存 hash 列，避免编译器规范化演进造成回滚基线漂移。
             if (!hash_equals((string) $form->schema_hash, $expectedHash)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');

@@ -7,7 +7,7 @@ namespace app\admin\development\service;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\service\ResourceRegistryService;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 在同一数据库事务中应用业务生成的菜单与权限资源。
@@ -25,7 +25,7 @@ final class GenerationResourceTransaction
         if ($this->active) {
             throw new RuntimeException('生成资源事务已开始');
         }
-        Db::startTrans();
+        Db::connection()->beginTransaction();
         $this->active = true;
     }
 
@@ -144,7 +144,7 @@ final class GenerationResourceTransaction
         if ($sourceName === '') {
             return 0;
         }
-        $parent = AdminMenu::managedQuery()->where('source_name', $sourceName)->find();
+        $parent = AdminMenu::managedQuery()->where('source_name', $sourceName)->first();
         if (!$parent) {
             throw new RuntimeException('所属菜单不存在或不可用：' . $sourceName);
         }

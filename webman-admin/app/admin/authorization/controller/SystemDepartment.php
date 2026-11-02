@@ -5,32 +5,27 @@ declare(strict_types=1);
 namespace app\admin\authorization\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroupDepartment;
 use app\admin\authorization\model\Department;
 use app\admin\authorization\service\RoleScopeService;
 use app\admin\authorization\service\DataScopeService;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('system/dept')]
+#[RouteGroup('/admin/system/dept')]
 class SystemDepartment extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('tree')]
+    #[Get('/tree')]
     public function tree(): Response
     {
-        $query = Department::order('sort_order', 'asc')->order('id', 'asc');
+        $query = Department::orderBy('sort_order')->orderBy('id');
         $allowedIds = Department::allowedIds();
         if ($allowedIds !== null) {
             $query->whereIn('id', $allowedIds ?: [0]);
@@ -38,12 +33,12 @@ class SystemDepartment extends AdminApiController
         $name = trim((string) $this->request->get('name', ''));
         $status = $this->request->get('status', null);
         if ($name !== '') {
-            $query->whereLike('name', '%' . $name . '%');
+            $query->where('name', 'like', '%' . addcslashes($name, '%_') . '%');
         }
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
-        $rows = array_map(fn (Department $department): array => $department->toApiData(), $query->select()->all());
+        $rows = $query->get()->map(static fn (Department $department): array => $department->toApiData())->all();
         if ($allowedIds !== null) {
             $visible = array_fill_keys(array_map('intval', $allowedIds), true);
             foreach ($rows as &$row) {
@@ -57,8 +52,7 @@ class SystemDepartment extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $department = Department::find($id);
@@ -78,14 +72,15 @@ class SystemDepartment extends AdminApiController
         if ($data['pid'] <= 0 && !(new RoleScopeService())->isSuperAdmin()) {
             return $this->fail(msg: '只有超级管理员可以创建顶级部门', code: 403);
         }
-        if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->find() || !Department::canAccess($data['pid']))) {
+        if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->first() || !Department::canAccess($data['pid']))) {
             return $this->fail(msg: '上级部门不存在、已停用或无权访问', code: 422);
         }
-        return $this->ok('创建成功', Department::create($data)->toApiData());
+        $department = new Department();
+        $department->forceFill($data)->save();
+        return $this->ok('创建成功', $department->toApiData());
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $department = Department::find($id);
@@ -101,7 +96,7 @@ class SystemDepartment extends AdminApiController
                 return $this->fail(msg: '只有超级管理员可以移动为顶级部门', code: 403);
             }
             if ($data['pid'] > 0) {
-                $parent = Department::where('id', (int) $data['pid'])->where('status', 1)->find();
+                $parent = Department::where('id', (int) $data['pid'])->where('status', 1)->first();
                 if (!$parent) {
                     return $this->fail(msg: '上级部门不存在或已停用', code: 422);
                 }
@@ -114,12 +109,11 @@ class SystemDepartment extends AdminApiController
                 return $this->fail(msg: '不能将部门移动到自身或下级部门', code: 422);
             }
         }
-        $department->save($data);
+        $department->forceFill($data)->save();
         return $this->ok('保存成功', $department->toApiData());
     }
 
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
@@ -154,7 +148,7 @@ class SystemDepartment extends AdminApiController
         if (AuthGroupDepartment::whereIn('dept_id', $subtreeIds)->count() > 0) {
             return $this->fail(msg: '部门或下级部门仍被角色数据范围引用，不能删除', code: 422);
         }
-        $departments = Department::whereIn('id', $subtreeIds)->select();
+        $departments = Department::whereIn('id', $subtreeIds)->get();
         foreach ($departments as $department) {
             $department->delete();
         }
@@ -163,26 +157,31 @@ class SystemDepartment extends AdminApiController
 
     private function payload(bool $create = true): array
     {
+        $payload = $this->request->post();
+        $payload = is_array($payload) ? $payload : [];
         $fields = ['name', 'leader', 'phone', 'email', 'sort', 'status'];
         $data = [];
         foreach ($fields as $field) {
-            if ($create || $this->request->has($field, 'post')) {
-                $data[$field] = $this->request->post($field, $field === 'status' ? 1 : ($field === 'sort' ? 0 : ''));
+            if ($create || array_key_exists($field, $payload)) {
+                $data[$field] = $payload[$field] ?? ($field === 'status' ? 1 : ($field === 'sort' ? 0 : ''));
             }
         }
-        if ($create || $this->request->has('parentId', 'post')) {
-            $data['pid'] = max(0, (int) $this->request->post('parentId', 0));
+        if ($create || array_key_exists('parentId', $payload)) {
+            $data['pid'] = $payload['parentId'] ?? 0;
         }
-        if (isset($data['sort'])) {
+        if (isset($data['sort']) && (is_int($data['sort']) || (is_string($data['sort']) && preg_match('/^[0-9]+$/D', $data['sort']) === 1))) {
             $data['sort_order'] = max(0, (int) $data['sort']);
             unset($data['sort']);
         }
-        if (isset($data['status'])) {
-            $data['status'] = $this->binaryStatus($data['status']);
+        if (isset($data['pid']) && (is_int($data['pid']) || (is_string($data['pid']) && preg_match('/^[0-9]+$/D', $data['pid']) === 1))) {
+            $data['pid'] = max(0, (int) $data['pid']);
+        }
+        if (isset($data['status']) && (is_bool($data['status']) || is_int($data['status']))) {
+            $data['status'] = (int) $data['status'];
         }
         foreach (['name', 'leader', 'phone', 'email'] as $field) {
-            if (isset($data[$field])) {
-                $data[$field] = trim(strip_tags((string) $data[$field]));
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
             }
         }
         return $data;

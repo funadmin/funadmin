@@ -18,6 +18,11 @@ final class CrudPreview extends Command
 {
     use CrudCommandSupport;
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('crud:preview')->setDescription('预览 CRUD 生成计划并输出敏感确认字段')
@@ -27,7 +32,7 @@ final class CrudPreview extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $plan = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->plan($this->loadDefinition((string) $input->getArgument('definition')));
+            $plan = (new CrudGenerator($this->projectRoot ?? base_path()))->plan($this->loadDefinition((string) $input->getArgument('definition')));
             $token = (string) ($plan['confirmToken'] ?? '');
             unset($plan['confirmToken']);
             $output->writeln($this->json(['plan' => $plan, 'sensitive' => ['confirmToken' => $token]]));

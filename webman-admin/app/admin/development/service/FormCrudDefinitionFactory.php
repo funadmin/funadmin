@@ -56,8 +56,7 @@ final class FormCrudDefinitionFactory
         $fields = $adopted
             ? [$this->schemaManagedField($schemaColumns[$primaryKey], true)]
             : [$this->managedField('id', 'bigint unsigned', true)];
-        $prefix = \think\Container::getInstance()->bound('config')
-            ? (string) \think\facade\Config::get('database.connections.' . $form['connection'] . '.prefix', '') : '';
+        $prefix = (string) config('database.connections.' . $form['connection'] . '.prefix', '');
         $relations = [];
         $optionSources = [];
         $layoutSchema = [];

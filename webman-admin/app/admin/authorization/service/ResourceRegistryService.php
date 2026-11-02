@@ -11,7 +11,7 @@ use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\model\PermissionField;
 use app\common\service\AbstractService;
-use think\facade\Db;
+use support\Db;
 
 /** 菜单与权限资源注册入口，供后台、CRUD 生成器和插件共用。 */
 class ResourceRegistryService extends AbstractService
@@ -32,13 +32,13 @@ class ResourceRegistryService extends AbstractService
         if (!$resource) {
             return;
         }
-        $permission = Permission::where('code', $resource['code'])->find();
+        $permission = Permission::where('code', $resource['code'])->first();
         if (!$permission) {
             return;
         }
         $ids = array_merge([(int) $permission->id], Permission::childIds((int) $permission->id));
         Db::transaction(function () use ($ids) {
-            $resources = Permission::whereIn('id', $ids)->field('obj,act')->select()->toArray();
+            $resources = Permission::whereIn('id', $ids)->get(['obj', 'act'])->toArray();
             foreach ($resources as $item) {
                 CasbinRule::where('ptype', 'p')->where('v2', $item['obj'])->where('v3', $item['act'])->delete();
             }
@@ -53,9 +53,9 @@ class ResourceRegistryService extends AbstractService
     public function removeSource(string $sourceType, string $sourceName): void
     {
         $permissionIds = array_map('intval', Permission::where('source_type', $sourceType)
-            ->where('source_name', $sourceName)->column('id'));
+            ->where('source_name', $sourceName)->pluck('id')->all());
         $permissions = Permission::where('source_type', $sourceType)
-            ->where('source_name', $sourceName)->field('obj,act')->select()->toArray();
+            ->where('source_name', $sourceName)->get(['obj', 'act'])->toArray();
         Db::transaction(function () use ($sourceType, $sourceName, $permissionIds, $permissions) {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
@@ -77,8 +77,8 @@ class ResourceRegistryService extends AbstractService
     public function removeApplication(string $appName): void
     {
         $appName = strtolower(trim($appName));
-        $permissionIds = array_map('intval', Permission::where('app_name', $appName)->column('id'));
-        $permissions = Permission::where('app_name', $appName)->field('obj,act')->select()->toArray();
+        $permissionIds = array_map('intval', Permission::where('app_name', $appName)->pluck('id')->all());
+        $permissions = Permission::where('app_name', $appName)->get(['obj', 'act'])->toArray();
         Db::transaction(function () use ($appName, $permissionIds, $permissions) {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
@@ -113,7 +113,7 @@ class ResourceRegistryService extends AbstractService
                 if (!in_array($permissionType, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || $obj === '' || $act === '') {
                     throw new RuntimeException('权限资源类型或 obj/act 无效：' . $code);
                 }
-                $permission = Permission::where('code', $code)->find();
+                $permission = Permission::where('code', $code)->first();
                 if ($permission && ((string) $permission->source_type !== $sourceType || (string) $permission->source_name !== $sourceName || (string) $permission->app_name !== 'admin')) {
                     throw new RuntimeException('权限 code 归属冲突：' . $code);
                 }
@@ -121,7 +121,7 @@ class ResourceRegistryService extends AbstractService
                     throw new RuntimeException('插件权限 code 必须属于插件命名空间：' . $code);
                 }
                 $permission ??= new Permission();
-                $permission->save([
+                $permission->forceFill([
                     'pid' => 0,
                     'app_name' => 'admin',
                     'code' => $code,
@@ -134,7 +134,7 @@ class ResourceRegistryService extends AbstractService
                     'sort_order' => (int) ($item['sort'] ?? 999),
                     'source_type' => $sourceType,
                     'source_name' => $sourceName,
-                ]);
+                ])->save();
             }
         });
         CasbinService::instance()->reload();
@@ -166,7 +166,7 @@ class ResourceRegistryService extends AbstractService
         $existing = [];
         foreach ($byLocale as $locale => $keys) {
             foreach (array_chunk(array_values(array_unique($keys)), 500) as $chunk) {
-                foreach (Db::name('language_line')->where('locale', $locale)->whereIn('key', $chunk)->column('key') as $key) {
+                foreach (Db::table('language_line')->where('locale', $locale)->whereIn('key', $chunk)->pluck('key')->all() as $key) {
                     $existing[$locale . "\0" . $key] = true;
                 }
             }
@@ -179,7 +179,7 @@ class ResourceRegistryService extends AbstractService
             }
         }
         if ($missing !== []) {
-            Db::name('language_line')->insertAll($missing);
+            Db::table('language_line')->insert($missing);
         }
         return ['inserted' => count($missing), 'skipped' => count($rows) - count($missing)];
     }
@@ -193,8 +193,8 @@ class ResourceRegistryService extends AbstractService
 
     public function removePermissions(string $sourceType, string $sourceName): void
     {
-        $permissionIds = array_map('intval', Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->column('id'));
-        $permissions = Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->field('obj,act')->select()->toArray();
+        $permissionIds = array_map('intval', Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->pluck('id')->all());
+        $permissions = Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->get(['obj', 'act'])->toArray();
         Db::transaction(function () use ($permissionIds, $permissions, $sourceType, $sourceName): void {
             foreach ($permissions as $permission) {
                 if ($permission['obj'] !== '' && $permission['act'] !== '') {
@@ -213,7 +213,7 @@ class ResourceRegistryService extends AbstractService
         if (!$permissionIds) {
             return;
         }
-        $fieldIds = array_map('intval', PermissionField::whereIn('permission_id', $permissionIds)->column('id'));
+        $fieldIds = array_map('intval', PermissionField::whereIn('permission_id', $permissionIds)->pluck('id')->all());
         if (!$fieldIds) {
             return;
         }
@@ -232,7 +232,7 @@ class ResourceRegistryService extends AbstractService
             $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemAppName, $href);
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;
             if ($referencedCode !== '') {
-                $permission = Permission::where('code', $referencedCode)->find();
+                $permission = Permission::where('code', $referencedCode)->first();
                 if (!$permission) {
                     throw new RuntimeException('菜单引用的权限不存在：' . $referencedCode);
                 }
@@ -246,12 +246,12 @@ class ResourceRegistryService extends AbstractService
                 }
             } else {
                 $permissionWhere = $resource ? ['code' => $resource['code']] : ['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'name' => (string) ($item['name'] ?? ''), 'source_type' => $sourceType, 'source_name' => $sourceName];
-                $permission = Permission::where($permissionWhere)->find();
+                $permission = Permission::where($permissionWhere)->first();
                 if ($permission && ((string) $permission->source_type !== $sourceType || (string) $permission->source_name !== $sourceName || (string) $permission->app_name !== $itemAppName)) {
                     throw new RuntimeException('菜单权限归属冲突：' . (string) ($resource['code'] ?? $item['name'] ?? ''));
                 }
                 $permission ??= new Permission();
-                $permission->save(['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'code' => $resource['code'] ?? null, 'obj' => $resource['obj'] ?? '', 'act' => $resource['act'] ?? '', 'name' => (string) ($item['name'] ?? ''), 'resource_type' => $resource ? Permission::TYPE_ROUTE : Permission::TYPE_GROUP, 'status' => (int) ($item['status'] ?? 1), 'is_public' => (int) ($item['is_public'] ?? 0), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName]);
+                $permission->forceFill(['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'code' => $resource['code'] ?? null, 'obj' => $resource['obj'] ?? '', 'act' => $resource['act'] ?? '', 'name' => (string) ($item['name'] ?? ''), 'resource_type' => $resource ? Permission::TYPE_ROUTE : Permission::TYPE_GROUP, 'status' => (int) ($item['status'] ?? 1), 'is_public' => (int) ($item['is_public'] ?? 0), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName])->save();
             }
             $menuId = $parentMenuId;
             if ($isMenu) {
@@ -259,19 +259,19 @@ class ResourceRegistryService extends AbstractService
                     throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . (string) ($item['name'] ?? $href));
                 }
                 $menuQuery = $this->queryWithPermission((string) ($item['query'] ?? ''), in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) ? (string) $permission->code : '');
-                $menu = AdminMenu::where('href', $href)->where('query', $menuQuery)->find();
-                $sameRouteMenu = AdminMenu::where('href', $href)->where('source_type', '<>', $sourceType)->where('source_name', '<>', $sourceName)->find();
+                $menu = AdminMenu::where('href', $href)->where('query', $menuQuery)->first();
+                $sameRouteMenu = AdminMenu::where('href', $href)->where('source_type', '<>', $sourceType)->where('source_name', '<>', $sourceName)->first();
                 if ($sameRouteMenu) {
                     throw new RuntimeException('菜单记录归属冲突：' . (string) ($item['name'] ?? $href));
                 }
                 if (!$menu) {
-                    $menu = AdminMenu::where('permission_id', $permission->id)->where('app_name', $itemAppName)->where('source_type', $sourceType)->where('source_name', $sourceName)->find();
+                    $menu = AdminMenu::where('permission_id', $permission->id)->where('app_name', $itemAppName)->where('source_type', $sourceType)->where('source_name', $sourceName)->first();
                 }
                 if ($menu && ((string) $menu->source_type !== $sourceType || (string) $menu->source_name !== $sourceName || (string) $menu->app_name !== $itemAppName)) {
                     throw new RuntimeException('菜单记录归属冲突：' . (string) ($item['name'] ?? ''));
                 }
                 $menu ??= new AdminMenu();
-                $menu->save(['pid' => $parentMenuId, 'permission_id' => $permission->id, 'app_name' => $itemAppName, 'name' => (string) ($item['name'] ?? ''), 'href' => $href, 'query' => $menuQuery, 'target' => (string) ($item['target'] ?? '_self'), 'icon' => (string) ($item['icon'] ?? 'i-ep-menu'), 'status' => (int) ($item['status'] ?? 1), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName]);
+                $menu->forceFill(['pid' => $parentMenuId, 'permission_id' => $permission->id, 'app_name' => $itemAppName, 'name' => (string) ($item['name'] ?? ''), 'href' => $href, 'query' => $menuQuery, 'target' => (string) ($item['target'] ?? '_self'), 'icon' => (string) ($item['icon'] ?? 'i-ep-menu'), 'status' => (int) ($item['status'] ?? 1), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName])->save();
                 $menuId = (int) $menu->id;
             }
             if ($children) {

@@ -113,6 +113,7 @@ import { userApi, type UserModel } from '@/api/system/user';
 import { roleApi, type RoleModel } from '@/api/system/role';
 import { deptApi, type DeptModel } from '@/api/system/dept';
 import { roleTree } from '../../role/roleHierarchy';
+import { isWebmanBackend } from '@/config';
 import { filterDepartmentTree } from '../departmentAssignment';
 
 interface Props {
@@ -156,7 +157,15 @@ const rules = computed<FormRules>(() => ({
     { pattern: /^[A-Za-z][A-Za-z0-9_]{2,19}$/, message: t('systemUser.usernamePattern', '账号需以字母开头，长度 3 到 20 位'), trigger: 'blur' }
   ],
   nickname: [{ required: true, message: t('systemUser.nicknamePlaceholder', '请输入昵称'), trigger: 'blur' }],
-  password: [{ required: true, min: 8, message: t('systemUser.passwordMin', '密码至少 8 位'), trigger: 'blur' }],
+  password: [{
+    required: true,
+    validator: (_rule, value: string, callback) => {
+      if (!isWebmanBackend()) return value.length >= 8 ? callback() : callback(new Error(t('systemUser.passwordMin', '密码至少 8 位')));
+      const bytes = new TextEncoder().encode(value).length;
+      return bytes < 12 || bytes > 72 || value.includes('\0') ? callback(new Error(t('profile.passwordBytes', '新密码需为 12～72 字节'))) : callback();
+    },
+    trigger: 'blur'
+  }],
   email: [
     { type: 'email', message: t('systemUser.emailInvalid', '邮箱格式不正确'), trigger: 'blur' },
     { max: 60, message: t('systemUser.emailMax', '邮箱不能超过 60 个字符'), trigger: 'blur' }
@@ -200,7 +209,7 @@ async function loadOptions() {
   optionsLoading.value = true;
   try {
     const [roles, departments] = await Promise.all([roleApi.all(), deptApi.tree()]);
-    roleOptions.value = roles;
+    roleOptions.value = roles.filter((role) => role.status === 1);
     departmentOptions.value = departments;
   } finally {
     optionsLoading.value = false;

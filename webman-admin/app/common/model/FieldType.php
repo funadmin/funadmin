@@ -7,6 +7,7 @@ use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
 class FieldType extends BaseModel {
+    protected $table = 'field_type';
 
     /**
      * @var bool

@@ -6,26 +6,20 @@ use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
-use app\admin\authorization\repository\casbin\ThinkAdapter;
 use app\common\service\AbstractService;
-use Casbin\Enforcer;
-use think\facade\Db;
+use support\Db;
 
 /**
  * Casbin 授权统一入口；fun_casbin_rule 是唯一授权关系数据源。
  */
 class CasbinService extends AbstractService
 {
-    private static ?Enforcer $sharedEnforcer = null;
-
     public function enforceAdmin(int $adminId, string $obj, string $act, ?string $domain = null): bool
     {
-        return $adminId > 0 && $this->enforcer()->enforce(
-            PermissionResource::subject($adminId),
-            PermissionResource::domain($domain),
-            strtolower($obj),
-            strtolower($act)
-        );
+        $permission = Permission::where('obj', strtolower($obj))->where('act', strtolower($act))->where('status', 1)->whereNull('deleted_at')->first();
+        if ($adminId <= 0 || !$permission || !in_array($permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) return false;
+        if ($permission->is_public) return true;
+        return in_array((int) $permission->id, $this->permissionIdsForRoles($this->adminRoleIds($adminId, $domain), $domain), true);
     }
 
     public function adminRoleIds(int $adminId, ?string $domain = null): array
@@ -33,7 +27,7 @@ class CasbinService extends AbstractService
         if ($adminId <= 0) {
             return [];
         }
-        $roles = $this->enforcer()->getRolesForUser(PermissionResource::subject($adminId), PermissionResource::domain($domain)) ?: [];
+        $roles = CasbinRule::where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->where('v2', PermissionResource::domain($domain))->pluck('v1')->all();
         return $this->activeRoleIds($this->idsFromNames($roles, 'role:'));
     }
 
@@ -50,7 +44,7 @@ class CasbinService extends AbstractService
     {
         $subjects = [];
         foreach ($this->normalizeIds($roleIds) as $roleId) {
-            $subjects = array_merge($subjects, $this->enforcer()->getUsersForRole(PermissionResource::role($roleId), PermissionResource::domain($domain)) ?: []);
+            $subjects = array_merge($subjects, CasbinRule::where('ptype', 'g')->where('v1', PermissionResource::role($roleId))->where('v2', PermissionResource::domain($domain))->pluck('v0')->all());
         }
         return $this->idsFromNames($subjects, 'admin:');
     }
@@ -60,9 +54,8 @@ class CasbinService extends AbstractService
         if ($roleId <= 0) {
             return [];
         }
-        return $this->permissionIdsFromPolicies(
-            $this->enforcer()->getPermissionsForUser(PermissionResource::role($roleId), PermissionResource::domain($domain)) ?: []
-        );
+        $rows = CasbinRule::where('ptype', 'p')->where('v0', PermissionResource::role($roleId))->where('v1', PermissionResource::domain($domain))->get();
+        return $this->permissionIdsFromPolicies($rows->map(static fn ($row): array => [$row->v0, $row->v1, $row->v2, $row->v3])->all());
     }
 
     public function permissionIdsForRoles($roleIds, ?string $domain = null): array
@@ -78,7 +71,7 @@ class CasbinService extends AbstractService
     public function activeRoleIds($roleIds): array
     {
         $roleIds = $this->normalizeIds($roleIds);
-        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->whereNull('deleted_at')->column('id')) : [];
+        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->whereNull('deleted_at')->pluck('id')->all()) : [];
     }
 
     public function roleHasAdmins(int $roleId, ?string $domain = null): bool
@@ -118,14 +111,14 @@ class CasbinService extends AbstractService
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('obj', '<>', '')
             ->where('act', '<>', '')
-            ->field('obj,act')
-            ->select()
+            ->select(['obj', 'act'])
+            ->get()
             ->toArray();
         $publicPermissions = Permission::where('status', 1)
             ->where('is_public', 1)
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
-            ->field('obj,act')
-            ->select()
+            ->select(['obj', 'act'])
+            ->get()
             ->toArray();
         $publicCodes = [];
         foreach ($publicPermissions as $permission) {
@@ -152,24 +145,15 @@ class CasbinService extends AbstractService
     {
         $role = PermissionResource::role($roleId);
         CasbinRule::where('ptype', 'g')->where(function ($query) use ($role) {
-            $query->where('v0', $role)->whereOr('v1', $role);
+            $query->where('v0', $role)->orWhere('v1', $role);
         })->delete();
         CasbinRule::where('ptype', 'p')->where('v0', $role)->delete();
-        AuthGroupInherit::where('role_id', $roleId)->whereOr('parent_role_id', $roleId)->delete();
+        AuthGroupInherit::where('role_id', $roleId)->orWhere('parent_role_id', $roleId)->delete();
         $this->reload();
     }
 
     public function reload(): void
     {
-        self::$sharedEnforcer = null;
-    }
-
-    public function enforcer(): Enforcer
-    {
-        if (self::$sharedEnforcer === null) {
-            self::$sharedEnforcer = new Enforcer(config_path() . 'casbin' . DIRECTORY_SEPARATOR . 'rbac_model.conf', new ThinkAdapter());
-        }
-        return self::$sharedEnforcer;
     }
 
     private function permissionIdsFromPolicies(array $policies): array
@@ -184,7 +168,7 @@ class CasbinService extends AbstractService
             return [];
         }
         $ids = [];
-        foreach (Permission::where('status', 1)->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->field('id,pid,obj,act')->select()->toArray() as $permission) {
+        foreach (Permission::where('status', 1)->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->select(['id', 'pid', 'obj', 'act'])->get()->toArray() as $permission) {
             if (isset($pairs[$permission['obj'] . "\0" . $permission['act']])) {
                 $ids[] = (int) $permission['id'];
                 $ids = array_merge($ids, $this->parentPermissionIds((int) $permission['pid']));
@@ -197,6 +181,7 @@ class CasbinService extends AbstractService
     {
         $result = [];
         while ($permissionId > 0) {
+            if (in_array($permissionId, $result, true)) break;
             $permission = Permission::find($permissionId);
             if (!$permission) {
                 break;
@@ -212,7 +197,7 @@ class CasbinService extends AbstractService
         Db::transaction(function () use ($ptype, $field1, $value1, $field2, $value2, $rows) {
             CasbinRule::where('ptype', $ptype)->where($field1, $value1)->where($field2, $value2)->delete();
             if ($rows) {
-                (new CasbinRule())->saveAll($rows);
+                CasbinRule::insert($rows);
             }
         });
         $this->reload();

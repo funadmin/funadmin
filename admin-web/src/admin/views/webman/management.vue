@@ -86,7 +86,7 @@ const loading = ref(false);
 const saving = ref(false);
 const visible = ref(false);
 const editing = ref<number | null>(null);
-const initial = () => ({ username: '', nickname: '', email: '', mobile: '', password: '', name: '', code: '', path: '', routeName: '', permission: '', status: 1, roleIds: [] as number[], permissionIds: [] as number[] });
+const initial = () => ({ username: '', nickname: '', email: '', mobile: '', password: '', name: '', code: '', path: '', routeName: '', component: 'webman/management', permission: '', status: 1, roleIds: [] as number[], permissionIds: [] as number[] });
 const form = reactive(initial());
 let loadVersion = 0;
 
@@ -128,7 +128,7 @@ async function save() {
     payload = { ...payload, username: form.username, nickname: form.nickname, email: form.email, mobile: form.mobile, roleIds: [...form.roleIds] };
     if (form.password || !editing.value) payload.password = form.password;
   } else if (target === 'menus') {
-    Object.assign(payload, { name: form.name, path: form.path, routeName: form.routeName, permission: form.permission });
+    Object.assign(payload, { name: form.name, path: form.path, routeName: form.routeName, component: form.component || 'webman/management', permission: form.permission });
   } else {
     Object.assign(payload, { name: form.name, code: form.code });
     if (target === 'roles') payload.permissionIds = [...form.permissionIds];

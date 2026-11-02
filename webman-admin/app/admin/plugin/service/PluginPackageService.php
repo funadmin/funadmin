@@ -7,7 +7,7 @@ use app\common\plugin\model\PluginOperation;
 use app\common\plugin\model\PluginVersionHistory;
 use app\common\service\AbstractService;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 use ZipArchive;
 
 /**
@@ -17,6 +17,15 @@ class PluginPackageService extends AbstractService
 {
     private const MAX_ARCHIVE_BYTES = 104857600;
     private const MAX_UNPACKED_BYTES = 524288000;
+
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+    }
+
+    private function runtimePath(string $path = ''): string
+    {
+        return $this->projectRoot === null ? runtime_path($path) : rtrim($this->projectRoot, '/\\') . '/runtime/' . $path;
+    }
 
     public function inspect(string $archive, string $expectedCode = '', string $expectedVersion = '', bool $verifySignature = true): array
     {
@@ -115,7 +124,7 @@ class PluginPackageService extends AbstractService
             throw new RuntimeException('服务器未安装 ZipArchive 扩展');
         }
 
-        $stageDirectory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'stage' . DIRECTORY_SEPARATOR . bin2hex(random_bytes(8)));
+        $stageDirectory = $this->runtimePath('plugins' . DIRECTORY_SEPARATOR . 'stage' . DIRECTORY_SEPARATOR . bin2hex(random_bytes(8)));
         $this->createDirectory($stageDirectory);
 
         $zip = new ZipArchive();
@@ -217,7 +226,7 @@ class PluginPackageService extends AbstractService
         if ($backup === null || !is_dir($backup)) {
             return null;
         }
-        $directory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'recovery' . DIRECTORY_SEPARATOR . $code);
+        $directory = $this->runtimePath('plugins' . DIRECTORY_SEPARATOR . 'recovery' . DIRECTORY_SEPARATOR . $code);
         $this->createDirectory($directory);
         $target = $directory . DIRECTORY_SEPARATOR . basename($backup);
         $this->copyDirectory($backup, $target);
@@ -229,7 +238,7 @@ class PluginPackageService extends AbstractService
         $this->assertCode($code);
         $source = $this->pluginDirectory($code);
         $this->validatePlugin($source, $code);
-        $directory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'discovered');
+        $directory = $this->runtimePath('plugins' . DIRECTORY_SEPARATOR . 'discovered');
         $this->createDirectory($directory);
         $archive = $directory . DIRECTORY_SEPARATOR . $code . '-' . bin2hex(random_bytes(8)) . '.zip';
         $this->zipDirectory($source, $archive);
@@ -246,7 +255,7 @@ class PluginPackageService extends AbstractService
         if (!is_dir($source)) {
             throw new RuntimeException('无法归档不存在的已部署插件目录');
         }
-        $historyDirectory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $code);
+        $historyDirectory = $this->runtimePath('plugins' . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $code);
         $this->createDirectory($historyDirectory);
         $archive = $historyDirectory . DIRECTORY_SEPARATOR . $packageHash . '.zip';
         if (is_file($archive)) {
@@ -266,21 +275,21 @@ class PluginPackageService extends AbstractService
     public function versions(string $code): array
     {
         $this->assertCode($code);
-        return array_map([$this, 'serializeRecord'], PluginVersionHistory::where('plugin_code', $code)->order('id', 'desc')->select()->toArray());
+        return array_map([$this, 'serializeRecord'], PluginVersionHistory::where('plugin_code', $code)->orderBy('id', 'desc')->get()->toArray());
     }
 
     public function operations(string $code): array
     {
         $this->assertCode($code);
-        return array_map([$this, 'serializeRecord'], PluginOperation::where('plugin_code', $code)->order('id', 'desc')->limit(100)->select()->toArray());
+        return array_map([$this, 'serializeRecord'], PluginOperation::where('plugin_code', $code)->orderBy('id', 'desc')->limit(100)->get()->toArray());
     }
 
     public function historyPackage(string $code, int $id): array
     {
         $this->assertCode($code);
-        $record = PluginVersionHistory::where('plugin_code', $code)->where('id', $id)->find();
+        $record = PluginVersionHistory::where('plugin_code', $code)->where('id', $id)->first();
         $path = (string) ($record?->package_path ?? '');
-        $runtimeRoot = realpath(runtime_path());
+        $runtimeRoot = realpath($this->runtimePath());
         $realPath = $path === '' ? false : realpath($path);
         if (!$record || $runtimeRoot === false || $realPath === false || !is_file($realPath)
             || !str_starts_with($realPath, $runtimeRoot . DIRECTORY_SEPARATOR)) {
@@ -292,7 +301,7 @@ class PluginPackageService extends AbstractService
     public function recoveryInfo(string $code): array
     {
         $this->assertCode($code);
-        $operation = PluginOperation::where('plugin_code', $code)->where('result', '<>', 'success')->order('id', 'desc')->find();
+        $operation = PluginOperation::where('plugin_code', $code)->where('result', '<>', 'success')->orderBy('id', 'desc')->first();
         return [
             'available' => $operation !== null,
             'stage' => (string) ($operation?->stage ?? ''),
@@ -489,7 +498,7 @@ class PluginPackageService extends AbstractService
 
     private function pluginDirectory(string $code): string
     {
-        return root_path() . 'plugins' . DIRECTORY_SEPARATOR . $code;
+        return ($this->projectRoot ?? base_path()) . '/plugins/' . $code;
     }
 
     private function assertCode(string $code): void

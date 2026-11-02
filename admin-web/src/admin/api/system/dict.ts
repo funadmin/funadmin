@@ -42,7 +42,7 @@ export const dictApi = {
 /** 字典分类管理 API */
 export const dictTypeApi = {
   list: (params: API.PageQuery & Partial<DictType>) =>
-    http.get<API.PageResult<DictType>>(`${PREFIX}/types`, { params }),
+    http.get<API.PageResult<DictType>>(`${PREFIX}/types`, params),
   create: (data: Partial<DictType>) =>
     http.post<DictType>(`${PREFIX}/types`, data, { requestOptions: { showSuccessMsg: true } }),
   update: (id: number, data: Partial<DictType>) =>
@@ -56,7 +56,7 @@ export const dictTypeApi = {
 /** 字典项管理 API */
 export const dictItemApi = {
   list: (params: API.PageQuery & Partial<DictItemModel>) =>
-    http.get<API.PageResult<DictItemModel>>(`${PREFIX}/items`, { params }),
+    http.get<API.PageResult<DictItemModel>>(`${PREFIX}/items`, params),
   create: (data: Partial<DictItemModel>) =>
     http.post<DictItemModel>(`${PREFIX}/items`, data, { requestOptions: { showSuccessMsg: true } }),
   update: (id: number, data: Partial<DictItemModel>) =>

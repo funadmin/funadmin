@@ -5,45 +5,37 @@ declare(strict_types=1);
 namespace app\admin\authorization\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\PermissionResource;
 use app\admin\authorization\service\RoleScopeService;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
-use think\facade\Cache;
-use think\facade\Db;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Cache;
+use support\Db;
+use support\Response;
 use InvalidArgumentException;
 
 /**
  * Admin Web 权限资源管理。
  */
-#[Group('system/permission')]
+#[RouteGroup('/admin/system/permission')]
 class SystemPermission extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('tree')]
+    #[Get('/tree')]
     public function tree(): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
             return $denied;
         }
-        $permissions = Permission::order('sort_order', 'asc')->order('id', 'asc')->select()->all();
-        $rows = array_map(
-            fn (Permission $permission): array => $permission->toApiData(),
-            $permissions
-        );
+        $permissions = Permission::orderBy('sort_order')->orderBy('id')->get();
+        $rows = $permissions->map(fn (Permission $permission): array => $permission->toApiData())->all();
 
         $name = trim((string) $this->request->get('name', ''));
         $resource = strtolower(trim((string) $this->request->get('resource', '')));
@@ -61,8 +53,7 @@ class SystemPermission extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -88,20 +79,19 @@ class SystemPermission extends AdminApiController
         if ($error = Permission::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
+        if ($data['pid'] > 0 && !Permission::whereKey($data['pid'])->first()) {
             return $this->fail(msg: '上级权限资源不存在', code: 422);
         }
-        if ($data['code'] !== null && Permission::where('code', $data['code'])->find()) {
+        if ($data['code'] !== null && Permission::where('code', $data['code'])->first()) {
             return $this->fail(msg: '权限标识已存在', code: 422);
         }
 
-        $permission = Permission::create($data);
+        $permission = Permission::forceCreate($data);
         Cache::clear();
         return $this->ok('创建成功', $permission->toApiData());
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -122,13 +112,13 @@ class SystemPermission extends AdminApiController
         if ($error = Permission::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
+        if ($data['pid'] > 0 && !Permission::whereKey($data['pid'])->first()) {
             return $this->fail(msg: '上级权限资源不存在', code: 422);
         }
         if ($data['pid'] === $id || in_array($data['pid'], Permission::childIds($id), true)) {
             return $this->fail(msg: '不能将权限资源移动到自身或下级节点', code: 422);
         }
-        if ($data['code'] !== null && Permission::where('code', $data['code'])->where('id', '<>', $id)->find()) {
+        if ($data['code'] !== null && Permission::where('code', $data['code'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '权限标识已存在', code: 422);
         }
 
@@ -137,16 +127,16 @@ class SystemPermission extends AdminApiController
         $resourceChanged = $oldObj !== $data['obj'] || $oldAct !== $data['act'];
 
         Db::transaction(function () use ($permission, $data, $id, $oldObj, $oldAct, $resourceChanged): void {
-            $permission->save($data);
-            $menus = AdminMenu::where('permission_id', $id)->select();
+            $permission->forceFill($data)->save();
+            $menus = AdminMenu::where('permission_id', $id)->get();
             foreach ($menus as $menu) {
-                $menu->save([
+                $menu->forceFill([
                     'app_name' => $data['app_name'],
                     'name' => $data['name'],
                     'status' => $data['status'],
                     'sort_order' => $data['sort_order'],
                     'query' => AdminMenu::buildPermissionQuery((string) $menu->query, (string) ($data['code'] ?? '')),
-                ]);
+                ])->save();
             }
             if ($resourceChanged && $oldObj !== '' && $oldAct !== '') {
                 CasbinRule::where('ptype', 'p')->where('v2', $oldObj)->where('v3', $oldAct)->delete();
@@ -159,8 +149,7 @@ class SystemPermission extends AdminApiController
         return $this->ok('保存成功', $permission->toApiData());
     }
 
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
@@ -180,7 +169,7 @@ class SystemPermission extends AdminApiController
             return $this->fail(msg: '请选择要删除的权限资源', code: 422);
         }
 
-        $existingIds = array_map('intval', Permission::whereIn('id', $ids)->column('id'));
+        $existingIds = array_map('intval', Permission::whereIn('id', $ids)->pluck('id')->all());
         sort($existingIds);
         $requestedIds = $ids;
         sort($requestedIds);
@@ -197,7 +186,7 @@ class SystemPermission extends AdminApiController
             return $this->fail(msg: '权限资源已绑定菜单，不能删除', code: 422);
         }
 
-        $resources = Permission::whereIn('id', $ids)->field('obj,act')->select()->toArray();
+        $resources = Permission::whereIn('id', $ids)->get(['obj', 'act'])->toArray();
         Db::transaction(function () use ($ids, $resources): void {
             foreach ($resources as $resource) {
                 if ($resource['obj'] !== '' && $resource['act'] !== '') {

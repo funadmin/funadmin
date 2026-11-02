@@ -6,13 +6,13 @@ namespace app\admin\plugin\repository;
 
 use app\common\plugin\model\PluginResource;
 use app\admin\plugin\contract\PluginAppPublicationRepository;
-use think\facade\Db;
+use support\Db;
 
 final class DatabasePluginAppPublicationRepository implements PluginAppPublicationRepository
 {
     public function all(): array
     {
-        return PluginResource::select()->toArray();
+        return PluginResource::query()->get()->toArray();
     }
 
     public function replaceAppForPlugin(string $pluginCode, array $records): void

@@ -17,9 +17,8 @@ final class BusinessModule extends BackendModel
 
     protected $name = 'business_module';
 
-    protected $json = ['metadata'];
-
-    protected $jsonAssoc = true;
+    protected $casts = ['metadata' => 'array'];
+    protected $guarded = [];
 
     public function form()
     {

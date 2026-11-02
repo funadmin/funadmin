@@ -51,6 +51,9 @@ final class Management
             $auth = new BrowserAuthService();
             $cookie = (string) $request->cookie(BrowserAuthService::COOKIE, '');
             $admin = $auth->user($cookie);
+            if (!in_array(strtoupper($request->method()), ['GET', 'HEAD', 'OPTIONS'], true)) {
+                $auth->assertCsrf($cookie, (string) $request->header('X-CSRF-TOKEN', ''));
+            }
             return json(['code' => 200, 'msg' => '成功', 'data' => $callback((int) $admin['id'])])->withHeader('Cache-Control', 'no-store');
         } catch (DomainException $error) {
             return json(['code' => $error->getCode(), 'msg' => $error->getMessage(), 'data' => null])

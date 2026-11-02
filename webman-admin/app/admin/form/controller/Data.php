@@ -9,38 +9,33 @@ use app\common\form\observability\FormObservability;
 use app\common\form\validation\FormAsyncValidationException;
 use app\admin\controller\base\AdminApiController;
 use app\admin\form\service\FormDataService;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\common\form\dataSource\FormDataSourceRegistry;
 use app\common\form\validation\FormAsyncValidatorRegistry;
 use app\admin\authorization\service\AdminAuthorizationService;
 use InvalidArgumentException;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\facade\Cache;
-use think\App;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Cache;
+use support\Response;
 use Throwable;
 
 /**
  * 表单数据运行态 Admin API（M3）：元数据驱动通用读写。
  */
-#[Group('form/data')]
+#[RouteGroup('/admin/form/data')]
 final class Data extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     private readonly FormDataService $data;
     private readonly AdminAuthorizationService $authorization;
     private readonly FormActionRegistry $actions;
     private readonly FormObservability $observability;
 
-    public function __construct(App $app)
+    public function __construct()
     {
-        parent::__construct($app);
+        parent::__construct();
         $this->authorization = new AdminAuthorizationService();
         $dataSources = config('form.data_sources', []);
         $validators = config('form.validators', []);
@@ -67,8 +62,7 @@ final class Data extends AdminApiController
         $this->observability = new FormObservability();
     }
 
-    #[Get('meta/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Get('/meta/{key:[a-z][a-z0-9_]*}')]
     public function meta(string $key): Response
     {
         if ($this->request->get('source/b', false)) {
@@ -86,8 +80,7 @@ final class Data extends AdminApiController
         return $etag === '' ? $response : $response->header(['ETag' => $etag]);
     }
 
-    #[Get('index/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Get('/index/{key:[a-z][a-z0-9_]*}')]
     public function index(string $key): Response
     {
         return $this->execute(function () use ($key): array {
@@ -104,16 +97,13 @@ final class Data extends AdminApiController
         });
     }
 
-    #[Get('left-tree/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Get('/left-tree/{key:[a-z][a-z0-9_]*}')]
     public function leftTree(string $key): Response
     {
         return $this->execute(fn (): array => $this->data->leftTree($key));
     }
 
-    #[Get('left-tree-form/:key/:operation')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('operation', 'create|addChild|edit')]
+    #[Get('/left-tree-form/{key:[a-z][a-z0-9_]*}/{operation:create|addChild|edit}')]
     public function leftTreeForm(string $key, string $operation): Response
     {
         return $this->execute(fn (): array => $this->data->leftTreeForm(
@@ -122,9 +112,7 @@ final class Data extends AdminApiController
         ));
     }
 
-    #[Post('left-tree/:key/:operation')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('operation', 'create|addChild|edit|delete')]
+    #[Post('/left-tree/{key:[a-z][a-z0-9_]*}/{operation:create|addChild|edit|delete}')]
     public function mutateLeftTree(string $key, string $operation): Response
     {
         $payload = $this->payload();
@@ -138,16 +126,13 @@ final class Data extends AdminApiController
         ));
     }
 
-    #[Get('export/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Get('/export/{key:[a-z][a-z0-9_]*}')]
     public function export(string $key): Response
     {
         return $this->execute(fn (): array => $this->observe($key, 'export', fn (): array => ['list' => $this->data->export($key, $this->filters())]));
     }
 
-    #[Get('detail/:key/:id')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    #[Get('/detail/{key:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+}')]
     public function detail(string $key, int|string $id): Response
     {
         $copyCreate = (bool) $this->request->get('copyCreate', false);
@@ -155,9 +140,7 @@ final class Data extends AdminApiController
         return $this->execute(fn (): array => $this->observe($key, 'detail', fn (): array => $this->data->detail($key, $id, $copyCreate, $schemaHash)));
     }
 
-    #[Get('options/:key/:field')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('field', '[a-z][a-z0-9_]*')]
+    #[Get('/options/{key:[a-z][a-z0-9_]*}/{field:[a-z][a-z0-9_]*}')]
     public function options(string $key, string $field): Response
     {
         // draft=1（设计器预览）：绕过发布态观测上下文，未发布表单也能解析草稿选项。
@@ -184,9 +167,7 @@ final class Data extends AdminApiController
         ));
     }
 
-    #[Post('validate/:key/:field')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('field', '[a-z][a-z0-9_]*')]
+    #[Post('/validate/{key:[a-z][a-z0-9_]*}/{field:[a-z][a-z0-9_]*}')]
     public function validateAsync(string $key, string $field): Response
     {
         $values = $this->request->post('values', []);
@@ -209,17 +190,13 @@ final class Data extends AdminApiController
         ));
     }
 
-    #[Get('sub/:key/:relation/:id')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('relation', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    #[Get('/sub/{key:[a-z][a-z0-9_]*}/{relation:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+}')]
     public function sub(string $key, string $relation, int|string $id): Response
     {
         return $this->execute(fn (): array => $this->observe($key, 'sub', fn (): array => $this->data->sub($key, $relation, $id, $this->page(), $this->pageSize()), nodeId: $relation));
     }
 
-    #[Post('create/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/create/{key:[a-z][a-z0-9_]*}')]
     public function create(string $key): Response
     {
         $payload = $this->payload();
@@ -232,9 +209,7 @@ final class Data extends AdminApiController
         ), '新增成功');
     }
 
-    #[Post('update/:key/:id')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('id', '[A-Za-z0-9_-]+')]
+    #[Post('/update/{key:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+}')]
     public function update(string $key, int|string $id): Response
     {
         $payload = $this->payload();
@@ -247,8 +222,7 @@ final class Data extends AdminApiController
         ), '更新成功');
     }
 
-    #[Get('list-actions/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Get('/list-actions/{key:[a-z][a-z0-9_]*}')]
     public function listActions(string $key): Response
     {
         return $this->execute(fn (): array => $this->data->listActionCatalog($key,
@@ -256,8 +230,7 @@ final class Data extends AdminApiController
             \app\common\form\registry\FormRegistryFactory::production()->actions()));
     }
 
-    #[Post('list-action/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/list-action/{key:[a-z][a-z0-9_]*}')]
     public function listAction(string $key): Response
     {
         $payload = $this->request->post();
@@ -265,9 +238,7 @@ final class Data extends AdminApiController
         return $this->execute(fn (): array => $this->data->executeListButton($key, $payload));
     }
 
-    #[Post('action/:key/:action')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
-    #[Pattern('action', '[a-z][a-z0-9._-]*')]
+    #[Post('/action/{key:[a-z][a-z0-9_]*}/{action:[a-z][a-z0-9._-]*}')]
     public function action(string $key, string $action): Response
     {
         $parameters = $this->request->post('parameters', []);
@@ -288,8 +259,7 @@ final class Data extends AdminApiController
         }, actionKey: $action), '执行成功');
     }
 
-    #[Post('remove/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/remove/{key:[a-z][a-z0-9_]*}')]
     public function remove(string $key): Response
     {
         $id = $this->request->post('id', '');
@@ -300,32 +270,28 @@ final class Data extends AdminApiController
         ), $this->schemaHash()), '删除成功');
     }
 
-    #[Post('batch-remove/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/batch-remove/{key:[a-z][a-z0-9_]*}')]
     public function batchRemove(string $key): Response
     {
         $ids = $this->postedIds();
         return $this->execute(fn (): array => $this->observe($key, 'batchRemove', fn (): array => $this->data->batchRemove($key, $ids, $this->schemaHash()), $this->schemaHash()), '删除成功');
     }
 
-    #[Post('restore/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/restore/{key:[a-z][a-z0-9_]*}')]
     public function restore(string $key): Response
     {
         $ids = $this->postedIds();
         return $this->execute(fn (): array => $this->observe($key, 'restore', fn (): array => $this->data->restore($key, $ids, $this->schemaHash()), $this->schemaHash()), '恢复成功');
     }
 
-    #[Post('destroy/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/destroy/{key:[a-z][a-z0-9_]*}')]
     public function destroy(string $key): Response
     {
         $ids = $this->postedIds();
         return $this->execute(fn (): array => $this->observe($key, 'destroy', fn (): array => $this->data->destroy($key, $ids, $this->schemaHash()), $this->schemaHash()), '永久删除成功');
     }
 
-    #[Post('import/:key')]
-    #[Pattern('key', '[a-z][a-z0-9_]*')]
+    #[Post('/import/{key:[a-z][a-z0-9_]*}')]
     public function import(string $key): Response
     {
         $rows = $this->request->post('rows', []);

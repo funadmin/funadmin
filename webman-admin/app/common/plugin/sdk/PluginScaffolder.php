@@ -202,12 +202,14 @@ declare(strict_types=1);
 
 namespace app\\{$name}\\controller;
 
-use think\\annotation\\route\\Get;
-use think\\Response;
+use support\\annotation\\route\\Get;
+use support\\annotation\\route\\RouteGroup;
+use support\\Response;
 
+#[RouteGroup('/{$name}')]
 final class Index
 {
-    #[Get('index')]
+    #[Get('/index')]
     public function index(): Response
     {
         return json(['code' => 200, 'msg' => 'success', 'data' => []]);
@@ -226,19 +228,15 @@ declare(strict_types=1);
 namespace app\\admin\\controller\\plugin\\{$name};
 
 use app\\admin\\controller\\base\\AdminApiController;
-use app\\admin\\middleware\\CheckAdminApiCsrf;
-use app\\admin\\middleware\\CheckAdminApiRole;
-use app\\admin\\middleware\\SystemLog;
-use think\\annotation\\route\\Get;
-use think\\annotation\\route\\Group;
-use think\\Response;
+use support\\annotation\\route\\Get;
+use support\\annotation\\route\\RouteGroup;
+use support\\Response;
 
-#[Group('plugin/{$name}')]
+#[RouteGroup('/plugin/{$name}')]
 final class Index extends AdminApiController
 {
-    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('index')]
+    #[Get('/index')]
     public function index(): Response
     {
         return json(['code' => 200, 'msg' => 'success', 'data' => []]);

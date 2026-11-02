@@ -30,7 +30,7 @@ trait PluginServiceSupport
         try {
             return (new PluginEntryFactory())->create(
                 $manifest,
-                static fn (string $class): object => app()->make($class)
+                static fn (string $class): object => \support\Container::get($class)
             );
         } catch (\Throwable $exception) {
             throw new RuntimeException(sprintf('插件 %s 尚未就绪：%s', $code, $exception->getMessage()), 0, $exception);
@@ -39,7 +39,7 @@ trait PluginServiceSupport
 
     private function validatedManifest(string $code): Manifest
     {
-        $manifest = Manifest::fromDirectory(Service::getPluginCodePath($code));
+        $manifest = Manifest::fromDirectory(($this->projectRoot ?? base_path()) . '/plugins/' . $code);
         $this->assertDependencies($manifest);
         $manifests = $this->allManifests();
         $manifests[$manifest->code()] = $manifest;
@@ -101,13 +101,13 @@ trait PluginServiceSupport
 
     private function allManifests(): array
     {
-        return (new Registry(root_path() . PLUGIN_DIR, static fn (): array => []))->discover();
+        return (new Registry(($this->projectRoot ?? base_path()) . '/plugins', static fn (): array => []))->discover();
     }
 
     private function installedRecords(): array
     {
         $records = [];
-        foreach (Plugin::select() as $record) {
+        foreach (Plugin::query()->get() as $record) {
             $records[(string) $record->code] = [
                 'version' => (string) $record->version,
                 'lifecycle_state' => (string) $record->lifecycle_state,
@@ -244,9 +244,9 @@ trait PluginServiceSupport
     {
         $records = [];
         $manifests = [];
-        foreach (Plugin::withTrashed()->select() as $record) {
+        foreach (Plugin::withTrashed()->get() as $record) {
             $code = (string) $record->code;
-            $records[$code] = $record->getData();
+            $records[$code] = $record->getAttributes();
             $storedManifest = $record->manifest ?? null;
             $manifest = is_array($storedManifest)
                 ? $storedManifest
@@ -256,24 +256,24 @@ trait PluginServiceSupport
             }
         }
         (new PluginActivationCompiler(
-            root_path('runtime/plugins/activation'),
-            root_path() . PLUGIN_DIR
+            $this->projectRoot === null ? runtime_path('plugins/activation') : $this->projectRoot . '/runtime/plugins/activation',
+            ($this->projectRoot ?? base_path()) . '/plugins'
         ))->compile($records, $manifests);
     }
 
     private function infrastructure(): PluginInfrastructureService
     {
-        return app(PluginInfrastructureService::class);
+        return $this->projectRoot === null ? \support\Container::get(PluginInfrastructureService::class) : new PluginInfrastructureService(projectRoot: $this->projectRoot);
     }
 
     private function storage(): PluginStorage
     {
-        return new PluginStorage(runtime_path('plugins-data'));
+        return new PluginStorage($this->projectRoot === null ? runtime_path('plugins-data') : $this->projectRoot . '/runtime/plugins-data');
     }
 
     private function audit(): PluginOperationAuditService
     {
-        return app(PluginOperationAuditService::class);
+        return \support\Container::get(PluginOperationAuditService::class);
     }
 
     private function filterPluginColumns(array $data): array

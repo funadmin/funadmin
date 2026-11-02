@@ -12,7 +12,7 @@ use app\admin\form\model\Form;
 use app\admin\form\model\FormField;
 use app\admin\form\repository\FormSchemaRepository;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 use Throwable;
 
 /**
@@ -60,10 +60,10 @@ final class FormDesignerService
     /** 表单分页列表（含字段数）。 */
     public function listing(int $page, int $pageSize, string $keyword, mixed $status): array
     {
-        $query = Form::order('sort_order', 'asc')->order('id', 'asc');
+        $query = Form::query()->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword): void {
-                $q->whereLike('name', '%' . $keyword . '%')->whereOr('form_key', 'like', '%' . $keyword . '%');
+                $q->where('name', 'like', '%' . $keyword . '%')->orWhere('form_key', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== null && $status !== '') {
@@ -80,7 +80,7 @@ final class FormDesignerService
         if (!$form) {
             throw new InvalidArgumentException('表单不存在');
         }
-        $fields = FormField::where('form_id', $id)->order('sort_order', 'asc')->order('id', 'asc')->select();
+        $fields = FormField::where('form_id', $id)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
         return ['form' => $form, 'fields' => $fields];
     }
 
@@ -176,7 +176,7 @@ final class FormDesignerService
         $normalized = preg_replace('/[^a-z0-9_]/', '', $normalized) ?? '';
         $normalized = trim($normalized, '_');
         if ($fromTable) {
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
             if ($prefix !== '' && str_starts_with($normalized, strtolower($prefix))) $normalized = substr($normalized, strlen($prefix));
         }
         return substr($normalized, 0, 61);
@@ -209,7 +209,7 @@ final class FormDesignerService
             'schema_hash' => $compiled->hash(),
         ]);
         return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled): array {
-            $form = $id > 0 ? Form::lock(true)->find($id) : new Form();
+            $form = $id > 0 ? Form::lockForUpdate()->firstWhere('id', $id) : new Form();
             if ($id > 0 && !$form) {
                 throw new InvalidArgumentException('表单不存在');
             }
@@ -221,7 +221,7 @@ final class FormDesignerService
             if ($id > 0 && $expectedSchemaHash === '' && $expectedUpdatedAt !== '' && (string) $form->updated_at !== $expectedUpdatedAt) {
                 throw new InvalidArgumentException('表单已被他人修改，请刷新后重试');
             }
-            if ($id === 0 && Form::where('form_key', $payload['form_key'])->find()) {
+            if ($id === 0 && Form::where('form_key', $payload['form_key'])->first()) {
                 throw new InvalidArgumentException('表单标识已存在');
             }
             $form->save([
@@ -288,7 +288,7 @@ final class FormDesignerService
         if ($connection !== 'mysql') {
             throw new InvalidArgumentException('当前仅支持 mysql 连接');
         }
-        $inspector = new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings));
+        $inspector = new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connection($connection)->select($sql, $bindings));
         $schema = $inspector->inspect($table);
         $rows = [];
         foreach ($schema['columns'] as $index => $column) {
@@ -323,7 +323,7 @@ final class FormDesignerService
             return ['mode' => 'none', 'sql' => '', 'file' => '', 'message' => '采纳表禁止 DDL，仅保存元数据'];
         }
         $table = trim((string) $payload['table_name']);
-        $exists = in_array($table, Db::connect((string) ($payload['connection'] ?? 'mysql'))->getTables(), true);
+        $exists = in_array($table, Db::connection((string) ($payload['connection'] ?? 'mysql'))->getSchemaBuilder()->getTables(), true);
         $sql = $exists
             ? $this->additiveSql($table, $payload['fields'], (string) ($payload['connection'] ?? 'mysql'))
             : $this->createTableSql($table, $payload['fields']);
@@ -350,7 +350,7 @@ final class FormDesignerService
         $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
-            $connection = Db::connect((string) ($payload['connection'] ?? 'mysql'));
+            $connection = Db::connection((string) ($payload['connection'] ?? 'mysql'));
             \app\common\service\DdlEncodingGuard::check($connection, (string) $preview['sql']);
             $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
@@ -423,7 +423,7 @@ final class FormDesignerService
         // 只归一化新建身份，已有记录与采纳表不得随配置变化重命名。
         if ((int) ($payload['id'] ?? 0) === 0 && ($database['source'] ?? 'created') === 'created') {
             $connection = (string) ($database['connection'] ?? 'mysql');
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
             $table = trim((string) ($database['table'] ?? ''));
             if ($table !== '' && $prefix !== '' && !str_starts_with($table, $prefix)) {
                 if ($isV2) {
@@ -519,11 +519,11 @@ final class FormDesignerService
     private function additiveSql(string $table, array $fields, string $connection = 'mysql'): string
     {
         $existing = array_column(
-            Db::connect($connection)->query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
+            Db::connection($connection)->select('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
             'COLUMN_NAME'
         );
         $existingIndexes = array_column(
-            Db::connect($connection)->query('SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
+            Db::connection($connection)->select('SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]),
             'INDEX_NAME'
         );
         $parts = [];

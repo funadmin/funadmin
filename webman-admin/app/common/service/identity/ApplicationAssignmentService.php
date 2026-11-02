@@ -6,7 +6,8 @@ namespace app\common\service\identity;
 
 use app\common\model\identity\ApplicationAssignment;
 use DomainException;
-use InvalidArgumentException;
+use support\validation\ValidationException;
+use support\Db;
 
 final class ApplicationAssignmentService
 {
@@ -17,30 +18,42 @@ final class ApplicationAssignmentService
         $effect = (string) ($input['effect'] ?? 'allow');
         $id = $input['subjectId'] ?? $input['subject_id'] ?? null;
         if (!in_array($type, ['all', 'user', 'department', 'role'], true) || !in_array($effect, ['allow', 'deny'], true)) {
-            throw new InvalidArgumentException('访问主体或效果无效');
+            throw new ValidationException('访问主体或效果无效');
         }
         if (($type === 'all' && $id !== null && $id !== '') || ($type !== 'all' && (!is_numeric($id) || (int) $id <= 0))) {
-            throw new InvalidArgumentException('访问范围必须且只能指定一个有效主体');
+            throw new ValidationException('访问范围必须且只能指定一个有效主体');
         }
         return ['subject_type' => $type, 'subject_id' => $type === 'all' ? null : (int) $id, 'effect' => $effect, 'status' => (int) ($input['status'] ?? 1)];
     }
 
     public function replace(int $tenantId, int $applicationId, array $assignments): array
     {
-        $this->assertApplication($tenantId, $applicationId);
-        ApplicationAssignment::forTenant($tenantId)->where('application_id', $applicationId)->delete();
-        $result = [];
+        $rows = [];
         foreach ($assignments as $assignment) {
-            $row = self::validateSubject((array) $assignment) + ['tenant_id' => $tenantId, 'application_id' => $applicationId];
-            $result[] = ApplicationAssignment::create($row)->toArray();
+            if (!is_array($assignment)) throw new ValidationException('访问范围格式无效');
+            $row = self::validateSubject($assignment);
+            if ($row['subject_type'] === 'user' && !\app\common\model\identity\IdentityUser::forTenant($tenantId)->where('id', $row['subject_id'])->where('status', 1)->whereNull('deleted_at')->exists()) {
+                throw new ValidationException('访问用户不存在或跨租户');
+            }
+            $rows[] = $row + ['tenant_id' => $tenantId, 'application_id' => $applicationId];
         }
-        return $result;
+        return Db::transaction(function () use ($tenantId, $applicationId, $rows): array {
+            $this->assertApplication($tenantId, $applicationId);
+            ApplicationAssignment::forTenant($tenantId)->where('application_id', $applicationId)->delete();
+            $result = [];
+            foreach ($rows as $row) {
+                $assignment = new ApplicationAssignment();
+                $assignment->forceFill($row)->save();
+                $result[] = $assignment->toArray();
+            }
+            return $result;
+        });
     }
 
     public function list(int $tenantId, int $applicationId): array
     {
         $this->assertApplication($tenantId, $applicationId);
-        return ApplicationAssignment::forTenant($tenantId)->where('application_id', $applicationId)->select()->toArray();
+        return ApplicationAssignment::forTenant($tenantId)->where('application_id', $applicationId)->get()->toArray();
     }
 
     public static function decide(array $assignments, int $userId, array $departmentIds, array $roleIds): bool
@@ -119,8 +132,8 @@ final class ApplicationAssignmentService
 
     private function assertApplication(int $tenantId, int $applicationId): void
     {
-        if (!\app\common\model\identity\EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->find()) {
-            throw new DomainException('应用不存在或不属于当前租户');
+        if (!\app\common\model\identity\EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->first()) {
+            throw new DomainException('应用不存在或不属于当前租户', 404);
         }
     }
 }

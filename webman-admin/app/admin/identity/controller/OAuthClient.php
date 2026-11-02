@@ -72,13 +72,13 @@ final class OAuthClient extends AdminApiController
     public function revokeSecret(int $id, int $secretId): Response { $this->clientSecrets->revoke($this->tenantId(), $id, $secretId); return $this->ok(data: null, msg: 'secret 已吊销'); }
 
     #[Put('/{id:\d+}/redirect-uris')]
-    public function replaceRedirectUris(int $id): Response { return $this->ok(data: $this->redirectUris->replace($this->tenantId(), $id, (array) $this->request->post('redirectUris', []), (bool) config('app.debug', false)), msg: 'redirect URI 已替换'); }
+    public function replaceRedirectUris(int $id): Response { return $this->ok(data: $this->redirectUris->replace($this->tenantId(), $id, $this->listInput('redirectUris'), (bool) config('app.debug', false)), msg: 'redirect URI 已替换'); }
 
     #[Put('/{id:\d+}/scopes')]
-    public function replaceScopes(int $id): Response { return $this->ok(data: $this->clients->replaceScopes($this->tenantId(), $id, (array) $this->request->post('scopes', [])), msg: 'scope 已替换'); }
+    public function replaceScopes(int $id): Response { return $this->ok(data: $this->clients->replaceScopes($this->tenantId(), $id, $this->listInput('scopes')), msg: 'scope 已替换'); }
 
     #[Put('/{id:\d+}/grants')]
-    public function replaceGrants(int $id): Response { return $this->ok(data: $this->clients->replaceGrants($this->tenantId(), $id, (array) $this->request->post('grants', [])), msg: 'grant 已替换'); }
+    public function replaceGrants(int $id): Response { return $this->ok(data: $this->clients->replaceGrants($this->tenantId(), $id, $this->listInput('grants')), msg: 'grant 已替换'); }
 
     #[Post('/{id:\d+}/revoke-tokens')]
     public function revokeTokens(int $id): Response
@@ -89,8 +89,17 @@ final class OAuthClient extends AdminApiController
 
     private function nullablePost(string $name): ?string
     {
-        $value = trim((string) $this->request->post($name, ''));
+        $value = $this->request->post($name, '');
+        if (!is_string($value)) throw new \support\validation\ValidationException('有效期格式无效');
+        $value = trim($value);
         return $value === '' ? null : $value;
+    }
+
+    private function listInput(string $name): array
+    {
+        $value = $this->request->post($name);
+        if (!is_array($value) || !array_is_list($value)) throw new \support\validation\ValidationException('配置必须为列表');
+        return $value;
     }
 
     private function tenantId(): int

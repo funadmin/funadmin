@@ -19,6 +19,11 @@ final class CrudGenerate extends Command
 {
     use CrudCommandSupport;
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('crud:generate')->setDescription('使用 preview token 生成 CRUD 文件')
@@ -31,7 +36,7 @@ final class CrudGenerate extends Command
     {
         try {
             $allowOverwrite = array_values(array_filter(array_map('trim', explode(',', (string) $input->getOption('allow-overwrite')))));
-            $result = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->generate(
+            $result = (new CrudGenerator($this->projectRoot ?? base_path()))->generate(
                 $this->loadDefinition((string) $input->getArgument('definition')),
                 $this->readToken((string) $input->getOption('confirm-token-file')),
                 $allowOverwrite,

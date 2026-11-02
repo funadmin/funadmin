@@ -3,11 +3,11 @@
 namespace app\admin\authorization\model;
 
 use app\admin\model\BackendModel;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 
 class Permission extends BackendModel
 {
-    use AdminDataFormat;
+    use DataFormat;
 
     protected $table = 'permission';
 
@@ -20,7 +20,7 @@ class Permission extends BackendModel
         $result = [];
         $queue = [$id];
         while ($queue) {
-            $children = self::whereIn('pid', $queue)->column('id');
+            $children = self::whereIn('pid', $queue)->pluck('id')->all();
             $queue = [];
             foreach ($children as $childId) {
                 $childId = (int) $childId;
@@ -71,7 +71,7 @@ class Permission extends BackendModel
             'code' => (string) ($this->code ?? ''),
             'object' => $object,
             'action' => (string) $this->act,
-            'name' => (string) $this->getAttr('name'),
+            'name' => (string) $this->getAttribute('name'),
             'resourceType' => (string) $this->resource_type,
             'status' => (int) $this->status,
             'isPublic' => (int) $this->is_public,
@@ -96,7 +96,7 @@ class Permission extends BackendModel
             'code' => (string) $this->code,
             'object' => (string) $this->obj,
             'action' => (string) $this->act,
-            'name' => (string) $this->getAttr('name'),
+            'name' => (string) $this->getAttribute('name'),
             'resourceType' => (string) $this->resource_type,
             'status' => (int) $this->status,
             'isPublic' => (int) $this->is_public,

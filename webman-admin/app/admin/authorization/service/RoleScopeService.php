@@ -12,48 +12,52 @@ final class RoleScopeService
 {
     public function permissionIdsForRoles(mixed $roles): array
     {
-        $roleIds = $this->normalizeIds($roles);
-        sort($roleIds);
-        if (in_array((int) config('funadmin.superRoleId'), $roleIds, true)) {
-            $permissionIds = db_cache('super-admin-permission-ids', static function (): array {
-                return array_map('intval', Permission::where('status', 1)->column('id'));
-            });
-        } else {
-            $key = 'role-permissions-' . implode(',', $roleIds);
-            $permissionIds = db_cache($key, static function () use ($roleIds): array {
-                return CasbinService::instance()->permissionIdsForRoles($roleIds);
-            });
+        $roleIds = AuthGroup::whereIn('id', $this->normalizeIds($roles))->where('status', 1)->pluck('id')->map('intval')->all();
+        $permissionIds = [];
+        $pending = $roleIds;
+        while ($pending !== []) {
+            $parents = AuthGroupInherit::whereIn('role_id', $pending)->pluck('parent_role_id')->map('intval')->all();
+            $parents = array_merge($parents, AuthGroup::whereIn('id', $pending)->pluck('pid')->all());
+            $parents = AuthGroup::whereIn('id', $parents)->where('status', 1)->pluck('id')->map('intval')->all();
+            $pending = array_values(array_diff($parents, $roleIds));
+            $roleIds = array_values(array_unique(array_merge($roleIds, $pending)));
         }
-        $publicPermissionIds = db_cache('public-permission-ids', static function (): array {
-            return array_map('intval', Permission::where('status', 1)->where('is_public', 1)->column('id'));
-        });
-        return $this->permissionIdsWithAncestors(array_merge($permissionIds ?: [], $publicPermissionIds ?: []));
+        $roleIds = AuthGroup::whereIn('id', $roleIds)->where('status', 1)->pluck('id')->map('intval')->all();
+        $policies = \app\admin\authorization\model\CasbinRule::where('ptype', 'p')->where('v1', PermissionResource::domain())
+            ->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $roleIds))->get();
+        foreach ($policies as $policy) {
+            $id = Permission::where('obj', $policy->v2)->where('act', $policy->v3)->where('status', 1)->whereNull('deleted_at')->value('id');
+            if ($id !== null) $permissionIds[] = (int) $id;
+        }
+        $publicPermissionIds = Permission::where('status', 1)->whereNull('deleted_at')->where('is_public', 1)->pluck('id')->map('intval')->all();
+        return $this->permissionIdsWithAncestors(array_merge($permissionIds, $publicPermissionIds));
     }
 
     public function adminRoleIds(int $adminId): array
     {
-        return $this->normalizeIds(CasbinService::instance()->adminRoleIds($adminId));
+        return (new AuthorizationService())->roleIds($adminId);
     }
 
     public function rolePermissionIds(int $roleId): array
     {
-        return CasbinService::instance()->rolePermissionIds($roleId);
+        return (new AuthorizationService())->permissionIds($roleId);
     }
 
     public function isSuperAdmin(): bool
     {
-        return (int) session('admin.id') === (int) config('funadmin.superAdminId');
+        $id = (int) (request()?->context['admin']['id'] ?? 0);
+        return $id > 0 && $id === (int) config('auth.super_admin_id', 1);
     }
 
     public function currentRoleIds(): array
     {
-        return $this->adminRoleIds((int) session('admin.id'));
+        return $this->adminRoleIds((int) (request()?->context['admin']['id'] ?? 0));
     }
 
     public function manageableRoleIds(bool $includeOwn = false): array
     {
         if ($this->isSuperAdmin()) {
-            return $this->normalizeIds(AuthGroup::where('status', 1)->column('id'));
+            return $this->normalizeIds(AuthGroup::where('status', 1)->pluck('id')->all());
         }
         $ownIds = $this->currentRoleIds();
         $descendantIds = $this->descendantRoleIdsFor($ownIds);
@@ -67,7 +71,7 @@ final class RoleScopeService
 
     public function canUseParentRole(int $roleId): bool
     {
-        if ($roleId <= 0 || !AuthGroup::where('id', $roleId)->where('status', 1)->find()) {
+        if ($roleId <= 0 || !AuthGroup::where('id', $roleId)->where('status', 1)->first()) {
             return false;
         }
         return $this->isSuperAdmin() || in_array($roleId, $this->manageableRoleIds(true), true);
@@ -90,7 +94,7 @@ final class RoleScopeService
         if ($this->isSuperAdmin()) {
             return true;
         }
-        if ($allowSelf && (int) $admin['id'] === (int) session('admin.id')) {
+        if ($allowSelf && (int) $admin['id'] === (int) (request()?->context['admin']['id'] ?? 0)) {
             return true;
         }
         $roleIds = $this->adminRoleIds((int) $admin['id']);
@@ -125,10 +129,10 @@ final class RoleScopeService
             return [];
         }
         $childrenByParent = [];
-        foreach (AuthGroupInherit::field('role_id,parent_role_id')->select()->toArray() as $relation) {
+        foreach (AuthGroupInherit::query()->select(['role_id', 'parent_role_id'])->get()->toArray() as $relation) {
             $childrenByParent[(int) $relation['parent_role_id']][] = (int) $relation['role_id'];
         }
-        foreach (AuthGroup::where('status', 1)->field('id,pid')->select()->toArray() as $role) {
+        foreach (AuthGroup::where('status', 1)->select(['id', 'pid'])->get()->toArray() as $role) {
             $childrenByParent[(int) $role['pid']][] = (int) $role['id'];
         }
 
@@ -149,7 +153,7 @@ final class RoleScopeService
     private function permissionIdsWithAncestors(array $permissionIds): array
     {
         $ids = $this->normalizeIds($permissionIds);
-        $parents = Permission::where('status', 1)->column('pid', 'id');
+        $parents = Permission::where('status', 1)->whereNull('deleted_at')->pluck('pid', 'id')->all();
         foreach ($ids as $id) {
             $parentId = (int) ($parents[$id] ?? 0);
             while ($parentId > 0 && !in_array($parentId, $ids, true)) {

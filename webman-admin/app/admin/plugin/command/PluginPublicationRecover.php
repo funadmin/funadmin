@@ -18,6 +18,11 @@ use Throwable;
 #[AsCommand(name: 'plugin:publication-recover')]
 final class PluginPublicationRecover extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:publication-recover')
@@ -31,7 +36,7 @@ final class PluginPublicationRecover extends Command
     {
         try {
             // Webman 的 CLI 与 Web 请求共用 runtime_path()，不切换历史 TP8 应用路径。
-            $infrastructure = new PluginInfrastructureService();
+            $infrastructure = new PluginInfrastructureService(projectRoot: $this->projectRoot);
             $publisher = $infrastructure->appPublisher();
             $token = trim((string) $input->getArgument('token'));
             $all = (bool) $input->getOption('all-stale');

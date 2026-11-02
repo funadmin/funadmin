@@ -13,7 +13,7 @@
   <el-input v-else-if="type === 'array'" :model-value="modelValue" type="textarea" :rows="5" :placeholder="t('systemConfig.linePlaceholder', '每行一个值')" @update:model-value="emitValue" />
   <el-input v-else-if="type === 'json'" :model-value="modelValue" type="textarea" :rows="8" :placeholder="jsonPlaceholder" @update:model-value="emitValue" />
   <el-input v-else-if="type === 'textarea' || type === 'editor'" :model-value="modelValue" type="textarea" :rows="8" @update:model-value="emitValue" />
-  <el-input v-else-if="type === 'hidden'" :model-value="modelValue" type="password" show-password @update:model-value="emitValue" />
+  <el-input v-else-if="type === 'hidden' || type === 'password'" :model-value="modelValue" type="password" show-password @update:model-value="emitValue" />
   <el-color-picker v-else-if="type === 'color'" :model-value="modelValue" show-alpha @update:model-value="emitValue(String($event ?? ''))" />
   <el-date-picker v-else-if="type === 'date'" :model-value="modelValue" type="date" value-format="YYYY-MM-DD" class="w-full" @update:model-value="emitValue(String($event ?? ''))" />
   <el-date-picker v-else-if="type === 'datetime'" :model-value="modelValue" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="w-full" @update:model-value="emitValue(String($event ?? ''))" />

@@ -61,6 +61,18 @@ final class ExceptionTest extends TestCase
         self::assertStringNotContainsString('private', $response->rawBody());
     }
 
+    public function test_identity_validation_error_is_safe_but_generic_argument_error_is_hidden(): void
+    {
+        $handler = new ExceptionHandle(new NullLogger(), false);
+        $request = new Request("PUT /admin/identity/applications/1 HTTP/1.1\r\n\r\n");
+        $response = $handler->render($request, new \app\common\service\identity\IdentityValidationException('数据模式无效'));
+        self::assertSame(422, json_decode($response->rawBody(), true)['code']);
+        self::assertSame(200, $response->getStatusCode());
+        $response = $handler->render($request, new \InvalidArgumentException('private internal argument'));
+        self::assertSame(500, $response->getStatusCode());
+        self::assertStringNotContainsString('private', $response->rawBody());
+    }
+
     public function test_internal_exception_is_json_with_http_500_and_no_sensitive_details(): void
     {
         self::assertTrue(is_subclass_of(ExceptionHandle::class, \Webman\Exception\ExceptionHandler::class));

@@ -11,7 +11,7 @@ use app\admin\plugin\repository\DatabasePluginAppPublicationRepository;
 use app\admin\plugin\repository\DatabasePluginResourceRepository;
 use app\common\plugin\sdk\Manifest;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 
 /** 封装插件资源、migration 与菜单持久化基础设施。 */
 final class PluginInfrastructureService
@@ -21,7 +21,8 @@ final class PluginInfrastructureService
     public function __construct(
         private readonly ?PluginResourcePublisher $resourcePublisher = null,
         private readonly ?PluginAppPublicationService $nativePublisher = null,
-        private readonly mixed $recoveryFaultHook = null
+        private readonly mixed $recoveryFaultHook = null,
+        private readonly ?string $projectRoot = null
     ) {
         if ($this->recoveryFaultHook !== null && !is_callable($this->recoveryFaultHook)) {
             throw new RuntimeException('publication recovery fault hook 必须可调用');
@@ -38,36 +39,31 @@ final class PluginInfrastructureService
         if ($this->pluginColumns !== null) {
             return $this->pluginColumns;
         }
-        $prefix = (string) config('database.connections.mysql.prefix');
-        $table = str_replace('`', '``', $prefix . 'plugin');
-        return $this->pluginColumns = array_map(
-            static fn (array $column): string => (string) $column['Field'],
-            Db::query("SHOW COLUMNS FROM `{$table}`")
-        );
+        return $this->pluginColumns = Db::schema()->getColumnListing('plugin');
     }
 
     public function publisher(): PluginResourcePublisher
     {
         return $this->resourcePublisher ?? new PluginResourcePublisher(
-            public_path(),
-            root_path() . 'admin-web',
+            $this->projectRoot === null ? public_path() : $this->projectRoot . '/public',
+            ($this->projectRoot ?? base_path()) . '/admin-web',
             new DatabasePluginResourceRepository(),
-            runtime_path('plugins' . DIRECTORY_SEPARATOR . 'publication-recovery')
+            $this->projectRoot === null ? runtime_path('plugins/publication-recovery') : $this->projectRoot . '/runtime/plugins/publication-recovery'
         );
     }
 
     public function appPublisher(): PluginAppPublicationService
     {
         return $this->nativePublisher ?? new PluginAppPublicationService(
-            root_path('app'),
-            runtime_path('plugins'),
+            ($this->projectRoot ?? base_path()) . '/app',
+            $this->projectRoot === null ? runtime_path('plugins') : $this->projectRoot . '/runtime/plugins',
             new DatabasePluginAppPublicationRepository()
         );
     }
 
     public static function lockDirectory(?string $projectRoot = null): string
     {
-        $runtime = $projectRoot === null || (function_exists('root_path') && realpath($projectRoot) === realpath(root_path()))
+        $runtime = $projectRoot === null || realpath($projectRoot) === realpath(base_path())
             ? runtime_path()
             : rtrim($projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'runtime';
         return rtrim($runtime, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'plugins';
@@ -80,7 +76,7 @@ final class PluginInfrastructureService
 
     public function withPublicationLock(callable $operation, ?string $projectRoot = null): mixed
     {
-        $file = self::lockDirectory($projectRoot) . DIRECTORY_SEPARATOR . 'publication.lock';
+        $file = self::lockDirectory($projectRoot ?? $this->projectRoot) . DIRECTORY_SEPARATOR . 'publication.lock';
         $directory = dirname($file);
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new RuntimeException('无法创建插件发布锁目录');
@@ -226,6 +222,9 @@ final class PluginInfrastructureService
             || ($journal['deployment_rollback_allowed'] ?? true) === false) && !$manual) {
             throw new RuntimeException('publication 需要显式人工恢复：' . $token);
         }
+        if (($journal['recovery_steps']['native_restored'] ?? false) !== true) {
+            $appPublisher->assertRecoveryFilesUnmodified($token);
+        }
         $appPublisher->markRollbackRequired($token);
         $journal = $appPublisher->inspect($token);
         $context = (array) ($journal['recovery_context'] ?? []);
@@ -323,8 +322,8 @@ final class PluginInfrastructureService
     public function snapshotResourceState(string $code): array
     {
         return [
-            'permissions' => \app\admin\authorization\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->select()->toArray(),
-            'menus' => AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->select()->toArray(),
+            'permissions' => \app\admin\authorization\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->get()->toArray(),
+            'menus' => AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->get()->toArray(),
         ];
     }
 
@@ -334,10 +333,10 @@ final class PluginInfrastructureService
             AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->delete();
             \app\admin\authorization\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->delete();
             foreach ((array) ($snapshot['permissions'] ?? []) as $row) {
-                \app\admin\authorization\model\Permission::create($row);
+                \app\admin\authorization\model\Permission::forceCreate($row);
             }
             foreach ((array) ($snapshot['menus'] ?? []) as $row) {
-                AdminMenu::create($row);
+                AdminMenu::forceCreate($row);
             }
         });
         \app\admin\authorization\service\CasbinService::instance()->reload();
@@ -382,10 +381,9 @@ final class PluginInfrastructureService
     {
         $data = $manifest->toArray();
         $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移');
-        $tables = Db::connect()->getTables();
-        $repository = (string) config('database.connections.mysql.prefix') . 'system_migration';
-        $applied = in_array($repository, $tables, true)
-            ? Db::name('system_migration')->where('scope', 'plugin:' . $manifest->code())->column('checksum', 'version') : [];
+        $tables = Db::schema()->getTableListing(schemaQualified: false);
+        $applied = Db::schema()->hasTable('system_migration')
+            ? Db::table('system_migration')->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
         foreach (glob($directory . '/*.sql') ?: [] as $file) {
             if (is_link($file) || !is_file($file)) {
                 throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: migration 路径不安全');

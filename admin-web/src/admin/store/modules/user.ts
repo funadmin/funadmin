@@ -37,6 +37,12 @@ export const useUserStore = defineStore('user', {
       const result = await authApi.login(params);
       markSession();
       this.authenticated = true;
+      try {
+        await this.fetchUserInfo();
+      } catch (error) {
+        this.resetState();
+        throw error;
+      }
       void applyRemotePack(useAppStore().locale);
       return result;
     },

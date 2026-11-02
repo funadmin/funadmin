@@ -20,10 +20,10 @@ class Form extends BackendModel
     protected $name = 'form';
 
     /** @var array */
-    protected $json = ['list_config', 'form_config', 'publish_config', 'schema_document'];
+    protected $casts = ['list_config' => 'array', 'form_config' => 'array', 'publish_config' => 'array', 'schema_document' => 'array'];
 
     /** @var bool */
-    protected $jsonAssoc = true;
+    protected $guarded = [];
 
     public function fields()
     {

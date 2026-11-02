@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\common\service\MigrationService;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class MigrationTest extends TestCase
 {
     public function test_migrations_are_repeatable_and_create_an_isolated_auth_schema(): void

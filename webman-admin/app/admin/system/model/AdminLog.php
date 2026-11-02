@@ -13,7 +13,7 @@
 namespace app\admin\system\model;
 use app\admin\model\BackendModel;
 use app\admin\authorization\service\DataScopeService;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
 class AdminLog extends BackendModel
@@ -24,7 +24,7 @@ class AdminLog extends BackendModel
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     

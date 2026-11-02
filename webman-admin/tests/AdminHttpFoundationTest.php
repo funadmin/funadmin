@@ -8,7 +8,7 @@ use app\BaseController;
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\PermissionResource;
 use app\admin\controller\base\AdminApiController;
-use app\admin\http\AdminResponse;
+use app\admin\common\http\AdminResponse;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\middleware\CheckAdminApiRole;
 use app\admin\middleware\SystemLog;
@@ -30,6 +30,14 @@ final class AdminHttpFoundationTest extends TestCase
     protected function tearDown(): void
     {
         Context::destroy();
+    }
+
+    public function test_admin_response_is_owned_by_common_without_a_legacy_alias(): void
+    {
+        self::assertTrue(class_exists(AdminResponse::class));
+        self::assertSame(realpath(__DIR__ . '/../app/admin/common/http/AdminResponse.php'), (new \ReflectionClass(AdminResponse::class))->getFileName());
+        self::assertFalse(class_exists('app\\admin\\http\\AdminResponse'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/http/AdminResponse.php');
     }
 
     public function test_json_envelope_uses_webman_status_and_preserves_unicode(): void
@@ -135,7 +143,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'saveAuthorization';
         self::assertSame(PermissionResource::fromParts('admin', 'authorization.SystemRole', 'saveAuthorization'), PermissionResource::fromRequest($request));
-        $request->controller = 'app\\admin\\controller\\ai\\Ai';
+        $request->controller = 'app\\admin\\ai\\controller\\Ai';
         $request->action = 'conversationGroupUpdate';
         self::assertSame('development.ai:conversationupdate', PermissionResource::fromRequest($request)['code']);
     }
@@ -156,6 +164,37 @@ final class AdminHttpFoundationTest extends TestCase
             self::assertSame('admin/' . explode(':', $code)[0], $resource['obj']);
             self::assertSame(explode(':', $code)[1], $resource['act']);
         }
+    }
+
+    public function test_relocated_plugin_controllers_keep_existing_permission_resources(): void
+    {
+        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
+        foreach ([
+            ['market', 'CategoryController', 'index'],
+            ['market', 'OrderController', 'update'],
+            ['example', 'Index', 'index'],
+        ] as [$plugin, $controller, $action]) {
+            $request->controller = 'app\\admin\\plugin\\business\\' . $plugin . '\\controller\\' . $controller;
+            $request->action = $action;
+            self::assertSame(
+                PermissionResource::fromParts('admin', 'plugin.' . $plugin . '.' . $controller, $action),
+                PermissionResource::fromRequest($request)
+            );
+        }
+        $request->controller = 'app\\admin\\plugin\\controller\\SystemPlugin';
+        $request->action = 'index';
+        self::assertSame(PermissionResource::fromParts('admin', 'plugin.SystemPlugin', 'index'), PermissionResource::fromRequest($request));
+    }
+
+    public function test_generated_entity_controller_keeps_legacy_permission_identity(): void
+    {
+        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
+        $request->controller = 'app\\admin\\generated\\layout_example\\controller\\LayoutExampleController';
+        $request->action = 'index';
+        self::assertSame(
+            PermissionResource::fromParts('admin', 'generated.LayoutExampleController', 'index'),
+            PermissionResource::fromRequest($request)
+        );
     }
 
     public function test_csrf_rejects_missing_and_wrong_tokens_and_accepts_session_token(): void
@@ -191,7 +230,7 @@ final class AdminHttpFoundationTest extends TestCase
         self::assertSame(403, $middleware->process($request, $handler)->getStatusCode());
         self::assertArrayNotHasKey('admin', $request->context);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '查看者', 'code' => 'reader']);
-        Db::table('permission')->insert(['code' => 'systemrole:index', 'obj' => 'admin/systemrole', 'act' => 'index', 'name' => '角色列表']);
+        self::assertTrue(Db::table('permission')->where('code', 'systemrole:index')->exists());
         foreach ([['g', 'admin:2', 'role:2', 'default', ''], ['p', 'role:2', 'default', 'admin/systemrole', 'index']] as [$type, $v0, $v1, $v2, $v3]) {
             Db::table('casbin_rule')->insert(['ptype' => $type, 'v0' => $v0, 'v1' => $v1, 'v2' => $v2, 'v3' => $v3, 'rule_hash' => hash('sha256', "$type|$v0|$v1|$v2|$v3")]);
         }
@@ -208,15 +247,7 @@ final class AdminHttpFoundationTest extends TestCase
     public function test_audit_records_request_identity_and_redacts_nested_secrets(): void
     {
         (new MigrationService())->run();
-        Db::schema()->create('admin_log', static function (\Illuminate\Database\Schema\Blueprint $table): void {
-            $table->id();
-            foreach (['name', 'username', 'url', 'app_name', 'source_type', 'source_name', 'controller', 'action', 'get_data', 'post_data', 'header_data', 'agent', 'ip', 'method', 'request_id', 'error_message'] as $column) {
-                $table->text($column)->nullable();
-            }
-            foreach (['admin_id', 'status', 'response_code', 'duration_ms'] as $column) $table->integer($column)->default(0);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        Db::table('admin_log')->delete();
         $body = json_encode(['password' => 'hidden-password', 'nested' => ['client_secret' => 'hidden-client', 'name' => 'visible']], JSON_THROW_ON_ERROR);
         $request = new Request("POST /admin/system/role HTTP/1.1\r\nCookie: secret-cookie\r\nAuthorization: secret-header\r\nX-CSRF-TOKEN: secret-csrf\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';

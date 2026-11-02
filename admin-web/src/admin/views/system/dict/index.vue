@@ -283,7 +283,7 @@ function onEditType(row: DictType) {
 }
 
 async function onDeleteType(row: DictType) {
-  await ElMessageBox.confirm(t('systemDict.deleteTypeConfirm', { name: row.name }, { default: '确认删除分类「{name}」？该操作会一并删除其下所有字典项' }), t('common.tip', '提示'), {
+  await ElMessageBox.confirm(t('systemDict.deleteTypeConfirm', { name: row.name }, { default: '确认删除分类「{name}」？请先清空分类下的字典项' }), t('common.tip', '提示'), {
     type: 'warning'
   });
   await dictTypeApi.remove(row.id);
@@ -297,7 +297,7 @@ async function onBatchDeleteType() {
     return;
   }
   await ElMessageBox.confirm(
-    t('systemDict.batchDeleteTypeConfirm', { n: typeSelection.value.length }, { default: '确认删除选中的 {n} 个分类？将一并删除其下字典项，此操作不可恢复' }),
+    t('systemDict.batchDeleteTypeConfirm', { n: typeSelection.value.length }, { default: '确认删除选中的 {n} 个分类？请先清空分类下的字典项，此操作不可恢复' }),
     t('common.tip', '提示'),
     { type: 'warning' }
   );

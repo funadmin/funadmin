@@ -1,0 +1,389 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests;
+
+use app\admin\authorization\controller\SystemRole;
+use app\admin\authorization\service\RoleAuthorizationService;
+use app\admin\authorization\service\CasbinService;
+use app\admin\authorization\service\AuthorizationService;
+use app\admin\authorization\model\AuthGroup;
+use app\common\service\MigrationService;
+use PHPUnit\Framework\TestCase;
+use support\Context;
+use support\Db;
+use support\Request;
+
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+final class AuthorizationIntegrationTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        (new MigrationService())->run();
+        Db::beginTransaction();
+        foreach (['admin_menu', 'permission', 'permission_field', 'auth_group_field_permission', 'auth_group_inherit', 'auth_group_department', 'department', 'casbin_rule', 'admin_auth_tokens', 'browser_sessions', 'auth_group', 'admin'] as $table) {
+            Db::table($table)->delete();
+        }
+        if ($this->name() === 'test_fresh_install_exposes_the_existing_authorization_pages') {
+            (require dirname(__DIR__) . '/database/migrations/007_authorization_resources.php')();
+        }
+        Db::table('auth_group')->insert(['id' => 1, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1, 'status' => 1]);
+        Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => 'hidden', 'status' => 1]);
+        $request = new Request("GET /admin/system/role HTTP/1.1\r\n\r\n");
+        $request->context['admin'] = ['id' => 1];
+        Context::set(\Webman\Http\Request::class, $request);
+    }
+
+    protected function tearDown(): void
+    {
+        Db::rollBack();
+        Context::destroy();
+    }
+
+    public function test_native_authorization_routes_match_the_frontend_protocol(): void
+    {
+        \Webman\Route::load([config_path()]);
+        $paths = array_map(static fn ($route) => $route->getPath(), \Webman\Route::getRoutes());
+        foreach (['/admin/system/role', '/admin/system/role/all', '/admin/system/role/parent-options', '/admin/system/role/{id:\d+}/authorization', '/admin/system/menu/tree', '/admin/system/permission/tree', '/admin/system/user'] as $path) {
+            self::assertContains($path, $paths);
+        }
+    }
+
+    public function test_empty_database_has_authorization_relations(): void
+    {
+        foreach (['department', 'auth_group_inherit', 'auth_group_department', 'permission_field', 'auth_group_field_permission'] as $table) {
+            self::assertTrue(Db::schema()->hasTable($table), '缺少授权表：' . $table);
+        }
+        self::assertTrue(Db::schema()->hasColumn('permission', 'sort_order'));
+    }
+
+    public function test_role_creation_listing_and_authorization_preserve_capability(): void
+    {
+        $body = json_encode(['name' => '测试角色', 'code' => 'operator', 'level' => 100, 'dataScope' => 'self', 'parentId' => 0]);
+        Context::set(\Webman\Http\Request::class, new Request("POST /admin/system/role HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body));
+        request()->context['admin'] = ['id' => 1];
+        $response = (new SystemRole())->create();
+        $data = json_decode($response->rawBody(), true);
+        self::assertSame(200, $data['code'], $data['msg']);
+        $role = AuthGroup::find($data['data']['id']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '业务能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        (new RoleAuthorizationService())->save($role, ['permissionIds' => [10], 'fieldPermissions' => [], 'dataScope' => 'self', 'departmentIds' => []]);
+        self::assertContains(10, (new RoleAuthorizationService())->detail($role)['effectivePermissionIds']);
+        $list = json_decode((new SystemRole())->index()->rawBody(), true);
+        self::assertSame(1, $list['data']['total']);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'operator', 'password' => 'hidden', 'status' => 1]);
+        (new CasbinService())->syncAdminRoles(2, [$role->id]);
+        self::assertContains('demo:read', (new AuthorizationService())->permissionCodes(2));
+    }
+
+    private function asActor(int $id, string $method = 'GET', array $payload = []): void
+    {
+        $body = json_encode($payload);
+        $request = new Request("$method /admin/system/role HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $request->context['admin'] = ['id' => $id];
+        Context::set(\Webman\Http\Request::class, $request);
+    }
+
+    public function test_permission_and_menu_crud_round_trip(): void
+    {
+        $this->asActor(1, 'POST', ['name' => '测试能力', 'object' => 'demo', 'action' => 'read', 'resourceType' => 'capability']);
+        $controller = new \app\admin\authorization\controller\SystemPermission();
+        $result = json_decode($controller->create()->rawBody(), true);
+        self::assertSame(200, $result['code'], $result['msg']);
+        $permissionId = $result['data']['id'];
+        self::assertSame('测试能力', $result['data']['name']);
+        self::assertNotEmpty(json_decode($controller->tree()->rawBody(), true)['data']);
+        $this->asActor(1, 'POST', ['name' => '测试页面', 'path' => '/admin/demo', 'routeName' => 'Demo', 'component' => 'webman/management', 'permissionId' => $permissionId]);
+        $menus = new \app\admin\authorization\controller\SystemMenu();
+        $result = json_decode($menus->create()->rawBody(), true);
+        self::assertSame(200, $result['code'], $result['msg']);
+        self::assertSame('测试页面', $result['data']['name']);
+        self::assertNotEmpty(json_decode($menus->tree()->rawBody(), true)['data']);
+        self::assertNotEmpty(json_decode($menus->permissionOptions()->rawBody(), true)['data']);
+    }
+
+    public function test_lower_role_cannot_grant_capability_or_fields_outside_operator_scope(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        Db::table('auth_group_inherit')->insert(['role_id' => $child->id, 'parent_role_id' => $parent->id]);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'operator', 'password' => 'hidden', 'status' => 1]);
+        (new CasbinService())->syncAdminRoles(2, [$parent->id]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '未授权能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        $this->asActor(2);
+        try {
+            (new RoleAuthorizationService())->save($child, ['permissionIds' => [10], 'fieldPermissions' => [], 'dataScope' => 'self']);
+            self::fail('不能越权分配能力');
+        } catch (\InvalidArgumentException $error) { self::assertStringContainsString('范围', $error->getMessage()); }
+        self::assertSame([], (new CasbinService())->rolePermissionIds($child->id));
+    }
+
+    public function test_administrator_create_reset_disable_and_list(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '操作员', 'code' => 'operator', 'level' => 10, 'status' => 1]);
+        $this->asActor(1, 'POST', ['username' => 'test_operator', 'nickname' => '操作员', 'password' => 'operator-safe-password', 'roleIds' => [$role->id]]);
+        $controller = new \app\admin\authorization\controller\SystemAdmin();
+        $result = json_decode($controller->create()->rawBody(), true);
+        self::assertSame(200, $result['code'], $result['msg']);
+        $id = $result['data']['id'];
+        self::assertArrayNotHasKey('password', $result['data']);
+        $this->asActor(1);
+        self::assertSame(1, json_decode($controller->index()->rawBody(), true)['data']['total']);
+        $service = new \app\admin\authentication\service\AdminSessionService();
+        $token = $service->login('test_operator', 'operator-safe-password', 'reset-test')['access_token'];
+        $this->asActor(1, 'POST', ['password' => 'new-operator-safe-password']);
+        self::assertSame(200, json_decode($controller->resetPassword($id)->rawBody(), true)['code']);
+        self::assertTrue(password_verify('new-operator-safe-password', Db::table('admin')->where('id', $id)->value('password')));
+        $this->asActor(1, 'POST', ['status' => 0]);
+        self::assertSame(200, json_decode($controller->status($id)->rawBody(), true)['code']);
+        self::assertSame(0, (int) Db::table('admin')->where('id', $id)->value('status'));
+    }
+
+    public function test_disabled_ancestor_does_not_grant_inherited_permissions_or_fields(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '停用上级', 'code' => 'parent', 'level' => 10, 'status' => 0]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        Db::table('auth_group_inherit')->insert(['role_id' => $child->id, 'parent_role_id' => $parent->id]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        Db::table('permission_field')->insert(['id' => 10, 'permission_id' => 10, 'name' => '字段', 'resource' => 'demo', 'field' => 'secret']);
+        Db::table('auth_group_field_permission')->insert(['role_id' => $parent->id, 'field_id' => 10, 'can_view' => 1]);
+        (new CasbinService())->syncRolePermissions($parent->id, [10]);
+        self::assertSame([], (new CasbinService())->permissionIdsForRoles([$child->id]));
+        self::assertSame([], (new RoleAuthorizationService())->readableFieldsForRoles([$child->id], 'demo'));
+    }
+
+    public function test_field_edit_grant_cannot_exceed_operator_and_copy_preserves_capability(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        $copy = AuthGroup::forceCreate(['name' => '复制目标', 'code' => 'copy', 'level' => 30, 'status' => 1]);
+        Db::table('auth_group_inherit')->insert(['role_id' => $child->id, 'parent_role_id' => $parent->id]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        Db::table('permission_field')->insert(['id' => 10, 'permission_id' => 10, 'name' => '字段', 'resource' => 'demo', 'field' => 'secret']);
+        Db::table('auth_group_field_permission')->insert(['role_id' => $parent->id, 'field_id' => 10, 'can_view' => 1]);
+        (new CasbinService())->syncRolePermissions($parent->id, [10]);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'operator', 'password' => 'hidden', 'status' => 1]);
+        (new CasbinService())->syncAdminRoles(2, [$parent->id]);
+        $this->asActor(2);
+        try {
+            (new RoleAuthorizationService())->save($child, ['permissionIds' => [10], 'fieldPermissions' => [['fieldId' => 10, 'view' => true, 'edit' => true]], 'dataScope' => 'self']);
+            self::fail('只能查看的字段不能授权编辑');
+        } catch (\InvalidArgumentException $error) { self::assertStringContainsString('编辑', $error->getMessage()); }
+        $this->asActor(1);
+        (new RoleAuthorizationService())->save($child, ['permissionIds' => [10], 'fieldPermissions' => [['fieldId' => 10, 'view' => true, 'edit' => false]], 'dataScope' => 'self']);
+        (new RoleAuthorizationService())->copy($copy, $child);
+        $detail = (new RoleAuthorizationService())->detail($copy);
+        self::assertContains(10, $detail['effectivePermissionIds']);
+        self::assertTrue($detail['fields'][0]['view']);
+        self::assertFalse($detail['fields'][0]['edit']);
+    }
+
+    public function test_login_permissions_include_frontend_aliases_without_granting_other_actions(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => 'hidden', 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '角色列表', 'code' => 'systemrole:index', 'obj' => 'admin/systemrole', 'act' => 'index', 'resource_type' => 'route', 'status' => 1]);
+        $casbin = new CasbinService();
+        $casbin->syncAdminRoles(2, [$role->id]);
+        $casbin->syncRolePermissions($role->id, [10]);
+        $info = (new AuthorizationService())->userInfo(['id' => 2]);
+        self::assertContains('system:role:list', $info['permissions']);
+        self::assertNotContains('system:role:edit', $info['permissions']);
+    }
+
+    public function test_menu_validation_rejects_reserved_routes_and_names(): void
+    {
+        $this->asActor(1, 'POST', ['name' => '伪造登录', 'path' => '/admin/login', 'routeName' => 'Login', 'component' => 'webman/management', 'type' => 'M']);
+        $result = json_decode((new \app\admin\authorization\controller\SystemMenu())->create()->rawBody(), true);
+        self::assertSame(422, $result['code']);
+        self::assertSame(0, Db::table('admin_menu')->count());
+    }
+
+    public function test_public_and_inherited_capabilities_are_effective_without_wildcard_escalation(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        Db::table('auth_group_inherit')->insert(['role_id' => $child->id, 'parent_role_id' => $parent->id]);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => 'hidden', 'status' => 1]);
+        Db::table('permission')->insert([
+            ['id' => 10, 'name' => '继承能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'is_public' => 0, 'resource_type' => 'capability', 'status' => 1],
+            ['id' => 11, 'name' => '公开能力', 'code' => 'demo:public', 'obj' => 'demo', 'act' => 'public', 'is_public' => 1, 'resource_type' => 'capability', 'status' => 1],
+        ]);
+        $casbin = new CasbinService();
+        $casbin->syncAdminRoles(2, [$child->id]);
+        $casbin->syncRolePermissions($parent->id, [10]);
+        $codes = (new AuthorizationService())->permissionCodes(2);
+        self::assertContains('demo:read', $codes);
+        self::assertContains('demo:public', $codes);
+        self::assertNotContains('*', $codes);
+    }
+
+    public function test_resource_registry_registers_and_removes_owned_capabilities(): void
+    {
+        $registry = new \app\admin\authorization\service\ResourceRegistryService();
+        $registry->registerPermissions([['code' => 'demo:page:view', 'obj' => 'demo/page', 'act' => 'view', 'name' => '测试页面']], 'plugin', 'demo');
+        self::assertSame(1, Db::table('permission')->where('source_name', 'demo')->count());
+        $registry->removePermissions('plugin', 'demo');
+        self::assertSame(0, Db::table('permission')->where('source_name', 'demo')->whereNull('deleted_at')->count());
+    }
+
+    public function test_fresh_install_exposes_the_existing_authorization_pages(): void
+    {
+        foreach (['system/role/index', 'system/user/index', 'system/menu/index', 'system/permission/index', 'system/dept/index'] as $component) {
+            self::assertTrue(Db::table('admin_menu')->where('query', 'like', '%' . rawurlencode($component) . '%')->exists(), $component);
+        }
+    }
+
+    public function test_node_authorization_uses_webman_identity_and_observes_revocation(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        $casbin = new CasbinService();
+        $casbin->syncAdminRoles(2, [$role->id]);
+        $casbin->syncRolePermissions($role->id, [10]);
+        $this->asActor(2);
+        $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
+        self::assertTrue($authorization->nodeAccess('demo/page/read'));
+        self::assertFalse($authorization->nodeAccess('demo/page/write'));
+        $casbin->syncRolePermissions($role->id, []);
+        self::assertFalse($authorization->nodeAccess('demo/page/read'));
+        $this->asActor(0);
+        self::assertFalse($authorization->nodeAccess('demo/page/read'));
+    }
+
+    public function test_node_authorization_does_not_keep_a_previous_request_identity(): void
+    {
+        $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
+        self::assertTrue($authorization->nodeAccess('admin/systemrole/index'));
+        $this->asActor(0);
+        self::assertFalse($authorization->nodeAccess('admin/systemrole/index'));
+    }
+
+    public function test_management_read_requires_explicit_permission(): void
+    {
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => 'hidden', 'status' => 1]);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionCode(403);
+        (new \app\admin\authorization\service\ManagementService())->listing(2, 'users', []);
+    }
+
+    public function test_management_write_rejects_missing_csrf(): void
+    {
+        $password = 'management-safe-password';
+        Db::table('admin')->where('id', 1)->update(['password' => password_hash($password, PASSWORD_DEFAULT)]);
+        $auth = new \app\admin\authentication\service\BrowserAuthService();
+        $session = $auth->bootstrap('');
+        $login = $auth->login($session['cookie'], $session['csrfToken'], 'root', $password, 'management-test');
+        $body = json_encode(['name' => '拒绝写入', 'code' => 'csrf_denied']);
+        $request = new Request("POST /admin/management/roles HTTP/1.1\r\nCookie: " . $auth::COOKIE . '=' . $login['cookie'] . "\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $response = (new \app\admin\authorization\controller\Management())->create($request, 'roles');
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function test_reserved_role_does_not_implicitly_grant_all_fields(): void
+    {
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission_field')->insert(['id' => 10, 'permission_id' => 10, 'name' => '敏感字段', 'resource' => 'demo', 'field' => 'secret']);
+        self::assertSame([], (new RoleAuthorizationService())->readableFieldsForRoles([1], 'demo'));
+    }
+
+    public function test_primary_parent_permissions_match_node_and_login_authorization(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo', 'act' => 'read', 'resource_type' => 'capability']);
+        $casbin = new CasbinService();
+        $casbin->syncAdminRoles(2, [$child->id]);
+        $casbin->syncRolePermissions($parent->id, [10]);
+        self::assertContains('demo:read', (new AuthorizationService())->permissionCodes(2));
+        self::assertContains(10, (new \app\admin\authorization\service\RoleScopeService())->permissionIdsForRoles([$child->id]));
+    }
+
+    public function test_authorization_has_no_unavailable_enforcer_entrypoint(): void
+    {
+        self::assertFalse(method_exists(CasbinService::class, 'enforcer'));
+        self::assertFileDoesNotExist(dirname(__DIR__) . '/app/admin/authorization/repository/casbin/ThinkAdapter.php');
+    }
+
+    public function test_management_cannot_modify_reserved_administrator(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionCode(403);
+        (new \app\admin\authorization\service\ManagementService())->save(1, 'users', 1, ['status' => 0]);
+    }
+
+    public function test_management_cannot_create_a_reserved_menu_route(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionCode(422);
+        (new \app\admin\authorization\service\ManagementService())->save(1, 'menus', null, ['name' => '伪造登录', 'path' => '/admin/login', 'routeName' => 'Login']);
+    }
+
+    public function test_role_workspace_can_still_find_disabled_roles(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '停用角色', 'code' => 'disabled', 'level' => 10, 'status' => 0]);
+        $rows = json_decode((new SystemRole())->all()->rawBody(), true)['data'];
+        self::assertContains((int) $role->id, array_column($rows, 'id'));
+    }
+
+    public function test_management_password_reset_revokes_existing_tokens(): void
+    {
+        Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => password_hash('original-safe-password', PASSWORD_DEFAULT), 'status' => 1]);
+        $auth = new \app\admin\authentication\service\AdminSessionService();
+        $token = $auth->login('reader', 'original-safe-password', 'management-reset')['access_token'];
+        (new \app\admin\authorization\service\ManagementService())->save(1, 'users', 2, ['password' => 'replacement-safe-password']);
+        self::assertSame(0, Db::table('admin_auth_tokens')->where('admin_id', 2)->count());
+        $this->expectException(\DomainException::class);
+        $auth->authenticate($token);
+    }
+
+    public function test_resource_registry_tree_is_idempotent_and_binds_owned_capability(): void
+    {
+        $registry = new \app\admin\authorization\service\ResourceRegistryService();
+        $registry->registerPermissions([['code' => 'demo:page:view', 'obj' => 'demo/page', 'act' => 'view']], 'plugin', 'demo');
+        $tree = [['name' => '示例目录', 'href' => '/admin/demo', 'query' => 'name=DemoRoot&type=M&component=Layout', 'menulist' => [
+            ['name' => '示例页面', 'href' => 'page', 'permission' => 'demo:page:view', 'query' => 'name=DemoPage&type=C&component=webman/management'],
+        ]]];
+        $registry->registerTree($tree, sourceType: 'plugin', sourceName: 'demo');
+        $registry->registerTree($tree, sourceType: 'plugin', sourceName: 'demo');
+        self::assertSame(2, Db::table('admin_menu')->where('source_name', 'demo')->count());
+        $page = Db::table('admin_menu')->where('href', 'page')->first();
+        self::assertSame((int) Db::table('permission')->where('code', 'demo:page:view')->value('id'), (int) $page->permission_id);
+        self::assertGreaterThan(0, (int) $page->pid);
+    }
+
+    public function test_request_authorization_rejects_unauthenticated_even_when_flag_is_true(): void
+    {
+        $this->asActor(0);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionCode(401);
+        (new \app\admin\authorization\service\AdminAuthorizationService())->roleAccess(true);
+    }
+
+    public function test_request_authorization_uses_matched_resource_and_live_identity(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '查看角色', 'code' => 'systemrole:index', 'obj' => 'admin/systemrole', 'act' => 'index', 'resource_type' => 'route']);
+        $casbin = new CasbinService();
+        $casbin->syncAdminRoles(2, [$role->id]);
+        $casbin->syncRolePermissions($role->id, [10]);
+        $this->asActor(2);
+        request()->controller = SystemRole::class;
+        request()->action = 'index';
+        $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
+        self::assertTrue($authorization->roleAccess());
+        request()->action = 'create';
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionCode(403);
+        $authorization->roleAccess();
+    }
+
+    public function test_role_guard_rejects_self_inheritance(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '测试角色', 'code' => 'operator', 'level' => 10, 'status' => 1]);
+        $this->expectException(\InvalidArgumentException::class);
+        (new \app\admin\authorization\service\RoleGuardService())->assertInheritance($role->id, 10, [$role->id]);
+    }
+}

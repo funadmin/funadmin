@@ -10,9 +10,9 @@ final class FormSchemaVersion extends BackendModel
 {
     protected $name = 'form_schema_version';
 
-    protected $json = ['schema_document'];
+    protected $casts = ['schema_document' => 'array'];
 
-    protected $jsonAssoc = true;
+    protected $guarded = [];
 
-    protected $updateTime = false;
+    public const UPDATED_AT = null;
 }

@@ -19,6 +19,11 @@ use Throwable;
 #[AsCommand(name: 'identity:logout-deliveries:work')]
 final class IdentityLogoutDeliveriesWork extends Command
 {
+    public function __construct(private readonly ?BackchannelLogoutWorker $worker = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('identity:logout-deliveries:work')
@@ -35,7 +40,7 @@ final class IdentityLogoutDeliveriesWork extends Command
             $tenantId = (int) $input->getOption('tenant');
             if ($tenantId <= 0) throw new RuntimeException('必须提供有效租户 ID');
             $limit = max(1, min(1000, (int) $input->getOption('limit')));
-            $worker = new BackchannelLogoutWorker();
+            $worker = $this->worker ?? new BackchannelLogoutWorker();
             $operations = new IdentityOperationsService();
             if ((bool) $input->getOption('dry-run')) {
                 $total = $operations->withLock($tenantId, 'logout-deliveries', fn (): int => $worker->preview($tenantId, $limit));

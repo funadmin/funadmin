@@ -31,6 +31,7 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
         });
         $schema->create('auth_group', static function (Blueprint $table): void {
             $table->id();
+            $table->unsignedBigInteger('pid')->default(0);
             $table->string('name', 100);
             $table->string('code', 50);
             $table->boolean('status')->default(true);

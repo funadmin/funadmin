@@ -15,6 +15,32 @@ use support\Db;
 
 final class RuntimeFoundationTest extends TestCase
 {
+    public function test_default_ai_provider_transport_disables_environment_proxies_and_keeps_body_middleware(): void
+    {
+        $sandbox = new \app\admin\ai\service\AgentSandboxManager(new \app\admin\ai\infrastructure\NativeDockerProcessRunner(), base_path(), sys_get_temp_dir() . '/unused-ai-default', []);
+        $job = new \app\admin\ai\job\AiAgentJob(sandboxManager: $sandbox);
+        $factory = (new \ReflectionProperty($job, 'orchestratorFactory'))->getValue($job);
+        $orchestrator = $factory(['protocol' => 'openai-chat', 'base_url' => 'https://8.8.8.8/v1', 'api_key' => '', 'model' => 'local-test']);
+        $gateway = (new \ReflectionProperty($orchestrator, 'provider'))->getValue($orchestrator);
+        $client = (new \ReflectionProperty($gateway, 'client'))->getValue($gateway);
+        self::assertSame('', $client->getConfig('proxy'), '环境代理不得绕过已校验的 DNS 固定地址');
+        self::assertInstanceOf(\GuzzleHttp\HandlerStack::class, $client->getConfig('handler'));
+        self::assertStringContainsString('prepare_body', (string) $client->getConfig('handler'));
+        $handler = (new \ReflectionProperty($client->getConfig('handler'), 'handler'))->getValue($client->getConfig('handler'));
+        self::assertInstanceOf(\GuzzleHttp\Handler\CurlHandler::class, $handler);
+    }
+
+    public function test_ai_and_crud_runtime_closures_do_not_reference_think_configuration_runtime(): void
+    {
+        foreach ([
+            base_path('app/admin/ai/service/AiConversationService.php'),
+            base_path('app/common/crud/LangPackTranslator.php'),
+            base_path('app/admin/ai/service/AiProviderSettingsService.php'),
+        ] as $file) {
+            self::assertStringNotContainsString('think\\facade\\Config', (string) file_get_contents($file), $file);
+        }
+    }
+
     public function test_service_instance_uses_webman_container(): void
     {
         $service = ConsoleFoundationService::instance(label: 'console');

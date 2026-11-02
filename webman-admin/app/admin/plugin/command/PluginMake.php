@@ -18,6 +18,11 @@ use Throwable;
 #[AsCommand(name: 'plugin:make')]
 final class PluginMake extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:make')->setDescription('生成 Manifest v2 插件开发骨架')
@@ -35,7 +40,7 @@ final class PluginMake extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $scaffolder = new PluginScaffolder(base_path('plugins'));
+            $scaffolder = new PluginScaffolder(($this->projectRoot ?? base_path()) . '/plugins');
             $name = (string) $input->getArgument('name');
             $positiveSelection = $input->getOption('application') || $input->getOption('admin') || $input->getOption('admin-web');
             $application = ($positiveSelection ? (bool) $input->getOption('application') : true) && !$input->getOption('no-application');

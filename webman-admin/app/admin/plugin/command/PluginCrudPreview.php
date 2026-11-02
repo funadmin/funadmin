@@ -20,6 +20,11 @@ final class PluginCrudPreview extends Command
 {
     use CrudCommandSupport;
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:crud-preview')->setDescription('预览插件 CRUD 原子生成计划')
@@ -34,7 +39,7 @@ final class PluginCrudPreview extends Command
             if (($definition->get('target')['type'] ?? '') !== 'plugin') {
                 throw new \InvalidArgumentException('plugin:crud-preview 仅接受插件 target');
             }
-            $plan = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->plan($definition);
+            $plan = (new CrudGenerator($this->projectRoot ?? base_path()))->plan($definition);
             $token = (string) ($plan['confirmToken'] ?? '');
             unset($plan['confirmToken']);
             $this->writeToken((string) $input->getOption('token-output'), $token);

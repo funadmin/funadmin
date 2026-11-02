@@ -1,16 +1,17 @@
 <?php
 
 namespace app\common\model;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
 class Config extends BaseModel
 {
+    protected $table = 'config';
     /**
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     
@@ -28,16 +29,16 @@ class Config extends BaseModel
         if (!preg_match('/^[A-Za-z][A-Za-z0-9_.-]{0,29}$/', $data['code'])) {
             return '配置编码必须以字母开头，且只能包含字母、数字、点、横线和下划线，最长 30 位';
         }
-        if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->find()) {
+        if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->first()) {
             return '请选择有效的配置分组';
         }
         $builtInTypes = ['date', 'json'];
         $typeExists = in_array($data['type'], $builtInTypes, true)
-            || FieldType::where('name', $data['type'])->where('status', 1)->find();
+            || FieldType::where('name', $data['type'])->where('status', 1)->first();
         if ($data['type'] === '' || strlen($data['type']) > 30 || !$typeExists) {
             return '请选择有效的字段类型';
         }
-        if (strlen($data['verify']) > 30 || ($data['verify'] !== '' && $data['verify'] !== '0' && !FieldVerify::where('verify', $data['verify'])->find())) {
+        if (strlen($data['verify']) > 30 || ($data['verify'] !== '' && $data['verify'] !== '0' && !FieldVerify::where('verify', $data['verify'])->first())) {
             return '请选择有效的验证规则';
         }
         if (strlen($data['extra']) > 255) {
@@ -52,6 +53,12 @@ class Config extends BaseModel
 
     public static function normalizeValue(string $type, mixed $raw, string $extra): array
     {
+        $multiple = in_array($type, ['checkbox', 'array', 'tags', 'images', 'files'], true);
+        if ((!$multiple && !is_scalar($raw) && $raw !== null)
+            || ($multiple && is_array($raw) && count(array_filter($raw, static fn ($item): bool => !is_scalar($item))) > 0)
+            || ($multiple && !is_array($raw) && !is_scalar($raw) && $raw !== null)) {
+            return ['', '配置值格式不合法'];
+        }
         if (in_array($type, ['checkbox', 'array', 'tags', 'images', 'files'], true)) {
             $items = is_array($raw) ? $raw : preg_split('/[\r\n,]+/', (string) $raw);
             $value = implode("\n", array_values(array_unique(array_filter(array_map(static fn ($item): string => trim((string) $item), $items), static fn (string $item): bool => $item !== ''))));
@@ -92,8 +99,8 @@ class Config extends BaseModel
             }
         }
         if (in_array($type, ['radio', 'select', 'checkbox'], true) && $extra !== '') {
-            $allowed = array_keys(self::parseOptions($extra));
-            $values = $type === 'checkbox' ? array_filter(explode("\n", $value)) : [$value];
+            $allowed = array_map('strval', array_keys(self::parseOptions($extra)));
+            $values = $type === 'checkbox' ? array_filter(explode("\n", $value), static fn (string $item): bool => $item !== '') : [$value];
             foreach ($values as $item) {
                 if ($item !== '' && !in_array($item, $allowed, true)) {
                     return ['', '配置值不在允许的选项范围内'];
@@ -125,7 +132,7 @@ class Config extends BaseModel
             'group' => (string) $this->group,
             'type' => (string) $this->type,
             'verify' => (string) ($this->verify ?? ''),
-            'value' => (string) ($this->value ?? ''),
+            'value' => in_array((string) $this->type, ['password', 'hidden'], true) ? '' : (string) ($this->value ?? ''),
             'extra' => (string) ($this->extra ?? ''),
             'remark' => (string) ($this->remark ?? ''),
             'status' => (int) $this->status,

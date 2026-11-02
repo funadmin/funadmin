@@ -41,7 +41,7 @@ final class AiAttachmentStorage
                     $bytes = (string) ob_get_contents();
                 } finally { ob_end_clean(); }
                 if (!$ok || strlen($bytes) > self::IMAGE_BYTES || $bytes === '') throw new InvalidArgumentException('重编码图片超过大小上限', 413);
-            } finally { imagedestroy($image); }
+            } finally { unset($image); }
         } else {
             if (!in_array($extension, self::TEXT_EXTENSIONS, true)) throw new InvalidArgumentException('不支持的附件类型', 400);
             if (!mb_check_encoding($bytes, 'UTF-8') || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $bytes)

@@ -276,10 +276,10 @@ final class Manifest
         foreach (self::phpFiles($controllers) as $file) {
             $groups = array_values(array_filter(
                 self::attributeBlocks((string) file_get_contents($file)),
-                static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(/', $attribute) === 1
+                static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(/', $attribute) === 1
             ));
             if (count($groups) !== 1 || preg_match(
-                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*Group\s*\(\s*[\'\"]plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/?plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
                 $groups[0]
             ) !== 1) {
                 throw new RuntimeException('Console Attribute Group 必须使用 plugin/' . $code . ' 前缀：' . $file);

@@ -23,7 +23,13 @@ class PermissionResource
     {
         $controller = (string) ($request->controller ?? '');
         if (preg_match('/^app\\\\admin\\\\(?:(.+)\\\\)?controller\\\\(.+)$/', $controller, $matches) === 1) {
-            $controller = ($matches[1] !== '' ? $matches[1] . '\\' : '') . $matches[2];
+            $module = $matches[1];
+            if (preg_match('/^plugin\\\\business\\\\([a-z][a-z0-9]*)$/', $module, $plugin) === 1) {
+                $module = 'plugin\\' . $plugin[1];
+            } elseif (preg_match('/^generated\\\\[a-z][a-z0-9_]*$/', $module) === 1) {
+                $module = 'generated';
+            }
+            $controller = ($module !== '' ? $module . '\\' : '') . $matches[2];
         }
         return self::fromParts($app ?: 'admin', $controller, (string) ($request->action ?: 'index'));
     }

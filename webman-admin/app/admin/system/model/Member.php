@@ -20,7 +20,7 @@ use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberLevel;
 use app\admin\system\model\MemberGroupRelation;
 use app\admin\system\model\MemberTagRelation;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
 class Member extends BackendModel {
@@ -30,7 +30,7 @@ class Member extends BackendModel {
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     
@@ -52,7 +52,7 @@ class Member extends BackendModel {
 
     public function level()
     {
-        return $this->belongsTo('MemberLevel', 'level_id', 'id', [], 'LEFT');
+        return $this->belongsTo(MemberLevel::class, 'level_id', 'id');
     }
 
     /**
@@ -112,7 +112,7 @@ class Member extends BackendModel {
         if (count($data['tagIds']) > 32 || ($data['tagIds'] && MemberTag::whereIn('id', $data['tagIds'])->where('status', 1)->count() !== count($data['tagIds']))) {
             return '会员标签不存在、已删除或已停用，且最多选择 32 个标签';
         }
-        if ($data['level_id'] <= 0 || !MemberLevel::where('id', $data['level_id'])->where('status', 1)->find()) {
+        if ($data['level_id'] <= 0 || !MemberLevel::where('id', $data['level_id'])->where('status', 1)->first()) {
             return '会员等级不存在、已删除或已停用';
         }
         if (strlen($data['avatar']) > 255) {
@@ -131,13 +131,13 @@ class Member extends BackendModel {
             $mobileQuery?->where('id', '<>', $excludeId);
             $emailQuery?->where('id', '<>', $excludeId);
         }
-        if ($usernameQuery->find()) {
+        if ($usernameQuery->first()) {
             return '用户名已存在';
         }
-        if ($mobileQuery?->find()) {
+        if ($mobileQuery?->first()) {
             return '手机号已存在';
         }
-        if ($emailQuery?->find()) {
+        if ($emailQuery?->first()) {
             return '邮箱已存在';
         }
         return null;
@@ -171,7 +171,7 @@ class Member extends BackendModel {
             $levelIds[] = (int) $member->level_id;
         }
         $relations = $memberIds ? MemberGroupRelation::whereIn('member_id', $memberIds)
-            ->field('member_id,group_id')->order('group_id', 'asc')->select()->toArray() : [];
+            ->select(['member_id', 'group_id'])->orderBy('group_id')->get()->toArray() : [];
         $groupIds = [];
         foreach ($relations as $relation) {
             $memberId = (int) $relation['member_id'];
@@ -181,29 +181,29 @@ class Member extends BackendModel {
         }
         $groupIds = array_values(array_unique($groupIds));
         $levelIds = array_values(array_unique(array_filter($levelIds)));
-        $groups = $groupIds ? MemberGroup::withTrashed()->whereIn('id', $groupIds)->column('name', 'id') : [];
-        $levels = $levelIds ? MemberLevel::withTrashed()->whereIn('id', $levelIds)->column('name', 'id') : [];
+        $groups = $groupIds ? MemberGroup::withTrashed()->whereIn('id', $groupIds)->pluck('name', 'id')->all() : [];
+        $levels = $levelIds ? MemberLevel::withTrashed()->whereIn('id', $levelIds)->pluck('name', 'id')->all() : [];
         $memberTags = array_fill_keys($memberIds, []);
-        $tagRelations = $memberIds ? MemberTagRelation::whereIn('member_id', $memberIds)->field('member_id,tag_id')->order('tag_id', 'asc')->select()->toArray() : [];
+        $tagRelations = $memberIds ? MemberTagRelation::whereIn('member_id', $memberIds)->select(['member_id', 'tag_id'])->orderBy('tag_id')->get()->toArray() : [];
         $tagIds = [];
         foreach ($tagRelations as $relation) {
             $memberTags[(int) $relation['member_id']][] = (int) $relation['tag_id'];
             $tagIds[] = (int) $relation['tag_id'];
         }
         $tagIds = array_values(array_unique($tagIds));
-        $tags = $tagIds ? MemberTag::withTrashed()->whereIn('id', $tagIds)->column('name', 'id') : [];
+        $tags = $tagIds ? MemberTag::withTrashed()->whereIn('id', $tagIds)->pluck('name', 'id')->all() : [];
         return [$memberGroups, $groups, $levels, $memberTags, $tags];
     }
 
     public static function groupIdsFor(int $memberId): array
     {
         return array_map('intval', MemberGroupRelation::where('member_id', $memberId)
-            ->order('group_id', 'asc')->column('group_id'));
+            ->orderBy('group_id')->pluck('group_id')->all());
     }
 
     public static function tagIdsFor(int $memberId): array
     {
-        return array_map('intval', MemberTagRelation::where('member_id', $memberId)->order('tag_id', 'asc')->column('tag_id'));
+        return array_map('intval', MemberTagRelation::where('member_id', $memberId)->orderBy('tag_id')->pluck('tag_id')->all());
     }
 
     public function toApiData(array $memberGroups, array $groups, array $levels, array $memberTags, array $tags): array

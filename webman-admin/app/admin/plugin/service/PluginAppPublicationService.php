@@ -761,8 +761,39 @@ final class PluginAppPublicationService
         $this->restoreNativeRegistryFromJournal($this->inspect($token));
     }
 
+    public function assertRecoveryFilesUnmodified(string $token): void
+    {
+        $this->assertRecoveryJournalFiles($this->inspect($token));
+    }
+
+    private function assertRecoveryJournalFiles(array $journal): void
+    {
+        foreach ((array) ($journal['units'] ?? []) as $unit) {
+            $target = (string) ($unit['target'] ?? '');
+            $backup = (string) ($unit['backup'] ?? '');
+            $oldHash = $unit['old_tree_hash'] ?? null;
+            $newHash = $unit['new_tree_hash'] ?? null;
+            $this->assertNoTargetSymlink($target);
+            if ($backup !== '' && is_link($backup)) throw new RuntimeException('publication 备份禁止符号链接');
+            if ($backup !== '' && is_dir($backup) && (!is_string($oldHash) || !hash_equals($oldHash, $this->treeHash($backup)))) {
+                throw new RuntimeException('publication 备份漂移，拒绝恢复：' . $unit['unit']);
+            }
+            if (file_exists($target)) {
+                if (!is_dir($target)) throw new RuntimeException('publication 目标漂移，拒绝恢复：' . $unit['unit']);
+                $actual = $this->treeHash($target);
+                $isOld = is_string($oldHash) && hash_equals($oldHash, $actual);
+                $isNew = is_string($newHash) && hash_equals($newHash, $actual);
+                if (!$isOld && !$isNew) throw new RuntimeException('publication 目标漂移，拒绝恢复：' . $unit['unit']);
+                if (!$isOld && $oldHash !== null && !is_dir($backup)) throw new RuntimeException('publication 备份缺失，拒绝恢复：' . $unit['unit']);
+            } elseif ($oldHash !== null && !is_dir($backup)) {
+                throw new RuntimeException('publication 目标及备份缺失，拒绝恢复：' . $unit['unit']);
+            }
+        }
+    }
+
     private function restoreNativeFilesFromJournal(array $journal): void
     {
+        $this->assertRecoveryJournalFiles($journal);
         $units = array_reverse((array) ($journal['units'] ?? []));
         foreach ($units as $unit) {
             $target = (string) ($unit['target'] ?? '');

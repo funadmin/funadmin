@@ -33,6 +33,16 @@ class McpService extends AbstractService
     protected const NAME = 'mcp';
     protected const VERSION = '1.0.0';
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
+    private function projectPath(string $path = ''): string
+    {
+        return rtrim($this->projectRoot ?? base_path(), DIRECTORY_SEPARATOR) . ($path === '' ? '' : DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR));
+    }
+
     /**
      * MCP服务器实例
      * @var Server|null
@@ -200,8 +210,8 @@ class McpService extends AbstractService
      */
     public function handleFileOperation(string $operation, string $filepath): array
     {
-        $root = realpath(base_path('public/uploads'));
-        $candidate = str_starts_with($filepath, DIRECTORY_SEPARATOR) ? $filepath : base_path($filepath);
+        $root = realpath($this->projectPath('public/uploads'));
+        $candidate = str_starts_with($filepath, DIRECTORY_SEPARATOR) ? $filepath : $this->projectPath($filepath);
         $resolved = realpath($candidate);
         if ($root === false || $resolved === false || !str_starts_with($resolved, $root . DIRECTORY_SEPARATOR)
             || preg_match('#(?:^|/)(?:\.env|.*\.(?:pem|key))$#i', $resolved)) {
@@ -499,7 +509,7 @@ class McpService extends AbstractService
     public function handleCrud(string $configPath): array
     {
         try {
-            $root = rtrim(base_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $root = rtrim($this->projectPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $path = trim($configPath);
             if ($path === '' || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'json') {
                 throw new InvalidArgumentException('必须指定项目目录内的 JSON 配置文件');
@@ -561,8 +571,8 @@ class McpService extends AbstractService
             foreach ($params as $param) {
                 if (!is_string($param) || !preg_match('/\A[a-z][a-z0-9:-]*\z/D', $param)) throw new InvalidArgumentException('命令参数无效');
             }
-            $argv = [PHP_BINARY, base_path('webman'), '--no-ansi', '--no-interaction', $command, ...$params];
-            $process = proc_open($argv, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path());
+            $argv = [PHP_BINARY, $this->projectPath('webman'), '--no-ansi', '--no-interaction', $command, ...$params];
+            $process = proc_open($argv, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $this->projectPath());
             if (!is_resource($process)) throw new RuntimeException('无法启动 Webman 命令');
             fclose($pipes[0]);
             stream_set_blocking($pipes[1], false);

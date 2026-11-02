@@ -19,12 +19,15 @@ final class ApplicationCatalogService
 
     public function list(int $tenantId, int $page = 1, int $pageSize = 20, string $keyword = ''): array
     {
-        $query = EnterpriseApplication::forTenant($tenantId)->withoutField('oauth_config')->order('id', 'desc');
+        $query = EnterpriseApplication::forTenant($tenantId)->orderByDesc('id');
         if ($keyword !== '') {
-            $query->whereLike('name|code', '%' . addcslashes($keyword, '%_') . '%');
+            $query->where(function ($search) use ($keyword): void {
+                $pattern = '%' . addcslashes($keyword, '%_') . '%';
+                $search->whereLike('name', $pattern)->orWhereLike('code', $pattern);
+            });
         }
         $total = (clone $query)->count();
-        return ['list' => $query->page(max(1, $page), min(100, max(1, $pageSize)))->select()->toArray(), 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
+        return ['list' => $query->forPage(max(1, $page), min(100, max(1, $pageSize)))->get()->makeHidden(['oauth_config'])->toArray(), 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
     }
 
     /**
@@ -33,19 +36,21 @@ final class ApplicationCatalogService
     public function portal(int $tenantId, int $userId, array $departmentIds, array $roleIds, string $keyword = ''): array
     {
         $query = EnterpriseApplication::forTenant($tenantId)
-            ->withoutField('oauth_config')
-            ->order('sort_order', 'desc')
-            ->order('id', 'desc');
+            ->orderByDesc('sort_order')
+            ->orderByDesc('id');
         if ($keyword !== '') {
-            $query->whereLike('name|code', '%' . addcslashes($keyword, '%_') . '%');
+            $query->where(function ($search) use ($keyword): void {
+                $pattern = '%' . addcslashes($keyword, '%_') . '%';
+                $search->whereLike('name', $pattern)->orWhereLike('code', $pattern);
+            });
         }
 
         $result = [];
-        foreach ($query->select() as $application) {
+        foreach ($query->get() as $application) {
             $assignments = ApplicationAssignment::forTenant($tenantId)
                 ->where('application_id', (int) $application->id)
                 ->where('status', 1)
-                ->select()
+                ->get()
                 ->toArray();
             $accessible = ApplicationAssignmentService::canLaunch(
                 (string) $application->visibility,
@@ -65,7 +70,7 @@ final class ApplicationCatalogService
                 continue;
             }
 
-            $row = $application->toArray();
+            $row = $application->makeHidden(['oauth_config'])->toArray();
             $row['available'] = $accessible && (string) $application->status === 'published';
             $row['availability_reason'] = match (true) {
                 !$accessible => '当前身份被拒绝访问',
@@ -80,7 +85,7 @@ final class ApplicationCatalogService
 
     public function detail(int $tenantId, int $applicationId): array
     {
-        return $this->application($tenantId, $applicationId)->hidden(['oauth_config'])->toArray();
+        return $this->application($tenantId, $applicationId)->makeHidden(['oauth_config'])->toArray();
     }
 
     public function save(int $tenantId, array $input, ?int $applicationId = null, bool $development = false, ?string $sameOriginHost = null): array
@@ -93,7 +98,7 @@ final class ApplicationCatalogService
         }
         $ownerIdentityUserId = $input['ownerIdentityUserId'] ?? $input['owner_identity_user_id'] ?? null;
         if ($ownerIdentityUserId !== null && (!is_numeric($ownerIdentityUserId) || (int) $ownerIdentityUserId <= 0
-            || !IdentityUser::forTenant($tenantId)->where('id', (int) $ownerIdentityUserId)->where('status', 1)->find())) {
+            || !IdentityUser::forTenant($tenantId)->where('id', (int) $ownerIdentityUserId)->where('status', 1)->first())) {
             throw new InvalidArgumentException('应用所有者统一身份无效');
         }
         $row = [
@@ -121,29 +126,29 @@ final class ApplicationCatalogService
             $row['public_id'] = Uuid::uuid4()->toString();
             $row['status'] = 'draft';
         }
-        $application->save($row);
-        return $application->hidden(['oauth_config'])->toArray();
+        $application->forceFill($row)->save();
+        return $application->makeHidden(['oauth_config'])->toArray();
     }
 
     public function publish(int $tenantId, int $applicationId): array
     {
         $application = $this->application($tenantId, $applicationId);
-        $application->save(['status' => 'published', 'published_at' => date('Y-m-d H:i:s')]);
-        return $application->hidden(['oauth_config'])->toArray();
+        $application->forceFill(['status' => 'published', 'published_at' => date('Y-m-d H:i:s')])->save();
+        return $application->makeHidden(['oauth_config'])->toArray();
     }
 
     public function disable(int $tenantId, int $applicationId): array
     {
         $application = $this->application($tenantId, $applicationId);
-        $application->save(['status' => 'disabled']);
-        return $application->hidden(['oauth_config'])->toArray();
+        $application->forceFill(['status' => 'disabled'])->save();
+        return $application->makeHidden(['oauth_config'])->toArray();
     }
 
     public function delete(int $tenantId, int $applicationId): void
     {
         $application = $this->application($tenantId, $applicationId);
         if ($application->status === 'published') {
-            throw new DomainException('已发布应用必须先停用再删除');
+            throw new DomainException('已发布应用必须先停用再删除', 409);
         }
         $application->delete();
     }
@@ -158,7 +163,7 @@ final class ApplicationCatalogService
         $assignments = ApplicationAssignment::forTenant($tenantId)
             ->where('application_id', $applicationId)
             ->where('status', 1)
-            ->select()
+            ->get()
             ->toArray();
         if (!ApplicationAssignmentService::canLaunch(
             (string) $application->visibility,
@@ -181,9 +186,9 @@ final class ApplicationCatalogService
 
     private function application(int $tenantId, int $applicationId): EnterpriseApplication
     {
-        $application = EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->find();
+        $application = EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->first();
         if (!$application) {
-            throw new DomainException('应用不存在或不属于当前租户');
+            throw new DomainException('应用不存在或不属于当前租户', 404);
         }
         return $application;
     }

@@ -41,6 +41,12 @@ final class ClientSecretService
 
     public function rotate(int $tenantId, int $clientId, ?string $expiresAt = null): array
     {
+        if ($expiresAt !== null) {
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $expiresAt);
+            if (!$date || $date->format('Y-m-d H:i:s') !== $expiresAt || $date->getTimestamp() <= time()) {
+                throw new \support\validation\ValidationException('有效期必须为将来的日期时间');
+            }
+        }
         $plain = self::generateSecret();
         $encoded = self::encodeForStorage($plain);
         $metadata = Db::transaction(function () use ($tenantId, $clientId, $expiresAt, $encoded): array {

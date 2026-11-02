@@ -4,88 +4,57 @@ declare(strict_types=1);
 
 namespace app\admin\authorization\service;
 
-use app\admin\authorization\model\Permission;
-use app\admin\authentication\service\AdminSessionService;
-use app\common\traits\Jump;
-use think\Request;
+use DomainException;
+use Webman\Http\Request;
 
 class AdminAuthorizationService
 {
-    use Jump;
-
-    private readonly Request $request;
+    private readonly ?Request $request;
     private readonly string $app;
-    private readonly string $requestUrl;
 
     public function __construct(?Request $request = null)
     {
-        $this->request = $request ?? request();
-        $this->app = app('http')->getName();
-        $this->requestUrl = $this->normalizeRequestUrl($this->request->pathinfo());
+        $this->request = $request;
+        $this->app = 'admin';
+    }
+
+    private function currentRequest(): Request
+    {
+        return $this->request ?? request();
     }
 
     public function roleAccess(bool $authenticated = false): bool
     {
-        if ($this->requestUrl === '/' || (!$authenticated && !(new AdminSessionService())->isLogin())) {
-            $this->error(lang('Please Login First'));
+        $request = $this->currentRequest();
+        $adminId = (int) ($request->context['admin']['id'] ?? 0);
+        if ($adminId <= 0) {
+            throw new DomainException('请先登录', 401);
         }
-
-        $cfg = config('funadmin');
-        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
+        if (config('funadmin.isDemo', false) && !in_array(strtoupper($request->method()), ['GET', 'HEAD', 'OPTIONS'], true)) {
+            throw new DomainException('演示环境不允许修改数据', 403);
+        }
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return true;
         }
-        if ($cfg['isDemo'] == 1 && !in_array(strtoupper($this->request->method()), ['GET', 'HEAD', 'OPTIONS'], true)) {
-            $this->error(lang('Demo is not allow to change data'));
-        }
-
-        $requestUrl = strtolower(trim($this->requestUrl, '/'));
-        if (in_array($requestUrl, config('funadmin.auth_login_only_routes', []), true)) {
-            return true;
-        }
-        $roleScope = new RoleScopeService();
-        if (in_array($requestUrl, config('funadmin.auth_super_only_routes', []), true)) {
-            if (!$roleScope->isSuperAdmin()) {
-                $this->error(lang('Permission Denied'));
-            }
-            return true;
-        }
-        if ($roleScope->isSuperAdmin()) {
-            return true;
-        }
-
-        $resource = PermissionResource::fromRequest($this->request, $this->app);
-        $resource = $this->aliasResource($requestUrl, $resource);
-        if ($this->isLoginOnlyResource($resource)) {
-            return true;
-        }
-        if (!CasbinService::instance()->enforceAdmin((int) session('admin.id'), $resource['obj'], $resource['act'])) {
-            $this->error(lang('Permission Denied'));
+        $resource = PermissionResource::fromRequest($request, $this->app);
+        $resource = $this->aliasResource(strtolower($this->normalizeRequestUrl($request->path())), $resource);
+        if (!CasbinService::instance()->enforceAdmin($adminId, $resource['obj'], $resource['act'])) {
+            throw new DomainException('没有访问权限', 403);
         }
         return true;
     }
 
     public function nodeAccess(string $url): bool
     {
-        $cfg = config('funadmin');
-        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
-            return true;
-        }
-        if ((new RoleScopeService())->isSuperAdmin()) {
-            return true;
-        }
-
-        $resource = $this->nodeResource($url);
-        if (!$resource) {
+        $adminId = (int) ($this->currentRequest()->context['admin']['id'] ?? 0);
+        if ($adminId <= 0) {
             return false;
         }
-        if ($this->isLoginOnlyResource($resource)) {
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return true;
         }
-        return CasbinService::instance()->enforceAdmin(
-            (int) session('admin.id'),
-            $resource['obj'],
-            $resource['act']
-        );
+        $resource = $this->nodeResource($url);
+        return $resource !== null && CasbinService::instance()->enforceAdmin($adminId, $resource['obj'], $resource['act']);
     }
 
     private function nodeResource(string $url): ?array
@@ -113,22 +82,6 @@ class AdminAuthorizationService
             $requestUrl = substr($requestUrl, 0, -strlen($suffix) - 1);
         }
         return trim($requestUrl, '/');
-    }
-
-    private function isLoginOnlyResource(array $resource): bool
-    {
-        $codes = db_cache('auth-login-only-resource-codes', static function (): array {
-            $result = [];
-            $permissions = Permission::where('status', 1)
-                ->where('is_public', 1)
-                ->where('code', '<>', '')
-                ->column('code');
-            foreach ($permissions as $code) {
-                $result[(string) $code] = true;
-            }
-            return $result;
-        });
-        return isset($codes[$resource['code']]);
     }
 
     private function aliasResource(string $requestUrl, array $resource): array

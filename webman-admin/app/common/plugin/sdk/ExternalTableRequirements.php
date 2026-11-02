@@ -7,7 +7,7 @@ use app\common\crud\CrudDefinition;
 use app\common\crud\SchemaInspector;
 use Closure;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 
 /** 外部依赖仅声明运行所需结构；不执行 DDL，不参与卸载与 purge。 */
 final class ExternalTableRequirements
@@ -17,7 +17,7 @@ final class ExternalTableRequirements
     public function __construct(private readonly string $defaultConnection, ?callable $reader = null)
     {
         $this->reader = Closure::fromCallable($reader ?? static fn (string $connection, string $table): array =>
-            (new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)))->inspect($table));
+            (new SchemaInspector(static fn (string $sql, array $bindings): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select($sql, $bindings))))->inspect($table));
     }
 
     public static function fromDefinition(CrudDefinition $definition): array

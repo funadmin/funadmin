@@ -60,7 +60,10 @@ final class LegacyAuthCompatibilityTest extends TestCase
         $result = $service->login('legacy_admin', 'a-long-test-password', '127.0.0.1');
         self::assertSame($admin['id'], $service->authenticate($result['access_token'])['id']);
         self::assertNull(Db::table('admin')->value('token'));
-        self::assertSame(hash('sha256', $result['access_token']), Db::table('admin_auth_tokens')->value('token_hash'));
+        self::assertSame(
+            hash('sha256', $result['access_token']),
+            Db::table('admin_auth_tokens')->where('admin_id', $admin['id'])->where('purpose', 'api')->value('token_hash')
+        );
 
         $service->logout($result['access_token']);
         self::assertNull(Db::table('admin')->value('token'));

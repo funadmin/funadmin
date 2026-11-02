@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberGroupRelation;
@@ -16,22 +13,22 @@ use app\admin\system\model\MemberTag;
 use app\admin\system\model\MemberTagRelation;
 use app\admin\system\service\MemberFormDefinition;
 use app\common\service\identity\MemberIdentityAdapter;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\facade\Db;
-use think\Response;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Db;
+use support\Response;
 
 /**
  * Admin Web 会员管理。
  */
-#[Group('system/member')]
+#[RouteGroup('/admin/system/member')]
 class SystemMember extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('')]
     public function index(): Response
@@ -52,8 +49,7 @@ class SystemMember extends AdminApiController
         ));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $member = Member::withTrashed()->find($id);
@@ -64,13 +60,13 @@ class SystemMember extends AdminApiController
         return $this->ok(data: $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
-    #[Get('options')]
+    #[Get('/options')]
     public function options(): Response
     {
         $options = [
-            'groups' => MemberGroup::where('status', 1)->order('id', 'asc')->field('id,name')->select()->toArray(),
-            'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
-            'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
+            'groups' => MemberGroup::where('status', 1)->orderBy('id')->get(['id', 'name'])->toArray(),
+            'levels' => MemberLevel::where('status', 1)->orderBy('sort_order')->orderBy('id')->get(['id', 'name'])->toArray(),
+            'tags' => MemberTag::where('status', 1)->orderBy('sort_order')->orderBy('id')->get(['id', 'name'])->toArray(),
         ];
         $locale = (string) $this->request->header('X-Locale', 'zh-cn');
         return $this->ok(data: $options + MemberFormDefinition::build($options, $locale) + [
@@ -111,8 +107,7 @@ class SystemMember extends AdminApiController
         return $this->ok('创建成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $member = Member::find($id);
@@ -132,7 +127,7 @@ class SystemMember extends AdminApiController
         unset($data['groupIds'], $data['tagIds']);
         try {
             Db::transaction(function () use ($member, $data, $groupIds, $tagIds): void {
-                $member->save($data);
+                $member->forceFill($data)->save();
                 (new MemberIdentityAdapter())->sync($member);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
@@ -147,8 +142,7 @@ class SystemMember extends AdminApiController
         return $this->ok('保存成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
-    #[Post(':id/status')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/status')]
     public function status(int $id): Response
     {
         $member = Member::find($id);
@@ -156,7 +150,7 @@ class SystemMember extends AdminApiController
             return $this->fail(msg: '会员不存在', code: 404);
         }
         Db::transaction(function () use ($member): void {
-            $member->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+            $member->forceFill(['status' => $this->binaryStatus($this->request->post('status', 0))])->save();
             (new MemberIdentityAdapter())->sync($member);
         });
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
@@ -176,14 +170,14 @@ class SystemMember extends AdminApiController
         return $this->ok('已移入回收站', ['removed' => count($members)]);
     }
 
-    #[Post('restore')]
+    #[Post('/restore')]
     public function restore(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
             return $this->fail(msg: '请选择要恢复的会员', code: 422);
         }
-        $members = Member::onlyTrashed()->whereIn('id', $ids)->select();
+        $members = Member::onlyTrashed()->whereIn('id', $ids)->get();
         if (count($members) !== count($ids)) {
             return $this->fail(msg: '部分会员不存在或不在回收站', code: 404);
         }
@@ -193,7 +187,7 @@ class SystemMember extends AdminApiController
         return $this->ok('恢复成功', ['restored' => count($members)]);
     }
 
-    #[Delete('destroy')]
+    #[Delete('/destroy')]
     public function destroy(): Response
     {
         $members = $this->membersForAction(true);
@@ -204,13 +198,13 @@ class SystemMember extends AdminApiController
             foreach ($members as $member) {
                 $member->groups()->detach();
                 $member->tags()->detach();
-                $member->force()->delete();
+                $member->forceDelete();
             }
         });
         return $this->ok('永久删除成功', ['removed' => count($members)]);
     }
 
-    #[Post('import')]
+    #[Post('/import')]
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
@@ -261,7 +255,7 @@ class SystemMember extends AdminApiController
         ]);
     }
 
-    #[Get('export')]
+    #[Get('/export')]
     public function export(): Response
     {
         $recycled = (int) $this->request->get('recycled', 0) === 1;
@@ -269,12 +263,12 @@ class SystemMember extends AdminApiController
         if ((clone $query)->count() > 10000) {
             return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
-        $members = $query->order('id', 'desc')->select()->all();
+        $members = $query->orderByDesc('id')->get()->all();
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps($members);
         return $this->ok(data: array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), $members));
     }
 
-    private function filteredQuery(bool $recycled)
+    private function filteredQuery(bool $recycled): Builder
     {
         $query = $recycled ? Member::onlyTrashed() : Member::where('id', '>', 0);
         $keyword = trim((string) $this->request->get('keyword', ''));
@@ -305,14 +299,14 @@ class SystemMember extends AdminApiController
         return $query;
     }
 
-    private function membersForAction(bool $onlyTrashed)
+    private function membersForAction(bool $onlyTrashed): array|Response
     {
         $ids = $this->ids();
         if (!$ids) {
             return $this->fail(msg: '请选择要操作的会员', code: 422);
         }
         $query = $onlyTrashed ? Member::onlyTrashed() : Member::where('id', '>', 0);
-        $members = $query->whereIn('id', $ids)->select();
+        $members = $query->whereIn('id', $ids)->get()->all();
         if (count($members) !== count($ids)) {
             return $this->fail(msg: $onlyTrashed ? '部分会员不存在或不在回收站' : '部分会员不存在或已在回收站', code: 404);
         }
@@ -380,7 +374,7 @@ class SystemMember extends AdminApiController
         if (count($data['tagIds']) > 32 || ($data['tagIds'] && MemberTag::whereIn('id', $data['tagIds'])->where('status', 1)->count() !== count($data['tagIds']))) {
             return '会员标签不存在、已删除或已停用，且最多选择 32 个标签';
         }
-        if ($data['level_id'] <= 0 || !MemberLevel::where('id', $data['level_id'])->where('status', 1)->find()) {
+        if ($data['level_id'] <= 0 || !MemberLevel::where('id', $data['level_id'])->where('status', 1)->first()) {
             return '会员等级不存在、已删除或已停用';
         }
         if (strlen($data['avatar']) > 255) {
@@ -399,13 +393,13 @@ class SystemMember extends AdminApiController
             $mobileQuery?->where('id', '<>', $excludeId);
             $emailQuery?->where('id', '<>', $excludeId);
         }
-        if ($usernameQuery->find()) {
+        if ($usernameQuery->first()) {
             return '用户名已存在';
         }
-        if ($mobileQuery?->find()) {
+        if ($mobileQuery?->first()) {
             return '手机号已存在';
         }
-        if ($emailQuery?->find()) {
+        if ($emailQuery?->first()) {
             return '邮箱已存在';
         }
         return null;
@@ -427,48 +421,17 @@ class SystemMember extends AdminApiController
 
     private function relationMaps(array $members): array
     {
-        $memberIds = [];
-        $memberGroups = [];
-        $levelIds = [];
-        foreach ($members as $member) {
-            $memberIds[] = (int) $member->id;
-            $memberGroups[(int) $member->id] = [];
-            $levelIds[] = (int) $member->level_id;
-        }
-        $relations = $memberIds ? MemberGroupRelation::whereIn('member_id', $memberIds)
-            ->field('member_id,group_id')->order('group_id', 'asc')->select()->toArray() : [];
-        $groupIds = [];
-        foreach ($relations as $relation) {
-            $memberId = (int) $relation['member_id'];
-            $groupId = (int) $relation['group_id'];
-            $memberGroups[$memberId][] = $groupId;
-            $groupIds[] = $groupId;
-        }
-        $groupIds = array_values(array_unique($groupIds));
-        $levelIds = array_values(array_unique(array_filter($levelIds)));
-        $groups = $groupIds ? MemberGroup::withTrashed()->whereIn('id', $groupIds)->column('name', 'id') : [];
-        $levels = $levelIds ? MemberLevel::withTrashed()->whereIn('id', $levelIds)->column('name', 'id') : [];
-        $memberTags = array_fill_keys($memberIds, []);
-        $tagRelations = $memberIds ? MemberTagRelation::whereIn('member_id', $memberIds)->field('member_id,tag_id')->order('tag_id', 'asc')->select()->toArray() : [];
-        $tagIds = [];
-        foreach ($tagRelations as $relation) {
-            $memberTags[(int) $relation['member_id']][] = (int) $relation['tag_id'];
-            $tagIds[] = (int) $relation['tag_id'];
-        }
-        $tagIds = array_values(array_unique($tagIds));
-        $tags = $tagIds ? MemberTag::withTrashed()->whereIn('id', $tagIds)->column('name', 'id') : [];
-        return [$memberGroups, $groups, $levels, $memberTags, $tags];
+        return Member::relationMaps($members);
     }
 
     private function memberGroupIds(int $memberId): array
     {
-        return array_map('intval', MemberGroupRelation::where('member_id', $memberId)
-            ->order('group_id', 'asc')->column('group_id'));
+        return Member::groupIdsFor($memberId);
     }
 
     private function memberTagIds(int $memberId): array
     {
-        return array_map('intval', MemberTagRelation::where('member_id', $memberId)->order('tag_id', 'asc')->column('tag_id'));
+        return Member::tagIdsFor($memberId);
     }
 
     private function memberData(Member $member, array $memberGroups, array $groups, array $levels, array $memberTags, array $tags): array

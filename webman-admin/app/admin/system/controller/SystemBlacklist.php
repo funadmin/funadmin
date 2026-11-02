@@ -5,25 +5,20 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\common\model\Blacklist;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
 /**
  * Admin Web 黑名单管理。
  */
-#[Group('system/blacklist')]
+#[RouteGroup('/admin/system/blacklist')]
 class SystemBlacklist extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('')]
     public function index(): Response
@@ -32,18 +27,18 @@ class SystemBlacklist extends AdminApiController
         $pageSize = $this->pageSize();
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = Blacklist::filteredQuery($recycled, trim((string) $this->request->get('ip', '')), $this->request->get('status', null));
-        $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        $total = (clone $query)->count();
+        $items = $query->orderByDesc('id')->forPage($page, $pageSize)->get();
 
         return $this->ok(data: $this->paginationData(
-            array_map(fn (Blacklist $item): array => $item->toApiData(), $result->items()),
-            $result->total(),
+            $items->map(fn (Blacklist $item): array => $item->toApiData())->all(),
+            $total,
             $page,
             $pageSize
         ));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $item = Blacklist::withTrashed()->find($id);
@@ -60,12 +55,12 @@ class SystemBlacklist extends AdminApiController
             return $this->fail(msg: $error, code: 422);
         }
 
-        $item = Blacklist::create($data);
+        $item = new Blacklist();
+        $item->forceFill($data)->save();
         return $this->ok('创建成功', $item->toApiData());
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $item = Blacklist::find($id);
@@ -77,19 +72,18 @@ class SystemBlacklist extends AdminApiController
             return $this->fail(msg: $error, code: 422);
         }
 
-        $item->save($data);
+        $item->forceFill($data)->save();
         return $this->ok('保存成功', $item->toApiData());
     }
 
-    #[Post(':id/status')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/status')]
     public function status(int $id): Response
     {
         $item = Blacklist::find($id);
         if (!$item) {
             return $this->fail(msg: '黑名单记录不存在', code: 404);
         }
-        $item->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+        $item->forceFill(['status' => $this->binaryStatus($this->request->post('status', 0))])->save();
         return $this->ok('状态更新成功', $item->toApiData());
     }
 
@@ -100,7 +94,7 @@ class SystemBlacklist extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要移入回收站的记录', code: 422);
         }
-        $items = Blacklist::whereIn('id', $ids)->select();
+        $items = Blacklist::whereIn('id', $ids)->get();
         if (count($items) !== count($ids)) {
             return $this->fail(msg: '部分黑名单记录不存在或已在回收站', code: 404);
         }
@@ -110,7 +104,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('已移入回收站', ['removed' => count($items)]);
     }
 
-    #[Post('restore')]
+    #[Post('/restore')]
     public function restore(): Response
     {
         $ids = $this->ids();
@@ -127,7 +121,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('恢复成功', ['restored' => count($items)]);
     }
 
-    #[Delete('destroy')]
+    #[Delete('/destroy')]
     public function destroy(): Response
     {
         $ids = $this->ids();
@@ -139,12 +133,12 @@ class SystemBlacklist extends AdminApiController
             return $this->fail(msg: '部分黑名单记录不存在或不在回收站', code: 404);
         }
         foreach ($items as $item) {
-            $item->force()->delete();
+            $item->delete();
         }
         return $this->ok('永久删除成功', ['removed' => count($items)]);
     }
 
-    #[Post('import')]
+    #[Post('/import')]
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
@@ -172,7 +166,8 @@ class SystemBlacklist extends AdminApiController
                 continue;
             }
             try {
-                Blacklist::create($data);
+                $item = new Blacklist();
+                $item->forceFill($data)->save();
                 $created++;
             } catch (\Throwable $exception) {
                 $errors[] = '第 ' . ($index + 2) . ' 行：保存失败';
@@ -186,7 +181,7 @@ class SystemBlacklist extends AdminApiController
         ]);
     }
 
-    #[Get('export')]
+    #[Get('/export')]
     public function export(): Response
     {
         $recycled = (int) $this->request->get('recycled', 0) === 1;
@@ -194,7 +189,7 @@ class SystemBlacklist extends AdminApiController
         if ((clone $query)->count() > 10000) {
             return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
-        $items = $query->order('id', 'desc')->select();
+        $items = $query->orderByDesc('id')->get();
         return $this->ok(data: array_map(fn (Blacklist $item): array => $item->toApiData(), $items->all()));
     }
 

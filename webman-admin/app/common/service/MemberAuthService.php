@@ -6,7 +6,7 @@ namespace app\common\service;
 
 use app\common\model\Member;
 use app\common\service\identity\MemberIdentityAdapter;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 会员 API 认证服务。
@@ -23,11 +23,11 @@ class MemberAuthService extends AbstractService
         $member = Member::where('status', 1)
             ->where(function ($query) use ($account): void {
                 $query->where('username', $account)
-                    ->whereOr('mobile', $account)
-                    ->whereOr('email', $account);
+                    ->orWhere('mobile', $account)
+                    ->orWhere('email', $account);
             })
-            ->field('id,nickname,username,password,email,mobile,avatar,status,last_login')
-            ->find();
+            ->select(['id', 'nickname', 'username', 'password', 'email', 'mobile', 'avatar', 'status', 'last_login'])
+            ->first();
 
         if (!$member || !password_verify($password, (string) $member->password)) {
             return null;
@@ -55,8 +55,8 @@ class MemberAuthService extends AbstractService
     {
         $member = Member::where('id', $memberId)
             ->where('status', 1)
-            ->field('id,nickname,username')
-            ->find();
+            ->select(['id', 'nickname', 'username'])
+            ->first();
 
         if (!$member) {
             return null;

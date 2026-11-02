@@ -42,7 +42,7 @@ class AdminLogService extends AbstractService
 
         $headers = $request->header();
         foreach (array_keys($headers) as $name) {
-            if (in_array(strtolower((string) $name), ['authorization', 'cookie', 'x-csrf-token'], true)) {
+            if (in_array(strtolower((string) $name), ['authorization', 'proxy-authorization', 'cookie', 'x-csrf-token', 'x-api-key', 'api-key', 'x-auth-token', 'x-access-token'], true)) {
                 unset($headers[$name]);
             }
         }
@@ -59,6 +59,10 @@ class AdminLogService extends AbstractService
             $requestId = bin2hex(random_bytes(16));
         }
 
+        $postData = $this->sanitize($request->post());
+        if ($resource['obj'] === 'admin/systemconfig' && array_key_exists('value', $postData)) {
+            $postData['value'] = '[REDACTED]';
+        }
         $log = new AdminLog();
         $log->forceFill([
             'name' => $title,
@@ -71,7 +75,7 @@ class AdminLogService extends AbstractService
             'controller' => $controller,
             'action' => $action,
             'get_data' => $this->encode($this->sanitize($request->get())),
-            'post_data' => $this->encode($this->sanitize($request->post())),
+            'post_data' => $this->encode($postData),
             'header_data' => $this->encode($headers),
             'agent' => (string) $request->header('user-agent', ''),
             'ip' => MemberInput::normalizeIp($request->getRemoteIp()),

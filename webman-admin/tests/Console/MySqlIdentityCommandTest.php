@@ -80,13 +80,17 @@ final class MySqlIdentityCommandTest extends TestCase
         self::assertSame(2, $health->execute(['--tenant' => '1']));
         self::assertStringNotContainsString('do-not-print', $health->getDisplay());
 
+        self::assertSame(1, $health->execute(['--tenant' => '99']));
         $deliveries = new CommandTester(new IdentityLogoutDeliveriesWork());
+        self::assertSame(1, $deliveries->execute(['--tenant' => '0', '--once' => true]));
         self::assertSame(0, $deliveries->execute(['--tenant' => '1', '--once' => true]));
         self::assertSame(0, json_decode($deliveries->getDisplay(), true)['delivered']);
         self::assertSame(0, $deliveries->execute(['--tenant' => '1', '--dry-run' => true]));
 
         Db::table('oidc_signing_key')->insert(['tenant_id' => 1, 'status' => 'retiring', 'publish_until' => '2000-01-01']);
         $signing = new CommandTester(new IdentitySigningKey());
+        self::assertSame(1, $signing->execute(['--tenant' => '1', '--action' => 'invalid']));
+        self::assertSame(1, $signing->execute(['--tenant' => '1', '--action' => 'rotate', '--dry-run' => true]));
         self::assertSame(0, $signing->execute(['--tenant' => '1', '--dry-run' => true]));
         self::assertSame('retiring', Db::table('oidc_signing_key')->value('status'));
         self::assertSame(0, $signing->execute(['--tenant' => '1']));

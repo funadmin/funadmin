@@ -3,7 +3,7 @@
 namespace app\admin\middleware;
 
 use app\admin\authentication\service\BrowserAuthService;
-use app\admin\http\AdminResponse;
+use app\admin\common\http\AdminResponse;
 use DomainException;
 use Webman\Http\Request;
 use Webman\Http\Response;

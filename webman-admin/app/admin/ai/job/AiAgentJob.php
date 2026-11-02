@@ -43,15 +43,15 @@ final class AiAgentJob
             return;
         }
         $sandboxConfig = (array) config('ai.sandbox', []);
-        if (trim((string) ($sandboxConfig['image'] ?? '')) === '') {
+        if ($sandboxManager === null && trim((string) ($sandboxConfig['image'] ?? '')) === '') {
             throw new RuntimeException('AI Docker sandbox image 未配置');
         }
-        $security = new DatabaseAiSecurityStore();
+        $security = $securityStore ?? new DatabaseAiSecurityStore();
         $this->securityStore = $security;
-        $this->sandboxManager = new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), $sandboxConfig);
+        $this->sandboxManager = $sandboxManager ?? new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), $sandboxConfig);
         $tools = new ContainerAiToolExecutor(new AgentToolRegistry((array) config('ai.tools.allowlist', [])), new ApprovalPolicyEngine(), new AiApprovalService($security), new AiAuditService((string) config('ai.storage.log_path'), (int) config('ai.storage.log_max_bytes')), $security, $this->sandboxManager, $sandboxConfig);
         $this->orchestrator = null;
-        $this->orchestratorFactory = static fn (array $providerConfig): AiAgentOrchestrator => new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(), $providerConfig), $tools);
+        $this->orchestratorFactory = $orchestratorFactory ?? static fn (array $providerConfig): AiAgentOrchestrator => new AiAgentOrchestrator(new OpenAiCompatibleGateway(new Client(['handler' => \GuzzleHttp\HandlerStack::create(new \GuzzleHttp\Handler\CurlHandler()), 'proxy' => '']), $providerConfig), $tools);
     }
 
     public function consume(array $data): void
@@ -194,10 +194,17 @@ final class AiAgentJob
                         ));
                         $this->store->updateTask($taskId, ['change_set_id'=>$changeSet->id, 'sandbox_status'=>'exported']);
                     } catch (Throwable $exportException) {
-                        $this->store->updateTask($taskId, ['sandbox_status'=>'failed', 'error'=>['category'=>'artifact_export_failed']]);
+                        $this->store->updateTask($taskId, ['status'=>'failed', 'sandbox_status'=>'failed', 'sandbox_retained'=>1, 'error'=>['category'=>'artifact_export_failed']]);
+                        $this->store->appendEvent($taskId, 'task.failed', ['category' => 'artifact_export_failed']);
                         throw $exportException;
                     }
-                    $this->sandboxManager->cleanup($sandbox['containerId'], $sandbox['workspace'], $taskId, (int)$task['conversation_id'], (string)($task['sandbox_volume'] ?? $sandbox['volume'] ?? ''));
+                    try {
+                        $this->sandboxManager->cleanup($sandbox['containerId'], $sandbox['workspace'], $taskId, (int)$task['conversation_id'], (string)($task['sandbox_volume'] ?? $sandbox['volume'] ?? ''));
+                    } catch (Throwable $cleanupException) {
+                        $this->store->updateTask($taskId, ['sandbox_status' => 'failed', 'sandbox_retained' => 1]);
+                        $this->store->appendEvent($taskId, 'ai.sandbox.cleanup_failed', ['category' => 'sandbox_cleanup_failed']);
+                        throw $cleanupException;
+                    }
                     $this->store->updateTask($taskId, ['sandbox_status'=>'cleaned','sandbox_retained'=>0,'cleanup_at'=>date('Y-m-d H:i:s')]);
                 }
             }

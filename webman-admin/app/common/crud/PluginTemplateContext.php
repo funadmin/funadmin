@@ -20,12 +20,13 @@ final class PluginTemplateContext
             'controllerNamespace' => $console ? $namespace . '\\controller\\' . $pluginNamespace : $namespace . '\\controller',
             // 前台会员控制器只渲染在插件 application 层（app\{plugin}\controller），路由为 /{plugin}/{entity}。
             'memberControllerNamespace' => 'app\\' . $plugin . '\\controller',
-            'memberControllerGroup' => $entity,
-            'controllerGroup' => $console ? 'plugin/' . $plugin . '/' . $entity : $entity,
+            'memberControllerGroup' => $plugin . '/' . $entity,
+            'memberRoutePrefix' => '/' . $plugin . '/' . $entity,
+            'controllerGroup' => $console ? 'plugin/' . $plugin . '/' . $entity : $plugin . '/' . $entity,
             'apiPrefix' => $console ? '/plugin/' . $plugin . '/' . $entity : '/' . $entity,
             'frontendApiImport' => './api',
             'frontendComponentApiImport' => '../api',
-            'modelBaseImport' => $console ? 'use app\\admin\\model\\BackendModel;' : 'use think\\Model;',
+            'modelBaseImport' => $console ? 'use app\\admin\\model\\BackendModel;' : 'use support\\Model;',
             'modelBaseClass' => $console ? 'BackendModel' : 'Model',
             'consoleController' => $console,
         ]);

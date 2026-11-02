@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\admin\plugin\service;
 
 use app\admin\authorization\model\Permission;
+use app\admin\authorization\service\CasbinService;
 use app\admin\plugin\service\PluginService;
 
 /**
@@ -34,12 +35,12 @@ class PluginPermissionAuthorizationService
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('obj', '<>', '')
             ->where('act', '<>', '')
-            ->field('obj,act')
-            ->find();
+            ->select(['obj', 'act'])
+            ->first();
         if (!$resource) {
             return false;
         }
-        if ($adminId === (int) config('funadmin.superAdminId')) {
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return true;
         }
 

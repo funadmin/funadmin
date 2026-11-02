@@ -24,8 +24,8 @@ function resolveComponent(component?: string): RouteComponent {
     .replace(/^views\//, '');
   const suffix = normalized.endsWith('.vue') ? '' : '.vue';
   const candidates = [
-    `/src/views/${normalized}${suffix}`,
-    `/src/views/${normalized}/index${suffix}`
+    `/src/admin/views/${normalized}${suffix}`,
+    `/src/admin/views/${normalized}/index${suffix}`
   ];
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;

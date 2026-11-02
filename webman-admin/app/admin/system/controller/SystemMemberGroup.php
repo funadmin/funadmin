@@ -5,25 +5,21 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberGroupRelation;
 use app\common\traits\Crud;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Model;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Model;
+use support\Response;
 
 /**
  * Admin Web 会员组管理。
  */
-#[Group('system/member-group')]
+#[RouteGroup('/admin/system/member-group')]
 class SystemMemberGroup extends AdminApiController
 {
     use Crud {
@@ -39,16 +35,15 @@ class SystemMemberGroup extends AdminApiController
         export as private crudExport;
     }
 
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
     protected string $model = MemberGroup::class;
 
-    #[Get('export')]
+    #[Get('/export')]
     public function export(): Response
     {
         return $this->crudExport();
     }
 
-    #[Post('import')]
+    #[Post('/import')]
     public function import(): Response
     {
         return $this->crudImport();
@@ -60,8 +55,7 @@ class SystemMemberGroup extends AdminApiController
         return $this->crudIndex();
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         return $this->crudDetail($id);
@@ -73,15 +67,13 @@ class SystemMemberGroup extends AdminApiController
         return $this->crudCreate();
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         return $this->crudUpdate($id);
     }
 
-    #[Post(':id/status')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/status')]
     public function status(int $id): Response
     {
         return $this->crudStatus($id);
@@ -93,13 +85,13 @@ class SystemMemberGroup extends AdminApiController
         return $this->crudRecycle();
     }
 
-    #[Post('restore')]
+    #[Post('/restore')]
     public function restore(): Response
     {
         return $this->crudRestore();
     }
 
-    #[Delete('destroy')]
+    #[Delete('/destroy')]
     public function destroy(): Response
     {
         return $this->crudDestroy();

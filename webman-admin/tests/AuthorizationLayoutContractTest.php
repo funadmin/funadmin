@@ -19,6 +19,34 @@ use support\Db;
 
 final class AuthorizationLayoutContractTest extends TestCase
 {
+    public function test_plugin_permission_middleware_is_owned_by_the_plugin_module(): void
+    {
+        $class = 'app\\admin\\plugin\\middleware\\CheckPluginPermission';
+        self::assertTrue(class_exists($class));
+        self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermission.php'), (new \ReflectionClass($class))->getFileName());
+        self::assertFalse(class_exists('app\\admin\\middleware\\CheckPluginPermission'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/middleware/CheckPluginPermission.php');
+        foreach ([
+            ...glob(__DIR__ . '/../app/admin/plugin/business/market/controller/*.php'),
+            __DIR__ . '/../app/common/plugin/sdk/PluginRoute.php',
+        ] as $file) {
+            $source = file_get_contents($file);
+            self::assertStringContainsString('use ' . $class . ';', $source);
+            self::assertStringNotContainsString('use app\\admin\\middleware\\CheckPluginPermission;', $source);
+        }
+    }
+
+    public function test_plugin_authorization_injects_the_authorization_module_service(): void
+    {
+        $class = \app\admin\plugin\service\PluginPermissionAuthorizationService::class;
+        $parameter = (new \ReflectionClass($class))->getConstructor()->getParameters()[0];
+        self::assertSame(\app\admin\authorization\service\CasbinService::class, $parameter->getType()->getName());
+        $casbin = new \app\admin\authorization\service\CasbinService();
+        $service = new $class($casbin);
+        self::assertFalse($service->authorize(0, 'example', 'example:entry:index'));
+        self::assertFalse($service->authorize(2, 'example', 'other:entry:index'));
+    }
+
     public function test_models_use_logical_names_and_connection_prefixes(): void
     {
         $models = [
@@ -73,7 +101,17 @@ final class AuthorizationLayoutContractTest extends TestCase
             self::assertSame(realpath(__DIR__ . '/../app/admin/authorization/controller/' . $name . '.php'), (new \ReflectionClass($class))->getFileName());
             self::assertFalse(class_exists('app\\admin\\controller\\authorization\\' . $name));
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/authorization/' . $name . '.php');
-            self::assertStringContainsString("#[Group('system/" . strtolower(substr($name, 6)) . "')]", file_get_contents((new \ReflectionClass($class))->getFileName()));
+            $reflection = new \ReflectionClass($class);
+            $groups = $reflection->getAttributes(\support\annotation\route\RouteGroup::class);
+            $path = 'system/' . strtolower(substr($name, 6));
+            if ($groups !== []) {
+                self::assertCount(1, $groups);
+                self::assertSame('/admin/' . $path, $groups[0]->newInstance()->prefix);
+            } else {
+                $groups = $reflection->getAttributes('think\\annotation\\route\\Group');
+                self::assertCount(1, $groups);
+                self::assertSame($path, $groups[0]->getArguments()[0]);
+            }
         }
     }
 }

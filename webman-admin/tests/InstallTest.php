@@ -9,10 +9,14 @@ use app\common\service\MigrationService;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authorization\service\AuthorizationService;
 use app\install\controller\Index;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;
 
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class InstallTest extends TestCase
 {
     private function inputs(): array

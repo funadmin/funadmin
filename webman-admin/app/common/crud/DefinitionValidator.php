@@ -214,6 +214,12 @@ final class DefinitionValidator
                 throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
             PathGuard::resolve($projectRoot, $path, '项目目录');
+            if (preg_match('~^app/admin/generated/[a-z][a-z0-9_]*/(model|validate|service|controller)/([A-Za-z][A-Za-z0-9]*\.php)$~D', $path, $generated) === 1) {
+                $legacy = PathGuard::resolve($projectRoot, 'app/admin/' . $generated[1] . '/generated/' . $generated[2], '项目目录');
+                if (file_exists($legacy) || is_link($legacy)) {
+                    throw new InvalidArgumentException('GENERATION_LAYOUT_CONFLICT：旧生成制品仍存在，必须先完成受管路径处理');
+                }
+            }
         }
         foreach (self::ARTIFACT_KEYS as $required) {
             if (!isset($paths[$required])) {

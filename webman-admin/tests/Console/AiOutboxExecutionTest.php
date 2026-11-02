@@ -42,6 +42,14 @@ final class AiOutboxExecutionTest extends TestCase
         Db::table('ai_outbox')->insert(['payload' => json_encode(['taskId' => $taskId, 'operationToken' => 'operation-' . $taskId]), 'available_at' => '2000-01-01']);
     }
 
+    public function test_command_returns_nonzero_when_outbox_storage_is_unavailable(): void
+    {
+        Db::schema()->drop('ai_outbox');
+        $command = new \Symfony\Component\Console\Tester\CommandTester(new \app\admin\ai\command\AiOutboxDispatch());
+        self::assertSame(1, $command->execute([]));
+        self::assertStringNotContainsString('"dispatched":', $command->getDisplay());
+    }
+
     public function test_database_dispatch_claims_each_row_once_and_preserves_json_payload(): void
     {
         $this->pending(7);

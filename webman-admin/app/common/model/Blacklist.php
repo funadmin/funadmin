@@ -13,7 +13,7 @@
  */
 namespace app\common\model;
 
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
@@ -22,7 +22,7 @@ class Blacklist extends BaseModel {
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     

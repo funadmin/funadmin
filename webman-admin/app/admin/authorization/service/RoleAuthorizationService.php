@@ -12,8 +12,8 @@ use app\admin\authorization\model\Permission;
 use app\admin\authorization\model\PermissionField;
 use app\admin\authorization\model\Department;
 use InvalidArgumentException;
-use think\facade\Cache;
-use think\facade\Db;
+use support\Cache;
+use support\Db;
 
 /**
  * 角色功能、字段与数据授权的统一读写入口。
@@ -93,7 +93,7 @@ final class RoleAuthorizationService
             'fieldId' => (int) $row['field_id'],
             'view' => (bool) $row['can_view'],
             'edit' => (bool) $row['can_edit'],
-        ], AuthGroupFieldPermission::where('role_id', $sourceId)->select()->toArray());
+        ], AuthGroupFieldPermission::where('role_id', $sourceId)->get()->toArray());
         $this->save($target, [
             'permissionIds' => (new RoleScopeService())->rolePermissionIds($sourceId),
             'fieldPermissions' => $fieldGrants,
@@ -110,20 +110,16 @@ final class RoleAuthorizationService
     private function fieldNamesForRoles(array $roleIds, string $resource, bool $editing): array
     {
         $roleIds = (new RoleGuardService())->ancestorRoleIds($this->ids($roleIds));
-        if (in_array((int) config('funadmin.superRoleId'), $roleIds, true)) {
-            return array_values(array_map('strval', PermissionField::where('status', 1)
-                ->where('resource', $resource)->column('field')));
-        }
         $column = $editing ? 'can_edit' : 'can_view';
         $fieldIds = AuthGroupFieldPermission::whereIn('role_id', $roleIds ?: [0])
             ->where(function ($query) use ($column, $editing): void {
                 $query->where($column, 1);
                 if (!$editing) {
-                    $query->whereOr('can_edit', 1);
+                    $query->orWhere('can_edit', 1);
                 }
-            })->column('field_id');
+            })->pluck('field_id')->all();
         return array_values(array_map('strval', PermissionField::where('status', 1)
-            ->where('resource', $resource)->whereIn('id', $this->ids($fieldIds) ?: [0])->column('field')));
+            ->where('resource', $resource)->whereIn('id', $this->ids($fieldIds) ?: [0])->pluck('field')->all()));
     }
 
     private function permissionMatrix(array $directIds, array $inherited): array
@@ -131,7 +127,7 @@ final class RoleAuthorizationService
         $assignableIds = $this->assignablePermissionIds();
         $permissions = Permission::where('status', 1)
             ->whereIn('id', $assignableIds ?: [0])
-            ->order('sort_order', 'asc')->order('id', 'asc')->select()->toArray();
+            ->orderBy('sort_order')->orderBy('id')->get()->toArray();
         $byId = array_column($permissions, null, 'id');
         $groups = [];
         foreach ($permissions as $permission) {
@@ -190,11 +186,11 @@ final class RoleAuthorizationService
     {
         $roleId = (int) $role->id;
         $primaryParentId = (int) $role->pid;
-        $directParentIds = $this->ids(AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id'));
+        $directParentIds = $this->ids(AuthGroupInherit::where('role_id', $roleId)->pluck('parent_role_id')->all());
         if ($primaryParentId > 0 && !in_array($primaryParentId, $directParentIds, true)) {
             array_unshift($directParentIds, $primaryParentId);
         }
-        $names = AuthGroup::whereIn('id', $directParentIds ?: [0])->column('name', 'id');
+        $names = AuthGroup::whereIn('id', $directParentIds ?: [0])->pluck('name', 'id')->all();
         usort($directParentIds, static fn (int $left, int $right): int => ($left === $primaryParentId ? -1 : 0) <=> ($right === $primaryParentId ? -1 : 0));
         $directParents = array_map(static fn (int $parentId): array => [
             'roleId' => $parentId,
@@ -210,7 +206,7 @@ final class RoleAuthorizationService
             }
         }
         $ancestorIds = array_keys($ancestorSources);
-        $ancestorNames = AuthGroup::whereIn('id', $ancestorIds ?: [0])->column('name', 'id');
+        $ancestorNames = AuthGroup::whereIn('id', $ancestorIds ?: [0])->pluck('name', 'id')->all();
         $ancestors = [];
         foreach ($ancestorSources as $ancestorId => $sourceIds) {
             $sourceIds = $this->ids($sourceIds);
@@ -228,7 +224,7 @@ final class RoleAuthorizationService
     {
         $parents = (new RoleGuardService())->ancestorRoleIds([$roleId]);
         $parents = array_values(array_diff($parents, [$roleId]));
-        $roles = AuthGroup::whereIn('id', $parents ?: [0])->column('name', 'id');
+        $roles = AuthGroup::whereIn('id', $parents ?: [0])->pluck('name', 'id')->all();
         $result = [];
         $scope = new RoleScopeService();
         foreach ($parents as $parentId) {
@@ -241,9 +237,9 @@ final class RoleAuthorizationService
 
     private function fieldMatrix(int $roleId): array
     {
-        $direct = array_column(AuthGroupFieldPermission::where('role_id', $roleId)->select()->toArray(), null, 'field_id');
+        $direct = array_column(AuthGroupFieldPermission::where('role_id', $roleId)->get()->toArray(), null, 'field_id');
         $inherited = $this->inheritedFieldGrants($roleId);
-        $fields = PermissionField::where('status', 1)->order('resource', 'asc')->order('sort_order', 'asc')->select()->toArray();
+        $fields = PermissionField::where('status', 1)->orderBy('resource')->orderBy('sort_order')->get()->toArray();
         return array_map(static function (array $field) use ($direct, $inherited): array {
             $id = (int) $field['id'];
             $own = $direct[$id] ?? [];
@@ -266,9 +262,9 @@ final class RoleAuthorizationService
     private function inheritedFieldGrants(int $roleId): array
     {
         $parents = array_values(array_diff((new RoleGuardService())->ancestorRoleIds([$roleId]), [$roleId]));
-        $roles = AuthGroup::whereIn('id', $parents ?: [0])->column('name', 'id');
+        $roles = AuthGroup::whereIn('id', $parents ?: [0])->pluck('name', 'id')->all();
         $result = [];
-        foreach (AuthGroupFieldPermission::whereIn('role_id', $parents ?: [0])->select()->toArray() as $grant) {
+        foreach (AuthGroupFieldPermission::whereIn('role_id', $parents ?: [0])->get()->toArray() as $grant) {
             $fieldId = (int) $grant['field_id'];
             $result[$fieldId] ??= ['view' => false, 'edit' => false, 'inheritedFrom' => []];
             $result[$fieldId]['edit'] = $result[$fieldId]['edit'] || (bool) $grant['can_edit'];
@@ -307,7 +303,7 @@ final class RoleAuthorizationService
         }
         $roleIds = (new RoleGuardService())->ancestorRoleIds($roleScope->currentRoleIds());
         $rows = AuthGroupFieldPermission::whereIn('role_id', $roleIds ?: [0])
-            ->field('field_id,can_view,can_edit')->select()->toArray();
+            ->get(['field_id', 'can_view', 'can_edit'])->toArray();
         $viewIds = [];
         $editIds = [];
         foreach ($rows as $row) {
@@ -358,7 +354,7 @@ final class RoleAuthorizationService
     private function allowedFieldIds(array $permissionIds): array
     {
         return $this->ids(PermissionField::where('status', 1)
-            ->whereIn('permission_id', $permissionIds ?: [0])->column('id'));
+            ->whereIn('permission_id', $permissionIds ?: [0])->pluck('id')->all());
     }
 
     private function assertDataScope(AuthGroup $role, string $scope, array $departmentIds): void
@@ -385,12 +381,12 @@ final class RoleAuthorizationService
             'created_at' => $now,
             'updated_at' => $now,
         ], $grants);
-        (new AuthGroupFieldPermission())->saveAll($rows);
+        AuthGroupFieldPermission::insert($rows);
     }
 
     private function syncDataScope(AuthGroup $role, string $scope, array $departmentIds): void
     {
-        $role->save(['data_scope' => $scope]);
+        $role->forceFill(['data_scope' => $scope])->save();
         AuthGroupDepartment::where('role_id', (int) $role->id)->delete();
         if ($scope !== 'custom') {
             return;
@@ -398,16 +394,16 @@ final class RoleAuthorizationService
         $rows = array_map(static fn (int $departmentId): array => [
             'role_id' => (int) $role->id,
             'dept_id' => $departmentId,
-            'created_at' => time(),
+            'created_at' => date('Y-m-d H:i:s'),
         ], $departmentIds);
-        (new AuthGroupDepartment())->saveAll($rows);
+        AuthGroupDepartment::insert($rows);
     }
 
     private function assignablePermissionIds(): array
     {
         $scope = new RoleScopeService();
         if ($scope->isSuperAdmin()) {
-            return $this->ids(Permission::where('status', 1)->column('id'));
+            return $this->ids(Permission::where('status', 1)->pluck('id')->all());
         }
         return $this->ids($scope->permissionIdsForRoles($scope->currentRoleIds()));
     }
@@ -418,17 +414,17 @@ final class RoleAuthorizationService
         return $this->ids(Permission::whereIn('id', $ids ?: [0])
             ->where('status', 1)
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
-            ->column('id'));
+            ->pluck('id')->all());
     }
 
     private function departmentIds(int $roleId): array
     {
-        return $this->ids(AuthGroupDepartment::where('role_id', $roleId)->column('dept_id'));
+        return $this->ids(AuthGroupDepartment::where('role_id', $roleId)->pluck('dept_id')->all());
     }
 
     private function departmentTree(): array
     {
-        $query = Department::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
+        $query = Department::where('status', 1)->orderBy('sort_order')->orderBy('id');
         $scope = new RoleScopeService();
         if (!$scope->isSuperAdmin()) {
             $allowedIds = (new DataScopeService())->resolve()['departmentIds'];
@@ -439,7 +435,7 @@ final class RoleAuthorizationService
             'parentId' => (int) $department->pid,
             'name' => (string) $department->name,
             'children' => [],
-        ], $query->select()->all());
+        ], $query->get()->all());
         return $this->tree($rows);
     }
 
@@ -448,14 +444,14 @@ final class RoleAuthorizationService
         $scope = new RoleScopeService();
         $ids = array_values(array_diff(
             $scope->manageableRoleIds(),
-            [(int) config('funadmin.superRoleId')]
+            [(int) config('auth.super_role_id', 1)]
         ));
         return array_map(static fn (AuthGroup $role): array => [
             'id' => (int) $role->id,
             'parentId' => (int) $role->pid,
             'name' => (string) $role->name,
             'code' => (string) $role->code,
-        ], AuthGroup::whereIn('id', $ids ?: [0])->where('status', 1)->order('level', 'asc')->select()->all());
+        ], AuthGroup::whereIn('id', $ids ?: [0])->where('status', 1)->orderBy('level')->get()->all());
     }
 
     private function tree(array $rows): array

@@ -13,7 +13,7 @@ use app\admin\form\repository\FormSchemaRepository;
 use app\admin\development\model\BusinessModule;
 use Closure;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 use Throwable;
 
 /** 纯动态表单发布服务：只编译 Schema、执行 forward-only DDL 并推进业务模块元数据。 */
@@ -54,7 +54,7 @@ final class FormPublishService
         $this->formReader = Closure::fromCallable($formReader ?? fn (int $formId): array => $this->forms->detail($formId));
         $this->moduleTargetReader = Closure::fromCallable($moduleTargetReader ?? static function (int $formId): array {
             if ($formId < 1) return [];
-            $module = BusinessModule::where('form_id', $formId)->find();
+            $module = BusinessModule::where('form_id', $formId)->first();
             return (array) ($module?->metadata['target'] ?? []);
         });
     }
@@ -213,14 +213,14 @@ final class FormPublishService
         $formId = (int) ($definition['id'] ?? 0);
         $code = $compiled->key();
         return Db::transaction(function () use ($definition, $formId, $code, $compiled, $operator, $baseline): array {
-            $form = Form::lock(true)->find($formId);
+            $form = Form::lockForUpdate()->firstWhere('id', $formId);
             if (!$form) {
                 throw new InvalidArgumentException('表单不存在');
             }
             $version = FormSchemaVersion::where('form_id', $formId)
                 ->where('schema_hash', $compiled->hash())
-                ->order('version', 'desc')
-                ->find();
+                ->orderBy('version', 'desc')
+                ->first();
             if (!$version) {
                 throw new InvalidArgumentException('已发布 FormSchema 版本不存在');
             }
@@ -264,7 +264,7 @@ final class FormPublishService
     private function assertBusinessModuleStorage(): void
     {
         try {
-            $tables = Db::connect()->getTables();
+            $tables = Db::connection()->getSchemaBuilder()->getTables();
         } catch (Throwable $exception) {
             throw new InvalidArgumentException('无法检查 077_business_development_center 迁移：' . $exception->getMessage(), 0, $exception);
         }
@@ -278,8 +278,8 @@ final class FormPublishService
     {
         try {
             return BusinessModule::where(function ($query) use ($formId, $code): void {
-                $query->where('form_id', $formId)->whereOr('code', $code);
-            })->find();
+                $query->where('form_id', $formId)->orWhere('code', $code);
+            })->first();
         } catch (Throwable $exception) {
             throw new InvalidArgumentException('业务模块存储不可用，请先执行 077_business_development_center 迁移', 0, $exception);
         }
@@ -297,9 +297,9 @@ final class FormPublishService
 
     private function lockedBusinessModule(int $formId, string $code): ?BusinessModule
     {
-        return BusinessModule::lock(true)->where(function ($query) use ($formId, $code): void {
-            $query->where('form_id', $formId)->whereOr('code', $code);
-        })->find();
+        return BusinessModule::lockForUpdate()->where(function ($query) use ($formId, $code): void {
+            $query->where('form_id', $formId)->orWhere('code', $code);
+        })->first();
     }
 
     private function assertPublishedBaseline(?BusinessModule $module, array $baseline): void
@@ -341,8 +341,7 @@ final class FormPublishService
 
     private function assertStructure(array $payload): void
     {
-        $actual = Db::connect((string) ($payload['connection'] ?? 'mysql'))
-            ->getFields((string) ($payload['table_name'] ?? ''));
+        $actual = Db::connection((string) ($payload['connection'] ?? 'mysql'))->getSchemaBuilder()->getColumnListing((string) ($payload['table_name'] ?? ''));
         foreach ((array) ($payload['fields'] ?? []) as $field) {
             $virtual = in_array((string) ($field['type'] ?? ''), ['group', 'grid', 'divider', 'text', 'collapse', 'tabs', 'repeatable', 'subform'], true)
                 || (string) ($field['relation_type'] ?? 'none') === 'has_many';
@@ -359,7 +358,7 @@ final class FormPublishService
             return 0;
         }
         return Db::transaction(function () use ($formId, $status, $extra, $baseline): int {
-            $form = Form::lock(true)->find($formId);
+            $form = Form::lockForUpdate()->firstWhere('id', $formId);
             if (!$form) {
                 return 0;
             }

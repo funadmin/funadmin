@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace app\admin\authorization\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupDepartment;
 use app\admin\authorization\model\AuthGroupInherit;
@@ -17,20 +14,18 @@ use app\admin\authorization\service\RoleAuthorizationService;
 use app\admin\authorization\service\RoleGuardService;
 use app\admin\authorization\service\RoleScopeService;
 use InvalidArgumentException;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
-use think\facade\Cache;
-use think\facade\Db;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Cache;
+use support\Db;
+use support\Response;
 
-#[Group('system/role')]
+#[RouteGroup('/admin/system/role')]
 class SystemRole extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('')]
     public function index(): Response
@@ -42,39 +37,37 @@ class SystemRole extends AdminApiController
         $code = trim((string) $this->request->get('code', ''));
         $status = $this->request->get('status', null);
         if ($name !== '') {
-            $query->whereLike('name', '%' . $name . '%');
+            $query->where('name', 'like', '%' . addcslashes($name, '%_') . '%');
         }
         if ($code !== '') {
-            $query->whereLike('code', '%' . $code . '%');
+            $query->where('code', 'like', '%' . addcslashes($code, '%_') . '%');
         }
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
-        $result = $query->order('level', 'asc')->order('id', 'asc')->paginate([
-            'list_rows' => $pageSize,
-            'page' => $page,
-        ]);
+        $total = (clone $query)->count();
+        $items = $query->orderBy('level')->orderBy('id')->forPage($page, $pageSize)->get();
         return $this->ok(data: $this->paginationData(
-            array_map(fn (AuthGroup $role): array => $role->toRoleData(), $result->items()),
-            $result->total(),
+            $items->map(fn (AuthGroup $role): array => $role->toRoleData())->all(),
+            $total,
             $page,
             $pageSize
         ));
     }
 
-    #[Get('all')]
+    #[Get('/all')]
     public function all(): Response
     {
-        $roles = AuthGroup::manageableQuery()->where('status', 1)->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(data: array_map(fn (AuthGroup $role): array => $role->toRoleData(), $roles->all()));
+        $roles = AuthGroup::manageableQuery()->orderBy('level')->orderBy('id')->get();
+        return $this->ok(data: $roles->map(fn (AuthGroup $role): array => $role->toRoleData())->all());
     }
 
-    #[Get('parent-options')]
+    #[Get('/parent-options')]
     public function parentOptions(): Response
     {
         $roleScope = new RoleScopeService();
         if ($roleScope->isSuperAdmin()) {
-            $roleIds = array_map('intval', AuthGroup::where('status', 1)->column('id'));
+            $roleIds = array_map('intval', AuthGroup::where('status', 1)->pluck('id')->all());
         } else {
             $roleIds = array_values(array_unique(array_merge(
                 $roleScope->currentRoleIds(),
@@ -82,12 +75,11 @@ class SystemRole extends AdminApiController
             )));
         }
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])->where('status', 1)
-            ->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(data: array_map(fn (AuthGroup $role): array => $role->toRoleData(), $roles->all()));
+            ->orderBy('level')->orderBy('id')->get();
+        return $this->ok(data: $roles->map(fn (AuthGroup $role): array => $role->toRoleData())->all());
     }
 
-    #[Get(':id/authorization')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}/authorization')]
     public function authorization(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -101,8 +93,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Put(':id/authorization')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}/authorization')]
     public function saveAuthorization(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -117,8 +108,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Post(':id/authorization/copy')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/authorization/copy')]
     public function copyAuthorization(int $id): Response
     {
         $target = AuthGroup::find($id);
@@ -134,8 +124,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -150,16 +139,16 @@ class SystemRole extends AdminApiController
         return $this->ok(data: $role->toRoleData());
     }
 
-    #[Get('permission-tree')]
+    #[Get('/permission-tree')]
     public function permissionTree(): Response
     {
         $roleScope = new RoleScopeService();
-        $query = Permission::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
+        $query = Permission::where('status', 1)->orderBy('sort_order')->orderBy('id');
         if (!$roleScope->isSuperAdmin()) {
             $query->whereIn('id', $roleScope->permissionIdsForRoles($roleScope->currentRoleIds()) ?: [0]);
         }
         $rows = [];
-        foreach ($query->select() as $permission) {
+        foreach ($query->get() as $permission) {
             $rows[] = [
                 'id' => (int) $permission->id,
                 'parentId' => (int) $permission->pid,
@@ -183,13 +172,14 @@ class SystemRole extends AdminApiController
         if ($error = AuthGroup::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (AuthGroup::withTrashed()->where('name', $data['name'])->find() || AuthGroup::withTrashed()->where('code', $data['code'])->find()) {
+        if (AuthGroup::withTrashed()->where('name', $data['name'])->first() || AuthGroup::withTrashed()->where('code', $data['code'])->first()) {
             return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
             (new RoleGuardService())->assertRolePayload(0, $data);
             $role = Db::transaction(function () use ($data): AuthGroup {
-                $role = AuthGroup::create([
+                $role = new AuthGroup();
+                $role->forceFill([
                     'pid' => $data['parentId'],
                     'name' => $data['name'],
                     'code' => $data['code'],
@@ -197,7 +187,7 @@ class SystemRole extends AdminApiController
                     'data_scope' => $data['dataScope'],
                     'remark' => $data['remark'],
                     'status' => $data['status'],
-                ]);
+                ])->save();
                 AuthGroup::syncRelations((int) $role->id, $data);
                 return $role;
             });
@@ -215,8 +205,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -228,8 +217,8 @@ class SystemRole extends AdminApiController
             return $this->fail(msg: $error, code: 422);
         }
         if (AuthGroup::withTrashed()->where('id', '<>', $id)->where(function ($query) use ($data) {
-            $query->where('name', $data['name'])->whereOr('code', $data['code']);
-        })->find()) {
+            $query->where('name', $data['name'])->orWhere('code', $data['code']);
+        })->first()) {
             return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
@@ -237,7 +226,7 @@ class SystemRole extends AdminApiController
             $guard->assertManageRole($role);
             $guard->assertRolePayload($id, $data);
             Db::transaction(function () use ($role, $data): void {
-                $role->save([
+                $role->forceFill([
                     'pid' => $data['parentId'],
                     'name' => $data['name'],
                     'code' => $data['code'],
@@ -245,7 +234,7 @@ class SystemRole extends AdminApiController
                     'data_scope' => $data['dataScope'],
                     'remark' => $data['remark'],
                     'status' => $data['status'],
-                ]);
+                ])->save();
                 AuthGroup::syncRelations((int) $role->id, $data);
             });
             Cache::clear();
@@ -262,8 +251,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
@@ -282,7 +270,7 @@ class SystemRole extends AdminApiController
         $guard = new RoleGuardService();
         $casbin = CasbinService::instance();
         try {
-            $roles = AuthGroup::whereIn('id', $ids)->select();
+            $roles = AuthGroup::whereIn('id', $ids)->get();
             if (count($roles) !== count($ids)) {
                 throw new InvalidArgumentException('包含不存在的角色');
             }
@@ -311,8 +299,7 @@ class SystemRole extends AdminApiController
         }
     }
 
-    #[Post(':id/permissions')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/permissions')]
     public function permissions(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -343,8 +330,8 @@ class SystemRole extends AdminApiController
             'remark' => $role ? (string) $role->remark : '',
             'status' => $role ? (int) $role->status : 1,
             'parentId' => $role ? (int) $role->pid : 0,
-            'parentRoleIds' => $role ? array_map('intval', AuthGroupInherit::where('role_id', (int) $role->id)->column('parent_role_id')) : [],
-            'departmentIds' => $role ? array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->column('dept_id')) : [],
+            'parentRoleIds' => $role ? array_map('intval', AuthGroupInherit::where('role_id', (int) $role->id)->pluck('parent_role_id')->all()) : [],
+            'departmentIds' => $role ? array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->pluck('dept_id')->all()) : [],
         ];
         return [
             'name' => trim(strip_tags((string) $this->request->post('name', $defaults['name']))),

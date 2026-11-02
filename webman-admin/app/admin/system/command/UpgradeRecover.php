@@ -16,6 +16,11 @@ use Throwable;
 #[AsCommand(name: 'upgrade:recover-stale')]
 final class UpgradeRecover extends Command
 {
+    public function __construct(private readonly ?UpgradeService $service = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('upgrade:recover-stale')->setDescription('恢复或释放租约已过期的系统升级任务');
@@ -24,7 +29,7 @@ final class UpgradeRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $result = UpgradeService::instance()->recoverStale();
+            $result = ($this->service ?? UpgradeService::instance())->recoverStale();
             $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {

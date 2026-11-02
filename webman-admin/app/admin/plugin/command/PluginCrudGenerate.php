@@ -20,6 +20,11 @@ final class PluginCrudGenerate extends Command
 {
     use CrudCommandSupport;
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:crud-generate')->setDescription('使用 preview token 原子生成插件 CRUD')
@@ -34,7 +39,7 @@ final class PluginCrudGenerate extends Command
             if (($definition->get('target')['type'] ?? '') !== 'plugin') {
                 throw new \InvalidArgumentException('plugin:crud-generate 仅接受插件 target');
             }
-            $result = (new CrudGenerator(base_path() . DIRECTORY_SEPARATOR))->generate(
+            $result = (new CrudGenerator($this->projectRoot ?? base_path()))->generate(
                 $definition,
                 $this->readToken((string) $input->getOption('confirm-token-file')),
                 [],

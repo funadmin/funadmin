@@ -6,7 +6,6 @@ use app\common\form\security\PluginFormReferenceGuard;
 use app\common\plugin\model\Plugin;
 use app\common\plugin\model\PluginVersionHistory;
 use app\common\service\AbstractService;
-use app\common\traits\Jump;
 use app\admin\plugin\PluginPreconditionException;
 use app\admin\plugin\service\concern\PluginServiceSupport;
 use app\common\plugin\sdk\DatabaseCapabilityGuard;
@@ -17,8 +16,11 @@ use RuntimeException;
 
 class PluginService extends AbstractService
 {
-    use Jump;
     use PluginServiceSupport;
+
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+    }
 
     private bool $deploymentRollbackAllowed = true;
     private bool $suppressFailureRecording = false;
@@ -35,11 +37,11 @@ class PluginService extends AbstractService
     {
         $from = (string) $record->lifecycle_state;
         LifecycleState::assertTransition($from, $to);
-        if ($record->save($this->filterPluginColumns([
+        if ($record->fill($this->filterPluginColumns([
             'lifecycle_state' => $to,
             'status' => $to === 'enabled' ? 1 : 0,
             'state_changed_at' => time(),
-        ])) === false) {
+        ]))->save() === false) {
             throw new RuntimeException('插件状态保存失败');
         }
         $record->lifecycle_state = $to;
@@ -59,7 +61,7 @@ class PluginService extends AbstractService
         try {
             $this->assertCode($code);
             $this->assertLifecycleSchema();
-            $lock = PluginInfrastructureService::lifecycleLock()->acquire($code);
+            $lock = PluginInfrastructureService::lifecycleLock($this->projectRoot)->acquire($code);
             $this->assertNoStalePublication($code);
             $this->captureResourceState($code);
             $result = $operation($token);
@@ -106,8 +108,8 @@ class PluginService extends AbstractService
             $this->suppressFailureRecording = false;
             try {
                 $record = $this->isInstall($code);
-                if ($record) {
-                    $record->save($this->filterPluginColumns(['operation_token' => null]));
+                if ($lock && $record && hash_equals($token, (string) $record->operation_token)) {
+                    $record->fill($this->filterPluginColumns(['operation_token' => null]))->save();
                 }
             } catch (\Throwable $cleanupException) {
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
@@ -130,12 +132,12 @@ class PluginService extends AbstractService
 
     private function beginOperation(Plugin $record, string $token, string $state): void
     {
-        if ($record->save($this->filterPluginColumns([
+        if ($record->fill($this->filterPluginColumns([
             'operation_token' => $token,
             'last_error' => null,
             'error_stage' => null,
             'recovery_path' => null,
-        ])) === false) {
+        ]))->save() === false) {
             throw new RuntimeException('插件操作令牌保存失败');
         }
         $this->transition($record, $state);
@@ -146,7 +148,7 @@ class PluginService extends AbstractService
     public function captureDeploymentState(string $code): array
     {
         $record = $this->isInstall($code);
-        return $record ? ['exists' => true, 'attributes' => $record->getData()] : ['exists' => false, 'attributes' => []];
+        return $record ? ['exists' => true, 'attributes' => $record->getAttributes()] : ['exists' => false, 'attributes' => []];
     }
 
     public function assertPackageDeployable(string $code, string $targetVersion, string $packageCapability = ''): void
@@ -156,7 +158,7 @@ class PluginService extends AbstractService
             return;
         }
         $guard = new DatabaseCapabilityGuard(static function (string $plugin, string $version): ?string {
-            $history = PluginVersionHistory::where('plugin_code', $plugin)->where('version', $version)->order('id', 'desc')->find();
+            $history = PluginVersionHistory::where('plugin_code', $plugin)->where('version', $version)->orderBy('id', 'desc')->first();
             return $history ? (string) $history->max_db_version : null;
         });
         $guard->assertDeployable(
@@ -173,13 +175,13 @@ class PluginService extends AbstractService
         $record = $this->isInstall($code);
         if (!($state['exists'] ?? false)) {
             if ($record) {
-                $record->force()->delete();
+                $record->forceDelete();
             }
             $this->suppressFailureRecording = true;
             return;
         }
         $attributes = $this->filterPluginColumns((array) ($state['attributes'] ?? []));
-        if (!$record || $record->save($attributes) === false) {
+        if (!$record || $record->fill($attributes)->save() === false) {
             throw new RuntimeException('插件数据库旧快照恢复失败');
         }
         $record->lifecycle_state = (string) ($attributes['lifecycle_state'] ?? $record->lifecycle_state);
@@ -206,7 +208,7 @@ class PluginService extends AbstractService
                 if (!$record) {
                     $manifest = (array) ($context['manifest_data'] ?? []);
                     $record = new Plugin();
-                    $record->save($this->filterPluginColumns([
+                    $record->fill($this->filterPluginColumns([
                         'code' => $code,
                         'name' => (string) ($manifest['name'] ?? $code),
                         'version' => (string) ($manifest['version'] ?? ''),
@@ -214,7 +216,7 @@ class PluginService extends AbstractService
                         'lifecycle_state' => 'discovered',
                         'state_changed_at' => time(),
                         'installed_at' => time(),
-                    ]));
+                    ]))->save();
                     $record->lifecycle_state = 'discovered';
                 }
                 $this->beginOperation($record, $token, 'installing');
@@ -238,25 +240,25 @@ class PluginService extends AbstractService
                 throw new PluginPreconditionException(sprintf('插件 %s 已安装', $code));
             }
             if ($record && $record->deleted_at !== null) {
-                (new Plugin())->restore(['id' => $record->id]);
+                $record->restore();
                 $record = Plugin::find($record->id);
             }
             if (!$record) {
                 $record = new Plugin();
-                $record->save($this->filterPluginColumns(array_merge($pluginInfo, [
+                $record->fill($this->filterPluginColumns(array_merge($pluginInfo, [
                     'status' => 0,
                     'state_changed_at' => time(),
                     'installed_at' => time(),
-                ])));
+                ])))->save();
                 $record->lifecycle_state = 'discovered';
             }
             if ((string) $record->lifecycle_state !== 'installing') {
                 $this->beginOperation($record, $token, 'installing');
             }
-            $record->save($this->filterPluginColumns(array_merge($pluginInfo, [
+            $record->fill($this->filterPluginColumns(array_merge($pluginInfo, [
                 'migration_pending' => 1,
                 'db_version' => (string) ($record->db_version ?? ''),
-            ])));
+            ])))->save();
             $this->storage()->ensure($manifest);
             $plugin = $this->plugin($code);
             $this->recordStage($code, 'install', 'hooks');
@@ -266,7 +268,7 @@ class PluginService extends AbstractService
             $this->recordStage($code, 'install', 'migration');
             $this->deploymentRollbackAllowed = false;
             $migration = $this->migrate($code);
-            $record->save(['db_version' => $migration['version'], 'migration_pending' => 0]);
+            $record->fill(['db_version' => $migration['version'], 'migration_pending' => 0])->save();
             $this->recordStage($code, 'install', 'resources');
             $this->publishPluginResources($manifest, $token);
             $this->recordStage($code, 'install', 'permissions');
@@ -308,9 +310,9 @@ class PluginService extends AbstractService
             if ((string) $record->lifecycle_state !== 'updating') {
                 $this->beginOperation($record, $token, 'updating');
             }
-            $record->save($this->filterPluginColumns(array_merge($this->manifestInfo($manifest), $this->packageContext($code), [
+            $record->fill($this->filterPluginColumns(array_merge($this->manifestInfo($manifest), $this->packageContext($code), [
                 'migration_pending' => 1,
-            ])));
+            ])))->save();
             $this->storage()->ensure($manifest);
             $operation = $allowCodeDowngrade ? 'redeploy' : 'update';
             $this->recordStage($code, $operation, 'hooks');
@@ -335,10 +337,10 @@ class PluginService extends AbstractService
                 (array) ($manifestData['adminWeb']['menu'] ?? []),
                 $code
             );
-            $record->save([
+            $record->fill([
                 'db_version' => $migrationVersion,
                 'migration_pending' => $migrate ? 0 : 1,
-            ]);
+            ])->save();
             $this->transition($record, 'disabled');
             $this->recordStage($code, $operation, 'complete');
             return true;
@@ -357,10 +359,10 @@ class PluginService extends AbstractService
             $this->recordStage($code, 'migrate', 'migration');
             $this->deploymentRollbackAllowed = false;
             $migration = $this->migrate($code);
-            $record->save([
+            $record->fill([
                 'db_version' => $migration['version'],
                 'migration_pending' => 0,
-            ]);
+            ])->save();
             $this->transition($record, 'disabled');
             $this->recordStage($code, 'migrate', 'complete');
             return $migration;
@@ -380,13 +382,13 @@ class PluginService extends AbstractService
             }
             $stage = $this->operationStages[$code] ?? 'validate';
             $recoveryPath = $this->recoveryPath($exception);
-            $record->save($this->filterPluginColumns([
+            $record->fill($this->filterPluginColumns([
                 'status' => 0,
                 'last_error' => substr($exception->getMessage(), 0, 2000),
                 'error_stage' => $stage,
                 'recovery_path' => $recoveryPath,
                 'operation_token' => null,
-            ]));
+            ]))->save();
             $context = $this->packageContexts[$code] ?? [];
             $this->audit()->failure(
                 $code,
@@ -445,8 +447,8 @@ class PluginService extends AbstractService
         $this->recordStage($code, 'purge', 'permissions');
         $coordinator = new PluginPurgeCoordinator(
             fn (string $pluginCode): object => $this->plugin($pluginCode),
-            fn (array $audit): mixed => $this->audit()->purge($audit),
-            PluginInfrastructureService::lifecycleLock(),
+            function (array $audit): void { $this->audit()->purge($audit); },
+            PluginInfrastructureService::lifecycleLock($this->projectRoot),
             function (string $pluginCode): bool {
                 $manifest = $this->validatedManifest($pluginCode);
                 $this->infrastructure()->assertPurgeAllowed($manifest);
@@ -467,7 +469,7 @@ class PluginService extends AbstractService
 
     public function isInstall(string $code)
     {
-        return Plugin::withTrashed()->where('code', $code)->find();
+        return Plugin::withTrashed()->where('code', $code)->first();
     }
 
     private function setPluginEnabled(string $code, bool $enabled): bool
@@ -479,6 +481,7 @@ class PluginService extends AbstractService
             if (($enabled && $current === 'enabled') || (!$enabled && $current === 'disabled')) {
                 return true;
             }
+            $manifest = null;
             if ($enabled) {
                 if ((int) $record->migration_pending === 1) {
                     throw new PluginPreconditionException('插件数据库迁移尚未完成，禁止启用');
@@ -508,7 +511,7 @@ class PluginService extends AbstractService
                 $this->runDisableSequence(
                     function () use ($record, $token): void {
                         $this->transition($record, 'disabling');
-                        $record->save($this->filterPluginColumns(['operation_token' => $token]));
+                        $record->fill($this->filterPluginColumns(['operation_token' => $token]))->save();
                         $this->rebuildActivationCache();
                     },
                     static fn (): bool => $plugin->disabled()
@@ -534,7 +537,7 @@ class PluginService extends AbstractService
 
     private function installedRecord(string $code): Plugin
     {
-        $record = Plugin::where('code', $code)->find();
+        $record = Plugin::where('code', $code)->first();
         if (!$record) {
             throw new PluginPreconditionException('插件尚未安装');
         }
@@ -544,7 +547,7 @@ class PluginService extends AbstractService
     private function assertDisabled(Plugin $record, string $code): void
     {
         if ((string) $record->lifecycle_state !== 'disabled' && (string) $record->lifecycle_state !== 'failed') {
-            throw new PluginPreconditionException(lang('Please disable plugins %s first', [$code]));
+            throw new PluginPreconditionException('请先禁用插件：' . $code);
         }
     }
 

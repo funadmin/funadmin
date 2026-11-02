@@ -24,7 +24,7 @@ function executeConsoleTestSql(string $sql): int
     global $container;
     return executeConsoleTestProcess([
         'docker', 'exec', '-i', $container, 'sh', '-c',
-        'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --user=root --batch',
+        'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=TCP --host=127.0.0.1 --user=root --batch',
     ], $sql);
 }
 
@@ -39,11 +39,11 @@ try {
         sleep(1);
         if (executeConsoleTestProcess([
             'docker', 'exec', $container, 'sh', '-c',
-            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --user=root --batch --execute="SELECT 1" >/dev/null 2>&1',
+            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user=root --batch --execute="SELECT 1" >/dev/null 2>&1',
         ]) === 0) { $ready = true; break; }
     }
     if (!$ready) throw new RuntimeException('专用 MySQL 测试实例启动超时');
-    if (executeConsoleTestSql("CREATE DATABASE `$database`; CREATE USER '$user'@'%' IDENTIFIED BY '$password'; GRANT ALL ON `$database`.* TO '$user'@'%';") !== 0) {
+    if (executeConsoleTestSql("CREATE DATABASE `$database`; CREATE USER '$user'@'%' IDENTIFIED BY '$password'; GRANT ALL ON `$database`.* TO '$user'@'%'; GRANT ALL ON `funadmin\\_shadow\\_%`.* TO '$user'@'%'; GRANT ALL ON `funadmin\\_backup\\_%`.* TO '$user'@'%';") !== 0) {
         throw new RuntimeException('隔离数据库初始化失败');
     }
     if (executeConsoleTestProcess(['docker', 'run', '--rm', '-d', '--name', $redisContainer, '--network', 'funadmin-webman-test', 'redis:7', 'redis-server', '--save', '', '--appendonly', 'no']) !== 0) {
@@ -56,7 +56,7 @@ try {
         '-e', 'DB_DATABASE=' . $database, '-e', 'DB_USERNAME=' . $user, '-e', 'DB_PASSWORD=' . $password,
         '-e', 'AI_QUEUE_REDIS_URL=redis://' . $redisContainer . ':6379',
         'funadmin-webman-console:8.5', 'php', 'vendor/bin/phpunit',
-        '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlIdentityCommandTest.php', 'tests/Console/MySqlAiQueueTest.php',
+        '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlIdentityCommandTest.php', 'tests/Console/MySqlAiQueueTest.php', 'tests/Console/MySqlMcpExecutionTest.php', 'tests/Console/MySqlCrudInspectTest.php', 'tests/Console/MySqlCrudGeneratedExecutionTest.php', 'tests/Console/MySqlPluginCommandTest.php', 'tests/Console/MySqlBusinessGenerationTest.php', 'tests/Console/MySqlUpgradeRecoveryTest.php', 'tests/Console/MySqlIdentityTransmissionTest.php', 'tests/Console/MySqlAiSandboxConsumerTest.php', 'tests/Console/MySqlAiProfileImageConsumerTest.php', 'tests/Console/MySqlSqlMigrationExecutionTest.php', 'tests/Console/MySqlCrudAdvancedGeneratedTest.php', 'tests/Console/MySqlCrudFormSchemaTest.php', 'tests/Console/MySqlPluginPublicationTest.php', 'tests/Console/MySqlPluginLifecycleTest.php',
     ]);
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . PHP_EOL);

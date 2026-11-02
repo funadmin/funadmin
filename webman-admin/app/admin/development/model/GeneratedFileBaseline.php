@@ -15,6 +15,7 @@ final class GeneratedFileBaseline extends BackendModel
     use LaravelSoftDelete;
 
     protected $name = 'generated_file_baseline';
+    protected $guarded = [];
 
     public function businessModule()
     {

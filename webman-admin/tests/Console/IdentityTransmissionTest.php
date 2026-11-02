@@ -36,6 +36,15 @@ final class IdentityTransmissionTest extends TestCase
         (new BackchannelUrlPolicy())->validate($url);
     }
 
+    public function test_production_transport_includes_body_preparation_middleware(): void
+    {
+        $dispatcher = new BackchannelLogoutDispatcher();
+        $client = (new \ReflectionProperty($dispatcher, 'client'))->getValue($dispatcher);
+        self::assertInstanceOf(Client::class, $client);
+        self::assertInstanceOf(HandlerStack::class, $client->getConfig('handler'));
+        self::assertStringContainsString('prepare_body', (string) $client->getConfig('handler'));
+    }
+
     public function test_dispatcher_sends_only_form_token_and_accepts_success_response(): void
     {
         $handler = new MockHandler([new Response(204)]);

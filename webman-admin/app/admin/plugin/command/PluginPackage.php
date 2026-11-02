@@ -20,6 +20,11 @@ use Throwable;
 #[AsCommand(name: 'plugin:package')]
 final class PluginPackage extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:package')->setDescription('创建确定性 Manifest v2 插件包')
@@ -31,19 +36,22 @@ final class PluginPackage extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $packageService = Container::get(PluginPackageService::class);
+            $pluginsDirectory = ($this->projectRoot ?? base_path()) . '/plugins';
+            $packageService = $this->projectRoot === null
+                ? Container::get(PluginPackageService::class)
+                : new PluginPackageService($this->projectRoot);
             $keyFile = (string) $input->getOption('sign-key-file');
             $secretKey = '';
             if ($keyFile !== '') {
                 $realKey = realpath($keyFile);
-                $pluginsRoot = realpath(base_path('plugins'));
+                $pluginsRoot = realpath($pluginsDirectory);
                 if ($realKey === false || !is_file($realKey) || !is_readable($realKey)
                     || ($pluginsRoot !== false && str_starts_with($realKey, $pluginsRoot . DIRECTORY_SEPARATOR))) {
                     throw new \RuntimeException('签名私钥必须是插件目录外的可读文件');
                 }
                 $secretKey = (string) file_get_contents($realKey);
             }
-            $archive = new PluginArchiveService(base_path('plugins'), static function (string $file) use ($packageService, $secretKey): void {
+            $archive = new PluginArchiveService($pluginsDirectory, static function (string $file) use ($packageService, $secretKey): void {
                 if ($secretKey !== '') $packageService->signLocalArchive($file, $secretKey);
                 // 无密钥时只生成开发包，不能作为可信本地包安装。
                 $staged = $packageService->stage($file, '', '', $secretKey !== '');

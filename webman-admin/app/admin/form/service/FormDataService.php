@@ -22,8 +22,8 @@ use app\admin\authorization\model\Department;
 use app\admin\authorization\service\DataScopeService;
 use Closure;
 use InvalidArgumentException;
-use think\facade\Db;
-use think\facade\Validate;
+use support\Db;
+use Webman\Validation\Validator;
 
 /**
  * 表单数据运行态服务（M3）：元数据驱动的通用读写/校验/选项/子表。
@@ -58,7 +58,7 @@ final class FormDataService
     {
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $safeFields = array_map(function ($field): array {
             $row = $field->toArray();
             if ($this->isSensitiveField($row)) $row['default_value'] = '';
@@ -101,7 +101,7 @@ final class FormDataService
             'moduleId' => (int) $runtime['module']->id,
             'moduleCode' => (string) $runtime['module']->code,
             'formKey' => (string) $form->form_key,
-            'primaryKey' => $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name)),
+            'primaryKey' => $this->primaryKey($this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name)),
             'fields' => $fields,
         ];
     }
@@ -110,12 +110,12 @@ final class FormDataService
     public function sourceCandidates(): array
     {
         $list = [];
-        $modules = BusinessModule::whereIn('lifecycle_status', ['published', 'dynamic_published'])
-            ->field('id,form_id,code,lifecycle_status,metadata')->order('id', 'asc')->select();
+        $modules = BusinessModule::query()->whereIn('lifecycle_status', ['published', 'dynamic_published'])
+            ->select(['id', 'form_id', 'code', 'lifecycle_status', 'metadata'])->orderBy('id', 'asc')->get();
         foreach ($modules as $module) {
             try {
                 if (!($this->permissionChecker)($this->businessPermissionRoute($module) . '/index')) continue;
-                $form = Form::where('id', (int) $module->form_id)->field('id,form_key')->find();
+                $form = Form::where('id', (int) $module->form_id)->select(['id', 'form_key'])->first();
                 if (!$form) continue;
                 $meta = $this->sourceMeta((string) $form->form_key);
                 if ($meta['moduleId'] === (int) $module->id) $list[] = $meta;
@@ -155,7 +155,7 @@ final class FormDataService
     {
         $fields = $this->fields($key);
         $form = $this->form($key);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $primary = $this->primaryKey($schema);
         $list = (array) ($this->publishedRuntime($form)['schema']['list'] ?? []);
         $tree = ($list['tree']['enabled'] ?? false) === true;
@@ -164,7 +164,7 @@ final class FormDataService
         $query = $this->filteredQuery($form, $fields, $list, $filters, $recycled);
         $sortable = $this->sortableColumns($fields);
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
-        $query->order(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
+        $query->orderBy(in_array($sort, $sortable, true) ? $sort : $primary['name'], $order);
         $result = $this->readListQuery($query, $tree, $page, $pageSize);
         $result['list'] = array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $result['list']);
         return $result;
@@ -181,13 +181,13 @@ final class FormDataService
             $config = $list['leftTree'];
             $values = (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $tree['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
             if ($values !== []) {
-                $column = $form->table_name . '.' . $config['mapping']['targetField'];
+                $column = $this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $config['mapping']['targetField'];
                 count($values) === 1 ? $query->where($column, '=', $values[0]) : $query->whereIn($column, $values);
             }
         }
         if (($list['category']['enabled'] ?? false) && array_key_exists('__category', $filters) && $filters['__category'] !== '' && $filters['__category'] !== null) {
             if (!is_string($filters['__category']) && !is_int($filters['__category'])) throw new InvalidArgumentException('分类值必须是字符串或整数');
-            $query->where($form->table_name . '.' . $list['category']['field'], '=', $filters['__category']);
+            $query->where($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $list['category']['field'], '=', $filters['__category']);
         }
         foreach ($fields as $field) {
             $filterType = (string) $field->list_filter;
@@ -241,9 +241,9 @@ final class FormDataService
         if (($config['enabled'] ?? false) !== true) throw new InvalidArgumentException('左树未启用');
         $sourceKey = $key;
         if (($config['source']['type'] ?? '') === 'module') {
-            $module = BusinessModule::where('code', $config['source']['module'])->find();
+            $module = BusinessModule::where('code', $config['source']['module'])->first();
             if (!$module) throw new InvalidArgumentException('来源业务不存在');
-            $sourceForm = Form::where('id', (int) $module->form_id)->find();
+            $sourceForm = Form::where('id', (int) $module->form_id)->first();
             if (!$sourceForm) throw new InvalidArgumentException('来源业务未绑定表单');
             $sourceKey = (string) $sourceForm->form_key;
         }
@@ -252,13 +252,13 @@ final class FormDataService
         $permission = $this->businessPermissionRoute($runtime['module']);
         if (!($this->permissionChecker)($permission . '/index')) throw new InvalidArgumentException('没有来源业务读取权限');
         $mapping = $config['mapping'];
-        $schema = Db::connect((string) $source->connection)->getFields((string) $source->table_name);
+        $schema = $this->tableFields(Db::connection((string) $source->connection), (string) $source->table_name);
         $primary = $this->primaryKey($schema);
         foreach ($mapping as $binding => $name) {
             if ($name === '') continue;
             $boundFields = $binding === 'targetField' ? $targetRuntime['fields'] : $runtime['fields'];
             $boundForm = $binding === 'targetField' ? $target : $source;
-            $columns = Db::connect((string) $boundForm->connection)->getFields((string) $boundForm->table_name);
+            $columns = $this->tableFields(Db::connection((string) $boundForm->connection), (string) $boundForm->table_name);
             $field = null;
             foreach ($boundFields as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
             if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
@@ -268,8 +268,8 @@ final class FormDataService
         }
         if ($mapping['valueField'] !== $primary['name']) throw new InvalidArgumentException('左树节点值必须映射来源业务主键');
         $query = $this->baseQuery($source, $runtime['fields']);
-        $query->order($source->table_name . '.' . (($mapping['sortField'] ?? '') !== '' ? $mapping['sortField'] : $primary['name']), 'asc');
-        $rows = $query->limit(1001)->select()->toArray();
+        $query->orderBy($this->logicalTable(Db::connection((string) $source->connection), (string) $source->table_name) . '.' . (($mapping['sortField'] ?? '') !== '' ? $mapping['sortField'] : $primary['name']), 'asc');
+        $rows = array_map(static fn (object $row): array => (array) $row, $query->limit(1001)->get()->all());
         if (count($rows) > 1000) throw new InvalidArgumentException('左树超过 1000 条授权节点');
         $nodes = array_map(static fn (array $row): array => [
             'id' => $row[$primary['name']], 'value' => $row[$mapping['valueField']],
@@ -326,18 +326,18 @@ final class FormDataService
         $source = $this->form($tree['sourceKey']);
         $runtime = $this->publishedRuntime($source);
         $mapping = $published['schema']['list']['leftTree']['mapping'];
-        $connection = Db::connect((string) $source->connection);
-        $columns = $connection->getFields((string) $source->table_name);
+        $connection = Db::connection((string) $source->connection);
+        $columns = $this->tableFields($connection, (string) $source->table_name);
         $primary = $this->primaryKey($columns)['name'];
         $parent = (string) ($mapping['parentField'] ?? '');
         return $connection->transaction(function () use ($connection, $source, $runtime, $tree, $action, $id, $data, $parent, $primary, $sourceSchemaHash, $columns): array {
             // 不加用户范围：不可见节点同样参与环检测和删除保护，值不返回客户端。
-            $all = $connection->table((string) $source->table_name)->field(array_values(array_unique(array_filter([$primary, $parent]))))->order($primary)->lock(true)->select()->toArray();
+            $all = array_map(static fn (object $row): array => (array) $row, $connection->table($this->logicalTable($connection, (string) $source->table_name))->select(array_values(array_unique(array_filter([$primary, $parent]))))->orderBy($primary)->lockForUpdate()->get()->all());
             if ($action !== 'create') {
                 $this->detail($tree['sourceKey'], $id);
             }
             if ($action === 'delete') {
-                if ($parent !== '' && $connection->table((string) $source->table_name)->where($parent, $id)->lock(true)->find()) {
+                if ($parent !== '' && $connection->table($this->logicalTable($connection, (string) $source->table_name))->where($parent, $id)->lockForUpdate()->first()) {
                     throw new InvalidArgumentException('节点仍有子节点，不能删除');
                 }
                 $this->assertLeftTreeUnreferenced($source, $primary, $id);
@@ -385,11 +385,11 @@ final class FormDataService
     {
         $source = $this->form($key);
         $runtime = $this->publishedRuntime($source);
-        $connection = Db::connect((string) $source->connection);
-        $primary = $this->primaryKey($connection->getFields((string) $source->table_name))['name'];
+        $connection = Db::connection((string) $source->connection);
+        $primary = $this->primaryKey($this->tableFields($connection, (string) $source->table_name))['name'];
         $parents = [];
-        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
-            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->get() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->first();
             if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝写入');
             $document = (new FormSchemaRepository())->compile((array) $version->schema_document)->document();
             $left = $document['list']['leftTree'] ?? [];
@@ -400,7 +400,7 @@ final class FormDataService
             if ($matches && ($left['mapping']['parentField'] ?? '') !== '') $parents[] = $left['mapping']['parentField'];
         }
         foreach (array_unique($parents) as $parent) {
-            $all = $connection->table((string) $source->table_name)->field([$primary, $parent])->order($primary)->lock(true)->select()->toArray();
+            $all = array_map(static fn (object $row): array => (array) $row, $connection->table($this->logicalTable($connection, (string) $source->table_name))->select([$primary, $parent])->orderBy($primary)->lockForUpdate()->get()->all());
             if ($deleting) {
                 foreach ($all as $row) if ((string) ($row[$parent] ?? '') === (string) $id) throw new InvalidArgumentException('节点仍有子节点，不能删除');
                 continue;
@@ -424,8 +424,8 @@ final class FormDataService
     /** 完整已发布快照的引用检查不受字段、行和来源启用状态影响。 */
     private function assertLeftTreeUnreferenced(Form $source, string $primary, int|string $id): void
     {
-        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->select() as $module) {
-            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->find();
+        foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->get() as $module) {
+            $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->first();
             if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝删除');
             $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
             $document = $compiled->document();
@@ -445,7 +445,7 @@ final class FormDataService
                     $childField = (string) ($field['relation_value_field'] ?? '');
                     $this->assertIdentifier($childTable, '引用表');
                     $this->assertIdentifier($childField, '引用字段');
-                    if (Db::connect($connectionName)->table($childTable)->where($childField, $id)->lock(true)->find()) {
+                    if (Db::connection($connectionName)->table($this->logicalTable(Db::connection($connectionName), $childTable))->where($childField, $id)->lockForUpdate()->first()) {
                         throw new InvalidArgumentException('节点仍被关联子表引用，不能删除');
                     }
                 }
@@ -456,7 +456,7 @@ final class FormDataService
             $this->assertIdentifier($table, '引用表');
             foreach (array_unique($references) as $field) {
                 $this->assertIdentifier($field, '引用字段');
-                if (Db::connect($connectionName)->table($table)->where($field, $id)->lock(true)->find()) throw new InvalidArgumentException('节点仍被业务数据引用，不能删除');
+                if (Db::connection($connectionName)->table($this->logicalTable(Db::connection($connectionName), $table))->where($field, $id)->lockForUpdate()->first()) throw new InvalidArgumentException('节点仍被业务数据引用，不能删除');
             }
         }
     }
@@ -469,7 +469,7 @@ final class FormDataService
             throw new InvalidArgumentException('插件来源暂不支持快捷分类，请使用插件正式表单');
         }
         if ((string) $module->lifecycle_status === 'dynamic_published') return 'admin/form.data';
-        $form = Form::where('id', (int) $module->form_id)->find();
+        $form = Form::where('id', (int) $module->form_id)->first();
         if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
         $class = str_replace(' ', '', ucwords(str_replace('_', ' ', (string) $form->form_key)));
         return 'admin/generated.' . strtolower($class) . 'controller';
@@ -480,7 +480,7 @@ final class FormDataService
     {
         $total = (int) (clone $query)->count();
         if ($tree && $total > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
-        $rows = ($tree ? $query->limit(1001) : $query->page($page, $pageSize))->select()->toArray();
+        $rows = array_map(static fn (object $row): array => (array) $row, ($tree ? $query->limit(1001) : $query->forPage($page, $pageSize))->get()->all());
         if ($tree && count($rows) > 1000) throw new InvalidArgumentException('树形列表超过 1000 条，请缩小筛选范围');
         return ['list' => $rows, 'total' => $tree ? count($rows) : $total, 'page' => $tree ? 1 : $page, 'pageSize' => $tree ? 1000 : $pageSize];
     }
@@ -491,10 +491,10 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $fields = $published['fields'];
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $primary = $this->primaryKey($schema);
         $query = $this->filteredQuery($form, $fields, (array) ($published['schema']['list'] ?? []), $filters);
-        $rows = $query->order($primary['name'], 'asc')->limit(self::EXPORT_LIMIT)->select()->toArray();
+        $rows = array_map(static fn (object $row): array => (array) $row, $query->orderBy($primary['name'], 'asc')->limit(self::EXPORT_LIMIT)->get()->all());
         return array_map(fn (array $row): array => $this->sanitizeRecord($fields, $row), $rows);
     }
 
@@ -511,9 +511,9 @@ final class FormDataService
             $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         }
         $fields = $published['fields'];
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $primary = $this->primaryKey($schema);
-        $row = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
+        $row = (array) $this->baseQuery($form, $fields)->where($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $primary['name'], $id)->first();
         if (!$row) {
             throw new InvalidArgumentException('数据不存在');
         }
@@ -554,8 +554,8 @@ final class FormDataService
         $this->assertValid($fields, $data, false);
         $this->assertAsyncValid($published['schema'], $data);
         $split = $this->splitPayload($fields, $data, false, $include);
-        $connection = Db::connect((string) $form->connection);
-        $schema = $connection->getFields((string) $form->table_name);
+        $connection = Db::connection((string) $form->connection);
+        $schema = $this->tableFields($connection, (string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
         return $connection->transaction(function () use ($connection, $form, $fields, $split, $data, $columns, $primary, $published): array {
@@ -568,10 +568,10 @@ final class FormDataService
                 $provided = $data[$primary['name']] ?? null;
                 if (!is_scalar($provided) || trim((string) $provided) === '') throw new InvalidArgumentException('字符串主键创建时必须提供：' . $primary['name']);
                 $payload[$primary['name']] = (string) $provided;
-                $connection->table((string) $form->table_name)->insert($payload);
+                $connection->table($this->logicalTable($connection, (string) $form->table_name))->insert($payload);
                 $id = (string) $provided;
             } else {
-                $id = (int) $connection->table((string) $form->table_name)->insertGetId($payload, $primary['name']);
+                $id = (int) $connection->table($this->logicalTable($connection, (string) $form->table_name))->insertGetId($payload, $primary['name']);
             }
             $this->syncRelations($connection, $form, $fields, $id, $split['relations'], false);
             return ['id' => $id, 'primaryKey' => $primary['name']];
@@ -589,28 +589,28 @@ final class FormDataService
         $this->assertValid($fields, $data, true);
         $this->assertAsyncValid($published['schema'], $data);
         $split = $this->splitPayload($fields, $data, true, $include);
-        $connection = Db::connect((string) $form->connection);
-        $schema = $connection->getFields((string) $form->table_name);
+        $connection = Db::connection((string) $form->connection);
+        $schema = $this->tableFields($connection, (string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
         return $connection->transaction(function () use ($connection, $form, $fields, $split, $columns, $primary, $id, $published): array {
             $this->guardTreeWrite((string) $form->form_key, $id, $split['parent']);
             $query = $this->applyDataScope(
-                $connection->table((string) $form->table_name)->where($primary['name'], $id)->lock(true),
+                $connection->table($this->logicalTable($connection, (string) $form->table_name))->where($primary['name'], $id)->lockForUpdate(),
                 $form,
                 $columns,
-                (string) $form->table_name
+                $this->logicalTable($connection, (string) $form->table_name)
             );
             if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
-            if (!$query->find()) throw new InvalidArgumentException('数据不存在');
+            if (!$query->first()) throw new InvalidArgumentException('数据不存在');
             $payload = $this->applyWriteDataScope($split['parent'], $form, $columns, true);
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = date('Y-m-d H:i:s');
             if ($payload !== []) {
                 $this->applyDataScope(
-                    $connection->table((string) $form->table_name)->where($primary['name'], $id),
+                    $connection->table($this->logicalTable($connection, (string) $form->table_name))->where($primary['name'], $id),
                     $form,
                     $columns,
-                    (string) $form->table_name
+                    $this->logicalTable($connection, (string) $form->table_name)
                 )->update($payload);
             }
             $this->syncRelations($connection, $form, $fields, $id, $split['relations'], true);
@@ -624,16 +624,16 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        $database = Db::connect((string) $form->connection);
+        $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $id, $published): array {
             $connection = $this->applyDataScope(
-                $database->table((string) $form->table_name), $form, $columns, (string) $form->table_name
+                $database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name)
             )->where($primary['name'], $id);
             if (in_array('deleted_at', $columns, true)) $connection->whereNull('deleted_at');
-            if (!(clone $connection)->lock(true)->find()) throw new InvalidArgumentException('数据不存在');
+            if (!(clone $connection)->lockForUpdate()->first()) throw new InvalidArgumentException('数据不存在');
             $this->guardTreeWrite((string) $form->form_key, $id, [], true);
             if (in_array('deleted_at', $columns, true)) {
                 $connection->update(['deleted_at' => date('Y-m-d H:i:s')]);
@@ -661,12 +661,12 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
-        $database = Db::connect((string) $form->connection);
+        $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
-            $query = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)->whereIn($primary['name'], $ids);
+            $query = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))->whereIn($primary['name'], $ids);
             if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
             foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true);
             if (in_array('deleted_at', $columns, true)) {
@@ -685,13 +685,13 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $columns = array_keys($schema);
         if (!in_array('deleted_at', $columns, true)) throw new InvalidArgumentException('该表无回收站能力');
         $primary = $this->primaryKey($schema);
-        $database = Db::connect((string) $form->connection);
+        $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
-            $restored = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)
+            $restored = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
                 ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->update(['deleted_at' => null]);
             return ['restored' => (int) $restored];
         });
@@ -705,14 +705,14 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $columns = array_keys($schema);
         if (!in_array('deleted_at', $columns, true)) throw new InvalidArgumentException('该表无回收站能力');
         $primary = $this->primaryKey($schema);
-        $database = Db::connect((string) $form->connection);
+        $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
             foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true);
-            $destroyed = $this->applyDataScope($database->table((string) $form->table_name), $form, $columns, (string) $form->table_name)
+            $destroyed = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
                 ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->delete();
             return ['destroyed' => (int) $destroyed];
         });
@@ -726,7 +726,7 @@ final class FormDataService
         $published = $this->publishedRuntime($form);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         if (($published['schema']['form']['readOnly'] ?? false) === true) throw new InvalidArgumentException('只读表单不允许导入');
-        $database = Db::connect((string) $form->connection);
+        $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($key, $rows, $schemaHash): array {
             foreach ($rows as $index => $row) {
                 if (!is_array($row)) throw new InvalidArgumentException('第 ' . ($index + 1) . ' 行必须是对象');
@@ -772,16 +772,16 @@ final class FormDataService
             if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', $code)) {
                 return [];
             }
-            $type = DictType::where('code', $code)->where('status', 1)->find();
+            $type = DictType::where('code', $code)->where('status', 1)->first();
             if (!$type) {
                 return [];
             }
             return DictItem::where('type_id', (int) $type->id)
                 ->where('status', 1)
-                ->order('sort_order', 'asc')
-                ->order('id', 'asc')
-                ->field('value,label')
-                ->select()
+                ->orderBy('sort_order', 'asc')
+                ->orderBy('id', 'asc')
+                ->select(['value', 'label'])
+                ->get()
                 ->toArray();
         }
         if ($mode === 'self-tree') {
@@ -791,11 +791,11 @@ final class FormDataService
             $scope = (new DataScopeService())->resolve();
             $query = Department::where('status', 1);
             if (!$scope['all']) $query->whereIn('id', $scope['departmentIds'] ?: [0]);
-            return $query->order('sort_order', 'asc')->field('id as value,name as label,pid')->select()->toArray();
+            return $query->orderBy('sort_order', 'asc')->select(['id as value', 'name as label', 'pid'])->get()->toArray();
         }
         if ($mode === 'user') {
             $ids = (new DataScopeService())->visibleAdminIds();
-            return Admin::where('status', 1)->whereIn('id', $ids ?: [0])->order('id', 'asc')->field('id as value,nickname as label')->limit(500)->select()->toArray();
+            return Admin::where('status', 1)->whereIn('id', $ids ?: [0])->orderBy('id', 'asc')->select(['id as value', 'nickname as label'])->limit(500)->get()->toArray();
         }
         if ($mode === 'relation') {
             $table = (string) ($source['table'] ?? $field->relation_table);
@@ -808,9 +808,11 @@ final class FormDataService
             $this->assertIdentifier($label, '关联选项显示字段');
             $this->assertIdentifier($value, '关联选项值字段');
             $form = $this->form($key);
-            $connection = Db::connect((string) $form->connection);
-            $columns = array_keys($connection->getFields($table));
-            $query = $connection->table($table)->field($value . ' as value,' . $label . ' as label');
+            $connection = Db::connection((string) $form->connection);
+            $columns = array_keys($this->tableFields($connection, $table));
+            $logical = $this->logicalTable($connection, $table);
+            $query = $connection->table($logical)->select([$value . ' as value', $label . ' as label']);
+            if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
             $scopeField = trim((string) ($source['department_field'] ?? $source['departmentField'] ?? ''));
             if ($scopeField !== '') {
                 $this->assertIdentifier($scopeField, '关联选项部门字段');
@@ -822,11 +824,11 @@ final class FormDataService
             if ($tenantField !== '') {
                 $this->assertIdentifier($tenantField, '关联选项租户字段');
                 if (!in_array($tenantField, $columns, true)) throw new InvalidArgumentException('关联选项租户字段不存在');
-                $tenantId = (int) session('tenant.id');
+                $tenantId = (int) (request()?->context['tenant']['id'] ?? 0);
                 if ($tenantId < 1) throw new InvalidArgumentException('当前租户上下文不可用');
                 $query->where($tenantField, $tenantId);
             }
-            return $query->limit(200)->select()->toArray();
+            return array_map(static fn (object $row): array => (array) $row, $query->limit(200)->get()->all());
         }
         return [];
     }
@@ -839,19 +841,22 @@ final class FormDataService
     private function selfTreeOptions(string $key, FormField $parentField): array
     {
         $form = $this->form($key);
-        $connection = (string) $form->connection;
-        $table = (string) $form->table_name;
-        $schema = Db::connect($connection)->getFields($table);
+        $connection = Db::connection((string) $form->connection);
+        $table = $this->logicalTable($connection, (string) $form->table_name);
+        $schema = $this->tableFields($connection, (string) $form->table_name);
         $primary = $this->primaryKey($schema);
         $labelField = (string) $primary['name'];
         foreach ($this->publishedRuntime($form)['fields'] as $candidate) {
             $name = (string) $candidate->field_name;
-            if ($name === $primary['name'] || in_array($candidate->type, ['password', 'file', 'files', 'image', 'images', 'json', 'richtext', 'repeatable', 'subform'], true)) continue;
+            if ($name === $primary['name'] || in_array($candidate->type, ['password', 'file', 'files', 'image', 'images', 'json', 'richtext', 'repeatable', 'subform'], true)
+                || $this->isSensitiveField($candidate->toArray()) || !$this->fieldAccessAllowed($candidate->toArray(), 'read')) continue;
             $labelField = $name;
             break;
         }
         $parentName = (string) $parentField->field_name;
-        $rows = Db::connect($connection)->table($table)->field([$primary['name'], $parentName, $labelField])->select()->toArray();
+        $query = $this->applyDataScope($connection->table($table), $form, array_keys($schema), $table);
+        if (isset($schema['deleted_at'])) $query->whereNull($table . '.deleted_at');
+        $rows = array_map(static fn (object $row): array => (array) $row, $query->select([$primary['name'], $parentName, $labelField])->orderBy($primary['name'])->limit(1001)->get()->all());
         if (count($rows) > 1000) throw new InvalidArgumentException('树数据超过 1000 条，请缩小筛选范围');
         $byId = [];
         foreach ($rows as $row) {
@@ -958,7 +963,8 @@ final class FormDataService
     /** 只接受按钮请求；模块、身份、记录和发布版本均由服务端取得。 */
     public function executeListButton(string $key, array $request, ?\app\common\form\action\ListButtonExecutor $executor = null): array
     {
-        $adminId = (int) session('admin.id');
+        $admin = request()?->context['admin'] ?? null;
+        $adminId = (int) (is_array($admin) ? ($admin['id'] ?? 0) : ($admin?->id ?? 0));
         if ($adminId <= 0) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime = $this->listActionRuntime($key, 'listaction');
         if (!is_string($request['schemaHash'] ?? null)) throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
@@ -981,8 +987,8 @@ final class FormDataService
                 $id = $category['id'];
                 if ((!is_int($id) && !is_string($id)) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/D', (string) $id)) throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
                 $sourceForm = $source['form'];
-                $primary = $this->primaryKey(Db::connect((string) $sourceForm->connection)->getFields((string) $sourceForm->table_name));
-                $row = $this->baseQuery($sourceForm, $source['fields'])->where($sourceForm->table_name . '.' . $primary['name'], $id)->find();
+                $primary = $this->primaryKey($this->tableFields(Db::connection((string) $sourceForm->connection), (string) $sourceForm->table_name));
+                $row = (array) $this->baseQuery($sourceForm, $source['fields'])->where($this->logicalTable(Db::connection((string) $sourceForm->connection), (string) $sourceForm->table_name) . '.' . $primary['name'], $id)->first();
                 if (!$row) throw new InvalidArgumentException('FORM_LIST_RECORD_FORBIDDEN');
                 $record = $this->listActionRecord($source['fields'], $row, $primary);
             } elseif (($request['location'] ?? '') !== 'categoryToolbar') throw new InvalidArgumentException('FORM_LIST_REQUEST_INVALID');
@@ -990,10 +996,10 @@ final class FormDataService
         }
         $form = $runtime['form'];
         $fields = $runtime['fields'];
-        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields((string) $form->table_name));
+        $primary = $this->primaryKey($this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name));
         return $executor->execute($runtime, $request, 'admin:' . $adminId . '/module:' . $runtime['module']->id,
             $this->permissionChecker, function (array $ids) use ($form, $fields, $primary): array {
-                $rows = $this->baseQuery($form, $fields)->whereIn($form->table_name . '.' . $primary['name'], $ids)->select()->toArray();
+                $rows = array_map(static fn (object $row): array => (array) $row, $this->baseQuery($form, $fields)->whereIn($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $primary['name'], $ids)->get()->all());
                 return array_map(fn (array $row): array => $this->listActionRecord($fields, $row, $primary), $rows);
             });
     }
@@ -1005,20 +1011,20 @@ final class FormDataService
         if (($tree['enabled'] ?? false) !== true || !in_array($tree['source']['type'] ?? '', ['current', 'module'], true)) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
         $source = $host;
         if ($tree['source']['type'] === 'module') {
-            $module = BusinessModule::where('code', $tree['source']['module'])->find();
-            $form = $module ? Form::where('id', (int) $module->form_id)->find() : null;
+            $module = BusinessModule::where('code', $tree['source']['module'])->first();
+            $form = $module ? Form::where('id', (int) $module->form_id)->first() : null;
             if (!$form) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
             $form = $this->form((string) $form->form_key);
             $source = $this->publishedRuntime($form) + ['form' => $form];
         }
         if (($source['module']->metadata['target']['type'] ?? 'core') !== 'core') throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         if (!($this->permissionChecker)($this->businessPermissionRoute($source['module']) . '/index')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
-        $primary = $this->primaryKey(Db::connect((string) $source['form']->connection)->getFields((string) $source['form']->table_name));
+        $primary = $this->primaryKey($this->tableFields(Db::connection((string) $source['form']->connection), (string) $source['form']->table_name));
         if (($tree['mapping']['valueField'] ?? '') !== $primary['name']) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
         foreach ($tree['mapping'] as $binding => $name) {
             if ($name === '') continue;
             $bound = $binding === 'targetField' ? $host : $source;
-            $columns = Db::connect((string) $bound['form']->connection)->getFields((string) $bound['form']->table_name);
+            $columns = $this->tableFields(Db::connection((string) $bound['form']->connection), (string) $bound['form']->table_name);
             $field = null;
             foreach ($bound['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
             if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
@@ -1150,9 +1156,9 @@ final class FormDataService
     {
         $form = $this->form($key);
         $fields = $this->fields($key);
-        $schema = Db::connect((string) $form->connection)->getFields((string) $form->table_name);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
         $primary = $this->primaryKey($schema);
-        $parent = $this->baseQuery($form, $fields)->where($form->table_name . '.' . $primary['name'], $id)->find();
+        $parent = $this->baseQuery($form, $fields)->where($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $primary['name'], $id)->first();
         if (!$parent) throw new InvalidArgumentException('父数据不存在或无访问权限');
         $field = null;
         foreach ($fields as $candidate) {
@@ -1180,37 +1186,41 @@ final class FormDataService
             $label = (string) ($field['label'] ?? $name);
             $parts = [];
             if ((int) ($field['form_required'] ?? 0) === 1) {
-                $parts[] = 'require';
-                $messages[$name . '.require'] = $label . '不能为空';
+                $parts[] = 'required';
+                $messages[$name . '.required'] = $label . '不能为空';
             }
             $type = (string) ($field['type'] ?? 'input');
             $columnType = (string) ($field['column_type'] ?? '');
             if ($type === 'number' || preg_match('/^(int|bigint|decimal)/', $columnType)) {
-                $parts[] = 'number';
+                $parts[] = 'numeric';
             } elseif ($type === 'switch') {
                 $parts[] = 'in:0,1';
             } elseif ($type === 'date' || preg_match('/^(date|datetime)/', $columnType)) {
                 $parts[] = str_starts_with($columnType, 'datetime')
-                    ? 'dateFormat:Y-m-d H:i:s'
-                    : 'dateFormat:Y-m-d';
+                    ? 'date_format:Y-m-d H:i:s'
+                    : 'date_format:Y-m-d';
             }
             $extra = is_array($field['validate_rules'] ?? null) ? $field['validate_rules'] : [];
             if (isset($extra['minlen'], $extra['maxlen'])) {
-                $parts[] = 'length:' . (int) $extra['minlen'] . ',' . (int) $extra['maxlen'];
+                $parts[] = 'string';
+                $parts[] = 'min:' . (int) $extra['minlen'];
+                $parts[] = 'max:' . (int) $extra['maxlen'];
             } elseif (isset($extra['minlen'])) {
-                $parts[] = 'length:' . (int) $extra['minlen'];
+                $parts[] = 'string';
+                $parts[] = 'min:' . (int) $extra['minlen'];
             }
             if (isset($extra['min'])) {
-                $parts[] = 'egt:' . $extra['min'];
+                $parts[] = 'min:' . $extra['min'];
             }
             if (isset($extra['max'])) {
-                $parts[] = 'elt:' . $extra['max'];
+                $parts[] = 'max:' . $extra['max'];
             }
             if (isset($extra['pattern']) && is_string($extra['pattern']) && $extra['pattern'] !== '') {
                 $parts[] = 'regex:' . $extra['pattern'];
             }
             if ($parts !== []) {
-                $rules[$name] = implode('|', $parts);
+                if ((int) ($field['form_required'] ?? 0) !== 1) array_unshift($parts, 'nullable');
+                $rules[$name] = $parts;
             }
         }
         return ['rules' => $rules, 'messages' => $messages];
@@ -1429,7 +1439,7 @@ final class FormDataService
 
     private function form(string $key): Form
     {
-        $form = Form::where('form_key', $key)->where('status', 1)->find();
+        $form = Form::where('form_key', $key)->where('status', 1)->first();
         if (!$form) {
             throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
         }
@@ -1446,12 +1456,12 @@ final class FormDataService
     {
         if ($draft) {
             // 草稿解析不能走 form()（其用发布态 schema 水合表名），直接读 Form 行。
-            $form = Form::where('form_key', $key)->where('status', 1)->find();
+            $form = Form::where('form_key', $key)->where('status', 1)->first();
             if (!$form) {
                 throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
             }
             $compiled = (new FormSchemaRepository())->draft((int) $form->id);
-            return new \think\Collection(array_map(
+            return new \Illuminate\Support\Collection(array_map(
                 static fn (array $row): FormField => new FormField($row),
                 $compiled->fieldProjection()
             ));
@@ -1467,8 +1477,8 @@ final class FormDataService
     {
         try {
             $module = BusinessModule::where(function ($query) use ($form): void {
-                $query->where('form_id', (int) $form->id)->whereOr('code', (string) $form->form_key);
-            })->find();
+                $query->where('form_id', (int) $form->id)->orWhere('code', (string) $form->form_key);
+            })->first();
         } catch (\Throwable $exception) {
             throw new InvalidArgumentException('业务模块存储不可用，请先执行 077_business_development_center 迁移', 0, $exception);
         }
@@ -1483,7 +1493,7 @@ final class FormDataService
         $version = FormSchemaVersion::where('form_id', (int) $module->form_id)
             ->where('version', $publishedVersion)
             ->where('schema_hash', $publishedHash)
-            ->find();
+            ->first();
         if (!$version) {
             throw new InvalidArgumentException('业务模块已发布 FormSchema 快照不存在');
         }
@@ -1491,7 +1501,7 @@ final class FormDataService
         if (!hash_equals($publishedHash, $compiled->hash())) {
             throw new InvalidArgumentException('已发布表单快照校验失败');
         }
-        $fields = new \think\Collection(array_map(
+        $fields = new \Illuminate\Support\Collection(array_map(
             static fn (array $field): FormField => new FormField($field),
             $compiled->fieldProjection()
         ));
@@ -1500,10 +1510,12 @@ final class FormDataService
 
     private function baseQuery(Form $form, $fields, bool $recycled = false)
     {
-        $table = (string) $form->table_name;
+        $connection = Db::connection((string) $form->connection);
+        $table = $this->logicalTable($connection, (string) $form->table_name);
         $this->assertIdentifier($table, '绑定表');
-        $columns = array_keys(Db::connect((string) $form->connection)->getFields($table));
-        $primary = $this->primaryKey(Db::connect((string) $form->connection)->getFields($table));
+        $schema = $this->tableFields($connection, (string) $form->table_name);
+        $columns = array_keys($schema);
+        $primary = $this->primaryKey($schema);
         $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
             if (in_array((string) $field->type, self::LAYOUT_TYPES, true)
@@ -1518,7 +1530,7 @@ final class FormDataService
             }
         }
         $select = array_map(static fn (string $column): string => $table . '.' . $column, array_values(array_unique($readable)));
-        $query = Db::connect((string) $form->connection)->table($table)->field($select);
+        $query = $connection->table($table)->select($select);
         if (in_array('deleted_at', $columns, true)) {
             $recycled ? $query->whereNotNull($table . '.deleted_at') : $query->whereNull($table . '.deleted_at');
         } elseif ($recycled) {
@@ -1541,8 +1553,8 @@ final class FormDataService
             $this->assertIdentifier($value, '关联值字段');
             $alias = 'rel_' . $aliasIndex;
             $aliasIndex++;
-            $query->leftJoin($relationTable . ' ' . $alias, $alias . '.' . $value . ' = ' . $table . '.' . $field->field_name);
-            $query->addField($alias . '.' . $label . ' as __label_' . $field->field_name);
+            $query->leftJoin($this->logicalTable($connection, $relationTable) . ' as ' . $alias, $alias . '.' . $value, '=', $table . '.' . $field->field_name);
+            $query->addSelect($alias . '.' . $label . ' as __label_' . $field->field_name);
         }
         return $query;
     }
@@ -1585,6 +1597,28 @@ final class FormDataService
         return $payload;
     }
 
+    private function logicalTable(\Illuminate\Database\Connection $connection, string $table): string
+    {
+        $this->assertIdentifier($table, '绑定表');
+        $prefix = $connection->getTablePrefix();
+        return $prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table;
+    }
+
+    private function tableFields(\Illuminate\Database\Connection $connection, string $table): array
+    {
+        $schema = $connection->getSchemaBuilder();
+        $logical = $this->logicalTable($connection, $table);
+        $primary = [];
+        foreach ($schema->getIndexes($logical) as $index) {
+            if ($index['primary']) $primary = $index['columns'];
+        }
+        $fields = [];
+        foreach ($schema->getColumns($logical) as $column) {
+            $fields[$column['name']] = ['type' => $column['type'], 'primary' => in_array($column['name'], $primary, true), 'notnull' => !$column['nullable'], 'default' => $column['default']];
+        }
+        return $fields;
+    }
+
     private function primaryKey(array $schema): array
     {
         $primary = array_filter($schema, static fn (array $field): bool => ($field['primary'] ?? false) === true);
@@ -1617,10 +1651,10 @@ final class FormDataService
         ));
         $configuredNames = array_column($configured, 'field_name');
         $readable = array_values(array_unique(array_merge($readable, array_intersect($configuredNames, $columns))));
-        $query = $this->childQuery(Db::connect((string) $context['form']->connection), $context)
-            ->field($readable)->where($context['foreignKey'], $id);
+        $query = $this->childQuery(Db::connection((string) $context['form']->connection), $context)
+            ->select($readable)->where($context['foreignKey'], $id);
         $total = (clone $query)->count();
-        $rows = $query->order($context['primary']['name'], 'asc')->page($page, $pageSize)->select()->toArray();
+        $rows = array_map(static fn (object $row): array => (array) $row, $query->orderBy($context['primary']['name'], 'asc')->forPage($page, $pageSize)->get()->all());
         $rows = array_map(fn (array $row): array => $this->sanitizeRecord($context['fields'], $row), $rows);
         return ['list' => $rows, 'total' => (int) $total];
     }
@@ -1633,8 +1667,8 @@ final class FormDataService
             $context = $this->childContext($field);
             if ((string) $context['form']->connection !== (string) $parentForm->connection) throw new InvalidArgumentException('父子表必须使用同一数据库连接');
             $primaryName = $context['primary']['name'];
-            $existing = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->lock(true);
-            $existingIds = array_map('strval', $existing->column($primaryName));
+            $existing = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->lockForUpdate();
+            $existingIds = array_map('strval', $existing->pluck($primaryName)->all());
             $submitted = [];
             foreach ($relations[$name] as $row) {
                 if (!is_array($row)) throw new InvalidArgumentException($name . ' 子表行必须为对象');
@@ -1644,7 +1678,7 @@ final class FormDataService
                 if ($hasRowId) {
                     $key = (string) $rowId;
                     if (isset($submitted[$key])) throw new InvalidArgumentException($name . ' 子表主键重复：' . $key);
-                    if (!$updatesExisting && $this->childQuery($connection, $context)->where($primaryName, $rowId)->find()) {
+                    if (!$updatesExisting && $this->childQuery($connection, $context)->where($primaryName, $rowId)->first()) {
                         throw new InvalidArgumentException($name . ' 子表数据不属于当前父记录');
                     }
                     if (!$updatesExisting && $context['primary']['type'] !== 'string') {
@@ -1690,16 +1724,16 @@ final class FormDataService
         $foreignKey = (string) $field->relation_value_field;
         $this->assertIdentifier($table, '子表');
         $this->assertIdentifier($foreignKey, '子表外键字段');
-        $form = Form::where('table_name', $table)->where('status', 1)->find();
+        $form = Form::where('table_name', $table)->where('status', 1)->first();
         if (!$form) throw new InvalidArgumentException('子表必须配置启用的表单元数据：' . $table);
         $published = $this->publishedRuntime($form);
         $database = (array) ($published['schema']['database'] ?? []);
         $publishedTable = (string) ($database['table'] ?? $table);
         if ($publishedTable !== $table) throw new InvalidArgumentException('已发布子表快照与关系配置不一致');
         $form->connection = (string) ($database['connection'] ?? $form->connection);
-        $schema = Db::connect((string) $form->connection)->getFields($publishedTable);
+        $schema = $this->tableFields(Db::connection((string) $form->connection), $publishedTable);
         return [
-            'table' => $publishedTable,
+            'table' => $this->logicalTable(Db::connection((string) $form->connection), $publishedTable),
             'foreignKey' => $foreignKey,
             'form' => $form,
             'schema' => $schema,
@@ -1830,10 +1864,12 @@ final class FormDataService
         if ($built['rules'] === []) {
             return;
         }
-        $validate = Validate::rule($built['rules'])->message($built['messages']);
-        $payload = $isUpdate ? $data : array_intersect_key($data, $built['rules']) + array_fill_keys(array_keys($built['rules']), '');
-        if (!$validate->check($payload)) {
-            throw new InvalidArgumentException((string) $validate->getError());
+        $rules = $built['rules'];
+        if ($isUpdate) $rules = array_intersect_key($rules, $data);
+        if ($rules === []) return;
+        $validate = Validator::make($data, $rules, $built['messages']);
+        if ($validate->fails()) {
+            throw new InvalidArgumentException((string) $validate->errors()->first());
         }
     }
 }

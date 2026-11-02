@@ -7,8 +7,8 @@ use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginActivationReader;
 use app\common\plugin\sdk\PluginEntryFactory;
 
-define('DS', DIRECTORY_SEPARATOR);
-define('PLUGIN_DIR', 'plugins');
+if (!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
+if (!defined('PLUGIN_DIR')) define('PLUGIN_DIR', 'plugins');
 
 /** 仅允许可信激活快照中已启用的插件实例化生命周期入口。 */
 if (!function_exists('get_plugin_instance')) {
@@ -18,15 +18,15 @@ if (!function_exists('get_plugin_instance')) {
             return null;
         }
         try {
-            $snapshot = (new PluginActivationReader(root_path('runtime/plugins/activation')))->read();
+            $snapshot = (new PluginActivationReader(runtime_path('plugins/activation')))->read();
             $gate = new ActivationGate($snapshot);
             $plugins = $snapshot->plugins();
             $application = (($plugins[$code]['applications']['admin'] ?? false) === true) ? 'admin' : 'app';
             $gate->assertEnabled($code, $application);
-            $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code);
+            $manifest = Manifest::fromDirectory(base_path('plugins/' . $code));
             return (new PluginEntryFactory())->create(
                 $manifest,
-                static fn (string $class): object => app()->make($class)
+                static fn (string $class): object => \support\Container::get($class)
             );
         } catch (\Throwable) {
             return null;

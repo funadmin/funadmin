@@ -13,16 +13,17 @@
 
 
 namespace app\common\model;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
 class ConfigGroup extends BaseModel
 {
+    protected $table = 'config_group';
     /**
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     

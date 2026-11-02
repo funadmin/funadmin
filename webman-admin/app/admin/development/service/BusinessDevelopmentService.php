@@ -19,7 +19,7 @@ use app\admin\authorization\service\ResourceRegistryService;
 use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 
 /** 统一业务开发 API 的应用编排层。 */
 final class BusinessDevelopmentService
@@ -56,7 +56,7 @@ final class BusinessDevelopmentService
 
     public function targets(): array
     {
-        return ($this->targetService ?? new BusinessTargetService(root_path(), (string) config('database.default', 'mysql')))->candidates();
+        return ($this->targetService ?? new BusinessTargetService(base_path(), (string) config('database.default', 'mysql')))->candidates();
     }
 
     public function modules(int $page, int $pageSize, string $keyword, string $status, string $origin): array
@@ -76,16 +76,16 @@ final class BusinessDevelopmentService
     {
         self::assertPositiveId($id);
         $result = Db::transaction(function () use ($id): array {
-            $module = BusinessModule::where('id', $id)->lock(true)->find();
+            $module = BusinessModule::where('id', $id)->lockForUpdate()->first();
             if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
             $pending = CrudGeneration::where('business_module_id', $id)
                 ->where(function ($query): void {
-                    $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+                    $query->where('status', 'running')->orWhereIn('recovery_status', ['recovering', 'recovery_required']);
                 })
-                ->find();
+                ->first();
             if ($pending) throw new BusinessOperationException('GENERATION_IN_PROGRESS');
             $sourceName = str_replace('_', '-', (string) $module->code);
-            $module->delete();
+            if (BusinessModule::whereKey((int) $module->id)->delete() !== 1) throw new BusinessOperationException('BUSINESS_MODULE_DELETE_FAILED');
             return ['removed' => 1, 'sourceName' => $sourceName];
         });
         ResourceRegistryService::instance()->removeSource('generated', $result['sourceName']);
@@ -387,7 +387,7 @@ final class BusinessDevelopmentService
         $table = trim((string) ($allowed['table'] ?? ''));
         if ($source === 'created') {
             $table = $table !== '' ? $table : ($target['type'] === 'plugin' ? $target['pluginCode'] . '_' : '') . $code;
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
             if ($prefix !== '' && !str_starts_with($table, $prefix)) $table = $prefix . $table;
         }
         self::assertIdentifier($table, 'table');

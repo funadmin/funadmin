@@ -6,9 +6,9 @@ namespace app\admin\controller\base;
 
 use app\BaseController;
 use app\admin\common\traits\AdminCrudRequest;
-use app\admin\traits\AdminDataFormat;
-use app\admin\traits\AdminDataScope;
-use app\admin\traits\AdminJsonResponse;
+use app\common\traits\DataFormat;
+use app\admin\common\traits\AdminDataScope;
+use app\admin\common\traits\AdminJsonResponse;
 use app\admin\common\traits\AdminPagination;
 use app\admin\common\traits\AdminTree;
 use app\admin\middleware\CheckAdminApiRole;
@@ -23,7 +23,7 @@ use support\annotation\Middleware;
 abstract class AdminApiController extends BaseController
 {
     use AdminCrudRequest;
-    use AdminDataFormat;
+    use DataFormat;
     use AdminDataScope;
     use AdminJsonResponse;
     use AdminPagination;

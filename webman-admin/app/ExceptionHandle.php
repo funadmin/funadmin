@@ -7,7 +7,7 @@ namespace app;
 use DomainException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Webman\Validation\Exception\ValidationException;
-use app\admin\http\AdminResponse;
+use app\admin\common\http\AdminResponse;
 use Throwable;
 use Webman\Exception\ExceptionHandler;
 use Webman\Http\Request;
@@ -19,7 +19,7 @@ class ExceptionHandle extends ExceptionHandler
     {
         $status = 500;
         $message = '服务暂时不可用';
-        if ($exception instanceof ValidationException) {
+        if ($exception instanceof ValidationException || $exception instanceof \app\common\service\identity\IdentityValidationException) {
             if (str_starts_with($request->path(), '/admin/')) {
                 return AdminResponse::create($exception->getMessage(), null, 422);
             }

@@ -144,6 +144,7 @@ import { useI18n } from 'vue-i18n';
 import { userApi, type UserModel } from '@/api/system/user';
 import type { DataTableColumnOption } from '@/components/DataTable';
 import { useCrud } from '@/composables/useCrud';
+import { isWebmanBackend } from '@/config';
 import UserFormDialog from './components/UserFormDialog.vue';
 
 defineOptions({ name: 'SystemUser' });
@@ -201,9 +202,13 @@ async function onToggleStatus(row: UserModel, v: boolean) {
 
 async function onResetPwd(row: UserModel) {
   const { value } = await ElMessageBox.prompt(t('systemUser.resetPwdPrompt', { name: row.username }, { default: '重置 {name} 的密码' }), t('systemUser.resetPwdTitle', '提示'), {
-    inputPlaceholder: t('systemUser.resetPwdPlaceholder', '至少 8 位新密码'),
-    inputPattern: /^.{8,}$/,
-    inputErrorMessage: t('systemUser.resetPwdError', '密码长度至少 8 位')
+    inputType: 'password',
+    inputPlaceholder: isWebmanBackend() ? t('profile.passwordBytes', '新密码需为 12～72 字节') : t('systemUser.resetPwdPlaceholder', '至少 8 位新密码'),
+    inputValidator: (value: string) => {
+      if (!isWebmanBackend()) return value.length >= 8 || t('systemUser.resetPwdError', '密码长度至少 8 位');
+      const bytes = new TextEncoder().encode(value).length;
+      return bytes < 12 || bytes > 72 || value.includes('\0') ? t('profile.passwordBytes', '新密码需为 12～72 字节') : true;
+    }
   });
   await userApi.resetPassword(row.id, value);
 }

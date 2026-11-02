@@ -6,5 +6,6 @@ class SystemMigration extends BaseModel
 {
     protected $name = 'system_migration';
 
-    protected $autoWriteTimestamp = false;
+    public $timestamps = false;
+    protected $guarded = [];
 }

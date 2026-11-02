@@ -33,12 +33,24 @@ final class CrudDefinition implements JsonSerializable
         }
         if ($identity['kind'] === 'logical') {
             $connection = (string) ($data['connection'] ?? $data['metadata']['connection'] ?? 'mysql');
-            $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
             $table = trim((string) ($data['table'] ?? ''));
             $data['table'] = $table !== '' && $prefix !== '' && !str_starts_with($table, $prefix) ? $prefix . $table : $table;
             $identity['kind'] = 'physical';
         }
         $data['tableIdentity'] = $identity;
+        $entity = (string) ($data['entity'] ?? $data['name'] ?? '');
+        $paths = $data['generationTargets'] ?? $data['paths'] ?? [];
+        if (($data['target']['type'] ?? 'core') === 'core' && preg_match('/^[a-z][a-z0-9-]*$/D', $entity) === 1 && is_array($paths)) {
+            $class = self::studly($entity);
+            foreach (['model' => '', 'validate' => 'Validate', 'service' => 'Service', 'controller' => 'Controller'] as $layer => $suffix) {
+                $file = $class . $suffix . '.php';
+                if (!isset($paths[$layer]) || $paths[$layer] === 'app/admin/' . $layer . '/generated/' . $file) {
+                    $paths[$layer] = 'app/admin/generated/' . str_replace('-', '_', $entity) . '/' . $layer . '/' . $file;
+                }
+            }
+            $data['generationTargets'] = $paths;
+        }
         return self::fromArray($data);
     }
 

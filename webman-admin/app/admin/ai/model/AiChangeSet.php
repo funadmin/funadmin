@@ -14,7 +14,6 @@ final class AiChangeSet extends BackendModel
 
     protected $name = 'ai_change_set';
 
-    protected $json = ['manifest', 'summary', 'base_file_hashes', 'selection', 'test_result', 'security_result'];
-
-    protected $jsonAssoc = true;
+    protected $guarded = [];
+    protected $casts = ['manifest' => 'array', 'summary' => 'array', 'base_file_hashes' => 'array', 'selection' => 'array', 'test_result' => 'array', 'security_result' => 'array'];
 }

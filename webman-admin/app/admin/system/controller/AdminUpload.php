@@ -5,26 +5,21 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\service\UploadService;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\Response;
-use think\facade\Session;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
 /**
  * Admin Web 通用上传适配器，复用现有上传服务并统一响应结构。
  */
-#[Group('')]
+#[RouteGroup('/admin')]
 class AdminUpload extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Post('upload')]
+    #[Post('/upload')]
     public function upload(): Response
     {
         $file = $this->request->file('file');
@@ -56,7 +51,7 @@ class AdminUpload extends AdminApiController
             ->resolve((string) syscfg('upload', 'upload_driver'))->name();
         $existingAttach = Attach::where('driver', $driver)->where('md5', $file->md5())->find();
         try {
-            $result = UploadService::instance()->uploads(0, (int) Session::get('admin.id', 0));
+            $result = UploadService::instance()->uploads(0, (int) (request()?->context['admin']['id'] ?? 0));
         } catch (\Throwable $e) {
             return $this->fail(msg: $e->getMessage() ?: '上传失败', code: 422);
         }

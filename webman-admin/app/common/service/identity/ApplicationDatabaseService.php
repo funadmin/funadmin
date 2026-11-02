@@ -8,7 +8,7 @@ use app\common\model\identity\ApplicationDatabase;
 use app\common\model\identity\EnterpriseApplication;
 use DomainException;
 use GuzzleHttp\Client;
-use InvalidArgumentException;
+use support\validation\ValidationException;
 
 final class ApplicationDatabaseService
 {
@@ -21,20 +21,20 @@ final class ApplicationDatabaseService
     {
         foreach (['dsn', 'password', 'username', 'host', 'port', 'database'] as $secret) {
             if (array_key_exists($secret, $input)) {
-                throw new InvalidArgumentException('禁止保存 DSN、密码或任意数据库连接参数');
+                throw new ValidationException('禁止保存 DSN、密码或任意数据库连接参数');
             }
         }
         $mode = (string) ($input['mode'] ?? 'shared');
         $credentialRef = trim((string) ($input['credentialRef'] ?? $input['credential_ref'] ?? ''));
         if (!in_array($mode, ['shared', 'dedicated', 'external'], true)) {
-            throw new InvalidArgumentException('数据模式无效');
+            throw new ValidationException('数据模式无效');
         }
         if ($mode === 'shared' && $credentialRef !== '' || $mode !== 'shared' && ($credentialRef === '' || !preg_match('#^(vault|secret|kms)://[A-Za-z0-9._/-]+$#', $credentialRef))) {
-            throw new InvalidArgumentException('dedicated/external 必须且只能引用安全凭证');
+            throw new ValidationException('dedicated/external 必须且只能引用安全凭证');
         }
         $healthPath = trim((string) ($input['healthPath'] ?? $input['health_path'] ?? ''));
         if ($healthPath !== '' && (!str_starts_with($healthPath, '/') || str_starts_with($healthPath, '//'))) {
-            throw new InvalidArgumentException('健康检查只能使用相对路径');
+            throw new ValidationException('健康检查只能使用相对路径');
         }
         return ['mode' => $mode, 'credential_ref' => $credentialRef ?: null, 'health_path' => $healthPath ?: null];
     }
@@ -43,22 +43,22 @@ final class ApplicationDatabaseService
     {
         $this->application($tenantId, $applicationId);
         $row = self::validateConfiguration($input) + ['tenant_id' => $tenantId, 'application_id' => $applicationId];
-        $model = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->find() ?? new ApplicationDatabase();
-        $model->save($row);
-        return $model->hidden(['credential_ref'])->toArray();
+        $model = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->first() ?? new ApplicationDatabase();
+        $model->forceFill($row)->save();
+        return $model->makeHidden(['credential_ref'])->toArray();
     }
 
     public function get(int $tenantId, int $applicationId): array
     {
         $this->application($tenantId, $applicationId);
-        $model = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->find();
-        return $model ? $model->hidden(['credential_ref'])->toArray() : ['mode' => 'shared', 'credentialConfigured' => false];
+        $model = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->first();
+        return $model ? $model->makeHidden(['credential_ref'])->toArray() : ['mode' => 'shared', 'credentialConfigured' => false];
     }
 
     public function health(int $tenantId, int $applicationId, bool $development = false): array
     {
         $application = $this->application($tenantId, $applicationId);
-        $database = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->find();
+        $database = ApplicationDatabase::forTenant($tenantId)->where('application_id', $applicationId)->first();
         if (!$database || !$database->health_path) {
             return ['status' => 'unknown', 'message' => '未配置健康检查路径'];
         }
@@ -81,15 +81,15 @@ final class ApplicationDatabaseService
         } catch (\Throwable) {
             $status = 'unhealthy';
         }
-        $database->save(['health_status' => $status, 'last_checked_at' => date('Y-m-d H:i:s')]);
+        $database->forceFill(['health_status' => $status, 'last_checked_at' => date('Y-m-d H:i:s')])->save();
         return ['status' => $status];
     }
 
     private function application(int $tenantId, int $applicationId): EnterpriseApplication
     {
-        $application = EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->find();
+        $application = EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->first();
         if (!$application) {
-            throw new DomainException('应用不存在或不属于当前租户');
+            throw new DomainException('应用不存在或不属于当前租户', 404);
         }
         return $application;
     }

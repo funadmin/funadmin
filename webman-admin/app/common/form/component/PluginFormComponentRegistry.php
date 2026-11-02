@@ -134,7 +134,7 @@ final class PluginFormComponentRegistry
         } else {
             $entry = (new PluginEntryFactory())->create(
                 $manifest,
-                static fn (string $class): object => function_exists('app') ? app()->make($class) : new $class()
+                static fn (string $class): object => \support\Container::get($class)
             );
         }
         return $this->entries[$code] = $entry;
@@ -145,7 +145,7 @@ final class PluginFormComponentRegistry
         if ($this->enabledManifests instanceof Closure) {
             return (array) ($this->enabledManifests)();
         }
-        $root = function_exists('root_path') ? root_path() : dirname(__DIR__, 4) . DIRECTORY_SEPARATOR;
+        $root = rtrim(base_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $snapshot = (new PluginActivationReader($root . 'runtime/plugins/activation'))->read();
         if (!$snapshot->isTrusted()) {
             return [];

@@ -18,11 +18,11 @@ class DataScopeService
 {
     public function resolve(?int $adminId = null): array
     {
-        $adminId ??= (int) session('admin.id');
+        $adminId ??= (int) (request()?->context['admin']['id'] ?? 0);
         if ($adminId <= 0) {
             return ['all' => false, 'adminId' => 0, 'departmentIds' => []];
         }
-        if ($adminId === (int) config('funadmin.superAdminId')) {
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return ['all' => true, 'adminId' => $adminId, 'departmentIds' => []];
         }
 
@@ -33,8 +33,8 @@ class DataScopeService
         $roleIds = (new RoleScopeService())->adminRoleIds($adminId);
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])
             ->where('status', 1)
-            ->field('id,data_scope')
-            ->select();
+            ->select(['id', 'data_scope'])
+            ->get();
 
         $assignedDepartmentIds = $this->adminDepartmentIds($adminId, (int) $admin->dept_id);
         $departmentIds = [];
@@ -52,7 +52,7 @@ class DataScopeService
             } elseif ($scope === 'custom') {
                 $departmentIds = array_merge(
                     $departmentIds,
-                    array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->column('dept_id'))
+                    array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->pluck('dept_id')->all())
                 );
             }
         }
@@ -71,7 +71,7 @@ class DataScopeService
     {
         $scope = $this->resolve($adminId);
         if ($scope['all']) {
-            return array_map('intval', Admin::where('status', 1)->column('id'));
+            return array_map('intval', Admin::where('status', 1)->pluck('id')->all());
         }
         $ids = [(int) $scope['adminId']];
         if ($scope['departmentIds']) {
@@ -97,7 +97,7 @@ class DataScopeService
         return $query->where(function ($scoped) use ($adminField, $departmentField, $allowedAdminIds, $scope) {
             $scoped->whereIn($adminField, $allowedAdminIds ?: [0]);
             if ($scope['departmentIds']) {
-                $scoped->whereOr($departmentField, 'in', $scope['departmentIds']);
+                $scoped->orWhereIn($departmentField, $scope['departmentIds']);
             }
         });
     }
@@ -110,7 +110,7 @@ class DataScopeService
         $result = [$departmentId];
         $queue = [$departmentId];
         while ($queue) {
-            $children = Department::whereIn('pid', $queue)->where('status', 1)->column('id');
+            $children = Department::whereIn('pid', $queue)->where('status', 1)->pluck('id')->all();
             $queue = [];
             foreach ($this->normalizeIds($children) as $childId) {
                 if (!in_array($childId, $result, true)) {
@@ -133,7 +133,7 @@ class DataScopeService
         $result = [$departmentId];
         $queue = [$departmentId];
         while ($queue) {
-            $children = Department::whereIn('pid', $queue)->column('id');
+            $children = Department::whereIn('pid', $queue)->pluck('id')->all();
             $queue = [];
             foreach ($this->normalizeIds($children) as $childId) {
                 if (!in_array($childId, $result, true)) {
@@ -149,21 +149,21 @@ class DataScopeService
     {
         return $this->normalizeIds(array_merge(
             [$primaryDepartmentId],
-            AdminDepartment::where('admin_id', $adminId)->column('dept_id')
+            AdminDepartment::where('admin_id', $adminId)->pluck('dept_id')->all()
         ));
     }
 
     private function adminIdsByDepartments(array $departmentIds, bool $enabledOnly = false): array
     {
-        $relationIds = $this->normalizeIds(AdminDepartment::whereIn('dept_id', $departmentIds)->column('admin_id'));
+        $relationIds = $this->normalizeIds(AdminDepartment::whereIn('dept_id', $departmentIds)->pluck('admin_id')->all());
         if ($enabledOnly && $relationIds !== []) {
-            $relationIds = array_map('intval', Admin::whereIn('id', $relationIds)->where('status', 1)->column('id'));
+            $relationIds = array_map('intval', Admin::whereIn('id', $relationIds)->where('status', 1)->pluck('id')->all());
         }
         $query = Admin::whereIn('dept_id', $departmentIds);
         if ($enabledOnly) {
             $query->where('status', 1);
         }
-        return $this->normalizeIds(array_merge($relationIds, $query->column('id')));
+        return $this->normalizeIds(array_merge($relationIds, $query->pluck('id')->all()));
     }
 
     private function normalizeIds(array $ids): array

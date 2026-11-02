@@ -14,9 +14,8 @@ final class CrudGeneration extends BackendModel
 {
     protected $name = 'crud_generation';
 
-    protected $json = ['definition', 'manifest', 'result', 'error'];
-
-    protected $jsonAssoc = true;
+    protected $casts = ['definition' => 'array', 'manifest' => 'array', 'result' => 'array', 'error' => 'array'];
+    protected $guarded = [];
 
     public function businessModule()
     {

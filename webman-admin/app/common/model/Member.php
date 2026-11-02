@@ -21,6 +21,7 @@ use think\facade\Event;
 use app\common\model\concern\LaravelSoftDelete;
 
 class  Member extends BaseModel{
+    protected $table = 'member';
     /**
      * @var bool
      */

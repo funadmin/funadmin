@@ -6,7 +6,7 @@ namespace app\common\crud;
 
 use Closure;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 仅应用 CRUD 本次生成并经哈希绑定的权限菜单 migration。
@@ -21,7 +21,7 @@ final class CrudResourceInstaller
 
     public function __construct(private readonly string $projectRoot, ?callable $executor = null, ?callable $transaction = null)
     {
-        $this->executor = Closure::fromCallable($executor ?? static fn (string $sql): int => Db::execute($sql));
+        $this->executor = Closure::fromCallable($executor ?? static fn (string $sql): int => Db::affectingStatement($sql));
         $this->transaction = Closure::fromCallable($transaction ?? static fn (callable $operation): mixed => Db::transaction($operation));
     }
 
@@ -43,8 +43,8 @@ final class CrudResourceInstaller
         if ($forceRefresh) {
             $langStatements = array_map([$this, 'forceRefreshStatement'], $langStatements);
         }
-        $connection = (string) \think\facade\Config::get('database.default', 'mysql');
-        $prefix = (string) \think\facade\Config::get('database.connections.' . $connection . '.prefix', '');
+        $connection = (string) config('database.default', 'mysql');
+        $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
         if ($prefix !== '' && preg_match('/^[A-Za-z][A-Za-z0-9_]*$/D', $prefix) !== 1) {
             throw new RuntimeException('资源表前缀不合法');
         }

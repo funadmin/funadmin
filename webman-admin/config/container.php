@@ -12,4 +12,12 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-return new Webman\Container;
+$container = new Webman\Container;
+$container->addDefinitions([
+    app\common\middleware\MApi::class => static fn () => new app\common\middleware\MApi(
+        support\Container::get(app\common\service\TokenService::class),
+        support\Container::get(app\common\service\MemberAuthService::class),
+        support\Container::get(app\common\service\BearerTokenExtractor::class)
+    ),
+]);
+return $container;

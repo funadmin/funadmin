@@ -1,5 +1,6 @@
 import { i18n } from './index';
-import { isWebmanBackend } from '@/config';
+import zhCN from './zh-CN';
+import enUS from './en-US';
 import { languageApi } from '@/api/system/language';
 import { hasSession } from '@/utils/auth';
 
@@ -11,6 +12,7 @@ export const unflattenMessages = (flat: Record<string, string>): Record<string, 
   const root: Record<string, unknown> = {};
   for (const [path, value] of Object.entries(flat)) {
     const segments = path.split('.');
+    if (segments.some((segment) => !segment || ['__proto__', 'constructor', 'prototype'].includes(segment)) || typeof value !== 'string') continue;
     let cursor = root;
     for (const [index, segment] of segments.entries()) {
       if (index === segments.length - 1) {
@@ -68,13 +70,19 @@ const writeCache = (locale: string, messages: Record<string, string>, version: n
  * 版本协商：本地版本与服务端一致时服务端返回 unchanged 空包，直接复用缓存；
  * 缓存缺失（被清理）则强制全量重拉。静态包继续作为最终兜底（t(key, fallback) 模式不变）。
  */
+function replaceRemoteMessages(locale: string, messages: Record<string, string>): void {
+  const canonical = locale.toLowerCase() === 'zh-cn' ? 'zh-CN' : locale.toLowerCase() === 'en-us' ? 'en-US' : locale;
+  const baseline = canonical === 'zh-CN' ? zhCN : canonical === 'en-US' ? enUS : {};
+  i18n.global.setLocaleMessage(canonical, structuredClone(baseline) as typeof zhCN);
+  i18n.global.mergeLocaleMessage(canonical, unflattenMessages(messages));
+}
+
 export async function applyRemotePack(locale: string): Promise<void> {
-  if (isWebmanBackend()) return;
   let messages: Record<string, string> | null = null;
   if (!hasSession()) {
     // 译文包接口需要登录；登录前只用缓存/静态包，登录成功后再拉取。
     messages = readCache(locale);
-    if (messages) i18n.global.mergeLocaleMessage(locale, unflattenMessages(messages));
+    if (messages) replaceRemoteMessages(locale, messages);
     return;
   }
   try {
@@ -94,5 +102,5 @@ export async function applyRemotePack(locale: string): Promise<void> {
     messages = readCache(locale);
     if (!messages) return;
   }
-  i18n.global.mergeLocaleMessage(locale, unflattenMessages(messages));
+  replaceRemoteMessages(locale, messages);
 }

@@ -28,6 +28,6 @@ final class DdlEncodingGuard
     public static function check(object $connection, string $sql): void
     {
         self::assertUtf8($sql);
-        self::assertSession($connection->query('SELECT @@character_set_client client, @@character_set_connection connection_charset, @@character_set_results results_charset', [], true)[0] ?? []);
+        self::assertSession((array) ($connection->selectOne('SELECT @@character_set_client client, @@character_set_connection connection_charset, @@character_set_results results_charset') ?? []));
     }
 }

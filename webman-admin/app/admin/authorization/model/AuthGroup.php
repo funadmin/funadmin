@@ -20,7 +20,7 @@ use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\RoleGuardService;
 use app\admin\authorization\service\RoleScopeService;
 use app\admin\model\BackendModel;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 
 class AuthGroup extends BackendModel
 {
@@ -30,7 +30,7 @@ class AuthGroup extends BackendModel
      * @var bool
      */
     use LaravelSoftDelete;
-    use AdminDataFormat;
+    use DataFormat;
 
 
     
@@ -58,7 +58,7 @@ class AuthGroup extends BackendModel
      */
     public static function manageableQuery()
     {
-        $query = self::where('id', '<>', (int) config('funadmin.superRoleId'));
+        $query = self::where('id', '<>', (int) config('auth.super_role_id', 1));
         $roleScope = new RoleScopeService();
         if (!$roleScope->isSuperAdmin()) {
             $query->whereIn('id', $roleScope->manageableRoleIds() ?: [0])
@@ -94,10 +94,10 @@ class AuthGroup extends BackendModel
         $inheritRows = array_map(static fn (int $parentId): array => [
             'role_id' => $roleId,
             'parent_role_id' => $parentId,
-            'created_at' => time()
+            'created_at' => date('Y-m-d H:i:s')
         ], $parentRoleIds);
         if ($inheritRows) {
-            (new AuthGroupInherit())->saveAll($inheritRows);
+            AuthGroupInherit::insert($inheritRows);
         }
 
         AuthGroupDepartment::where('role_id', $roleId)->delete();
@@ -105,9 +105,9 @@ class AuthGroup extends BackendModel
             $departmentRows = array_map(static fn (int $departmentId): array => [
                 'role_id' => $roleId,
                 'dept_id' => $departmentId,
-                'created_at' => time()
+                'created_at' => date('Y-m-d H:i:s')
             ], $data['departmentIds']);
-            (new AuthGroupDepartment())->saveAll($departmentRows);
+            AuthGroupDepartment::insert($departmentRows);
         }
         CasbinService::instance()->syncRoleInheritance($roleId, $parentRoleIds);
     }
@@ -127,10 +127,10 @@ class AuthGroup extends BackendModel
             'status' => (int) $this->status,
             'parentId' => $pid,
             'parentRoleIds' => array_values(array_filter(
-                array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
+                array_map('intval', AuthGroupInherit::where('role_id', $roleId)->pluck('parent_role_id')->all()),
                 static fn (int $parentRoleId): bool => $parentRoleId !== $pid
             )),
-            'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->column('dept_id')),
+            'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->pluck('dept_id')->all()),
             'permissionIds' => $roleScope->rolePermissionIds($roleId),
             'createdAt' => $this->formatTime($this->created_at),
         ];

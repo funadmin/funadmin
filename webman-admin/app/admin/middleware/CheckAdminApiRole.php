@@ -6,7 +6,7 @@ use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\service\PermissionResource;
 use app\admin\authorization\model\Permission;
-use app\admin\http\AdminResponse;
+use app\admin\common\http\AdminResponse;
 use DomainException;
 use Webman\Http\Request;
 use Webman\Http\Response;

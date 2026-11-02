@@ -6,7 +6,7 @@ namespace app\admin\plugin\business\market\controller;
 
 use app\admin\controller\base\AdminApiController;
 use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckPluginPermission;
+use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
 use think\annotation\route\Get;

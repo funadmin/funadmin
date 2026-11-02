@@ -29,7 +29,7 @@ final class AuthorizationService
             'email' => (string) ($current->email ?? ''),
             'mobile' => (string) ($current->mobile ?? ''),
             'roles' => $isSuper ? ['super_admin'] : array_values(array_column($roles, 'code')),
-            'permissions' => $isSuper ? ['*'] : $this->permissionCodes((int) $current->id),
+            'permissions' => $isSuper ? ['*'] : Permission::webPermissions($this->permissionCodes((int) $current->id), false),
         ];
     }
 
@@ -39,7 +39,7 @@ final class AuthorizationService
         if (in_array('*', $info['permissions'], true)) {
             return;
         }
-        if ($superOnly || !in_array($permission, $info['permissions'], true)) {
+        if (!in_array($permission, $info['permissions'], true)) {
             throw new DomainException('没有操作权限', 403);
         }
     }
@@ -85,11 +85,9 @@ final class AuthorizationService
     public function permissionCodes(int $adminId): array
     {
         $roleIds = $this->effectiveRoleIds($adminId);
-        if ($roleIds === []) {
-            return [];
-        }
-        $policies = CasbinRule::where('ptype', 'p')->where('v1', 'default')->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $roleIds))->get();
-        $codes = [];
+        $codes = Permission::where('status', 1)->whereNull('deleted_at')->where('is_public', 1)
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->pluck('code')->filter()->all();
+        $policies = CasbinRule::where('ptype', 'p')->where('v1', PermissionResource::domain())->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $roleIds))->get();
         foreach ($policies as $policy) {
             $code = Permission::where('obj', $policy->v2)->where('act', $policy->v3)->where('status', 1)->whereNull('deleted_at')->value('code');
             if (is_string($code) && $code !== '') {
@@ -101,14 +99,14 @@ final class AuthorizationService
 
     public function roleIds(int $adminId): array
     {
-        $names = CasbinRule::where('ptype', 'g')->where('v2', 'default')->where('v0', 'admin:' . $adminId)->pluck('v1')->all();
+        $names = CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain())->where('v0', 'admin:' . $adminId)->pluck('v1')->all();
         $ids = array_map(static fn (string $name): int => str_starts_with($name, 'role:') ? (int) substr($name, 5) : 0, $names);
         return AuthGroup::whereIn('id', $ids)->where('status', 1)->whereNull('deleted_at')->pluck('id')->map('intval')->all();
     }
 
     public function permissionIds(int $roleId): array
     {
-        $rows = CasbinRule::where('ptype', 'p')->where('v1', 'default')->where('v0', 'role:' . $roleId)->get();
+        $rows = CasbinRule::where('ptype', 'p')->where('v1', PermissionResource::domain())->where('v0', 'role:' . $roleId)->get();
         $ids = [];
         foreach ($rows as $row) {
             $id = Permission::where('obj', $row->v2)->where('act', $row->v3)->value('id');
@@ -122,9 +120,13 @@ final class AuthorizationService
         $ids = $this->roleIds($adminId);
         $pending = $ids;
         while ($pending !== []) {
-            $names = CasbinRule::where('ptype', 'g')->where('v2', 'default')
+            $names = CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain())
                 ->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $pending))->pluck('v1')->all();
             $parents = array_map(static fn (string $name): int => str_starts_with($name, 'role:') ? (int) substr($name, 5) : 0, $names);
+            if (\support\Db::schema()->hasTable('auth_group_inherit')) {
+                $parents = array_merge($parents, \app\admin\authorization\model\AuthGroupInherit::whereIn('role_id', $pending)->pluck('parent_role_id')->all());
+            }
+            $parents = array_merge($parents, AuthGroup::whereIn('id', $pending)->pluck('pid')->all());
             $pending = AuthGroup::whereIn('id', $parents)->where('status', 1)->whereNull('deleted_at')->pluck('id')->map('intval')->all();
             $pending = array_values(array_diff($pending, $ids));
             $ids = array_merge($ids, $pending);

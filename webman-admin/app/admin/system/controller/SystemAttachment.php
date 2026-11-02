@@ -5,30 +5,24 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\storage\StorageDriverRegistry;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\App;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
 /** Admin Web 附件库管理。 */
-#[Group('system/attachment')]
+#[RouteGroup('/admin/system/attachment')]
 class SystemAttachment extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    public function __construct(App $app, private readonly StorageDriverRegistry $storageDrivers)
+    public function __construct(private readonly StorageDriverRegistry $storageDrivers)
     {
-        parent::__construct($app);
+        parent::__construct();
     }
 
     #[Get('')]
@@ -36,38 +30,37 @@ class SystemAttachment extends AdminApiController
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = Attach::order('id', 'desc');
+        $query = Attach::orderByDesc('id');
         $keyword = trim((string) $this->request->get('keyword', ''));
         $mimeType = trim((string) $this->request->get('mimeType', ''));
         $groupId = $this->request->get('groupId', null);
-        if ($keyword !== '') $query->where(function ($where) use ($keyword): void { $where->whereLike('original_name', '%' . $keyword . '%')->whereOr('name', 'like', '%' . $keyword . '%'); });
+        if ($keyword !== '') $query->where(function ($where) use ($keyword): void { $where->where('original_name', 'like', '%' . addcslashes($keyword, '%_') . '%')->orWhere('name', 'like', '%' . addcslashes($keyword, '%_') . '%'); });
         if ($groupId !== null && $groupId !== '') $query->where('group_id', (int) $groupId);
         if ($mimeType !== '') $this->applyMimeFilter($query, $mimeType);
-        $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok(data: $this->paginationData(array_map(fn (Attach $attach): array => $this->attachmentData($attach), $result->items()), $result->total(), $page, $pageSize));
+        $total = (clone $query)->count();
+        $items = $query->forPage($page, $pageSize)->get();
+        return $this->ok(data: $this->paginationData($items->map(fn (Attach $attach): array => $this->attachmentData($attach))->all(), $total, $page, $pageSize));
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response { $attach = Attach::find($id); return $attach ? $this->ok(data: $this->attachmentData($attach)) : $this->fail(msg: '附件不存在', code: 404); }
 
-    #[Put(':id/name')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}/name')]
     public function rename(int $id): Response
     {
         $attach = Attach::find($id); if (!$attach) return $this->fail(msg: '附件不存在', code: 404);
         $name = trim((string) $this->request->post('name', '')); $length = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
         if ($name === '' || $length > 255) return $this->fail(msg: '文件名称不能为空且不能超过 255 个字符', code: 422);
-        $attach->save(['original_name' => $name]); return $this->ok('重命名成功', $this->attachmentData($attach));
+        $attach->forceFill(['original_name' => $name])->save(); return $this->ok('重命名成功', $this->attachmentData($attach));
     }
 
-    #[Post('move')]
+    #[Post('/move')]
     public function move(): Response
     {
         $ids = $this->ids(); if (!$ids) return $this->fail(msg: '请选择要移动的附件', code: 422);
         $groupId = (int) $this->request->post('groupId', 0); if ($groupId > 0 && !AttachGroup::find($groupId)) return $this->fail(msg: '目标附件分组不存在', code: 422);
-        $attachments = Attach::whereIn('id', $ids)->select(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
-        foreach ($attachments as $attach) $attach->save(['group_id' => $groupId]);
+        $attachments = Attach::whereIn('id', $ids)->get(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
+        foreach ($attachments as $attach) $attach->forceFill(['group_id' => $groupId])->save();
         return $this->ok('移动成功', ['moved' => count($attachments)]);
     }
 
@@ -75,7 +68,7 @@ class SystemAttachment extends AdminApiController
     public function delete(): Response
     {
         $ids = $this->ids(); if (!$ids) return $this->fail(msg: '请选择要删除的附件', code: 422);
-        $attachments = Attach::whereIn('id', $ids)->select(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
+        $attachments = Attach::whereIn('id', $ids)->get(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
         $checkedPaths = [];
         foreach ($attachments as $attach) {
             $driverName = (string) ($attach->driver ?: 'local'); $path = (string) $attach->path; $storageKey = (string) ($attach->storage_key ?? '');

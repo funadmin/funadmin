@@ -5,29 +5,24 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\common\model\Config;
 use app\common\storage\StorageDriverRegistry;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Put;
-use think\App;
-use think\facade\Cache;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Cache;
+use support\Response;
 
 /**
  * 附件存储驱动配置。
  */
-#[Group('system/storage')]
+#[RouteGroup('/admin/system/storage')]
 final class SystemStorage extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    public function __construct(App $app, private readonly StorageDriverRegistry $drivers)
+    public function __construct(private readonly StorageDriverRegistry $drivers)
     {
-        parent::__construct($app);
+        parent::__construct();
     }
 
     #[Get('')]
@@ -53,7 +48,7 @@ final class SystemStorage extends AdminApiController
         if (!$config) {
             return $this->fail(msg: '上传驱动配置项不存在', code: 500);
         }
-        $config->save(['value' => $driver, 'extra' => $this->driverOptions()]);
+        $config->forceFill(['value' => $driver, 'extra' => $this->driverOptions()])->save();
         Cache::clear();
         return $this->ok('存储驱动已更新', ['driver' => $driver]);
     }

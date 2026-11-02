@@ -18,6 +18,11 @@ final class CrudValidate extends Command
 {
     use CrudCommandSupport;
 
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('crud:validate')->setDescription('验证版本化 CRUD Definition')
@@ -28,7 +33,7 @@ final class CrudValidate extends Command
     {
         try {
             $definition = $this->loadDefinition((string) $input->getArgument('definition'));
-            (new DefinitionValidator())->validate($definition, base_path() . DIRECTORY_SEPARATOR);
+            (new DefinitionValidator())->validate($definition, $this->projectRoot ?? base_path());
             $output->writeln($this->json(['valid' => true, 'definitionHash' => $definition->hash()]));
             return 0;
         } catch (Throwable $exception) {

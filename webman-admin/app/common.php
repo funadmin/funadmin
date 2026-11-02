@@ -14,7 +14,7 @@ declare(strict_types=1);
  * Date: 2021/8/2
  */
 
-use think\facade\Cache;
+use support\Cache;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\Route;
@@ -62,15 +62,15 @@ if (!function_exists('syscfg')) {
             }
         }
 
-        $cacheKey = 'syscfg:' . hash('sha256', $group . "\0" . ($code ?? ''));
+        $cacheKey = 'syscfg_' . hash('sha256', $group . "\0" . ($code ?? ''));
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && ($cached['cached'] ?? false) === true && array_key_exists('value', $cached)) {
             return $cached['value'];
         }
 
-        $query = \app\common\model\Config::where('group', $group);
+        $query = \app\common\model\Config::where('group', $group)->where('status', 1);
         $value = $code === null
-            ? $query->column('value', 'code')
+            ? $query->pluck('value', 'code')->all()
             : $query->where('code', $code)->value('value');
         Cache::set($cacheKey, ['cached' => true, 'value' => $value], 3600);
         return $value;

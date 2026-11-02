@@ -7,10 +7,11 @@ use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
 use app\common\traits\JsonResponse;
 use Closure;
-use think\Request;
-use think\Response;
+use Webman\Http\Request;
+use support\Response;
+use Webman\MiddlewareInterface;
 
-class MApi
+class MApi implements MiddlewareInterface
 {
     use JsonResponse;
 
@@ -28,22 +29,22 @@ class MApi
      * @param Closure $next
      * @return Response
      */
-    public function handle(Request $request, Closure $next): Response
+    public function process(Request $request, callable $next): Response
     {
         $token = $this->bearerTokenExtractor->extract($request);
         if ($token === null) {
-            return $this->fail(__('Unauthorized'), code: 401);
+            return $this->fail('Unauthorized', code: 401);
         }
 
         $tokenData = $this->tokenService->validateToken($token);
         $memberId = is_array($tokenData) ? (int) ($tokenData['id'] ?? 0) : 0;
         if ($memberId <= 0) {
-            return $this->fail(__('Invalid token'), code: 401);
+            return $this->fail('Invalid token', code: 401);
         }
 
         $member = $this->memberAuthService->activeMember($memberId);
         if (!$member) {
-            return $this->fail(__('Invalid token'), code: 401);
+            return $this->fail('Invalid token', code: 401);
         }
 
         $request->member = $member;

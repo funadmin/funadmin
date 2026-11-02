@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace app\common\plugin\sdk;
 
 use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckPluginPermission;
+use app\admin\plugin\middleware\CheckPluginPermission;
 use app\common\middleware\MApi;
 use Closure;
 use InvalidArgumentException;
 use RuntimeException;
-use think\Route;
+use Webman\Route;
 
 /**
  * 插件路由鉴权约定：统一挂中间件组，避免插件各自实现出裸公开路由。
@@ -20,7 +20,7 @@ final class PluginRoute
     /**
      * 管理端路由组：使用 manifest 中明确声明的插件权限鉴权，并保留 CSRF 校验。
      */
-    public static function adminGroup(Route $route, string $plugin, string $permission, Closure $registrar): void
+    public static function adminGroup(Route $route, string $plugin, string $permission, Closure $registrar, ?string $projectRoot = null): void
     {
         $plugin = strtolower(trim($plugin));
         $permission = strtolower(trim($permission));
@@ -31,15 +31,16 @@ final class PluginRoute
             throw new InvalidArgumentException('插件权限必须属于当前插件命名空间');
         }
 
-        $manifest = Manifest::fromDirectory(root_path(PLUGIN_DIR . DIRECTORY_SEPARATOR . $plugin));
+        $manifest = Manifest::fromDirectory(($projectRoot ?? base_path()) . '/plugins/' . $plugin);
         $declared = array_column((array) ($manifest->toArray()['adminWeb']['permissions'] ?? []), 'code');
         if (!in_array($permission, $declared, true)) {
             throw new RuntimeException('插件权限未在 manifest 中声明：' . $permission);
         }
 
-        $route->group($registrar)
-            ->middleware(CheckPluginPermission::class, $plugin, $permission)
-            ->middleware(CheckAdminApiCsrf::class);
+        $route->group($registrar)->middleware([
+            static fn () => new CheckPluginPermission(plugin: $plugin, permission: $permission),
+            CheckAdminApiCsrf::class,
+        ]);
     }
 
     /** 会员端 API 路由组：Bearer 会员鉴权。 */

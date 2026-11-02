@@ -6,9 +6,9 @@ namespace app\common\traits;
 
 use InvalidArgumentException;
 use LogicException;
-use think\facade\Db;
-use think\Model;
-use think\Response;
+use support\Db;
+use Illuminate\Database\Eloquent\Model;
+use support\Response;
 
 /**
  * Admin Web REST CRUD 公共流程。
@@ -17,6 +17,11 @@ use think\Response;
  */
 trait Crud
 {
+    private function crudConnection(): \Illuminate\Database\Connection
+    {
+        return (new $this->model())->getConnection();
+    }
+
     protected function payload(?Model $model = null): array
     {
         throw new LogicException(static::class . ' 必须实现 payload()');
@@ -37,10 +42,7 @@ trait Crud
         $page = $this->page();
         $pageSize = $this->pageSize();
         $query = $this->crudOrderedQuery($this->crudRecycled());
-        $result = $query->paginate([
-            'list_rows' => $pageSize,
-            'page' => $page,
-        ]);
+        $result = $query->paginate($pageSize, ['*'], 'page', $page);
 
         return $this->ok(data: $this->paginationData(
             array_map(fn (Model $model): array => $this->transformData($model), $result->items()),
@@ -65,7 +67,7 @@ trait Crud
             return $this->fail(msg: $error, code: 422);
         }
 
-        $model = Db::transaction(function () use ($data): Model {
+        $model = $this->crudConnection()->transaction(function () use ($data): Model {
             $model = ($this->model)::create($data);
             $this->afterSave($model, true);
             return $model;
@@ -86,8 +88,8 @@ trait Crud
             return $this->fail(msg: $error, code: 422);
         }
 
-        Db::transaction(function () use ($model, $data): void {
-            $model->save($data);
+        $this->crudConnection()->transaction(function () use ($model, $data): void {
+            $model->fill($data)->save();
             $this->afterSave($model, false);
         });
 
@@ -101,7 +103,7 @@ trait Crud
             return $this->fail(msg: $this->crudMessage('不存在'), code: 404);
         }
 
-        $model->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+        $model->fill(['status' => $this->binaryStatus($this->request->post('status', 0))])->save();
         $this->afterSave($model, false);
 
         return $this->ok('状态更新成功', $this->transformData($model));
@@ -135,7 +137,7 @@ trait Crud
 
         foreach ($models as $model) {
             if ($force) {
-                $model->force()->delete();
+                $model->forceDelete();
                 continue;
             }
             $model->delete();
@@ -169,7 +171,7 @@ trait Crud
         }
 
         foreach ($models as $model) {
-            $model->force()->delete();
+            $model->forceDelete();
         }
 
         return $this->ok('永久删除成功', ['removed' => count($models)]);
@@ -186,7 +188,7 @@ trait Crud
         }
 
         try {
-            $created = Db::transaction(function () use ($rows): array {
+            $created = $this->crudConnection()->transaction(function () use ($rows): array {
                 $models = [];
                 foreach (array_values($rows) as $index => $row) {
                     if (!is_array($row)) {
@@ -218,7 +220,7 @@ trait Crud
 
         return $this->ok(data: array_map(
             fn (Model $model): array => $this->crudExportData($model),
-            $query->select()->all()
+            $query->get()->all()
         ));
     }
 
@@ -278,7 +280,7 @@ trait Crud
         return match (true) {
             $onlyTrashed => ($this->model)::onlyTrashed(),
             $withTrashed => ($this->model)::withTrashed(),
-            default => ($this->model)::where($primaryKey, '<>', ''),
+            default => ($this->model)::query(),
         };
     }
 
@@ -394,7 +396,7 @@ trait Crud
             $orders = [$sortFields[$sort] => $this->request->get('order', 'asc')];
         }
         foreach ($orders as $field => $direction) {
-            $query->order($field, strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
+            $query->orderBy($field, strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
         }
         return $query;
     }
@@ -447,13 +449,13 @@ trait Crud
     private function crudFind(int|string $id, bool $withTrashed = false): ?Model
     {
         $primaryKey = $this->primaryKey();
-        $model = $this->baseQuery(false, $withTrashed)->where($primaryKey, $id)->find();
+        $model = $this->baseQuery(false, $withTrashed)->where($primaryKey, $id)->first();
         return $model instanceof Model ? $model : null;
     }
 
     private function crudDeleteOne(int|string $id, bool $onlyTrashed, bool $force): Response
     {
-        $model = $this->baseQuery($onlyTrashed, false)->where($this->primaryKey(), $id)->find();
+        $model = $this->baseQuery($onlyTrashed, false)->where($this->primaryKey(), $id)->first();
         if (!$model instanceof Model) {
             $suffix = $onlyTrashed ? '不存在或不在回收站' : '不存在或已在回收站';
             return $this->fail(msg: $this->crudMessage($suffix), code: 404);
@@ -462,7 +464,7 @@ trait Crud
             return $denied;
         }
         if ($force) {
-            $model->force()->delete();
+            $model->forceDelete();
             return $this->ok('永久删除成功');
         }
         if ($onlyTrashed) {
@@ -491,7 +493,7 @@ trait Crud
         }
 
         $primaryKey = $this->primaryKey();
-        $models = $this->baseQuery($onlyTrashed, false)->whereIn($primaryKey, $ids)->select();
+        $models = $this->baseQuery($onlyTrashed, false)->whereIn($primaryKey, $ids)->get();
         if (count($models) !== count($ids)) {
             $message = $onlyTrashed
                 ? sprintf('部分%s不存在或不在回收站', $this->resourceName())

@@ -6,14 +6,14 @@ use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use app\admin\form\model\FormSchemaVersion;
 use app\admin\model\BackendModel;
-use app\admin\traits\AdminDataFormat;
+use app\common\traits\DataFormat;
 
 /**
  * 后台菜单只负责导航展示，授权资源由 Permission 独立维护。
  */
 class AdminMenu extends BackendModel
 {
-    use AdminDataFormat;
+    use DataFormat;
 
     protected $table = 'admin_menu';
 
@@ -27,7 +27,7 @@ class AdminMenu extends BackendModel
 
     public static function findManaged(int $id): ?AdminMenu
     {
-        return self::managedQuery()->where('id', $id)->find();
+        return self::managedQuery()->where('id', $id)->first();
     }
 
     public static function descendantIds(int $id): array
@@ -35,7 +35,7 @@ class AdminMenu extends BackendModel
         $result = [];
         $queue = [$id];
         while ($queue) {
-            $children = self::managedQuery()->whereIn('pid', $queue)->column('id');
+            $children = self::managedQuery()->whereIn('pid', $queue)->pluck('id')->all();
             $queue = [];
             foreach (array_map('intval', $children) as $childId) {
                 if (!in_array($childId, $result, true)) {
@@ -54,7 +54,7 @@ class AdminMenu extends BackendModel
     {
         if ($sourceType !== 'generated' || $sourceName === '') return false;
         $code = str_replace('-', '_', $sourceName);
-        $module = BusinessModule::withTrashed()->where('code', $code)->find();
+        $module = BusinessModule::withTrashed()->where('code', $code)->first();
         if (!$module) return true;
         if (!$module->trashed()) {
             $publishedVersion = (int) ($module->published_schema_version ?? 0);
@@ -64,7 +64,7 @@ class AdminMenu extends BackendModel
                     && FormSchemaVersion::where('form_id', (int) $module->form_id)
                         ->where('version', $publishedVersion)
                         ->where('schema_hash', $publishedHash)
-                        ->find() === null;
+                        ->first() === null;
             }
             return false;
         }
@@ -75,14 +75,20 @@ class AdminMenu extends BackendModel
     {
         return CrudGeneration::where('business_module_id', $moduleId)
             ->where(function ($query): void {
-                $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
+                $query->where('status', 'running')->orWhereIn('recovery_status', ['recovering', 'recovery_required']);
             })
-            ->find() !== null;
+            ->first() !== null;
     }
 
     public static function validateAttributes(array $data): ?string
     {
         parse_str((string) $data['query'], $meta);
+        $path = rtrim(strtolower((string) $data['href']), '/');
+        $reservedPaths = ['/admin', '/admin/login', '/admin/install', '/admin/dashboard', '/admin/profile', '/admin/redirect', '/admin/403', '/admin/404', '/admin/500', '/login', '/install'];
+        $reservedNames = ['login', 'install', 'dashboard', 'profile', 'redirect', 'forbidden', 'servererror', 'notfound', 'bootstrapnotfound', 'publichome'];
+        if (in_array($path, $reservedPaths, true) || in_array(strtolower((string) ($meta['name'] ?? '')), $reservedNames, true)) {
+            return '不能覆盖系统保留路由或路由名称';
+        }
         if (($data['name'] ?? '') === '' || mb_strlen((string) $data['name']) > 100) {
             return '菜单名称不能为空且不能超过 100 个字符';
         }
@@ -142,7 +148,7 @@ class AdminMenu extends BackendModel
             'redirect' => (string) ($meta['redirect'] ?? ''),
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
             'icon' => (string) $this->icon,
-            'name' => (string) $this->getAttr('name'),
+            'name' => (string) $this->getAttribute('name'),
             'sort' => (int) $this->sort_order,
             'hidden' => $this->booleanValue($meta['hidden'] ?? false),
             'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
@@ -179,7 +185,7 @@ class AdminMenu extends BackendModel
             'redirect' => (string) ($meta['redirect'] ?? ''),
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
             'icon' => (string) $this->icon,
-            'name' => (string) $this->getAttr('name'),
+            'name' => (string) $this->getAttribute('name'),
             'sort' => (int) $this->sort_order,
             'hidden' => !$isAllowed || filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOL),
             'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOL),

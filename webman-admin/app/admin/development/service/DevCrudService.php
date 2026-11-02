@@ -14,7 +14,7 @@ use app\common\crud\PluginCrudDefinitionFactory;
 use app\common\crud\SchemaInspector;
 use Closure;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 use Throwable;
 
 /**
@@ -55,13 +55,13 @@ final class DevCrudService
     ) {
         $this->inspectorFactory = Closure::fromCallable(
             $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
-                static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)
+                static fn (string $sql, array $bindings): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select($sql, $bindings))
             )
         );
         $this->tableReader = Closure::fromCallable(
-            $tableReader ?? static fn (string $connection): array => Db::connect($connection)->query(
+            $tableReader ?? static fn (string $connection): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select(
                 'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
-            )
+            ))
         );
         $this->auditWriter = Closure::fromCallable($auditWriter ?? static function (array $row): int {
             $model = CrudGeneration::create($row);
@@ -75,7 +75,7 @@ final class DevCrudService
             CrudGeneration::where('id', $id)->update($changes);
         });
         $this->menuReader = Closure::fromCallable($menuReader ?? static fn (): array => \app\admin\authorization\model\AdminMenu::whereIn('source_type', ['admin_web', 'generated'])
-            ->where('status', 1)->field('id,pid,name,href,source_name,source_type')->order('sort_order', 'asc')->select()->toArray());
+            ->where('status', 1)->select(['id', 'pid', 'name', 'href', 'source_name', 'source_type'])->orderBy('sort_order', 'asc')->get()->toArray());
         $this->resourceInstaller = $resourceInstaller ?? new CrudResourceInstaller($projectRoot);
     }
 

@@ -5,28 +5,30 @@ declare(strict_types=1);
 namespace app\common\plugin\sdk;
 
 /** 仅注册插件基础服务，不访问控制面或加载插件源码。 */
-class Service extends \think\Service
+class Service implements \Webman\Bootstrap
 {
     protected string $plugins_path;
 
+    public static function start(?\Workerman\Worker $worker): void
+    {
+        (new self())->register();
+    }
+
     public function register(): void
     {
-        $this->app->bind('plugins', Service::class);
+        $container = \support\Container::instance();
+        $container->addDefinitions(['plugins' => static fn () => new self()]);
         $this->plugins_path = $this->getPluginsPath();
-        $this->app->loadLangPack($this->app->lang->defaultLangSet());
     }
 
     public function getPluginsPath(): string
     {
-        $pluginsPath = $this->app->getRootPath() . PLUGIN_DIR . DS;
-        if (!is_dir($pluginsPath)) {
-            @mkdir($pluginsPath, 0755, true);
-        }
-        return $pluginsPath;
+        return rtrim(base_path('plugins'), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
     }
 
     public static function getPluginCodePath(string $code): string
     {
-        return app()->getRootPath() . PLUGIN_DIR . DS . $code . DS;
+        PluginScaffolder::assertValidName($code);
+        return base_path('plugins/' . $code) . DIRECTORY_SEPARATOR;
     }
 }

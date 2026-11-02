@@ -37,13 +37,13 @@ final class PluginFormReferenceGuard
         if (is_callable($this->forms)) {
             return ($this->forms)();
         }
-        return Form::field(['id', 'form_key', 'schema_document'])->whereNotNull('schema_document')->select();
+        return Form::query()->select(['id', 'form_key', 'schema_document'])->whereNotNull('schema_document')->get();
     }
 
     private function versions(): iterable
     {
         if (is_callable($this->forms)) return [];
-        return FormSchemaVersion::field(['form_id', 'version', 'schema_document'])->select();
+        return FormSchemaVersion::query()->select(['form_id', 'version', 'schema_document'])->get();
     }
 
     private function reference(array $document, string $pluginCode): ?string

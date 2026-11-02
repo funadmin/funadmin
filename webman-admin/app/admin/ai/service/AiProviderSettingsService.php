@@ -6,6 +6,8 @@ namespace app\admin\ai\service;
 
 use app\common\ai\provider\OpenAiCompatibleGateway;
 use GuzzleHttp\Client;
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\HandlerStack;
 
 /** Provider 设置读取与临时连接测试服务。 */
 final class AiProviderSettingsService
@@ -59,7 +61,10 @@ final class AiProviderSettingsService
         if (isset($config['max_output_tokens']) && (!is_int($config['max_output_tokens']) || $config['max_output_tokens'] < 1 || $config['max_output_tokens'] > 10000000)) throw new \InvalidArgumentException('输出预算无效');
         $gateway = $this->gatewayFactory !== null
             ? ($this->gatewayFactory)($config)
-            : new OpenAiCompatibleGateway(new Client(), $config);
+            : new OpenAiCompatibleGateway(new Client([
+                'handler' => HandlerStack::create(new CurlHandler()),
+                'proxy' => '',
+            ]), $config);
         $result = $gateway->chat([['role' => 'user', 'content' => 'Reply OK only.']]);
 
         return [

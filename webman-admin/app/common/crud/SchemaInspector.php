@@ -6,7 +6,7 @@ namespace app\common\crud;
 
 use Closure;
 use InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 使用当前连接只读采集 MySQL information_schema 元数据。
@@ -19,7 +19,7 @@ final class SchemaInspector
     public function __construct(?callable $query = null)
     {
         $this->query = Closure::fromCallable(
-            $query ?? static fn (string $sql, array $bindings): array => Db::query($sql, $bindings)
+            $query ?? static fn (string $sql, array $bindings): array => array_map(static fn (object $row): array => (array) $row, Db::select($sql, $bindings))
         );
     }
 

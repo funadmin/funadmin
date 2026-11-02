@@ -25,13 +25,13 @@ class RoleGuardService
         }
         $levels = AuthGroup::whereIn('id', $roleScope->currentRoleIds() ?: [0])
             ->where('status', 1)
-            ->column('level');
+            ->pluck('level')->all();
         return $levels ? min(array_map('intval', $levels)) : PHP_INT_MAX;
     }
 
     public function assertManageRole(AuthGroup $role): void
     {
-        if ((int) $role->id === (int) config('funadmin.superRoleId')) {
+        if ((int) $role->id === (int) config('auth.super_role_id', 1)) {
             throw new InvalidArgumentException('系统超级角色不可修改');
         }
         $auth = new RoleScopeService();
@@ -71,10 +71,10 @@ class RoleGuardService
     {
         $roleScope = new RoleScopeService();
         $adminId = (int) $admin->id;
-        if ($adminId === (int) config('funadmin.superAdminId')) {
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
             throw new InvalidArgumentException('系统超级管理员不可操作');
         }
-        if ($allowSelf && $adminId === (int) session('admin.id')) {
+        if ($allowSelf && $adminId === (int) (request()?->context['admin']['id'] ?? 0)) {
             return;
         }
         $roleIds = $roleScope->adminRoleIds($adminId);
@@ -96,7 +96,7 @@ class RoleGuardService
         if (!$roleIds) {
             throw new InvalidArgumentException('至少选择一个角色');
         }
-        $roles = AuthGroup::whereIn('id', $roleIds)->where('status', 1)->select();
+        $roles = AuthGroup::whereIn('id', $roleIds)->where('status', 1)->get();
         if (count($roles) !== count($roleIds)) {
             throw new InvalidArgumentException('包含无效或停用角色');
         }
@@ -124,7 +124,7 @@ class RoleGuardService
             return;
         }
 
-        $parents = AuthGroup::whereIn('id', $parentRoleIds)->where('status', 1)->select();
+        $parents = AuthGroup::whereIn('id', $parentRoleIds)->where('status', 1)->get();
         if (count($parents) !== count($parentRoleIds)) {
             throw new InvalidArgumentException('包含无效或停用的继承角色');
         }
@@ -218,7 +218,7 @@ class RoleGuardService
         if (!$parentRoleIds) {
             return;
         }
-        $parents = AuthGroup::whereIn('id', $parentRoleIds)->field('id,data_scope')->select();
+        $parents = AuthGroup::whereIn('id', $parentRoleIds)->select(['id', 'data_scope'])->get();
         $childDepartments = $this->normalizeIds($departmentIds);
         foreach ($parents as $parent) {
             $parentScope = (string) $parent->data_scope;
@@ -233,7 +233,7 @@ class RoleGuardService
             }
             if ($scope === 'custom' && $parentScope === 'custom') {
                 $parentDepartments = $this->normalizeIds(
-                    \app\admin\authorization\model\AuthGroupDepartment::where('role_id', (int) $parent->id)->column('dept_id')
+                    \app\admin\authorization\model\AuthGroupDepartment::where('role_id', (int) $parent->id)->pluck('dept_id')->all()
                 );
                 if (!array_diff($childDepartments, $parentDepartments)) {
                     continue;
@@ -246,10 +246,12 @@ class RoleGuardService
 
     public function ancestorRoleIds(array $roleIds): array
     {
-        $result = $this->normalizeIds($roleIds);
+        $result = AuthGroup::whereIn('id', $this->normalizeIds($roleIds))->where('status', 1)->pluck('id')->map('intval')->all();
         $queue = $result;
         while ($queue) {
-            $parents = AuthGroupInherit::whereIn('role_id', $queue)->column('parent_role_id');
+            $parents = AuthGroupInherit::whereIn('role_id', $queue)->pluck('parent_role_id')->all();
+            $primary = AuthGroup::whereIn('id', $queue)->pluck('pid')->all();
+            $parents = AuthGroup::whereIn('id', array_merge($parents, $primary))->where('status', 1)->pluck('id')->all();
             $queue = [];
             foreach ($this->normalizeIds($parents) as $parentId) {
                 if (!in_array($parentId, $result, true)) {

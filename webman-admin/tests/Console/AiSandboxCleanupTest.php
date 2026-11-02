@@ -43,6 +43,29 @@ final class AiSandboxCleanupTest extends TestCase
         if ($this->ready) foreach (['ai_task', 'ai_task_event'] as $name) Db::schema()->dropIfExists($name);
     }
 
+    public function test_cleanup_failure_returns_nonzero_and_preserves_foreign_container(): void
+    {
+        Db::schema()->table('ai_task', static function (Blueprint $table): void { $table->string('recovery_status')->nullable(); });
+        Db::table('ai_task')->insert(['container_task_id' => str_repeat('a', 64), 'workspace_path' => sys_get_temp_dir() . '/foreign-workspace', 'completed_at' => '2000-01-01', 'heartbeat_at' => '2000-01-01']);
+        $runner = new class implements DockerProcessRunner {
+            public array $calls = [];
+            public function run(array $argv, int $timeoutSeconds): ProcessResult {
+                $this->calls[] = $argv;
+                return new ProcessResult(0, json_encode(['com.funadmin.ai-agent' => 'true', 'com.funadmin.ai-task' => '999', 'com.funadmin.ai-session' => '1']), '');
+            }
+        };
+        $tester = new CommandTester(new AiSandboxCleanup(new AgentSandboxManager($runner, base_path(), sys_get_temp_dir() . '/nonexistent-private', [])));
+        self::assertSame(1, $tester->execute([]), $tester->getDisplay());
+        self::assertSame(['cleaned' => 0, 'candidates' => 1, 'failed' => 1], json_decode($tester->getDisplay(), true));
+        self::assertCount(1, $runner->calls);
+        $task = AiTask::firstOrFail();
+        self::assertSame('failed', $task->sandbox_status);
+        self::assertSame(1, (int) $task->sandbox_retained);
+        self::assertSame('recovery_required', $task->recovery_status);
+        self::assertNull($task->cleanup_lease_owner);
+        self::assertSame('ai.sandbox.cleanup_failed', Db::table('ai_task_event')->value('type'));
+    }
+
     public function test_cleanup_command_only_claims_expired_terminal_sandboxes(): void
     {
         foreach (['succeeded', 'paused', 'running', 'failed'] as $index => $status) Db::table('ai_task')->insert([

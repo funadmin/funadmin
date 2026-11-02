@@ -1,0 +1,14 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'marketplace' => [
+        'url' => getenv('PLUGIN_MARKETPLACE_URL') ?: '',
+        'public_key' => getenv('PLUGIN_MARKETPLACE_PUBLIC_KEY') ?: '',
+        'unsigned_policy' => 'reject_unsigned',
+        'request_timeout' => 30,
+        'connect_timeout' => 10,
+        'telemetry' => false,
+    ],
+];

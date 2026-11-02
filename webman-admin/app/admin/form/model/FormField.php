@@ -15,10 +15,10 @@ class FormField extends BackendModel
     protected $name = 'form_field';
 
     /** @var array */
-    protected $json = ['options_source', 'control_props', 'validate_rules', 'link_rules'];
+    protected $casts = ['options_source' => 'array', 'control_props' => 'array', 'validate_rules' => 'array', 'link_rules' => 'array'];
 
     /** @var bool */
-    protected $jsonAssoc = true;
+    protected $guarded = [];
 
     public function form()
     {

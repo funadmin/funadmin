@@ -29,7 +29,9 @@ final class AiApprovalService
         $normalized = ['conversation_id'=>(int)$request['conversation_id'],'task_id'=>(int)$request['task_id'],'tool_call_id'=>(int)$request['tool_call_id'],'operation'=>(string)$request['operation'],'mode_snapshot'=>(string)$request['mode_snapshot'],'arguments'=>$request['arguments'] ?? []];
         $digest = hash('sha256', json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . ':' . $nonce);
         $now = ($this->clock)();
-        return $this->store->createApproval(array_merge($normalized, [
+        $attributes = $normalized;
+        unset($attributes['arguments']);
+        return $this->store->createApproval(array_merge($attributes, [
             'requested_by'=>(int)$request['requested_by'], 'scope'=>'once', 'risk_reason'=>(string)($request['risk_reason'] ?? ''),
             'impact'=>$request['impact'] ?? [], 'cas_version'=>0, 'nonce'=>$nonce, 'digest'=>$digest, 'status'=>'pending',
             'request'=>$normalized, 'expires_at'=>date('Y-m-d H:i:s', $now + max(1, $ttlSeconds)), 'created_at'=>date('Y-m-d H:i:s', $now),

@@ -7,7 +7,7 @@ namespace app\common\service\identity;
 use app\common\model\identity\ApplicationDomain;
 use app\common\model\identity\EnterpriseApplication;
 use app\common\service\identity\IdentityValidationException as InvalidArgumentException;
-use think\facade\Db;
+use support\Db;
 
 final class ApplicationDomainService
 {
@@ -43,10 +43,10 @@ final class ApplicationDomainService
         sort($expectedDomainIds);
 
         return Db::transaction(function () use ($tenantId, $applicationId, $normalizedDomains, $expectedDomainIds): array {
-            if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->lock(true)->find()) {
+            if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->lockForUpdate()->first()) {
                 throw new IdentityResourceException('应用不存在或不属于当前租户', 404);
             }
-            $currentDomains = ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->lock(true)->select()->toArray();
+            $currentDomains = ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->lockForUpdate()->get()->toArray();
             $currentDomainIds = array_map(static fn (array $domain): int => (int) $domain['id'], $currentDomains);
             sort($currentDomainIds);
             if ($currentDomainIds !== $expectedDomainIds) {
@@ -56,7 +56,9 @@ final class ApplicationDomainService
             $result = [];
             foreach ($normalizedDomains as $index => $normalized) {
                 $row = $normalized + ['tenant_id' => $tenantId, 'application_id' => $applicationId, 'is_primary' => $index === 0 ? 1 : 0, 'status' => 1];
-                $result[] = ApplicationDomain::create($row)->toArray();
+                $model = new ApplicationDomain();
+                $model->forceFill($row)->save();
+                $result[] = $model->toArray();
             }
             return $result;
         });
@@ -64,9 +66,9 @@ final class ApplicationDomainService
 
     public function list(int $tenantId, int $applicationId): array
     {
-        if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->find()) {
+        if (!EnterpriseApplication::forTenant($tenantId)->where('id', $applicationId)->first()) {
             throw new IdentityResourceException('应用不存在或不属于当前租户', 404);
         }
-        return ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->select()->toArray();
+        return ApplicationDomain::forTenant($tenantId)->where('application_id', $applicationId)->get()->toArray();
     }
 }

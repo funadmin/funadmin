@@ -37,6 +37,9 @@ class MigrationService extends AbstractService
                 continue;
             }
             $migration = require $file;
+            if (!is_callable($migration)) {
+                throw new RuntimeException('迁移文件必须返回可调用闭包：' . $name . '（实际类型：' . get_debug_type($migration) . '）');
+            }
             $migration();
             Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
             $executed[] = $name;
@@ -56,7 +59,7 @@ class MigrationService extends AbstractService
             }
             // 空骨架合法，但必须在执行任何 SQL 前确认已登记文件没有丢失。
             $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
-            $missing = array_diff(SystemMigration::where('scope', $scope)->column('version'), $versions);
+            $missing = array_diff(SystemMigration::where('scope', $scope)->pluck('version')->all(), $versions);
             if ($missing !== []) {
                 throw new RuntimeException('已登记的 migration 文件缺失：' . $scope . '/' . implode('、', $missing));
             }
@@ -107,13 +110,49 @@ class MigrationService extends AbstractService
     /** 两种入口共用 checksum、预检、SQL 解析、事务和登记逻辑。 */
     private function runFiles(array $files, string $scope): array
     {
+        $connection = Db::connection();
+        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL');
+        $lock = 'migration:' . substr(hash('sha256', $connection->getDatabaseName()), 0, 40);
+        if ((int) $connection->selectOne('SELECT GET_LOCK(?, 0) acquired', [$lock])->acquired !== 1) {
+            throw new RuntimeException('数据库迁移正在执行');
+        }
+        try {
+            return $this->runLockedFiles($files, $scope);
+        } finally {
+            $connection->selectOne('SELECT RELEASE_LOCK(?) released', [$lock]);
+        }
+    }
+
+    private function runLockedFiles(array $files, string $scope): array
+    {
+        $validatedFiles = [];
+        $repositoryReady = $this->repositoryExists();
+        foreach ($files as $file) {
+            if (is_link($file) || !is_file($file) || !is_readable($file)) throw new RuntimeException('Migration 必须是普通文件：' . $file);
+            $sql = file_get_contents($file);
+            if (!is_string($sql) || trim($sql) === '') throw new RuntimeException('无法读取 migration：' . $file);
+            DdlEncodingGuard::assertUtf8($sql);
+            $this->assertForwardOnly($sql, $file);
+            $checksum = hash('sha256', $sql);
+            $version = pathinfo($file, PATHINFO_FILENAME);
+            if ($repositoryReady) {
+                $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
+                if ($record !== null && !hash_equals((string) $record->checksum, $checksum)) {
+                    throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
+                }
+            }
+            if (Db::connection()->transactionLevel() > 0 && preg_match('/\b(?:CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i', $sql)) {
+                throw new RuntimeException('SQL DDL migration 禁止在外层事务中执行');
+            }
+            $validatedFiles[$file] = ['sql' => $sql, 'checksum' => $checksum];
+        }
         $executed = [];
         foreach ($files as $file) {
             $version = pathinfo($file, PATHINFO_FILENAME);
-            $checksum = hash_file('sha256', $file);
+            $checksum = $validatedFiles[$file]['checksum'];
             $repositoryReady = $this->repositoryExists();
             if ($repositoryReady) {
-                $record = SystemMigration::where('scope', $scope)->where('version', $version)->find();
+                $record = SystemMigration::where('scope', $scope)->where('version', $version)->first();
                 if ($record) {
                     if (!hash_equals((string) $record->checksum, $checksum)) {
                         throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
@@ -127,17 +166,15 @@ class MigrationService extends AbstractService
             if ($scope === 'core' && $version === '006_schema_integrity') {
                 $this->preflightSchemaIntegrity006($scope, $version);
             }
-            $sql = file_get_contents($file);
-            if ($sql === false || trim($sql) === '') {
-                throw new RuntimeException('无法读取 migration：' . $file);
-            }
-            DdlEncodingGuard::check(Db::connect(), $sql);
+            $sql = $validatedFiles[$file]['sql'];
+            if (!hash_equals($checksum, (string) hash_file('sha256', $file))) throw new RuntimeException('Migration 文件在预检后发生变化：' . $file);
+            DdlEncodingGuard::check(Db::connection(), $sql);
             $this->assertForwardOnly($sql, $file);
             if ($scope === 'core' && $version === CommentEncodingRepair::VERSION) {
                 if (!$repositoryReady) {
                     throw new RuntimeException('注释补偿要求已存在 migration 仓库');
                 }
-                CommentEncodingRepair::apply(Db::connect(), Db::query($sql));
+                CommentEncodingRepair::apply(Db::connection(), $this->select($sql));
                 // MySQL DDL 隐式提交：全部修复及验证成功后才单独登记，失败可安全续跑。
                 SystemMigration::create([
                     'scope' => $scope, 'version' => $version,
@@ -151,15 +188,14 @@ class MigrationService extends AbstractService
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
             $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
             $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
-            $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
             $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix'), (string) config('database.connections.mysql.prefix'));
             $statements = $this->statements($sql);
             if (!$statements) {
                 throw new RuntimeException('Migration 没有可执行 SQL：' . $file);
             }
-            Db::transaction(function () use ($statements, $scope, $version, $checksum) {
+            $apply = function () use ($statements, $scope, $version, $checksum) {
                 foreach ($statements as $statement) {
-                    Db::execute($statement);
+                    Db::statement($statement);
                 }
                 if (!$this->repositoryExists()) {
                     throw new RuntimeException('Migration 未创建 system_migration 表');
@@ -170,7 +206,13 @@ class MigrationService extends AbstractService
                     'checksum' => $checksum,
                     'executed_at' => time(),
                 ]);
-            });
+            };
+            $hasDdl = array_filter($statements, static fn (string $statement): bool => preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i', $statement) === 1) !== [];
+            if ($hasDdl) {
+                $apply();
+            } else {
+                Db::transaction($apply);
+            }
             $executed[] = $version;
         }
         return $executed;
@@ -210,7 +252,7 @@ class MigrationService extends AbstractService
         if (!$this->repositoryExists()) {
             return '';
         }
-        $versions = SystemMigration::where('scope', $scope)->column('version');
+        $versions = SystemMigration::where('scope', $scope)->pluck('version')->all();
         if (!$versions) {
             return '';
         }
@@ -220,9 +262,7 @@ class MigrationService extends AbstractService
 
     private function repositoryExists(): bool
     {
-        $prefix = config('database.connections.mysql.prefix');
-        // SHOW 语句不支持占位符绑定，改用 getTables() 避免 1064。
-        return in_array($prefix . 'system_migration', Db::connect()->getTables(), true);
+        return Db::schema()->hasTable('system_migration');
     }
 
     private function preflightSchemaIntegrity006(string $scope, string $version): void
@@ -233,10 +273,10 @@ class MigrationService extends AbstractService
 
         // 兼容桥：已发布 migration 不可变，只在首次执行 006 前修复旧库空手机号。
         $table = (string) config('database.connections.mysql.prefix') . 'member';
-        if (!in_array($table, Db::connect()->getTables(), true)) {
+        if (!in_array($table, Db::schema()->getTableListing(schemaQualified: false), true)) {
             return;
         }
-        $columns = Db::query(
+        $columns = $this->select(
             'SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
             [$table, 'mobile']
         );
@@ -246,18 +286,18 @@ class MigrationService extends AbstractService
 
         $quotedTable = '`' . str_replace('`', '``', $table) . '`';
         if (strtoupper((string) ($columns[0]['IS_NULLABLE'] ?? '')) !== 'YES') {
-            Db::execute("ALTER TABLE {$quotedTable} MODIFY COLUMN `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号码'");
+            Db::statement("ALTER TABLE {$quotedTable} MODIFY COLUMN `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号码'");
         }
-        Db::execute(
+        Db::statement(
             "UPDATE {$quotedTable} SET `mobile` = NULL WHERE TRIM(COALESCE(`mobile`, ?)) = ?",
             ['', '']
         );
-        $indexes = Db::query(
+        $indexes = $this->select(
             'SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?',
             [$table, 'uk_member_mobile']
         );
         if (!$indexes) {
-            Db::execute("ALTER TABLE {$quotedTable} ADD UNIQUE KEY `uk_member_mobile` (`mobile`)");
+            Db::statement("ALTER TABLE {$quotedTable} ADD UNIQUE KEY `uk_member_mobile` (`mobile`)");
         }
     }
 
@@ -272,7 +312,7 @@ class MigrationService extends AbstractService
             return;
         }
         $prefix = (string) config('database.connections.mysql.prefix');
-        Db::execute('ALTER TABLE ' . $this->quoteIdentifier($prefix . 'form')
+        Db::statement('ALTER TABLE ' . $this->quoteIdentifier($prefix . 'form')
             . ' ADD COLUMN `published_schema_hash` char(64) NULL AFTER `published_definition_hash`');
     }
 
@@ -288,11 +328,11 @@ class MigrationService extends AbstractService
 
         $prefix = (string) config('database.connections.mysql.prefix');
         foreach (['ai_change_set', 'permission'] as $tableName) {
-            if (!in_array($prefix . $tableName, Db::connect()->getTables(), true)) {
+            if (!in_array($prefix . $tableName, Db::schema()->getTableListing(schemaQualified: false), true)) {
                 throw new RuntimeException("AI Phase 4 migration 缺少基础表：{$prefix}{$tableName}");
             }
         }
-        $groups = Db::query(
+        $groups = $this->select(
             'SELECT id FROM ' . $this->quoteIdentifier($prefix . 'permission')
             . " WHERE source_type='admin_web' AND source_name='ai_development' AND resource_type='group' ORDER BY id"
         );
@@ -303,7 +343,7 @@ class MigrationService extends AbstractService
             return;
         }
 
-        $indexes = array_column(Db::query(
+        $indexes = array_column($this->select(
             'SELECT COLUMN_NAME FROM information_schema.STATISTICS '
             . 'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=? ORDER BY SEQ_IN_INDEX',
             [$prefix . 'ai_change_set', 'idx_ai_change_set_owner_status']
@@ -339,7 +379,7 @@ class MigrationService extends AbstractService
         $this->expandAndBackfillAppName('admin_menu', $menuColumns);
         $prefix = (string) config('database.connections.mysql.prefix');
         $menuTable = $this->quoteIdentifier($prefix . 'admin_menu');
-        $indexes = Db::query(
+        $indexes = $this->select(
             'SELECT INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX FROM information_schema.STATISTICS '
             . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX',
             [$prefix . 'admin_menu', 'uk_menu_location']
@@ -347,9 +387,9 @@ class MigrationService extends AbstractService
         $columns = array_column($indexes, 'COLUMN_NAME');
         if ($columns !== ['app_name', 'href', 'query']) {
             if ($indexes !== []) {
-                Db::execute("ALTER TABLE {$menuTable} DROP INDEX `uk_menu_location`");
+                Db::statement("ALTER TABLE {$menuTable} DROP INDEX `uk_menu_location`");
             }
-            Db::execute("ALTER TABLE {$menuTable} ADD UNIQUE KEY `uk_menu_location` (`app_name`,`href`,`query`)");
+            Db::statement("ALTER TABLE {$menuTable} ADD UNIQUE KEY `uk_menu_location` (`app_name`,`href`,`query`)");
         }
         $this->contractLegacyModule('permission');
         $this->contractLegacyModule('admin_menu');
@@ -396,14 +436,14 @@ class MigrationService extends AbstractService
         $prefix = (string) config('database.connections.mysql.prefix');
         $table = $this->quoteIdentifier($prefix . $tableName);
         if (!in_array('app_name', $columns, true)) {
-            Db::execute("ALTER TABLE {$table} ADD COLUMN `app_name` varchar(50) NULL AFTER `module`");
+            Db::statement("ALTER TABLE {$table} ADD COLUMN `app_name` varchar(50) NULL AFTER `module`");
         }
         if (in_array('module', $columns, true)) {
-            Db::execute("UPDATE {$table} SET `app_name` = COALESCE(NULLIF(`app_name`, ''), NULLIF(`module`, ''), 'admin')");
+            Db::statement("UPDATE {$table} SET `app_name` = COALESCE(NULLIF(`app_name`, ''), NULLIF(`module`, ''), 'admin')");
         } else {
-            Db::execute("UPDATE {$table} SET `app_name` = 'admin' WHERE `app_name` IS NULL OR `app_name` = ''");
+            Db::statement("UPDATE {$table} SET `app_name` = 'admin' WHERE `app_name` IS NULL OR `app_name` = ''");
         }
-        Db::execute("ALTER TABLE {$table} MODIFY COLUMN `app_name` varchar(50) NOT NULL DEFAULT 'admin' COMMENT 'ThinkPHP应用标识'");
+        Db::statement("ALTER TABLE {$table} MODIFY COLUMN `app_name` varchar(50) NOT NULL DEFAULT 'admin' COMMENT 'ThinkPHP应用标识'");
     }
 
     private function contractLegacyModule(string $tableName): void
@@ -412,13 +452,18 @@ class MigrationService extends AbstractService
             return;
         }
         $prefix = (string) config('database.connections.mysql.prefix');
-        Db::execute('ALTER TABLE ' . $this->quoteIdentifier($prefix . $tableName) . ' DROP COLUMN `module`');
+        Db::statement('ALTER TABLE ' . $this->quoteIdentifier($prefix . $tableName) . ' DROP COLUMN `module`');
+    }
+
+    private function select(string $sql, array $bindings = []): array
+    {
+        return array_map(static fn (object $row): array => (array) $row, Db::select($sql, $bindings));
     }
 
     private function tableColumns(string $tableName): array
     {
         $prefix = (string) config('database.connections.mysql.prefix');
-        return array_column(Db::query(
+        return array_column($this->select(
             'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
             [$prefix . $tableName]
         ), 'COLUMN_NAME');

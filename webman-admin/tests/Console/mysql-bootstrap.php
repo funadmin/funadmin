@@ -13,6 +13,6 @@ if (getenv('CONSOLE_TEST_MYSQL') !== '1'
 }
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 putenv('DB_CONNECTION=mysql');
-putenv('DB_PREFIX=console_');
+putenv('DB_PREFIX=' . (getenv('DB_PREFIX') !== false ? (string) getenv('DB_PREFIX') : 'console_'));
 Webman\Config::load(dirname(__DIR__, 2) . '/config', ['route']);
 class_exists(support\Db::class);

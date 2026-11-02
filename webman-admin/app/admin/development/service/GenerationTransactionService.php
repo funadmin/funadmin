@@ -309,7 +309,29 @@ final class GenerationTransactionService
     public function recover(string $transactionId): array
     {
         $target = (array) ($this->inspect($transactionId)['target'] ?? []);
-        return $this->locked(fn (): array => $this->recoverLocked($transactionId, $target), $target);
+        return $this->locked(function () use ($transactionId, $target): array {
+            $journal = $this->inspect($transactionId);
+            $generationId = (int) ($journal['generation_id'] ?? 0);
+            if ($this->stateRepository instanceof DatabaseGenerationStateRepository) {
+                $record = $this->stateRepository->generationForRecovery($generationId);
+                if ($record === null || (int) ($record['business_module_id'] ?? 0) !== (int) ($journal['module_id'] ?? 0)
+                    || (string) ($record['transaction_id'] ?? '') !== $transactionId) {
+                    throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
+                }
+            }
+            try {
+                $result = $this->recoverLocked($transactionId, $target);
+                if (($result['state'] ?? '') === 'rolled_back' && method_exists($this->stateRepository, 'markRolledBack')) {
+                    $this->stateRepository->markRolledBack($generationId, 'cli');
+                }
+                return $result;
+            } catch (Throwable $exception) {
+                if (($this->inspect($transactionId)['state'] ?? '') === 'recovery_required') {
+                    $this->syncRecoveryFailure($generationId, 'cli', $exception);
+                }
+                throw $exception;
+            }
+        }, $target);
     }
 
     private function recoverLocked(string $transactionId, array $target): array
@@ -886,10 +908,7 @@ final class GenerationTransactionService
 
     private static function defaultProjectRoot(): string
     {
-        if (function_exists('root_path')) {
-            return rtrim((string) root_path(), DIRECTORY_SEPARATOR);
-        }
-        return dirname(__DIR__, 3);
+        return rtrim(base_path(), DIRECTORY_SEPARATOR);
     }
 
     private function assertTransactionId(string $id): void

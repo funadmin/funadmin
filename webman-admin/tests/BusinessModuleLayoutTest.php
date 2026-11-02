@@ -273,14 +273,9 @@ final class BusinessModuleLayoutTest extends TestCase
             $source = file_get_contents($file);
             token_get_all($source, TOKEN_PARSE);
             self::assertStringContainsString('namespace app\\admin\\identity\\controller;', $source);
-            if (in_array($class, ['ScopeClaim', 'SsoConfiguration', 'IdentityUser', 'OAuthClient'], true)) {
-                self::assertStringContainsString("#[RouteGroup('/admin/" . $group . "')]", $source);
-                $middleware = \Webman\Middleware::getMiddleware('', 'admin', ['app\\admin\\identity\\controller\\' . $class, $class === 'SsoConfiguration' ? 'config' : 'index'], null, false);
-                self::assertCount(3, $middleware);
-            } else {
-                self::assertStringContainsString("#[Group('" . $group . "')]", $source);
-                self::assertStringContainsString('CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class', $source);
-            }
+            self::assertStringContainsString("#[RouteGroup('/admin/" . $group . "')]", $source);
+            $middleware = \Webman\Middleware::getMiddleware('', 'admin', ['app\\admin\\identity\\controller\\' . $class, $class === 'SsoConfiguration' ? 'config' : 'index'], null, false);
+            self::assertCount(3, $middleware);
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/identity/' . $class . '.php');
         }
     }
@@ -462,6 +457,244 @@ final class BusinessModuleLayoutTest extends TestCase
         foreach (['AdminCrudRequest', 'AdminPagination'] as $name) {
             self::assertStringContainsString('app\\\\admin\\\\common\\\\traits\\\\' . $name, $template);
             self::assertStringNotContainsString('app\\\\admin\\\\traits\\\\' . $name, $template);
+        }
+    }
+
+    public function test_shared_format_scope_and_json_traits_are_owned_by_their_architecture_layers(): void
+    {
+        foreach (['AdminDataScope', 'AdminJsonResponse'] as $name) {
+            $class = 'app\\admin\\common\\traits\\' . $name;
+            self::assertTrue(trait_exists($class), '后台公共 Trait 应归入 admin/common：' . $class);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/common/traits/' . $name . '.php'), (new ReflectionClass($class))->getFileName());
+            self::assertFalse(trait_exists('app\\admin\\traits\\' . $name));
+            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/traits/' . $name . '.php');
+            self::assertContains($class, class_uses('app\\admin\\controller\\base\\AdminApiController'));
+        }
+
+        $formatTrait = 'app\\common\\traits\\DataFormat';
+        self::assertTrue(trait_exists($formatTrait), '跨应用数据格式化 Trait 应归入 common：' . $formatTrait);
+        self::assertSame(realpath(__DIR__ . '/../app/common/traits/DataFormat.php'), (new ReflectionClass($formatTrait))->getFileName());
+        self::assertFalse(trait_exists('app\\admin\\common\\traits\\AdminDataFormat'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/common/traits/AdminDataFormat.php');
+
+        foreach ([
+            'app\\admin\\authorization\\model\\AuthGroup',
+            'app\\admin\\authorization\\model\\AdminMenu',
+            'app\\admin\\authorization\\model\\Department',
+            'app\\admin\\authorization\\model\\Permission',
+            'app\\admin\\system\\model\\Member',
+            'app\\admin\\system\\model\\AdminLog',
+            'app\\common\\model\\ConfigGroup',
+            'app\\common\\model\\Blacklist',
+            'app\\common\\model\\Language',
+        ] as $class) {
+            self::assertContains($formatTrait, class_uses($class), $class);
+        }
+
+        foreach (glob(__DIR__ . '/../app/common/model/*.php') ?: [] as $file) {
+            $source = file_get_contents($file);
+            token_get_all($source, TOKEN_PARSE);
+            self::assertStringNotContainsString('app\\admin\\', $source, '公共模型不得依赖 admin：' . $file);
+        }
+    }
+
+    public function test_backend_application_imports_resolve_to_declared_classes(): void
+    {
+        $root = dirname(__DIR__);
+        $sources = [];
+        $declared = [];
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/app', \FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if ($file->getExtension() !== 'php') continue;
+            $source = file_get_contents($file->getPathname());
+            $relative = substr($file->getPathname(), strlen($root) + 1);
+            $sources[$relative] = $source;
+            if (!preg_match('/^namespace ([^;]+);/m', $source, $namespace)) continue;
+            preg_match_all('/^(?:(?:final|abstract|readonly)\\s+)*(?:class|interface|trait|enum)\\s+(\\w+)/m', $source, $classes);
+            foreach ($classes[1] as $class) $declared[$namespace[1] . '\\' . $class] = true;
+        }
+        $missing = [];
+        foreach ($sources as $file => $source) {
+            if (!str_starts_with($file, 'app/admin/') && !str_starts_with($file, 'app/common/crud/')) continue;
+            if (str_starts_with($file, 'app/admin/controller/generated/')) continue;
+            preg_match_all('/^use (app\\\\[^;\\s]+)(?:\\s+as\\s+\\w+)?;/m', $source, $imports);
+            foreach ($imports[1] as $class) {
+                if (!isset($declared[$class])) $missing[] = $file . ': ' . $class;
+            }
+        }
+        self::assertSame([], $missing, '后台静态导入不得指向不存在的应用类；受管文件冲突须保留并报告');
+    }
+
+    public function test_generated_entity_paths_compile_matching_namespaces_without_rewriting_snapshots(): void
+    {
+        $data = [
+            'schemaVersion' => '1.0', 'entity' => 'layout-example', 'table' => 'layout_example', 'title' => '目录契约',
+            'apiPrefix' => '/generated/layout-example', 'routePath' => '/generated/layout-example',
+            'permissionPrefix' => 'generated:layout-example', 'timestamps' => false, 'softDeletes' => false,
+            'fields' => [['name' => 'id', 'label' => 'ID', 'dbType' => 'bigint', 'nullable' => false, 'primary' => true]],
+            'relations' => [], 'optionsSource' => [],
+            'features' => ['importLimit' => 100, 'exportLimit' => 100, 'formMode' => 'dialog'],
+            'dataScope' => ['enabled' => false],
+            'menu' => ['enabled' => false], 'permission' => ['enabled' => false],
+            'generationTargets' => [
+                'model' => 'app/admin/generated/layout_example/model/LayoutExample.php',
+                'validate' => 'app/admin/generated/layout_example/validate/LayoutExampleValidate.php',
+                'service' => 'app/admin/generated/layout_example/service/LayoutExampleService.php',
+                'controller' => 'app/admin/generated/layout_example/controller/LayoutExampleController.php',
+            ],
+        ];
+        $definition = \app\common\crud\CrudDefinition::fromArray($data);
+        $hash = $definition->hash();
+        $context = \app\common\crud\ProductionTemplateContext::build($definition);
+        foreach (['model', 'validate', 'service', 'controller'] as $layer) {
+            self::assertStringContainsString('namespace app\\admin\\generated\\layout_example\\' . $layer . ';', $context[$layer . 'Content']);
+            token_get_all($context[$layer . 'Content'], TOKEN_PARSE);
+        }
+        self::assertStringContainsString("#[Group('/generated/layout-example')]", $context['controllerContent']);
+        self::assertSame('/generated/layout-example', $context['apiPrefix']);
+        self::assertSame('generated:layout-example', $context['permissionPrefix']);
+        self::assertStringContainsString('use app\\admin\\generated\\layout_example\\model\\LayoutExample;', $context['serviceContent']);
+        self::assertStringContainsString('use app\\admin\\generated\\layout_example\\service\\LayoutExampleService;', $context['controllerContent']);
+        self::assertSame($hash, $definition->hash());
+        $custom = \app\common\crud\ProductionTemplateContext::build($definition, ['modelNamespace' => 'app\\custom\\model']);
+        self::assertStringContainsString('namespace app\\custom\\model;', $custom['modelContent']);
+        foreach (['model', 'validate', 'service', 'controller'] as $layer) {
+            $data['generationTargets'][$layer] = 'app/admin/' . $layer . '/generated/LayoutExample.php';
+        }
+        $legacy = \app\common\crud\ProductionTemplateContext::build(\app\common\crud\CrudDefinition::fromArray($data));
+        self::assertStringContainsString('namespace app\\admin\\model\\generated;', $legacy['modelContent']);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_generated_entity_layout_writes_loadable_files_and_protects_local_changes(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-layout-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        $loader = new \Composer\Autoload\ClassLoader();
+        $loader->addPsr4('app\\admin\\generated\\layout_isolated\\', $root . '/app/admin/generated/layout_isolated');
+        $loader->register(true);
+        try {
+            $data = \Tests\Console\CrudDefinitionFixture::make('layout-isolated')->toArray();
+            $classes = ['model' => 'LayoutIsolated', 'validate' => 'LayoutIsolatedValidate', 'service' => 'LayoutIsolatedService', 'controller' => 'LayoutIsolatedController'];
+            foreach ($classes as $layer => $class) {
+                $data['generationTargets'][$layer] = 'app/admin/generated/layout_isolated/' . $layer . '/' . $class . '.php';
+            }
+            $definition = \app\common\crud\CrudDefinition::fromArray($data);
+            $generator = new \app\common\crud\CrudGenerator($root, tokens: new \app\common\crud\ConfirmationToken($root, 'isolated-layout-test-secret'));
+            $plan = $generator->plan($definition);
+            self::assertDirectoryDoesNotExist($root . '/app');
+            self::assertSame('written', $generator->generate($definition, $plan['confirmToken'])['write']['status']);
+            foreach ($classes as $layer => $class) {
+                $file = $root . '/' . $data['generationTargets'][$layer];
+                self::assertFileExists($file);
+                self::assertTrue(class_exists('app\\admin\\generated\\layout_isolated\\' . $layer . '\\' . $class));
+                self::assertDirectoryDoesNotExist($root . '/app/admin/' . $layer);
+            }
+            $controller = 'app\\admin\\generated\\layout_isolated\\controller\\LayoutIsolatedController';
+            $groups = (new ReflectionClass($controller))->getAttributes(RouteGroup::class);
+            self::assertSame('/admin/generated/layout-isolated', $groups[0]->newInstance()->prefix);
+            try {
+                $generator->generate($definition, $plan['confirmToken']);
+                self::fail('已使用的确认 token 必须拒绝');
+            } catch (\RuntimeException $error) {
+                self::assertStringContainsString('token', $error->getMessage());
+            }
+            $next = $generator->plan($definition);
+            $model = $root . '/' . $data['generationTargets']['model'];
+            file_put_contents($model, 'local-change');
+            try {
+                $generator->generate($definition, $next['confirmToken']);
+                self::fail('目标漂移必须阻断');
+            } catch (\RuntimeException $error) {
+                self::assertSame('local-change', file_get_contents($model));
+            }
+        } finally {
+            $loader->unregister();
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($files as $file) {
+                $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            }
+            rmdir($root);
+        }
+    }
+
+    public function test_new_core_input_uses_entity_layout_while_saved_snapshots_keep_their_paths(): void
+    {
+        $data = \Tests\Console\CrudDefinitionFixture::make('layout-input')->toArray();
+        $snapshot = \app\common\crud\CrudDefinition::fromArray($data);
+        $hash = $snapshot->hash();
+        $input = \app\common\crud\CrudDefinition::fromInput($data);
+        foreach (['model' => 'LayoutInput', 'validate' => 'LayoutInputValidate', 'service' => 'LayoutInputService', 'controller' => 'LayoutInputController'] as $layer => $class) {
+            self::assertSame('app/admin/generated/layout_input/' . $layer . '/' . $class . '.php', $input->get('generationTargets')[$layer]);
+        }
+        self::assertSame($data['apiPrefix'], $input->get('apiPrefix'));
+        self::assertSame($data['permissionPrefix'], $input->get('permissionPrefix'));
+        self::assertSame($hash, \app\common\crud\CrudDefinition::fromArray($snapshot->toArray())->hash());
+        self::assertSame($data['generationTargets']['model'], $snapshot->get('generationTargets')['model']);
+        unset($data['generationTargets']['model']);
+        self::assertSame('app/admin/generated/layout_input/model/LayoutInput.php', \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['model']);
+        $data['generationTargets']['model'] = 'app/custom/model/LayoutInput.php';
+        self::assertSame('app/custom/model/LayoutInput.php', \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['model']);
+        $data['formSchema'] = ['list' => []];
+        self::assertSame($data['generationTargets']['controller'], \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['controller']);
+    }
+
+    public function test_new_entity_layout_rejects_existing_legacy_artifacts_before_preview_and_write(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-layout-conflict-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        try {
+            $data = \Tests\Console\CrudDefinitionFixture::make('layout-conflict')->toArray();
+            $definition = \app\common\crud\CrudDefinition::fromInput($data);
+            $generator = new \app\common\crud\CrudGenerator($root, tokens: new \app\common\crud\ConfirmationToken($root, 'layout-conflict-test-secret'));
+            foreach (['model', 'validate', 'service', 'controller'] as $layer) {
+                $legacy = $root . '/' . $data['generationTargets'][$layer];
+                mkdir(dirname($legacy), 0700, true);
+                file_put_contents($legacy, 'managed-original');
+                $rejected = false;
+                try { $generator->plan($definition); }
+                catch (\InvalidArgumentException $error) {
+                    $rejected = true;
+                    self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
+                }
+                self::assertTrue($rejected, '旧生成制品存在时必须阻止新布局：' . $layer);
+                self::assertSame('managed-original', file_get_contents($legacy));
+                self::assertDirectoryDoesNotExist($root . '/app/admin/generated');
+                unlink($legacy);
+            }
+            $plan = $generator->plan($definition);
+            $legacy = $root . '/' . $data['generationTargets']['model'];
+            file_put_contents($legacy, 'created-after-preview');
+            $rejected = false;
+            try { $generator->generate($definition, $plan['confirmToken']); }
+            catch (\InvalidArgumentException $error) {
+                $rejected = true;
+                self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
+            }
+            self::assertTrue($rejected, '预览后出现旧制品也必须阻止写入');
+            self::assertSame('created-after-preview', file_get_contents($legacy));
+            self::assertDirectoryDoesNotExist($root . '/app/admin/generated');
+            unlink($legacy);
+            foreach (['model', 'validate', 'service', 'controller'] as $layer) {
+                $baselines = [['path' => $data['generationTargets'][$layer], 'baseContent' => 'registered-original']];
+                foreach (['planManaged', 'renderManagedBundle'] as $method) {
+                    $rejected = false;
+                    try { $generator->$method($definition, $baselines); }
+                    catch (\InvalidArgumentException $error) {
+                        $rejected = true;
+                        self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
+                    }
+                    self::assertTrue($rejected, '历史 baseline 不得被新布局绕过：' . $method . '/' . $layer);
+                    self::assertSame('registered-original', $baselines[0]['baseContent']);
+                }
+            }
+        } finally {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($files as $file) {
+                $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            }
+            rmdir($root);
         }
     }
 

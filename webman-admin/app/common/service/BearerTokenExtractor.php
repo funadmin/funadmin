@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\service;
 
-use think\Request;
+use Webman\Http\Request;
 
 /**
  * 从 HTTP Authorization Header 提取 Bearer Token。

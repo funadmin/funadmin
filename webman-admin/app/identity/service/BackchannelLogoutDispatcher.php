@@ -14,8 +14,11 @@ use Throwable;
 /** 可由队列 worker 或测试直接调用的可靠 backchannel 投递器。 */
 final class BackchannelLogoutDispatcher
 {
-    public function __construct(private readonly ?ClientInterface $client = null)
+    private readonly ClientInterface $client;
+
+    public function __construct(?ClientInterface $client = null)
     {
+        $this->client = $client ?? new Client(['handler' => \GuzzleHttp\HandlerStack::create(new CurlHandler())]);
     }
 
     public function enqueue(int $tenantId, int $opSessionId, array $clientSession, string $clientIdentifier, string $uri): ?array
@@ -48,7 +51,7 @@ final class BackchannelLogoutDispatcher
     {
         $target = (new BackchannelUrlPolicy())->validate((string) $delivery['logout_uri']);
         $resolve = array_map(static fn (string $ip): string => $target['host'] . ':443:' . $ip, $target['addresses']);
-        $response = ($this->client ?? new Client(['handler' => new CurlHandler()]))->request('POST', $target['url'], [
+        $response = $this->client->request('POST', $target['url'], [
             'timeout' => 3.0, 'connect_timeout' => 1.0, 'allow_redirects' => false, 'http_errors' => false,
             'proxy' => '',
             'form_params' => ['logout_token' => (string) $delivery['logout_token']],

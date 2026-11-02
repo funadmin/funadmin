@@ -5,43 +5,38 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\system\service\UpgradeService;
 use InvalidArgumentException;
 use RuntimeException;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
 /** Admin Web 系统升级 API。 */
-#[Group('system/upgrade', ['complete_match' => true])]
+#[RouteGroup('/admin/system/upgrade')]
 final class SystemUpgrade extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('status')]
+    #[Get('/status')]
     public function status(): Response
     {
         return $this->execute(fn () => UpgradeService::instance()->status());
     }
 
-    #[Get('check')]
+    #[Get('/check')]
     public function check(): Response
     {
         return $this->execute(fn () => UpgradeService::instance()->check(), '检查完成');
     }
 
-    #[Post('execute')]
+    #[Post('/execute')]
     public function executeUpgrade(): Response
     {
         return $this->execute(fn () => UpgradeService::instance()->execute((array) $this->request->post()), '升级完成');
     }
 
-    #[Post('upload')]
+    #[Post('/upload')]
     public function upload(): Response
     {
         $file = $this->request->file('file');
@@ -58,8 +53,7 @@ final class SystemUpgrade extends AdminApiController
         ), '升级完成');
     }
 
-    #[Post(':id/restore')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/{id:\d+}/restore')]
     public function restore(int $id): Response
     {
         return $this->execute(fn () => UpgradeService::instance()->restore(
@@ -68,7 +62,7 @@ final class SystemUpgrade extends AdminApiController
         ), '恢复完成');
     }
 
-    #[Post('recover-stale')]
+    #[Post('/recover-stale')]
     public function recoverStale(): Response
     {
         return $this->execute(fn () => UpgradeService::instance()->recoverStale(), '陈旧升级任务处理完成');

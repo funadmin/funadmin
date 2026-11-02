@@ -53,7 +53,7 @@ export const languageApi = {
     http.post<{ id: number }>(`${PREFIX}/lines`, data, { requestOptions: { showSuccessMsg: true } }),
   removeLine: (id: number) =>
     http.delete<{ removed: number }>(`${PREFIX}/lines`, { id }, { requestOptions: { showSuccessMsg: true } }),
-  list: (params: LanguageQuery) => http.get<API.PageResult<LanguageModel>>(PREFIX, { params }),
+  list: (params: LanguageQuery) => http.get<API.PageResult<LanguageModel>>(PREFIX, params),
   detail: (id: number) => http.get<LanguageModel>(`${PREFIX}/${id}`),
   create: (data: Pick<LanguageModel, 'name'>) =>
     http.post<LanguageModel>(PREFIX, data, { requestOptions: { showSuccessMsg: true } }),

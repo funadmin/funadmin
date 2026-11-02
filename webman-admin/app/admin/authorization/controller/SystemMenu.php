@@ -5,45 +5,41 @@ declare(strict_types=1);
 namespace app\admin\authorization\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\ResourceRegistryService;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('system/menu')]
+#[RouteGroup('/admin/system/menu')]
 class SystemMenu extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('tree')]
+
+    #[Get('/tree')]
     public function tree(): Response
     {
         $query = AdminMenu::managedQuery()
             ->where('status', 1)
-            ->order('sort_order', 'asc')
-            ->order('id', 'asc');
+            ->orderBy('sort_order')
+            ->orderBy('id');
         $name = trim((string) $this->request->get('name', ''));
         $path = trim((string) $this->request->get('path', ''));
         if ($name !== '') {
-            $query->whereLike('name', '%' . $name . '%');
+            $query->where('name', 'like', '%' . addcslashes($name, '%_') . '%');
         }
         if ($path !== '') {
-            $query->whereLike('href', '%' . $path . '%');
+            $query->where('href', 'like', '%' . addcslashes($path, '%_') . '%');
         }
-        $rows = array_map(fn (AdminMenu $menu): array => $menu->toManagementData(), $query->select()->all());
+        $rows = array_map(fn (AdminMenu $menu): array => $menu->toManagementData(), $query->get()->all());
         return $this->ok(data: $this->buildTree($rows));
     }
 
-    #[Get('permission-options')]
+    #[Get('/permission-options')]
     public function permissionOptions(): Response
     {
         $permissions = Permission::where('app_name', 'admin')
@@ -51,17 +47,15 @@ class SystemMenu extends AdminApiController
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('status', 1)
             ->where('code', '<>', '')
-            ->order('sort_order', 'asc')
-            ->order('id', 'asc')
-            ->select()
-            ->all();
-        $rows = array_map(static fn (Permission $permission): array => $permission->toOptionData(), $permissions);
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+        $rows = $permissions->map(static fn (Permission $permission): array => $permission->toOptionData())->all();
 
         return $this->ok(data: $rows);
     }
 
-    #[Get(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         $menu = AdminMenu::findManaged($id);
@@ -84,12 +78,11 @@ class SystemMenu extends AdminApiController
                 return $this->fail(msg: '受管菜单不能作为自定义菜单的父级', code: 422);
             }
         }
-        $menu = AdminMenu::create($data);
+        $menu = AdminMenu::forceCreate($data);
         return $this->ok('创建成功', $menu->toManagementData());
     }
 
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         $menu = AdminMenu::findManaged($id);
@@ -115,12 +108,11 @@ class SystemMenu extends AdminApiController
                 return $this->fail(msg: '受管菜单不能作为自定义菜单的父级', code: 422);
             }
         }
-        $menu->save($data);
+        $menu->forceFill($data)->save();
         return $this->ok('保存成功', $menu->toManagementData());
     }
 
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
@@ -136,7 +128,7 @@ class SystemMenu extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要删除的菜单', code: 422);
         }
-        $managed = AdminMenu::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->select()->all();
+        $managed = AdminMenu::whereIn('id', $ids)->whereIn('source_type', ['generated', 'plugin'])->get()->all();
         $managedIds = array_map(static fn (AdminMenu $menu): int => (int) $menu->id, $managed);
         $customIds = array_values(array_diff($ids, $managedIds));
         $orphanSources = [];
@@ -151,7 +143,7 @@ class SystemMenu extends AdminApiController
         if ($customIds && AdminMenu::managedQuery()->whereIn('pid', $customIds)->count() > 0) {
             return $this->fail(msg: '请先删除下级菜单', code: 422);
         }
-        $menus = $customIds ? AdminMenu::managedQuery()->whereIn('id', $customIds)->select() : [];
+        $menus = $customIds ? AdminMenu::managedQuery()->whereIn('id', $customIds)->get() : collect();
         foreach ($menus as $menu) {
             $menu->delete();
         }

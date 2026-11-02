@@ -78,16 +78,16 @@ final class CommentEncodingRepair
 
     public static function createSql(object $connection, string $table): string
     {
-        $row = $connection->query('SHOW CREATE TABLE ' . self::identifier($table), [], true)[0];
+        $row = (array) $connection->selectOne('SHOW CREATE TABLE ' . self::identifier($table));
         if (!isset($row['Create Table'])) throw new RuntimeException('目标不是基础表');
         return $row['Create Table'];
     }
 
     public static function currentHex(object $connection, array $item): string
     {
-        $rows = $item['c'] === ''
-            ? $connection->query("SELECT HEX(TABLE_COMMENT) h FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'", [$item['t']], true)
-            : $connection->query('SELECT HEX(COLUMN_COMMENT) h FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?', [$item['t'], $item['c']], true);
+        $rows = array_map(static fn (object $row): array => (array) $row, $item['c'] === ''
+            ? $connection->select("SELECT HEX(TABLE_COMMENT) h FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'", [$item['t']])
+            : $connection->select('SELECT HEX(COLUMN_COMMENT) h FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?', [$item['t'], $item['c']]));
         if (count($rows) !== 1) throw new RuntimeException('白名单目标缺失：' . $item['t'] . '.' . $item['c']);
         return $rows[0]['h'];
     }
@@ -95,7 +95,7 @@ final class CommentEncodingRepair
     public static function plan(object $connection, array $items): array
     {
         DdlEncodingGuard::check($connection, 'SELECT 1');
-        $mode = $connection->query('SELECT @@sql_mode mode', [], true)[0]['mode'];
+        $mode = $connection->selectOne('SELECT @@sql_mode mode')->mode;
         $noBackslash = in_array('NO_BACKSLASH_ESCAPES', explode(',', $mode), true);
         $plans = [];
         $seen = [];
@@ -115,7 +115,7 @@ final class CommentEncodingRepair
             if ($hex !== $item['old_hex'] && $hex !== $item['target_hex']) throw new RuntimeException('未知注释，拒绝执行：' . $key);
             $create = self::createSql($connection, $item['t']);
             // COMMENT 语法不接受任意表达式；用服务端 HEX 构造后按实际 SQL mode 转义为字符串。
-            $literal = $connection->query("SELECT CONVERT(UNHEX(?) USING utf8mb4) value", [$item['target_hex']], true)[0]['value'];
+            $literal = $connection->selectOne("SELECT CONVERT(UNHEX(?) USING utf8mb4) value", [$item['target_hex']])->value;
             $literal = "'" . ($noBackslash ? str_replace("'", "''", $literal) : strtr($literal, ["\\"=>"\\\\", "'"=>"\\'", "\0"=>"\\0", "\n"=>"\\n", "\r"=>"\\r", "\x1a"=>"\\Z"])) . "'";
             $definition = '';
             if ($item['c'] !== '') {
@@ -145,7 +145,7 @@ final class CommentEncodingRepair
             if (self::fingerprint(self::createSql($connection, $plan['t']), $plan['no_backslash']) !== $plan['fingerprint']) {
                 throw new RuntimeException('执行前结构发生并发变化');
             }
-            $connection->execute($plan['sql']);
+            $connection->statement($plan['sql']);
             if (self::currentHex($connection, $plan) !== $plan['target_hex']
                 || self::fingerprint(self::createSql($connection, $plan['t']), $plan['no_backslash']) !== $plan['fingerprint']) {
                 throw new RuntimeException('注释修复后结构或 HEX 校验失败：' . $plan['t'] . '.' . $plan['c']

@@ -13,5 +13,8 @@ class Plugin extends BaseModel {
      */
     use LaravelSoftDelete;
 
+    protected $table = 'plugin';
+    protected $guarded = [];
+
 
 }

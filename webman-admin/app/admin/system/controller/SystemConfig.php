@@ -5,43 +5,38 @@ declare(strict_types=1);
 namespace app\admin\system\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\common\model\Config;
 use app\common\model\ConfigGroup;
 use app\common\model\FieldType;
 use app\common\model\FieldVerify;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
-use think\facade\Cache;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Cache;
+use support\Response;
 
 /**
  * Admin Web 运行时配置定义、分组和值管理。
  */
-#[Group('system', ['complete_match' => true])]
+#[RouteGroup('/admin/system')]
 class SystemConfig extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    #[Get('config')]
+    #[Get('/config')]
     public function index(): Response
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = Config::order('id', 'asc');
+        $query = Config::orderBy('id', 'asc');
         $keyword = trim((string) $this->request->get('keyword', ''));
         $group = trim((string) $this->request->get('group', ''));
         $type = trim((string) $this->request->get('type', ''));
         $status = $this->request->get('status', null);
         if ($keyword !== '') {
             $query->where(function ($where) use ($keyword): void {
-                $where->whereLike('code', '%' . $keyword . '%')->whereOr('remark', 'like', '%' . $keyword . '%');
+                $where->whereLike('code', '%' . $keyword . '%')->orWhere('remark', 'like', '%' . $keyword . '%');
             });
         }
         if ($group !== '') {
@@ -53,7 +48,7 @@ class SystemConfig extends AdminApiController
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
-        $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        $result = $query->paginate($pageSize, ['*'], 'page', $page);
         return $this->ok(data: $this->paginationData(
             array_map(fn (Config $config): array => $this->configData($config), $result->items()),
             $result->total(),
@@ -62,27 +57,26 @@ class SystemConfig extends AdminApiController
         ));
     }
 
-    #[Get('config/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/config/{id:\d+}')]
     public function detail(int $id): Response
     {
         $config = Config::find($id);
         return $config ? $this->ok(data: $this->configData($config)) : $this->fail(msg: '配置项不存在', code: 404);
     }
 
-    #[Get('config/options')]
+    #[Get('/config/options')]
     public function options(): Response
     {
-        $groups = ConfigGroup::order('id', 'asc')->select();
-        $types = FieldType::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->select();
-        $verifies = FieldVerify::order('verify', 'asc')->select();
+        $groups = ConfigGroup::orderBy('id', 'asc')->get();
+        $types = FieldType::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+        $verifies = FieldVerify::orderBy('verify', 'asc')->get();
         $builtInTypes = [
             'date' => ['title' => '日期', 'requiresOptions' => false],
             'json' => ['title' => 'JSON', 'requiresOptions' => false],
         ];
         $typeOptions = [];
         foreach ($types as $type) {
-            $name = trim((string) $type->name);
+            $name = trim((string) $type->getAttribute('name'));
             if ($name === '' || isset($typeOptions[$name])) {
                 continue;
             }
@@ -105,23 +99,22 @@ class SystemConfig extends AdminApiController
         ]);
     }
 
-    #[Post('config')]
+    #[Post('/config')]
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Config::withTrashed()->where('code', $data['code'])->find()) {
+        if (Config::withTrashed()->where('code', $data['code'])->first()) {
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
-        $config = Config::create($data + ['is_system' => 0]);
+        $config = Config::forceCreate($data + ['is_system' => 0]);
         $this->clearConfigCache();
         return $this->ok('创建成功', $this->configData($config));
     }
 
-    #[Put('config/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/config/{id:\d+}')]
     public function update(int $id): Response
     {
         $config = Config::find($id);
@@ -129,22 +122,24 @@ class SystemConfig extends AdminApiController
             return $this->fail(msg: '配置项不存在', code: 404);
         }
         $data = $this->payload($config);
+        if ((string) $config->type === 'password' && $data['value'] === '') {
+            $data['value'] = (string) $config->value;
+        }
         if ((int) $config->is_system === 1 && $data['code'] !== (string) $config->code) {
             return $this->fail(msg: '系统配置编码不能修改', code: 422);
         }
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Config::withTrashed()->where('code', $data['code'])->where('id', '<>', $id)->find()) {
+        if (Config::withTrashed()->where('code', $data['code'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
-        $config->save($data);
+        $config->forceFill($data)->save();
         $this->clearConfigCache();
         return $this->ok('保存成功', $this->configData($config));
     }
 
-    #[Put('config/:id/value')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/config/{id:\d+}/value')]
     public function value(int $id): Response
     {
         $config = Config::find($id);
@@ -152,28 +147,30 @@ class SystemConfig extends AdminApiController
             return $this->fail(msg: '配置项不存在', code: 404);
         }
         [$value, $error] = $this->normalizeValue((string) $config->type, $this->request->post('value', ''), (string) ($config->extra ?? ''));
+        if ($error === null) $error = $this->validateRule((string) ($config->verify ?? ''), $value);
         if ($error) {
             return $this->fail(msg: $error, code: 422);
         }
-        $config->save(['value' => $value]);
+        $config->forceFill(['value' => $value])->save();
         $this->clearConfigCache();
         return $this->ok('配置值已更新', $this->configData($config));
     }
 
-    #[Post('config/:id/status')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/config/{id:\d+}/status')]
     public function status(int $id): Response
     {
         $config = Config::find($id);
         if (!$config) {
             return $this->fail(msg: '配置项不存在', code: 404);
         }
-        $config->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+        $status = $this->request->post()['status'] ?? null;
+        if (!in_array($status, [0, 1, '0', '1', true, false], true)) return $this->fail(msg: '状态必须为 0 或 1', code: 422);
+        $config->forceFill(['status' => (int) $status])->save();
         $this->clearConfigCache();
         return $this->ok('状态更新成功', $this->configData($config));
     }
 
-    #[Delete('config')]
+    #[Delete('/config')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -183,7 +180,7 @@ class SystemConfig extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要删除的配置项', code: 422);
         }
-        $configs = Config::whereIn('id', $ids)->select();
+        $configs = Config::whereIn('id', $ids)->get();
         if (count($configs) !== count($ids)) {
             return $this->fail(msg: '部分配置项不存在', code: 404);
         }
@@ -193,31 +190,31 @@ class SystemConfig extends AdminApiController
             }
         }
         foreach ($configs as $config) {
-            $config->force()->delete();
+            $config->forceDelete();
         }
         $this->clearConfigCache();
         return $this->ok('删除成功', ['removed' => count($configs)]);
     }
 
-    #[Get('config-group')]
+    #[Get('/config-group')]
     public function groups(): Response
     {
-        $groups = ConfigGroup::order('id', 'asc')->select();
+        $groups = ConfigGroup::orderBy('id', 'asc')->get();
         return $this->ok(data: array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()));
     }
 
-    #[Post('config-group')]
+    #[Post('/config-group')]
     public function createGroup(): Response
     {
         $data = $this->groupPayload();
         if ($error = $this->validateGroup($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (ConfigGroup::withTrashed()->where('name', $data['name'])->find()) {
+        if (ConfigGroup::withTrashed()->where('name', $data['name'])->first()) {
             return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
-            $group = ConfigGroup::create($data);
+            $group = ConfigGroup::forceCreate($data);
             $this->clearConfigCache();
             return $this->ok('创建成功', $this->groupData($group));
         } catch (\Throwable $exception) {
@@ -229,8 +226,7 @@ class SystemConfig extends AdminApiController
         }
     }
 
-    #[Put('config-group/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/config-group/{id:\d+}')]
     public function updateGroup(int $id): Response
     {
         $group = ConfigGroup::find($id);
@@ -241,14 +237,14 @@ class SystemConfig extends AdminApiController
         if ($error = $this->validateGroup($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['name'] !== (string) $group->name && Config::withTrashed()->where('group', (string) $group->name)->count() > 0) {
+        if ($data['name'] !== (string) $group->getAttribute('name') && Config::withTrashed()->where('group', (string) $group->getAttribute('name'))->count() > 0) {
             return $this->fail(msg: '配置分组已被配置项引用，不能修改编码', code: 422);
         }
-        if (ConfigGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
+        if (ConfigGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
-            $group->save($data);
+            $group->forceFill($data)->save();
             $this->clearConfigCache();
             return $this->ok('保存成功', $this->groupData($group));
         } catch (\Throwable $exception) {
@@ -260,51 +256,56 @@ class SystemConfig extends AdminApiController
         }
     }
 
-    #[Delete('config-group/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/config-group/{id:\d+}')]
     public function deleteGroup(int $id): Response
     {
         $group = ConfigGroup::find($id);
         if (!$group) {
             return $this->fail(msg: '配置分组不存在', code: 404);
         }
-        if (Config::withTrashed()->where('group', (string) $group->name)->count() > 0) {
+        if (Config::withTrashed()->where('group', (string) $group->getAttribute('name'))->count() > 0) {
             return $this->fail(msg: '配置分组仍被配置项引用，不能删除', code: 422);
         }
-        $group->force()->delete();
+        $group->forceDelete();
         $this->clearConfigCache();
         return $this->ok('删除成功');
     }
 
     private function payload(?Config $config = null): array
     {
-        return [
-            'code' => trim((string) $this->request->post('code', $config?->code ?? '')),
-            'group' => trim((string) $this->request->post('group', $config?->group ?? 'site')),
-            'type' => trim((string) $this->request->post('type', $config?->type ?? 'text')),
-            'verify' => trim((string) $this->request->post('verify', $config?->verify ?? '')),
-            'value' => (string) $this->request->post('value', $config?->value ?? ''),
-            'extra' => trim((string) $this->request->post('extra', $config?->extra ?? '')),
-            'remark' => trim((string) $this->request->post('remark', $config?->remark ?? '')),
-            'status' => $this->binaryStatus($this->request->post('status', $config?->status ?? 1)),
-        ];
+        return array_replace([
+            'code' => $config?->code ?? '',
+            'group' => $config?->group ?? 'site',
+            'type' => $config?->type ?? 'text',
+            'verify' => $config?->verify ?? '',
+            'value' => $config?->value ?? '',
+            'extra' => $config?->extra ?? '',
+            'remark' => $config?->remark ?? '',
+            'status' => $config?->status ?? 1,
+        ], array_intersect_key($this->request->post(), array_flip(['code', 'group', 'type', 'verify', 'value', 'extra', 'remark', 'status'])));
     }
 
     private function validatePayload(array &$data): ?string
     {
+        foreach (['code', 'group', 'type', 'verify', 'extra', 'remark'] as $field) {
+            if (!is_string($data[$field])) return '配置文本参数必须为字符串';
+            $data[$field] = trim($data[$field]);
+        }
+        if (!in_array($data['status'], [0, 1, '0', '1', true, false], true)) return '状态必须为 0 或 1';
+        $data['status'] = (int) $data['status'];
         if (!preg_match('/^[A-Za-z][A-Za-z0-9_.-]{0,29}$/', $data['code'])) {
             return '配置编码必须以字母开头，且只能包含字母、数字、点、横线和下划线，最长 30 位';
         }
-        if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->find()) {
+        if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->first()) {
             return '请选择有效的配置分组';
         }
         $builtInTypes = ['date', 'json'];
         $typeExists = in_array($data['type'], $builtInTypes, true)
-            || FieldType::where('name', $data['type'])->where('status', 1)->find();
+            || FieldType::where('name', $data['type'])->where('status', 1)->first();
         if ($data['type'] === '' || strlen($data['type']) > 30 || !$typeExists) {
             return '请选择有效的字段类型';
         }
-        if (strlen($data['verify']) > 30 || ($data['verify'] !== '' && $data['verify'] !== '0' && !FieldVerify::where('verify', $data['verify'])->find())) {
+        if (strlen($data['verify']) > 30 || ($data['verify'] !== '' && $data['verify'] !== '0' && !FieldVerify::where('verify', $data['verify'])->first())) {
             return '请选择有效的验证规则';
         }
         if (strlen($data['extra']) > 255) {
@@ -314,11 +315,18 @@ class SystemConfig extends AdminApiController
             return '配置备注不能超过 100 个字符';
         }
         [$data['value'], $error] = $this->normalizeValue($data['type'], $data['value'], $data['extra']);
-        return $error;
+        if ($error !== null) return $error;
+        return $this->validateRule($data['verify'], $data['value']);
     }
 
     private function normalizeValue(string $type, mixed $raw, string $extra): array
     {
+        $multiple = in_array($type, ['checkbox', 'array', 'tags', 'images', 'files'], true);
+        if ((!$multiple && !is_scalar($raw) && $raw !== null)
+            || ($multiple && is_array($raw) && count(array_filter($raw, static fn ($item): bool => !is_scalar($item))) > 0)
+            || ($multiple && !is_array($raw) && !is_scalar($raw) && $raw !== null)) {
+            return ['', '配置值格式不合法'];
+        }
         if (in_array($type, ['checkbox', 'array', 'tags', 'images', 'files'], true)) {
             $items = is_array($raw) ? $raw : preg_split('/[\r\n,]+/', (string) $raw);
             $value = implode("\n", array_values(array_unique(array_filter(array_map(static fn ($item): string => trim((string) $item), $items), static fn (string $item): bool => $item !== ''))));
@@ -359,8 +367,8 @@ class SystemConfig extends AdminApiController
             }
         }
         if (in_array($type, ['radio', 'select', 'checkbox'], true) && $extra !== '') {
-            $allowed = array_keys($this->parseOptions($extra));
-            $values = $type === 'checkbox' ? array_filter(explode("\n", $value)) : [$value];
+            $allowed = array_map('strval', array_keys($this->parseOptions($extra)));
+            $values = $type === 'checkbox' ? array_filter(explode("\n", $value), static fn (string $item): bool => $item !== '') : [$value];
             foreach ($values as $item) {
                 if ($item !== '' && !in_array($item, $allowed, true)) {
                     return ['', '配置值不在允许的选项范围内'];
@@ -368,6 +376,19 @@ class SystemConfig extends AdminApiController
             }
         }
         return [$value, null];
+    }
+
+    private function validateRule(string $verify, string $value): ?string
+    {
+        if ($verify === '' || $verify === '0') return null;
+        if ($verify === 'required' && trim($value) === '') return '配置值不能为空';
+        if ($value === '') return null;
+        return match ($verify) {
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? null : '配置值必须是合法邮箱',
+            'url' => filter_var($value, FILTER_VALIDATE_URL) ? null : '配置值必须是合法地址',
+            'number' => preg_match('/^-?\d+(?:\.\d+)?$/', $value) === 1 ? null : '配置值必须是数字',
+            default => null,
+        };
     }
 
     private function parseOptions(string $extra): array
@@ -386,15 +407,17 @@ class SystemConfig extends AdminApiController
 
     private function groupPayload(?ConfigGroup $group = null): array
     {
-        return [
-            'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
-            'title' => trim((string) $this->request->post('title', $group?->title ?? '')),
-            'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
-        ];
+        return array_replace([
+            'name' => $group?->getAttribute('name') ?? '',
+            'title' => $group?->title ?? '',
+            'status' => $group?->status ?? 1,
+        ], array_intersect_key($this->request->post(), array_flip(['name', 'title', 'status'])));
     }
 
     private function validateGroup(array $data): ?string
     {
+        if (!is_string($data['name']) || !is_string($data['title'])) return '分组文本参数必须为字符串';
+        if (!in_array($data['status'], [0, 1, '0', '1', true, false], true)) return '状态必须为 0 或 1';
         if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,29}$/', $data['name'])) {
             return '分组编码必须以字母开头，且只能包含字母、数字、横线和下划线，最长 30 位';
         }
@@ -412,7 +435,7 @@ class SystemConfig extends AdminApiController
             'group' => (string) $config->group,
             'type' => (string) $config->type,
             'verify' => (string) ($config->verify ?? ''),
-            'value' => (string) ($config->value ?? ''),
+            'value' => in_array((string) $config->type, ['password', 'hidden'], true) ? '' : (string) ($config->value ?? ''),
             'extra' => (string) ($config->extra ?? ''),
             'remark' => (string) ($config->remark ?? ''),
             'status' => (int) $config->status,
@@ -426,7 +449,7 @@ class SystemConfig extends AdminApiController
     {
         return [
             'id' => (int) $group->id,
-            'name' => (string) $group->name,
+            'name' => (string) $group->getAttribute('name'),
             'title' => (string) $group->title,
             'status' => (int) $group->status,
             'createdAt' => $this->formatTime($group->created_at),

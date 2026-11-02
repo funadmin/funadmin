@@ -29,8 +29,7 @@ $sandbox = null;
 $status = 1;
 try {
     $sandbox = $manager->create(random_int(100000000, 999999999), 998877);
-    $result = $runner->run(['docker', 'start', $sandbox['containerId']], 30);
-    if ($result->exitCode !== 0) throw new RuntimeException('测试 sandbox 启动失败');
+    $manager->start($sandbox['containerId']);
     $result = $manager->exec($sandbox['containerId'], ['php', '-r', 'if(file_get_contents("/workspace/example.txt")!=="snapshot" || file_exists("/workspace/.env")) exit(1);'], 10);
     if ($result->exitCode !== 0) throw new RuntimeException('快照或敏感文件排除验证失败');
     $inspect = $runner->run(['docker', 'inspect', '--format', '{{json .HostConfig}}', $sandbox['containerId']], 10);
@@ -38,10 +37,19 @@ try {
     if ($host['NetworkMode'] !== 'none' || $host['ReadonlyRootfs'] !== true || $host['Privileged'] !== false || !in_array('ALL', $host['CapDrop'], true)) {
         throw new RuntimeException('sandbox 隔离配置不满足要求');
     }
+    $changed = $manager->exec($sandbox['containerId'], ['php', '-r', 'file_put_contents("/workspace/example.txt", "changed");'], 10);
+    if ($changed->exitCode !== 0) throw new RuntimeException('sandbox 修改烟测失败');
+    $artifact = $manager->exportChanges($sandbox['containerId'], $sandbox['workspace']);
+    if (!is_file($artifact['bundlePath']) || !str_contains(file_get_contents($artifact['patchPath']), 'changed')
+        || $artifact['manifest']['files']['example.txt']['sha256'] !== hash('sha256', 'changed')
+        || $artifact['baselineManifest']['files']['example.txt']['sha256'] !== hash('sha256', 'snapshot')
+        || file_get_contents($temporary . '/project/example.txt') !== 'snapshot') {
+        throw new RuntimeException('sandbox baseline/patch/bundle 导出验证失败');
+    }
     $manager->cleanup($sandbox['containerId'], $sandbox['workspace'], $sandbox['taskId'], $sandbox['sessionId'], $sandbox['volume']);
     $check = $runner->run(['docker', 'container', 'inspect', $sandbox['containerId']], 10);
     if ($check->exitCode === 0 || is_dir($sandbox['workspace'])) throw new RuntimeException('测试 sandbox 未清理');
-    echo "sandbox create/start/snapshot/isolation/cleanup: PASS\n";
+    echo "sandbox create/start/baseline/snapshot/isolation/export/cleanup: PASS\n";
     $status = 0;
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . PHP_EOL);

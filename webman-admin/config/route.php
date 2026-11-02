@@ -19,4 +19,10 @@ Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'webm
 $adminWeb = static fn () => response()->withFile(public_path('admin-web/index.html'))->withHeader('Cache-Control', 'no-cache');
 Route::get('/admin-web', $adminWeb);
 Route::get('/admin-web/', $adminWeb);
-Route::fallback(static fn () => json(['code' => 404, 'message' => '接口不存在', 'data' => null])->withStatus(404));
+Route::fallback(static function (\support\Request $request) {
+    $matched = Route::dispatch($request->method(), $request->path());
+    if ($matched[0] === \FastRoute\Dispatcher::METHOD_NOT_ALLOWED) {
+        return json(['code' => 405, 'message' => '请求方法不允许', 'data' => null])->withStatus(405)->withHeader('Allow', implode(', ', $matched[1]));
+    }
+    return json(['code' => 404, 'message' => '接口不存在', 'data' => null])->withStatus(404);
+});

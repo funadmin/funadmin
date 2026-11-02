@@ -358,7 +358,7 @@ final class AiConversationService
     /** 单供应商基线：只选择当前可信配置下的模型，不解析任意供应商标识。 */
     private function modelSelection(array $input): array
     {
-        $config = (array) \think\facade\Config::get('ai.provider', []);
+        $config = (array) config('ai.provider', []);
         $provider = trim((string) ($config['name'] ?? ''));
         $requested = $input['provider'] ?? '';
         if (!is_string($requested) || (trim($requested) !== '' && trim($requested) !== $provider)) {

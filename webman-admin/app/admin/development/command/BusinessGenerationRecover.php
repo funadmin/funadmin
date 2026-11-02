@@ -18,6 +18,11 @@ use Throwable;
 #[AsCommand(name: 'business:generation-recover')]
 final class BusinessGenerationRecover extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('business:generation-recover')
@@ -30,7 +35,7 @@ final class BusinessGenerationRecover extends Command
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $service = GenerationTransactionService::production();
+            $service = GenerationTransactionService::production($this->projectRoot);
             $transaction = trim((string) $input->getArgument('transaction'));
             $all = (bool) $input->getOption('all-stale');
             $inspect = (bool) $input->getOption('inspect');

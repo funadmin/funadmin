@@ -11,7 +11,7 @@ use app\admin\development\model\GeneratedFileBaseline;
 use app\admin\form\model\Form;
 use RuntimeException;
 use Throwable;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 使用业务开发中心模型持久化生成基线和提交状态。
@@ -24,11 +24,11 @@ final class DatabaseGenerationStateRepository
         if ($moduleId < 1) {
             throw new RuntimeException('业务模块 ID 无效');
         }
-        return GeneratedFileBaseline::where('business_module_id', $moduleId)
+        return GeneratedFileBaseline::query()->where('business_module_id', $moduleId)
             ->where('status', 'active')
-            ->field('business_module_id,relative_path,artifact_type,base_hash,base_storage_path,target_hash,template_version,definition_hash,generation_id,content_kind,status')
-            ->order('relative_path', 'asc')
-            ->select()
+            ->select(explode(',', 'business_module_id,relative_path,artifact_type,base_hash,base_storage_path,target_hash,template_version,definition_hash,generation_id,content_kind,status'))
+            ->orderBy('relative_path', 'asc')
+            ->get()
             ->toArray();
     }
 
@@ -40,11 +40,11 @@ final class DatabaseGenerationStateRepository
     public function adoptResolvedBaseline(int $moduleId, int $generationId, array $record, array $expected): array
     {
         return Db::transaction(function () use ($moduleId, $generationId, $record, $expected): array {
-            $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
-            $generation = CrudGeneration::where('id', $generationId)->where('business_module_id', $moduleId)->lock(true)->find();
+            $module = BusinessModule::query()->where('id', $moduleId)->lockForUpdate()->first();
+            $generation = CrudGeneration::query()->where('id', $generationId)->where('business_module_id', $moduleId)->lockForUpdate()->first();
             if (!$module || !$generation) throw new RuntimeException('业务模块或生成记录不存在');
             if ((string) $generation->status !== 'conflict') throw new RuntimeException('仅冲突生成记录可采纳 baseline');
-            $latest = CrudGeneration::where('business_module_id', $moduleId)->where('status', 'conflict')->order('id', 'desc')->lock(true)->find();
+            $latest = CrudGeneration::query()->where('business_module_id', $moduleId)->where('status', 'conflict')->orderBy('id', 'desc')->lockForUpdate()->first();
             if (!$latest || (int) $latest->id !== $generationId) throw new BusinessOperationException('GENERATION_PLAN_CONFLICT');
             $this->assertAdoptionSnapshot($module->toArray(), (array) ($expected['module'] ?? []), [
                 'id', 'form_id', 'code', 'table_name', 'connection_name', 'metadata', 'current_generation_id', 'last_success_generation_id',
@@ -52,10 +52,10 @@ final class DatabaseGenerationStateRepository
             $this->assertAdoptionSnapshot($generation->toArray(), (array) ($expected['generation'] ?? []), [
                 'id', 'business_module_id', 'form_id', 'status', 'definition_hash', 'manifest', 'recovery_status', 'transaction_id',
             ]);
-            $pending = CrudGeneration::where('business_module_id', $moduleId)
+            $pending = CrudGeneration::query()->where('business_module_id', $moduleId)
                 ->where(function ($query): void {
-                    $query->where('status', 'running')->whereOr('recovery_status', 'in', ['recovering', 'recovery_required']);
-                })->lock(true)->find();
+                    $query->where('status', 'running')->orWhereIn('recovery_status', ['recovering', 'recovery_required']);
+                })->lockForUpdate()->first();
             if ($pending) throw new BusinessOperationException('GENERATION_RECOVERY_REQUIRED');
             $allowed = array_intersect_key($record, array_flip([
                 'relative_path', 'artifact_type', 'base_hash', 'base_storage_path', 'target_hash',
@@ -71,7 +71,7 @@ final class DatabaseGenerationStateRepository
                 || preg_match('/^[a-f0-9]{64}$/', $hashes[2]) !== 1) {
                 throw new RuntimeException('采纳 baseline 记录无效');
             }
-            $baseline = GeneratedFileBaseline::withTrashed()->where('business_module_id', $moduleId)->where('relative_path', $path)->lock(true)->find();
+            $baseline = GeneratedFileBaseline::withTrashed()->where('business_module_id', $moduleId)->where('relative_path', $path)->lockForUpdate()->first();
             $actualBaseline = $baseline && !$baseline->trashed() && $baseline->status === 'active' ? $baseline->toArray() : null;
             $expectedBaseline = $expected['baseline'] ?? null;
             if (($actualBaseline === null) !== ($expectedBaseline === null)) throw new BusinessOperationException('GENERATION_PLAN_CONFLICT');
@@ -83,13 +83,13 @@ final class DatabaseGenerationStateRepository
             }
             if (!$baseline) $baseline = new GeneratedFileBaseline();
             if ($baseline->id && $baseline->trashed()) $baseline->restore();
-            $baseline->save(array_replace($allowed, [
+            $baseline->fill(array_replace($allowed, [
                 'business_module_id' => $moduleId,
                 'generation_id' => $generationId,
                 'status' => 'active',
                 'updated_at' => date('Y-m-d H:i:s'),
                 'created_at' => $baseline->id ? $baseline->created_at : date('Y-m-d H:i:s'),
-            ]));
+            ]))->save();
             return $baseline->toArray();
         });
     }
@@ -109,7 +109,7 @@ final class DatabaseGenerationStateRepository
     {
         return GeneratedFileBaseline::withTrashed()
             ->where('base_storage_path', $relativePath)
-            ->find() !== null;
+            ->first() !== null;
     }
 
     /**
@@ -121,14 +121,19 @@ final class DatabaseGenerationStateRepository
         string $transactionId,
         string $planDigest
     ): bool {
-        return CrudGeneration::where('id', $generationId)
+        $generation = CrudGeneration::query()->where('id', $generationId)
             ->where('business_module_id', $moduleId)
             ->where('transaction_id', $transactionId)
             ->where('plan_digest', $planDigest)
-            ->where('status', 'completed')
-            ->where('recovery_status', 'none')
-            ->lock(true)
-            ->find() !== null;
+            ->whereNotNull('completed_at')
+            ->lockForUpdate()
+            ->first();
+        $result = $generation?->result;
+        return is_array($result)
+            && ($result['state'] ?? '') === 'completed'
+            && (int) ($result['generationId'] ?? 0) === $generationId
+            && ($result['transactionId'] ?? '') === $transactionId
+            && ($result['planDigest'] ?? '') === $planDigest;
     }
 
     /** @return array<string, mixed> */
@@ -141,16 +146,16 @@ final class DatabaseGenerationStateRepository
         try {
             return Db::transaction(function () use ($row, $actor, $operationKey): array {
                 $moduleId = (int) ($row['business_module_id'] ?? 0);
-                if (!BusinessModule::where('id', $moduleId)->lock(true)->find()) {
+                if (!BusinessModule::query()->where('id', $moduleId)->lockForUpdate()->first()) {
                     throw new RuntimeException('业务模块不存在');
                 }
-                $existing = CrudGeneration::where('operation_key', $operationKey)->find();
+                $existing = CrudGeneration::query()->where('operation_key', $operationKey)->first();
                 if ($existing) {
                     return $existing->toArray();
                 }
                 $generation = CrudGeneration::create($row);
                 if ((string) ($row['status'] ?? '') === 'planned') {
-                    CrudGeneration::where('business_module_id', $moduleId)
+                    CrudGeneration::query()->where('business_module_id', $moduleId)
                         ->where('status', 'planned')
                         ->where('id', '<>', (int) $generation->id)
                         ->update([
@@ -163,7 +168,7 @@ final class DatabaseGenerationStateRepository
                 return $generation->toArray();
             });
         } catch (Throwable $exception) {
-            $existing = CrudGeneration::where('operation_key', $operationKey)->find();
+            $existing = CrudGeneration::query()->where('operation_key', $operationKey)->first();
             if ($existing) {
                 return $existing->toArray();
             }
@@ -173,7 +178,7 @@ final class DatabaseGenerationStateRepository
 
     public function claimGeneration(int $moduleId, int $generationId, string $actor): bool
     {
-        return CrudGeneration::where('id', $generationId)
+        return CrudGeneration::query()->where('id', $generationId)
             ->where('business_module_id', $moduleId)
             ->where('status', 'planned')
             ->update([
@@ -187,7 +192,7 @@ final class DatabaseGenerationStateRepository
 
     public function releaseGenerationClaim(int $moduleId, int $generationId, string $actor): void
     {
-        CrudGeneration::where('id', $generationId)
+        CrudGeneration::query()->where('id', $generationId)
             ->where('business_module_id', $moduleId)
             ->where('status', 'running')
             ->update([
@@ -200,11 +205,11 @@ final class DatabaseGenerationStateRepository
     public function bindGenerationTransaction(int $moduleId, int $generationId, string $transactionId): void
     {
         if (preg_match('/^[a-f0-9]{32}$/', $transactionId) !== 1) throw new RuntimeException('transaction ID 无效');
-        $updated = CrudGeneration::where('id', $generationId)
+        $updated = CrudGeneration::query()->where('id', $generationId)
             ->where('business_module_id', $moduleId)
             ->where('status', 'running')
             ->where(function ($query) use ($transactionId): void {
-                $query->whereNull('transaction_id')->whereOr('transaction_id', $transactionId);
+                $query->whereNull('transaction_id')->orWhere('transaction_id', $transactionId);
             })
             ->update(['transaction_id' => $transactionId]);
         if ($updated !== 1) throw new BusinessOperationException('GENERATION_BINDING_CONFLICT');
@@ -212,13 +217,13 @@ final class DatabaseGenerationStateRepository
 
     public function generationForRecovery(int $generationId): ?array
     {
-        $generation = CrudGeneration::where('id', $generationId)->find();
+        $generation = CrudGeneration::query()->where('id', $generationId)->first();
         return $generation ? $generation->toArray() : null;
     }
 
     public function claimRecovery(int $generationId, string $expectedRecoveryStatus, string $actor): bool
     {
-        return CrudGeneration::where('id', $generationId)
+        return CrudGeneration::query()->where('id', $generationId)
             ->where('status', 'failed')
             ->where('recovery_status', $expectedRecoveryStatus)
             ->whereNotNull('transaction_id')
@@ -265,7 +270,7 @@ final class DatabaseGenerationStateRepository
 
     public function markSuperseded(int $generationId, int $supersededById, string $actor): void
     {
-        if ($generationId === $supersededById || CrudGeneration::where('id', $supersededById)->find() === null) {
+        if ($generationId === $supersededById || CrudGeneration::query()->where('id', $supersededById)->first() === null) {
             throw new RuntimeException('替代 generation 无效');
         }
         $this->updateGeneration($generationId, [
@@ -288,7 +293,7 @@ final class DatabaseGenerationStateRepository
     public function markRecoveredCompleted(int $generationId, string $actor): void
     {
         $now = date('Y-m-d H:i:s');
-        $updated = CrudGeneration::where('id', $generationId)
+        $updated = CrudGeneration::query()->where('id', $generationId)
             ->where('status', 'running')
             ->where('recovery_status', 'recovering')
             ->update([
@@ -331,9 +336,9 @@ final class DatabaseGenerationStateRepository
     /** @return array<string, mixed>|null */
     public function completedResult(int $generationId): ?array
     {
-        $generation = CrudGeneration::where('id', $generationId)
+        $generation = CrudGeneration::query()->where('id', $generationId)
             ->where('status', 'completed')
-            ->find();
+            ->first();
         return $generation && is_array($generation->result) ? $generation->result : null;
     }
 
@@ -349,11 +354,11 @@ final class DatabaseGenerationStateRepository
         array $langCounts = []
     ): void {
         Db::transaction(function () use ($moduleId, $generationId, $records, $transactionId, $planDigest, $langCounts): void {
-            $module = BusinessModule::where('id', $moduleId)->lock(true)->find();
+            $module = BusinessModule::query()->where('id', $moduleId)->lockForUpdate()->first();
             if (!$module) {
                 throw new RuntimeException('业务模块不存在');
             }
-            $generation = CrudGeneration::where('id', $generationId)->lock(true)->find();
+            $generation = CrudGeneration::query()->where('id', $generationId)->lockForUpdate()->first();
             if (!$generation || (int) $generation->business_module_id !== $moduleId) {
                 throw new RuntimeException('生成记录与业务模块不匹配');
             }
@@ -391,7 +396,7 @@ final class DatabaseGenerationStateRepository
             ];
 
             $this->replaceBaselines($moduleId, $generationId, $records);
-            $generation->save([
+            $generation->fill([
                 'status' => 'completed',
                 'transaction_id' => $transactionId,
                 'plan_digest' => $planDigest,
@@ -402,8 +407,8 @@ final class DatabaseGenerationStateRepository
                 'completed_at' => $now,
                 'failed_at' => null,
                 'recovered_at' => $isRecovery ? $now : null,
-            ]);
-            $module->save(($plugin ? ['metadata' => $metadata] : []) + [
+            ])->save();
+            $module->fill(($plugin ? ['metadata' => $metadata] : []) + [
                 'lifecycle_status' => $plugin ? 'generated' : 'published',
                 'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
                 'published_schema_version' => isset($definition['formSchemaVersion']) ? (int) $definition['formSchemaVersion'] : null,
@@ -411,31 +416,31 @@ final class DatabaseGenerationStateRepository
                 'current_generation_id' => $generationId,
                 'last_success_generation_id' => $generationId,
                 'generation_status' => 'completed',
-            ]);
+            ])->save();
             if ((int) $generation->form_id > 0) {
-                $form = Form::where('id', (int) $generation->form_id)->lock(true)->find();
+                $form = Form::query()->where('id', (int) $generation->form_id)->lockForUpdate()->first();
                 if (!$form || ((int) $module->form_id > 0 && (int) $module->form_id !== (int) $form->id)) {
                     throw new RuntimeException('生成记录与表单不匹配');
                 }
-                $form->save([
+                $form->fill([
                     'publish_mode' => 'generated',
                     'publish_status' => $plugin ? 'generated' : 'published',
                     'published_at' => $now,
                     'crud_generation_id' => $generationId,
                     'published_definition_hash' => (string) $generation->definition_hash,
                     'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
-                ]);
+                ])->save();
             }
         });
     }
 
     private function updateGeneration(int $generationId, array $attributes): void
     {
-        $generation = CrudGeneration::where('id', $generationId)->find();
+        $generation = CrudGeneration::query()->where('id', $generationId)->first();
         if (!$generation) {
             throw new RuntimeException('生成记录不存在');
         }
-        $generation->save($attributes);
+        $generation->fill($attributes)->save();
     }
 
     private function replaceBaselines(int $moduleId, int $generationId, array $records): void
@@ -456,8 +461,8 @@ final class DatabaseGenerationStateRepository
 
         $existing = GeneratedFileBaseline::withTrashed()
             ->where('business_module_id', $moduleId)
-            ->lock(true)
-            ->select();
+            ->lockForUpdate()
+            ->get();
         foreach ($existing as $baseline) {
             $path = (string) $baseline->relative_path;
             if (!isset($byPath[$path])) {
@@ -471,11 +476,11 @@ final class DatabaseGenerationStateRepository
             if ($baseline->trashed()) {
                 $baseline->restore();
             }
-            $baseline->save(array_replace($record, [
+            $baseline->fill(array_replace($record, [
                 'business_module_id' => $moduleId,
                 'generation_id' => $generationId,
                 'status' => 'active',
-            ]));
+            ]))->save();
         }
         foreach ($byPath as $record) {
             unset($record['id'], $record['created_at'], $record['updated_at'], $record['deleted_at']);

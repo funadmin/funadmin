@@ -98,9 +98,8 @@ final class PluginCrudTarget
             if (!is_string($content)) {
                 continue;
             }
-            $hasConfig = \think\Container::getInstance()->bound('config');
-            $templatePrefix = $hasConfig ? \think\facade\Config::get('funadmin.mysqlPrefix', 'fun_') : 'fun_';
-            $prefix = $hasConfig ? (string) \think\facade\Config::get('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '') : '';
+            $templatePrefix = (string) config('funadmin.mysqlPrefix', 'fun_');
+            $prefix = (string) config('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '');
             $effectiveContent = \app\common\service\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
             $stored = $this->migrationSnapshot($content);
             if ($stored !== null && !str_starts_with($content, "-- funadmin-physical-table\n")) {
@@ -147,6 +146,11 @@ final class PluginCrudTarget
                 'definition' => $this->columnDefinition($field),
                 'index' => ($field['unique'] ?? false) ? 'unique' : ((($field['search'] ?? false) || ($field['relation'] ?? '') !== '') ? 'index' : ''),
             ];
+        }
+        if ($data['timestamps']) {
+            foreach (['created_at', 'updated_at'] as $timestamp) {
+                $fields[$timestamp] ??= ['definition' => 'datetime NULL', 'index' => ''];
+            }
         }
         if ($data['softDeletes'] && !isset($fields['deleted_at'])) {
             $fields['deleted_at'] = ['definition' => 'datetime NULL', 'index' => ''];

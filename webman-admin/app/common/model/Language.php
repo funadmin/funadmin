@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace app\common\model;
 
-use app\admin\traits\AdminDataFormat;
-use think\model\concern\SoftDelete;
+use app\common\traits\DataFormat;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Language extends BaseModel
 {
-    use SoftDelete;
-    use AdminDataFormat;
+    use LaravelSoftDelete;
+    use DataFormat;
 
     protected $name = 'language';
 
@@ -23,6 +23,9 @@ class Language extends BaseModel
         if ($length > 20) {
             return '语言名称不能超过 20 个字符';
         }
+        if (!preg_match('/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/D', $name)) {
+            return '语言名称必须为有效区域码，例如 zh-cn 或 en-us';
+        }
         return null;
     }
 
@@ -31,14 +34,14 @@ class Language extends BaseModel
      */
     public function isDefaultLanguage(): bool
     {
-        return (int) $this->is_default === 1 || strtolower((string) $this->getAttr('name')) === 'zh-cn';
+        return (int) $this->is_default === 1 || strtolower((string) $this->getAttribute('name')) === 'zh-cn';
     }
 
     public function toApiData(): array
     {
         return [
             'id' => (int) $this->id,
-            'name' => (string) $this->getAttr('name'),
+            'name' => (string) $this->getAttribute('name'),
             'isDefault' => (int) $this->is_default,
             'status' => (int) $this->status,
             'createdAt' => $this->formatTime($this->created_at),

@@ -6,7 +6,9 @@ namespace app\common\crud;
 
 use app\common\ai\provider\OpenAiCompatibleGateway;
 use GuzzleHttp\Client;
-use think\facade\Cache;
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\HandlerStack;
+use support\Cache;
 
 /**
  * CRUD 生成期的 AI 预翻译器：批量把 {key: 中文} 译为英文草稿。
@@ -47,7 +49,10 @@ final class LangPackTranslator
         try {
             $gateway = $this->gatewayFactory !== null
                 ? ($this->gatewayFactory)($config)
-                : new OpenAiCompatibleGateway(new Client(), $config);
+                : new OpenAiCompatibleGateway(new Client([
+                    'handler' => HandlerStack::create(new CurlHandler()),
+                    'proxy' => '',
+                ]), $config);
             $reply = $gateway->chat([
                 ['role' => 'system', 'content' => '你是软件界面翻译器。把用户给出的 JSON 对象（key => 中文文案）翻译为英文，原样返回 JSON 对象（key => English）。必须原样保留 {label}、{:target} 等占位符，只输出 JSON，不要解释。'],
                 ['role' => 'user', 'content' => json_encode($zhMap, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)],

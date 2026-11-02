@@ -20,6 +20,11 @@ use Throwable;
 #[AsCommand(name: 'plugin:validate')]
 final class PluginValidate extends Command
 {
+    public function __construct(private readonly ?string $projectRoot = null)
+    {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
         $this->setName('plugin:validate')->setDescription('校验插件 Manifest v2 与目录约定')
@@ -31,7 +36,7 @@ final class PluginValidate extends Command
         try {
             $name = (string) $input->getArgument('name');
             PluginScaffolder::assertValidName($name);
-            $manifest = Manifest::fromDirectory(base_path('plugins/' . $name));
+            $manifest = Manifest::fromDirectory(($this->projectRoot ?? base_path()) . '/plugins/' . $name);
             $records = [];
             foreach (Plugin::whereNull('deleted_at')->get() as $record) {
                 $records[(string) $record->code] = [

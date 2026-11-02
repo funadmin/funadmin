@@ -5,54 +5,47 @@ declare(strict_types=1);
 namespace app\admin\plugin\controller;
 
 use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
 use app\admin\plugin\service\DevPluginService;
 use InvalidArgumentException;
 use RuntimeException;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\annotation\route\Pattern;
-use think\App;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Response;
 use Throwable;
 
 /** 受 RBAC、CSRF 与审计中间件保护的插件开发 API。 */
-#[Group('development/plugin')]
-#[Pattern('code', '[a-z][a-z0-9]*')]
+#[RouteGroup('/admin/development/plugin')]
 final class DevPlugin extends AdminApiController
 {
-    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     private readonly DevPluginService $plugins;
 
-    public function __construct(App $app)
+    public function __construct()
     {
-        parent::__construct($app);
-        $this->plugins = new DevPluginService($app->getRootPath());
+        parent::__construct();
+        $this->plugins = new DevPluginService(root_path());
     }
 
-    #[Post('create/preview')]
+    #[Post('/create/preview')]
     public function previewCreate(): Response
     {
         return $this->execute(fn (): array => $this->plugins->previewCreate($this->createInput()));
     }
 
-    #[Post('create')]
+    #[Post('/create')]
     public function create(): Response
     {
         return $this->execute(fn (): array => $this->plugins->create($this->createInput()), '插件骨架创建完成');
     }
 
-    #[Post('validate')]
+    #[Post('/validate')]
     public function validate(): Response
     {
         return $this->execute(fn (): array => $this->plugins->validate($this->code()));
     }
 
-    #[Post('package')]
+    #[Post('/package')]
     public function package(): Response
     {
         return $this->execute(fn (): array => $this->plugins->package(
@@ -61,7 +54,7 @@ final class DevPlugin extends AdminApiController
         ), '插件打包完成');
     }
 
-    #[Get('package/{code}/download')]
+    #[Get('/package/{code:[a-z][a-z0-9]*}/download')]
     public function packageDownload(string $code): Response
     {
         try {
@@ -72,7 +65,7 @@ final class DevPlugin extends AdminApiController
         }
     }
 
-    #[Get('options')]
+    #[Get('/options')]
     public function options(): Response
     {
         return $this->execute(fn (): array => $this->plugins->options());

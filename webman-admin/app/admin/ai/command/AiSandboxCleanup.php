@@ -40,6 +40,7 @@ final class AiSandboxCleanup extends Command
                 ->get()->toArray();
             $store = new DatabaseAiConversationStore();
             $manager = $this->sandbox ?? new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
+            $failed = 0;
             $cleaned = $manager->cleanupOrphans(
                 $tasks,
                 $retention,
@@ -48,15 +49,20 @@ final class AiSandboxCleanup extends Command
                     ->where('sandbox_status', 'cleaning')
                     ->where('cleanup_lease_owner', $owner)
                     ->update(array_merge($data, ['cleanup_lease_owner'=>null,'cleanup_lease_expires_at'=>null])) === 1,
-                static fn (string $event, array $data) => $store->appendEvent((int) $data['task_id'], $event, array_merge($data, ['actor' => 'cli'])),
+                static function (string $event, array $data) use ($store, &$failed): void {
+                    if ($event === 'ai.sandbox.cleanup_failed') $failed++;
+                    $store->appendEvent((int) $data['task_id'], $event, array_merge($data, ['actor' => 'cli']));
+                },
                 null,
                 static fn (array $task, string $owner, int $expiresAt): bool => AiTask::where('id', (int)$task['id'])
                     ->whereIn('sandbox_status', ['created','running','exported','failed','cleaning'])
                     ->where(static fn ($query) => $query->whereNull('cleanup_lease_expires_at')->orWhere('cleanup_lease_expires_at', '<=', date('Y-m-d H:i:s')))
                     ->update(['sandbox_status'=>'cleaning','cleanup_lease_owner'=>$owner,'cleanup_lease_expires_at'=>date('Y-m-d H:i:s', $expiresAt)]) === 1
             );
-            $output->writeln(json_encode(['cleaned' => $cleaned, 'candidates' => count($tasks)], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-            return 0;
+            $result = ['cleaned' => $cleaned, 'candidates' => count($tasks)];
+            if ($failed > 0) $result['failed'] = $failed;
+            $output->writeln(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+            return $failed > 0 ? 1 : 0;
         } catch (Throwable $exception) {
             (new SymfonyStyle($input, $output))->error($exception->getMessage());
             return 1;

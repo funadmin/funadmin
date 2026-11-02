@@ -13,7 +13,11 @@ trait AdminCrudRequest
 {
     protected function ids(string $name = 'ids'): array
     {
-        return $this->normalizeIds($this->request->param($name, []));
+        $value = $this->request->post($name, null);
+        if ($value === null) {
+            $value = $this->request->get($name, []);
+        }
+        return $this->normalizeIds($value);
     }
 
     protected function normalizeIds(

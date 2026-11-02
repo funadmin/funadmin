@@ -28,10 +28,10 @@ export const profileApi = {
   detail: () => http.get<ProfileInfo>(PREFIX),
   update: (data: ProfileUpdate) =>
     http.put<ProfileInfo>(PREFIX, data, {
-      requestOptions: { showSuccessMsg: true }
+      requestOptions: { showSuccessMsg: false }
     }),
   changePassword: (data: ChangePasswordParams) =>
     http.post<void>(`${PREFIX}/password`, data, {
-      requestOptions: { showSuccessMsg: true }
+      requestOptions: { showSuccessMsg: false }
     })
 };
