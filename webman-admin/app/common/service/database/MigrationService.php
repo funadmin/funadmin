@@ -346,7 +346,7 @@ class MigrationService extends AbstractService
 
         $indexes = array_column($this->select(
             'SELECT COLUMN_NAME FROM information_schema.STATISTICS '
-            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? ORDER BY SEQ_IN_INDEX',
+            . 'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=? ORDER BY SEQ_IN_INDEX',
             [$prefix . 'ai_change_set', 'idx_ai_change_set_owner_status']
         ), 'COLUMN_NAME');
         if ($indexes !== [] && $indexes !== ['created_by', 'conversation_id', 'status', 'id']) {

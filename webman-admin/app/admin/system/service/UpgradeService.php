@@ -7,7 +7,7 @@ namespace app\admin\system\service;
 use app\common\model\UpgradeManifest;
 use app\common\model\UpgradeTask;
 use app\common\service\AbstractService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use GuzzleHttp\Client;
 use GuzzleHttp\TransferStats;
 use RuntimeException;

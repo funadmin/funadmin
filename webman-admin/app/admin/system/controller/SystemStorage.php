@@ -11,6 +11,7 @@ use support\annotation\route\Get;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
 use support\Cache;
+use support\Container;
 use support\Response;
 
 /**
@@ -20,9 +21,12 @@ use support\Response;
 final class SystemStorage extends AdminApiController
 {
 
-    public function __construct(private readonly StorageDriverRegistry $drivers)
+    private readonly StorageDriverRegistry $drivers;
+
+    public function __construct(?StorageDriverRegistry $drivers = null)
     {
         parent::__construct();
+        $this->drivers = $drivers ?? Container::get(StorageDriverRegistry::class);
     }
 
     #[Get('')]

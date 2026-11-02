@@ -111,7 +111,7 @@ class SystemBlacklist extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要恢复的记录', code: 422);
         }
-        $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->select();
+        $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->get();
         if (count($items) !== count($ids)) {
             return $this->fail(msg: '部分黑名单记录不存在或不在回收站', code: 404);
         }
@@ -128,7 +128,7 @@ class SystemBlacklist extends AdminApiController
         if (!$ids) {
             return $this->fail(msg: '请选择要永久删除的记录', code: 422);
         }
-        $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->select();
+        $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->get();
         if (count($items) !== count($ids)) {
             return $this->fail(msg: '部分黑名单记录不存在或不在回收站', code: 404);
         }

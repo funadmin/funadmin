@@ -7,7 +7,7 @@ namespace app\admin\system\controller;
 use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
-use app\common\service\UploadService;
+use app\common\service\storage\UploadService;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;
 use support\Response;

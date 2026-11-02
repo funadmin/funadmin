@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\middleware;
 
-use app\common\service\InstallSupport;
+use app\common\service\install\InstallSupport;
 use Webman\Http\Request;
 use Webman\Http\Response;
 use Webman\MiddlewareInterface;

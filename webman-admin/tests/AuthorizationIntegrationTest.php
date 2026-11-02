@@ -9,7 +9,7 @@ use app\admin\authorization\service\RoleAuthorizationService;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\model\AuthGroup;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;

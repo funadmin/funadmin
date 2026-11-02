@@ -481,7 +481,7 @@ class McpService extends AbstractService
                 'tinytext' => '短文本类型'
             ],
             '浮点数类型' => [
-                'decimal(10,2)' => '定点数类型，10位总长度',
+                'decimal(10,2)' => '定点数类型，10位总长度，2位小数',
                 'float' => '单精度浮点数',
                 'double' => '双精度浮点数'
             ],

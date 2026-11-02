@@ -6,7 +6,7 @@ namespace Tests\Console;
 
 use app\admin\plugin\service\PluginService;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;

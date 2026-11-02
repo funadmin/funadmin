@@ -6,7 +6,7 @@ namespace app\admin\plugin\service;
 
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\service\ResourceRegistryService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use app\admin\plugin\repository\DatabasePluginAppPublicationRepository;
 use app\admin\plugin\repository\DatabasePluginResourceRepository;
 use app\common\plugin\sdk\Manifest;

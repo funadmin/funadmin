@@ -6,7 +6,7 @@ namespace Tests;
 
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleScopeService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

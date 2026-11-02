@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\common\service\InstallSupport;
-use app\common\service\MigrationService;
+use app\common\service\install\InstallSupport;
+use app\common\service\database\MigrationService;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authorization\service\AuthorizationService;
 use app\install\controller\Index;

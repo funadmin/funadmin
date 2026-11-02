@@ -2,9 +2,9 @@
 
 namespace app\common\middleware;
 
-use app\common\service\BearerTokenExtractor;
-use app\common\service\MemberAuthService;
-use app\common\service\TokenService;
+use app\common\service\authentication\BearerTokenExtractor;
+use app\common\service\member\MemberAuthService;
+use app\common\service\authentication\TokenService;
 use app\common\traits\JsonResponse;
 use Closure;
 use Webman\Http\Request;

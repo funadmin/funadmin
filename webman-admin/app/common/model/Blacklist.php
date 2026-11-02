@@ -41,7 +41,7 @@ class Blacklist extends BaseModel {
 
     public static function filteredQuery(bool $recycled, string $ip = '', $status = null)
     {
-        $query = $recycled ? self::onlyTrashed() : self::order('id', 'desc');
+        $query = $recycled ? self::onlyTrashed() : self::orderBy('id', 'desc');
         if ($ip !== '') {
             $query->whereLike('ip', '%' . $ip . '%');
         }

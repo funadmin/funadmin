@@ -1,5 +1,5 @@
 <?php
-use app\common\service\DbCacheService;
+use app\common\service\cache\DbCacheService;
 
 if (!function_exists('db_cache')) {
     /**

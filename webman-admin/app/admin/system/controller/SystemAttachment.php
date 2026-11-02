@@ -14,15 +14,19 @@ use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
 use support\Response;
+use support\Container;
 
 /** Admin Web 附件库管理。 */
 #[RouteGroup('/admin/system/attachment')]
 class SystemAttachment extends AdminApiController
 {
 
-    public function __construct(private readonly StorageDriverRegistry $storageDrivers)
+    private readonly StorageDriverRegistry $storageDrivers;
+
+    public function __construct(?StorageDriverRegistry $storageDrivers = null)
     {
         parent::__construct();
+        $this->storageDrivers = $storageDrivers ?? Container::get(StorageDriverRegistry::class);
     }
 
     #[Get('')]
@@ -79,7 +83,7 @@ class SystemAttachment extends AdminApiController
                 $referencedElsewhere = Attach::withTrashed()->where('driver', $driverName)->where('storage_key', $storageKey)->whereNotIn('id', $ids)->count() > 0;
                 if (!$referencedElsewhere) $this->storageDrivers->resolve($driverName)->delete($storageKey);
             }
-            $attach->force()->delete();
+            $attach->forceDelete();
         }
         return $this->ok('删除成功', ['removed' => count($attachments)]);
     }

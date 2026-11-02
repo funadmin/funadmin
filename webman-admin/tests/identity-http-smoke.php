@@ -22,7 +22,7 @@ if (($argv[1] ?? '') === '--server') {
     $port = filter_var($argv[2] ?? null, FILTER_VALIDATE_INT);
     $password = getenv('IDENTITY_SMOKE_PASSWORD');
     if (!$port || $port < 1024 || !is_string($password) || strlen($password) < 24) throw new RuntimeException('冒烟服务参数无效');
-    (new \app\common\service\MigrationService())->run();
+    (new \app\common\service\database\MigrationService())->run();
     (new AdminSessionService())->createAdmin('smoke_admin', $password);
     Db::schema()->create('scope', static function (Blueprint $table): void {
         $table->id(); $table->integer('tenant_id'); $table->string('name');

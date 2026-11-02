@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Console;
 
 use app\admin\development\service\GenerationResourceTransaction;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 

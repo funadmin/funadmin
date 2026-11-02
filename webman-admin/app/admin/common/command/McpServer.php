@@ -13,7 +13,7 @@
 
 namespace app\admin\common\command;
 
-use app\common\service\McpService;
+use app\common\service\mcp\McpService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface as Input;

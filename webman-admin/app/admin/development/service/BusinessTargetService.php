@@ -151,7 +151,7 @@ final class BusinessTargetService
             if (!str_starts_with($sql, "-- funadmin-physical-table\n")) {
                 $templatePrefix = config('funadmin.mysqlPrefix', 'fun_');
                 $prefix = (string) config('database.connections.' . $this->defaultConnection . '.prefix', '');
-                $sql = \app\common\service\MigrationService::rewritePrefix($sql, $templatePrefix, $prefix);
+                $sql = \app\common\service\database\MigrationService::rewritePrefix($sql, $templatePrefix, $prefix);
             }
             preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', $sql, $matches);
             foreach ($matches[1] as $table) $owners[$table] = isset($owners[$table]) && $owners[$table] !== $owner ? 'conflict' : $owner;

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace app\api\controller\v2;
 
 use app\common\controller\Api;
-use app\common\service\MemberAuthService;
-use app\common\service\TokenService;
+use app\common\service\member\MemberAuthService;
+use app\common\service\authentication\TokenService;
 use think\annotation\route\Group;
 use think\annotation\route\Middleware;
 use think\annotation\route\Post;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;

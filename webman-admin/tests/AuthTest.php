@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\authentication\service\AdminSessionService as AuthService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use DomainException;
 use PHPUnit\Framework\TestCase;
 use support\Db;

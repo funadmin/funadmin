@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\identity\middleware;
 
-use app\common\service\BearerTokenExtractor;
+use app\common\service\authentication\BearerTokenExtractor;
 use app\identity\service\OpaqueTokenService;
 use Closure;
 use think\Request;

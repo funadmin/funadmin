@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\install\controller;
 
-use app\common\service\InstallSupport;
+use app\common\service\install\InstallSupport;
 use DomainException;
 use support\Request;
 use support\Response;

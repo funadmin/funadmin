@@ -49,7 +49,7 @@ final class CrudGenerationExecutionTest extends TestCase
         self::assertDirectoryDoesNotExist($this->root . '/app/admin/model');
         self::assertSame('written', json_decode($generate->getDisplay(), true)['write']['status']);
         self::assertSame(1, $generate->execute($arguments));
-        $mcp = new \app\common\service\McpService($this->root);
+        $mcp = new \app\common\service\mcp\McpService($this->root);
         $result = $mcp->handleCrud('definition.json');
         self::assertTrue($result['success']);
         self::assertArrayNotHasKey('confirmToken', $result['data']['plan']);

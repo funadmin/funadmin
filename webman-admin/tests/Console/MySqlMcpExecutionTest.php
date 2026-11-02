@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Console;
 
-use app\common\service\McpService;
+use app\common\service\mcp\McpService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;

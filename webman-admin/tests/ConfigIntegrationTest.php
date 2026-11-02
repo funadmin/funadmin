@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\system\controller\SystemConfig;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
@@ -73,7 +73,7 @@ final class ConfigIntegrationTest extends TestCase
         $request = new Request("PUT /admin/system/config/$id/value HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
         $request->controller = SystemConfig::class;
         $request->action = 'value';
-        (new \app\common\service\AdminLogService())->save($request, new \support\Response(200));
+        (new \app\admin\system\service\AdminLogService())->save($request, new \support\Response(200));
         $row = Db::table('admin_log')->orderByDesc('id')->first();
         self::assertStringNotContainsString('new-confidential-value', $row->post_data);
     }

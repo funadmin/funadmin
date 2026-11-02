@@ -42,7 +42,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
     {
         return [
             'development' => [
-                'services' => ['app/admin/development/service/DevCrudService.php', 'app/admin/development/service/GenerationTransactionService.php', 'app/admin/development/service/GenerationResourceTransaction.php', 'app/common/crud/CrudGenerator.php', 'app/common/crud/ProductionTemplateContext.php', 'app/common/crud/CrudResourceInstaller.php', 'app/common/crud/LangPackTranslator.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php', 'app/common/service/MigrationService.php'],
+                'services' => ['app/admin/development/service/DevCrudService.php', 'app/admin/development/service/GenerationTransactionService.php', 'app/admin/development/service/GenerationResourceTransaction.php', 'app/common/crud/CrudGenerator.php', 'app/common/crud/ProductionTemplateContext.php', 'app/common/crud/CrudResourceInstaller.php', 'app/common/crud/LangPackTranslator.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php', 'app/common/service/database/MigrationService.php'],
                 'configuration' => ['crud.connections', 'crud.confirm_secret', 'database.connections', 'config/bootstrap.php', 'config/autoload.php'],
                 'storage' => ['business_module', 'crud_generation', 'generated_file_baseline', 'form', 'form_schema_version', 'system_migration'],
                 'paths' => ['runtime/private/business-development', 'runtime/cache/crud-confirm-nonces', 'app/admin/generated', 'database/generated'],
@@ -70,12 +70,12 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'external' => ['mysql', 'redis', 'docker', 'curl', 'gd', 'local fake provider'],
             ],
             'common' => [
-                'services' => ['app/common/service/McpService.php'],
+                'services' => ['app/common/service/mcp/McpService.php'],
                 'configuration' => ['database.default', 'app.default_timezone', 'crud.connections'],
                 'storage' => ['admin'], 'paths' => ['public/uploads'], 'external' => ['mcp/sdk STDIO'],
             ],
             'system' => [
-                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/MigrationService.php'],
+                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/database/MigrationService.php'],
                 'configuration' => ['database.default', 'database.connections'],
                 'storage' => ['upgrade_task', 'system_migration'], 'paths' => ['runtime/upgrade'], 'external' => ['mysql', 'PDO'],
             ],

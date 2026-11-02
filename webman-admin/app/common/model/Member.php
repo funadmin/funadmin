@@ -13,7 +13,7 @@
 namespace app\common\model;
 
 use app\common\model\MemberGroupRelation;
-use app\common\service\MemberInput;
+use app\common\service\member\MemberInput;
 use app\common\service\identity\MemberIdentityAdapter;
 use app\common\helper\StringHelper;
 use think\facade\Db;

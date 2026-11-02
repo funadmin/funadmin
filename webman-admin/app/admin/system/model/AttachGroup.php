@@ -20,6 +20,7 @@ use app\common\model\concern\LaravelSoftDelete;
 
 class AttachGroup extends BackendModel
 {
+    protected $table = 'attach_group';
 
     /**
      * @var bool

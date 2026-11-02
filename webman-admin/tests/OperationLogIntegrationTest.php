@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\system\controller\SystemOperationLog;
-use app\common\service\AdminLogService;
-use app\common\service\MigrationService;
+use app\admin\system\service\AdminLogService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;

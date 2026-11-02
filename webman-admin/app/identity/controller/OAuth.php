@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\identity\controller;
 
-use app\common\service\BearerTokenExtractor;
+use app\common\service\authentication\BearerTokenExtractor;
 use app\common\service\identity\OAuthScopeService;
 use app\identity\oauth\AuthorizationRequestValidator;
 use app\identity\oauth\entity\ClientEntity;

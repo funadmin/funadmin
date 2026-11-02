@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\market\service;
 
 use app\common\model\Member;
-use app\common\service\MemberAuthService;
+use app\common\service\member\MemberAuthService;
 use think\facade\Db;
 
 /** 市场账号令牌：只保存令牌哈希；refresh 一次性使用并轮换。 */

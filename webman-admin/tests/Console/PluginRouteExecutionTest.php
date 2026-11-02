@@ -6,7 +6,7 @@ namespace Tests\Console;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;

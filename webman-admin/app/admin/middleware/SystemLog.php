@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\middleware;
 
-use app\common\service\AdminLogService;
+use app\admin\system\service\AdminLogService;
 use support\Log;
 use Webman\Http\Request;
 use Webman\Http\Response;

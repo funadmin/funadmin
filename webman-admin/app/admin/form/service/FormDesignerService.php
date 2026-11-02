@@ -351,7 +351,7 @@ final class FormDesignerService
         $ddlApplied = false;
         try {
             $connection = Db::connection((string) ($payload['connection'] ?? 'mysql'));
-            \app\common\service\DdlEncodingGuard::check($connection, (string) $preview['sql']);
+            \app\common\service\database\DdlEncodingGuard::check($connection, (string) $preview['sql']);
             $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
         } catch (Throwable $exception) {

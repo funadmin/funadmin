@@ -7,6 +7,7 @@ use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
 class Attach extends BaseModel {
+    protected $table = 'attach';
 
     /**
      * @var bool

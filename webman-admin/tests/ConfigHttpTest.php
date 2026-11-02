@@ -6,7 +6,7 @@ namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

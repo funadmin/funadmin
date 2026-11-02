@@ -100,11 +100,11 @@ final class PluginCrudTarget
             }
             $templatePrefix = (string) config('funadmin.mysqlPrefix', 'fun_');
             $prefix = (string) config('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '');
-            $effectiveContent = \app\common\service\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
+            $effectiveContent = \app\common\service\database\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
             $stored = $this->migrationSnapshot($content);
             if ($stored !== null && !str_starts_with($content, "-- funadmin-physical-table\n")) {
                 // 仅解析比较视图，不修改历史文件及其 checksum。
-                $stored = json_decode(\app\common\service\MigrationService::rewritePrefix(CrudDefinition::canonicalJson($stored), $templatePrefix, $prefix), true, 512, JSON_THROW_ON_ERROR);
+                $stored = json_decode(\app\common\service\database\MigrationService::rewritePrefix(CrudDefinition::canonicalJson($stored), $templatePrefix, $prefix), true, 512, JSON_THROW_ON_ERROR);
             }
             if (($stored['table'] ?? null) === $table) {
                 $previous = ['path' => $relative . '/' . $name, 'content' => $content, 'snapshot' => $stored];

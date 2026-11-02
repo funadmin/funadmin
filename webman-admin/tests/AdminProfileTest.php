@@ -7,7 +7,7 @@ namespace Tests;
 use app\admin\authentication\controller\AdminProfile;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;

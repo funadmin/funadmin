@@ -15,9 +15,9 @@
 $container = new Webman\Container;
 $container->addDefinitions([
     app\common\middleware\MApi::class => static fn () => new app\common\middleware\MApi(
-        support\Container::get(app\common\service\TokenService::class),
-        support\Container::get(app\common\service\MemberAuthService::class),
-        support\Container::get(app\common\service\BearerTokenExtractor::class)
+        support\Container::get(app\common\service\authentication\TokenService::class),
+        support\Container::get(app\common\service\member\MemberAuthService::class),
+        support\Container::get(app\common\service\authentication\BearerTokenExtractor::class)
     ),
 ]);
 return $container;

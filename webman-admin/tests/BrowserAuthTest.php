@@ -6,7 +6,7 @@ namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authentication\service\AdminSessionService;
-use app\common\service\MigrationService;
+use app\common\service\database\MigrationService;
 use DomainException;
 use PHPUnit\Framework\TestCase;
 use support\Db;

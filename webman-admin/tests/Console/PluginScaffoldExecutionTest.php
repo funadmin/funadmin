@@ -116,7 +116,7 @@ final class PluginScaffoldExecutionTest extends TestCase
         $data['formComponents'] = [['type' => $code . ':value', 'component' => 'value', 'propertySchema' => (object) [], 'valueType' => 'object', 'defaultProps' => (object) [], 'allowedEvents' => [], 'capabilityVersion' => 1, 'validator' => $code . ':validate', 'codec' => $code . ':codec']];
         file_put_contents($directory . '/plugin.json', json_encode($data, JSON_THROW_ON_ERROR));
         file_put_contents($directory . '/Plugin.php', '<?php namespace plugins\\' . $code . '; final class Plugin extends \\app\\common\\plugin\\sdk\\Plugin {'
-            . 'public function __construct(\\app\\common\\service\\TokenService $tokens) { parent::__construct(); }'
+            . 'public function __construct(\\app\\common\\service\\authentication\\TokenService $tokens) { parent::__construct(); }'
             . 'public function install(): bool { return true; } public function uninstall(): bool { return true; } public function enabled(): bool { return true; } public function disabled(): bool { return true; }'
             . 'public function formComponentValidators(): array { return [' . var_export($code . ':validate', true) . ' => [$this, "validateValue"]]; }'
             . 'public function formComponentCodecs(): array { return [' . var_export($code . ':codec', true) . ' => ["encode" => [$this, "encodeValue"], "decode" => [$this, "decodeValue"]]]; }'
@@ -125,7 +125,7 @@ final class PluginScaffoldExecutionTest extends TestCase
             . 'public function decodeValue($value): array { return json_decode($value, true); } }');
         $manifest = Manifest::fromDirectory($directory);
         $container = Container::instance();
-        $container->addDefinitions(['plugins\\' . $code . '\\Plugin' => static fn () => new ('plugins\\' . $code . '\\Plugin')(new \app\common\service\TokenService())]);
+        $container->addDefinitions(['plugins\\' . $code . '\\Plugin' => static fn () => new ('plugins\\' . $code . '\\Plugin')(new \app\common\service\authentication\TokenService())]);
         $registry = new \app\common\form\component\PluginFormComponentRegistry(static fn (): array => [$code => $manifest]);
         self::assertNull($registry->validateValue($code . ':value', ['value' => 1]));
         self::assertNotNull($registry->validateValue($code . ':value', 'invalid'));
