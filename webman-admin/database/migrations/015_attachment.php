@@ -48,7 +48,6 @@ return static function (): void {
             $table->softDeletes();
             $table->index(['admin_id', 'member_id']);
             $table->index(['group_id', 'status']);
-            $table->index(['driver', 'storage_key']);
             $table->index('md5');
         });
     }
@@ -58,7 +57,7 @@ return static function (): void {
         if ($indexExists === []) Db::statement('ALTER TABLE `' . Db::connection()->getTablePrefix() . 'attach` ADD INDEX `attach_driver_storage_key_index` (`driver`, `storage_key`(500))');
     } elseif ($driver === 'sqlite') {
         $indexExists = Db::select("PRAGMA index_list('" . Db::connection()->getTablePrefix() . "attach')");
-        if (!array_filter($indexExists, static fn (object $index): bool => (string) ($index->name ?? '') === 'attach_driver_storage_key_index') {
+        if (!array_filter($indexExists, static fn (object $index): bool => (string) ($index->name ?? '') === 'attach_driver_storage_key_index')) {
             Db::statement('CREATE INDEX attach_driver_storage_key_index ON ' . Db::connection()->getTablePrefix() . 'attach (driver, storage_key)');
         }
     }
