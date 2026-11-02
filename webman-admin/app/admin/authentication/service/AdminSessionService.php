@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\admin\authentication\service;
 
 use app\admin\authentication\model\Admin;
+use app\common\model\Blacklist;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use support\Db;
@@ -31,6 +32,7 @@ final class AdminSessionService
     public function login(string $username, string $password, string $ip, string $purpose = 'api'): array
     {
         $this->consumeAttempt($ip);
+        if (Blacklist::isBlocked($ip)) throw new DomainException('当前来源地址暂不可登录', 403);
         if (!in_array($purpose, ['api', 'browser'], true)) throw new DomainException('认证用途不正确', 422);
         if (!preg_match('/\A[a-zA-Z0-9_]{3,20}\z/', $username) || strlen($password) > 72 || str_contains($password, "\0")) {
             throw new DomainException('账号或密码错误', 401);

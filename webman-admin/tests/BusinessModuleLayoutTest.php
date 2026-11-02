@@ -16,6 +16,47 @@ use Webman\Route;
 
 final class BusinessModuleLayoutTest extends TestCase
 {
+    public function test_common_services_are_grouped_by_responsibility(): void
+    {
+        $groups = [
+            'authentication' => ['BearerTokenExtractor', 'TokenService'],
+            'cache' => ['DbCacheService', 'PredisService'],
+            'database' => ['MigrationService', 'DdlEncodingGuard', 'CommentEncodingRepair'],
+            'install' => ['InstallSupport'],
+            'member' => ['MemberAuthService', 'MemberInput'],
+            'storage' => ['UploadService', 'OssService'],
+            'mcp' => ['McpService'],
+        ];
+        foreach ($groups as $group => $names) {
+            foreach ($names as $name) {
+                $file = __DIR__ . '/../app/common/service/' . $group . '/' . $name . '.php';
+                self::assertFileExists($file);
+                $source = file_get_contents($file);
+                token_get_all($source, TOKEN_PARSE);
+                self::assertStringContainsString('namespace app\\common\\service\\' . $group . ';', $source);
+                self::assertFileDoesNotExist(__DIR__ . '/../app/common/service/' . $name . '.php');
+                self::assertFalse(class_exists('app\\common\\service\\' . $name));
+                if (!in_array($name, ['PredisService', 'UploadService', 'OssService'], true)) {
+                    $class = 'app\\common\\service\\' . $group . '\\' . $name;
+                    self::assertTrue(class_exists($class), $class);
+                    self::assertSame(realpath($file), (new ReflectionClass($class))->getFileName());
+                }
+            }
+        }
+        $rootFiles = array_map('basename', glob(__DIR__ . '/../app/common/service/*.php') ?: []);
+        self::assertSame(['AbstractService.php'], $rootFiles);
+    }
+
+    public function test_admin_log_service_is_owned_by_system(): void
+    {
+        $class = 'app\\admin\\system\\service\\AdminLogService';
+        self::assertTrue(class_exists($class));
+        self::assertSame(realpath(__DIR__ . '/../app/admin/system/service/AdminLogService.php'), (new ReflectionClass($class))->getFileName());
+        self::assertFileDoesNotExist(__DIR__ . '/../app/common/service/AdminLogService.php');
+        self::assertFalse(class_exists('app\\common\\service\\AdminLogService'));
+        self::assertStringContainsString('use ' . $class . ';', file_get_contents(__DIR__ . '/../app/admin/middleware/SystemLog.php'));
+    }
+
     public function test_webman_console_discovers_all_business_module_commands(): void
     {
         [$status, $stdout, $stderr] = $this->runConsole(['list', '--format=json']);

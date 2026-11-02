@@ -18,6 +18,7 @@ use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
 class Blacklist extends BaseModel {
+    protected $table = 'blacklist';
     /**
      * @var bool
      */
@@ -32,9 +33,12 @@ class Blacklist extends BaseModel {
         parent::__construct($data);
     }
 
-    /**
-     * 回收站或正常列表查询边界；筛选条件由控制器从请求传入。
-     */
+    public static function isBlocked(string $ip): bool
+    {
+        $ip = trim($ip);
+        return $ip !== '' && self::where('ip', $ip)->where('status', 1)->exists();
+    }
+
     public static function filteredQuery(bool $recycled, string $ip = '', $status = null)
     {
         $query = $recycled ? self::onlyTrashed() : self::order('id', 'desc');
