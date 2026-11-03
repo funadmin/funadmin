@@ -20,8 +20,7 @@ use support\Response;
 final class PluginController extends AdminApiController
 {
     protected array $middleware = [
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:plugin:view']], 'options' => ['only' => ['index', 'overview', 'versions']]],
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:plugin:manage']], 'options' => ['except' => ['index', 'overview', 'versions']]],
+        CheckPluginPermission::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
@@ -30,7 +29,7 @@ final class PluginController extends AdminApiController
     #[Get('/')]
     public function index(): Response { return $this->ok(data: (new MarketAdminService())->plugins((string) $this->request->get('keyword', ''), $this->page(), $this->pageSize())); }
     #[Put('/{id:\\d+}')]
-    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updatePlugin($id, (array) $this->request->put()), '插件信息已保存'); }
+    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updatePlugin($id, (array) $this->request->post()), '插件信息已保存'); }
     #[Delete('/{id:\\d+}')]
     public function delete(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deletePlugin($id), '插件已删除'); }
     #[Get('/{id:\\d+}/versions')]
@@ -40,11 +39,11 @@ final class PluginController extends AdminApiController
     {
         $file = $this->request->file('file');
         if (!$file || !$file->isValid()) return $this->fail('请上传插件 ZIP 包', code: 422);
-        if (strtolower($file->getOriginalExtension()) !== 'zip') return $this->fail('只支持 .zip 插件包', code: 422);
+        if (strtolower($file->getUploadExtension()) !== 'zip') return $this->fail('只支持 .zip 插件包', code: 422);
         return $this->attempt(fn () => (new MarketAdminService())->upload($file->getPathname(), (string) $this->request->post('changelog', '')), '已上传并签名，版本处于草稿状态');
     }
     #[Put('/version/{id:\\d+}')]
-    public function updateVersion(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updateVersion($id, (array) $this->request->put()), '更新日志已保存'); }
+    public function updateVersion(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updateVersion($id, (array) $this->request->post()), '更新日志已保存'); }
     #[Post('/version/{id:\\d+}/publish')]
     public function publish(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->publishVersion($id), '版本已发布'); }
     #[Post('/version/{id:\\d+}/withdraw')]
@@ -57,7 +56,7 @@ final class PluginController extends AdminApiController
     public function package(int $id): Response
     {
         try { $package = (new MarketAdminService())->versionPackage($id); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 404); }
-        return download($package['path'], $package['name']);
+        return response()->withFile($package['path'])->withHeader('Content-Disposition', 'attachment; filename="' . $package['name'] . '"');
     }
     private function attempt(callable $operation, string $message = '操作成功'): Response
     {

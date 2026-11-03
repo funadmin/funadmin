@@ -9,7 +9,7 @@ use app\common\model\identity\IdentityTenant;
 use app\common\model\identity\IdentityUser;
 use app\common\model\identity\OAuthClient;
 use DomainException;
-use think\facade\Db;
+use support\Db;
 
 /** 按 scope、应用策略和 client 白名单的交集生成最小 OIDC claims。 */
 final class OidcClaimService
@@ -32,11 +32,11 @@ final class OidcClaimService
     {
         $scopes = array_values(array_unique(array_map('strval', $scopes)));
         if (!in_array('openid', $scopes, true)) return [];
-        $client = OAuthClient::forTenant($tenantId)->where('id', $clientId)->where('status', 'active')->whereNull('deleted_at')->find();
-        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->find();
-        $tenant = IdentityTenant::where('id', $tenantId)->where('status', 1)->whereNull('deleted_at')->find();
+        $client = OAuthClient::forTenant($tenantId)->where('id', $clientId)->where('status', 'active')->whereNull('deleted_at')->first();
+        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->first();
+        $tenant = IdentityTenant::where('id', $tenantId)->where('status', 1)->whereNull('deleted_at')->first();
         if (!$client || !$user || !$tenant) throw new DomainException('OIDC claim 主体不可用');
-        $application = EnterpriseApplication::forTenant($tenantId)->where('id', (int) $client->application_id)->whereNull('deleted_at')->find();
+        $application = EnterpriseApplication::forTenant($tenantId)->where('id', (int) $client->application_id)->whereNull('deleted_at')->first();
         if (!$application) throw new DomainException('OIDC claim 应用不可用');
         $allowedClaims = $this->allowedClaims($client->allowed_claims, $application->claim_policy);
         $subject = (string) $client->subject_type === 'pairwise'
@@ -93,18 +93,26 @@ final class OidcClaimService
 
     private function organization(int $tenantId, int $userId): array
     {
-        return Db::name('identity_user_department')->alias('ud')->join('department d', 'd.id=ud.department_id')->where('ud.tenant_id', $tenantId)->where('ud.user_id', $userId)->where('d.status', 1)->field('d.name,ud.is_primary')->order('ud.is_primary', 'desc')->select()->toArray();
+        return Db::table('identity_user_department as ud')->join('department as d', 'd.id', '=', 'ud.department_id')->where('ud.tenant_id', $tenantId)->where('ud.user_id', $userId)->where('d.status', 1)->orderByDesc('ud.is_primary')->get(['d.name', 'ud.is_primary'])->map(static fn ($row): array => (array) $row)->all();
     }
 
     private function roles(int $tenantId, int $applicationId, int $userId): array
     {
-        return Db::name('application_user_role')->alias('ur')->join('application_role r', 'r.id=ur.role_id AND r.tenant_id=ur.tenant_id AND r.application_id=ur.application_id')->where('ur.tenant_id', $tenantId)->where('ur.application_id', $applicationId)->where('ur.user_id', $userId)->where('r.status', 1)->column('r.code');
+        return Db::table('application_user_role as ur')->join('application_role as r', static function ($join): void {
+            $join->on('r.id', '=', 'ur.role_id')->on('r.tenant_id', '=', 'ur.tenant_id')->on('r.application_id', '=', 'ur.application_id');
+        })->where('ur.tenant_id', $tenantId)->where('ur.application_id', $applicationId)->where('ur.user_id', $userId)->where('r.status', 1)->pluck('r.code')->all();
     }
 
     private function permissions(int $tenantId, int $applicationId, int $userId): array
     {
-        $direct = Db::name('application_user_permission')->alias('up')->join('application_permission p', 'p.id=up.permission_id AND p.tenant_id=up.tenant_id AND p.application_id=up.application_id')->where('up.tenant_id', $tenantId)->where('up.application_id', $applicationId)->where('up.user_id', $userId)->where('p.status', 1)->column('p.code');
-        $role = Db::name('application_user_role')->alias('ur')->join('application_role_permission rp', 'rp.role_id=ur.role_id AND rp.tenant_id=ur.tenant_id AND rp.application_id=ur.application_id')->join('application_permission p', 'p.id=rp.permission_id AND p.tenant_id=rp.tenant_id AND p.application_id=rp.application_id')->where('ur.tenant_id', $tenantId)->where('ur.application_id', $applicationId)->where('ur.user_id', $userId)->where('p.status', 1)->column('p.code');
+        $direct = Db::table('application_user_permission as up')->join('application_permission as p', static function ($join): void {
+            $join->on('p.id', '=', 'up.permission_id')->on('p.tenant_id', '=', 'up.tenant_id')->on('p.application_id', '=', 'up.application_id');
+        })->where('up.tenant_id', $tenantId)->where('up.application_id', $applicationId)->where('up.user_id', $userId)->where('p.status', 1)->pluck('p.code')->all();
+        $role = Db::table('application_user_role as ur')->join('application_role_permission as rp', static function ($join): void {
+            $join->on('rp.role_id', '=', 'ur.role_id')->on('rp.tenant_id', '=', 'ur.tenant_id')->on('rp.application_id', '=', 'ur.application_id');
+        })->join('application_permission as p', static function ($join): void {
+            $join->on('p.id', '=', 'rp.permission_id')->on('p.tenant_id', '=', 'rp.tenant_id')->on('p.application_id', '=', 'rp.application_id');
+        })->where('ur.tenant_id', $tenantId)->where('ur.application_id', $applicationId)->where('ur.user_id', $userId)->where('p.status', 1)->pluck('p.code')->all();
         return array_values(array_unique(array_merge($direct, $role)));
     }
 }

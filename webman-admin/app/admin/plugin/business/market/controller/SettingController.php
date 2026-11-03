@@ -19,7 +19,7 @@ use support\Response;
 final class SettingController extends AdminApiController
 {
     protected array $middleware = [
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:setting:manage']]],
+        CheckPluginPermission::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
@@ -35,6 +35,6 @@ final class SettingController extends AdminApiController
     #[Put('/payment')]
     public function savePayment(): Response
     {
-        try { return $this->ok('支付配置已保存', (new MarketAdminService())->savePaymentSettings((array) $this->request->put())); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 422); }
+        try { return $this->ok('支付配置已保存', (new MarketAdminService())->savePaymentSettings((array) $this->request->post())); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 422); }
     }
 }

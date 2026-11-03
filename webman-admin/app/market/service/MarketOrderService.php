@@ -11,7 +11,7 @@ use app\market\service\payment\PaymentConfig;
 use app\market\service\payment\PaymentResult;
 use app\market\service\payment\WechatChannel;
 use RuntimeException;
-use think\facade\Db;
+use support\Db;
 
 /**
  * 订单与支付入账。入账以订单行锁保证幂等：同一订单无论收到多少次回调或查询结果，只开通一次授权。
@@ -50,7 +50,7 @@ final class MarketOrderService
 
     public function create(int $memberId, string $code, string $plan, string $channel): array
     {
-        $plugin = Db::name('market_plugin')->where('code', $code)->where('status', 1)->find();
+        $plugin = (array) Db::table('market_plugin')->where('code', $code)->where('status', 1)->first();
         if (!$plugin) {
             throw new RuntimeException('插件不存在或已下架');
         }
@@ -66,10 +66,10 @@ final class MarketOrderService
             throw new RuntimeException('你已永久拥有该插件，无需再次购买');
         }
         $this->closeExpired();
-        $reusable = Db::name('market_order')
+        $reusable = (array) Db::table('market_order')
             ->where('member_id', $memberId)->where('plugin_id', $plugin['id'])->where('plan', $plan)->where('channel', $channel)
             ->where('status', 'pending')->where('amount', $plans[$plan])->where('expire_at', '>', date('Y-m-d H:i:s', time() + 300))
-            ->order('id', 'desc')->find();
+            ->orderBy('id', 'desc')->first();
         if ($reusable) {
             return $reusable;
         }
@@ -84,11 +84,11 @@ final class MarketOrderService
             'status' => 'pending',
             'channel' => $channel,
             'expire_at' => date('Y-m-d H:i:s', $now + self::PAY_WINDOW),
-            'client_ip' => substr((string) request()->ip(), 0, 45),
+            'client_ip' => substr((string) request()->getRemoteIp(), 0, 45),
             'created_at' => date('Y-m-d H:i:s', $now),
             'updated_at' => date('Y-m-d H:i:s', $now),
         ];
-        $order['id'] = (int) Db::name('market_order')->insertGetId($order);
+        $order['id'] = (int) Db::table('market_order')->insertGetId($order);
         return $order;
     }
 
@@ -97,13 +97,13 @@ final class MarketOrderService
         if (preg_match('/^\d{20,32}$/', $orderNo) !== 1) {
             return null;
         }
-        $query = Db::name('market_order')->alias('o')->join('market_plugin p', 'p.id = o.plugin_id')
+        $query = Db::table('market_order as o')->join('market_plugin as p', 'p.id', '=', 'o.plugin_id')
             ->where('o.order_no', $orderNo)
-            ->field('o.*, p.code as plugin_code, p.name as plugin_name, p.cover as plugin_cover');
+            ->select(['o.*', 'p.code as plugin_code', 'p.name as plugin_name', 'p.cover as plugin_cover']);
         if ($memberId !== null) {
             $query->where('o.member_id', $memberId);
         }
-        $order = $query->find();
+        $order = (array) $query->first();
         return $order ?: null;
     }
 
@@ -138,7 +138,7 @@ final class MarketOrderService
     public function markPaid(string $orderNo, string $channel, string $tradeNo, int $amount, string $remark = ''): bool
     {
         return Db::transaction(function () use ($orderNo, $channel, $tradeNo, $amount, $remark): bool {
-            $order = Db::name('market_order')->where('order_no', $orderNo)->lock(true)->find();
+            $order = (array) Db::table('market_order')->where('order_no', $orderNo)->lockForUpdate()->first();
             if (!$order) {
                 throw new RuntimeException('订单不存在');
             }
@@ -152,7 +152,7 @@ final class MarketOrderService
                 throw new RuntimeException('支付金额与订单金额不一致');
             }
             $grantId = $this->grant((int) $order['plugin_id'], (int) $order['member_id'], (string) $order['plan'], (int) $order['id']);
-            Db::name('market_order')->where('id', $order['id'])->update([
+            Db::table('market_order')->where('id', $order['id'])->update([
                 'status' => 'paid',
                 'channel' => $channel === 'manual' ? 'manual' : $order['channel'],
                 'trade_no' => $tradeNo !== '' ? mb_substr($tradeNo, 0, 64) : null,
@@ -187,19 +187,19 @@ final class MarketOrderService
 
     public function close(string $orderNo, string $reason): void
     {
-        Db::name('market_order')->where('order_no', $orderNo)->where('status', 'pending')
+        Db::table('market_order')->where('order_no', $orderNo)->where('status', 'pending')
             ->update(['status' => 'closed', 'remark' => mb_substr($reason, 0, 255), 'updated_at' => date('Y-m-d H:i:s')]);
     }
 
     public function closeExpired(): void
     {
-        Db::name('market_order')->where('status', 'pending')->where('expire_at', '<', date('Y-m-d H:i:s', time() - 600))
+        Db::table('market_order')->where('status', 'pending')->where('expire_at', '<', date('Y-m-d H:i:s', time() - 600))
             ->update(['status' => 'closed', 'remark' => '支付超时', 'updated_at' => date('Y-m-d H:i:s')]);
     }
 
     public function log(string $orderNo, string $channel, string $event, bool $verified, string $result, array $payload): void
     {
-        Db::name('market_payment_log')->insert([
+        Db::table('market_payment_log')->insert([
             'order_no' => mb_substr($orderNo, 0, 32),
             'channel' => mb_substr($channel, 0, 16),
             'event' => $event,
@@ -212,7 +212,7 @@ final class MarketOrderService
 
     public function activeGrant(int $pluginId, int $memberId): ?array
     {
-        $grant = Db::name('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->where('status', 1)->find();
+        $grant = (array) Db::table('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->where('status', 1)->first();
         if (!$grant || ($grant['expires_at'] !== null && strtotime((string) $grant['expires_at']) <= time())) {
             return null;
         }
@@ -222,7 +222,7 @@ final class MarketOrderService
     /** 买断设为永久；按年从当前有效期（未过期时）顺延一年。 */
     private function grant(int $pluginId, int $memberId, string $plan, int $orderId): int
     {
-        $existing = Db::name('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->lock(true)->find();
+        $existing = (array) Db::table('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->lockForUpdate()->first();
         if ($plan === 'perpetual') {
             $expiresAt = null;
         } else {
@@ -244,10 +244,10 @@ final class MarketOrderService
             'updated_at' => date('Y-m-d H:i:s'),
         ];
         if ($existing) {
-            Db::name('market_grant')->where('id', $existing['id'])->update($data);
+            Db::table('market_grant')->where('id', $existing['id'])->update($data);
             return (int) $existing['id'];
         }
-        return (int) Db::name('market_grant')->insertGetId($data + [
+        return (int) Db::table('market_grant')->insertGetId($data + [
             'plugin_id' => $pluginId,
             'member_id' => $memberId,
             'remark' => '',

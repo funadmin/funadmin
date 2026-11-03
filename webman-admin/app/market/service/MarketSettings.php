@@ -58,10 +58,10 @@ final class MarketSettings
     /** 客户端 PLUGIN_MARKETPLACE_URL 对应的根地址，不含 /api/v3。 */
     public static function publicUrl(): string
     {
-        $configured = rtrim(trim((string) self::value('public_url', '')), '/');
+        $configured = rtrim(trim((string) (getenv('MARKET_PUBLIC_URL') ?: self::value('public_url', ''))), '/');
         if ($configured !== '') {
             return $configured;
         }
-        return rtrim(request()->domain(), '/') . '/' . self::CODE;
+        return '/' . self::CODE;
     }
 }

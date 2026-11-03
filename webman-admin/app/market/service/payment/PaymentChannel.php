@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\market\service\payment;
 
-use think\Request;
-use think\Response;
+use support\Request;
+use support\Response;
 
 interface PaymentChannel
 {

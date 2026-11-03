@@ -91,6 +91,13 @@ final class InstallTest extends TestCase
             self::assertSame('pgsql', $connection['driver']);
             self::assertSame('tenant', $connection['search_path']);
             self::assertSame('require', $connection['sslmode']);
+            $settings = \app\common\service\database\DatabaseConnections::settings($manager->getDefaultConnection());
+            self::assertSame('pgsql', $settings['driver']);
+            self::assertSame('custom_', $settings['prefix']);
+            self::assertSame(['pgsql'], \app\common\service\database\DatabaseConnections::allowed());
+            self::assertSame('install_test', Db::connection('pgsql')->getConfig('database'));
+            $definition = \app\common\crud\CrudDefinition::fromInput(['connection' => $manager->getDefaultConnection(), 'table' => 'example']);
+            self::assertSame('custom_example', $definition->get('table'));
         } finally {
             $manager->setDefaultConnection($previous);
             unlink($root . '/public/install.lock');

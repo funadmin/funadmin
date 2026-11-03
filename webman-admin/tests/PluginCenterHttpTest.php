@@ -53,6 +53,39 @@ final class PluginCenterHttpTest extends TestCase
         self::assertSame(403, $this->call('POST', '/admin/system/plugin/local/install', [], csrf: true)->getStatusCode());
     }
 
+    public function test_market_plugin_routes_reject_anonymous_and_undeclared_permissions_before_services(): void
+    {
+        new App(Request::class, new NullLogger(), app_path(), public_path());
+        self::assertSame(401, $this->call('GET', '/admin/plugin/market/category/', authenticated: false)->getStatusCode());
+        self::assertSame(403, $this->call('GET', '/admin/plugin/market/category/')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '拒绝'])->getStatusCode());
+    }
+
+    public function test_market_plugin_authorized_request_reaches_category_service_and_keeps_csrf(): void
+    {
+        new App(Request::class, new NullLogger(), app_path(), public_path());
+        Db::schema()->create('market_category', static function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id(); $table->string('name'); $table->integer('sort')->default(0); $table->integer('status')->default(1); $table->timestamps();
+        });
+        Db::schema()->create('market_plugin', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->id(); $table->integer('category_id')->default(0); });
+        $auth = new BrowserAuthService(); $anonymous = $auth->bootstrap('');
+        $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_root', 'plugin-root-password', '127.0.0.3');
+        $response = $this->call('GET', '/admin/plugin/market/category/');
+        self::assertSame(200, $response->getStatusCode(), $response->rawBody() . ' ' . (string) $response->exception());
+        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '分类'], csrf: false)->getStatusCode());
+        self::assertSame(200, $this->call('POST', '/admin/plugin/market/category/', ['name' => '分类'])->getStatusCode());
+        self::assertSame('分类', Db::table('market_category')->value('name'));
+        $categoryId = (int) Db::table('market_category')->value('id');
+        self::assertSame(200, $this->call('PUT', '/admin/plugin/market/category/' . $categoryId, ['name' => '修改分类'])->getStatusCode());
+        self::assertSame('修改分类', Db::table('market_category')->value('name'));
+        $permissionIds = Db::table('permission')->where('code', 'market:plugin:view')->pluck('id')->all();
+        (new CasbinService())->syncRolePermissions(2, $permissionIds);
+        $anonymous = $auth->bootstrap('');
+        $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_reader', 'plugin-reader-password', '127.0.0.4');
+        self::assertSame(200, $this->call('GET', '/admin/plugin/market/category/')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '禁止新增'])->getStatusCode());
+    }
+
     public function test_plugin_install_write_requires_csrf_before_package_processing(): void
     {
         self::assertSame(403, $this->call('POST', '/admin/system/plugin/local/install', [], csrf: false)->getStatusCode());

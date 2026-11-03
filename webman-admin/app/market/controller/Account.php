@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace app\market\controller;
 
 use app\market\service\MarketAccountService;
-use think\annotation\route\Get;
-use think\annotation\route\Post;
-use think\captcha\facade\Captcha;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
+#[RouteGroup('/market')]
 final class Account extends StoreController
 {
-    #[Get('login', ['complete_match' => true])]
+    #[Get('/login')]
     public function loginForm(): Response
     {
         if ($this->member !== null) {
@@ -21,7 +22,7 @@ final class Account extends StoreController
         return $this->render('store/login', ['title' => '登录', 'next' => $this->safeNext((string) $this->request->get('next', '')), 'account' => '']);
     }
 
-    #[Post('login', ['complete_match' => true])]
+    #[Post('/login')]
     public function login(): Response
     {
         $next = $this->safeNext((string) $this->request->post('next', ''));
@@ -29,7 +30,7 @@ final class Account extends StoreController
         $error = $this->validateForm();
         if ($error === null) {
             try {
-                (new MarketAccountService())->login($account, (string) $this->request->post('password', ''), (string) $this->request->ip());
+                (new MarketAccountService())->login($account, (string) $this->request->post('password', ''), (string) $this->request->getRemoteIp());
                 return redirect($next);
             } catch (\RuntimeException $exception) {
                 $error = $exception->getMessage();
@@ -39,7 +40,7 @@ final class Account extends StoreController
         return $this->render('store/login', ['title' => '登录', 'next' => $next, 'account' => $account], 422);
     }
 
-    #[Get('register', ['complete_match' => true])]
+    #[Get('/register')]
     public function registerForm(): Response
     {
         if ($this->member !== null) {
@@ -48,7 +49,7 @@ final class Account extends StoreController
         return $this->render('store/register', ['title' => '注册', 'form' => ['username' => '', 'email' => '', 'nickname' => '']]);
     }
 
-    #[Post('register', ['complete_match' => true])]
+    #[Post('/register')]
     public function register(): Response
     {
         $form = [
@@ -65,7 +66,7 @@ final class Account extends StoreController
                 (new MarketAccountService())->register($form + [
                     'password' => (string) $this->request->post('password', ''),
                     'password_confirm' => (string) $this->request->post('password_confirm', ''),
-                ], (string) $this->request->ip());
+                ], (string) $this->request->getRemoteIp());
                 $this->flash('注册成功，欢迎加入！');
                 return $this->to('/user');
             } catch (\RuntimeException $exception) {
@@ -76,7 +77,7 @@ final class Account extends StoreController
         return $this->render('store/register', ['title' => '注册', 'form' => $form], 422);
     }
 
-    #[Post('logout', ['complete_match' => true])]
+    #[Post('/logout')]
     public function logout(): Response
     {
         if ($this->checkCsrf()) {
@@ -85,10 +86,13 @@ final class Account extends StoreController
         return $this->to('');
     }
 
-    #[Get('captcha', ['complete_match' => true])]
+    #[Get('/captcha')]
     public function captcha(): Response
     {
-        return Captcha::create()->header(['Cache-Control' => 'no-store']);
+        $captcha = new \Webman\Captcha\CaptchaBuilder();
+        $captcha->build();
+        request()->session()->set('market_captcha', strtolower($captcha->getPhrase()));
+        return response($captcha->get(), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'no-store']);
     }
 
     private function validateForm(): ?string
@@ -96,7 +100,9 @@ final class Account extends StoreController
         if (!$this->checkCsrf()) {
             return '页面已过期，请刷新后重试';
         }
-        if (!captcha_check((string) $this->request->post('captcha', ''))) {
+        $expected = (string) request()->session()->pull('market_captcha', '');
+        $captcha = strtolower((string) $this->request->post('captcha', ''));
+        if ($expected === '' || $captcha === '' || !hash_equals($expected, $captcha)) {
             return '验证码错误或已过期';
         }
         return null;

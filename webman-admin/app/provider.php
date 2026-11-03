@@ -1,19 +1,6 @@
 <?php
-// +----------------------------------------------------------------------
-// | ThinkPHP [ WE CAN DO IT JUST THINK ]
-// +----------------------------------------------------------------------
-// | Copyright (c) 2006~2019 http://thinkphp.cn All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
-// +----------------------------------------------------------------------
-// | Author: liu21st <liu21st@gmail.com>
-// +----------------------------------------------------------------------
 
-use app\ExceptionHandle;
-use app\Request;
+declare(strict_types=1);
 
-// 容器Provider定义文件
-return [
-    'think\Request'          => Request::class,
-    'think\exception\Handle' => ExceptionHandle::class,
-];
+// Webman 使用 config/app.php、config/exception.php 与原生容器，不再注册 ThinkPHP Provider 别名。
+return [];

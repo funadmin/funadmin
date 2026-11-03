@@ -15,10 +15,6 @@ declare(strict_types=1);
  */
 
 use support\Cache;
-use think\facade\Cookie;
-use think\facade\Lang;
-use think\facade\Route;
-use think\facade\Session;
 
 if (!function_exists('getKeyVal')) {
     /**
@@ -81,7 +77,8 @@ if (!function_exists('syscfg')) {
 if (!function_exists('__u')) {
     function __u(string $url = '', array $vars = [], string|bool $suffix = true, string|bool $domain = false): string
     {
-        return (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
+        $path = '/' . ltrim($url, '/');
+        return $vars === [] ? $path : $path . '?' . http_build_query($vars, '', '&', PHP_QUERY_RFC3986);
     }
 }
 
@@ -94,7 +91,7 @@ if (!function_exists('common_translate_value')) {
         if (is_numeric($str) || $str === '' || $str === null || $str === false) {
             return $str;
         }
-        return Lang::get((string) $str, $vars, $language);
+        return trans((string) $str, $vars, $language);
     }
 }
 
@@ -182,14 +179,14 @@ if (!function_exists('node')) {
 if (!function_exists('isLogin')) {
     function isLogin(): object|array|false
     {
-        $member = Session::get('member');
+        $member = request()?->session()->get('member');
         if ($member === null || (!is_array($member) && !is_object($member)) || $member === []) {
             return false;
         }
 
         $memberId = is_array($member) ? ($member['id'] ?? null) : ($member->id ?? null);
         if ($memberId !== null) {
-            Cookie::set('mid', $memberId);
+            $_COOKIE['mid'] = (string) $memberId;
         }
         return $member;
     }
@@ -198,8 +195,8 @@ if (!function_exists('isLogin')) {
 if (!function_exists('logout')) {
     function logout(): bool
     {
-        Session::delete('member');
-        Cookie::delete('mid');
+        request()?->session()->delete('member');
+        unset($_COOKIE['mid']);
         return true;
     }
 }

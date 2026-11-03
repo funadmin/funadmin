@@ -26,3 +26,10 @@
 2026-11-01 17:14:44 pid:56460 Workerman[identity-http-smoke.php] received signal SIGTERM
 2026-11-01 17:14:44 pid:56460 Workerman[identity-http-smoke.php] stopping
 2026-11-01 17:14:45 pid:56460 Workerman[identity-http-smoke.php] has been stopped
+2026-11-03 03:25:44 pid:1 Workerman[identity-http-smoke.php] start in DEBUG mode
+2026-11-03 03:26:46 pid:1 Workerman[identity-http-smoke.php] received signal SIGTERM
+2026-11-03 03:26:46 pid:1 Workerman[identity-http-smoke.php] stopping
+2026-11-03 03:26:47 pid:1 Workerman[identity-http-smoke.php] start in DEBUG mode
+2026-11-03 03:26:47 pid:1 Master pid:1 is not alive
+2026-11-03 03:29:17 pid:3428 Workerman[identity-http-smoke.php] start in DEBUG mode
+2026-11-03 03:29:17 pid:3428 Workerman[identity-http-smoke.php] already running

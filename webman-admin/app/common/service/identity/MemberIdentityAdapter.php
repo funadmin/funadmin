@@ -33,7 +33,7 @@ class MemberIdentityAdapter
 
     private function lastLoginAt(mixed $value): ?string
     {
-        $timestamp = (int) $value;
+        $timestamp = $value instanceof \DateTimeInterface ? $value->getTimestamp() : (is_numeric($value) ? (int) $value : (strtotime((string) $value) ?: 0));
         return $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null;
     }
 

@@ -28,7 +28,7 @@ final class Business extends AdminApiController
     public function __construct()
     {
         parent::__construct();
-        $connections = config('crud.connections', []);
+        $connections = \app\common\service\database\DatabaseConnections::allowed();
         $this->business = BusinessDevelopmentService::production(
             root_path(),
             is_array($connections) ? array_values(array_filter($connections, 'is_string')) : []

@@ -104,6 +104,148 @@ final class IdentityTokenRuntimeTest extends TestCase
         $service->issue(1, 5, 7, [20]);
     }
 
+    public function test_id_token_signing_uses_native_models_and_preserves_nonce_and_subject(): void
+    {
+        putenv('IDENTITY_ISSUER=https://identity.example/identity');
+        putenv('OAUTH_SUBJECT_PEPPER=test-only-pepper');
+        \Webman\Config::load(config_path(), ['route']);
+        Db::schema()->table('oauth_client', static function (Blueprint $table): void { $table->string('subject_type')->default('public'); $table->string('allowed_claims')->nullable(); });
+        Db::schema()->table('enterprise_application', static function (Blueprint $table): void { $table->string('claim_policy')->nullable(); });
+        Db::schema()->create('oidc_signing_key', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->string('status'); $table->string('private_key_ref'); $table->string('kid'); $table->string('algorithm'); $table->text('public_jwk'); $table->timestamps();
+            foreach (['activated_at', 'retired_at', 'publish_until'] as $field) $table->dateTime($field)->nullable();
+        });
+        Db::table('identity_tenant')->where('id', 1)->update(['public_id' => '00000000-0000-4000-8000-000000000001']);
+        Db::table('identity_user')->where('id', 7)->update(['public_id' => '00000000-0000-4000-8000-000000000007']);
+        $service = new \app\common\service\identity\SigningKeyService();
+        $key = $service->rotate(1, 300);
+        try {
+            $token = (new \app\identity\service\IdTokenService())->issue(1, 7, 5, 'runtime-client', ['openid'], time(), 'nonce-123', 'sid-123');
+            $claims = json_decode(base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+            self::assertSame('runtime-client', $claims['aud']); self::assertSame('nonce-123', $claims['nonce']);
+            self::assertSame('sid-123', $claims['sid']); self::assertArrayHasKey('sub', $claims);
+            self::assertSame('runtime-client', (new \app\identity\service\IdTokenHintService())->verify(1, $token)['aud']);
+        } finally {
+            $path = Db::table('oidc_signing_key')->where('kid', $key['kid'])->value('private_key_ref');
+            if (is_string($path) && is_file($path)) unlink($path);
+        }
+    }
+
+    public function test_obsolete_identity_route_and_response_bridge_are_removed(): void
+    {
+        self::assertFileDoesNotExist(app_path('identity/route/app.php'));
+        self::assertFileDoesNotExist(app_path('identity/http/Psr7Response.php'));
+    }
+
+    public function test_psr_bridge_preserves_native_request_body_and_multiple_cookies(): void
+    {
+        $body = 'grant_type=authorization_code&code=opaque';
+        $request = new Request("POST /identity/token?source=client HTTP/1.1\r\nHost: identity.example\r\nCookie: sample=value\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $adapter = new \app\identity\http\Psr7Adapter();
+        $psr = $adapter->toPsrRequest($request);
+        self::assertSame($body, (string) $psr->getBody());
+        self::assertSame('authorization_code', $psr->getParsedBody()['grant_type']);
+        self::assertSame('value', $psr->getCookieParams()['sample']);
+        $response = $adapter->toWebmanResponse(new \GuzzleHttp\Psr7\Response(201, ['Set-Cookie' => ['one=1', 'two=2']], 'created'));
+        self::assertSame(201, $response->getStatusCode());
+        self::assertSame(['one=1', 'two=2'], $response->getHeaders()['Set-Cookie']);
+        self::assertSame('created', $response->rawBody());
+    }
+
+    public function test_identity_successful_login_rotates_session_and_resolves_current_versions(): void
+    {
+        Db::schema()->table('identity_user', static function (Blueprint $table): void { $table->string('username')->default('alice'); });
+        Db::schema()->create('identity_login_attempt', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('user_id')->nullable();
+            $table->string('identifier_hash'); $table->string('ip_hash'); $table->boolean('succeeded'); $table->string('failure_reason')->nullable(); $table->timestamps();
+        });
+        Db::schema()->create('identity_credential', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('user_id'); $table->string('type'); $table->string('secret_hash'); $table->integer('status'); $table->dateTime('last_verified_at')->nullable(); $table->timestamps();
+        });
+        Db::schema()->create('oidc_session', static function (Blueprint $table): void {
+            $table->id(); $table->integer('tenant_id'); $table->integer('user_id'); $table->string('sid'); $table->string('session_token_hash');
+            $table->integer('password_version'); $table->integer('session_version'); $table->string('status');
+            foreach (['auth_time', 'last_seen_at', 'expires_at'] as $field) $table->dateTime($field);
+            $table->timestamps();
+        });
+        Db::table('identity_credential')->insert(['tenant_id' => 1, 'user_id' => 7, 'type' => 'password', 'secret_hash' => password_hash('identity-password-91', PASSWORD_BCRYPT, ['cost' => 4]), 'status' => 1]);
+        $request = new Request("POST /identity/interaction/login HTTP/1.1\r\n\r\n");
+        $request->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
+        $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
+        \support\Context::set(\Webman\Http\Request::class, $request);
+        $request->session()->set('identity.captcha', 'valid');
+        (new \app\identity\service\IdentityCredentialService())->login(1, 'alice', 'identity-password-91', 'valid', '127.0.0.1');
+        self::assertSame(7, (new \app\identity\service\NativeIdentitySessionResolver())->resolve($request)['user_id']);
+        self::assertSame(1, Db::table('oidc_session')->count());
+        self::assertSame(1, Db::table('identity_login_attempt')->value('succeeded'));
+        self::assertArrayHasKey('Set-Cookie', $request->connection->headers);
+        \support\Context::destroy();
+    }
+
+    public function test_oidc_claims_apply_scope_and_client_policy_with_native_queries(): void
+    {
+        Db::schema()->table('oauth_client', static function (Blueprint $table): void {
+            $table->string('subject_type')->default('public'); $table->string('allowed_claims')->nullable();
+        });
+        Db::schema()->table('enterprise_application', static function (Blueprint $table): void { $table->string('claim_policy')->nullable(); });
+        Db::schema()->table('identity_user', static function (Blueprint $table): void {
+            foreach (['display_name', 'username', 'avatar', 'locale', 'email', 'mobile'] as $field) $table->string($field)->nullable();
+        });
+        Db::table('identity_tenant')->where('id', 1)->update(['public_id' => '00000000-0000-4000-8000-000000000001']);
+        Db::table('identity_user')->where('id', 7)->update(['public_id' => '00000000-0000-4000-8000-000000000007', 'display_name' => 'Alice', 'email' => 'private@example.com']);
+        Db::table('oauth_client')->where('id', 5)->update(['allowed_claims' => '["sub","name"]']);
+        $claims = (new \app\identity\service\OidcClaimService(new \app\identity\service\SubjectService('test-only-pepper')))->claims(1, 7, 5, ['openid', 'profile', 'email']);
+        self::assertSame('Alice', $claims['name']); self::assertArrayHasKey('sub', $claims);
+        self::assertArrayNotHasKey('email', $claims);
+        self::assertSame([], (new \app\identity\service\OidcClaimService())->claims(1, 7, 5, ['profile']));
+        foreach (['application_user_role', 'application_role', 'application_user_permission', 'application_permission', 'application_role_permission'] as $name) {
+            Db::schema()->create($name, static function (Blueprint $table) use ($name): void {
+                $table->id(); $table->integer('tenant_id'); $table->integer('application_id');
+                if (in_array($name, ['application_role', 'application_permission'], true)) { $table->string('code'); $table->integer('status')->default(1); }
+                if (in_array($name, ['application_user_role', 'application_user_permission'], true)) $table->integer('user_id');
+                if (in_array($name, ['application_user_role', 'application_role_permission'], true)) $table->integer('role_id');
+                if (in_array($name, ['application_user_permission', 'application_role_permission'], true)) $table->integer('permission_id');
+            });
+        }
+        Db::table('application_role')->insert(['id' => 1, 'tenant_id' => 1, 'application_id' => 3, 'code' => 'reader']);
+        Db::table('application_user_role')->insert(['tenant_id' => 1, 'application_id' => 3, 'user_id' => 7, 'role_id' => 1]);
+        Db::table('application_permission')->insert(['id' => 1, 'tenant_id' => 1, 'application_id' => 3, 'code' => 'read']);
+        Db::table('application_role_permission')->insert(['tenant_id' => 1, 'application_id' => 3, 'role_id' => 1, 'permission_id' => 1]);
+        Db::table('oauth_client')->where('id', 5)->update(['allowed_claims' => null]);
+        $claims = (new \app\identity\service\OidcClaimService(new \app\identity\service\SubjectService('test-only-pepper')))->claims(1, 7, 5, ['openid', 'roles', 'permissions']);
+        self::assertSame(['reader'], $claims['roles']);
+        self::assertSame(['read'], $claims['permissions']);
+        Db::schema()->create('department', static function (Blueprint $table): void { $table->id(); $table->string('name'); $table->integer('status')->default(1); });
+        Db::schema()->create('identity_user_department', static function (Blueprint $table): void { $table->id(); $table->integer('tenant_id'); $table->integer('user_id'); $table->integer('department_id'); $table->integer('is_primary')->default(0); });
+        Db::table('department')->insert(['id' => 1, 'name' => '研发']);
+        Db::table('identity_user_department')->insert(['tenant_id' => 1, 'user_id' => 7, 'department_id' => 1, 'is_primary' => 1]);
+        $claims = (new \app\identity\service\OidcClaimService(new \app\identity\service\SubjectService('test-only-pepper')))->claims(1, 7, 5, ['openid', 'organization']);
+        self::assertSame('研发', $claims['departments'][0]['name']);
+    }
+
+    public function test_logout_without_hint_clears_only_identity_session(): void
+    {
+        $request = new Request("GET /identity/logout HTTP/1.1\r\n\r\n");
+        $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
+        $request->session()->set('identity.session', ['user_id' => 7]);
+        $request->session()->set('market_member_id', 12);
+        $response = (new \app\identity\controller\Logout())->end($request);
+        self::assertSame(200, $response->getStatusCode());
+        self::assertNull($request->session()->get('identity.session'));
+        self::assertSame(12, $request->session()->get('market_member_id'));
+    }
+
+    public function test_protocol_throttle_limits_endpoint_client_and_ip_without_using_secrets(): void
+    {
+        \Webman\Limiter\Limiter::init(null);
+        $middleware = new \app\identity\middleware\IdentityProtocolThrottle();
+        $request = new Request("POST /identity/token HTTP/1.1\r\nAuthorization: Basic " . base64_encode('client:test-secret') . "\r\n\r\n");
+        for ($i = 0; $i < 30; $i++) self::assertSame(204, $middleware->process($request, static fn () => new Response(204))->getStatusCode());
+        self::assertSame(429, $middleware->process($request, static fn () => new Response(204))->getStatusCode());
+        $other = new Request("POST /identity/token HTTP/1.1\r\nAuthorization: Basic " . base64_encode('client:changed-secret') . "\r\n\r\n");
+        self::assertSame(429, $middleware->process($other, static fn () => new Response(204))->getStatusCode());
+    }
+
     public function test_identity_login_consumes_captcha_before_credentials_and_records_safe_audit(): void
     {
         Db::schema()->create('identity_login_attempt', static function (Blueprint $table): void {
@@ -158,6 +300,7 @@ final class IdentityTokenRuntimeTest extends TestCase
 
     public function test_identity_protocol_routes_are_registered_and_reject_anonymous_resource_access(): void
     {
+        new \Webman\App(Request::class, new \Psr\Log\NullLogger(), app_path(), public_path());
         \Webman\Route::load([config_path()]);
         foreach ([['GET', '/identity/.well-known/openid-configuration'], ['POST', '/identity/token'], ['GET', '/identity/interaction'], ['GET', '/identity/resource/identity']] as [$method, $path]) {
             self::assertSame(\FastRoute\Dispatcher::FOUND, \Webman\Route::dispatch($method, $path)[0], $path);
@@ -166,6 +309,10 @@ final class IdentityTokenRuntimeTest extends TestCase
         $request = new Request("GET /identity/resource/identity HTTP/1.1\r\n\r\n");
         $response = (\Webman\App::getCallback('', 'identity', $matched[1]['callback'], $matched[2], false, $matched[1]['route']))($request);
         self::assertSame(401, $response->getStatusCode());
+        $tokens = (new OpaqueTokenService())->issue(1, 5, 7, [10]);
+        $request = new Request("GET /identity/resource/identity HTTP/1.1\r\nAuthorization: Bearer {$tokens['access_token']}\r\n\r\n");
+        $response = (\Webman\App::getCallback('', 'identity', $matched[1]['callback'], $matched[2], false, $matched[1]['route']))($request);
+        self::assertSame(200, $response->getStatusCode(), $response->rawBody() . ' ' . (string) $response->exception());
     }
 
     public function test_oauth_controller_rejects_non_form_requests_with_native_response(): void

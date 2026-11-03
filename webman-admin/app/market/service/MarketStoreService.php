@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\market\service;
 
-use think\facade\Db;
+use support\Db;
 
 /** 前台商店展示数据：只包含已上架且有已发布版本的插件。 */
 final class MarketStoreService
@@ -13,14 +13,14 @@ final class MarketStoreService
     {
         $keyword = trim($keyword);
         $build = static function () use ($keyword, $categoryId) {
-            $query = Db::name('market_plugin')->where('status', 1)
+            $query = Db::table('market_plugin')->where('status', 1)
                 ->whereIn('id', static function ($published): void {
-                    $published->name('market_version')->where('status', 'published')->field('plugin_id');
+                    $published->from('market_version')->where('status', 'published')->select('plugin_id');
                 });
             if ($keyword !== '') {
                 $like = '%' . addcslashes($keyword, '%_\\') . '%';
                 $query->where(static function ($where) use ($like): void {
-                    $where->whereLike('name', $like)->whereOr('code', 'like', $like)->whereOr('description', 'like', $like);
+                    $where->where('name', 'like', $like)->orWhere('code', 'like', $like)->orWhere('description', 'like', $like);
                 });
             }
             if ($categoryId > 0) {
@@ -29,7 +29,7 @@ final class MarketStoreService
             return $query;
         };
         $total = (int) $build()->count();
-        $rows = $build()->order(['sort' => 'desc', 'id' => 'desc'])->page($page, $pageSize)->select()->toArray();
+        $rows = $build()->orderByDesc('sort')->orderByDesc('id')->forPage($page, $pageSize)->get()->map(static fn ($row): array => (array) $row)->all();
         return [
             'items' => $this->cards($rows),
             'total' => $total,
@@ -40,7 +40,7 @@ final class MarketStoreService
 
     public function categories(): array
     {
-        return Db::name('market_category')->where('status', 1)->order(['sort' => 'desc', 'id' => 'asc'])->field('id,name')->select()->toArray();
+        return Db::table('market_category')->where('status', 1)->orderByDesc('sort')->orderBy('id')->get(['id', 'name'])->map(static fn ($row): array => (array) $row)->all();
     }
 
     public function detail(string $code, int $memberId): ?array
@@ -48,12 +48,12 @@ final class MarketStoreService
         if (preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {
             return null;
         }
-        $plugin = Db::name('market_plugin')->where('code', $code)->where('status', 1)->find();
+        $plugin = (array) Db::table('market_plugin')->where('code', $code)->where('status', 1)->first();
         if (!$plugin) {
             return null;
         }
-        $versions = Db::name('market_version')->where('plugin_id', $plugin['id'])->where('status', 'published')
-            ->field('code_version,changelog,requires,size,published_at,database_capability')->select()->toArray();
+        $versions = Db::table('market_version')->where('plugin_id', $plugin['id'])->where('status', 'published')
+            ->get(['code_version', 'changelog', 'requires', 'size', 'published_at', 'database_capability'])->map(static fn ($row): array => (array) $row)->all();
         if ($versions === []) {
             return null;
         }
@@ -90,8 +90,8 @@ final class MarketStoreService
             return [];
         }
         $ids = array_column($rows, 'id');
-        $versions = Db::name('market_version')->whereIn('plugin_id', $ids)->where('status', 'published')->field('plugin_id,code_version,download_count')->select()->toArray();
-        $categories = Db::name('market_category')->column('name', 'id');
+        $versions = Db::table('market_version')->whereIn('plugin_id', $ids)->where('status', 'published')->get(['plugin_id', 'code_version', 'download_count'])->map(static fn ($row): array => (array) $row)->all();
+        $categories = Db::table('market_category')->pluck('name', 'id')->all();
         return array_map(static function (array $plugin) use ($versions, $categories): array {
             $own = array_values(array_filter($versions, static fn (array $version): bool => (int) $version['plugin_id'] === (int) $plugin['id']));
             usort($own, static fn (array $a, array $b): int => version_compare((string) $b['code_version'], (string) $a['code_version']));

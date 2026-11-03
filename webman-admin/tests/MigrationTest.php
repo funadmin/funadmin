@@ -23,6 +23,9 @@ final class MigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('admin'));
         self::assertTrue(Db::schema()->hasTable('login_attempts'));
         self::assertTrue(Db::schema()->hasTable('browser_sessions'));
+        foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) {
+            self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->where('status', 1)->exists(), $code);
+        }
         self::assertSame(count(glob(base_path() . '/database/migrations/*.php')), Db::table('migrations')->count());
         Db::table('login_attempts')->delete();
         Db::table('browser_sessions')->delete();

@@ -7,9 +7,8 @@ namespace app\market\controller;
 use app\BaseController;
 use app\market\service\MarketAccountService;
 use app\market\service\MarketSettings;
-use think\facade\Session;
-use think\facade\View;
-use think\Response;
+use support\view\ThinkPHP as MarketView;
+use support\Response;
 
 /** 前台页面基类：会话、CSRF、公共模板变量与安全响应头。 */
 abstract class StoreController extends BaseController
@@ -25,7 +24,7 @@ abstract class StoreController extends BaseController
     protected function render(string $template, array $vars = [], int $status = 200): Response
     {
         $base = MarketSettings::publicUrl();
-        View::assign([
+        $defaults = [
             'siteName' => (string) (syscfg('site', 'site_name') ?: 'FunAdmin'),
             'siteCopyright' => (string) (syscfg('site', 'site_copyright') ?: ''),
             'siteIcp' => (string) (syscfg('site', 'site_icp') ?: ''),
@@ -34,16 +33,16 @@ abstract class StoreController extends BaseController
             'assets' => '/plugin-assets/market/public',
             'member' => $this->member,
             'csrf' => self::csrfToken(),
-            'flash' => (string) Session::pull('market_flash', ''),
-            'flashError' => (string) Session::pull('market_flash_error', ''),
+            'flash' => (string) request()->session()->pull('market_flash', ''),
+            'flashError' => (string) request()->session()->pull('market_flash_error', ''),
             'title' => '',
-        ]);
-        return $this->secure(response(View::fetch($template, $vars), $status));
+        ];
+        return $this->secure(response(MarketView::render($template, array_replace($defaults, $vars), 'market'), $status));
     }
 
     protected function secure(Response $response): Response
     {
-        return $response->header([
+        return $response->withHeaders([
             'X-Frame-Options' => 'DENY',
             'X-Content-Type-Options' => 'nosniff',
             'Referrer-Policy' => 'same-origin',
@@ -52,10 +51,10 @@ abstract class StoreController extends BaseController
 
     public static function csrfToken(): string
     {
-        $token = (string) Session::get('market_csrf', '');
+        $token = (string) request()->session()->get('market_csrf', '');
         if (strlen($token) !== 64) {
             $token = bin2hex(random_bytes(32));
-            Session::set('market_csrf', $token);
+            request()->session()->set('market_csrf', $token);
         }
         return $token;
     }
@@ -68,7 +67,7 @@ abstract class StoreController extends BaseController
 
     protected function flash(string $message, bool $error = false): void
     {
-        Session::set($error ? 'market_flash_error' : 'market_flash', $message);
+        request()->session()->set($error ? 'market_flash_error' : 'market_flash', $message);
     }
 
     protected function to(string $path): Response

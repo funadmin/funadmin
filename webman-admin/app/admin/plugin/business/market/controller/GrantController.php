@@ -20,7 +20,7 @@ use support\Response;
 final class GrantController extends AdminApiController
 {
     protected array $middleware = [
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:grant:manage']]],
+        CheckPluginPermission::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
@@ -29,7 +29,7 @@ final class GrantController extends AdminApiController
     #[Post('/')]
     public function create(): Response { return $this->attempt(fn () => (new MarketAdminService())->saveGrant(null, (array) $this->request->post()), '授权已保存'); }
     #[Put('/{id:\\d+}')]
-    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->saveGrant($id, (array) $this->request->put()), '授权已保存'); }
+    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->saveGrant($id, (array) $this->request->post()), '授权已保存'); }
     #[Delete('/{id:\\d+}')]
     public function delete(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deleteGrant($id), '授权已删除'); }
     private function attempt(callable $operation, string $message): Response

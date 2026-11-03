@@ -8,9 +8,8 @@ use app\common\model\Member;
 use app\common\service\member\MemberAuthService;
 use app\common\service\identity\MemberIdentityAdapter;
 use RuntimeException;
-use think\facade\Cache;
-use think\facade\Db;
-use think\facade\Session;
+use support\Cache;
+use support\Db;
 
 /** 前台会员账号：注册、会话登录、资料与密码。市场账号即站点会员，与客户端插件中心登录共用。 */
 final class MarketAccountService
@@ -19,7 +18,7 @@ final class MarketAccountService
 
     public static function currentId(): int
     {
-        return (int) Session::get(self::SESSION_KEY, 0);
+        return (int) request()->session()->get(self::SESSION_KEY, 0);
     }
 
     public static function current(): ?array
@@ -28,9 +27,9 @@ final class MarketAccountService
         if ($id <= 0) {
             return null;
         }
-        $member = Member::where('id', $id)->where('status', 1)->field('id,username,nickname,email,mobile,avatar,motto,created_at,last_login')->find();
+        $member = Member::where('id', $id)->where('status', 1)->select(['id', 'username', 'nickname', 'email', 'mobile', 'avatar', 'motto', 'created_at', 'last_login'])->first();
         if (!$member) {
-            Session::delete(self::SESSION_KEY);
+            request()->session()->delete(self::SESSION_KEY);
             return null;
         }
         return $member->toArray();
@@ -56,19 +55,20 @@ final class MarketAccountService
         if (mb_strlen($nickname) > 50 || preg_match('/[\x00-\x1F\x7F<>]/u', $nickname)) {
             throw new RuntimeException('昵称不能超过 50 个字符且不能包含尖括号');
         }
-        if (Member::withTrashed()->where('username', $username)->find()) {
+        if (Member::withTrashed()->where('username', $username)->first()) {
             throw new RuntimeException('用户名已被注册');
         }
-        if (Member::withTrashed()->where('email', $email)->find()) {
+        if (Member::withTrashed()->where('email', $email)->first()) {
             throw new RuntimeException('邮箱已被注册');
         }
-        $level = Db::name('member_level')->where('status', 1)->whereNull('deleted_at')->order('id', 'asc')->value('id');
+        $level = Db::table('member_level')->where('status', 1)->whereNull('deleted_at')->orderBy('id', 'asc')->value('id');
         if (!$level) {
             throw new RuntimeException('站点未配置可用的会员等级，请联系管理员');
         }
         try {
             $member = Db::transaction(static function () use ($username, $email, $password, $nickname, $level, $ip): Member {
-                $member = Member::create([
+                $member = new Member();
+                $member->forceFill([
                     'username' => $username,
                     'email' => $email,
                     'mobile' => null,
@@ -77,16 +77,16 @@ final class MarketAccountService
                     'password' => password($password),
                     'sex' => '0',
                     'birthday' => 0,
-                    'last_login' => time(),
+                    'last_login' => Db::connection()->getDriverName() === 'mysql' ? time() : date('Y-m-d H:i:s'),
                     'last_ip' => mb_substr($ip, 0, 45),
                     'level_id' => (int) $level,
                     'scores' => 0,
                     'status' => 1,
-                ]);
+                ])->save();
                 (new MemberIdentityAdapter())->sync($member);
-                $groupId = (int) Db::name('member_group')->where('status', 1)->whereNull('deleted_at')->order('id', 'asc')->value('id');
+                $groupId = (int) Db::table('member_group')->where('status', 1)->whereNull('deleted_at')->orderBy('id', 'asc')->value('id');
                 if ($groupId > 0) {
-                    Db::name('member_group_relation')->insert(['member_id' => (int) $member->id, 'group_id' => $groupId, 'created_at' => date('Y-m-d H:i:s')]);
+                    Db::table('member_group_relation')->insert(['member_id' => (int) $member->id, 'group_id' => $groupId, 'created_at' => date('Y-m-d H:i:s')]);
                 }
                 return $member;
             });
@@ -109,23 +109,23 @@ final class MarketAccountService
             $this->throttle($key, 10, 900, '登录失败次数过多，请 15 分钟后再试');
             throw new RuntimeException('账号或密码错误');
         }
-        Cache::delete('market:throttle:' . hash('sha256', $key));
-        Member::where('id', $member['id'])->update(['last_login' => time(), 'last_ip' => mb_substr($ip, 0, 45)]);
+        Cache::delete('market_throttle_' . hash('sha256', $key));
+        Member::where('id', $member['id'])->update(['last_login' => Db::connection()->getDriverName() === 'mysql' ? time() : date('Y-m-d H:i:s'), 'last_ip' => mb_substr($ip, 0, 45)]);
         $this->startSession((int) $member['id']);
     }
 
     public function logout(): void
     {
-        Session::delete(self::SESSION_KEY);
-        Session::regenerate(true);
+        request()->session()->delete(self::SESSION_KEY);
+        request()->sessionRegenerateId(true);
     }
 
     public function profile(int $memberId): ?array
     {
         $member = Member::where('id', $memberId)
             ->where('status', 1)
-            ->field('id,username,nickname,email,mobile,avatar,motto,created_at,last_login')
-            ->find();
+            ->select(['id', 'username', 'nickname', 'email', 'mobile', 'avatar', 'motto', 'created_at', 'last_login'])
+            ->first();
         return $member?->toArray();
     }
 
@@ -143,14 +143,16 @@ final class MarketAccountService
         if ($avatar !== '' && (strlen($avatar) > 255 || !preg_match('#^https://#i', $avatar))) {
             throw new RuntimeException('头像必须是 https 开头的图片地址');
         }
-        $member = Member::where('id', $memberId)->find() ?? throw new RuntimeException('账号不存在');
-        $member->save(['nickname' => $nickname, 'motto' => $motto, 'avatar' => $avatar]);
-        (new MemberIdentityAdapter())->sync($member);
+        $member = Member::where('id', $memberId)->first() ?? throw new RuntimeException('账号不存在');
+        Db::transaction(static function () use ($member, $nickname, $motto, $avatar): void {
+            $member->forceFill(['nickname' => $nickname, 'motto' => $motto, 'avatar' => $avatar])->save();
+            (new MemberIdentityAdapter())->sync($member);
+        });
     }
 
     public function changePassword(int $memberId, string $current, string $next, string $confirm): void
     {
-        $member = Member::where('id', $memberId)->find() ?? throw new RuntimeException('账号不存在');
+        $member = Member::where('id', $memberId)->first() ?? throw new RuntimeException('账号不存在');
         if (!password_verify($current, (string) $member->password)) {
             throw new RuntimeException('当前密码不正确');
         }
@@ -159,12 +161,12 @@ final class MarketAccountService
             throw new RuntimeException('两次输入的新密码不一致');
         }
         Db::transaction(static function () use ($member, $next, $memberId): void {
-            $member->save(['password' => password($next)]);
+            $member->forceFill(['password' => password($next)])->save();
             (new MemberIdentityAdapter())->sync($member);
             // 改密后吊销该账号在客户端插件中心的全部市场令牌。
-            Db::name('market_token')->where('member_id', $memberId)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
+            Db::table('market_token')->where('member_id', $memberId)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
         });
-        Session::regenerate(true);
+        request()->sessionRegenerateId(true);
     }
 
     private function assertPassword(string $password): void
@@ -176,14 +178,14 @@ final class MarketAccountService
 
     private function startSession(int $memberId): void
     {
-        Session::regenerate(true);
-        Session::set(self::SESSION_KEY, $memberId);
+        request()->sessionRegenerateId(true);
+        request()->session()->set(self::SESSION_KEY, $memberId);
     }
 
     /** 固定窗口计数；$count 为 false 时只检查不计数。 */
     private function throttle(string $key, int $limit, int $window, string $message, bool $count = true): void
     {
-        $cacheKey = 'market:throttle:' . hash('sha256', $key);
+        $cacheKey = 'market_throttle_' . hash('sha256', $key);
         $hits = (int) Cache::get($cacheKey, 0);
         if ($hits >= $limit) {
             throw new RuntimeException($message);

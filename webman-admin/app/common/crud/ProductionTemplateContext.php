@@ -116,7 +116,7 @@ final class ProductionTemplateContext
         }
         $result['languagePack'] = ['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend, 'placeholders' => $placeholders];
         $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
-        if (config('database.connections.' . $connection . '.driver', $connection) === 'pgsql') {
+        if ((\app\common\service\database\DatabaseConnections::settings($connection)['driver'] ?? $connection) === 'pgsql') {
             if (($data['target']['type'] ?? 'core') !== 'plugin') $result['permissionMigrationContent'] = PostgresqlResourceSql::permissions($data);
             $result['langMigrationContent'] = PostgresqlResourceSql::languages(['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend]);
         }
@@ -126,7 +126,7 @@ final class ProductionTemplateContext
     private static function migration(array $data, array $primary): string
     {
         $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
-        $driver = (string) config('database.connections.' . $connection . '.driver', $connection);
+        $driver = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['driver'] ?? $connection);
         if ($driver === 'pgsql') {
             $fields = $data['fields'];
             $names = array_column($fields, 'name');
@@ -176,7 +176,7 @@ final class ProductionTemplateContext
             }
         }
         $connectionName = (string) ($data['connection'] ?? 'mysql');
-        $prefix = (string) config('database.connections.' . $connectionName . '.prefix', '');
+        $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connectionName)['prefix'] ?? '');
         $logicalTable = static fn (string $table): string => $prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table;
         $methods = [];
         $pivotModels = [];

@@ -31,7 +31,7 @@ final class SubjectService
 
     private function uuidSubject(string $material): string
     {
-        $pepper = $this->pepper ?? (function_exists('config') ? (string) config('oauth.subject_pepper', '') : '');
+        $pepper = $this->pepper ?? (function_exists('config') ? (string) config('identity.subject_pepper', '') : '');
         if ($pepper === '') throw new RuntimeException('OIDC subject pepper 未配置');
         $hex = bin2hex(substr(hash_hmac('sha256', $material, $pepper, true), 0, 16));
         $hex[12] = '5';

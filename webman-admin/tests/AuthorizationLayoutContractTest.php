@@ -58,6 +58,25 @@ final class AuthorizationLayoutContractTest extends TestCase
         }
     }
 
+    public function test_market_controller_middleware_entries_are_native_webman_classes(): void
+    {
+        foreach (['Category', 'Plugin', 'Order', 'Grant', 'Setting', 'Stat'] as $name) {
+            $class = 'app\\admin\\plugin\\business\\market\\controller\\' . $name . 'Controller';
+            $entries = (new \ReflectionClass($class))->getDefaultProperties()['middleware'];
+            foreach ($entries as $entry) self::assertTrue(is_string($entry) && is_subclass_of($entry, \Webman\MiddlewareInterface::class), $class . ' 中间件必须遵循 Webman 契约');
+        }
+    }
+
+    public function test_market_controllers_use_native_upload_body_and_file_responses(): void
+    {
+        foreach (glob(app_path('admin/plugin/business/market/controller/*.php')) ?: [] as $file) {
+            $source = file_get_contents($file);
+            self::assertStringNotContainsString('->put()', $source, $file);
+            self::assertStringNotContainsString('->getOriginalExtension()', $source, $file);
+            self::assertStringNotContainsString('return download(', $source, $file);
+        }
+    }
+
     public function test_models_use_logical_names_and_connection_prefixes(): void
     {
         $models = [

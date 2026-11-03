@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\market\service;
 
-use think\facade\Db;
+use support\Db;
 
 /**
  * /api/v3 目录与分发：只暴露已上架插件的已发布版本，兼容性按客户端上报的平台上下文计算。
@@ -13,7 +13,7 @@ final class MarketCatalogService
 {
     public function categories(): array
     {
-        $rows = Db::name('market_category')->where('status', 1)->order(['sort' => 'desc', 'id' => 'asc'])->field('id,name')->select()->toArray();
+        $rows = Db::table('market_category')->where('status', 1)->orderByDesc('sort')->orderBy('id')->get(['id', 'name'])->map(static fn ($row): array => (array) $row)->all();
         return array_map(static fn (array $row): array => ['id' => (int) $row['id'], 'name' => (string) $row['name']], $rows);
     }
 
@@ -21,14 +21,14 @@ final class MarketCatalogService
     {
         $keyword = trim($keyword);
         $build = static function () use ($keyword, $categoryId) {
-            $query = Db::name('market_plugin')->where('status', 1)
+            $query = Db::table('market_plugin')->where('status', 1)
                 ->whereIn('id', static function ($published): void {
-                    $published->name('market_version')->where('status', 'published')->field('plugin_id');
+                    $published->from('market_version')->where('status', 'published')->select('plugin_id');
                 });
             if ($keyword !== '') {
                 $like = '%' . addcslashes($keyword, '%_\\') . '%';
                 $query->where(static function ($where) use ($like): void {
-                    $where->whereLike('code', $like)->whereOr('name', 'like', $like)->whereOr('description', 'like', $like);
+                    $where->where('code', 'like', $like)->orWhere('name', 'like', $like)->orWhere('description', 'like', $like);
                 });
             }
             if ($categoryId > 0) {
@@ -37,7 +37,7 @@ final class MarketCatalogService
             return $query;
         };
         $total = $build()->count();
-        $rows = $build()->order(['sort' => 'desc', 'id' => 'desc'])->page($page, $limit)->select()->toArray();
+        $rows = $build()->orderByDesc('sort')->orderByDesc('id')->forPage($page, $limit)->get()->map(static fn ($row): array => (array) $row)->all();
         return [
             'items' => array_map(fn (array $plugin): array => $this->pluginPayload($plugin, $context), $rows),
             'total' => (int) $total,
@@ -146,9 +146,9 @@ final class MarketCatalogService
         if ($expires < time() || !hash_equals($this->downloadSignature($versionId, $memberId, $expires), $signature)) {
             return null;
         }
-        $row = Db::name('market_version')->alias('v')->join('market_plugin p', 'p.id = v.plugin_id')
+        $row = (array) Db::table('market_version as v')->join('market_plugin as p', 'p.id', '=', 'v.plugin_id')
             ->where('v.id', $versionId)->where('v.status', 'published')->where('p.status', 1)
-            ->field('v.id,v.package_path,v.size,v.sha256,v.code_version,p.code')->find();
+            ->first(['v.id', 'v.package_path', 'v.size', 'v.sha256', 'v.code_version', 'p.code']);
         if (!$row) {
             return null;
         }
@@ -156,11 +156,11 @@ final class MarketCatalogService
         if (!is_file($path) || filesize($path) !== (int) $row['size']) {
             return null;
         }
-        Db::name('market_version')->where('id', $versionId)->inc('download_count')->update();
-        Db::name('market_download')->insert([
+        Db::table('market_version')->where('id', $versionId)->increment('download_count');
+        Db::table('market_download')->insert([
             'version_id' => $versionId,
             'member_id' => $memberId,
-            'ip' => substr((string) request()->ip(), 0, 45),
+            'ip' => substr((string) request()->getRemoteIp(), 0, 45),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
         return ['path' => $path, 'name' => $row['code'] . '-' . $row['code_version'] . '.zip', 'size' => (int) $row['size']];
@@ -173,7 +173,7 @@ final class MarketCatalogService
         if ($plugin === null) {
             return [false, '插件不存在或已下架', null];
         }
-        $row = Db::name('market_version')->where('plugin_id', $plugin['id'])->where('code_version', $version)->where('status', 'published')->find();
+        $row = (array) Db::table('market_version')->where('plugin_id', $plugin['id'])->where('code_version', $version)->where('status', 'published')->first();
         if (!$row) {
             return [false, '该版本不存在或未发布', null];
         }
@@ -195,9 +195,9 @@ final class MarketCatalogService
 
     private function hasGrant(int $pluginId, int $memberId): bool
     {
-        return Db::name('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->where('status', 1)
+        return Db::table('market_grant')->where('plugin_id', $pluginId)->where('member_id', $memberId)->where('status', 1)
             ->where(function ($query): void {
-                $query->whereNull('expires_at')->whereOr('expires_at', '>', date('Y-m-d H:i:s'));
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', date('Y-m-d H:i:s'));
             })
             ->count() > 0;
     }
@@ -213,7 +213,7 @@ final class MarketCatalogService
         if (preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {
             return null;
         }
-        $plugin = Db::name('market_plugin')->where('code', $code)->where('status', 1)->find();
+        $plugin = (array) Db::table('market_plugin')->where('code', $code)->where('status', 1)->first();
         return $plugin ?: null;
     }
 
@@ -254,7 +254,7 @@ final class MarketCatalogService
 
     private function versionPayloads(array $plugin, array $context): array
     {
-        $rows = Db::name('market_version')->where('plugin_id', $plugin['id'])->where('status', 'published')->select()->toArray();
+        $rows = Db::table('market_version')->where('plugin_id', $plugin['id'])->where('status', 'published')->get()->map(static fn ($row): array => (array) $row)->all();
         usort($rows, static fn (array $left, array $right): int => version_compare((string) $right['code_version'], (string) $left['code_version']));
         return array_map(fn (array $row): array => $this->versionPayload($plugin, $row, $context), $rows);
     }

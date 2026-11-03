@@ -20,7 +20,7 @@ final class IdTokenHintService
             $untrusted = json_decode((string) base64_decode(strtr($parts[1], '-_', '+/'), true), true, flags: JSON_THROW_ON_ERROR);
             if (!is_array($untrusted) || !isset($untrusted['exp'])) return null;
             $keys = [];
-            foreach (OidcSigningKey::forTenant($tenantId)->whereIn('status', ['active', 'retiring'])->select() as $key) {
+            foreach (OidcSigningKey::forTenant($tenantId)->whereIn('status', ['active', 'retiring'])->get() as $key) {
                 $jwk = $key->public_jwk;
                 $jwk = is_array($jwk) ? $jwk : json_decode((string) $jwk, true);
                 if (is_array($jwk)) $keys[] = $jwk;

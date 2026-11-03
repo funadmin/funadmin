@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace app\identity\http;
 
-use Nyholm\Psr7\Factory\Psr17Factory;
+use GuzzleHttp\Psr7\HttpFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
-use think\file\UploadedFile;
-use think\Request;
-use think\Response;
+use Webman\Http\UploadFile as UploadedFile;
+use support\Request;
+use support\Response;
 
 /**
  * ThinkPHP HTTP 对象与 PSR-7 对象之间的边界适配器。
  */
 final class Psr7Adapter
 {
-    public function __construct(private readonly Psr17Factory $factory = new Psr17Factory())
+    public function __construct(private readonly HttpFactory $factory = new HttpFactory())
     {
     }
 
@@ -26,9 +26,9 @@ final class Psr7Adapter
      */
     public function toPsrRequest(Request $request): ServerRequestInterface
     {
-        $uri = $this->factory->createUri($request->url(true));
-        $body = $this->factory->createStream($request->getInput());
-        $psrRequest = $this->factory->createServerRequest($request->method(true), $uri, $request->server())
+        $uri = $this->factory->createUri('http://' . $request->host() . $request->uri());
+        $body = $this->factory->createStream($request->rawBody());
+        $psrRequest = $this->factory->createServerRequest($request->method(), $uri)
             ->withBody($body)
             ->withQueryParams($request->get())
             ->withCookieParams($request->cookie())
@@ -45,21 +45,9 @@ final class Psr7Adapter
     /**
      * 将 OAuth2 Server 的 PSR-7 响应转换为 ThinkPHP 响应。
      */
-    public function toThinkResponse(ResponseInterface $response): Response
+    public function toWebmanResponse(ResponseInterface $response): Response
     {
-        /** @var Psr7Response $thinkResponse */
-        $thinkResponse = Response::create(
-            (string) $response->getBody(),
-            Psr7Response::class,
-            $response->getStatusCode()
-        );
-        foreach ($response->getHeaders() as $name => $values) {
-            foreach ($values as $value) {
-                $thinkResponse->appendHeader($name, $value);
-            }
-        }
-
-        return $thinkResponse;
+        return new Response($response->getStatusCode(), $response->getHeaders(), (string) $response->getBody());
     }
 
     /**
@@ -92,8 +80,8 @@ final class Psr7Adapter
             $stream,
             $file->getSize(),
             UPLOAD_ERR_OK,
-            $file->getOriginalName(),
-            $file->getOriginalMime()
+            $file->getUploadName(),
+            $file->getUploadMimeType()
         );
     }
 }

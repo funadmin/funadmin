@@ -65,6 +65,42 @@ final class AttachmentHttpTest extends TestCase
         self::assertSame(403, $this->call('POST', '/admin/system/attachment/move', ['ids' => [1], 'groupId' => 1], csrf: false)->getStatusCode());
     }
 
+    public function test_authorized_multipart_upload_persists_file_and_keeps_csrf(): void
+    {
+        new App(Request::class, new NullLogger(), app_path(), public_path());
+        $auth = new BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'attachment_root', 'attachment-root-password', '127.0.0.3');
+        $boundary = 'native-attachment-boundary';
+        $body = "--$boundary\r\nContent-Disposition: form-data; name=\"groupId\"\r\n\r\n1\r\n--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"http.txt\"\r\nContent-Type: text/plain\r\n\r\nnative HTTP upload\r\n--$boundary--\r\n";
+        $stored = null;
+        try {
+            foreach ([false, true] as $csrf) {
+                $headers = 'Cookie: ' . BrowserAuthService::COOKIE . '=' . $this->session['cookie'] . "\r\n";
+                if ($csrf) $headers .= 'X-CSRF-TOKEN: ' . $this->session['csrfToken'] . "\r\n";
+                $request = new Request("POST /admin/upload HTTP/1.1\r\nHost: localhost\r\n" . $headers . "Content-Type: multipart/form-data; boundary=$boundary\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+                $matched = Route::dispatch('POST', '/admin/upload');
+                self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
+                $request->controller = $matched[1]['callback'][0];
+                $request->action = $matched[1]['callback'][1];
+                $request->route = $matched[1]['route'];
+                Context::set(\Webman\Http\Request::class, $request);
+                $response = (App::getCallback('', 'admin', $matched[1]['callback'], $matched[2], false, $request->route))($request);
+                self::assertSame($csrf ? 200 : 403, $response->getStatusCode(), $response->rawBody() . ' ' . (string) $response->exception());
+                if (!$csrf) self::assertSame(0, Db::table('attach')->count());
+            }
+            $stored = \app\common\model\Attach::firstOrFail();
+            self::assertSame(1, (int) $stored->admin_id);
+            self::assertSame('native HTTP upload', file_get_contents(public_path('storage/' . $stored->storage_key)));
+            $data = json_decode($response->rawBody(), true)['data'];
+            self::assertSame('http.txt', $data['name']);
+            self::assertSame(18, $data['size']);
+            self::assertFalse($data['reused']);
+        } finally {
+            if ($stored !== null) (new \app\common\storage\LocalStorageDriver())->delete($stored->storage_key);
+        }
+    }
+
     private function call(string $method, string $path, array $data = [], bool $authenticated = true, bool $csrf = true): \Webman\Http\Response
     {
         $body = json_encode($data, JSON_THROW_ON_ERROR);

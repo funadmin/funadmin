@@ -33,10 +33,12 @@ if (($argv[1] ?? '') === '--server') {
     Db::table('scope')->insert(['tenant_id' => 2, 'name' => 'other_tenant', 'claims' => '[]']);
     Route::load([config_path()]);
     $app = new App(Request::class, new NullLogger(), app_path(), public_path());
-    $worker = new Worker('http://127.0.0.1:' . $port);
+    $worker = new Worker('http://0.0.0.0:' . $port);
     $worker->count = 1;
     $worker->onWorkerStart = [$app, 'onWorkerStart'];
     $worker->onMessage = [$app, 'onMessage'];
+    Worker::$pidFile = runtime_path('identity-smoke-' . $port . '.pid');
+    Worker::$logFile = runtime_path('identity-smoke-' . $port . '.log');
     $argv = [$argv[0], 'start'];
     Worker::runAll();
     exit;

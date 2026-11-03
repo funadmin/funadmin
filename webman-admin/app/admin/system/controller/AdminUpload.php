@@ -35,9 +35,9 @@ class AdminUpload extends AdminApiController
         if ($groupId <= 0 || !AttachGroup::find($groupId)) {
             return $this->fail(msg: '附件分组不存在', code: 422);
         }
-        $this->request->withPost(array_merge($this->request->post(), ['group_id' => $groupId]));
+        $this->request->setPost(array_merge($this->request->post(), ['group_id' => $groupId]));
         if (in_array($bizType, ['image', 'avatar'], true)) {
-            $mime = strtolower((string) $file->getMime());
+            $mime = strtolower((string) (new \finfo(FILEINFO_MIME_TYPE))->file($file->getPathname()));
             if (!in_array($mime, ['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/webp'], true)) {
                 return $this->fail(msg: '请选择有效的图片文件', code: 422);
             }
@@ -47,9 +47,10 @@ class AdminUpload extends AdminApiController
             }
         }
 
-        $driver = app()->make(\app\common\storage\StorageDriverRegistry::class)
+        $fileSize = $file->getSize();
+        $driver = \support\Container::get(\app\common\storage\StorageDriverRegistry::class)
             ->resolve((string) syscfg('upload', 'upload_driver'))->name();
-        $existingAttach = Attach::where('driver', $driver)->where('md5', $file->md5())->find();
+        $existingAttach = Attach::where('driver', $driver)->where('md5', hash_file('md5', $file->getPathname()))->first();
         try {
             $result = UploadService::instance()->uploads(0, (int) (request()?->context['admin']['id'] ?? 0));
         } catch (\Throwable $e) {
@@ -65,7 +66,7 @@ class AdminUpload extends AdminApiController
         return $this->ok('上传成功', [
             'url' => (string) $attach->path,
             'name' => (string) $attach->original_name,
-            'size' => (int) round((float) $attach->size * 1024),
+            'size' => $fileSize,
             'ext' => strtolower((string) $attach->ext),
             'groupId' => (int) $attach->group_id,
             'driver' => (string) $attach->driver,

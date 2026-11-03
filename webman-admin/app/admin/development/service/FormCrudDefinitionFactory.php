@@ -53,10 +53,11 @@ final class FormCrudDefinitionFactory
         $adopted = (string) ($form['source_type'] ?? 'created') === 'adopted';
         $schemaColumns = array_column((array) ($schema['columns'] ?? []), null, 'name');
         $primaryKey = $adopted ? $this->adoptedPrimaryKey($schema) : 'id';
+        $connectionSettings = \app\common\service\database\DatabaseConnections::settings($form['connection']);
         $fields = $adopted
             ? [$this->schemaManagedField($schemaColumns[$primaryKey], true)]
-            : [$this->managedField('id', 'bigint unsigned', true)];
-        $prefix = (string) config('database.connections.' . $form['connection'] . '.prefix', '');
+            : [$this->managedField('id', ($connectionSettings['driver'] ?? $form['connection']) === 'pgsql' ? 'bigint' : 'bigint unsigned', true)];
+        $prefix = (string) ($connectionSettings['prefix'] ?? '');
         $relations = [];
         $optionSources = [];
         $layoutSchema = [];

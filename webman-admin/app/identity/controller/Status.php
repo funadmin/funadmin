@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\identity\controller;
 
 use app\identity\service\IssuerService;
-use think\response\Json;
+use support\Response;
 
 /**
  * 身份应用 Phase 0 状态入口。
@@ -15,7 +15,7 @@ final class Status
     /**
      * 返回已建立的协议边界，不宣告尚未启用的授权能力。
      */
-    public function index(): Json
+    public function index(): Response
     {
         $issuer = (new IssuerService((string) config('identity.issuer', '')))->getIssuer();
 

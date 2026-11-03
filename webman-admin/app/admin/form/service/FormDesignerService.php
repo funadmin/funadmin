@@ -176,7 +176,7 @@ final class FormDesignerService
         $normalized = preg_replace('/[^a-z0-9_]/', '', $normalized) ?? '';
         $normalized = trim($normalized, '_');
         if ($fromTable) {
-            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
             if ($prefix !== '' && str_starts_with($normalized, strtolower($prefix))) $normalized = substr($normalized, strlen($prefix));
         }
         return substr($normalized, 0, 61);
@@ -285,7 +285,7 @@ final class FormDesignerService
     /** 采纳模式：读取已有表结构并映射为字段行。 */
     public function inferFields(string $connection, string $table): array
     {
-        if (!in_array($connection, (array) config('crud.connections', []), true)) {
+        if (!in_array($connection, \app\common\service\database\DatabaseConnections::allowed(), true)) {
             throw new InvalidArgumentException('数据库连接不在配置白名单');
         }
         $inspector = SchemaInspector::forConnection($connection);
@@ -440,7 +440,7 @@ final class FormDesignerService
         // 只归一化新建身份，已有记录与采纳表不得随配置变化重命名。
         if ((int) ($payload['id'] ?? 0) === 0 && ($database['source'] ?? 'created') === 'created') {
             $connection = (string) ($database['connection'] ?? 'mysql');
-            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
             $table = trim((string) ($database['table'] ?? ''));
             if ($table !== '' && $prefix !== '' && !str_starts_with($table, $prefix)) {
                 if ($isV2) {

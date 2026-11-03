@@ -13,7 +13,7 @@ use app\identity\oauth\entity\ScopeEntity;
 use League\OAuth2\Server\Entities\AccessTokenEntityInterface;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Repositories\AccessTokenRepositoryInterface;
-use think\facade\Db;
+use support\Db;
 
 final class AccessTokenRepository implements AccessTokenRepositoryInterface
 {

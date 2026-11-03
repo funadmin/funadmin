@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\plugin\business\example\service;
 
 use app\admin\plugin\business\example\model\Test;
-use think\facade\Db;
+use support\Db;
 
 final class TestService
 {

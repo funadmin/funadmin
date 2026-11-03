@@ -6,19 +6,19 @@ namespace app\market\controller;
 
 use app\market\service\MarketAccountService;
 use app\market\service\MarketTokenService;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\Response;
 
-#[Group('api/v3/auth', ['complete_match' => true])]
+#[RouteGroup('/api/v3/auth')]
 final class Auth extends ApiController
 {
-    #[Post('login')]
+    #[Post('/login')]
     public function login(): Response
     {
-        $account = trim((string) $this->request->param('account', ''));
-        $password = (string) $this->request->param('password', '');
+        $account = trim((string) $this->request->input('account', ''));
+        $password = (string) $this->request->input('password', '');
         if ($account === '' || $password === '' || mb_strlen($account) > 100 || strlen($password) > 200) {
             return $this->error(422, '请输入市场账号和密码');
         }
@@ -29,28 +29,28 @@ final class Auth extends ApiController
         return $this->success($result, '登录成功');
     }
 
-    #[Post('refresh')]
+    #[Post('/refresh')]
     public function refresh(): Response
     {
-        $result = (new MarketTokenService())->refresh((string) $this->request->param('refresh_token', ''));
+        $result = (new MarketTokenService())->refresh((string) $this->request->input('refresh_token', ''));
         return $result === null ? $this->error(401, '刷新令牌无效或已过期，请重新登录') : $this->success($result);
     }
 
-    #[Post('register')]
+    #[Post('/register')]
     public function register(): Response
     {
         $payload = [
-            'username' => trim((string) $this->request->param('username', '')),
-            'email' => trim((string) $this->request->param('email', '')),
-            'nickname' => trim((string) $this->request->param('nickname', '')),
-            'password' => (string) $this->request->param('password', ''),
-            'password_confirm' => (string) $this->request->param('password_confirm', ''),
+            'username' => trim((string) $this->request->input('username', '')),
+            'email' => trim((string) $this->request->input('email', '')),
+            'nickname' => trim((string) $this->request->input('nickname', '')),
+            'password' => (string) $this->request->input('password', ''),
+            'password_confirm' => (string) $this->request->input('password_confirm', ''),
         ];
         if ($payload['username'] === '' || $payload['email'] === '' || $payload['password'] === '') {
             return $this->error(422, '请完整填写注册信息');
         }
         try {
-            (new MarketAccountService())->register($payload, (string) $this->request->ip());
+            (new MarketAccountService())->register($payload, (string) $this->request->getRemoteIp());
             $account = $payload['username'];
             $tokens = (new MarketTokenService())->login($account, $payload['password']);
             return $tokens === null ? $this->error(500, '注册成功但无法创建登录会话') : $this->success($tokens + ['account' => (new MarketTokenService())->account((int) MarketAccountService::currentId())], '注册成功');
@@ -67,7 +67,7 @@ final class Auth extends ApiController
         }
     }
 
-    #[Post('me')]
+    #[Post('/me')]
     public function me(): Response
     {
         $memberId = $this->memberId();
@@ -75,7 +75,7 @@ final class Auth extends ApiController
         return $account === null ? $this->unauthorized() : $this->success(['account' => $account]);
     }
 
-    #[Put('profile')]
+    #[Put('/profile')]
     public function profile(): Response
     {
         $memberId = $this->memberId();
@@ -84,9 +84,9 @@ final class Auth extends ApiController
         }
         try {
             (new MarketAccountService())->updateProfile($memberId, [
-                'nickname' => trim((string) $this->request->param('nickname', '')),
-                'motto' => trim((string) $this->request->param('motto', '')),
-                'avatar' => trim((string) $this->request->param('avatar', '')),
+                'nickname' => trim((string) $this->request->input('nickname', '')),
+                'motto' => trim((string) $this->request->input('motto', '')),
+                'avatar' => trim((string) $this->request->input('avatar', '')),
             ]);
             $account = (new MarketAccountService())->profile($memberId);
             return $account === null ? $this->unauthorized() : $this->success(['account' => $account], '资料已更新');
@@ -95,7 +95,7 @@ final class Auth extends ApiController
         }
     }
 
-    #[Post('password')]
+    #[Post('/password')]
     public function password(): Response
     {
         $memberId = $this->memberId();
@@ -105,9 +105,9 @@ final class Auth extends ApiController
         try {
             (new MarketAccountService())->changePassword(
                 $memberId,
-                (string) $this->request->param('current', ''),
-                (string) $this->request->param('password', ''),
-                (string) $this->request->param('password_confirm', '')
+                (string) $this->request->input('current', ''),
+                (string) $this->request->input('password', ''),
+                (string) $this->request->input('password_confirm', '')
             );
             $this->revokeCurrentToken();
             return $this->success(['logged_out' => true], '密码已修改，请重新登录');
@@ -116,7 +116,7 @@ final class Auth extends ApiController
         }
     }
 
-    #[Post('logout')]
+    #[Post('/logout')]
     public function logout(): Response
     {
         $token = $this->token();

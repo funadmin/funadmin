@@ -34,7 +34,21 @@ class CheckPluginPermission implements MiddlewareInterface
             return $this->deny(401, '登录已失效，请重新登录');
         }
         $adminId = (int) ($admin['id'] ?? 0);
-        if (!$this->authorization->authorize($adminId, $this->plugin, $this->permission)) {
+        $plugin = $this->plugin;
+        $permission = $this->permission;
+        if ($plugin === '' && preg_match('/^app\\\\admin\\\\plugin\\\\business\\\\market\\\\controller\\\\(Category|Plugin|Order|Grant|Setting|Stat)Controller$/', (string) $request->controller, $matches) === 1) {
+            $plugin = 'market';
+            $action = (string) $request->action;
+            $permission = match ($matches[1]) {
+                'Category' => $action === 'index' ? 'market:plugin:view' : 'market:category:manage',
+                'Plugin' => in_array($action, ['index', 'overview', 'versions'], true) ? 'market:plugin:view' : 'market:plugin:manage',
+                'Order' => in_array($action, ['index', 'detail'], true) ? 'market:order:view' : 'market:order:manage',
+                'Grant' => 'market:grant:manage',
+                'Setting' => 'market:setting:manage',
+                'Stat' => 'market:stat:view',
+            };
+        }
+        if (!$this->authorization->authorize($adminId, $plugin, $permission)) {
             return $this->deny(403, '没有访问权限');
         }
         $request->context['admin'] = $admin;

@@ -18,8 +18,7 @@ use support\Response;
 final class OrderController extends AdminApiController
 {
     protected array $middleware = [
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:order:view']], 'options' => ['only' => ['index', 'detail']]],
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:order:manage']], 'options' => ['except' => ['index', 'detail']]],
+        CheckPluginPermission::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];

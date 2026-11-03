@@ -11,6 +11,21 @@ use support\Response;
 
 final class LoadLangPackContractTest extends TestCase
 {
+    public function test_application_runtime_contains_no_thinkphp_class_references(): void
+    {
+        $root = dirname(__DIR__) . '/app';
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+        $violations = [];
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') continue;
+            $source = (string) file_get_contents($file->getPathname());
+            if (preg_match('/(?:^|[^A-Za-z0-9_])(?:use\\s+)?think\\\\/m', $source) === 1) {
+                $violations[] = $file->getPathname();
+            }
+        }
+        self::assertSame([], $violations, 'Webman 运行时代码不得依赖 ThinkPHP 类');
+    }
+
     public function test_global_middleware_uses_webman_plugins_without_thinkphp_middleware_classes(): void
     {
         $middleware = require dirname(__DIR__) . '/app/middleware.php';
@@ -21,6 +36,34 @@ final class LoadLangPackContractTest extends TestCase
         self::assertStringNotContainsString('\\think\\middleware\\SessionInit', $adminMiddleware);
         $corsMiddleware = require dirname(__DIR__) . '/config/plugin/webman/cors/middleware.php';
         self::assertContains(\Webman\Cors\CORS::class, $corsMiddleware['']);
+    }
+
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function test_configured_webman_pipeline_applies_locale_to_real_callbacks(): void
+    {
+        \Webman\Middleware::load(require dirname(__DIR__) . '/config/middleware.php');
+        (new \ReflectionProperty(\Webman\App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
+        $callback = \Webman\App::getCallback('', '', static fn ($request): Response => new Response(200, [], trans('i18n-demo.referenceMetadataInvalid')), [], true);
+        foreach (['zh-cn', 'en-us', 'zh-cn'] as $locale) {
+            $request = new Request("GET /translation-probe HTTP/1.1\r\nX-Locale: $locale\r\n\r\n");
+            \support\Context::set(\Webman\Http\Request::class, $request);
+            $response = $callback($request);
+            self::assertSame(200, $response->getStatusCode());
+            self::assertContains('locale=' . $locale . '; Max-Age=31536000; Path=/; SameSite=Lax', $response->getHeaders()['Set-Cookie'] ?? []);
+            self::assertSame($locale === 'zh-cn' ? '数据库引用元数据包含非法标识符' : 'Reference metadata invalid', $response->rawBody());
+        }
+        \support\Context::destroy();
+    }
+
+    public function test_translation_config_points_to_native_application_language_directories(): void
+    {
+        $config = require dirname(__DIR__) . '/config/translation.php';
+        self::assertSame('zh-cn', $config['locale']);
+        self::assertContains(app_path('admin/lang'), (array) $config['path']);
+        self::assertContains(app_path('common/lang'), (array) $config['path']);
+        self::assertNotContains(base_path() . '/resource/translations', (array) $config['path']);
     }
 
     public function test_language_middleware_uses_the_native_webman_contract(): void

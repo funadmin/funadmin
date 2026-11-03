@@ -18,7 +18,7 @@ final class IdentityCredentialService
             $this->audit($tenantId, null, $username, $ip, false, 'invalid_captcha');
             throw new \DomainException('invalid_captcha');
         }
-        $key = 'identity:login:' . hash('sha256', $tenantId . '|' . strtolower(trim($username)) . '|' . $ip);
+        $key = 'identity_login_' . hash('sha256', $tenantId . '|' . strtolower(trim($username)) . '|' . $ip);
         $attempts = (int) Cache::get($key, 0);
         if ($attempts >= 5) {
             throw new \DomainException('temporarily_locked');
@@ -30,6 +30,7 @@ final class IdentityCredentialService
             throw new \DomainException('invalid_credentials');
         }
         Cache::delete($key);
+        $user->refresh();
         $this->audit($tenantId, (int) $user->id, $username, $ip, true, null);
         request()->sessionRegenerateId(true);
         $opSession = (new OidcSessionService())->createOrReuse($tenantId, (int) $user->id);

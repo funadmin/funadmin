@@ -19,7 +19,7 @@ use support\Cache;
 /**
  * 自定义服务基类
  * Class Service
- * @package think\admin
+ * @package app\common\service
  */
 abstract class AbstractService
 {

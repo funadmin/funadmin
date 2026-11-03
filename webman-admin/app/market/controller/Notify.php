@@ -7,15 +7,15 @@ namespace app\market\controller;
 use app\BaseController;
 use app\market\service\MarketOrderService;
 use app\market\service\payment\PaymentConfig;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\Response;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\Response;
 
 /** 支付渠道异步通知：不走会话与 CSRF，完全依赖渠道签名验证。 */
+#[RouteGroup('/market')]
 final class Notify extends BaseController
 {
-    #[Post('pay/notify/:channel', ['complete_match' => true])]
-    #[Pattern('channel', 'alipay|wechat')]
+    #[Post('/pay/notify/{channel:alipay|wechat}')]
     public function handle(string $channel): Response
     {
         $service = new MarketOrderService();
@@ -29,7 +29,7 @@ final class Notify extends BaseController
             $result = null;
         }
         if ($result === null) {
-            $service->log('', $channel, 'notify', false, 'signature invalid', ['body' => mb_substr((string) $this->request->getInput(), 0, 4000)]);
+            $service->log('', $channel, 'notify', false, 'signature invalid', ['body' => mb_substr((string) $this->request->rawBody(), 0, 4000)]);
             return $gateway->notifyAck(false, 'invalid signature');
         }
         try {

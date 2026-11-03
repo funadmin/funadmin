@@ -7,8 +7,8 @@ namespace app\market\service\payment;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use RuntimeException;
-use think\Request;
-use think\Response;
+use support\Request;
+use support\Response;
 
 /**
  * 微信支付 Native 扫码（APIv3）。请求用商户私钥签名，应答与回调用「微信支付公钥」验签，回调资源 AES-256-GCM 解密。
@@ -52,7 +52,7 @@ final class WechatChannel implements PaymentChannel
 
     public function parseNotify(Request $request): ?PaymentResult
     {
-        $body = (string) $request->getInput();
+        $body = (string) $request->rawBody();
         if (!$this->verifySignature(
             (string) $request->header('wechatpay-timestamp', ''),
             (string) $request->header('wechatpay-nonce', ''),
@@ -78,7 +78,7 @@ final class WechatChannel implements PaymentChannel
     {
         return $success
             ? response('', 204)
-            : json(['code' => 'FAIL', 'message' => $message ?: '处理失败'], 500);
+            : json(['code' => 'FAIL', 'message' => $message ?: '处理失败'])->withStatus(500);
     }
 
     public function query(array $order): ?PaymentResult

@@ -7,13 +7,14 @@ namespace app\market\controller;
 use app\market\service\MarketStoreService;
 use app\market\service\payment\PaymentConfig;
 use app\market\service\MarketOrderService;
-use think\annotation\route\Get;
-use think\annotation\route\Pattern;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
+#[RouteGroup('/market')]
 final class Store extends StoreController
 {
-    #[Get('', ['complete_match' => true])]
+    #[Get('')]
     public function home(): Response
     {
         $service = new MarketStoreService();
@@ -37,8 +38,7 @@ final class Store extends StoreController
         ]);
     }
 
-    #[Get('plugin/:code', ['complete_match' => true])]
-    #[Pattern('code', '[a-z][a-z0-9]*')]
+    #[Get('/plugin/{code:[a-z][a-z0-9]*}')]
     public function plugin(string $code): Response
     {
         $plugin = (new MarketStoreService())->detail($code, (int) ($this->member['id'] ?? 0));

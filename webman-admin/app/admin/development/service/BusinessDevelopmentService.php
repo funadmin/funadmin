@@ -387,7 +387,7 @@ final class BusinessDevelopmentService
         $table = trim((string) ($allowed['table'] ?? ''));
         if ($source === 'created') {
             $table = $table !== '' ? $table : ($target['type'] === 'plugin' ? $target['pluginCode'] . '_' : '') . $code;
-            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
             if ($prefix !== '' && !str_starts_with($table, $prefix)) $table = $prefix . $table;
         }
         self::assertIdentifier($table, 'table');

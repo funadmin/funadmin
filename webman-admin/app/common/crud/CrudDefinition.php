@@ -33,7 +33,7 @@ final class CrudDefinition implements JsonSerializable
         }
         if ($identity['kind'] === 'logical') {
             $connection = (string) ($data['connection'] ?? $data['metadata']['connection'] ?? 'mysql');
-            $prefix = (string) config('database.connections.' . $connection . '.prefix', '');
+            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
             $table = trim((string) ($data['table'] ?? ''));
             $data['table'] = $table !== '' && $prefix !== '' && !str_starts_with($table, $prefix) ? $prefix . $table : $table;
             $identity['kind'] = 'physical';

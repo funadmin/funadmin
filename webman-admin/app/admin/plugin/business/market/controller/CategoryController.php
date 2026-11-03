@@ -20,8 +20,7 @@ use support\Response;
 final class CategoryController extends AdminApiController
 {
     protected array $middleware = [
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:plugin:view']], 'options' => ['only' => ['index']]],
-        ['middleware' => [CheckPluginPermission::class, ['market', 'market:category:manage']], 'options' => ['except' => ['index']]],
+        CheckPluginPermission::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
@@ -31,7 +30,7 @@ final class CategoryController extends AdminApiController
     #[Post('/')]
     public function create(): Response { return $this->attempt(fn () => (new MarketAdminService())->saveCategory(null, (array) $this->request->post()), '分类已创建'); }
     #[Put('/{id:\\d+}')]
-    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->saveCategory($id, (array) $this->request->put()), '分类已保存'); }
+    public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->saveCategory($id, (array) $this->request->post()), '分类已保存'); }
     #[Delete('/{id:\\d+}')]
     public function delete(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deleteCategory($id), '分类已删除'); }
     private function attempt(callable $operation, string $message): Response

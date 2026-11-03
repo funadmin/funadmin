@@ -7,16 +7,17 @@ namespace app\market\controller;
 use app\market\service\MarketOrderService;
 use app\market\service\MarketStoreService;
 use app\market\service\payment\PaymentConfig;
-use think\annotation\route\Get;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\facade\Cache;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\Cache;
+use support\Response;
 
 /** 下单与收银台。 */
+#[RouteGroup('/market')]
 final class Order extends StoreController
 {
-    #[Post('order', ['complete_match' => true])]
+    #[Post('/order')]
     public function create(): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -37,8 +38,7 @@ final class Order extends StoreController
         }
     }
 
-    #[Get('order/:no', ['complete_match' => true])]
-    #[Pattern('no', '\d{20,32}')]
+    #[Get('/order/{no:\d{20,32}}')]
     public function show(string $no): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -73,8 +73,7 @@ final class Order extends StoreController
     }
 
     /** 支付宝电脑网站支付：生成带签名的跳转地址后 302 到支付宝收银台。 */
-    #[Get('order/:no/pay', ['complete_match' => true])]
-    #[Pattern('no', '\d{20,32}')]
+    #[Get('/order/{no:\d{20,32}}/pay')]
     public function pay(string $no): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -93,23 +92,21 @@ final class Order extends StoreController
         }
     }
 
-    #[Get('order/:no/status', ['complete_match' => true])]
-    #[Pattern('no', '\d{20,32}')]
+    #[Get('/order/{no:\d{20,32}}/status')]
     public function status(string $no): Response
     {
         if ($this->member === null) {
-            return json(['status' => 'unauthorized'], 401);
+            return json(['status' => 'unauthorized'])->withStatus(401);
         }
         $service = new MarketOrderService();
         $order = $service->find($no, (int) $this->member['id']);
         if ($order === null) {
-            return json(['status' => 'missing'], 404);
+            return json(['status' => 'missing'])->withStatus(404);
         }
-        return json(['status' => $service->sync($order)['status']])->header(['Cache-Control' => 'no-store']);
+        return json(['status' => $service->sync($order)['status']])->withHeaders(['Cache-Control' => 'no-store']);
     }
 
-    #[Post('order/:no/mock', ['complete_match' => true])]
-    #[Pattern('no', '\d{20,32}')]
+    #[Post('/order/{no:\d{20,32}}/mock')]
     public function mock(string $no): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -125,8 +122,7 @@ final class Order extends StoreController
         return $this->to('/order/' . $no);
     }
 
-    #[Post('order/:no/cancel', ['complete_match' => true])]
-    #[Pattern('no', '\d{20,32}')]
+    #[Post('/order/{no:\d{20,32}}/cancel')]
     public function cancel(string $no): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -146,7 +142,7 @@ final class Order extends StoreController
         if ($order['channel'] === 'mock') {
             return ['type' => 'mock'];
         }
-        $cacheKey = 'market:payment:' . $order['order_no'];
+        $cacheKey = 'market_payment_' . $order['order_no'];
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
             return $cached;

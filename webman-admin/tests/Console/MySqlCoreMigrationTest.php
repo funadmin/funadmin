@@ -66,6 +66,21 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('ai_task'));
         self::assertTrue(Db::schema()->hasTable('identity_tenant'));
         self::assertTrue(Db::schema()->hasTable('plugin'));
+        foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_token', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertTrue(Db::schema()->hasTable($table), '缺少市场运行时结构：' . $table);
+        foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->exists(), $code);
+        require_once base_path('app/common.php');
+        Db::beginTransaction();
+        try {
+            $request = new \support\Request("POST /api/v3/auth/register HTTP/1.1\r\n\r\n");
+            $request->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
+            $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
+            \support\Context::set(\Webman\Http\Request::class, $request);
+            $id = (new \app\market\service\MarketAccountService())->register(['username' => 'mysqlbuyer', 'email' => 'mysqlbuyer@example.com', 'password' => 'buyer-password-123', 'password_confirm' => 'buyer-password-123'], '127.0.0.' . random_int(10, 200));
+            self::assertGreaterThan(time() - 60, (int) Db::table('member')->where('id', $id)->value('last_login'));
+        } finally {
+            Db::rollBack();
+            \support\Context::destroy();
+        }
         self::assertTrue(Db::schema()->hasTable('admin_auth_tokens'), '核心迁移缺少原生认证补充表');
         self::assertTrue(Db::schema()->hasTable('browser_sessions'));
         self::assertTrue(Db::schema()->hasTable('login_attempts'));

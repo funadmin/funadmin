@@ -267,6 +267,9 @@ final class InstallSupport
         class_exists(Db::class);
         if (!in_array($db['driver'], ['mysql', 'pgsql'], true)) throw new RuntimeException('已安装的数据库类型不受支持');
         self::registerConnection($name, self::databaseConfig($db, config('database'))['connections'][$db['driver']]);
+        $alias = $db['driver'];
+        self::registerConnection($alias, self::databaseConfig($db, config('database'))['connections'][$alias]);
+        \Illuminate\Database\Eloquent\Model::getConnectionResolver()->purge($alias);
         \Illuminate\Database\Eloquent\Model::getConnectionResolver()->setDefaultConnection($name);
         $activated[$hash] = true;
     }
@@ -275,7 +278,7 @@ final class InstallSupport
     {
         $config = \Illuminate\Container\Container::getInstance()['config'];
         $connections = $config['database.connections'];
-        $connections[$name] = $connection;
+        $connections[$name] = array_replace($connection, ['name' => $name]);
         $config['database.connections'] = $connections;
     }
 

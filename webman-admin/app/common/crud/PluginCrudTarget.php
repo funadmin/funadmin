@@ -99,7 +99,7 @@ final class PluginCrudTarget
                 continue;
             }
             $templatePrefix = (string) config('funadmin.mysqlPrefix', 'fun_');
-            $prefix = (string) config('database.connections.' . $definition->get('connection', 'mysql') . '.prefix', '');
+            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings((string) $definition->get('connection', 'mysql'))['prefix'] ?? '');
             $effectiveContent = \app\common\service\database\MigrationService::rewritePrefix($content, $templatePrefix, $prefix);
             $stored = $this->migrationSnapshot($content);
             if ($stored !== null && !str_starts_with($content, "-- funadmin-physical-table\n")) {
@@ -177,7 +177,7 @@ final class PluginCrudTarget
     private function postgresql(CrudDefinition $definition): bool
     {
         $connection = (string) $definition->get('connection', 'mysql');
-        return config('database.connections.' . $connection . '.driver', $connection) === 'pgsql';
+        return (\app\common\service\database\DatabaseConnections::settings($connection)['driver'] ?? $connection) === 'pgsql';
     }
 
     private function columnDefinition(array $field): string

@@ -13,9 +13,31 @@ use support\Db;
 
 final class PostgresqlRuntimeTest extends TestCase
 {
+    private string $namespace;
+    private string $previous;
+
     protected function setUp(): void
     {
         if (getenv('TEST_PGSQL') !== '1') $this->markTestSkipped('需要隔离 PostgreSQL');
+        $this->namespace = 'runtime_' . bin2hex(random_bytes(6));
+        $connection = Db::connection();
+        $connection->statement('CREATE SCHEMA "' . $this->namespace . '"');
+        $manager = \Illuminate\Database\Eloquent\Model::getConnectionResolver();
+        $this->previous = $manager->getDefaultConnection();
+        $config = \Illuminate\Container\Container::getInstance()['config'];
+        $connections = $config['database.connections'];
+        $connections[$this->namespace] = array_replace($connection->getConfig(), ['name' => $this->namespace, 'search_path' => $this->namespace]);
+        $config['database.connections'] = $connections;
+        $manager->setDefaultConnection($this->namespace);
+    }
+
+    protected function tearDown(): void
+    {
+        if (!isset($this->namespace)) return;
+        Db::statement('DROP SCHEMA "' . $this->namespace . '" CASCADE');
+        $manager = \Illuminate\Database\Eloquent\Model::getConnectionResolver();
+        $manager->setDefaultConnection($this->previous);
+        $manager->purge($this->namespace);
     }
 
     public function test_mcp_queries_are_read_only_limited_and_reject_session_side_effects(): void

@@ -37,7 +37,10 @@ Route::group('/identity', static function (): void {
         ['POST', '/introspect', 'OAuth', 'introspect'],
         ['GET', '/userinfo', 'OAuth', 'userinfo'],
     ] as [$method, $path, $controller, $action]) {
-        Route::add([$method], $path, ['app\\identity\\controller\\' . $controller, $action]);
+        $route = Route::add([$method], $path, ['app\\identity\\controller\\' . $controller, $action]);
+        if (!in_array($controller, ['Metadata', 'Status'], true) && !in_array($action, ['page', 'csrf', 'captcha'], true)) {
+            $route->middleware(\app\identity\middleware\IdentityProtocolThrottle::class);
+        }
     }
     Route::get('/resource/identity', static function (\support\Request $request) {
         return json([
@@ -50,8 +53,21 @@ Route::group('/identity', static function (): void {
         ]);
     })->middleware([
         \app\identity\middleware\IdentityBearerMiddleware::class,
-        [\app\identity\middleware\RequiredScopeMiddleware::class, [['identity.read'], 'AND']],
+        static fn () => new \app\identity\middleware\RequiredScopeMiddleware(['identity.read'], 'AND'),
     ]);
+});
+Route::group('/market/api/v3', static function (): void {
+    foreach (['login', 'refresh', 'register', 'me', 'password', 'logout'] as $action) {
+        Route::post('/auth/' . $action, [\app\market\controller\Auth::class, $action]);
+    }
+    Route::put('/auth/profile', [\app\market\controller\Auth::class, 'profile']);
+    foreach (['' => 'search', '/categories' => 'categories', '/{code:[a-z][a-z0-9]*}' => 'detail', '/{code:[a-z][a-z0-9]*}/versions' => 'versions'] as $path => $action) {
+        Route::add(['GET', 'POST'], '/plugins' . $path, [\app\market\controller\Plugins::class, $action]);
+    }
+    Route::post('/plugins/check-updates', [\app\market\controller\Plugins::class, 'checkUpdates']);
+    foreach (['authorize', 'download'] as $action) Route::post('/plugins/{code:[a-z][a-z0-9]*}/' . $action, [\app\market\controller\Plugins::class, $action]);
+    Route::get('/packages/{version:\d+}/{member:\d+}/{expires:\d+}/{signature:[a-f0-9]{64}}', [\app\market\controller\Packages::class, 'download']);
+    Route::post('/telemetry/installs', [\app\market\controller\Telemetry::class, 'installs']);
 });
 Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'webman-admin']));
 $adminWeb = static fn () => response()->withFile(public_path('admin-web/index.html'))->withHeader('Cache-Control', 'no-cache');

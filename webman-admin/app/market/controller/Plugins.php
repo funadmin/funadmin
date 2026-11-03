@@ -5,20 +5,19 @@ declare(strict_types=1);
 namespace app\market\controller;
 
 use app\market\service\MarketCatalogService;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Route;
-use think\Response;
+use support\annotation\route\RouteGroup;
+use support\annotation\route\Post;
+use support\annotation\route\Route;
+use support\Response;
 
 /**
  * 规范定义查询接口为 GET，而现有客户端传输层统一 POST JSON，两种方法都接受。
  * categories 必须先于 :code 注册，否则会被当作插件标识匹配。
  */
-#[Group('api/v3/plugins', ['complete_match' => true])]
+#[RouteGroup('/api/v3/plugins')]
 final class Plugins extends ApiController
 {
-    #[Route('GET|POST', 'categories')]
+    #[Route('/categories', ['GET', 'POST'])]
     public function categories(): Response
     {
         if ($this->member() === null) {
@@ -27,13 +26,13 @@ final class Plugins extends ApiController
         return $this->success(['items' => (new MarketCatalogService())->categories()]);
     }
 
-    #[Post('check-updates')]
+    #[Post('/check-updates')]
     public function checkUpdates(): Response
     {
         if ($this->member() === null) {
             return $this->unauthorized();
         }
-        $installed = $this->request->param('installed', []);
+        $installed = $this->request->input('installed', []);
         if (!is_array($installed) || !array_is_list($installed) || count($installed) > 500) {
             return $this->error(422, 'installed 必须是不超过 500 项的列表');
         }
@@ -53,28 +52,27 @@ final class Plugins extends ApiController
         return $this->success(['items' => (new MarketCatalogService())->checkUpdates($entries, $this->context())]);
     }
 
-    #[Route('GET|POST', '')]
+    #[Route('', ['GET', 'POST'])]
     public function search(): Response
     {
         if ($this->member() === null) {
             return $this->unauthorized();
         }
-        $page = max(1, (int) $this->request->param('page', 1));
-        $limit = (int) $this->request->param('limit', 20);
+        $page = max(1, (int) $this->request->input('page', 1));
+        $limit = (int) $this->request->input('limit', 20);
         if ($limit < 1 || $limit > 100) {
             return $this->error(422, 'limit 必须在 1 到 100 之间');
         }
         return $this->success((new MarketCatalogService())->search(
             $this->context(),
-            (string) $this->request->param('keyword', ''),
-            (int) $this->request->param('category_id', 0),
+            (string) $this->request->input('keyword', ''),
+            (int) $this->request->input('category_id', 0),
             $page,
             $limit
         ));
     }
 
-    #[Route('GET|POST', ':code')]
-    #[Pattern('code', '[a-z][a-z0-9]*')]
+    #[Route('/{code:[a-z][a-z0-9]*}', ['GET', 'POST'])]
     public function detail(string $code): Response
     {
         if ($this->member() === null) {
@@ -84,8 +82,7 @@ final class Plugins extends ApiController
         return $detail === null ? $this->error(404, '插件不存在或已下架') : $this->success($detail);
     }
 
-    #[Route('GET|POST', ':code/versions')]
-    #[Pattern('code', '[a-z][a-z0-9]*')]
+    #[Route('/{code:[a-z][a-z0-9]*}/versions', ['GET', 'POST'])]
     public function versions(string $code): Response
     {
         if ($this->member() === null) {
@@ -95,8 +92,7 @@ final class Plugins extends ApiController
         return $versions === null ? $this->error(404, '插件不存在或已下架') : $this->success(['items' => $versions]);
     }
 
-    #[Post(':code/authorize')]
-    #[Pattern('code', '[a-z][a-z0-9]*')]
+    #[Post('/{code:[a-z][a-z0-9]*}/authorize')]
     public function authorize(string $code): Response
     {
         $member = $this->member();
@@ -111,13 +107,12 @@ final class Plugins extends ApiController
             $member['id'],
             $code,
             $version,
-            (string) $this->request->param('db_version', ''),
+            (string) $this->request->input('db_version', ''),
             $this->context()
         ));
     }
 
-    #[Post(':code/download')]
-    #[Pattern('code', '[a-z][a-z0-9]*')]
+    #[Post('/{code:[a-z][a-z0-9]*}/download')]
     public function download(string $code): Response
     {
         $member = $this->member();
@@ -132,7 +127,7 @@ final class Plugins extends ApiController
             $member['id'],
             $code,
             $version,
-            (string) $this->request->param('db_version', ''),
+            (string) $this->request->input('db_version', ''),
             $this->context()
         );
         return $descriptor === null ? $this->error(403, $message) : $this->success($descriptor);
@@ -140,7 +135,7 @@ final class Plugins extends ApiController
 
     private function requestedVersion(): ?string
     {
-        $version = (string) $this->request->param('code_version', '');
+        $version = (string) $this->request->input('code_version', '');
         return preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $version) === 1 ? $version : null;
     }
 }

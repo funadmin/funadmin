@@ -20,6 +20,9 @@ class CheckAdminApiRole implements MiddlewareInterface
     public function process(Request $request, callable $handler): Response
     {
         unset($request->context['admin'], $request->context['admin_permissions'], $request->context['admin_csrf_token']);
+        if (str_starts_with((string) $request->controller, 'app\\admin\\plugin\\business\\market\\controller\\')) {
+            return (new \app\admin\plugin\middleware\CheckPluginPermission())->process($request, $handler);
+        }
         try {
             $cookie = (string) $request->cookie(BrowserAuthService::COOKIE, '');
             $auth = new BrowserAuthService();

@@ -9,17 +9,19 @@ use app\market\service\MarketOrderService;
 use app\market\service\MarketSettings;
 use app\market\service\MarketSigner;
 use app\market\service\MarketStoreService;
-use think\annotation\route\Get;
-use think\annotation\route\Post;
-use think\facade\Db;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Db;
+use support\Response;
 
 /** 用户主页：我的插件、我的订单、账号设置与客户端接入说明。 */
+#[RouteGroup('/market')]
 final class User extends StoreController
 {
     private const TABS = ['plugins', 'orders', 'settings', 'client'];
 
-    #[Get('user', ['complete_match' => true])]
+    #[Get('/user')]
     public function index(): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -29,10 +31,10 @@ final class User extends StoreController
         $tab = in_array($tab, self::TABS, true) ? $tab : 'plugins';
         $memberId = (int) $this->member['id'];
         (new MarketOrderService())->closeExpired();
-        $grants = Db::name('market_grant')->alias('g')->join('market_plugin p', 'p.id = g.plugin_id')
+        $grants = Db::table('market_grant as g')->join('market_plugin as p', 'p.id', '=', 'g.plugin_id')
             ->where('g.member_id', $memberId)->where('g.status', 1)
-            ->field('g.expires_at, g.source, g.plan, g.created_at, p.code, p.name, p.cover, p.price_yearly, p.license_type, p.status as plugin_status')
-            ->order('g.updated_at', 'desc')->select()->toArray();
+            ->select(['g.expires_at', 'g.source', 'g.plan', 'g.created_at', 'p.code', 'p.name', 'p.cover', 'p.price_yearly', 'p.license_type', 'p.status as plugin_status'])
+            ->orderByDesc('g.updated_at')->get()->map(static fn ($row): array => (array) $row)->all();
         $now = time();
         foreach ($grants as &$grant) {
             $grant['cover'] = MarketStoreService::safeImage((string) $grant['cover']);
@@ -41,10 +43,10 @@ final class User extends StoreController
             $grant['renewable'] = $grant['expires_at'] !== null && (int) $grant['price_yearly'] > 0 && (int) $grant['plugin_status'] === 1;
         }
         unset($grant);
-        $orders = Db::name('market_order')->alias('o')->join('market_plugin p', 'p.id = o.plugin_id')
+        $orders = Db::table('market_order as o')->join('market_plugin as p', 'p.id', '=', 'o.plugin_id')
             ->where('o.member_id', $memberId)
-            ->field('o.order_no, o.plan, o.amount, o.status, o.channel, o.paid_at, o.created_at, o.expire_at, p.name, p.code')
-            ->order('o.id', 'desc')->limit(50)->select()->toArray();
+            ->select(['o.order_no', 'o.plan', 'o.amount', 'o.status', 'o.channel', 'o.paid_at', 'o.created_at', 'o.expire_at', 'p.name', 'p.code'])
+            ->orderByDesc('o.id')->limit(50)->get()->map(static fn ($row): array => (array) $row)->all();
         foreach ($orders as &$order) {
             $order['amount_text'] = MarketStoreService::money((int) $order['amount']);
             $order['plan_text'] = MarketOrderService::PLANS[$order['plan']] ?? $order['plan'];
@@ -54,7 +56,7 @@ final class User extends StoreController
         $stats = [
             'plugins' => count(array_filter($grants, static fn (array $grant): bool => !$grant['expired'])),
             'orders' => count(array_filter($orders, static fn (array $order): bool => $order['status'] === 'paid')),
-            'spent' => MarketStoreService::money((int) Db::name('market_order')->where('member_id', $memberId)->where('status', 'paid')->sum('paid_amount')),
+            'spent' => MarketStoreService::money((int) Db::table('market_order')->where('member_id', $memberId)->where('status', 'paid')->sum('paid_amount')),
         ];
         return $this->render('store/user', [
             'title' => '我的主页',
@@ -67,7 +69,7 @@ final class User extends StoreController
         ]);
     }
 
-    #[Post('user/profile', ['complete_match' => true])]
+    #[Post('/user/profile')]
     public function profile(): Response
     {
         if ($redirect = $this->requireMember()) {
@@ -86,7 +88,7 @@ final class User extends StoreController
         return $this->to('/user?tab=settings');
     }
 
-    #[Post('user/password', ['complete_match' => true])]
+    #[Post('/user/password')]
     public function password(): Response
     {
         if ($redirect = $this->requireMember()) {

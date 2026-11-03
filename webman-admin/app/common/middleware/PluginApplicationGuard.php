@@ -9,7 +9,7 @@ use app\common\plugin\sdk\ActivationGate;
 use app\common\plugin\sdk\ActivationUnavailableException;
 use app\common\plugin\sdk\PluginActivationReader;
 use app\common\plugin\sdk\PluginNotActiveException;
-use think\exception\HttpException;
+use Webman\Exception\BusinessException;
 
 /** 在 MultiApp 解析前阻断不可用插件应用。 */
 final class PluginApplicationGuard
@@ -32,13 +32,13 @@ final class PluginApplicationGuard
         $snapshot = $bundle['activation'];
         if (!$snapshot->isTrusted()) {
             if ($explicit) {
-                throw new HttpException(503, '服务暂不可用');
+                throw new BusinessException('服务暂不可用', 503);
             }
             $ownership = $bundle['ownership'];
             if (!$ownership->isTrusted() || !$ownership->owns($code, $application)) {
                 return $next($request);
             }
-            throw new HttpException(503, '服务暂不可用');
+            throw new BusinessException('服务暂不可用', 503);
         }
         if (!$explicit && !isset($snapshot->plugins()[$code])) {
             return $next($request);
@@ -46,9 +46,9 @@ final class PluginApplicationGuard
         try {
             (new ActivationGate($snapshot))->assertEnabled($code, $application);
         } catch (ActivationUnavailableException) {
-            throw new HttpException(503, '服务暂不可用');
+            throw new BusinessException('服务暂不可用', 503);
         } catch (PluginNotActiveException) {
-            throw new HttpException(404, '页面不存在');
+            throw new BusinessException('页面不存在', 404);
         }
         return $next($request);
     }

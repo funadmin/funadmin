@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\admin\service\generated;
 
 use app\admin\model\generated\I18nDemo;
-use think\facade\Db;
+use support\Db;
 
 final class I18nDemoService
 {

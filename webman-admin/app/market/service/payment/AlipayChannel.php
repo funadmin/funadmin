@@ -7,8 +7,8 @@ namespace app\market\service\payment;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use RuntimeException;
-use think\Request;
-use think\Response;
+use support\Request;
+use support\Response;
 
 /**
  * 支付宝电脑网站支付（alipay.trade.page.pay），RSA2 签名，公钥模式验签。
@@ -47,7 +47,7 @@ final class AlipayChannel implements PaymentChannel
     public function parseNotify(Request $request): ?PaymentResult
     {
         // 验签必须基于原始参数值，不能经过框架的全局输入过滤。
-        parse_str((string) $request->getInput(), $params);
+        parse_str((string) $request->rawBody(), $params);
         if (!$this->verifyParams($params)) {
             return null;
         }

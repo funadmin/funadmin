@@ -120,6 +120,7 @@ final class FieldInference
     private function fromType(string $type): array
     {
         return match (true) {
+            in_array(strtolower($type), ['bool', 'boolean'], true) => ['component' => 'switch', 'valueType' => 'boolean', 'cast' => 'boolean', 'inferredBy' => 'type'],
             str_starts_with($type, 'decimal'), str_starts_with($type, 'numeric') => ['component' => 'inputNumber', 'valueType' => 'decimal', 'inferredBy' => 'type'],
             preg_match('/^(?:tinyint|smallint|mediumint|int|bigint)/', $type) === 1 => ['component' => 'inputNumber', 'valueType' => 'integer', 'inferredBy' => 'type'],
             str_contains($type, 'json') => ['component' => 'json', 'valueType' => 'object', 'cast' => 'json', 'inferredBy' => 'type'],
