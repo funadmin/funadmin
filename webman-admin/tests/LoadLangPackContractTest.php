@@ -11,6 +11,18 @@ use support\Response;
 
 final class LoadLangPackContractTest extends TestCase
 {
+    public function test_global_middleware_uses_webman_plugins_without_thinkphp_middleware_classes(): void
+    {
+        $middleware = require dirname(__DIR__) . '/app/middleware.php';
+        self::assertNotContains(\think\middleware\AllowCrossDomain::class, $middleware);
+        self::assertNotContains(\think\middleware\SessionInit::class, $middleware);
+        $adminMiddleware = file_get_contents(dirname(__DIR__) . '/app/admin/middleware.php');
+        self::assertIsString($adminMiddleware);
+        self::assertStringNotContainsString('\\think\\middleware\\SessionInit', $adminMiddleware);
+        $corsMiddleware = require dirname(__DIR__) . '/config/plugin/webman/cors/middleware.php';
+        self::assertContains(\Webman\Cors\CORS::class, $corsMiddleware['']);
+    }
+
     public function test_language_middleware_uses_the_native_webman_contract(): void
     {
         $source = file_get_contents(dirname(__DIR__) . '/app/middleware/LoadLangPack.php');

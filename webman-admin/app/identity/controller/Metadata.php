@@ -6,11 +6,11 @@ namespace app\identity\controller;
 
 use app\common\service\identity\SigningKeyService;
 use app\identity\service\IssuerService;
-use think\response\Json;
+use support\Response;
 
 final class Metadata
 {
-    public function discovery(): Json
+    public function discovery(): Response
     {
         $issuer = $this->issuer();
         return $this->secureJson([
@@ -37,7 +37,7 @@ final class Metadata
         ]);
     }
 
-    public function oauth(): Json
+    public function oauth(): Response
     {
         $issuer = $this->issuer();
         return $this->secureJson([
@@ -53,7 +53,7 @@ final class Metadata
         ]);
     }
 
-    public function jwks(): Json
+    public function jwks(): Response
     {
         $rows = (new SigningKeyService())->listPublishable(1);
         $keys = [];
@@ -70,8 +70,8 @@ final class Metadata
         return (new IssuerService((string) config('identity.issuer', '')))->getIssuer();
     }
 
-    private function secureJson(array $data, int $status = 200): Json
+    private function secureJson(array $data, int $status = 200): Response
     {
-        return json($data, $status)->header(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'DENY', 'Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'"]);
+        return json($data)->withStatus($status)->withHeaders(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'DENY', 'Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'"]);
     }
 }

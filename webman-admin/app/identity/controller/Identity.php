@@ -14,10 +14,8 @@ use app\identity\service\IdentityCredentialService;
 use app\identity\service\IdentitySessionResolverFactory;
 use app\identity\service\IdentitySsoConfigService;
 use DomainException;
-use think\captcha\facade\Captcha;
-use think\facade\Session;
-use think\Request;
-use think\Response;
+use support\Request;
+use support\Response;
 
 /** 独立 Identity 登录与授权交互页面。 */
 final class Identity
@@ -29,12 +27,15 @@ final class Identity
 
     public function csrf(): Response
     {
-        return json(['csrf_token' => $this->csrfToken()])->header($this->securityHeaders());
+        return json(['csrf_token' => $this->csrfToken()])->withHeaders($this->securityHeaders());
     }
 
     public function captcha(): Response
     {
-        return Captcha::create();
+        $captcha = new \Webman\Captcha\CaptchaBuilder();
+        $captcha->build();
+        request()->session()->set('identity.captcha', strtolower($captcha->getPhrase()));
+        return response($captcha->get(), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'no-store']);
     }
 
     public function login(Request $request): Response
@@ -46,8 +47,8 @@ final class Identity
         try {
             $authorization = $this->authorization($transactionId);
             (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
-            (new IdentityCredentialService())->login((int) $authorization->tenant_id, trim((string) $request->post('username', '')), (string) $request->post('password', ''), (string) $request->post('captcha', ''), (string) $request->ip());
-            return redirect('/identity/interaction?transaction_id=' . rawurlencode($transactionId))->header($this->securityHeaders());
+            (new IdentityCredentialService())->login((int) $authorization->tenant_id, trim((string) $request->post('username', '')), (string) $request->post('password', ''), (string) $request->post('captcha', ''), (string) $request->getRemoteIp());
+            return redirect('/identity/interaction?transaction_id=' . rawurlencode($transactionId))->withHeaders($this->securityHeaders());
         } catch (DomainException $exception) {
             if ($exception->getMessage() === 'server_error') return response('统一身份服务不可用', 503, $this->securityHeaders());
             return $this->render($transactionId, $this->loginError($exception->getMessage()), 422);
@@ -98,13 +99,13 @@ final class Identity
                 return response('授权请求无效或已过期', 400, $this->securityHeaders());
             }
         }
-        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->findOrFail();
-        $application = EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->findOrFail();
+        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->firstOrFail();
+        $application = EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->firstOrFail();
         $brandConfig = $application->brand_config;
         $brand = is_array($brandConfig) ? $brandConfig : json_decode((string) ($brandConfig ?: '{}'), true);
         $brand = is_array($brand) ? $brand : [];
-        $scopeIds = OAuthAuthorizationScope::forTenant((int) $authorization->tenant_id)->where('authorization_id', (int) $authorization->id)->column('scope_id');
-        $scopeRows = $scopeIds === [] ? [] : OAuthScope::forTenant((int) $authorization->tenant_id)->whereIn('id', $scopeIds)->select()->toArray();
+        $scopeIds = OAuthAuthorizationScope::forTenant((int) $authorization->tenant_id)->where('authorization_id', (int) $authorization->id)->pluck('scope_id')->all();
+        $scopeRows = $scopeIds === [] ? [] : OAuthScope::forTenant((int) $authorization->tenant_id)->whereIn('id', $scopeIds)->get()->toArray();
         $nonce = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
         $data = ['escape' => static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'nonce' => $nonce, 'mode' => $identity === null ? 'login' : 'consent', 'transactionId' => $transactionId, 'csrfToken' => $this->csrfToken(), 'error' => $error, 'applicationName' => (string) $application->name, 'brandName' => (string) ($brand['name'] ?? 'FunAdmin Identity'), 'brandMark' => mb_substr((string) ($brand['mark'] ?? 'F'), 0, 2), 'brandHeadline' => (string) ($brand['headline'] ?? '一个身份，连接所有工作。'), 'brandDescription' => (string) ($brand['description'] ?? '安全访问你的企业应用、数据与协作空间。'), 'scopes' => array_map(fn (array $scope): array => ['name' => (string) $scope['name'], 'label' => $this->scopeLabel((string) $scope['name']), 'description' => (string) ($scope['description'] ?: '允许应用使用此权限')], $scopeRows)];
         extract($data, EXTR_SKIP);
@@ -117,7 +118,7 @@ final class Identity
     private function authorization(string $plain): OAuthAuthorization
     {
         if (preg_match('/^[A-Za-z0-9_-]{40,64}$/', $plain) !== 1) throw new DomainException('invalid_request');
-        $record = (new OAuthAuthorization())->where('transaction_hash', hash('sha256', $plain))->where('status', 'pending')->find();
+        $record = (new OAuthAuthorization())->where('transaction_hash', hash('sha256', $plain))->where('status', 'pending')->first();
         if (!$record || strtotime((string) $record->expires_at) <= time()) throw new DomainException('invalid_request');
         return $record;
     }
@@ -125,13 +126,13 @@ final class Identity
     private function csrfToken(): string
     {
         $token = rtrim(strtr(base64_encode(random_bytes(24)), '+/', '-_'), '=');
-        Session::set('identity.csrf_token_hash', hash('sha256', $token));
+        request()->session()->set('identity.csrf_token_hash', hash('sha256', $token));
         return $token;
     }
 
     private function validCsrf(string $token): bool
     {
-        $expected = (string) Session::pull('identity.csrf_token_hash', '');
+        $expected = (string) request()->session()->pull('identity.csrf_token_hash', '');
         return $token !== '' && $expected !== '' && hash_equals($expected, hash('sha256', $token));
     }
 

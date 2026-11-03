@@ -18,7 +18,7 @@ use app\common\service\identity\ApplicationCatalogService;
 use app\admin\authorization\service\RoleScopeService;
 use app\identity\oauth\PkceService;
 use DomainException;
-use think\facade\Db;
+use support\Db;
 
 final class AuthorizationTransactionService
 {
@@ -26,15 +26,19 @@ final class AuthorizationTransactionService
     {
         $plain = self::randomOpaque();
         Db::transaction(function () use ($tenantId, $clientId, $redirectUri, $protocol, $scopeIds, $plain): void {
-            $authorization = OAuthAuthorization::create(['tenant_id' => $tenantId, 'client_id' => $clientId, 'transaction_hash' => hash('sha256', $plain), 'redirect_uri' => $redirectUri, 'redirect_uri_hash' => hash('sha256', $redirectUri), 'state' => $protocol['state'], 'nonce' => $protocol['nonce'], 'code_challenge' => $protocol['code_challenge'], 'code_challenge_method' => 'S256', 'expires_at' => date('Y-m-d H:i:s', time() + 600)]);
-            foreach ($scopeIds as $scopeId) OAuthAuthorizationScope::create(['tenant_id' => $tenantId, 'authorization_id' => $authorization->id, 'scope_id' => $scopeId]);
+            $authorization = new OAuthAuthorization();
+            $authorization->forceFill(['tenant_id' => $tenantId, 'client_id' => $clientId, 'transaction_hash' => hash('sha256', $plain), 'redirect_uri' => $redirectUri, 'redirect_uri_hash' => hash('sha256', $redirectUri), 'scope_names' => implode(' ', OAuthScope::forTenant($tenantId)->whereIn('id', $scopeIds)->pluck('name')->all()), 'state' => $protocol['state'], 'nonce' => $protocol['nonce'], 'code_challenge' => $protocol['code_challenge'], 'code_challenge_method' => 'S256', 'expires_at' => date('Y-m-d H:i:s', time() + 600)])->save();
+            foreach ($scopeIds as $scopeId) {
+                $scope = new OAuthAuthorizationScope();
+                $scope->forceFill(['tenant_id' => $tenantId, 'authorization_id' => $authorization->id, 'scope_id' => $scopeId])->save();
+            }
         });
         return $plain;
     }
 
     public function find(string $transactionId): OAuthAuthorization
     {
-        $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->find();
+        $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->first();
         if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) {
             throw new DomainException('invalid_request');
         }
@@ -44,7 +48,7 @@ final class AuthorizationTransactionService
     public function decide(string $transactionId, array $identity, bool $approved): array
     {
         return Db::transaction(function () use ($transactionId, $identity, $approved): array {
-            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
+            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lockForUpdate()->first();
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) throw new DomainException('invalid_request');
             (new IdentitySsoConfigService())->requireIdentityProvider((int) $authorization->tenant_id);
             $user = $this->trustedUser($authorization, $identity);
@@ -61,9 +65,10 @@ final class AuthorizationTransactionService
                 $clientSessionId = (int) $clientSession['id'];
                 $sessionId = (string) $clientSession['sid'];
             }
-            OAuthAuthorizationCode::create(['tenant_id' => $authorization->tenant_id, 'authorization_id' => $authorization->id, 'client_id' => $authorization->client_id, 'user_id' => $user->id, 'code_prefix' => substr($plain, 0, 12), 'code_hash' => hash('sha256', $plain), 'redirect_uri_hash' => $authorization->redirect_uri_hash, 'code_challenge' => $authorization->code_challenge, 'nonce' => $authorization->nonce, 'expires_at' => date('Y-m-d H:i:s', time() + 300)]);
+            $code = new OAuthAuthorizationCode();
+            $code->forceFill(['tenant_id' => $authorization->tenant_id, 'authorization_id' => $authorization->id, 'client_id' => $authorization->client_id, 'user_id' => $user->id, 'code_prefix' => substr($plain, 0, 12), 'code_hash' => hash('sha256', $plain), 'redirect_uri_hash' => $authorization->redirect_uri_hash, 'code_challenge' => $authorization->code_challenge, 'nonce' => $authorization->nonce, 'expires_at' => date('Y-m-d H:i:s', time() + 300)])->save();
             $this->grantConsent($authorization, (int) $user->id);
-            $authorization->save(['status' => 'approved', 'user_id' => $user->id, 'auth_time' => date('Y-m-d H:i:s', (int) $identity['auth_time']), 'session_id' => $sessionId, 'oidc_session_id' => $opSessionId ?: null, 'client_session_id' => $clientSessionId, 'decided_at' => $now]);
+            $authorization->forceFill(['status' => 'approved', 'user_id' => $user->id, 'auth_time' => date('Y-m-d H:i:s', (int) $identity['auth_time']), 'session_id' => $sessionId, 'oidc_session_id' => $opSessionId ?: null, 'client_session_id' => $clientSessionId, 'decided_at' => $now])->save();
             return ['approved' => true, 'code' => $plain, 'redirect_uri' => $authorization->redirect_uri, 'state' => $authorization->state];
         });
     }
@@ -71,7 +76,7 @@ final class AuthorizationTransactionService
     public function preflight(string $transactionId, array $identity): ?array
     {
         return Db::transaction(function () use ($transactionId, $identity): ?array {
-            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lock(true)->find();
+            $authorization = OAuthAuthorization::where('transaction_hash', hash('sha256', $transactionId))->lockForUpdate()->first();
             if (!$authorization || $authorization->status !== 'pending' || strtotime((string) $authorization->expires_at) <= time()) {
                 throw new DomainException('invalid_request');
             }
@@ -87,7 +92,7 @@ final class AuthorizationTransactionService
     public function consumeCode(string $code, int $clientId, string $redirectUri, string $verifier): array
     {
         return Db::transaction(function () use ($code, $clientId, $redirectUri, $verifier): array {
-            $record = OAuthAuthorizationCode::where('code_hash', hash('sha256', $code))->where('client_id', $clientId)->lock(true)->find();
+            $record = OAuthAuthorizationCode::where('code_hash', hash('sha256', $code))->where('client_id', $clientId)->lockForUpdate()->first();
             if (!$record || $record->consumed_at !== null || $record->revoked_at !== null || strtotime((string) $record->expires_at) <= time() || !hash_equals((string) $record->redirect_uri_hash, hash('sha256', $redirectUri)) || !PkceService::verify($verifier, (string) $record->code_challenge)) throw new DomainException('invalid_grant');
             $updated = OAuthAuthorizationCode::forTenant((int) $record->tenant_id)->where('id', $record->id)->whereNull('consumed_at')->whereNull('revoked_at')->update(['consumed_at' => date('Y-m-d H:i:s')]);
             if ($updated !== 1) throw new DomainException('invalid_grant');
@@ -98,11 +103,11 @@ final class AuthorizationTransactionService
     public function requiresConsent(OAuthAuthorization $authorization, array $identity): bool
     {
         if ((int) $authorization->tenant_id !== (int) ($identity['tenant_id'] ?? 0)) return true;
-        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->find();
-        $application = $client ? EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->find() : null;
+        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->first();
+        $application = $client ? EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->first() : null;
         if ($application && (string) $application->runtime_type === 'internal') return false;
         $requested = $this->scopeNames((int) $authorization->tenant_id, (int) $authorization->id);
-        $consents = IdentityConsent::forTenant((int) $authorization->tenant_id)->where('user_id', (int) $identity['user_id'])->where('client_id', (int) $authorization->client_id)->whereNull('revoked_at')->select();
+        $consents = IdentityConsent::forTenant((int) $authorization->tenant_id)->where('user_id', (int) $identity['user_id'])->where('client_id', (int) $authorization->client_id)->whereNull('revoked_at')->get();
         foreach ($consents as $consent) {
             $granted = array_values(array_filter(explode(' ', (string) $consent->scope_names)));
             if (array_diff($requested, $granted) === [] && hash_equals((string) $consent->granted_scope_hash, self::scopeHash($granted))) return false;
@@ -112,8 +117,8 @@ final class AuthorizationTransactionService
 
     public function grantConsent(OAuthAuthorization $authorization, int $userId): void
     {
-        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->find();
-        $application = $client ? EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->find() : null;
+        $client = OAuthClient::forTenant((int) $authorization->tenant_id)->where('id', (int) $authorization->client_id)->first();
+        $application = $client ? EnterpriseApplication::forTenant((int) $authorization->tenant_id)->where('id', (int) $client->application_id)->first() : null;
         if (!$application || (string) $application->runtime_type === 'internal') return;
         $scopes = $this->scopeNames((int) $authorization->tenant_id, (int) $authorization->id);
         $scopeHash = self::scopeHash($scopes);
@@ -121,14 +126,15 @@ final class AuthorizationTransactionService
             ->where('user_id', $userId)
             ->where('client_id', (int) $authorization->client_id)
             ->where('granted_scope_hash', $scopeHash)
-            ->lock(true)
-            ->find();
+            ->lockForUpdate()
+            ->first();
         $attributes = ['scope_names' => implode(' ', $scopes), 'granted_at' => date('Y-m-d H:i:s'), 'revoked_at' => null];
         if ($consent) {
-            $consent->save($attributes);
+            $consent->forceFill($attributes)->save();
             return;
         }
-        IdentityConsent::create(['tenant_id' => (int) $authorization->tenant_id, 'user_id' => $userId, 'client_id' => (int) $authorization->client_id, 'granted_scope_hash' => $scopeHash] + $attributes);
+        $consent = new IdentityConsent();
+        $consent->forceFill(['tenant_id' => (int) $authorization->tenant_id, 'user_id' => $userId, 'client_id' => (int) $authorization->client_id, 'granted_scope_hash' => $scopeHash] + $attributes)->save();
     }
 
     private function trustedUser(OAuthAuthorization $authorization, array $identity): IdentityUser
@@ -138,7 +144,7 @@ final class AuthorizationTransactionService
         if ($tenantId <= 0 || $userId <= 0 || (int) $authorization->tenant_id !== $tenantId) {
             throw new DomainException('access_denied');
         }
-        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->find();
+        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->first();
         if (!$user) {
             throw new DomainException('access_denied');
         }
@@ -148,11 +154,11 @@ final class AuthorizationTransactionService
     private function canAccessApplication(OAuthAuthorization $authorization, IdentityUser $user): bool
     {
         $tenantId = (int) $authorization->tenant_id;
-        $client = OAuthClient::forTenant($tenantId)->where('id', (int) $authorization->client_id)->find();
+        $client = OAuthClient::forTenant($tenantId)->where('id', (int) $authorization->client_id)->first();
         if (!$client) {
             return false;
         }
-        $departmentIds = array_map('intval', IdentityUserDepartment::forTenant($tenantId)->where('user_id', (int) $user->id)->column('department_id'));
+        $departmentIds = array_map('intval', IdentityUserDepartment::forTenant($tenantId)->where('user_id', (int) $user->id)->pluck('department_id')->all());
         $adminId = (int) IdentityAdminLink::forTenant($tenantId)->where('user_id', (int) $user->id)->value('admin_id');
         $roleIds = $adminId > 0 ? (new RoleScopeService())->adminRoleIds($adminId) : [];
         try {
@@ -165,14 +171,14 @@ final class AuthorizationTransactionService
 
     private function deny(OAuthAuthorization $authorization, array $identity, IdentityUser $user, string $now): array
     {
-        $authorization->save(['status' => 'denied', 'user_id' => $user->id, 'session_id' => (string) ($identity['session_id'] ?? ''), 'decided_at' => $now, 'interaction_consumed_at' => $now]);
+        $authorization->forceFill(['status' => 'denied', 'user_id' => $user->id, 'session_id' => (string) ($identity['session_id'] ?? ''), 'decided_at' => $now, 'interaction_consumed_at' => $now])->save();
         return ['approved' => false, 'error' => 'access_denied', 'redirect_uri' => $authorization->redirect_uri, 'state' => $authorization->state];
     }
 
     private function scopeNames(int $tenantId, int $authorizationId): array
     {
-        $ids = OAuthAuthorizationScope::forTenant($tenantId)->where('authorization_id', $authorizationId)->column('scope_id');
-        $names = $ids === [] ? [] : OAuthScope::forTenant($tenantId)->whereIn('id', $ids)->column('name');
+        $ids = OAuthAuthorizationScope::forTenant($tenantId)->where('authorization_id', $authorizationId)->pluck('scope_id')->all();
+        $names = $ids === [] ? [] : OAuthScope::forTenant($tenantId)->whereIn('id', $ids)->pluck('name')->all();
         sort($names, SORT_STRING);
         return $names;
     }

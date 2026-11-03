@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\identity\service;
 
-use think\Request;
+use support\Request;
 
 /**
  * 仅供 APP_ENV=testing 的真实 HTTP 协议测试注入身份，不在其他环境启用。

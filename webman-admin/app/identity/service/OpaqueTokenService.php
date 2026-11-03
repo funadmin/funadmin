@@ -12,7 +12,7 @@ use app\common\model\identity\OAuthClient;
 use app\common\model\identity\OAuthToken;
 use app\common\model\identity\OAuthTokenScope;
 use DomainException;
-use think\facade\Db;
+use support\Db;
 
 final class OpaqueTokenService
 {
@@ -34,7 +34,7 @@ final class OpaqueTokenService
     public function rotate(string $plain, int $clientId, array $requestedScopeIds): array
     {
         $result = Db::transaction(function () use ($plain, $clientId, $requestedScopeIds): ?array {
-            $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('token_type', 'refresh')->where('client_id', $clientId)->lock(true)->find();
+            $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('token_type', 'refresh')->where('client_id', $clientId)->lockForUpdate()->first();
             if (!$token || strtotime((string) $token->expires_at) <= time()) throw new DomainException('invalid_grant');
             if ($token->consumed_at !== null) {
                 $this->revokeFamily((int) $token->tenant_id, (string) $token->family_id);
@@ -54,8 +54,8 @@ final class OpaqueTokenService
                 ->where('id', (int) $token->user_id)
                 ->where('status', 1)
                 ->whereNull('deleted_at')
-                ->lock(true)
-                ->find();
+                ->lockForUpdate()
+                ->first();
             $tokenData = $token->toArray();
             $passwordChanged = array_key_exists('password_version', $tokenData) && (int) $token->password_version !== (int) $user?->password_version;
             $sessionChanged = array_key_exists('session_version', $tokenData) && (int) $token->session_version !== (int) $user?->session_version;
@@ -63,7 +63,7 @@ final class OpaqueTokenService
                 $this->revokeFamily((int) $token->tenant_id, (string) $token->family_id);
                 return null;
             }
-            $original = OAuthTokenScope::forTenant((int) $token->tenant_id)->where('token_id', $token->id)->column('scope_id');
+            $original = OAuthTokenScope::forTenant((int) $token->tenant_id)->where('token_id', $token->id)->pluck('scope_id')->all();
             $scopes = $requestedScopeIds === [] ? $original : $requestedScopeIds;
             if (array_diff($scopes, $original) !== []) throw new DomainException('invalid_scope');
             $updated = OAuthToken::forTenant((int) $token->tenant_id)->where('id', $token->id)->whereNull('consumed_at')->update(['consumed_at' => date('Y-m-d H:i:s'), 'revoked_at' => date('Y-m-d H:i:s')]);
@@ -82,7 +82,7 @@ final class OpaqueTokenService
 
     public function revoke(string $plain, int $clientId): void
     {
-        $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('client_id', $clientId)->find();
+        $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('client_id', $clientId)->first();
         if (!$token) return;
         if ($token->family_id) OAuthToken::forTenant((int) $token->tenant_id)->where('family_id', $token->family_id)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
         else OAuthToken::forTenant((int) $token->tenant_id)->where('id', $token->id)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
@@ -90,17 +90,17 @@ final class OpaqueTokenService
 
     public function inspect(string $plain): array
     {
-        $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('token_type', 'access')->find();
+        $token = OAuthToken::where('token_hash', hash('sha256', $plain))->where('token_type', 'access')->first();
         if (!$token || $token->revoked_at !== null || strtotime((string) $token->expires_at) <= time()) return ['active' => false];
-        $scopeIds = OAuthTokenScope::forTenant((int) $token->tenant_id)->where('token_id', $token->id)->column('scope_id');
-        $tenant = IdentityTenant::where('id', (int) $token->tenant_id)->where('status', 1)->whereNull('deleted_at')->find();
-        $client = OAuthClient::forTenant((int) $token->tenant_id)->where('id', (int) $token->client_id)->where('status', 'active')->whereNull('deleted_at')->find();
-        $application = $client ? EnterpriseApplication::forTenant((int) $token->tenant_id)->where('id', (int) $client->application_id)->where('status', 'published')->whereNull('deleted_at')->find() : null;
-        $user = $token->user_id ? IdentityUser::forTenant((int) $token->tenant_id)->where('id', (int) $token->user_id)->where('status', 1)->whereNull('deleted_at')->find() : null;
+        $scopeIds = OAuthTokenScope::forTenant((int) $token->tenant_id)->where('token_id', $token->id)->pluck('scope_id')->all();
+        $tenant = IdentityTenant::where('id', (int) $token->tenant_id)->where('status', 1)->whereNull('deleted_at')->first();
+        $client = OAuthClient::forTenant((int) $token->tenant_id)->where('id', (int) $token->client_id)->where('status', 'active')->whereNull('deleted_at')->first();
+        $application = $client ? EnterpriseApplication::forTenant((int) $token->tenant_id)->where('id', (int) $client->application_id)->where('status', 'published')->whereNull('deleted_at')->first() : null;
+        $user = $token->user_id ? IdentityUser::forTenant((int) $token->tenant_id)->where('id', (int) $token->user_id)->where('status', 1)->whereNull('deleted_at')->first() : null;
         if (!$tenant || !$client || !$application || ($token->user_id && !$user)) return ['active' => false];
         if ($user && array_key_exists('password_version', $token->toArray()) && (int) $token->password_version !== (int) $user->password_version) return ['active' => false];
         if ($user && array_key_exists('session_version', $token->toArray()) && (int) $token->session_version !== (int) $user->session_version) return ['active' => false];
-        $member = $user ? IdentityMemberLink::forTenant((int) $token->tenant_id)->where('user_id', (int) $token->user_id)->find() : null;
+        $member = $user ? IdentityMemberLink::forTenant((int) $token->tenant_id)->where('user_id', (int) $token->user_id)->first() : null;
         return ['active' => true, 'client_id' => (string) $client->client_id, 'sub' => $user ? (string) $user->public_id : (string) $client->client_id, 'scope' => implode(' ', $this->scopeNames((int) $token->tenant_id, $scopeIds)), 'exp' => strtotime((string) $token->expires_at), 'token_type' => 'Bearer', 'member_id' => $member ? (int) $member->member_id : null, '_record' => $token->toArray()];
     }
 
@@ -109,7 +109,7 @@ final class OpaqueTokenService
         $plain = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $row = ['tenant_id' => $tenantId, 'client_id' => $clientId, 'user_id' => $userId, 'token_type' => $type, 'token_prefix' => substr($plain, 0, 12), 'token_hash' => hash('sha256', $plain), 'family_id' => $family, 'parent_id' => $parent, 'generation' => $generation, 'subject_type' => $userId === null ? 'client' : 'user', 'authorization_id' => $authorizationId, 'session_id' => $userId ? ($sessionId ?: rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=')) : null, 'expires_at' => date('Y-m-d H:i:s', $expires)];
         if ($userId !== null) {
-            $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->find();
+            $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->where('status', 1)->whereNull('deleted_at')->first();
             if (!$user) throw new DomainException('identity_user_unavailable');
             if ($this->hasTokenColumn('password_version')) $row['password_version'] = (int) $user->password_version;
             if ($this->hasTokenColumn('session_version')) $row['session_version'] = (int) $user->session_version;
@@ -117,20 +117,23 @@ final class OpaqueTokenService
             $row['password_version'] = null;
             if ($this->hasTokenColumn('session_version')) $row['session_version'] = null;
         }
-        $token = OAuthToken::create($row);
-        foreach ($scopeIds as $scopeId) OAuthTokenScope::create(['tenant_id' => $tenantId, 'token_id' => $token->id, 'scope_id' => $scopeId]);
+        $token = OAuthToken::forceCreate($row);
+        foreach ($scopeIds as $scopeId) OAuthTokenScope::forceCreate(['tenant_id' => $tenantId, 'token_id' => $token->id, 'scope_id' => $scopeId]);
         return ['id' => (int) $token->id, 'plain' => $plain];
     }
 
     private function hasTokenColumn(string $column): bool
     {
-        return Db::query('SELECT COUNT(*) AS total FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?', ['fun_oauth_token', $column])[0]['total'] > 0;
+        return Db::schema()->hasColumn((new OAuthToken())->getTable(), $column);
     }
 
     private function scopeNames(int $tenantId, array $scopeIds): array
     {
         if ($scopeIds === []) return [];
-        return \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $scopeIds)->column('name');
+        $scopes = \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $scopeIds)
+            ->where('status', 1)->whereNull('deleted_at')->pluck('name', 'id')->all();
+        if (count($scopes) !== count(array_unique($scopeIds))) throw new DomainException('invalid_scope');
+        return array_values($scopes);
     }
 
     private static function uuid(): string

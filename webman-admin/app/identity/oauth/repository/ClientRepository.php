@@ -17,15 +17,17 @@ final class ClientRepository implements ClientRepositoryInterface
 
     public function getClientEntity($clientIdentifier): ?ClientEntity
     {
-        $client = (new OAuthClient())->where('client_id', (string) $clientIdentifier)->where('status', 'active')->whereNull('deleted_at')->find();
+        $client = (new OAuthClient())->where('client_id', (string) $clientIdentifier)->where('status', 'active')->whereNull('deleted_at')->first();
         if (!$client) {
             return null;
         }
         $tenantId = (int) $client->tenant_id;
         $databaseId = (int) $client->id;
-        $redirects = (new \app\common\model\identity\RedirectUri())->where('tenant_id', $tenantId)->where('client_id', $databaseId)->where('uri_type', 'authorization_callback')->where('status', 1)->whereNull('deleted_at')->column('redirect_uri');
-        $grants = (new \app\common\model\identity\ClientGrant())->where('tenant_id', $tenantId)->where('client_id', $databaseId)->whereNull('deleted_at')->column('grant_type');
-        $scopes = (new \app\common\model\identity\ClientScope())->alias('cs')->join('scope s', 's.id=cs.scope_id AND s.tenant_id=cs.tenant_id')->where('cs.tenant_id', $tenantId)->where('cs.client_id', $databaseId)->whereNull('cs.deleted_at')->where('s.status', 1)->column('s.name');
+        $redirects = (new \app\common\model\identity\RedirectUri())->where('tenant_id', $tenantId)->where('client_id', $databaseId)->where('uri_type', 'authorization_callback')->where('status', 1)->whereNull('deleted_at')->pluck('redirect_uri')->all();
+        $grants = (new \app\common\model\identity\ClientGrant())->where('tenant_id', $tenantId)->where('client_id', $databaseId)->whereNull('deleted_at')->pluck('grant_type')->all();
+        $scopes = \support\Db::table('client_scope as cs')->join('scope as s', static function ($join): void {
+            $join->on('s.id', '=', 'cs.scope_id')->on('s.tenant_id', '=', 'cs.tenant_id');
+        })->where('cs.tenant_id', $tenantId)->where('cs.client_id', $databaseId)->whereNull('cs.deleted_at')->whereNull('s.deleted_at')->where('s.status', 1)->pluck('s.name')->all();
 
         return new ClientEntity((string) $client->client_id, (string) $client->name, $redirects, $client->client_type !== 'public', $tenantId, $databaseId, $client->client_type, $grants, $scopes);
     }

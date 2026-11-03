@@ -6,7 +6,7 @@ namespace app\market\service;
 
 use app\common\model\Member;
 use app\common\service\member\MemberAuthService;
-use think\facade\Db;
+use support\Db;
 
 /** 市场账号令牌：只保存令牌哈希；refresh 一次性使用并轮换。 */
 final class MarketTokenService
@@ -26,19 +26,20 @@ final class MarketTokenService
             return null;
         }
         return Db::transaction(function () use ($refreshToken): ?array {
-            $row = Db::name('market_token')
+            $row = Db::table('market_token')
                 ->where('refresh_hash', hash('sha256', $refreshToken))
                 ->whereNull('revoked_at')
-                ->lock(true)
-                ->find();
-            if (!$row || (int) $row['refresh_expires_at'] <= time()) {
+                ->lockForUpdate()
+                ->first();
+            if (!$row || (int) $row->refresh_expires_at <= time()) {
                 return null;
             }
+            $row = (array) $row;
             $memberId = (int) $row['member_id'];
             if ((new MemberAuthService())->activeMember($memberId) === null) {
                 return null;
             }
-            Db::name('market_token')->where('id', $row['id'])->update(['revoked_at' => date('Y-m-d H:i:s')]);
+            Db::table('market_token')->where('id', $row['id'])->update(['revoked_at' => date('Y-m-d H:i:s')]);
             return $this->issue($memberId);
         });
     }
@@ -48,14 +49,15 @@ final class MarketTokenService
         if (!$this->wellFormed($accessToken)) {
             return null;
         }
-        $row = Db::name('market_token')
+        $row = Db::table('market_token')
             ->where('access_hash', hash('sha256', $accessToken))
             ->whereNull('revoked_at')
-            ->find();
-        if (!$row || (int) $row['access_expires_at'] <= time()) {
+            ->first();
+        if (!$row || (int) $row->access_expires_at <= time()) {
             return null;
         }
-        return (int) $row['member_id'];
+        $memberId = (int) $row->member_id;
+        return (new MemberAuthService())->activeMember($memberId) === null ? null : $memberId;
     }
 
     public function revoke(string $accessToken): void
@@ -63,7 +65,7 @@ final class MarketTokenService
         if (!$this->wellFormed($accessToken)) {
             return;
         }
-        Db::name('market_token')
+        Db::table('market_token')
             ->where('access_hash', hash('sha256', $accessToken))
             ->whereNull('revoked_at')
             ->update(['revoked_at' => date('Y-m-d H:i:s')]);
@@ -74,20 +76,20 @@ final class MarketTokenService
         if (!$this->wellFormed($accessToken)) {
             return null;
         }
-        $row = Db::name('market_token')
+        $row = Db::table('market_token')
             ->where('access_hash', hash('sha256', $accessToken))
             ->whereNull('revoked_at')
-            ->find();
-        if (!$row || (int) $row['access_expires_at'] <= time()) {
+            ->first();
+        if (!$row || (int) $row->access_expires_at <= time()) {
             return null;
         }
-        return $this->account((int) $row['member_id']);
+        return $this->account((int) $row->member_id);
     }
 
     /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
     public function account(int $memberId): ?array
     {
-        $member = Member::where('id', $memberId)->where('status', 1)->field('id,username,nickname,avatar')->find();
+        $member = Member::where('id', $memberId)->where('status', 1)->select(['id', 'username', 'nickname', 'avatar'])->first();
         if (!$member) {
             return null;
         }
@@ -106,13 +108,13 @@ final class MarketTokenService
         $access = bin2hex(random_bytes(32));
         $refresh = bin2hex(random_bytes(32));
         $now = time();
-        Db::name('market_token')->insert([
+        Db::table('market_token')->insert([
             'member_id' => $memberId,
             'access_hash' => hash('sha256', $access),
             'refresh_hash' => hash('sha256', $refresh),
             'access_expires_at' => $now + $accessTtl,
             'refresh_expires_at' => $now + $refreshTtl,
-            'ip' => substr((string) request()->ip(), 0, 45),
+            'ip' => substr((string) request()->getRemoteIp(), 0, 45),
             'created_at' => date('Y-m-d H:i:s', $now),
         ]);
         return [

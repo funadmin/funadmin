@@ -16,9 +16,8 @@ use app\identity\service\OidcClaimService;
 use app\identity\service\OpaqueTokenService;
 use DomainException;
 use InvalidArgumentException;
-use think\Request;
-use think\Response;
-use think\response\Json;
+use support\Request;
+use support\Response;
 
 final class OAuth
 {
@@ -35,7 +34,7 @@ final class OAuth
             $scopeIds = (new OAuthScopeService())->resolveIds($client->tenantId, $protocol['scopes']);
             $transactionId = (new AuthorizationTransactionService())->create($client->tenantId, $client->databaseId, $redirect, $protocol, $scopeIds);
             $interactionUrl = '/identity/interaction?transaction_id=' . rawurlencode($transactionId);
-            if (str_contains(strtolower((string) $request->header('accept', '')), 'text/html')) return redirect($interactionUrl)->header($this->securityHeaders());
+            if (str_contains(strtolower((string) $request->header('accept', '')), 'text/html')) return redirect($interactionUrl)->withHeaders($this->securityHeaders());
             return $this->secureJson(['transaction_id' => $transactionId, 'interaction_url' => $interactionUrl]);
         } catch (DomainException|InvalidArgumentException $exception) {
             return $this->error($exception->getMessage(), $exception->getMessage() === 'server_error' ? 503 : 400);
@@ -62,7 +61,7 @@ final class OAuth
         }
     }
 
-    public function token(Request $request): Json
+    public function token(Request $request): Response
     {
         if (!str_starts_with(strtolower((string) $request->header('content-type', '')), 'application/x-www-form-urlencoded')) return $this->error('invalid_request', 400);
         try {
@@ -85,14 +84,14 @@ final class OAuth
         }
     }
 
-    public function revoke(Request $request): Json
+    public function revoke(Request $request): Response
     {
         try { [$client] = $this->authenticateClient($request, false); } catch (DomainException) { return $this->error('invalid_client', 401); }
         (new OpaqueTokenService())->revoke((string) $request->post('token', ''), $client->databaseId);
         return $this->secureJson([]);
     }
 
-    public function introspect(Request $request): Json
+    public function introspect(Request $request): Response
     {
         try {
             [$client] = $this->authenticateClient($request, false);
@@ -106,7 +105,7 @@ final class OAuth
         }
     }
 
-    public function userinfo(Request $request): Json
+    public function userinfo(Request $request): Response
     {
         $plain = (new BearerTokenExtractor())->extract($request);
         if ($plain === null) return $this->error('invalid_token', 401);
@@ -120,10 +119,10 @@ final class OAuth
     private function authorizationCode(Request $request, ClientEntity $client, array $scopeIds): array
     {
         $code = (new AuthorizationTransactionService())->consumeCode((string) $request->post('code', ''), $client->databaseId, (string) $request->post('redirect_uri', ''), (string) $request->post('code_verifier', ''));
-        $original = \app\common\model\identity\OAuthAuthorizationScope::forTenant($client->tenantId)->where('authorization_id', $code['authorization_id'])->column('scope_id');
+        $original = \app\common\model\identity\OAuthAuthorizationScope::forTenant($client->tenantId)->where('authorization_id', $code['authorization_id'])->pluck('scope_id')->all();
         if ($scopeIds !== [] && array_diff($scopeIds, $original) !== []) throw new DomainException('invalid_scope');
         $granted = $scopeIds ?: $original;
-        $authorization = \app\common\model\identity\OAuthAuthorization::forTenant($client->tenantId)->where('id', $code['authorization_id'])->find();
+        $authorization = \app\common\model\identity\OAuthAuthorization::forTenant($client->tenantId)->where('id', $code['authorization_id'])->first();
         if (!$authorization) throw new DomainException('invalid_grant');
         $tokens = (new OpaqueTokenService())->issue($client->tenantId, $client->databaseId, (int) $code['user_id'], $granted, (int) $code['authorization_id'], sessionId: (string) $authorization->session_id);
         if (in_array('openid', $this->scopeNames($client->tenantId, $granted), true)) {
@@ -162,16 +161,16 @@ final class OAuth
         return (new OAuthScopeService())->resolveIds($client->tenantId, $names);
     }
 
-    private function scopeNames(int $tenantId, array $ids): array { return $ids === [] ? [] : \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $ids)->column('name'); }
+    private function scopeNames(int $tenantId, array $ids): array { return $ids === [] ? [] : \app\common\model\identity\OAuthScope::forTenant($tenantId)->whereIn('id', $ids)->pluck('name')->all(); }
     private function appendQuery(string $uri, array $parameters): string { return $uri . (str_contains($uri, '?') ? '&' : '?') . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986); }
     private function redirectError(string $uri, string $error, ?string $state): Response { $params = ['error' => $error]; if ($state !== null) $params['state'] = $state; return redirect($this->appendQuery($uri, $params)); }
-    private function error(string $error, int $status): Json
+    private function error(string $error, int $status): Response
     {
         $response = $this->secureJson(['error' => $error], $status);
-        if ($error === 'invalid_client') $response->header(['WWW-Authenticate' => 'Basic realm="identity"']);
-        if ($error === 'invalid_token') $response->header(['WWW-Authenticate' => 'Bearer realm="identity", error="invalid_token"']);
+        if ($error === 'invalid_client') $response->withHeaders(['WWW-Authenticate' => 'Basic realm="identity"']);
+        if ($error === 'invalid_token') $response->withHeaders(['WWW-Authenticate' => 'Bearer realm="identity", error="invalid_token"']);
         return $response;
     }
     private function securityHeaders(): array { return ['Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'", 'Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'Referrer-Policy' => 'no-referrer', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'DENY']; }
-    private function secureJson(array $data, int $status = 200): Json { return json($data, $status)->header($this->securityHeaders()); }
+    private function secureJson(array $data, int $status = 200): Response { return json($data)->withStatus($status)->withHeaders($this->securityHeaders()); }
 }

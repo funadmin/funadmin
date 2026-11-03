@@ -15,6 +15,44 @@
 use Webman\Route;
 
 Route::disableDefaultRoute();
+Route::group('/identity', static function (): void {
+    foreach ([
+        ['GET', '/.well-known/openid-configuration', 'Metadata', 'discovery'],
+        ['GET', '/.well-known/oauth-authorization-server', 'Metadata', 'oauth'],
+        ['GET', '/.well-known/jwks.json', 'Metadata', 'jwks'],
+        ['GET', '/status', 'Status', 'index'],
+        ['GET', '/interaction', 'Identity', 'page'],
+        ['GET', '/interaction/login', 'Identity', 'page'],
+        ['GET', '/interaction/consent', 'Identity', 'page'],
+        ['GET', '/csrf', 'Identity', 'csrf'],
+        ['GET', '/captcha', 'Identity', 'captcha'],
+        ['POST', '/interaction/login', 'Identity', 'login'],
+        ['POST', '/interaction/consent', 'Identity', 'decision'],
+        ['GET', '/logout', 'Logout', 'end'],
+        ['POST', '/logout', 'Logout', 'end'],
+        ['GET', '/authorize', 'OAuth', 'authorize'],
+        ['POST', '/decision', 'OAuth', 'decision'],
+        ['POST', '/token', 'OAuth', 'token'],
+        ['POST', '/revoke', 'OAuth', 'revoke'],
+        ['POST', '/introspect', 'OAuth', 'introspect'],
+        ['GET', '/userinfo', 'OAuth', 'userinfo'],
+    ] as [$method, $path, $controller, $action]) {
+        Route::add([$method], $path, ['app\\identity\\controller\\' . $controller, $action]);
+    }
+    Route::get('/resource/identity', static function (\support\Request $request) {
+        return json([
+            'tenant_id' => $request->tenant_id,
+            'oauth_client_id' => $request->oauth_client_id,
+            'oauth_scopes' => $request->oauth_scopes,
+            'subject_type' => $request->subject_type,
+            'identity_user_id' => $request->identity_user_id,
+            'member_id' => $request->member_id,
+        ]);
+    })->middleware([
+        \app\identity\middleware\IdentityBearerMiddleware::class,
+        [\app\identity\middleware\RequiredScopeMiddleware::class, [['identity.read'], 'AND']],
+    ]);
+});
 Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'webman-admin']));
 $adminWeb = static fn () => response()->withFile(public_path('admin-web/index.html'))->withHeader('Cache-Control', 'no-cache');
 Route::get('/admin-web', $adminWeb);

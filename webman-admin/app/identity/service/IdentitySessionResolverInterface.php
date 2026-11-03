@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\identity\service;
 
-use think\Request;
+use support\Request;
 
 /**
  * Phase 5 登录页或测试适配器通过此可信边界提供当前身份。

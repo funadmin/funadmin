@@ -13,7 +13,7 @@ final class MarketSettings
 
     public static function value(string $key, mixed $default = null): mixed
     {
-        $file = root_path() . 'plugins' . DIRECTORY_SEPARATOR . self::CODE . DIRECTORY_SEPARATOR . 'config.php';
+        $file = base_path('plugins/' . self::CODE . '/config.php');
         $config = is_file($file) ? include $file : [];
         $definition = is_array($config) ? ($config[$key] ?? null) : null;
         return is_array($definition) && array_key_exists('value', $definition) ? $definition['value'] : $default;
@@ -31,7 +31,7 @@ final class MarketSettings
      */
     public static function storagePath(string $relative = ''): string
     {
-        $runtime = root_path() . 'runtime' . DIRECTORY_SEPARATOR;
+        $runtime = base_path('runtime') . DIRECTORY_SEPARATOR;
         $candidates = [
             $runtime . 'admin' . DIRECTORY_SEPARATOR . 'plugins-data' . DIRECTORY_SEPARATOR . self::CODE . DIRECTORY_SEPARATOR . 'storage',
             $runtime . 'plugins-data' . DIRECTORY_SEPARATOR . self::CODE . DIRECTORY_SEPARATOR . 'storage',

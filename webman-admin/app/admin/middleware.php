@@ -15,8 +15,7 @@
 return [
      // app 子类通过 locale Cookie 同步当前语言
      \app\middleware\LoadLangPack::class,
-
-     \think\middleware\SessionInit::class,
+     // Session 由 Webman 原生会话能力按需管理，不加载 ThinkPHP SessionInit。
         //全局请求缓存
 //     \think\middleware\CheckRequestCache::class,
 

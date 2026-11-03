@@ -33,6 +33,49 @@ final class MemberIntegrationTest extends TestCase
         Context::destroy();
     }
 
+    public function test_market_tokens_rotate_once_and_reject_disabled_members(): void
+    {
+        Db::schema()->create('market_token', static function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id(); $table->integer('member_id'); $table->string('access_hash'); $table->string('refresh_hash');
+            $table->integer('access_expires_at'); $table->integer('refresh_expires_at'); $table->string('ip');
+            $table->dateTime('created_at'); $table->dateTime('revoked_at')->nullable();
+        });
+        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
+        foreach (['identity_user', 'identity_member_link', 'identity_credential', 'identity_audit_log'] as $name) {
+            Db::schema()->create($name, static function (\Illuminate\Database\Schema\Blueprint $table) use ($name): void {
+                $table->id(); $table->integer('tenant_id'); $table->timestamps();
+                if ($name === 'identity_user') {
+                    foreach (['public_id', 'realm', 'username', 'display_name', 'email', 'mobile', 'avatar', 'locale', 'last_login_at'] as $field) $table->string($field)->nullable();
+                    $table->integer('source_id'); $table->integer('status')->default(1); $table->integer('password_version')->default(1); $table->integer('session_version')->default(1);
+                }
+                if ($name === 'identity_member_link') { $table->integer('user_id'); $table->integer('member_id'); }
+                if ($name === 'identity_credential') {
+                    $table->integer('user_id'); $table->string('type'); $table->string('secret_hash'); $table->integer('status'); $table->softDeletes();
+                }
+                if ($name === 'identity_audit_log') {
+                    $table->integer('user_id')->nullable(); $table->integer('client_id')->nullable();
+                    foreach (['event_type', 'outcome', 'subject_hash', 'ip_hash', 'context'] as $field) $table->text($field)->nullable();
+                }
+            });
+        }
+        Db::table('member')->insert(['id' => 91, 'username' => 'market_member', 'nickname' => '市场会员', 'password' => password_hash('market-password-91', PASSWORD_DEFAULT), 'sex' => '0', 'level_id' => 1, 'status' => 1]);
+        $request = new Request("POST /api/v3/auth/login HTTP/1.1\r\n\r\n");
+        Context::set(\Webman\Http\Request::class, $request);
+        $service = new \app\market\service\MarketTokenService();
+        $tokens = $service->login('market_member', 'market-password-91');
+        self::assertSame(91, $service->memberId($tokens['access_token']));
+        self::assertSame(91, $service->authenticate($tokens['access_token'])['id']);
+        self::assertSame(0, Db::table('market_token')->where('access_hash', $tokens['access_token'])->count());
+        $next = $service->refresh($tokens['refresh_token']);
+        self::assertNotNull($next);
+        self::assertNull($service->refresh($tokens['refresh_token']));
+        self::assertNull($service->memberId($tokens['access_token']));
+        Db::table('member')->where('id', 91)->update(['status' => 0]);
+        self::assertNull($service->memberId($next['access_token']));
+        self::assertNull($service->authenticate($next['access_token']));
+        self::assertNull($service->refresh($next['refresh_token']));
+    }
+
     public function test_member_index_filters_keyword_without_thinkphp_query_methods(): void
     {
         Db::table('member')->insert([

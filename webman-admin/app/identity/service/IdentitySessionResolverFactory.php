@@ -6,8 +6,8 @@ namespace app\identity\service;
 
 use Closure;
 use RuntimeException;
-use think\facade\Log;
-use think\Request;
+use support\Log;
+use support\Request;
 use Throwable;
 
 final class IdentitySessionResolverFactory
@@ -22,7 +22,7 @@ final class IdentitySessionResolverFactory
         }
 
         try {
-            $resolver = app()->make($class);
+            $resolver = \support\Container::get($class);
         } catch (Throwable) {
             self::fail('construction_failed', hash('sha256', $class));
         }
