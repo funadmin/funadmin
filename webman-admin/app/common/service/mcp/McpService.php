@@ -116,11 +116,19 @@ class McpService extends AbstractService
             $connection = Db::connection();
             if ($connection->transactionLevel() !== 0) throw new RuntimeException('只读查询不能复用外部事务');
             $driver = $connection->getDriverName();
-            if (!in_array($driver, ['mysql', 'sqlite'], true)) throw new RuntimeException('当前连接未实现只读查询保护');
+            if (!in_array($driver, ['mysql', 'sqlite', 'pgsql'], true)) throw new RuntimeException('当前连接未实现只读查询保护');
+            if ($driver === 'pgsql') $this->assertPostgresqlReadOnly($query);
             $pdo = $connection->getPdo();
             $queryOnly = $driver === 'sqlite' ? (int) $pdo->query('PRAGMA query_only')->fetchColumn() : 0;
             try {
-                if ($driver === 'mysql') $pdo->exec('START TRANSACTION READ ONLY');
+                if ($driver === 'pgsql') {
+                    $pdo->exec('BEGIN TRANSACTION READ ONLY');
+                    $pdo->exec("SET LOCAL statement_timeout = '3s'");
+                    $pdo->exec("SET LOCAL lock_timeout = '1s'");
+                    $schema = (string) ($connection->getConfig('search_path') ?: 'public');
+                    if (!preg_match('/\A[a-z_][a-z0-9_]{0,62}\z/D', $schema) || str_starts_with($schema, 'pg_') || $schema === 'information_schema') throw new RuntimeException('数据库 schema 不合法');
+                    $pdo->exec('SET LOCAL search_path = pg_catalog, "' . $schema . '"');
+                } elseif ($driver === 'mysql') $pdo->exec('START TRANSACTION READ ONLY');
                 else { $pdo->exec('PRAGMA query_only = ON'); $pdo->beginTransaction(); }
                 $statement = $pdo->prepare($query);
                 $statement->execute($params);
@@ -147,6 +155,20 @@ class McpService extends AbstractService
                 'success' => false,
                 'error' => '只读查询被拒绝或执行失败',
             ];
+        }
+    }
+
+    private function assertPostgresqlReadOnly(string $query): void
+    {
+        // 只读事务不能阻止会话锁、配置函数或 SECURITY DEFINER；函数调用采取白名单。
+        $source = preg_replace("/'(?:[^']|'')*'/s", "''", $query);
+        if (str_contains($source, '$') || preg_match('/\bFOR\s+(?:UPDATE|SHARE|NO\s+KEY|KEY\s+SHARE)\b|"[^"\n]+"\s*\(/i', $source)) throw new RuntimeException('只读查询包含不允许的语法');
+        preg_match_all('/\b([a-z_][a-z0-9_]*(?:\s*\.\s*[a-z_][a-z0-9_]*)*)\s*\(/i', $source, $calls);
+        $allowed = ['count', 'sum', 'avg', 'min', 'max', 'coalesce', 'nullif', 'lower', 'upper', 'length', 'char_length', 'trim', 'substring', 'round', 'abs', 'ceil', 'floor', 'date_trunc', 'extract', 'cast', 'concat', 'concat_ws', 'jsonb_array_length', 'jsonb_typeof', 'json_typeof', 'generate_series', 'in', 'exists', 'select'];
+        foreach ($calls[1] as $call) {
+            $call = strtolower(preg_replace('/\s+/', '', $call));
+            if (str_starts_with($call, 'pg_catalog.')) $call = substr($call, 11);
+            if (!in_array($call, $allowed, true)) throw new RuntimeException('只读查询函数不在白名单');
         }
     }
 

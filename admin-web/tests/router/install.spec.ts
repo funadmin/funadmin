@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { anonymousTarget, canContinueInstallation, validateInstallForm } from '@/views/install/install';
 
 describe('安装向导', () => {
+  it('切换数据库时只替换默认端口，保留自定义端口', async () => {
+    const { databasePort } = await import('@/views/install/install');
+    expect(databasePort('mysql', 'pgsql', '3306')).toBe('5432');
+    expect(databasePort('pgsql', 'mysql', '5432')).toBe('3306');
+    expect(databasePort('mysql', 'pgsql', '15432')).toBe('15432');
+  });
+
   it('未安装时匿名访问默认引导到安装页', () => {
     expect(anonymousTarget(false)).toBe('/admin/install');
     expect(anonymousTarget(true)).toBe('/admin/login');

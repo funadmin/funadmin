@@ -19,6 +19,7 @@ use app\common\model\concern\LaravelSoftDelete;
 
 class MemberLevel extends BackendModel
 {
+    protected $table = 'member_level';
     /**
      * @var bool
      */

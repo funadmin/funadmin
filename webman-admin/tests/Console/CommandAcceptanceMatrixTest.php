@@ -34,6 +34,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'ai:outbox-dispatch' => ['ai', 'AiOutboxDispatch', MySqlAiQueueTest::class, 'test_real_outbox_redis_transport_consumer_and_retry', [AiOutboxExecutionTest::class, 'test_command_returns_nonzero_when_outbox_storage_is_unavailable']],
             'ai:sandbox-cleanup' => ['ai', 'AiSandboxCleanup', AiSandboxCleanupTest::class, 'test_cleanup_command_only_claims_expired_terminal_sandboxes', 'test_cleanup_failure_returns_nonzero_and_preserves_foreign_container'],
             'mcp' => ['common', 'McpServer', McpStdioProtocolTest::class, 'test_stdio_handshake_tools_resources_calls_and_eof_are_clean', 'test_command_rejects_unknown_action_with_nonzero_exit'],
+            'database:core' => ['system', 'CoreDatabase', MySqlCoreMigrationTest::class, 'test_authoritative_root_sql_replays_and_repeats_without_archive', [CoreDatabaseCommandTest::class, 'test_command_requires_explicit_action_and_private_reference_without_connecting']],
             'upgrade:recover-stale' => ['system', 'UpgradeRecover', UpgradeRecoveryExecutionTest::class, 'test_pre_deploy_stale_task_releases_slot_and_repeat_is_noop', 'test_missing_post_deploy_backup_requires_manual_recovery_without_releasing_slot'],
         ];
     }
@@ -84,7 +85,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(22, self::matrix());
+        self::assertCount(23, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

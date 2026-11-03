@@ -12,7 +12,35 @@ use app\common\model\SystemMigration;
  */
 class MigrationService extends AbstractService
 {
+    public static function coreDirectory(?string $projectRoot = null): string
+    {
+        $configured = getenv('CORE_DATABASE_PATH');
+        $database = $configured !== false && $configured !== ''
+            ? $configured
+            : dirname($projectRoot ?? base_path()) . '/database';
+        $directory = realpath(rtrim($database, DIRECTORY_SEPARATOR) . '/migrations');
+        if ($directory === false || !is_dir($directory) || !is_readable($directory)
+            || !is_file($directory . '/001_baseline.sql') || !is_readable($directory . '/001_baseline.sql')) {
+            throw new RuntimeException('权威核心 SQL 目录不存在或基线不可读：' . $database);
+        }
+        return $directory;
+    }
+
+    public function runCore(): array
+    {
+        return $this->runDirectory(self::coreDirectory());
+    }
+
     public function run(?string $directory = null): array
+    {
+        $connection = Db::connection();
+        if (in_array($connection->getDriverName(), ['mysql', 'pgsql'], true)) {
+            return DatabaseLock::run($connection, 'php-migrations', fn (): array => $this->runPhpFiles($directory));
+        }
+        return $this->runPhpFiles($directory);
+    }
+
+    private function runPhpFiles(?string $directory): array
     {
         $schema = Db::schema();
         if (!$schema->hasTable('migrations')) {
@@ -41,15 +69,33 @@ class MigrationService extends AbstractService
             if (!is_callable($migration)) {
                 throw new RuntimeException('迁移文件必须返回可调用闭包：' . $name . '（实际类型：' . get_debug_type($migration) . '）');
             }
-            $migration();
-            Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
+            $apply = static function () use ($migration, $name, $checksum): void {
+                $migration();
+                PostgresqlSequences::synchronize(Db::connection());
+                Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
+            };
+            if (Db::connection()->getDriverName() === 'pgsql') {
+                Db::transaction($apply);
+            } else {
+                $apply();
+            }
             $executed[] = $name;
         }
         return $executed;
     }
 
+    public static function driverDirectory(string $directory): string
+    {
+        if (Db::connection()->getDriverName() !== 'pgsql' || basename(rtrim($directory, '/')) === 'pgsql') return $directory;
+        $native = rtrim($directory, '/') . '/pgsql';
+        if (is_dir($native)) return $native;
+        if ((glob(rtrim($directory, '/') . '/*.sql') ?: []) !== []) throw new RuntimeException('迁移缺少 PostgreSQL 原生制品：' . $directory);
+        return $directory;
+    }
+
     public function runDirectory(string $directory, string $scope = 'core'): array
     {
+        $directory = self::driverDirectory($directory);
         if (!is_dir($directory)) {
             throw new RuntimeException('Migration 目录不存在：' . $directory);
         }
@@ -73,7 +119,7 @@ class MigrationService extends AbstractService
             $this->migrationSortKey($right)
         ));
 
-        return $this->runFiles($files, $scope);
+        return $this->runFiles($files, $scope, true);
     }
 
     /**
@@ -82,6 +128,7 @@ class MigrationService extends AbstractService
      */
     public function runVersion(string $directory, string $version, string $scope = 'core'): array
     {
+        $directory = self::driverDirectory($directory);
         if (preg_match('/\A[0-9]+_[A-Za-z0-9_]+\z/', $version) !== 1) {
             throw new RuntimeException('Migration 版本不合法：' . $version);
         }
@@ -109,25 +156,76 @@ class MigrationService extends AbstractService
     }
 
     /** 两种入口共用 checksum、预检、SQL 解析、事务和登记逻辑。 */
-    private function runFiles(array $files, string $scope): array
+    private function runFiles(array $files, string $scope, bool $completeDirectory = false): array
     {
         $connection = Db::connection();
-        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL');
+        if ($connection->getDriverName() === 'pgsql') {
+            return DatabaseLock::run($connection, 'sql-migrations', fn (): array => $this->runPostgresqlFiles($files, $scope, $completeDirectory));
+        }
+        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL 或 PostgreSQL');
         $lock = 'migration:' . substr(hash('sha256', $connection->getDatabaseName()), 0, 40);
         if ((int) $connection->selectOne('SELECT GET_LOCK(?, 0) acquired', [$lock])->acquired !== 1) {
             throw new RuntimeException('数据库迁移正在执行');
         }
         try {
-            return $this->runLockedFiles($files, $scope);
+            return $this->runLockedFiles($files, $scope, $completeDirectory);
         } finally {
             $connection->selectOne('SELECT RELEASE_LOCK(?) released', [$lock]);
         }
     }
 
-    private function runLockedFiles(array $files, string $scope): array
+    private function runPostgresqlFiles(array $files, string $scope, bool $completeDirectory): array
+    {
+        $connection = Db::connection();
+        $repository = $connection->getSchemaBuilder()->hasTable('system_migration');
+        if ($completeDirectory && $repository) {
+            $available = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
+            if (array_diff($connection->table('system_migration')->where('scope', $scope)->pluck('version')->all(), $available) !== []) throw new RuntimeException('已登记的 migration 文件缺失');
+        }
+        $validated = [];
+        foreach ($files as $file) {
+            if (is_link($file) || !is_file($file) || !is_readable($file)) throw new RuntimeException('Migration 必须是可读普通文件');
+            $sql = (string) file_get_contents($file);
+            DdlEncodingGuard::check($connection, $sql);
+            $this->assertForwardOnly($sql, $file);
+            $checksum = hash('sha256', $sql);
+            $version = pathinfo($file, PATHINFO_FILENAME);
+            $record = $repository ? $connection->table('system_migration')->where('scope', $scope)->where('version', $version)->first() : null;
+            if ($record && !hash_equals($record->checksum, $checksum)) throw new RuntimeException('已执行的 migration checksum 发生变化：' . $version);
+            if ($record) continue;
+            $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix', 'fun_'), $connection->getTablePrefix());
+            $statements = SqlStatements::split($sql, 'pgsql');
+            if ($statements === []) throw new RuntimeException('Migration 没有可执行 SQL');
+            if ($connection->transactionLevel() > 0) throw new RuntimeException('SQL migration 禁止在外层事务中执行');
+            $validated[] = compact('file', 'version', 'checksum', 'statements');
+        }
+        $executed = [];
+        foreach ($validated as $migration) {
+            if (!hash_equals($migration['checksum'], (string) hash_file('sha256', $migration['file']))) throw new RuntimeException('Migration 在预检后发生变化');
+            $connection->transaction(static function () use ($connection, $migration, $scope): void {
+                foreach ($migration['statements'] as $statement) $connection->statement($statement);
+                if (!$connection->getSchemaBuilder()->hasTable('system_migration')) throw new RuntimeException('Migration 未创建 system_migration 表');
+                $connection->table('system_migration')->insert(['scope' => $scope, 'version' => $migration['version'], 'checksum' => $migration['checksum'], 'executed_at' => time()]);
+            });
+            $executed[] = $migration['version'];
+        }
+        return $executed;
+    }
+
+    private function runLockedFiles(array $files, string $scope, bool $completeDirectory): array
     {
         $validatedFiles = [];
         $repositoryReady = $this->repositoryExists();
+        $adopted = $scope === 'core' ? $this->adoptedCoreSources() : [];
+        if ($completeDirectory && $adopted !== []) {
+            $available = array_map('basename', $files);
+            if (array_diff(array_keys($adopted), $available) !== []) throw new RuntimeException('已接管的核心 migration 文件缺失');
+        }
+        if ($completeDirectory && $repositoryReady) {
+            $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
+            $missing = array_diff(SystemMigration::where('scope', $scope)->pluck('version')->all(), $versions);
+            if ($missing !== []) throw new RuntimeException('已登记的 migration 文件缺失：' . $scope . '/' . implode('、', $missing));
+        }
         foreach ($files as $file) {
             if (is_link($file) || !is_file($file) || !is_readable($file)) throw new RuntimeException('Migration 必须是普通文件：' . $file);
             $sql = file_get_contents($file);
@@ -136,6 +234,7 @@ class MigrationService extends AbstractService
             $this->assertForwardOnly($sql, $file);
             $checksum = hash('sha256', $sql);
             $version = pathinfo($file, PATHINFO_FILENAME);
+            if (isset($adopted[basename($file)]) && !hash_equals($adopted[basename($file)], $checksum)) throw new RuntimeException('已接管的核心 migration checksum 漂移：' . basename($file));
             if ($repositoryReady) {
                 $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
                 if ($record !== null && !hash_equals((string) $record->checksum, $checksum)) {
@@ -151,6 +250,7 @@ class MigrationService extends AbstractService
         foreach ($files as $file) {
             $version = pathinfo($file, PATHINFO_FILENAME);
             $checksum = $validatedFiles[$file]['checksum'];
+            if (isset($adopted[basename($file)])) continue;
             $repositoryReady = $this->repositoryExists();
             if ($repositoryReady) {
                 $record = SystemMigration::where('scope', $scope)->where('version', $version)->first();
@@ -164,6 +264,9 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('安装插件前必须先完成核心 migration');
             }
 
+            if ($scope === 'core' && $version === '001_baseline' && Db::connection()->select('SHOW TABLES') !== []) {
+                throw new RuntimeException('001_baseline 仅允许空库执行；存量库必须先进行差异接管');
+            }
             if ($scope === 'core' && $version === '006_schema_integrity') {
                 $this->preflightSchemaIntegrity006($scope, $version);
             }
@@ -189,7 +292,7 @@ class MigrationService extends AbstractService
             $sql = $this->preparePermissionAppNameCutover($scope, $version, $sql);
             $sql = $this->prepareAiAdminBigintCompatibility($scope, $version, $sql);
             $sql = $this->prepareAiPermissionHexCompatibility($scope, $version, $sql);
-            $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix'), (string) config('database.connections.mysql.prefix'));
+            $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix', 'fun_'), Db::connection()->getTablePrefix());
             $statements = $this->statements($sql);
             if (!$statements) {
                 throw new RuntimeException('Migration 没有可执行 SQL：' . $file);
@@ -217,6 +320,27 @@ class MigrationService extends AbstractService
             $executed[] = $version;
         }
         return $executed;
+    }
+
+    private function adoptedCoreSources(): array
+    {
+        $connection = Db::connection();
+        if (!Db::schema()->hasTable('core_database_adoption')) return [];
+        $records = $connection->table('core_database_adoption')->where('stage', 'complete')->orderBy('id')->get();
+        $sources = [];
+        if ($records->isEmpty()) return $sources;
+        $server = (string) $connection->selectOne('SELECT @@server_uuid uuid')->uuid;
+        foreach ($records as $record) {
+            if ($record->database_name !== $connection->getDatabaseName() || $record->table_prefix !== $connection->getTablePrefix()
+                || $record->server_uuid !== $server) throw new RuntimeException('核心接管登记目标实例漂移');
+            $checksums = json_decode($record->source_checksums, true, 512, JSON_THROW_ON_ERROR);
+            foreach ($checksums as $name => $checksum) {
+                if (preg_match('/^[0-9]+_[A-Za-z0-9_]+\.sql$/D', $name) !== 1 || preg_match('/^[a-f0-9]{64}$/D', $checksum) !== 1
+                    || (isset($sources[$name]) && !hash_equals($sources[$name], $checksum))) throw new RuntimeException('核心接管登记 checksum 冲突');
+                $sources[$name] = $checksum;
+            }
+        }
+        return $sources;
     }
 
     /**

@@ -28,6 +28,11 @@ final class DdlEncodingGuard
     public static function check(object $connection, string $sql): void
     {
         self::assertUtf8($sql);
+        if ($connection->getDriverName() === 'pgsql') {
+            $encoding = $connection->selectOne("SELECT current_setting('client_encoding') AS client, current_setting('server_encoding') AS server");
+            if (strtoupper((string) $encoding->client) !== 'UTF8' || strtoupper((string) $encoding->server) !== 'UTF8') throw new RuntimeException('PostgreSQL Migration/DDL 必须使用 UTF8');
+            return;
+        }
         self::assertSession((array) ($connection->selectOne('SELECT @@character_set_client client, @@character_set_connection connection_charset, @@character_set_results results_charset') ?? []));
     }
 }

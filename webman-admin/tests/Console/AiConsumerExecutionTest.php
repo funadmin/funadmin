@@ -46,6 +46,7 @@ class AiConsumerExecutionTest extends TestCase
                     foreach (['started_at', 'heartbeat_at', 'completed_at'] as $field) $table->dateTime($field)->nullable();
                 }
                 if ($name === 'ai_conversation') {
+                    $table->char('uuid', 36)->nullable();
                     $table->unsignedBigInteger('admin_id');
                     $table->string('title')->default('');
                     $table->unsignedBigInteger('group_id')->nullable();

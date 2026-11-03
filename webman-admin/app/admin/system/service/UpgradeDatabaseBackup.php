@@ -15,12 +15,25 @@ final class UpgradeDatabaseBackup
     private const SHADOW_PREFIX = 'funadmin_shadow_';
     private const BACKUP_PREFIX = 'funadmin_backup_';
 
-    public function __construct(private readonly ?PDO $connection = null)
+    public function __construct(private readonly ?PDO $connection = null, private readonly ?array $postgresqlConfig = null)
     {
+    }
+
+    private function postgresql(): ?PostgresqlDatabaseBackup
+    {
+        $config = $this->postgresqlConfig;
+        if ($config === null && $this->connection === null) $config = \support\Db::connection()->getConfig();
+        return ($config['driver'] ?? '') === 'pgsql' ? new PostgresqlDatabaseBackup($config) : null;
+    }
+
+    public function preflight(): void
+    {
+        $this->postgresql()?->preflight();
     }
 
     public function backup(string $path): string
     {
+        if ($postgresql = $this->postgresql()) return $postgresql->backup($path);
         $this->assertSafeTarget($path, false);
         $directory = dirname($path);
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
@@ -91,6 +104,7 @@ final class UpgradeDatabaseBackup
     /** @return array{backup_schema:string,shadow_schema:string} */
     public function restore(string $path, string $expectedHash): array
     {
+        if ($postgresql = $this->postgresql()) return $postgresql->restore($path, $expectedHash);
         $this->assertSafeTarget($path, true);
         $actualHash = hash_file('sha256', $path);
         if (!is_string($actualHash) || !hash_equals($expectedHash, $actualHash)) {
@@ -142,6 +156,7 @@ final class UpgradeDatabaseBackup
     /** 只清理带内部 marker 且超过保留期的孤立 shadow；backup 必须人工确认后另行清理。 */
     public function cleanupOldShadows(int $olderThanSeconds = 86400): array
     {
+        if ($this->postgresql() !== null) return [];
         $pdo = $this->pdo();
         $cutoff = time() - max(3600, $olderThanSeconds);
         $removed = [];

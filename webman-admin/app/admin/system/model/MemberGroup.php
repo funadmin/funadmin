@@ -18,6 +18,7 @@ use app\admin\model\BackendModel;
 use app\common\model\concern\LaravelSoftDelete;
 
 class MemberGroup extends BackendModel {
+    protected $table = 'member_group';
 
     /**
      * @var bool

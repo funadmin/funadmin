@@ -81,7 +81,7 @@ final class ManagedGenerationService
         $this->draftSchemaReader = Closure::fromCallable($draftSchemaReader ?? fn (int $id): FormSchema => $this->schemas->draft($id));
         $this->targetService = $targetService ?? new BusinessTargetService($projectRoot, function_exists('config') ? (string) config('database.default', 'mysql') : 'mysql');
         $this->databaseSchemaReader = Closure::fromCallable($databaseSchemaReader ?? static fn (string $connection, string $table): array =>
-            (new SchemaInspector(static fn (string $sql, array $bindings): array => Db::connection($connection)->select($sql, $bindings)))->inspect($table)
+            SchemaInspector::forConnection($connection)->inspect($table)
         );
         $this->moduleReader = Closure::fromCallable($moduleReader ?? static function (int $id): array {
             $module = BusinessModule::find($id);

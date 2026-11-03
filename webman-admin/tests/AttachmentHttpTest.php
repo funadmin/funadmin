@@ -33,7 +33,7 @@ final class AttachmentHttpTest extends TestCase
         Db::table('admin')->insert(['id' => 1, 'username' => 'attachment_root', 'password' => password_hash('attachment-root-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('admin')->insert(['id' => 2, 'username' => 'attachment_reader', 'password' => password_hash('attachment-reader-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '附件只读', 'code' => 'attachment_reader', 'level' => 10, 'data_scope' => 'self', 'status' => 1]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['systemattachment:index', 'systemattachmentgroup:tree', 'systemattachment:storage'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['systemattachment:index', 'systemattachmentgroup:tree', 'systemstorage:index'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService();

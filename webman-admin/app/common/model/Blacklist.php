@@ -36,7 +36,8 @@ class Blacklist extends BaseModel {
     public static function isBlocked(string $ip): bool
     {
         $ip = trim($ip);
-        return $ip !== '' && self::where('ip', $ip)->where('status', 1)->exists();
+        if ($ip === '' || !\support\Db::schema()->hasTable('blacklist')) return false;
+        return self::where('ip', $ip)->where('status', 1)->exists();
     }
 
     public static function filteredQuery(bool $recycled, string $ip = '', $status = null)

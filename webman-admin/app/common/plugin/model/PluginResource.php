@@ -8,6 +8,6 @@ use app\common\model\BaseModel;
 
 final class PluginResource extends BaseModel
 {
-    protected $name = 'plugin_resource';
+    protected $table = 'plugin_resource';
     protected $guarded = [];
 }

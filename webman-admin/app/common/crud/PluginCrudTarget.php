@@ -69,7 +69,7 @@ final class PluginCrudTarget
     {
         $target = (array) $definition->get('target', []);
         $plugin = (string) ($target['plugin'] ?? '');
-        $relative = "plugins/{$plugin}/database/migrations";
+        $relative = "plugins/{$plugin}/database/migrations" . ($this->postgresql($definition) ? '/pgsql' : '');
         return [
             'type' => 'plugin-migration-sequence',
             'path' => $relative,
@@ -80,7 +80,7 @@ final class PluginCrudTarget
     private function migration(CrudDefinition $definition, string $plugin, string $entity, string $createSql): array
     {
         $table = (string) $definition->get('table', '');
-        $relative = "plugins/{$plugin}/database/migrations";
+        $relative = "plugins/{$plugin}/database/migrations" . ($this->postgresql($definition) ? '/pgsql' : '');
         $directory = PathGuard::resolve($this->projectRoot, $relative, '插件目录');
         $snapshot = $this->schemaSnapshot($definition);
         $metadata = '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n";
@@ -130,6 +130,16 @@ final class PluginCrudTarget
             return ['path' => $previous['path'], 'content' => $previous['content']];
         }
         $alter = $this->forwardAlter($previous['snapshot'], $snapshot);
+        if ($this->postgresql($definition)) {
+            $dialect = new \app\common\service\database\SqlDialect('pgsql');
+            $statements = [];
+            foreach ($snapshot['fields'] as $name => $field) {
+                $old = $previous['snapshot']['fields'][$name] ?? null;
+                if ($old === null) $statements[] = 'ALTER TABLE ' . $dialect->identifier($table) . ' ADD COLUMN ' . $dialect->identifier($name) . ' ' . $field['definition'] . ';';
+                if (($field['index'] ?? '') !== '' && ($old['index'] ?? '') === '') $statements[] = $dialect->createIndex($table, $name, $field['index'] === 'unique');
+            }
+            return ['path' => sprintf('%s/%03d_alter_%s.sql', $relative, $this->nextSequence($maximum), str_replace('-', '_', $entity)), 'content' => "-- funadmin-physical-table\n" . implode("\n", $statements) . "\n" . $metadata];
+        }
         return [
             'path' => sprintf('%s/%03d_alter_%s.sql', $relative, $this->nextSequence($maximum), str_replace('-', '_', $entity)),
             'content' => "-- funadmin-physical-table\n-- Generated forward migration; review before applying.\nALTER TABLE `{$table}`\n  "
@@ -143,7 +153,9 @@ final class PluginCrudTarget
         $fields = [];
         foreach ($data['fields'] as $field) {
             $fields[$field['name']] = [
-                'definition' => $this->columnDefinition($field),
+                'definition' => $this->postgresql($definition)
+                    ? substr((new \app\common\service\database\SqlDialect('pgsql'))->column($field), strlen($field['name']) + 3)
+                    : $this->columnDefinition($field),
                 'index' => ($field['unique'] ?? false) ? 'unique' : ((($field['search'] ?? false) || ($field['relation'] ?? '') !== '') ? 'index' : ''),
             ];
         }
@@ -155,7 +167,17 @@ final class PluginCrudTarget
         if ($data['softDeletes'] && !isset($fields['deleted_at'])) {
             $fields['deleted_at'] = ['definition' => 'datetime NULL', 'index' => ''];
         }
+        if ($this->postgresql($definition)) {
+            foreach ($fields as &$field) if ($field['definition'] === 'datetime NULL') $field['definition'] = 'timestamp without time zone NULL';
+            unset($field);
+        }
         return ['table' => $data['table'], 'fields' => $fields];
+    }
+
+    private function postgresql(CrudDefinition $definition): bool
+    {
+        $connection = (string) $definition->get('connection', 'mysql');
+        return config('database.connections.' . $connection . '.driver', $connection) === 'pgsql';
     }
 
     private function columnDefinition(array $field): string

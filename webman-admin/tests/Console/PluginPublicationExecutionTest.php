@@ -15,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 use support\Db;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 class PluginPublicationExecutionTest extends TestCase
 {
     public function test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently(): void

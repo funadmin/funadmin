@@ -9,13 +9,13 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('plugin/market/setting', ['complete_match' => true])]
+#[RouteGroup('/admin/plugin/market/setting')]
 final class SettingController extends AdminApiController
 {
     protected array $middleware = [
@@ -23,16 +23,16 @@ final class SettingController extends AdminApiController
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
-    #[Get('')]
+    #[Get('/')]
     public function index(): Response { return $this->ok(data: (new MarketAdminService())->signingStatus()); }
-    #[Post('key')]
+    #[Post('/key')]
     public function generateKey(): Response
     {
         try { return $this->ok('签名密钥已生成', (new MarketAdminService())->generateKey()); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 422); }
     }
-    #[Get('payment')]
+    #[Get('/payment')]
     public function payment(): Response { return $this->ok(data: (new MarketAdminService())->paymentSettings()); }
-    #[Put('payment')]
+    #[Put('/payment')]
     public function savePayment(): Response
     {
         try { return $this->ok('支付配置已保存', (new MarketAdminService())->savePaymentSettings((array) $this->request->put())); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 422); }

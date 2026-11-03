@@ -58,9 +58,12 @@ export const isSystemInstalled = (): Promise<boolean> => {
 };
 
 export const installApi = {
-  environment: () => installHttp.get<never, InstallEnvironment>('/step2'),
+  environment: (driver: 'mysql' | 'pgsql' = 'mysql') => installHttp.get<never, InstallEnvironment>('/step2', { params: { driver } }),
   install: async (form: InstallForm) => {
     const result = await installHttp.post<never, InstallResult>('/step3', {
+      driver: form.driver ?? 'mysql',
+      schema: form.schema ?? 'public',
+      sslmode: form.sslmode ?? 'prefer',
       hostname: form.hostname,
       port: form.port,
       database: form.database,

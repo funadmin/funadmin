@@ -32,6 +32,7 @@ final class CrudResourceInstaller
         if ($manifestDefinitionHash === '' || !hash_equals($manifestDefinitionHash, $definitionHash)) {
             throw new RuntimeException('Definition 哈希与生成审计不一致');
         }
+        if (Db::connection()->getDriverName() === 'pgsql') return $this->applyPostgresql($definition, $manifest, $forceRefresh);
         $permission = $this->verifiedStatements($definition, $manifest, 'permissionMigration', '权限菜单 migration');
         $lang = null;
         if ((string) ($definition['generationTargets']['langMigration'] ?? '') !== '') {
@@ -84,6 +85,36 @@ final class CrudResourceInstaller
         ];
     }
 
+    private function applyPostgresql(array $definition, array $manifest, bool $forceRefresh): array
+    {
+        $permission = $this->verifiedStatements($definition, $manifest, 'permissionMigration', '权限菜单 migration');
+        $lang = !empty($definition['generationTargets']['langMigration']) ? $this->verifiedStatements($definition, $manifest, 'langMigration', '语言包 migration') : null;
+        $prefix = Db::connection()->getTablePrefix();
+        if ($prefix !== '' && !preg_match('/\A[a-z_][a-z0-9_]*\z/D', $prefix)) throw new RuntimeException('资源表前缀不合法');
+        $inserted = $skipped = 0;
+        ($this->transaction)(function () use ($permission, $lang, $prefix, $forceRefresh, &$inserted, &$skipped): void {
+            foreach (array_merge($permission['statements'], $lang['statements'] ?? []) as $statement) {
+                $plain = preg_replace("/'(?:[^']|'')*'/s", "''", $statement);
+                if (!preg_match('/\A(?:INSERT\s+INTO\s+"fun_(?:permission|admin_menu|language_line)"|UPDATE\s+"fun_(?:permission|admin_menu)"|SELECT\s+1\s*;?\s*\z)/i', $plain)
+                    || preg_match('/\b(?:DELETE|DROP|ALTER|TRUNCATE|RENAME|GRANT|REVOKE|CALL|COPY|CREATE)\b/i', $plain)
+                    || preg_match('/\b(?:FROM|JOIN|INTO)\s+(?!"fun_(?:permission|admin_menu|language_line)"(?:\s|\())[^\s(]+/i', $plain)) throw new RuntimeException('PostgreSQL 资源 SQL 不在白名单');
+                $isLanguage = str_starts_with($statement, 'INSERT INTO "fun_language_line"');
+                if ($isLanguage && $forceRefresh) $statement = preg_replace('/ON CONFLICT \("locale","key"\) DO NOTHING;\s*\z/', 'ON CONFLICT ("locale","key") DO UPDATE SET "value"=EXCLUDED."value","updated_at"=EXCLUDED."updated_at";', $statement);
+                $statement = preg_replace_callback('/\x27(?:\x27\x27|[^\x27])*\x27|"fun_(permission|admin_menu|language_line)"/s', static fn (array $match): string => isset($match[1]) ? '"' . $prefix . $match[1] . '"' : $match[0], $statement);
+                $affected = ($this->executor)($statement);
+                if ($isLanguage && !$forceRefresh) {
+                    $inserted += $affected;
+                    $values = substr($statement, stripos($statement, 'VALUES') + 6);
+                    $values = substr($values, 0, strripos($values, 'ON CONFLICT'));
+                    $values = preg_replace("/'(?:[^']|'')*'/s", "''", $values);
+                    $total = preg_match_all('/\(\x27\x27,\x27\x27,\x27\x27,NOW\(\),NOW\(\)\)/', $values);
+                    $skipped += max(0, $total - $affected);
+                }
+            }
+        });
+        return ['resourceApplyStatus' => 'applied', 'resourceApplyError' => null, 'resourceChecksum' => $permission['checksum'], 'langChecksum' => $lang['checksum'] ?? null, 'langInserted' => $forceRefresh || $lang === null ? null : $inserted, 'langSkipped' => $forceRefresh || $lang === null ? null : $skipped, 'langForceRefresh' => $lang === null ? null : $forceRefresh];
+    }
+
     /** @return array{statements:list<string>,checksum:string} */
     private function verifiedStatements(array $definition, array $manifest, string $target, string $label): array
     {
@@ -96,7 +127,8 @@ final class CrudResourceInstaller
         if ($sql === false || trim($sql) === '') throw new RuntimeException("{$label}为空");
         $checksum = hash('sha256', $sql);
         if (!hash_equals((string) $artifact['hash'], $checksum)) throw new RuntimeException("{$label}哈希与生成审计不一致");
-        return ['statements' => $this->statements($sql), 'checksum' => $checksum];
+        $statements = Db::connection()->getDriverName() === 'pgsql' ? \app\common\service\database\SqlStatements::split($sql, 'pgsql') : $this->statements($sql);
+        return ['statements' => $statements, 'checksum' => $checksum];
     }
 
     /** force-refresh：把语言包 INSERT IGNORE 改写为覆盖式 INSERT，人工修订仅在显式强制时才会被刷新。 */

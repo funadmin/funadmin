@@ -7,7 +7,7 @@ namespace app\common\model;
 /** 系统升级持久任务。 */
 final class UpgradeTask extends BaseModel
 {
-    protected $name = 'upgrade_task';
+    protected $table = 'upgrade_task';
 
     protected $casts = ['metadata' => 'array'];
     protected $guarded = [];

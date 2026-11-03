@@ -9,13 +9,12 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('plugin/market/order', ['complete_match' => true])]
+#[RouteGroup('/admin/plugin/market/order')]
 final class OrderController extends AdminApiController
 {
     protected array $middleware = [
@@ -24,16 +23,13 @@ final class OrderController extends AdminApiController
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
-    #[Get('')]
+    #[Get('/')]
     public function index(): Response { return $this->ok(data: (new MarketAdminService())->orders(['status' => (string) $this->request->get('status', ''), 'keyword' => mb_substr((string) $this->request->get('keyword', ''), 0, 64), 'pluginId' => (int) $this->request->get('pluginId', 0)], $this->page(), $this->pageSize())); }
-    #[Get(':no')]
-    #[Pattern('no', '\\d{20,32}')]
+    #[Get('/{no:\\d{20,32}}')]
     public function detail(string $no): Response { return $this->attempt(fn () => (new MarketAdminService())->orderDetail($no)); }
-    #[Post(':no/confirm')]
-    #[Pattern('no', '\\d{20,32}')]
-    public function confirm(string $no): Response { return $this->attempt(fn () => (new MarketAdminService())->confirmOrder($no, (string) $this->request->post('remark', ''), (int) session('admin.id')), '已确认收款并开通授权'); }
-    #[Post(':no/close')]
-    #[Pattern('no', '\\d{20,32}')]
+    #[Post('/{no:\\d{20,32}}/confirm')]
+    public function confirm(string $no): Response { return $this->attempt(fn () => (new MarketAdminService())->confirmOrder($no, (string) $this->request->post('remark', ''), (int) ($this->request->context['admin']['id'] ?? 0)), '已确认收款并开通授权'); }
+    #[Post('/{no:\\d{20,32}}/close')]
     public function close(string $no): Response { return $this->attempt(fn () => (new MarketAdminService())->closeOrder($no), '订单已关闭'); }
     private function attempt(callable $operation, string $message = '操作成功'): Response
     {

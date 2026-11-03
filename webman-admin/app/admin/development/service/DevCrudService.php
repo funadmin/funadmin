@@ -54,14 +54,10 @@ final class DevCrudService
         ?CrudResourceInstaller $resourceInstaller = null
     ) {
         $this->inspectorFactory = Closure::fromCallable(
-            $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
-                static fn (string $sql, array $bindings): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select($sql, $bindings))
-            )
+            $inspectorFactory ?? static fn (string $connection): SchemaInspector => SchemaInspector::forConnection($connection)
         );
         $this->tableReader = Closure::fromCallable(
-            $tableReader ?? static fn (string $connection): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select(
-                'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
-            ))
+            $tableReader ?? static fn (string $connection): array => array_map(static fn (array $row): array => ['TABLE_NAME' => $row['name'], 'TABLE_COMMENT' => $row['comment']], SchemaInspector::forConnection($connection)->tables())
         );
         $this->auditWriter = Closure::fromCallable($auditWriter ?? static function (array $row): int {
             $model = CrudGeneration::create($row);

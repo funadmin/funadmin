@@ -8,7 +8,7 @@ use app\common\model\BaseModel;
 
 final class PluginVersionHistory extends BaseModel
 {
-    protected $name = 'plugin_version_history';
+    protected $table = 'plugin_version_history';
 
     protected $autoWriteTimestamp = true;
 }

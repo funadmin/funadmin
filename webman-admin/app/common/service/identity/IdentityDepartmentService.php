@@ -25,6 +25,6 @@ class IdentityDepartmentService
             'created_at' => $now,
             'updated_at' => $now,
         ], $departmentIds);
-        (new IdentityUserDepartment())->saveAll($rows);
+        \support\Db::table('identity_user_department')->insert($rows);
     }
 }

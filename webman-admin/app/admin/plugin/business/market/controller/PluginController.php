@@ -9,15 +9,14 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('plugin/market/plugin', ['complete_match' => true])]
+#[RouteGroup('/admin/plugin/market/plugin')]
 final class PluginController extends AdminApiController
 {
     protected array $middleware = [
@@ -26,20 +25,17 @@ final class PluginController extends AdminApiController
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
-    #[Get('overview')]
+    #[Get('/overview')]
     public function overview(): Response { return $this->ok(data: (new MarketAdminService())->overview()); }
-    #[Get('')]
+    #[Get('/')]
     public function index(): Response { return $this->ok(data: (new MarketAdminService())->plugins((string) $this->request->get('keyword', ''), $this->page(), $this->pageSize())); }
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\\d+}')]
     public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updatePlugin($id, (array) $this->request->put()), '插件信息已保存'); }
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\\d+}')]
     public function delete(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deletePlugin($id), '插件已删除'); }
-    #[Get(':id/versions')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/{id:\\d+}/versions')]
     public function versions(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->versions($id)); }
-    #[Post('upload')]
+    #[Post('/upload')]
     public function upload(): Response
     {
         $file = $this->request->file('file');
@@ -47,23 +43,17 @@ final class PluginController extends AdminApiController
         if (strtolower($file->getOriginalExtension()) !== 'zip') return $this->fail('只支持 .zip 插件包', code: 422);
         return $this->attempt(fn () => (new MarketAdminService())->upload($file->getPathname(), (string) $this->request->post('changelog', '')), '已上传并签名，版本处于草稿状态');
     }
-    #[Put('version/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/version/{id:\\d+}')]
     public function updateVersion(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->updateVersion($id, (array) $this->request->put()), '更新日志已保存'); }
-    #[Post('version/:id/publish')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/version/{id:\\d+}/publish')]
     public function publish(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->publishVersion($id), '版本已发布'); }
-    #[Post('version/:id/withdraw')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/version/{id:\\d+}/withdraw')]
     public function withdraw(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->withdrawVersion($id), '版本已撤回'); }
-    #[Post('version/:id/republish')]
-    #[Pattern('id', '\\d+')]
+    #[Post('/version/{id:\\d+}/republish')]
     public function republish(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->republishVersion($id), '版本已重新发布'); }
-    #[Delete('version/:id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/version/{id:\\d+}')]
     public function deleteVersion(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deleteVersion($id), '版本已删除'); }
-    #[Get('version/:id/package')]
-    #[Pattern('id', '\\d+')]
+    #[Get('/version/{id:\\d+}/package')]
     public function package(int $id): Response
     {
         try { $package = (new MarketAdminService())->versionPackage($id); } catch (\RuntimeException $exception) { return $this->fail($exception->getMessage(), code: 404); }

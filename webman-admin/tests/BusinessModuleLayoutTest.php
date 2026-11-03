@@ -352,7 +352,7 @@ final class BusinessModuleLayoutTest extends TestCase
 
     public function test_member_group_and_level_models_keep_logical_tables_and_soft_delete_scope(): void
     {
-        foreach (['MemberGroup' => 'member_groups', 'MemberLevel' => 'member_levels'] as $name => $table) {
+        foreach (['MemberGroup' => 'member_group', 'MemberLevel' => 'member_level'] as $name => $table) {
             $class = 'app\\admin\\system\\model\\' . $name;
             self::assertTrue(class_exists($class));
             $model = new $class();
@@ -368,7 +368,7 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $class = 'app\\admin\\system\\model\\Member';
         self::assertTrue(class_exists($class));
-        self::assertSame('members', (new $class())->getTable());
+        self::assertSame('member', (new $class())->getTable());
         self::assertSame('用户名长度必须为 2 至 80 个字符', $class::validateAttributes(['username' => 'a']));
         self::assertSame('用户名已存在', $class::duplicateError(new \RuntimeException('1062 Duplicate entry username')));
         self::assertNull($class::duplicateError(new \RuntimeException('not a duplicate')));
@@ -379,7 +379,7 @@ final class BusinessModuleLayoutTest extends TestCase
     public function test_log_attachment_and_department_models_have_explicit_module_ownership(): void
     {
         foreach ([
-            'system' => ['AdminLog' => 'admin_log', 'AttachGroup' => 'attach_groups'],
+            'system' => ['AdminLog' => 'admin_log', 'AttachGroup' => 'attach_group'],
             'authorization' => ['Department' => 'department'],
         ] as $module => $models) {
             foreach ($models as $name => $table) {
@@ -402,8 +402,8 @@ final class BusinessModuleLayoutTest extends TestCase
         $source = file_get_contents($file);
         token_get_all($source, TOKEN_PARSE);
         self::assertStringContainsString('namespace app\\admin\\system\\model;', $source);
-        self::assertStringContainsString("protected \$name = 'member_tag';", $source);
-        self::assertStringContainsString('use think\\model\\concern\\SoftDelete;', $source);
+        self::assertStringContainsString("protected \$table = 'member_tag';", $source);
+        self::assertStringContainsString('use app\\common\\model\\concern\\LaravelSoftDelete;', $source);
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/MemberTag.php');
     }
 
@@ -737,6 +737,29 @@ final class BusinessModuleLayoutTest extends TestCase
             }
             rmdir($root);
         }
+    }
+
+    public function test_form_crud_factory_uses_entity_layout_for_new_generated_targets(): void
+    {
+        $factory = new \app\admin\development\service\FormCrudDefinitionFactory();
+        $method = (new ReflectionClass($factory))->getMethod('targets');
+        $targets = $method->invoke($factory, 'layout-factory', 'LayoutFactory', false);
+        self::assertSame('app/admin/generated/layout_factory/model/LayoutFactory.php', $targets['model']);
+        self::assertSame('app/admin/generated/layout_factory/validate/LayoutFactoryValidate.php', $targets['validate']);
+        self::assertSame('app/admin/generated/layout_factory/service/LayoutFactoryService.php', $targets['service']);
+        self::assertSame('app/admin/generated/layout_factory/controller/LayoutFactoryController.php', $targets['controller']);
+        $memberTargets = $method->invoke($factory, 'layout-factory', 'LayoutFactory', true);
+        self::assertSame('app/api/controller/generated/LayoutFactoryController.php', $memberTargets['memberApiController']);
+        self::assertSame('app/admin/generated/layout_factory/controller/LayoutFactoryController.php', $memberTargets['controller']);
+    }
+
+    public function test_plugin_center_uses_webman_database_and_cache_facades(): void
+    {
+        $source = file_get_contents(__DIR__ . '/../app/admin/plugin/service/PluginCenterService.php');
+        self::assertStringContainsString('use support\\Db;', $source);
+        self::assertStringContainsString('use support\\Cache;', $source);
+        self::assertStringNotContainsString('use think\\facade\\Db;', $source);
+        self::assertStringNotContainsString('use think\\facade\\Cache;', $source);
     }
 
     public function test_application_autoload_does_not_redirect_controllers_to_a_flat_directory(): void

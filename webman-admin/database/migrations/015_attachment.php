@@ -66,8 +66,11 @@ return static function (): void {
         Db::table('attach_group')->insert(['id' => 1, 'pid' => 0, 'name' => '默认', 'thumb' => '', 'status' => 1, 'sort_order' => 999, 'created_at' => $now, 'updated_at' => $now]);
     }
     Db::transaction(static function () use ($now): void {
-        foreach (['index', 'detail', 'rename', 'move', 'delete', 'tree', 'create', 'update', 'deleteGroup', 'storage'] as $action) {
-            $controller = in_array($action, ['tree', 'create', 'update', 'deleteGroup'], true) ? 'SystemAttachmentGroup' : 'SystemAttachment';
+        foreach ([
+            ['SystemAttachment', 'index'], ['SystemAttachment', 'detail'], ['SystemAttachment', 'rename'], ['SystemAttachment', 'move'], ['SystemAttachment', 'delete'],
+            ['SystemAttachmentGroup', 'tree'], ['SystemAttachmentGroup', 'create'], ['SystemAttachmentGroup', 'update'], ['SystemAttachmentGroup', 'deleteGroup'],
+            ['SystemStorage', 'index'], ['SystemStorage', 'update'],
+        ] as [$controller, $action]) {
             $resource = PermissionResource::fromParts('admin', $controller, $action);
             if (Db::table('permission')->where('code', $resource['code'])->exists()) continue;
             Db::table('permission')->insert([

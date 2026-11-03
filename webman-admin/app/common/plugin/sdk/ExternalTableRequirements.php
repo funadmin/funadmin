@@ -17,7 +17,7 @@ final class ExternalTableRequirements
     public function __construct(private readonly string $defaultConnection, ?callable $reader = null)
     {
         $this->reader = Closure::fromCallable($reader ?? static fn (string $connection, string $table): array =>
-            (new SchemaInspector(static fn (string $sql, array $bindings): array => array_map(static fn (object $row): array => (array) $row, Db::connection($connection)->select($sql, $bindings))))->inspect($table));
+            SchemaInspector::forConnection($connection)->inspect($table));
     }
 
     public static function fromDefinition(CrudDefinition $definition): array

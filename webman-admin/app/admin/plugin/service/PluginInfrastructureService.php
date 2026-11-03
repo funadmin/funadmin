@@ -358,7 +358,7 @@ final class PluginInfrastructureService
         $requirements = (array) ($data['externalTables'] ?? []);
         if ($migration && $requirements !== []) {
             $relative = (string) ($data['migrations']['path'] ?? 'database/migrations');
-            $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), $relative, '插件迁移');
+            $directory = MigrationService::driverDirectory(\app\common\crud\PathGuard::resolve($manifest->directory(), $relative, '插件迁移'));
             foreach (glob($directory . '/*.sql') ?: [] as $file) {
                 if (is_link($file)) throw new \InvalidArgumentException('EXTERNAL_TABLE_DDL_FORBIDDEN');
                 $sql = (string) file_get_contents($file);
@@ -380,7 +380,7 @@ final class PluginInfrastructureService
     private function assertPendingCreateTables(Manifest $manifest): void
     {
         $data = $manifest->toArray();
-        $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移');
+        $directory = MigrationService::driverDirectory(\app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移'));
         $tables = Db::schema()->getTableListing(schemaQualified: false);
         $applied = Db::schema()->hasTable('system_migration')
             ? Db::table('system_migration')->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
@@ -411,7 +411,7 @@ final class PluginInfrastructureService
                 || !in_array($table, $tables, true)) {
                 continue;
             }
-            $actual = (new \app\common\crud\SchemaInspector())->inspect($table);
+            $actual = \app\common\crud\SchemaInspector::forConnection()->inspect($table);
             $columns = array_column($actual['columns'], null, 'name');
             foreach ((array) ($snapshot['fields'] ?? []) as $name => $field) {
                 $definition = (string) ($field['definition'] ?? '');

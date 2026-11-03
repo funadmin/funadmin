@@ -8,7 +8,7 @@ use app\common\model\BaseModel;
 
 final class PluginOperation extends BaseModel
 {
-    protected $name = 'plugin_operation';
+    protected $table = 'plugin_operation';
 
     protected $guarded = [];
 }

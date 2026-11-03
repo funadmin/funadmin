@@ -28,9 +28,9 @@ final class PluginModificationDetector
     public static function create(): self
     {
         return new self(
-            root_path('app'),
+                        base_path('app'),
             public_path(),
-            root_path('admin-web'),
+                        base_path('admin-web'),
             new DatabasePluginResourceRepository()
         );
     }

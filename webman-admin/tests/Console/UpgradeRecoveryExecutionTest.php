@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use support\Db;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class UpgradeRecoveryExecutionTest extends TestCase
 {
     private string $root;

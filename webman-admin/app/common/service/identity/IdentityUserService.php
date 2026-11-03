@@ -14,29 +14,31 @@ class IdentityUserService
 {
     public function create(int $tenantId, string $realm, int $sourceId, array $attributes): IdentityUser
     {
-        return IdentityUser::create([
+        $user = new IdentityUser();
+        $user->forceFill([
             'tenant_id' => $tenantId,
             'public_id' => Uuid::uuid4()->toString(),
             'realm' => $realm,
             'source_id' => $sourceId,
             ...$this->attributes($attributes),
-        ]);
+        ])->save();
+        return $user;
     }
 
     public function update(int $tenantId, int $userId, array $attributes): IdentityUser
     {
-        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->findOrFail();
+        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->firstOrFail();
         $data = $this->attributes($attributes);
         if ((int) $user->status !== (int) $data['status']) {
             $data['session_version'] = (int) $user->session_version + 1;
         }
-        $user->save($data);
+        $user->forceFill($data)->save();
         return $user;
     }
 
     public function assertCanCreateOidcSession(int $tenantId, int $userId): void
     {
-        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->find();
+        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->first();
         if (!$user || (int) $user->status !== 1) {
             throw new \DomainException('统一身份已禁用，不能创建 OIDC session');
         }

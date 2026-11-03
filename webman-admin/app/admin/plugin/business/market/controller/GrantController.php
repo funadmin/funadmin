@@ -9,15 +9,14 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
-use think\annotation\route\Delete;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Pattern;
-use think\annotation\route\Post;
-use think\annotation\route\Put;
-use think\Response;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('plugin/market/grant', ['complete_match' => true])]
+#[RouteGroup('/admin/plugin/market/grant')]
 final class GrantController extends AdminApiController
 {
     protected array $middleware = [
@@ -25,15 +24,13 @@ final class GrantController extends AdminApiController
         CheckAdminApiCsrf::class,
         SystemLog::class,
     ];
-    #[Get('')]
+    #[Get('/')]
     public function index(): Response { return $this->ok(data: (new MarketAdminService())->grants((int) $this->request->get('pluginId', 0), $this->page(), $this->pageSize())); }
-    #[Post('')]
+    #[Post('/')]
     public function create(): Response { return $this->attempt(fn () => (new MarketAdminService())->saveGrant(null, (array) $this->request->post()), '授权已保存'); }
-    #[Put(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Put('/{id:\\d+}')]
     public function update(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->saveGrant($id, (array) $this->request->put()), '授权已保存'); }
-    #[Delete(':id')]
-    #[Pattern('id', '\\d+')]
+    #[Delete('/{id:\\d+}')]
     public function delete(int $id): Response { return $this->attempt(fn () => (new MarketAdminService())->deleteGrant($id), '授权已删除'); }
     private function attempt(callable $operation, string $message): Response
     {

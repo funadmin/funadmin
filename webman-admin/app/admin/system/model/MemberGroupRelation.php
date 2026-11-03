@@ -11,7 +11,7 @@ use app\admin\model\BackendModel;
  */
 class MemberGroupRelation extends BackendModel
 {
-    protected $name = 'member_group_relation';
+    protected $table = 'member_group_relation';
 
     protected $pk = ['member_id', 'group_id'];
 

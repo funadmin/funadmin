@@ -115,11 +115,26 @@ final class ProductionTemplateContext
             $enFrontend[$key] = self::translationFor($translations, $key);
         }
         $result['languagePack'] = ['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend, 'placeholders' => $placeholders];
+        $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
+        if (config('database.connections.' . $connection . '.driver', $connection) === 'pgsql') {
+            if (($data['target']['type'] ?? 'core') !== 'plugin') $result['permissionMigrationContent'] = PostgresqlResourceSql::permissions($data);
+            $result['langMigrationContent'] = PostgresqlResourceSql::languages(['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend]);
+        }
         return $result;
     }
 
     private static function migration(array $data, array $primary): string
     {
+        $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
+        $driver = (string) config('database.connections.' . $connection . '.driver', $connection);
+        if ($driver === 'pgsql') {
+            $fields = $data['fields'];
+            $names = array_column($fields, 'name');
+            foreach (array_merge($data['timestamps'] ? ['created_at', 'updated_at'] : [], $data['softDeletes'] ? ['deleted_at'] : []) as $name) {
+                if (!in_array($name, $names, true)) $fields[] = ['name' => $name, 'dbType' => 'datetime', 'nullable' => true];
+            }
+            return (new \app\common\service\database\SqlDialect($driver))->createTable($data['table'], $fields, $data['title']);
+        }
         $columns = [];
         $indexes = [];
         foreach ($data['fields'] as $field) {
@@ -350,7 +365,7 @@ final class ProductionTemplateContext
             self::collectBackend('referenced', '记录仍被 {:target} 引用，无法删除');
         }
         $referenceMethod = $referenceProtection
-            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) \$ids[] = \$model->{$primary['name']};\n        if (\$ids === []) return null;\n        \$connection = (new {$class}())->getConnection();\n        \$references = \$connection->select('SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = ? AND REFERENCED_COLUMN_NAME = ?', ['{$data['table']}', '{$primary['name']}']);\n        foreach (\$references as \$reference) {\n            \$table = (string) \$reference->TABLE_NAME;\n            \$column = (string) \$reference->COLUMN_NAME;\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) throw new \\RuntimeException(trans('{$data['entity']}.referenceMetadataInvalid'));\n            \$prefix = \$connection->getTablePrefix();\n            \$logical = \$prefix !== '' && str_starts_with(\$table, \$prefix) ? substr(\$table, strlen(\$prefix)) : \$table;\n            if (\$connection->table(\$logical)->whereIn(\$column, \$ids)->exists()) return trans('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n        }\n        return null;\n    }\n"
+            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) \$ids[] = \$model->{$primary['name']};\n        if (\$ids === []) return null;\n        \$connection = (new {$class}())->getConnection();\n        \$references = \\app\\common\\service\\database\\ReferenceInspector::incoming(\$connection, '{$data['table']}', '{$primary['name']}');\n        foreach (\$references as \$reference) {\n            \$table = (string) \$reference->TABLE_NAME;\n            \$column = (string) \$reference->COLUMN_NAME;\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) throw new \\RuntimeException(trans('{$data['entity']}.referenceMetadataInvalid'));\n            \$prefix = \$connection->getTablePrefix();\n            \$logical = \$prefix !== '' && str_starts_with(\$table, \$prefix) ? substr(\$table, strlen(\$prefix)) : \$table;\n            if (\$connection->table(\$logical)->whereIn(\$column, \$ids)->exists()) return trans('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"

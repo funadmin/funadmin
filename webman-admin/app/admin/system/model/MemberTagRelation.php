@@ -8,7 +8,7 @@ use app\admin\model\BackendModel;
 
 class MemberTagRelation extends BackendModel
 {
-    protected $name = 'member_tag_relation';
+    protected $table = 'member_tag_relation';
 
     protected $pk = ['member_id', 'tag_id'];
 

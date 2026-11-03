@@ -72,10 +72,94 @@ final class UpgradePackageVerifier
             }
             $payloadFiles = array_values(array_diff($files, ['upgrade.json']));
             $this->verifyFileManifest($zip, $payloadFiles, $manifest);
+            $this->coreMigrationManifest($manifest);
             return ['version' => $version, 'files' => $payloadFiles, 'manifest' => $manifest, 'sha256' => $actual];
         } finally {
             $zip->close();
         }
+    }
+
+    public function coreMigrationManifest(array $manifest): array
+    {
+        if (\support\Db::connection()->getDriverName() === 'pgsql') return $this->postgresqlMigrationManifest($manifest);
+        if (isset($manifest['databaseDriver']) && $manifest['databaseDriver'] !== 'mysql') throw new RuntimeException('升级包数据库驱动不匹配');
+        $declared = $manifest['coreMigrations'] ?? null;
+        if (!is_array($declared) || !isset($declared['001_baseline.sql'])) throw new RuntimeException('升级包缺少核心 SQL 完整版本清单');
+        $payload = [];
+        foreach ($manifest['files'] ?? [] as $file => $checksum) {
+            if (!str_starts_with($file, 'database/migrations/')) continue;
+            $name = substr($file, strlen('database/migrations/'));
+            if (preg_match('/^[0-9]+_[A-Za-z0-9_]+\.sql$/D', $name) !== 1) throw new RuntimeException('升级包核心 SQL 禁止 PHP、archive 或嵌套路径');
+            $payload[$name] = $checksum;
+        }
+        ksort($declared, SORT_STRING);
+        ksort($payload, SORT_STRING);
+        if ($declared !== $payload) throw new RuntimeException('升级包核心 SQL 版本或 checksum 缺失');
+        $versions = [];
+        foreach ($declared as $name => $checksum) {
+            if (preg_match('/^([0-9]+)_[A-Za-z0-9_]+\.sql$/D', $name, $match) !== 1
+                || !is_string($checksum) || preg_match('/^[a-f0-9]{64}$/D', $checksum) !== 1
+                || isset($versions[(int) $match[1]])) throw new RuntimeException('升级包核心 SQL 版本或 checksum 无效');
+            $versions[(int) $match[1]] = true;
+        }
+        $current = (new \app\common\service\database\CoreDatabaseAudit(\app\common\service\database\MigrationService::coreDirectory()))->manifest()['checksums'];
+        foreach ($current as $name => $checksum) {
+            if (!isset($declared[$name]) || !hash_equals($checksum, $declared[$name])) throw new RuntimeException('升级包核心 SQL 已发布版本缺失或被改写：' . $name);
+        }
+        return $declared;
+    }
+
+    private function postgresqlDirectory(): string
+    {
+        $database = getenv('CORE_DATABASE_PATH') ?: base_path('database');
+        $directory = realpath(rtrim($database, '/') . '/migrations/pgsql');
+        if ($directory === false || is_link($directory)) throw new RuntimeException('PostgreSQL 核心迁移源未部署');
+        return $directory;
+    }
+
+    private function postgresqlMigrationManifest(array $manifest): array
+    {
+        if (($manifest['databaseDriver'] ?? null) !== 'pgsql') throw new RuntimeException('升级包缺少 PostgreSQL 驱动声明');
+        $declared = $manifest['coreMigrations'] ?? null;
+        if (!is_array($declared) || $declared === []) throw new RuntimeException('升级包缺少 PostgreSQL 完整版本清单');
+        $payload = $versions = [];
+        foreach ($manifest['files'] ?? [] as $path => $hash) {
+            if (!str_starts_with($path, 'database/migrations/')) continue;
+            if (!preg_match('~\Adatabase/migrations/pgsql/([0-9]+_[A-Za-z0-9_]+\.sql)\z~D', $path, $match)) throw new RuntimeException('升级包迁移必须为 PostgreSQL 原生 SQL');
+            $payload[$match[1]] = $hash;
+        }
+        foreach ($declared as $name => $hash) {
+            if (!preg_match('/\A([0-9]+)_[A-Za-z0-9_]+\.sql\z/D', $name, $match) || isset($versions[(int) $match[1]]) || !is_string($hash) || !preg_match('/\A[a-f0-9]{64}\z/D', $hash)) throw new RuntimeException('PostgreSQL 迁移版本或 checksum 无效');
+            $versions[(int) $match[1]] = true;
+        }
+        ksort($declared); ksort($payload);
+        if ($declared !== $payload) throw new RuntimeException('PostgreSQL 迁移制品清单缺失或 checksum 不匹配');
+        foreach (glob($this->postgresqlDirectory() . '/*.sql') ?: [] as $file) {
+            if (is_link($file) || !is_file($file) || !isset($declared[basename($file)]) || !hash_equals($declared[basename($file)], (string) hash_file('sha256', $file))) throw new RuntimeException('已发布 PostgreSQL 迁移缺失或发生变化');
+        }
+        if (\support\Db::schema()->hasTable('system_migration')) {
+            foreach (\support\Db::table('system_migration')->where('scope', 'core')->get() as $record) {
+                if (!isset($declared[$record->version . '.sql']) || !hash_equals($record->checksum, $declared[$record->version . '.sql'])) throw new RuntimeException('已执行 PostgreSQL 迁移未完整包含在发布包');
+            }
+        }
+        return $declared;
+    }
+
+    public function mountedCoreDirectory(array $manifest): string
+    {
+        $declared = $this->coreMigrationManifest($manifest);
+        if (\support\Db::connection()->getDriverName() === 'pgsql') {
+            $directory = $this->postgresqlDirectory();
+            $current = [];
+            foreach (glob($directory . '/*.sql') ?: [] as $file) $current[basename($file)] = hash_file('sha256', $file);
+            ksort($current);
+            if ($current !== $declared) throw new RuntimeException('PostgreSQL 核心迁移源尚未部署完整');
+            return $directory;
+        }
+        $directory = \app\common\service\database\MigrationService::coreDirectory();
+        $current = (new \app\common\service\database\CoreDatabaseAudit($directory))->manifest()['checksums'];
+        if ($declared !== $current) throw new RuntimeException('升级包与只读核心 SQL 源不一致，请先部署发布包中的根 database');
+        return $directory;
     }
 
     public function extract(string $archive, string $directory, array $files): void
@@ -121,7 +205,7 @@ final class UpgradePackageVerifier
         if ($entry !== 'upgrade.json' && !in_array(explode('/', $entry)[0], self::ALLOWED_ROOTS, true)) {
             throw new RuntimeException('升级 ZIP 包含不允许覆盖的路径：' . $entry);
         }
-        $attributes = 0;
+        $attributes = $opsys = 0;
         if ($zip->getExternalAttributesIndex($index, $opsys, $attributes) && (($attributes >> 16) & 0170000) === 0120000) {
             throw new RuntimeException('升级 ZIP 禁止符号链接');
         }

@@ -26,6 +26,16 @@ class PluginLifecycleExecutionTest extends TestCase
         mkdir($this->root, 0700, true);
         $this->ready = true;
         (new MigrationService())->run();
+        if ($database === ':memory:') {
+            foreach (['plugin_resource', 'plugin_operation', 'plugin'] as $table) Db::schema()->dropIfExists($table);
+        } else {
+            self::assertFalse(Db::schema()->hasTable('system_migration'), '生命周期夹具必须使用独立空库');
+            foreach (['plugin_resource', 'plugin_operation', 'plugin'] as $table) {
+                if (!Db::schema()->hasTable($table)) continue;
+                self::assertSame(0, Db::table($table)->count());
+                Db::schema()->drop($table);
+            }
+        }
         Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); });
         Db::schema()->create('plugin', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');

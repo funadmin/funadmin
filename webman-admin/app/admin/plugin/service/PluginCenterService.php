@@ -11,8 +11,8 @@ use app\common\service\AbstractService;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\Registry;
 use RuntimeException;
-use think\facade\Cache;
-use think\facade\Db;
+use support\Cache;
+use support\Db;
 
 /**
  * 插件中心查询、Admin Web 模块发现与插件配置管理。
@@ -23,7 +23,7 @@ final class PluginCenterService extends AbstractService
 
     public function discovered(): array
     {
-        $installed = array_fill_keys(Plugin::column('code'), true);
+        $installed = array_fill_keys(Plugin::query()->pluck('code')->all(), true);
         $items = [];
         foreach ($this->manifests() as $code => $manifest) {
             if (!isset($installed[$code])) {
@@ -37,7 +37,7 @@ final class PluginCenterService extends AbstractService
     {
         $manifests = $this->manifests();
         $items = [];
-        foreach (Plugin::order('id', 'desc')->select() as $record) {
+        foreach (Plugin::query()->orderByDesc('id')->get() as $record) {
             $code = (string) $record->code;
             $items[] = $this->manifestData($manifests[$code] ?? null, $record, 'installed');
         }
@@ -47,7 +47,7 @@ final class PluginCenterService extends AbstractService
     public function detail(string $code): array
     {
         $this->assertCode($code);
-        $record = Plugin::where('code', $code)->find();
+        $record = Plugin::where('code', $code)->first();
         $manifest = $this->manifests()[$code] ?? null;
         if (!$record && !$manifest) {
             throw new RuntimeException('插件不存在');
@@ -58,8 +58,8 @@ final class PluginCenterService extends AbstractService
     public function deletePackage(string $code): void
     {
         $this->assertCode($code);
-        $root = rtrim(root_path(), DIRECTORY_SEPARATOR);
-        $parent = $root . DIRECTORY_SEPARATOR . PLUGIN_DIR;
+        $root = rtrim(base_path(), DIRECTORY_SEPARATOR);
+        $parent = $root . DIRECTORY_SEPARATOR . (defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins');
         $directory = $parent . DIRECTORY_SEPARATOR . $code;
         // 先验证根和全部父级，不能让 realpath 隐藏危险链接，包括悬空链接。
         clearstatcache(true);
@@ -104,7 +104,7 @@ final class PluginCenterService extends AbstractService
     {
         $manifests = $this->manifests();
         $modules = [];
-        foreach (Plugin::where('lifecycle_state', 'enabled')->where('needs_reinstall', 0)->select() as $record) {
+        foreach (Plugin::where('lifecycle_state', 'enabled')->where('needs_reinstall', 0)->get() as $record) {
             $code = (string) $record->code;
             $manifest = $manifests[$code] ?? null;
             if (!$manifest) {
@@ -140,7 +140,7 @@ final class PluginCenterService extends AbstractService
     {
         $this->assertCode($code);
         $this->assertConfigColumn();
-        $record = Plugin::where('code', $code)->find();
+        $record = Plugin::where('code', $code)->first();
         if (!$record) {
             throw new RuntimeException('插件尚未安装');
         }
@@ -177,14 +177,14 @@ final class PluginCenterService extends AbstractService
 
     private function manifests(): array
     {
-        return (new Registry(root_path() . PLUGIN_DIR, static fn (): array => []))->discover();
+        return (new Registry(base_path() . (defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins'), static fn (): array => []))->discover();
     }
 
     private function manifestData(?Manifest $manifest, ?Plugin $record, string $source): array
     {
         $data = $manifest?->toArray() ?? $this->decodedManifest($record);
         $dependencies = is_array($data['requires']['plugins'] ?? null) ? $data['requires']['plugins'] : [];
-        $operation = $record ? PluginOperation::where('plugin_code', (string) $record->code)->order('id', 'desc')->find() : null;
+        $operation = $record ? PluginOperation::where('plugin_code', (string) $record->code)->orderByDesc('id')->first() : null;
         return [
             'code' => (string) ($record?->code ?? $manifest?->code() ?? ''),
             'name' => (string) ($record?->name ?? $manifest?->name() ?? ''),
@@ -270,7 +270,7 @@ final class PluginCenterService extends AbstractService
             return '';
         }
         $records = [];
-        foreach (Plugin::whereIn('code', array_keys($dependencies))->select() as $record) {
+                foreach (Plugin::whereIn('code', array_keys($dependencies))->get() as $record) {
             $records[(string) $record->code] = $record;
         }
         foreach ($dependencies as $code => $constraint) {
@@ -424,7 +424,7 @@ final class PluginCenterService extends AbstractService
 
     private function configFile(string $code): string
     {
-        return root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'config.php';
+        return base_path() . (defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins') . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'config.php';
     }
 
     private function plugin(string $code): object

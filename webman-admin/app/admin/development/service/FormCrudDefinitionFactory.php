@@ -264,10 +264,10 @@ final class FormCrudDefinitionFactory
     {
         return ($memberApi ? ['memberApiController' => "app/api/controller/generated/{$class}Controller.php"] : []) + [
             'migration' => "database/generated/{$entity}.sql",
-            'model' => "app/admin/model/generated/{$class}.php",
-            'validate' => "app/admin/validate/generated/{$class}Validate.php",
-            'service' => "app/admin/service/generated/{$class}Service.php",
-            'controller' => "app/admin/controller/generated/{$class}Controller.php",
+            'model' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/{$class}.php",
+            'validate' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/validate/{$class}Validate.php",
+            'service' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/service/{$class}Service.php",
+            'controller' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/controller/{$class}Controller.php",
             'permissionMigration' => "database/generated/{$entity}_permissions.sql",
             'api' => "admin-web/src/api/generated/{$entity}.ts",
             'view' => "admin-web/src/views/generated/{$entity}/index.vue",

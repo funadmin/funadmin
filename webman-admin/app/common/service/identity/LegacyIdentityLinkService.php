@@ -22,9 +22,9 @@ class LegacyIdentityLinkService
 
     private function ensure(int $tenantId, string $realm, int $sourceId, object $legacy, string $linkClass, string $sourceField): IdentityUser
     {
-        $link = $linkClass::forTenant($tenantId)->where($sourceField, $sourceId)->find();
+        $link = $linkClass::forTenant($tenantId)->where($sourceField, $sourceId)->first();
         if ($link) {
-            return IdentityUser::forTenant($tenantId)->where('id', (int) $link->user_id)->findOrFail();
+            return IdentityUser::forTenant($tenantId)->where('id', (int) $link->user_id)->firstOrFail();
         }
 
         $user = (new IdentityUserService())->create($tenantId, $realm, $sourceId, [
@@ -36,11 +36,12 @@ class LegacyIdentityLinkService
             'status' => (int) $legacy->status,
             'last_login_at' => $this->lastLoginAt($legacy->last_login ?? null),
         ]);
-        $linkClass::create([
+        $link = new $linkClass();
+        $link->forceFill([
             'tenant_id' => $tenantId,
             'user_id' => (int) $user->id,
             $sourceField => $sourceId,
-        ]);
+        ])->save();
         return $user;
     }
 

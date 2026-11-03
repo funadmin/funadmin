@@ -157,22 +157,25 @@ final class UpgradeService extends AbstractService
         $dbBackup = $backup . '/database.snapshot';
         try {
             $verified ??= (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->verify($archive, $checksum, $version);
+            $this->databaseBackup()->preflight();
+            $migrationDirectory = (new UpgradePackageVerifier())->mountedCoreDirectory($verified['manifest']);
+            $deploymentFiles = array_values(array_filter($verified['files'], static fn (string $file): bool => !str_starts_with($file, 'database/migrations/')));
             $this->advance($task, 'extract', 20);
             (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->extract($archive, $stage, $verified['files']);
             $this->advance($task, 'backup', 35);
-            $createdFiles = $this->backupFiles($backup, $verified['files']);
+            $createdFiles = $this->backupFiles($backup, $deploymentFiles);
             $metadata = (array) ($task->metadata ?? []);
-            $metadata += ['files' => $verified['files'], 'createdFiles' => $createdFiles];
-            $backupHash = $this->fileBackupHash($backup, $verified['files'], $createdFiles);
+            $metadata += ['files' => $deploymentFiles, 'createdFiles' => $createdFiles, 'coreMigrations' => $verified['manifest']['coreMigrations']];
+            $backupHash = $this->fileBackupHash($backup, $deploymentFiles, $createdFiles);
             $task->fill(['backup_path' => $backup, 'backup_hash' => $backupHash, 'db_backup_path' => $dbBackup, 'metadata' => $metadata])->save();
             $this->advance($task, 'database_backup', 45);
             $dbBackupHash = $this->databaseBackup()->backup($dbBackup);
             $task->fill(['db_backup_hash' => $dbBackupHash])->save();
             $this->advance($task, 'deploy', 55);
-            $this->deployFiles($stage, $verified['files']);
+            $this->deployFiles($stage, $deploymentFiles);
             $this->advance($task, 'migration', 75);
-            $migrationDirectory = $stage . '/database/migrations';
-            $migrations = is_dir($migrationDirectory) ? MigrationService::instance()->runDirectory($migrationDirectory) : [];
+            (new UpgradePackageVerifier())->mountedCoreDirectory($verified['manifest']);
+            $migrations = MigrationService::instance()->runDirectory($migrationDirectory);
             $task->fill([
                 'status' => 'success', 'stage' => 'complete', 'progress' => 100,
                 'metadata' => $metadata + ['migrations' => $migrations], 'active_slot' => null, 'lease_expires_at' => null,

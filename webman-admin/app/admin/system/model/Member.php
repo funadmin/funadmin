@@ -24,6 +24,7 @@ use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
 class Member extends BackendModel {
+    protected $table = 'member';
 
 
     /**
@@ -42,12 +43,12 @@ class Member extends BackendModel {
     }
     public function groups()
     {
-        return $this->belongsToMany(MemberGroup::class, 'member_group_relation', 'group_id', 'member_id');
+        return $this->belongsToMany(MemberGroup::class, 'member_group_relation', 'member_id', 'group_id');
     }
 
     public function tags()
     {
-        return $this->belongsToMany(MemberTag::class, 'member_tag_relation', 'tag_id', 'member_id');
+        return $this->belongsToMany(MemberTag::class, 'member_tag_relation', 'member_id', 'tag_id');
     }
 
     public function level()
@@ -64,19 +65,17 @@ class Member extends BackendModel {
         if ($keyword !== '') {
             $query->where(function ($query) use ($keyword): void {
                 $query->whereLike('username', '%' . $keyword . '%')
-                    ->whereOr('mobile', 'like', '%' . $keyword . '%')
-                    ->whereOr('email', 'like', '%' . $keyword . '%');
+                    ->orWhere('mobile', 'like', '%' . $keyword . '%')
+                    ->orWhere('email', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
         if ($groupId > 0) {
-            $query->alias('member')->whereExists(function ($relationQuery) use ($groupId): void {
-                $relationQuery->table((new MemberGroupRelation())->getTable() . ' member_group_relation')
-                    ->field('member_group_relation.member_id')
-                    ->whereColumn('member_group_relation.member_id', 'member.id')
-                    ->where('member_group_relation.group_id', $groupId);
+            $query->whereIn('id', function ($relationQuery) use ($groupId): void {
+                $relationQuery->from((new MemberGroupRelation())->getTable())
+                    ->select('member_id')->where('group_id', $groupId);
             });
         }
         if ($levelId > 0) {
@@ -146,7 +145,8 @@ class Member extends BackendModel {
     public static function duplicateError(\Throwable $exception): ?string
     {
         $message = $exception->getMessage();
-        if (!str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
+        $state = $exception instanceof \Illuminate\Database\QueryException ? ($exception->errorInfo[0] ?? null) : (string) $exception->getCode();
+        if ($state !== '23505' && !str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
             return null;
         }
         foreach (['username' => '用户名已存在', 'mobile' => '手机号已存在', 'email' => '邮箱已存在'] as $field => $error) {

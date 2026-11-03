@@ -90,17 +90,8 @@ final class IdentityOperationsService
     {
         $this->requireTenant($tenantId);
         $connection = Db::connection();
-        if ($connection->getDriverName() !== 'mysql') {
-            throw new RuntimeException('Identity 运维锁需要 MySQL 连接');
-        }
         $name = 'identity:' . $tenantId . ':' . preg_replace('/[^a-z0-9:_-]/i', '', $operation);
-        $locked = (int) ($connection->selectOne('SELECT GET_LOCK(?, 0) AS acquired', [$name])->acquired ?? 0);
-        if ($locked !== 1) throw new RuntimeException('同租户运维任务正在执行');
-        try {
-            return $callback();
-        } finally {
-            $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$name]);
-        }
+        return \app\common\service\database\DatabaseLock::run($connection, $name, $callback);
     }
 
     private function requireTenant(int $tenantId): void

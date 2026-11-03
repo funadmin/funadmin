@@ -139,7 +139,7 @@ final class FormSchemaRepository
         }
         $latest = FormSchemaVersion::where('form_id', $formId)->orderBy('version', 'desc')->first();
         $version = new FormSchemaVersion();
-        $version->save([
+        $version->fill([
             'form_id' => $formId,
             'version' => (int) ($latest->version ?? 0) + 1,
             'schema_version' => $compiled->version(),
@@ -150,7 +150,7 @@ final class FormSchemaRepository
             'change_summary' => $summary,
             'created_by' => $actor,
             'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        ])->save();
         $this->persistCurrent($form, $compiled, $origin);
         return $version;
     }
@@ -304,16 +304,16 @@ final class FormSchemaRepository
 
     private function persistCurrent(Form $form, FormSchema $compiled, string $origin): void
     {
-        $form->save([
+        $form->fill([
             'schema_version' => $compiled->version(),
             'schema_document' => $compiled->document(),
             'schema_hash' => $compiled->hash(),
             'schema_origin' => $origin,
             'publish_status' => (string) ($form->published_schema_hash ?? '') === $compiled->hash() ? 'published' : 'draft',
-        ]);
+        ])->save();
         FormField::where('form_id', (int) $form->id)->delete();
         foreach ($compiled->fieldProjection() as $sort => $field) {
-            (new FormField())->save($this->projectionRow((int) $form->id, $field, $sort));
+            FormField::create($this->projectionRow((int) $form->id, $field, $sort));
         }
     }
 

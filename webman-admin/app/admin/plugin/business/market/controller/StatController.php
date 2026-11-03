@@ -9,11 +9,11 @@ use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\admin\middleware\SystemLog;
 use app\admin\plugin\business\market\service\MarketAdminService;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\Response;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
+use support\Response;
 
-#[Group('plugin/market/stat', ['complete_match' => true])]
+#[RouteGroup('/admin/plugin/market/stat')]
 final class StatController extends AdminApiController
 {
     protected array $middleware = [

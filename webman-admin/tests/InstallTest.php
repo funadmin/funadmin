@@ -42,6 +42,76 @@ final class InstallTest extends TestCase
         self::assertSame('false', $parsedTemplate['COOKIE_SECURE']);
     }
 
+    public function test_postgresql_configuration_and_environment_keep_the_selected_driver(): void
+    {
+        [$db, $admin] = $this->inputs();
+        $db += ['driver' => 'pgsql', 'schema' => 'tenant', 'sslmode' => 'require'];
+        $db['port'] = '5432';
+        $config = InstallSupport::databaseConfig($db, config('database'));
+        self::assertSame('pgsql', $config['default']);
+        self::assertSame('pgsql', $config['connections']['pgsql']['driver']);
+        self::assertSame('tenant', $config['connections']['pgsql']['search_path']);
+        self::assertSame('require', $config['connections']['pgsql']['sslmode']);
+        self::assertArrayNotHasKey('collation', $config['connections']['pgsql']);
+        $env = \Dotenv\Dotenv::parse(InstallSupport::renderEnv(base_path() . '/.env.example', null, $db, false));
+        self::assertSame('pgsql', $env['DB_CONNECTION']);
+        self::assertSame('tenant', $env['DB_SCHEMA']);
+        self::assertSame('require', $env['DB_SSLMODE']);
+        self::assertSame('', InstallSupport::validate($db, $admin));
+    }
+
+    public function test_database_driver_and_postgresql_schema_are_validated(): void
+    {
+        [$db, $admin] = $this->inputs();
+        $db['driver'] = 'unsupported';
+        self::assertNotSame('', InstallSupport::validate($db, $admin));
+        $db['driver'] = 'pgsql';
+        foreach (['pg_catalog', 'information_schema', 'public,other', 'bad;schema', str_repeat('a', 64)] as $schema) {
+            $db['schema'] = $schema;
+            self::assertNotSame('', InstallSupport::validate($db, $admin), $schema);
+        }
+        $db['schema'] = 'public';
+        $db['sslmode'] = 'invalid';
+        self::assertNotSame('', InstallSupport::validate($db, $admin));
+    }
+
+    public function test_postgresql_worker_activation_uses_the_postgresql_connection(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-install-' . bin2hex(random_bytes(8));
+        mkdir($root . '/public', 0700, true);
+        $db = $this->inputs()[0] + ['driver' => 'pgsql', 'schema' => 'tenant', 'sslmode' => 'require'];
+        $content = InstallSupport::renderEnv(base_path() . '/.env.example', null, $db, false);
+        file_put_contents($root . '/.env', $content);
+        file_put_contents($root . '/public/install.lock', json_encode(['env_hash' => hash('sha256', $content)]));
+        $manager = \Illuminate\Database\Eloquent\Model::getConnectionResolver();
+        $previous = $manager->getDefaultConnection();
+        try {
+            InstallSupport::activateInstalledConfiguration($root);
+            $connection = $manager->connection()->getConfig();
+            self::assertSame('pgsql', $connection['driver']);
+            self::assertSame('tenant', $connection['search_path']);
+            self::assertSame('require', $connection['sslmode']);
+        } finally {
+            $manager->setDefaultConnection($previous);
+            unlink($root . '/public/install.lock');
+            unlink($root . '/.env');
+            rmdir($root . '/public');
+            rmdir($root);
+        }
+    }
+
+    public function test_environment_requires_only_the_selected_pdo_driver(): void
+    {
+        $controller = new Index();
+        $method = new \ReflectionMethod($controller, 'buildEnvironmentChecks');
+        $checks = array_column($method->invoke($controller, 'pgsql'), null, 'key');
+        self::assertFalse($checks['pdo_mysql']['required']);
+        self::assertTrue($checks['pdo_pgsql']['required']);
+        $checks = array_column($method->invoke($controller, 'mysql'), null, 'key');
+        self::assertTrue($checks['pdo_mysql']['required']);
+        self::assertFalse($checks['pdo_pgsql']['required']);
+    }
+
     public function test_input_rejects_invalid_ports_and_missing_passwords(): void
     {
         [$db, $admin] = $this->inputs();

@@ -35,11 +35,14 @@ final class AiOutboxDispatcher
         return new self(
             static function (int $limit, string $owner, int $now, int $leaseExpiresAt): array {
                 $nowAt = date('Y-m-d H:i:s', $now);
-                $claimable = '((`status` = \'pending\' AND `available_at` <= ?) OR (`status` = \'processing\' AND `lease_expires_at` <= ?))';
-                $candidates = AiOutbox::whereRaw($claimable, [$nowAt, $nowAt])->orderBy('id')->limit($limit)->get()->toArray();
+                $claimable = static function ($query) use ($nowAt): void {
+                    $query->where(static fn ($pending) => $pending->where('status', 'pending')->where('available_at', '<=', $nowAt))
+                        ->orWhere(static fn ($processing) => $processing->where('status', 'processing')->where('lease_expires_at', '<=', $nowAt));
+                };
+                $candidates = AiOutbox::where($claimable)->orderBy('id')->limit($limit)->get()->toArray();
                 $claimed = [];
                 foreach ($candidates as $candidate) {
-                    $updated = AiOutbox::where('id', (int) $candidate['id'])->whereRaw($claimable, [$nowAt, $nowAt])->update([
+                    $updated = AiOutbox::where('id', (int) $candidate['id'])->where($claimable)->update([
                         'status' => 'processing',
                         'lease_owner' => $owner,
                         'lease_expires_at' => date('Y-m-d H:i:s', $leaseExpiresAt),

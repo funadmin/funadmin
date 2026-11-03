@@ -16,6 +16,8 @@ use support\Container;
 use support\Db;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class PluginScaffoldExecutionTest extends TestCase
 {
     private string $root;

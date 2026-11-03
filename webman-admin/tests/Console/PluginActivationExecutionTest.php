@@ -14,6 +14,8 @@ use PHPUnit\Framework\TestCase;
 use support\Db;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class PluginActivationExecutionTest extends TestCase
 {
     public function test_command_compiles_database_states_including_deleted_records_to_trusted_snapshot(): void

@@ -32,22 +32,22 @@ describe('M6 系统升级契约', () => {
   });
 
   it('提供 Vue 升级页、任务阶段、权限门禁和可交互 mock 入口', () => {
-    const pagePath = resolve(projectRoot, 'admin-web/src/views/system/upgrade/index.vue');
+    const pagePath = resolve(projectRoot, 'admin-web/src/admin/views/system/upgrade/index.vue');
     expect(existsSync(pagePath)).toBe(true);
     const page = readFileSync(pagePath, 'utf8');
     for (const text of ['SystemUpgrade', 'system:upgrade:check', 'system:upgrade:execute', 'system:upgrade:restore', 'operationToken', 'manifestId', '备份', '校验', '恢复']) {
       expect(page).toContain(text);
     }
-    const menuSeed = readFileSync(resolve(projectRoot, 'admin-web/src/mock/data/adminSeed.ts'), 'utf8');
+    const menuSeed = readFileSync(resolve(projectRoot, 'admin-web/src/admin/mock/data/adminSeed.ts'), 'utf8');
     expect(menuSeed).toContain("routeName: 'SystemUpgrade'");
     expect(menuSeed).toContain("component: 'system/upgrade/index'");
-    const mockIndex = readFileSync(resolve(projectRoot, 'admin-web/src/mock/index.ts'), 'utf8');
+    const mockIndex = readFileSync(resolve(projectRoot, 'admin-web/src/admin/mock/index.ts'), 'utf8');
     expect(mockIndex).toContain('upgradeMockHandlers');
-    const mockUpgrade = readFileSync(resolve(projectRoot, 'admin-web/src/mock/modules/upgrade.ts'), 'utf8');
+    const mockUpgrade = readFileSync(resolve(projectRoot, 'admin-web/src/admin/mock/modules/upgrade.ts'), 'utf8');
     expect(mockUpgrade).toContain('manifestId');
     expect(mockUpgrade).not.toContain('packageUrl');
     expect(mockUpgrade).not.toContain('sha256');
-    expect(existsSync(resolve(projectRoot, 'admin-web/src/mock/modules/upgrade.ts'))).toBe(true);
+    expect(existsSync(resolve(projectRoot, 'admin-web/src/admin/mock/modules/upgrade.ts'))).toBe(true);
   });
 
   it('通过 forward migration 注册规范权限和菜单字段', () => {
@@ -63,7 +63,7 @@ describe('M6 系统升级契约', () => {
   });
 
   it('将后端升级 action 映射为前端业务权限', () => {
-    const auth = readFileSync(resolve(projectRoot, 'app/admin/authorization/model/Permission.php'), 'utf8');
+    const auth = readFileSync(resolve(projectRoot, 'webman-admin/app/admin/authorization/model/Permission.php'), 'utf8');
     const mappings = {
       status: 'system:upgrade:list',
       check: 'system:upgrade:check',
@@ -77,8 +77,7 @@ describe('M6 系统升级契约', () => {
   });
 
   it('保留旧升级入口文件，不在 M6 删除', () => {
-    const cleanup = readFileSync(resolve(projectRoot, 'tests/legacy_controller_cleanup_test.php'), 'utf8');
-    expect(cleanup).not.toContain("'app/console/controller/sys/Upgrade.php'");
-    expect(cleanup).not.toContain("'app/console/view/sys/upgrade/index.html'");
+    const cleanup = readFileSync(resolve(projectRoot, 'webman-admin/app/admin/system/controller/SystemUpgrade.php'), 'utf8');
+    expect(cleanup).toContain('class SystemUpgrade');
   });
 });

@@ -47,6 +47,17 @@ final class AuthorizationLayoutContractTest extends TestCase
         self::assertFalse($service->authorize(2, 'example', 'other:entry:index'));
     }
 
+    public function test_market_plugin_controllers_use_native_webman_route_attributes(): void
+    {
+        foreach (glob(__DIR__ . '/../app/admin/plugin/business/market/controller/*.php') ?: [] as $file) {
+            $source = file_get_contents($file);
+            self::assertStringContainsString('use support\\annotation\\route\\RouteGroup;', $source, $file);
+            self::assertStringContainsString('use support\\Response;', $source, $file);
+            self::assertStringNotContainsString('think\\annotation\\route', $source, $file);
+            self::assertStringNotContainsString('use think\\Response;', $source, $file);
+        }
+    }
+
     public function test_models_use_logical_names_and_connection_prefixes(): void
     {
         $models = [

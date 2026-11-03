@@ -37,13 +37,14 @@ class SystemMember extends AdminApiController
         $pageSize = $this->pageSize();
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = $this->filteredQuery($recycled);
-        $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        $items = $result->items();
+        $total = (clone $query)->count();
+        $result = $query->orderByDesc('id')->forPage($page, $pageSize);
+        $items = $result->get()->all();
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps($items);
 
         return $this->ok(data: $this->paginationData(
             array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), $items),
-            $result->total(),
+            $total,
             $page,
             $pageSize
         ));
@@ -278,19 +279,17 @@ class SystemMember extends AdminApiController
         if ($keyword !== '') {
             $query->where(function ($query) use ($keyword): void {
                 $query->whereLike('username', '%' . $keyword . '%')
-                    ->whereOr('mobile', 'like', '%' . $keyword . '%')
-                    ->whereOr('email', 'like', '%' . $keyword . '%');
+                    ->orWhere('mobile', 'like', '%' . $keyword . '%')
+                    ->orWhere('email', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== null && $status !== '') {
             $query->where('status', (int) $status);
         }
         if ($groupId > 0) {
-            $query->alias('member')->whereExists(function ($relationQuery) use ($groupId): void {
-                $relationQuery->table((new MemberGroupRelation())->getTable() . ' member_group_relation')
-                    ->field('member_group_relation.member_id')
-                    ->whereColumn('member_group_relation.member_id', 'member.id')
-                    ->where('member_group_relation.group_id', $groupId);
+            $query->whereIn('id', function ($relationQuery) use ($groupId): void {
+                $relationQuery->from((new MemberGroupRelation())->getTable())
+                    ->select('member_id')->where('group_id', $groupId);
             });
         }
         if ($levelId > 0) {
@@ -407,16 +406,7 @@ class SystemMember extends AdminApiController
 
     private function duplicateError(\Throwable $exception): ?string
     {
-        $message = $exception->getMessage();
-        if (!str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
-            return null;
-        }
-        foreach (['username' => '用户名已存在', 'mobile' => '手机号已存在', 'email' => '邮箱已存在'] as $field => $error) {
-            if (str_contains($message, $field)) {
-                return $error;
-            }
-        }
-        return '用户名、手机号或邮箱已存在';
+        return Member::duplicateError($exception);
     }
 
     private function relationMaps(array $members): array

@@ -17,6 +17,8 @@ use support\Db;
 use support\Request;
 use support\Response;
 
+#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
+#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class CrudMemberExecutionTest extends TestCase
 {
     private array $files = [];

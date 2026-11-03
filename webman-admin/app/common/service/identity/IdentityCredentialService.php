@@ -17,23 +17,25 @@ class IdentityCredentialService
         }
 
         $credential = IdentityCredential::forTenant($tenantId)
-            ->where('user_id', $userId)->where('type', 'password')->find();
+            ->where('user_id', $userId)->where('type', 'password')->first();
         $data = ['secret_hash' => $secretHash, 'status' => $status === 1 ? 1 : 0];
         if ($credential) {
             $hashChanged = !hash_equals((string) $credential->secret_hash, $secretHash);
-            $credential->save($data);
+            $credential->forceFill($data)->save();
             if ($hashChanged) {
                 $this->incrementPasswordVersion($tenantId, $userId);
             }
             return $credential;
         }
 
-        return IdentityCredential::create([
+        $credential = new IdentityCredential();
+        $credential->forceFill([
             'tenant_id' => $tenantId,
             'user_id' => $userId,
             'type' => 'password',
             ...$data,
-        ]);
+        ])->save();
+        return $credential;
     }
 
     public function hash(string $plainSecret): string
@@ -48,7 +50,7 @@ class IdentityCredentialService
     public function verifyAndUpgrade(int $tenantId, int $userId, string $plainSecret): bool
     {
         $credential = IdentityCredential::forTenant($tenantId)
-            ->where('user_id', $userId)->where('type', 'password')->where('status', 1)->find();
+            ->where('user_id', $userId)->where('type', 'password')->where('status', 1)->first();
         if (!$credential || !password_verify($plainSecret, (string) $credential->secret_hash)) {
             return false;
         }
@@ -56,7 +58,7 @@ class IdentityCredentialService
         if (password_needs_rehash((string) $credential->secret_hash, PASSWORD_DEFAULT)) {
             $data['secret_hash'] = $this->hash($plainSecret);
         }
-        $credential->save($data);
+        $credential->forceFill($data)->save();
         if (isset($data['secret_hash'])) {
             $this->incrementPasswordVersion($tenantId, $userId);
         }
@@ -65,7 +67,7 @@ class IdentityCredentialService
 
     private function incrementPasswordVersion(int $tenantId, int $userId): void
     {
-        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->findOrFail();
-        $user->save(['password_version' => (int) $user->password_version + 1]);
+        $user = IdentityUser::forTenant($tenantId)->where('id', $userId)->firstOrFail();
+        $user->forceFill(['password_version' => (int) $user->password_version + 1])->save();
     }
 }

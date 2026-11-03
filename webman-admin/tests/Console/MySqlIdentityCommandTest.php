@@ -101,7 +101,7 @@ final class MySqlIdentityCommandTest extends TestCase
     {
         $config = config('database.connections.mysql');
         $other = new \PDO('mysql:host=' . $config['host'] . ';dbname=' . $config['database'], $config['username'], $config['password']);
-        $lock = 'identity:1:cleanup';
+        $lock = substr(hash('sha256', 'identity:1:cleanup'), 0, 60);
         $service = new IdentityOperationsService();
         $other->query("SELECT GET_LOCK('$lock', 0)");
         try {
@@ -109,7 +109,7 @@ final class MySqlIdentityCommandTest extends TestCase
                 $service->withLock(1, 'cleanup', static fn () => self::fail('锁冲突时不得执行回调'));
                 self::fail('竞争锁应被拒绝');
             } catch (\RuntimeException $error) {
-                self::assertSame('同租户运维任务正在执行', $error->getMessage());
+                self::assertSame('数据库任务正在执行', $error->getMessage());
             }
         } finally {
             $other->query("SELECT RELEASE_LOCK('$lock')");
