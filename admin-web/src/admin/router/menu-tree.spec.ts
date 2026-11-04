@@ -7,7 +7,7 @@ import zh from '@/locales/zh-CN';
 import en from '@/locales/en-US';
 import { ADMIN_ROLE_ROWS, getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 import { ADMIN_ROUTE_PREFIX } from '@/config';
-import { getFirstLeafRouteFullPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
+import { getFirstLeafRouteFullPath, getMenuActiveRootPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
 const guardStores = vi.hoisted(() => ({
   user: { isLoggedIn: true, userInfo: {}, permissions: ['development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
@@ -58,6 +58,40 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 });
 
 describe('混合布局菜单全树路由', () => {
+  it.each([
+    ['Plugins', '/plugins', '/plugin', 'SystemPlugin'],
+    ['UserManagement', '/users', '/system/member', 'SystemMember'],
+    ['IdentityManagement', '/identity', '/applications', 'EnterpriseApplicationCenter']
+  ])('跨 URL 模块 %s 根据路由归属保留二级菜单', (name, path, childPath, childName) => {
+    const routes = generateRoutes([{
+      id: 900, parentId: 0, routeName: name, path, type: 'M', component: 'Layout', name, sort: 1,
+      hidden: false, keepAlive: false, affix: false,
+      children: [{ id: 901, parentId: 900, routeName: childName, path: childPath,
+        type: 'C', component: 'system/user/index', name: childName, sort: 1,
+        hidden: false, keepAlive: false, affix: false }]
+    }]);
+    const router = createRouter({ history: createMemoryHistory(), routes });
+    const current = router.resolve(`${ADMIN_ROUTE_PREFIX}${childPath}`);
+    const rootPath = getMenuActiveRootPath(current, routes);
+    expect(rootPath).toBe(`${ADMIN_ROUTE_PREFIX}${path}`);
+    expect(getVisibleMenuChildren(routes.find((item) => item.path === rootPath)!)).toHaveLength(1);
+  });
+
+  it('静态隐藏辅助页使用 activeMenu 定位所属模块', () => {
+    const routes = generateRoutes(menus);
+    const current = { path: `${ADMIN_ROUTE_PREFIX}/designer/42`, matched: [],
+      meta: { activeMenu: `${ADMIN_ROUTE_PREFIX}/development/business/mine` } };
+    expect(getMenuActiveRootPath(current, routes)).toBe(`${ADMIN_ROUTE_PREFIX}/development`);
+  });
+
+  it('没有匹配记录时仍按完整菜单路径而不是 URL 首段定位模块', () => {
+    const routes = [{ path: `${ADMIN_ROUTE_PREFIX}/plugins`, children: [
+      { path: `${ADMIN_ROUTE_PREFIX}/plugin`, name: 'SystemPlugin' }
+    ] }] as RouteRecordRaw[];
+    const current = { path: `${ADMIN_ROUTE_PREFIX}/plugin`, matched: [], meta: {} };
+    expect(getMenuActiveRootPath(current, routes)).toBe(`${ADMIN_ROUTE_PREFIX}/plugins`);
+  });
+
   it.each([
     `${ADMIN_ROUTE_PREFIX}/development/business/designer?moduleId=42`,
     `${ADMIN_ROUTE_PREFIX}/development/business/designer?moduleId=42&tag=a&tag=b&empty=&flag&keyword=%E4%B8%AD%E6%96%87#schema`

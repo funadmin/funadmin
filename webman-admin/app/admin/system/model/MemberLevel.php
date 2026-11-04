@@ -20,6 +20,7 @@ use app\common\model\concern\LaravelSoftDelete;
 class MemberLevel extends BackendModel
 {
     protected $table = 'member_level';
+    protected $fillable = ['name', 'amount', 'discount', 'thumb', 'status', 'sort_order', 'description'];
     /**
      * @var bool
      */

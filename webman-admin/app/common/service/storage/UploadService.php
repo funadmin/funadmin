@@ -15,7 +15,9 @@ class UploadService extends AbstractService
      * 应用实例
      * @var App
      */
-    protected \support\Request $request;
+    protected \support\Request $request {
+        get => request() ?? throw new \LogicException('当前请求上下文不存在');
+    }
     /**
      * 驱动
      * @var string
@@ -64,7 +66,6 @@ class UploadService extends AbstractService
      */
     public function __construct()
     {
-        $this->request = request();
         $this->initialize();
     }
 

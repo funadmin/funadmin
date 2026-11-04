@@ -108,6 +108,30 @@ final class AttachmentIntegrationTest extends TestCase
         }
     }
 
+    public function test_reused_upload_service_reads_current_request_context(): void
+    {
+        $first = new \support\Request("POST /admin/upload?path=old-context HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $first->context['admin'] = ['id' => 7];
+        Context::set(\Webman\Http\Request::class, $first);
+        $service = new \app\common\service\storage\UploadService();
+        $second = new \support\Request("POST /admin/upload?path=current-context HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $second->context['admin'] = ['id' => 8];
+        $second->setPost(['fileName' => 'current.txt', 'fileSize' => 7]);
+        Context::set(\Webman\Http\Request::class, $second);
+        $source = tempnam(runtime_path(), 'request-scope-');
+        file_put_contents($source, 'current');
+        $stored = null;
+        try {
+            $service->chunkUpload(new \Webman\Http\UploadFile($source, 'current.txt', 'text/plain', UPLOAD_ERR_OK), bin2hex(random_bytes(16)), 0, 1);
+            $stored = Attach::firstOrFail();
+            self::assertSame(8, (int) $stored->admin_id);
+            self::assertStringStartsWith('current-context/', $stored->storage_key);
+        } finally {
+            if ($stored !== null) (new \app\common\storage\LocalStorageDriver())->delete($stored->storage_key);
+            if (is_file($source)) unlink($source);
+        }
+    }
+
     public function test_native_chunk_upload_merges_only_complete_owner_scoped_chunks(): void
     {
         $request = new \support\Request("POST /admin/upload HTTP/1.1\r\nHost: localhost\r\n\r\n");

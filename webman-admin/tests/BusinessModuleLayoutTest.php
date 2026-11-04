@@ -135,7 +135,7 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $controllers = [
             'authentication' => ['AdminAuth', 'ApiAuth'],
-            'authorization' => ['Management'],
+            'authorization' => ['SystemAdmin', 'SystemRole', 'SystemPermission', 'SystemMenu'],
         ];
         foreach ($controllers as $module => $names) {
             foreach ($names as $name) {
@@ -775,7 +775,6 @@ final class BusinessModuleLayoutTest extends TestCase
         foreach ([
             'app\\admin\\authentication\\controller\\AdminAuth' => '/admin/auth',
             'app\\admin\\authentication\\controller\\ApiAuth' => '/api/auth',
-            'app\\admin\\authorization\\controller\\Management' => '/admin/management',
         ] as $class => $prefix) {
             self::assertContains($class, $discovered);
             $reflection = new ReflectionClass($class);
@@ -795,7 +794,6 @@ final class BusinessModuleLayoutTest extends TestCase
         Route::load([config_path()]);
         $admin = 'app\\admin\\authentication\\controller\\AdminAuth';
         $api = 'app\\admin\\authentication\\controller\\ApiAuth';
-        $management = 'app\\admin\\authorization\\controller\\Management';
         foreach ([
             ['GET', '/admin/auth/csrf', $admin, 'csrf', []],
             ['POST', '/admin/auth/login', $admin, 'login', []],
@@ -816,9 +814,7 @@ final class BusinessModuleLayoutTest extends TestCase
                 $hasId = in_array($verb, ['PUT', 'DELETE'], true);
                 $path = '/admin/management/' . $resource . ($hasId ? '/42' : '');
                 $matched = Route::dispatch($verb, $path);
-                self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
-                self::assertSame([$management, $action], $matched[1]['callback']);
-                self::assertSame(['resource' => $resource] + ($hasId ? ['id' => '42'] : []), $matched[2]);
+                self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, $matched[0]);
             }
         }
         self::assertSame(\FastRoute\Dispatcher::FOUND, Route::dispatch('GET', '/health')[0]);
@@ -834,10 +830,10 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertStringNotContainsString('/admin/auth/', $routes);
         self::assertStringNotContainsString('/api/auth/', $routes);
         self::assertStringNotContainsString('/admin/management/', $routes);
-        $businessRoutes = array_filter(Route::getRoutes(), static function ($route) use ($admin, $api, $management): bool {
+        $businessRoutes = array_filter(Route::getRoutes(), static function ($route) use ($admin, $api): bool {
             $callback = $route->getCallback();
-            return is_array($callback) && in_array($callback[0], [$admin, $api, $management], true);
+            return is_array($callback) && in_array($callback[0], [$admin, $api], true);
         });
-        self::assertCount(12, $businessRoutes);
+        self::assertCount(8, $businessRoutes);
     }
 }

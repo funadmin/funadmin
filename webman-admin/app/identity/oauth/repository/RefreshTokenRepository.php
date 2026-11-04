@@ -23,7 +23,7 @@ final class RefreshTokenRepository implements RefreshTokenRepositoryInterface
         if (!$access->getClient() instanceof ClientEntity) return;
         $client = $access->getClient();
         $plain = (string) $refreshTokenEntity->getIdentifier();
-        OAuthToken::create(['tenant_id' => $client->tenantId, 'client_id' => $client->databaseId, 'user_id' => $access->getUserIdentifier(), 'token_type' => 'refresh', 'token_prefix' => substr($plain, 0, 12), 'token_hash' => hash('sha256', $plain), 'family_id' => self::uuid(), 'generation' => 0, 'subject_type' => 'user', 'expires_at' => $refreshTokenEntity->getExpiryDateTime()->format('Y-m-d H:i:s')]);
+        OAuthToken::forceCreate(['tenant_id' => $client->tenantId, 'client_id' => $client->databaseId, 'user_id' => $access->getUserIdentifier(), 'token_type' => 'refresh', 'token_prefix' => substr($plain, 0, 12), 'token_hash' => hash('sha256', $plain), 'family_id' => self::uuid(), 'generation' => 0, 'subject_type' => 'user', 'expires_at' => $refreshTokenEntity->getExpiryDateTime()->format('Y-m-d H:i:s')]);
     }
 
     public function revokeRefreshToken($tokenId): void
@@ -33,7 +33,7 @@ final class RefreshTokenRepository implements RefreshTokenRepositoryInterface
 
     public function isRefreshTokenRevoked($tokenId): bool
     {
-        $token = (new OAuthToken())->where('token_hash', hash('sha256', (string) $tokenId))->where('token_type', 'refresh')->find();
+        $token = (new OAuthToken())->where('token_hash', hash('sha256', (string) $tokenId))->where('token_type', 'refresh')->first();
         return !$token || $token->revoked_at !== null || $token->consumed_at !== null || strtotime((string) $token->expires_at) <= time();
     }
 

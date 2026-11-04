@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\admin\authorization\controller\Management;
 use PHPUnit\Framework\TestCase;
-use support\Request;
+use Webman\Route;
 
 final class ManagementHttpTest extends TestCase
 {
-    public function test_management_requires_browser_session_before_reading_data(): void
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function test_prototype_management_routes_are_not_registered(): void
     {
-        self::assertTrue(class_exists(Management::class), '后台管理 HTTP 接口尚未实现');
-        $response = (new Management())->listing(new Request("GET /admin/management/users HTTP/1.1\r\n\r\n"), 'users');
-        self::assertSame(401, $response->getStatusCode());
+        Route::load([config_path()]);
+        foreach (['users', 'roles', 'permissions', 'menus'] as $resource) {
+            foreach (['GET', 'POST', 'PUT', 'DELETE'] as $method) {
+                foreach (['', '/42'] as $suffix) {
+                    self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch($method, '/admin/management/' . $resource . $suffix)[0]);
+                }
+            }
+        }
+        foreach (['/admin/system/user', '/admin/system/role', '/admin/system/permission/tree', '/admin/system/menu/tree'] as $path) {
+            self::assertSame(\FastRoute\Dispatcher::FOUND, Route::dispatch('GET', $path)[0]);
+        }
     }
 }

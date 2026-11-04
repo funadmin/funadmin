@@ -152,10 +152,10 @@ class SystemMemberGroup extends AdminApiController
         if ($model !== null) {
             $duplicate->where('id', '<>', (int) $model->id);
         }
-        return $duplicate->find() ? '会员组名称已存在' : null;
+        return $duplicate->exists() ? '会员组名称已存在' : null;
     }
 
-    protected function beforeDelete(iterable $models, bool $force): ?\think\Response
+    protected function beforeDelete(iterable $models, bool $force): ?Response
     {
         $ids = [];
         foreach ($models as $model) {

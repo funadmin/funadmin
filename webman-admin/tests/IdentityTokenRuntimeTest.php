@@ -72,6 +72,63 @@ final class IdentityTokenRuntimeTest extends TestCase
         ]);
     }
 
+    public function test_league_access_repository_persists_native_models_and_revokes_tokens(): void
+    {
+        $client = new \app\identity\oauth\entity\ClientEntity('runtime-client', '测试客户端', [], true, 1, 5, 'web');
+        $repository = new \app\identity\oauth\repository\AccessTokenRepository();
+        $token = $repository->getNewToken($client, [new \app\identity\oauth\entity\ScopeEntity('identity.read', 10)], 7);
+        $token->setIdentifier(bin2hex(random_bytes(32)));
+        $token->setExpiryDateTime(new \DateTimeImmutable('+1 hour'));
+        $repository->persistNewAccessToken($token);
+        self::assertFalse($repository->isAccessTokenRevoked($token->getIdentifier()));
+        self::assertSame(1, Db::table('oauth_token_scope')->where('scope_id', 10)->count());
+        self::assertSame(1, (int) Db::table('oauth_token')->value('password_version'));
+        $repository->revokeAccessToken($token->getIdentifier());
+        self::assertTrue($repository->isAccessTokenRevoked($token->getIdentifier()));
+        self::assertTrue($repository->isAccessTokenRevoked('unknown'));
+    }
+
+    public function test_league_scope_lookup_rejects_cross_tenant_ambiguity(): void
+    {
+        $repository = new \app\identity\oauth\repository\ScopeRepository();
+        self::assertSame('identity.read', $repository->getScopeEntityByIdentifier('identity.read')->getIdentifier());
+        self::assertNull($repository->getScopeEntityByIdentifier('unknown'));
+        Db::table('scope')->insert(['tenant_id' => 2, 'name' => 'identity.read']);
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->getScopeEntityByIdentifier('identity.read');
+    }
+
+    public function test_league_refresh_repository_persists_native_refresh_and_revokes_it(): void
+    {
+        $client = new \app\identity\oauth\entity\ClientEntity('runtime-client', '测试客户端', [], true, 1, 5, 'web');
+        $access = (new \app\identity\oauth\repository\AccessTokenRepository())->getNewToken($client, [], 7);
+        $repository = new \app\identity\oauth\repository\RefreshTokenRepository();
+        $token = $repository->getNewRefreshToken();
+        $token->setAccessToken($access);
+        $token->setIdentifier(bin2hex(random_bytes(32)));
+        $token->setExpiryDateTime(new \DateTimeImmutable('+1 hour'));
+        $repository->persistNewRefreshToken($token);
+        self::assertFalse($repository->isRefreshTokenRevoked($token->getIdentifier()));
+        $repository->revokeRefreshToken($token->getIdentifier());
+        self::assertTrue($repository->isRefreshTokenRevoked($token->getIdentifier()));
+        self::assertTrue($repository->isRefreshTokenRevoked('unknown'));
+    }
+
+    public function test_league_auth_code_repository_reads_and_revokes_native_records(): void
+    {
+        Db::schema()->create('oauth_authorization_code', static function (Blueprint $table): void {
+            $table->id(); $table->string('code_hash'); $table->dateTime('expires_at');
+            $table->dateTime('revoked_at')->nullable(); $table->dateTime('consumed_at')->nullable(); $table->timestamps();
+        });
+        $code = bin2hex(random_bytes(32));
+        Db::table('oauth_authorization_code')->insert(['code_hash' => hash('sha256', $code), 'expires_at' => date('Y-m-d H:i:s', time() + 60)]);
+        $repository = new \app\identity\oauth\repository\AuthCodeRepository();
+        self::assertFalse($repository->isAuthCodeRevoked($code));
+        $repository->revokeAuthCode($code);
+        self::assertTrue($repository->isAuthCodeRevoked($code));
+        self::assertTrue($repository->isAuthCodeRevoked('unknown'));
+    }
+
     public function test_opaque_tokens_issue_rotate_and_revoke_replayed_family(): void
     {
         $service = new OpaqueTokenService();

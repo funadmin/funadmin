@@ -7,7 +7,6 @@ namespace app\admin\authorization\service;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\AuthGroup;
-use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
 use DomainException;
 
@@ -84,54 +83,17 @@ final class AuthorizationService
 
     public function permissionCodes(int $adminId): array
     {
-        $roleIds = $this->effectiveRoleIds($adminId);
-        $codes = Permission::where('status', 1)->whereNull('deleted_at')->where('is_public', 1)
-            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->pluck('code')->filter()->all();
-        $policies = CasbinRule::where('ptype', 'p')->where('v1', PermissionResource::domain())->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $roleIds))->get();
-        foreach ($policies as $policy) {
-            $code = Permission::where('obj', $policy->v2)->where('act', $policy->v3)->where('status', 1)->whereNull('deleted_at')->value('code');
-            if (is_string($code) && $code !== '') {
-                $codes[] = $code;
-            }
-        }
-        return array_values(array_unique($codes));
+        return CasbinService::instance()->permissionCodesForAdmin($adminId);
     }
 
     public function roleIds(int $adminId): array
     {
-        $names = CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain())->where('v0', 'admin:' . $adminId)->pluck('v1')->all();
-        $ids = array_map(static fn (string $name): int => str_starts_with($name, 'role:') ? (int) substr($name, 5) : 0, $names);
-        return AuthGroup::whereIn('id', $ids)->where('status', 1)->whereNull('deleted_at')->pluck('id')->map('intval')->all();
+        return CasbinService::instance()->adminRoleIds($adminId);
     }
 
     public function permissionIds(int $roleId): array
     {
-        $rows = CasbinRule::where('ptype', 'p')->where('v1', PermissionResource::domain())->where('v0', 'role:' . $roleId)->get();
-        $ids = [];
-        foreach ($rows as $row) {
-            $id = Permission::where('obj', $row->v2)->where('act', $row->v3)->value('id');
-            if ($id !== null) $ids[] = (int) $id;
-        }
-        return $ids;
-    }
-
-    private function effectiveRoleIds(int $adminId): array
-    {
-        $ids = $this->roleIds($adminId);
-        $pending = $ids;
-        while ($pending !== []) {
-            $names = CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain())
-                ->whereIn('v0', array_map(static fn (int $id): string => 'role:' . $id, $pending))->pluck('v1')->all();
-            $parents = array_map(static fn (string $name): int => str_starts_with($name, 'role:') ? (int) substr($name, 5) : 0, $names);
-            if (\support\Db::schema()->hasTable('auth_group_inherit')) {
-                $parents = array_merge($parents, \app\admin\authorization\model\AuthGroupInherit::whereIn('role_id', $pending)->pluck('parent_role_id')->all());
-            }
-            $parents = array_merge($parents, AuthGroup::whereIn('id', $pending)->pluck('pid')->all());
-            $pending = AuthGroup::whereIn('id', $parents)->where('status', 1)->whereNull('deleted_at')->pluck('id')->map('intval')->all();
-            $pending = array_values(array_diff($pending, $ids));
-            $ids = array_merge($ids, $pending);
-        }
-        return $ids;
+        return CasbinService::instance()->rolePermissionIds($roleId);
     }
 
     private function roleRows(int $adminId): array

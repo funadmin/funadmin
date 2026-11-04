@@ -56,6 +56,12 @@ Route::group('/identity', static function (): void {
         static fn () => new \app\identity\middleware\RequiredScopeMiddleware(['identity.read'], 'AND'),
     ]);
 });
+Route::group('/api/v2', static function (): void {
+    Route::post('/token', [\app\api\controller\v2\Token::class, 'build']);
+    Route::post('/token/refresh', [\app\api\controller\v2\Token::class, 'refresh']);
+    Route::get('/member', [\app\api\controller\v2\Member::class, 'show'])
+        ->middleware(\app\common\middleware\MApi::class);
+});
 Route::group('/market/api/v3', static function (): void {
     foreach (['login', 'refresh', 'register', 'me', 'password', 'logout'] as $action) {
         Route::post('/auth/' . $action, [\app\market\controller\Auth::class, $action]);

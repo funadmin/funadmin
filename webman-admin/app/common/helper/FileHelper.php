@@ -100,8 +100,13 @@ class FileHelper
         $_cache=ob_get_contents();
         ob_end_clean();
         if($_cache){
-            $File = new \think\template\driver\File();
-            $File->write($filepath, $_cache);
+            $directory = dirname($filepath);
+            if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new \RuntimeException('无法创建输出目录');
+            }
+            if (file_put_contents($filepath, $_cache, LOCK_EX) === false) {
+                throw new \RuntimeException('文件写入失败');
+            }
         }
     }
     /**

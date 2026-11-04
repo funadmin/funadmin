@@ -65,7 +65,7 @@ azAssert(azCall("/admin/system/role/$roleId/authorization", 'PUT', $grant)[1]['c
 [$status, $detail] = azCall("/admin/system/role/$roleId/authorization");
 azAssert($detail['code'] === 200 && in_array($permissionId, $detail['data']['effectivePermissionIds'], true) && count(array_filter($detail['data']['fields'], static fn (array $field): bool => $field['id'] === $fieldId && $field['view'])) === 1, '授权详情回读完整');
 azAssert(azCall("/admin/system/role/$copyId/authorization/copy", 'POST', ['sourceRoleId' => $roleId])[1]['code'] === 200, '复制整套授权');
-[$status, $menu] = azCall('/admin/system/menu', 'POST', ['name' => '验收能力页面', 'path' => '/admin/az-demo-' . $suffix, 'routeName' => 'AzDemo' . $suffix, 'component' => 'webman/management', 'type' => 'C', 'permissionId' => $permissionId]);
+[$status, $menu] = azCall('/admin/system/menu', 'POST', ['name' => '验收能力页面', 'path' => '/admin/az-demo-' . $suffix, 'routeName' => 'AzDemo' . $suffix, 'component' => 'system/role/index', 'type' => 'C', 'permissionId' => $permissionId]);
 azAssert($menu['code'] === 200, '创建菜单并绑定能力');
 foreach (['menu/tree', 'menu/permission-options', 'permission/tree', 'dept/tree', 'role/all', 'role/parent-options'] as $path) {
     [$status, $result] = azCall('/admin/system/' . $path);

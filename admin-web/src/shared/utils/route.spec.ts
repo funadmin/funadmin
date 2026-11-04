@@ -1,12 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import type { RouteRecordRaw } from 'vue-router';
 import { ADMIN_ROUTE_PREFIX } from '@/config';
-import { getFirstLeafRouteFullPath, joinRoutePath, resolveMenuPath, adminRoutePath } from './route';
+import { getFirstLeafRouteFullPath, getMenuActiveRootPath, joinRoutePath, resolveMenuPath, adminRoutePath } from './route';
 
 const route = (path: string, children: RouteRecordRaw[] = []): RouteRecordRaw => ({
   path,
   ...(children.length ? { children } : {})
 } as RouteRecordRaw);
+
+describe('getMenuActiveRootPath', () => {
+  it('参数化子页面通过 matched 归属正确的目录', () => {
+    const menus = [route('/admin/plugins', [route('/admin/plugin/:id')])];
+    const current = { path: '/admin/plugin/42', meta: {}, matched: [
+      { path: '/admin/plugins', name: undefined }, { path: '/admin/plugin/:id', name: 'PluginDetail' }
+    ] };
+    expect(getMenuActiveRootPath(current as Parameters<typeof getMenuActiveRootPath>[0], menus)).toBe('/admin/plugins');
+  });
+
+  it('隐藏的一级节点不抢占可见模块的菜单归属', () => {
+    const hidden = { ...route('/admin/hidden', [route('/admin/plugin')]), meta: { hidden: true } };
+    const menus = [hidden, route('/admin/plugins', [route('/admin/plugin')])];
+    expect(getMenuActiveRootPath({ path: '/admin/plugin', meta: {}, matched: [] }, menus)).toBe('/admin/plugins');
+  });
+
+  it('动态菜单未加载时保留路径兜底且不混淆相似前缀', () => {
+    expect(getMenuActiveRootPath({ path: '/admin/systematic/list', meta: {}, matched: [] }, [route('/admin/system')]))
+      .toBe('/admin/systematic');
+    expect(getMenuActiveRootPath({ path: '/', meta: {}, matched: [] })).toBe('/admin/dashboard');
+  });
+});
 
 describe('resolveMenuPath', () => {
   it('为后台页面路径统一添加 admin 前缀且不重复添加', () => {

@@ -6,7 +6,7 @@ namespace app\common\form\observability;
 
 use Closure;
 use Throwable;
-use think\facade\Log;
+use support\Log;
 
 final class FormObservability
 {

@@ -40,7 +40,6 @@ document.querySelectorAll('[data-confirm]').forEach(function(form){form.addEvent
 document.querySelectorAll('[data-copy]').forEach(function(button){button.addEventListener('click',async function(){const target=document.querySelector(button.dataset.copy);if(target&&navigator.clipboard){try{await navigator.clipboard.writeText(target.textContent);button.textContent='已复制'}catch(error){button.textContent='请手动复制'}}})});
 const orderStatus=document.querySelector('[data-order-status]');
 if(orderStatus){const poll=async function(){try{const response=await fetch(orderStatus.dataset.orderStatus,{credentials:'same-origin'});if(!response.ok)return;const result=await response.json();if(result.status==='paid'||result.status==='closed'){location.reload();return}setTimeout(poll,5000)}catch(error){setTimeout(poll,10000)}};setTimeout(poll,5000)}
-document.querySelectorAll('[data-qrcode]').forEach(function(box){const link=document.createElement('a');link.href=box.dataset.qrcode;link.textContent='打开微信支付链接';box.appendChild(link)});
 </script>
 </body>
 </html>

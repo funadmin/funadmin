@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace app\admin\authorization\service;
 
 use app\admin\authorization\model\AuthGroup;
-use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\Department;
 use app\admin\authentication\model\Admin;
 use InvalidArgumentException;
@@ -246,21 +245,7 @@ class RoleGuardService
 
     public function ancestorRoleIds(array $roleIds): array
     {
-        $result = AuthGroup::whereIn('id', $this->normalizeIds($roleIds))->where('status', 1)->pluck('id')->map('intval')->all();
-        $queue = $result;
-        while ($queue) {
-            $parents = AuthGroupInherit::whereIn('role_id', $queue)->pluck('parent_role_id')->all();
-            $primary = AuthGroup::whereIn('id', $queue)->pluck('pid')->all();
-            $parents = AuthGroup::whereIn('id', array_merge($parents, $primary))->where('status', 1)->pluck('id')->all();
-            $queue = [];
-            foreach ($this->normalizeIds($parents) as $parentId) {
-                if (!in_array($parentId, $result, true)) {
-                    $result[] = $parentId;
-                    $queue[] = $parentId;
-                }
-            }
-        }
-        return $result;
+        return CasbinService::instance()->ancestorRoleIds($roleIds);
     }
 
     public function descendantRoleIds(int $roleId): array

@@ -80,7 +80,7 @@ function resolvePath(item: RouteRecordRaw): string {
 }
 
 /** 当前激活的一级菜单 path（与侧栏菜单项 path 一致） */
-const activeRoot = computed(() => getMenuActiveRootPath(route));
+const activeRoot = computed(() => getMenuActiveRootPath(route, menus.value));
 
 function onSelect(index: string) {
   if (props.mode === 'mix') {

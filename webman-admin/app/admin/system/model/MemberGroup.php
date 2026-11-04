@@ -19,6 +19,7 @@ use app\common\model\concern\LaravelSoftDelete;
 
 class MemberGroup extends BackendModel {
     protected $table = 'member_group';
+    protected $fillable = ['name', 'icon', 'status'];
 
     /**
      * @var bool

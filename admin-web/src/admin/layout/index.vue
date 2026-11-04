@@ -165,7 +165,7 @@ watch(
 );
 
 /** 当前激活的一级菜单 path（mix / columns：与 route.path 首段一致，避免 matched 相对 path 对不齐） */
-const activeRootPath = computed(() => getMenuActiveRootPath(route));
+const activeRootPath = computed(() => getMenuActiveRootPath(route, allMenus.value));
 
 const dashboardItem: RouteRecordRaw = {
   path: ADMIN_HOME_PATH,

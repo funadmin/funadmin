@@ -28,7 +28,7 @@ final class AuthCodeRepository implements AuthCodeRepositoryInterface
 
     public function isAuthCodeRevoked($codeId): bool
     {
-        $code = (new OAuthAuthorizationCode())->where('code_hash', hash('sha256', (string) $codeId))->find();
+        $code = (new OAuthAuthorizationCode())->where('code_hash', hash('sha256', (string) $codeId))->first();
         return !$code || $code->revoked_at !== null || $code->consumed_at !== null || strtotime((string) $code->expires_at) <= time();
     }
 }

@@ -88,7 +88,7 @@ function visibleChildren(item: RouteRecordRaw): RouteRecordRaw[] {
   return getVisibleMenuChildren(item);
 }
 
-const activeRoot = computed(() => getMenuActiveRootPath(route));
+const activeRoot = computed(() => getMenuActiveRootPath(route, menus.value));
 
 function onSelect(item: RouteRecordRaw) {
   const rootPath = resolvePath(item);

@@ -64,5 +64,6 @@ for ($i = 0; $i < 12; $i++) {
 }
 [$status, $menus] = installationCall('/admin/auth/menus');
 installationCheck($status === 200 && count($menus['data']) > 0, '安装后菜单可用');
-installationCheck(installationCall('/admin/management/users')[0] === 200, '安装后后台管理列表可用');
+installationCheck(installationCall('/admin/system/user')[0] === 200, '安装后管理员列表可用');
+installationCheck(installationCall('/admin/management/users')[0] === 404, '旧管理原型接口不再注册');
 echo '隔离测试库：' . $database . PHP_EOL;

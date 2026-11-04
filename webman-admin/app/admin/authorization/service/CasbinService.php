@@ -6,7 +6,10 @@ use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
+use app\admin\authorization\repository\casbin\DatabaseAdapter;
 use app\common\service\AbstractService;
+use Casbin\Enforcer;
+use Casbin\Rbac\DefaultRoleManager\DomainManager;
 use support\Db;
 
 /**
@@ -14,12 +17,23 @@ use support\Db;
  */
 class CasbinService extends AbstractService
 {
+    /** 每次返回独立快照，避免常驻 worker 缓存旧策略或事务回滚后的临时授权。 */
+    public function enforcer(?string $domain = null): Enforcer
+    {
+        $adapter = new DatabaseAdapter(PermissionResource::domain($domain));
+        $enforcer = new Enforcer(config_path() . '/casbin/rbac_model.conf', $adapter, enableLog: false);
+        $enforcer->enableAutoSave(false);
+        $enforcer->setRoleManager(new DomainManager(max(10, AuthGroup::count() + 1)));
+        $enforcer->buildRoleLinks();
+        return $enforcer;
+    }
+
     public function enforceAdmin(int $adminId, string $obj, string $act, ?string $domain = null): bool
     {
         $permission = Permission::where('obj', strtolower($obj))->where('act', strtolower($act))->where('status', 1)->whereNull('deleted_at')->first();
         if ($adminId <= 0 || !$permission || !in_array($permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) return false;
         if ($permission->is_public) return true;
-        return in_array((int) $permission->id, $this->permissionIdsForRoles($this->adminRoleIds($adminId, $domain), $domain), true);
+        return $this->enforcer($domain)->enforce(PermissionResource::subject($adminId), PermissionResource::domain($domain), (string) $permission->obj, (string) $permission->act);
     }
 
     public function adminRoleIds(int $adminId, ?string $domain = null): array
@@ -27,8 +41,8 @@ class CasbinService extends AbstractService
         if ($adminId <= 0) {
             return [];
         }
-        $roles = CasbinRule::where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->where('v2', PermissionResource::domain($domain))->pluck('v1')->all();
-        return $this->activeRoleIds($this->idsFromNames($roles, 'role:'));
+        $roles = $this->enforcer($domain)->getRolesForUserInDomain(PermissionResource::subject($adminId), PermissionResource::domain($domain)) ?? [];
+        return $this->idsFromNames($roles, 'role:');
     }
 
     public function roleIdsByAdmins(array $adminIds, ?string $domain = null): array
@@ -54,18 +68,46 @@ class CasbinService extends AbstractService
         if ($roleId <= 0) {
             return [];
         }
+        // 授权工作区回读原始直接授权，停用角色仍需显示配置，但不会参与运行时判权。
         $rows = CasbinRule::where('ptype', 'p')->where('v0', PermissionResource::role($roleId))->where('v1', PermissionResource::domain($domain))->get();
         return $this->permissionIdsFromPolicies($rows->map(static fn ($row): array => [$row->v0, $row->v1, $row->v2, $row->v3])->all());
     }
 
     public function permissionIdsForRoles($roleIds, ?string $domain = null): array
     {
-        $result = [];
-        $roleIds = (new RoleGuardService())->ancestorRoleIds($this->normalizeIds($roleIds));
+        $enforcer = $this->enforcer($domain);
+        $policies = [];
+        foreach ($this->activeRoleIds($roleIds) as $roleId) {
+            $policies = array_merge($policies, $enforcer->getImplicitPermissionsForUser(PermissionResource::role($roleId), PermissionResource::domain($domain)));
+        }
+        return $this->permissionIdsFromPolicies($policies);
+    }
+
+    public function ancestorRoleIds(array $roleIds, ?string $domain = null): array
+    {
+        $roleIds = $this->activeRoleIds($roleIds);
+        if (!$roleIds) return [];
+        $enforcer = $this->enforcer($domain);
+        $result = $roleIds;
         foreach ($roleIds as $roleId) {
-            $result = array_merge($result, $this->rolePermissionIds($roleId, $domain));
+            $result = array_merge($result, $this->idsFromNames($enforcer->getImplicitRolesForUser(PermissionResource::role($roleId), PermissionResource::domain($domain)), 'role:'));
         }
         return $this->normalizeIds($result);
+    }
+
+    public function permissionCodesForAdmin(int $adminId, ?string $domain = null): array
+    {
+        if ($adminId <= 0) return [];
+        $enforcer = $this->enforcer($domain);
+        $permissions = Permission::where('status', 1)->whereNull('deleted_at')
+            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->get();
+        $codes = [];
+        foreach ($permissions as $permission) {
+            if ($permission->is_public || $enforcer->enforce(PermissionResource::subject($adminId), PermissionResource::domain($domain), (string) $permission->obj, (string) $permission->act)) {
+                if ($permission->code !== null && $permission->code !== '') $codes[] = (string) $permission->code;
+            }
+        }
+        return array_values(array_unique($codes));
     }
 
     public function activeRoleIds($roleIds): array
@@ -87,7 +129,7 @@ class CasbinService extends AbstractService
         foreach ($this->normalizeIds($roleIds) as $roleId) {
             $rows[] = $this->makeRuleRow('g', [$subject, PermissionResource::role($roleId), $domain]);
         }
-        $this->replacePolicies('g', 'v0', $subject, 'v2', $domain, $rows);
+        $this->replacePolicies('g', $subject, $domain, $rows);
     }
 
     public function syncRoleInheritance(int $roleId, array $parentRoleIds, ?string $domain = null): void
@@ -98,7 +140,7 @@ class CasbinService extends AbstractService
         foreach ($this->normalizeIds($parentRoleIds) as $parentRoleId) {
             $rows[] = $this->makeRuleRow('g', [$role, PermissionResource::role($parentRoleId), $domain]);
         }
-        $this->replacePolicies('g', 'v0', $role, 'v2', $domain, $rows);
+        $this->replacePolicies('g', $role, $domain, $rows);
     }
 
     public function syncRolePermissions(int $roleId, $permissionIds, ?string $domain = null): void
@@ -132,7 +174,7 @@ class CasbinService extends AbstractService
         foreach ($permissions as $permission) {
             $rows[] = $this->makeRuleRow('p', [$role, $domain, $permission['obj'], $permission['act']]);
         }
-        $this->replacePolicies('p', 'v0', $role, 'v1', $domain, $rows);
+        $this->replacePolicies('p', $role, $domain, $rows);
     }
 
     public function deleteAdmin(int $adminId): void
@@ -154,6 +196,7 @@ class CasbinService extends AbstractService
 
     public function reload(): void
     {
+        // 不保留跨调用快照；策略变更在下一次授权操作中从当前数据库连接重新加载。
     }
 
     private function permissionIdsFromPolicies(array $policies): array
@@ -168,36 +211,23 @@ class CasbinService extends AbstractService
             return [];
         }
         $ids = [];
-        foreach (Permission::where('status', 1)->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->select(['id', 'pid', 'obj', 'act'])->get()->toArray() as $permission) {
+        foreach (Permission::where('status', 1)->whereNull('deleted_at')->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->select(['id', 'obj', 'act'])->get()->toArray() as $permission) {
             if (isset($pairs[$permission['obj'] . "\0" . $permission['act']])) {
                 $ids[] = (int) $permission['id'];
-                $ids = array_merge($ids, $this->parentPermissionIds((int) $permission['pid']));
             }
         }
         return $this->normalizeIds($ids);
     }
 
-    private function parentPermissionIds(int $permissionId): array
+    private function replacePolicies(string $ptype, string $subject, string $domain, array $rows): void
     {
-        $result = [];
-        while ($permissionId > 0) {
-            if (in_array($permissionId, $result, true)) break;
-            $permission = Permission::find($permissionId);
-            if (!$permission) {
-                break;
-            }
-            $result[] = (int) $permission->id;
-            $permissionId = (int) $permission->pid;
-        }
-        return $result;
-    }
-
-    private function replacePolicies(string $ptype, string $field1, string $value1, string $field2, string $value2, array $rows): void
-    {
-        Db::transaction(function () use ($ptype, $field1, $value1, $field2, $value2, $rows) {
-            CasbinRule::where('ptype', $ptype)->where($field1, $value1)->where($field2, $value2)->delete();
-            if ($rows) {
-                CasbinRule::insert($rows);
+        Db::transaction(function () use ($ptype, $subject, $domain, $rows) {
+            $adapter = new DatabaseAdapter($domain);
+            $filters = $ptype === 'p' ? [$subject, $domain] : [$subject, '', $domain];
+            $adapter->removeFilteredPolicy($ptype, $ptype, 0, ...$filters);
+            foreach ($rows as $row) {
+                $rule = array_map(static fn (int $index): string => $row['v' . $index], range(0, $ptype === 'p' ? 3 : 2));
+                $adapter->addPolicy($ptype, $ptype, $rule);
             }
         });
         $this->reload();

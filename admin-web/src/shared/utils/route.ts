@@ -10,8 +10,26 @@ export function adminRoutePath(path: string): string {
  * 当前 URL 对应的一级菜单根 path（取 path 首段并加前导 /）。
  * 与侧栏/顶栏菜单项的 path（如 /admin/dashboard、/admin/system）对齐，避免 matched 子记录为相对段（如 dashboard）时匹配失败。
  */
-export function getMenuActiveRootPath(route: RouteLocationNormalizedLoaded): string {
-  const path = route.path || '/';
+export function getMenuActiveRootPath(
+  route: Pick<RouteLocationNormalizedLoaded, 'path' | 'meta' | 'matched'>,
+  menus: RouteRecordRaw[] = []
+): string {
+  const roots = menus.filter((menu) => !menu.meta?.hidden);
+  const findRoot = (target: string): RouteRecordRaw | undefined => {
+    const contains = (menu: RouteRecordRaw, parentPath: string): boolean => {
+      const fullPath = resolveMenuPath(parentPath, menu.path);
+      return fullPath === target || (menu.children || []).some((child) => contains(child, fullPath));
+    };
+    return roots.find((menu) => contains(menu, ''));
+  };
+  const activeMenu = typeof route.meta?.activeMenu === 'string' ? route.meta.activeMenu : '';
+  const matchedRoot = roots.find((menu) => route.matched?.some((record) =>
+    record.path === menu.path && (!menu.name || record.name === menu.name)
+  ));
+  const root = (activeMenu ? findRoot(activeMenu) : undefined) || matchedRoot || findRoot(route.path);
+  if (root) return resolveMenuPath('', root.path);
+
+  const path = activeMenu || route.path || '/';
   const normalized = path.startsWith(`${ADMIN_ROUTE_PREFIX}/`) ? path.slice(ADMIN_ROUTE_PREFIX.length) : path;
   const parts = normalized.split('/').filter(Boolean);
   if (!parts.length) return `${ADMIN_ROUTE_PREFIX}/dashboard`;

@@ -6,18 +6,12 @@ namespace app\api\controller\v2;
 
 
 use app\common\controller\Api;
-use app\common\middleware\MApi;
-use think\annotation\route\Get;
-use think\annotation\route\Group;
-use think\annotation\route\Middleware;
-use think\Request;
+use support\Request;
+use support\Response;
 
-#[Group('v2/member')]
 class Member extends Api
 {
-    #[Get('', ['complete_match' => true])]
-    #[Middleware(MApi::class)]
-    public function show(Request $request): \think\Response
+    public function show(Request $request): Response
     {
         return $this->ok(data: ['user' => $request->member]);
     }

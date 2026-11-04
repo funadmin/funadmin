@@ -7,41 +7,25 @@ namespace app\api\controller\v2;
 use app\common\controller\Api;
 use app\common\service\member\MemberAuthService;
 use app\common\service\authentication\TokenService;
-use think\annotation\route\Group;
-use think\annotation\route\Middleware;
-use think\annotation\route\Post;
-use think\middleware\Throttle;
-use think\Request;
-use think\Response;
+use support\Request;
+use support\Response;
+use Webman\Limiter\Limiter;
 
 /**
  * 生成token
  */
-#[Group('v2/token')]
 class Token extends Api
 {
     public function __construct(
-        private readonly TokenService $tokenService,
-        private readonly MemberAuthService $memberAuthService
+        private readonly TokenService $tokenService = new TokenService(),
+        private readonly MemberAuthService $memberAuthService = new MemberAuthService()
     ) {
     }
 
-    /**
-     * 获取token
-     * @param Request $request
-     * @return void
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    #[Post('')]
-    #[Middleware(Throttle::class, [
-        'visit_method' => ['POST'],
-        'visit_rate' => '10/m',
-        'key' => '__CONTROLLER__/__ACTION__/__IP__',
-    ])]
+    /** 获取访问令牌。 */
     public function build(Request $request): Response
     {
+        if ($limited = $this->throttle($request)) return $limited;
         $account = trim((string) $request->post('username', ''));
         $password = (string) $request->post('password', '');
         if ($account === '' || mb_strlen($account) > 100 || strlen($password) < 6 || strlen($password) > 255) {
@@ -62,13 +46,10 @@ class Token extends Api
 
 
 
-    /**
-     * @param Request $request
-     * @return \think\response\Json
-     */
-    #[Post('refresh')]
+    /** 使用 refresh token 获取新的访问令牌。 */
     public function refresh(Request $request): Response
     {
+        if ($limited = $this->throttle($request)) return $limited;
         $refreshToken = trim((string) $request->post('refresh_token', ''));
         if ($refreshToken === '') {
             return $this->fail(msg: __('Invalid parameters'), code: 400);
@@ -85,6 +66,13 @@ class Token extends Api
             'access_token' => $this->tokenService->build(['id' => $member['id']]),
             'expires_in' => (int) config('api.access_token_ttl'),
         ]);
+    }
+    private function throttle(Request $request): ?Response
+    {
+        $key = 'member_token:' . $request->path() . ':' . hash('sha256', $request->getRemoteIp());
+        if (Limiter::attempt($key, 10, 60)) return null;
+        return $this->fail(msg: '请求过于频繁，请稍后重试', code: 429)
+            ->withHeaders(['Retry-After' => '60', 'Cache-Control' => 'no-store']);
     }
 
 }

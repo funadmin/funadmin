@@ -33,9 +33,9 @@ final class AccessTokenRepository implements AccessTokenRepositoryInterface
         Db::transaction(function () use ($accessTokenEntity, $client): void {
             $plain = (string) $accessTokenEntity->getIdentifier();
             $userId = $accessTokenEntity->getUserIdentifier();
-            $user = $userId !== null ? IdentityUser::forTenant($client->tenantId)->where('id', (int) $userId)->where('status', 1)->whereNull('deleted_at')->find() : null;
+            $user = $userId !== null ? IdentityUser::forTenant($client->tenantId)->where('id', (int) $userId)->where('status', 1)->whereNull('deleted_at')->first() : null;
             if ($userId !== null && !$user) throw new \DomainException('identity_user_unavailable');
-            $token = OAuthToken::create([
+            $token = OAuthToken::forceCreate([
                 'tenant_id' => $client->tenantId,
                 'client_id' => $client->databaseId,
                 'user_id' => $userId,
@@ -47,7 +47,7 @@ final class AccessTokenRepository implements AccessTokenRepositoryInterface
                 'session_version' => $user ? (int) $user->session_version : null,
                 'expires_at' => $accessTokenEntity->getExpiryDateTime()->format('Y-m-d H:i:s'),
             ]);
-            foreach ($accessTokenEntity->getScopes() as $scope) if ($scope instanceof ScopeEntity) OAuthTokenScope::create(['tenant_id' => $client->tenantId, 'token_id' => $token->id, 'scope_id' => $scope->databaseId]);
+            foreach ($accessTokenEntity->getScopes() as $scope) if ($scope instanceof ScopeEntity) OAuthTokenScope::forceCreate(['tenant_id' => $client->tenantId, 'token_id' => $token->id, 'scope_id' => $scope->databaseId]);
         });
     }
 
@@ -58,7 +58,7 @@ final class AccessTokenRepository implements AccessTokenRepositoryInterface
 
     public function isAccessTokenRevoked($tokenId): bool
     {
-        $token = (new OAuthToken())->where('token_hash', hash('sha256', (string) $tokenId))->where('token_type', 'access')->find();
+        $token = (new OAuthToken())->where('token_hash', hash('sha256', (string) $tokenId))->where('token_type', 'access')->first();
         return !$token || $token->revoked_at !== null || strtotime((string) $token->expires_at) <= time();
     }
 }

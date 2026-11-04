@@ -111,7 +111,7 @@ final class MarketAdminService
     {
         $this->requireRow('market_plugin', $id, '插件不存在');
         if (Db::table('market_version')->where('plugin_id', $id)->where('status', 'published')->count() > 0) throw new RuntimeException('插件仍有已发布版本，请先撤回全部版本或改为下架');
-        $paths = Db::table('market_version')->where('plugin_id', $id)->column('package_path');
+        $paths = Db::table('market_version')->where('plugin_id', $id)->pluck('package_path')->all();
         Db::transaction(static function () use ($id): void { Db::table('market_version')->where('plugin_id', $id)->delete(); Db::table('market_grant')->where('plugin_id', $id)->delete(); Db::table('market_plugin')->where('id', $id)->delete(); });
         array_walk($paths, fn (string $path) => $this->removePackage($path));
     }

@@ -11,7 +11,7 @@
 
 namespace app;
 
-class Request extends \think\Request
+class Request extends \support\Request
 {
 //    protected $filter = ['htmlspecialchars'];
 

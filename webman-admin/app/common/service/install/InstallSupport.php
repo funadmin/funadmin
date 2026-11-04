@@ -123,16 +123,6 @@ final class InstallSupport
                 'ptype' => 'g', 'v0' => 'admin:1', 'v1' => 'role:1', 'v2' => 'default',
                 'rule_hash' => hash('sha256', implode("\x1f", $values)),
             ]);
-            $permissionId = Db::table('permission')->insertGetId([
-                'app_name' => 'admin', 'code' => 'system:management:view', 'obj' => 'admin/system.management',
-                'act' => 'index', 'name' => '后台管理', 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
-            ]);
-            Db::table('admin_menu')->insert([
-                'name' => '后台管理', 'href' => '/admin/management', 'permission_id' => $permissionId,
-                'query' => 'name=WebmanManagement&type=C&component=webman%2Fmanagement',
-                'icon' => 'i-ep-setting', 'app_name' => 'admin', 'status' => 1,
-                'created_at' => $now, 'updated_at' => $now,
-            ]);
         });
     }
 

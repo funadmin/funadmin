@@ -14,26 +14,27 @@
 namespace app\common\service\cache;
 
 use app\common\service\AbstractService;
-use think\App;
-use think\facade\Log;
-use think\facade\Cache;
+use Illuminate\Redis\Connections\Connection;
+use support\Redis;
 
 class PredisService extends AbstractService
 {
-    protected App $app;
-
     protected mixed $redisObj = null; // Redis 驱动实例由缓存配置决定
 
-    public function __construct(App $app)
+    public function __construct(?Connection $connection = null)
     {
-        $this->app = $app;
-        $this->initialize();
+        if ($connection !== null) {
+            $this->redisObj = $connection->client();
+        } else {
+            $this->initialize();
+        }
     }
 
     public function initialize($options = [])
     {
-        $store = isset($options['store'])?$options['store']:'redis';
-        $this->redisObj = Cache::store($store)->handler();
+        $store = (string) ($options['store'] ?? 'default');
+        $this->redisObj = Redis::connection($store)->client();
+        return $this;
     }
 
     public function getKeys($key = '*')
@@ -838,10 +839,6 @@ class PredisService extends AbstractService
         $this->redisObj->flushDB();
     }
 
-    public function __destruct()
-    {
-        $this->redisObj->close();
-    }
 
     /**
      * 魔术方法 有不存在的操作的时候执行
@@ -852,7 +849,7 @@ class PredisService extends AbstractService
      */
     public function __call($method, $args)
     {
-        call_user_func_array([$this->redisObj, $method], $args);
+        return call_user_func_array([$this->redisObj, $method], $args);
     }
 
 

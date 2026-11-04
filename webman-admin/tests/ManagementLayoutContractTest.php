@@ -10,16 +10,15 @@ use PHPUnit\Framework\TestCase;
 
 final class ManagementLayoutContractTest extends TestCase
 {
-    public function test_management_uses_authorization_module_paths(): void
+    public function test_prototype_implementation_is_removed_and_native_controllers_remain(): void
     {
-        self::assertTrue(class_exists(ManagementService::class));
-        self::assertTrue(method_exists(Management::class, 'listing'));
-        self::assertTrue(method_exists(Management::class, 'create'));
-        self::assertTrue(method_exists(Management::class, 'update'));
-        self::assertTrue(method_exists(Management::class, 'remove'));
-        self::assertSame('admin', ManagementService::tableFor('users'));
-        self::assertSame('auth_group', ManagementService::tableFor('roles'));
-        self::assertSame('permission', ManagementService::tableFor('permissions'));
-        self::assertSame('admin_menu', ManagementService::tableFor('menus'));
+        self::assertFalse(class_exists(ManagementService::class));
+        self::assertFalse(class_exists(Management::class));
+        foreach (['SystemAdmin', 'SystemRole', 'SystemPermission', 'SystemMenu'] as $controller) {
+            self::assertTrue(class_exists('app\\admin\\authorization\\controller\\' . $controller));
+        }
+        $installer = file_get_contents(base_path() . '/app/common/service/install/InstallSupport.php');
+        self::assertStringNotContainsString('/admin/management', $installer);
+        self::assertStringNotContainsString('system:management:view', $installer);
     }
 }

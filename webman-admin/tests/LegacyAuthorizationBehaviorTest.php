@@ -44,6 +44,7 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
             $table->string('obj', 190)->default('');
             $table->string('act', 100)->default('');
             $table->string('name', 100)->default('');
+            $table->string('resource_type', 20)->default('route');
             $table->boolean('status')->default(true);
             $table->boolean('is_public')->default(false);
             $table->timestamps();
@@ -119,7 +120,7 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
         ]);
         Db::table('admin_menu')->where('id', 20)->update([
             'pid' => 30, 'href' => 'management',
-            'query' => 'name=Management&type=C&component=webman%2Fmanagement&affix=1&keepAlive=1&formKey=example',
+            'query' => 'name=Management&type=C&component=system%2Frole%2Findex&affix=1&keepAlive=1&formKey=example',
         ]);
         $menus = (new AuthorizationService())->menus(['id' => 2]);
         $system = array_values(array_filter($menus, static fn (array $menu): bool => $menu['id'] === 30))[0];

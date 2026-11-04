@@ -66,7 +66,9 @@ final class MemberIntegrationTest extends TestCase
     public function test_v2_member_routes_authenticate_native_requests_and_reject_wrong_token_types(): void
     {
         $this->createMarketAccountFixture();
-        \Webman\Config::set('api', array_merge(config('api'), ['jwt_secret' => bin2hex(random_bytes(32)), 'refresh_jwt_secret' => bin2hex(random_bytes(32))]));
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
         \Webman\Limiter\Limiter::init(null);
         new \Webman\App(Request::class, new \Psr\Log\NullLogger(), app_path(), public_path());
         \Webman\Route::load([config_path()]);
@@ -82,18 +84,38 @@ final class MemberIntegrationTest extends TestCase
             $request->route = $matched[1]['route'];
             return (\Webman\App::getCallback('', 'api', $matched[1]['callback'], $matched[2], false, $request->route))($request);
         };
-        self::assertSame(401, $call('GET', '/v2/member')->getStatusCode());
-        $response = $call('POST', '/v2/token', ['username' => 'market_member', 'password' => 'market-password-91']);
+        self::assertSame(401, $call('GET', '/api/v2/member')->getStatusCode());
+        $response = $call('POST', '/api/v2/token', ['username' => 'market_member', 'password' => 'market-password-91']);
         self::assertSame(200, $response->getStatusCode(), $response->rawBody() . ' ' . (string) $response->exception());
         $tokens = json_decode($response->rawBody(), true)['data'];
-        $profile = $call('GET', '/v2/member', token: $tokens['access_token']);
+        $profile = $call('GET', '/api/v2/member', token: $tokens['access_token']);
         self::assertSame(200, $profile->getStatusCode(), $profile->rawBody());
         self::assertSame(91, json_decode($profile->rawBody(), true)['data']['user']['id']);
-        self::assertSame(401, $call('GET', '/v2/member', token: $tokens['refresh_token'])->getStatusCode());
-        self::assertSame(200, $call('POST', '/v2/token/refresh', ['refresh_token' => $tokens['refresh_token']])->getStatusCode());
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $tokens['refresh_token'])->getStatusCode());
+        self::assertSame(200, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $tokens['refresh_token']])->getStatusCode());
         Db::table('member')->where('id', 91)->update(['status' => 0]);
-        self::assertSame(401, $call('GET', '/v2/member', token: $tokens['access_token'])->getStatusCode());
-        self::assertSame(401, $call('POST', '/v2/token/refresh', ['refresh_token' => $tokens['refresh_token']])->getStatusCode());
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $tokens['access_token'])->getStatusCode());
+        self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $tokens['refresh_token']])->getStatusCode());
+    }
+
+    public function test_v2_token_endpoint_limits_attempts_before_credentials_are_checked(): void
+    {
+        \Webman\Limiter\Limiter::init(null);
+        new \Webman\App(Request::class, new \Psr\Log\NullLogger(), app_path(), public_path());
+        \Webman\Route::load([config_path()]);
+        foreach (['/api/v2/token', '/api/v2/token/refresh'] as $path) {
+            $matched = \Webman\Route::dispatch('POST', $path);
+            self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
+            $callback = \Webman\App::getCallback('', 'api', $matched[1]['callback'], $matched[2], false, $matched[1]['route']);
+            for ($attempt = 1; $attempt <= 11; $attempt++) {
+                $request = new Request("POST $path HTTP/1.1\r\nHost: localhost\r\n\r\n");
+                Context::set(\Webman\Http\Request::class, $request);
+                $response = $callback($request);
+                self::assertSame($attempt <= 10 ? 400 : 429, $response->getStatusCode(), $path . ' #' . $attempt);
+            }
+            self::assertSame('60', (string) $response->getHeader('Retry-After'));
+            self::assertSame('no-store', $response->getHeader('Cache-Control'));
+        }
     }
 
     public function test_market_tokens_rotate_once_and_reject_disabled_members(): void
@@ -236,6 +258,27 @@ final class MemberIntegrationTest extends TestCase
         self::assertNull($service->activeGrant(5, 92));
     }
 
+    public function test_market_plugin_deletion_removes_unpublished_rows_and_keeps_other_plugins(): void
+    {
+        Db::schema()->create('market_plugin', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->id(); });
+        Db::schema()->create('market_version', static function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id(); $table->integer('plugin_id'); $table->string('status'); $table->string('package_path')->default('');
+        });
+        Db::schema()->create('market_grant', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->id(); $table->integer('plugin_id'); });
+        Db::table('market_plugin')->insert([['id' => 1], ['id' => 2]]);
+        Db::table('market_version')->insert([['plugin_id' => 1, 'status' => 'draft'], ['plugin_id' => 2, 'status' => 'published']]);
+        Db::table('market_grant')->insert([['plugin_id' => 1], ['plugin_id' => 2]]);
+        $service = new \app\admin\plugin\business\market\service\MarketAdminService();
+        $service->deletePlugin(1);
+        self::assertFalse(Db::table('market_plugin')->where('id', 1)->exists());
+        self::assertFalse(Db::table('market_version')->where('plugin_id', 1)->exists());
+        self::assertFalse(Db::table('market_grant')->where('plugin_id', 1)->exists());
+        self::assertTrue(Db::table('market_plugin')->where('id', 2)->exists());
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('插件仍有已发布版本');
+        $service->deletePlugin(2);
+    }
+
     public function test_market_catalog_filters_published_versions_and_member_grants(): void
     {
         Db::schema()->create('market_category', static function (\Illuminate\Database\Schema\Blueprint $table): void {
@@ -279,6 +322,35 @@ final class MemberIntegrationTest extends TestCase
         self::assertSame(1, $store->listing('', 0, 1)['total']);
         self::assertTrue($store->detail('visible', 92)['owned']);
         self::assertNull($store->detail('draft', 92));
+    }
+
+    public function test_wechat_checkout_renders_local_qr_image_without_missing_script(): void
+    {
+        $request = new Request("GET /market/order/202611040000000000001 HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
+        Context::set(\Webman\Http\Request::class, $request);
+        $order = ['order_no' => '202611040000000000001', 'channel' => 'wechat', 'status' => 'pending', 'expire_at' => date('Y-m-d H:i:s', time() + 600), 'plugin_code' => 'fixture', 'plugin_name' => '测试插件', 'amount_text' => '10.00', 'plan_text' => '永久授权', 'channel_text' => '微信支付', 'created_at' => date('Y-m-d H:i:s'), 'paid_at' => null, 'remark' => ''];
+        $key = 'market_payment_' . $order['order_no'];
+        \support\Cache::set($key, ['type' => 'qrcode', 'code_url' => 'weixin://wxpay/bizpayurl?pr=fixture123'], 60);
+        try {
+            $controller = new \app\market\controller\Order();
+            $payment = (new \ReflectionMethod($controller, 'payment'))->invoke($controller, $order);
+            self::assertStringStartsWith('data:image/svg+xml;base64,', $payment['qr_image']);
+            $svg = base64_decode(substr($payment['qr_image'], strlen('data:image/svg+xml;base64,')), true);
+            self::assertStringContainsString('<svg', $svg);
+            self::assertStringContainsString('<path', $svg);
+            self::assertStringNotContainsString('<script', $svg);
+            $response = (new \ReflectionMethod($controller, 'render'))->invoke($controller, 'store/order', ['order' => $order, 'payment' => $payment, 'paymentError' => '', 'mockAllowed' => false]);
+            self::assertStringContainsString('src="data:image/svg+xml;base64,', $response->rawBody());
+            self::assertStringNotContainsString('/vendor/qrcode.js', $response->rawBody());
+            self::assertStringNotContainsString('data-qrcode=', $response->rawBody());
+            \support\Cache::set($key, ['type' => 'qrcode', 'code_url' => 'https://untrusted.example/payment'], 60);
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('微信支付二维码内容无效');
+            (new \ReflectionMethod($controller, 'payment'))->invoke($controller, $order);
+        } finally {
+            \support\Cache::delete($key);
+        }
     }
 
     public function test_payment_callbacks_accept_native_requests_and_reject_unsigned_notifications(): void
@@ -346,6 +418,25 @@ final class MemberIntegrationTest extends TestCase
         self::assertSame(1, $service->overview()['totals']['activeInstalls']);
         self::assertSame(1, $service->overview()['totals']['enabledInstalls']);
         self::assertSame(1, $service->overview()['top'][0]['activeInstalls']);
+    }
+
+    public function test_member_group_and_level_writes_check_duplicates_and_protect_references(): void
+    {
+        Db::table('member')->insert(['id' => 91, 'username' => 'level_reference', 'sex' => '0', 'level_id' => 1, 'status' => 1]);
+        foreach ([['member-group', \app\admin\system\controller\SystemMemberGroup::class, 'member_group'], ['member-level', \app\admin\system\controller\SystemMemberLevel::class, 'member_level']] as [$route, $class, $table]) {
+            $request = new Request("POST /admin/system/$route HTTP/1.1\r\n\r\n");
+            $request->setPost(['name' => '新增测试']);
+            $request->context['admin'] = ['id' => 1];
+            Context::set(\Webman\Http\Request::class, $request);
+            $controller = new $class();
+            self::assertSame(200, $controller->create()->getStatusCode());
+            self::assertSame(1, Db::table($table)->where('name', '新增测试')->count());
+            $duplicate = $controller->create();
+            self::assertSame(422, json_decode($duplicate->rawBody(), true)['code'], $class . ' ' . $duplicate->rawBody());
+            $request->setPost(['ids' => [1]]);
+            self::assertSame(422, json_decode($controller->recycle()->rawBody(), true)['code']);
+            self::assertNull(Db::table($table)->where('id', 1)->value('deleted_at'));
+        }
     }
 
     public function test_member_index_filters_keyword_without_thinkphp_query_methods(): void

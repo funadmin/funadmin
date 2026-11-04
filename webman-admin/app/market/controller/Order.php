@@ -145,10 +145,24 @@ final class Order extends StoreController
         $cacheKey = 'market_payment_' . $order['order_no'];
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
-            return $cached;
+            return $this->withQrImage($cached);
         }
         $payment = (new MarketOrderService())->pay($order);
         Cache::set($cacheKey, $payment, max(60, strtotime((string) $order['expire_at']) - time()));
+        return $this->withQrImage($payment);
+    }
+
+    private function withQrImage(array $payment): array
+    {
+        if (($payment['type'] ?? '') === 'qrcode') {
+            $url = (string) ($payment['code_url'] ?? '');
+            if (strlen($url) > 2048 || !str_starts_with($url, 'weixin://wxpay/')) throw new \RuntimeException('微信支付二维码内容无效');
+            $writer = new \BaconQrCode\Writer(new \BaconQrCode\Renderer\ImageRenderer(
+                new \BaconQrCode\Renderer\RendererStyle\RendererStyle(240),
+                new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+            ));
+            $payment['qr_image'] = 'data:image/svg+xml;base64,' . base64_encode($writer->writeString($url));
+        }
         return $payment;
     }
 }

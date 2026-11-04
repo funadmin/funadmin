@@ -25,7 +25,7 @@
         <p class="faint">支付完成后会自动返回本页；若未跳转，本页会自动刷新支付结果。</p>
       {elseif $payment && $payment.type == 'qrcode' /}
         <div class="qr">
-          <div class="qr__box" data-qrcode="{$payment.code_url}"></div>
+          <img class="qr__box" src="{$payment.qr_image}" width="240" height="240" alt="微信支付二维码">
           <span class="muted">请使用微信扫一扫完成支付</span>
         </div>
       {elseif $payment && $payment.type == 'mock' && $mockAllowed /}
@@ -56,4 +56,4 @@
   </aside>
 </div>
 {/block}
-{block name="scripts"}{if $payment && $payment.type == 'qrcode'}<script src="{$assets}/vendor/qrcode.js"></script>{/if}{/block}
+{block name="scripts"}{/block}

@@ -3,7 +3,7 @@
 namespace app\common\service\storage;
 
 use app\common\service\AbstractService;
-use think\facade\Event;
+use Webman\Event\Event;
 
 class OssService extends AbstractService
 {
@@ -21,6 +21,6 @@ class OssService extends AbstractService
             'localpath'=>$path,
             'save'=>$save,
         ];
-        return Event::trigger('OssUpload', $param, true);
+        return Event::dispatch('OssUpload', $param, true);
     }
 }
