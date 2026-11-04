@@ -56,7 +56,7 @@ final class FormCrudDefinitionFactory
         $connectionSettings = \app\common\service\database\DatabaseConnections::settings($form['connection']);
         $fields = $adopted
             ? [$this->schemaManagedField($schemaColumns[$primaryKey], true)]
-            : [$this->managedField('id', ($connectionSettings['driver'] ?? $form['connection']) === 'pgsql' ? 'bigint' : 'bigint unsigned', true)];
+            : [$this->managedField('id', 'bigint unsigned', true)];
         $prefix = (string) ($connectionSettings['prefix'] ?? '');
         $relations = [];
         $optionSources = [];

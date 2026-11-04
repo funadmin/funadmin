@@ -32,7 +32,7 @@ final class Index
         if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/', $token)) $token = bin2hex(random_bytes(32));
         return $this->result([
             'installed' => false, 'siteName' => 'FunAdmin', 'siteVersion' => 'Webman',
-            'csrfToken' => $token, 'checks' => $this->buildEnvironmentChecks((string) $request->get('driver', 'mysql')),
+            'csrfToken' => $token, 'checks' => $this->buildEnvironmentChecks(),
         ], '环境检测完成')->cookie(self::COOKIE, $token, null, '/install', '', $this->secure(), true, 'Strict');
     }
 
@@ -43,7 +43,7 @@ final class Index
             if ($this->installed()) throw new DomainException('系统已安装，禁止重复安装', 409);
             $this->assertCsrf($request);
             $input = $this->collectInstallInput($request);
-            foreach ($this->buildEnvironmentChecks($input['db']['driver']) as $check) {
+            foreach ($this->buildEnvironmentChecks() as $check) {
                 if ($check['required'] && !$check['passed']) throw new DomainException($check['label'] . '不满足安装要求', 422);
             }
             $result = InstallSupport::install($input['db'], $input['admin'], $input['debug'], base_path());
@@ -106,23 +106,20 @@ final class Index
         $debug = filter_var($request->post('app_debug', false), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
         if ($debug === null) throw new DomainException('开发模式参数不正确', 422);
         $driver = $request->post('driver', 'mysql');
-        $schema = $request->post('schema', 'public');
-        $sslmode = $request->post('sslmode', 'prefer');
-        if (!is_string($driver) || !in_array($driver, ['mysql', 'pgsql'], true) || !is_string($schema) || !is_string($sslmode)) throw new DomainException('数据库配置不正确', 422);
+        if (!is_string($driver) || $driver !== 'mysql') throw new DomainException('数据库类型仅支持 MySQL', 422);
         return [
-            'db' => ['driver' => $driver, 'schema' => $schema, 'sslmode' => $sslmode, 'host' => $values['hostname'], 'port' => $values['port'], 'database' => $values['database'], 'prefix' => $values['prefix'], 'username' => $values['username'], 'password' => $values['password']],
+            'db' => ['driver' => $driver, 'host' => $values['hostname'], 'port' => $values['port'], 'database' => $values['database'], 'prefix' => $values['prefix'], 'username' => $values['username'], 'password' => $values['password']],
             'admin' => ['username' => $values['adminUserName'], 'password' => $values['adminPassword'], 'repassword' => $values['rePassword'], 'email' => $values['email']],
             'debug' => $debug,
         ];
     }
 
-    private function buildEnvironmentChecks(string $driver = 'mysql'): array
+    private function buildEnvironmentChecks(): array
     {
         $paths = InstallSupport::paths(base_path());
-        $directory = $driver === 'mysql' ? $paths['migrations'] : $paths['php_fixtures'];
-        $extension = $driver === 'mysql' ? 'sql' : 'php';
-        $files = glob($directory . '/*.' . $extension) ?: [];
-        $migrations = $files !== [] && ($driver !== 'mysql' || is_readable($directory . '/001_baseline.sql'));
+        $directory = $paths['migrations'];
+        $files = glob($directory . '/*.sql') ?: [];
+        $migrations = $files !== [] && is_readable($directory . '/001_baseline.sql');
         foreach ($files as $file) {
             if (!is_readable($file)) $migrations = false;
         }
@@ -134,8 +131,7 @@ final class Index
             $this->environmentCheck('php_int', 'PHP 架构', '64 位', (string) (PHP_INT_SIZE * 8) . ' 位', PHP_INT_SIZE === 8, true),
             $this->extensionCheck('json', 'JSON', true),
             $this->extensionCheck('pdo', 'PDO', true),
-            $this->extensionCheck('pdo_mysql', 'PDO MySQL', $driver === 'mysql'),
-            $this->extensionCheck('pdo_pgsql', 'PDO PostgreSQL', $driver === 'pgsql'),
+            $this->extensionCheck('pdo_mysql', 'PDO MySQL', true),
             $this->extensionCheck('pcntl', 'PCNTL', PHP_OS_FAMILY !== 'Windows'),
             $this->extensionCheck('mbstring', 'Mbstring', true),
             $this->extensionCheck('openssl', 'OpenSSL', true),
@@ -147,7 +143,7 @@ final class Index
             $this->environmentCheck('runtime', 'runtime 目录', '可写', $this->writableLabel($paths['runtime']), is_writable($paths['runtime']), true),
             $this->environmentCheck('public', 'public 目录', '可写', $this->writableLabel($paths['public']), is_writable($paths['public']), true),
             $this->environmentCheck('env', '.env 配置目录', '可原子写入', $this->writableLabel(base_path()), is_writable(base_path()) && (!is_file($paths['env']) || is_writable($paths['env'])), true),
-            $this->environmentCheck('migrations', '数据库迁移', $driver === 'mysql' ? '根目录核心 SQL 可读' : 'PostgreSQL 原生迁移文件可读', $files ? count($files) . ' 个迁移文件' : '无迁移文件', $migrations, true),
+            $this->environmentCheck('migrations', '数据库迁移', '根目录核心 SQL 可读', $files ? count($files) . ' 个迁移文件' : '无迁移文件', $migrations, true),
         ];
     }
 

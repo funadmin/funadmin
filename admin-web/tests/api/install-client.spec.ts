@@ -20,14 +20,17 @@ describe('安装接口客户端', () => {
     expect(client.installHttp.defaults.headers.common['X-CSRF-TOKEN']).toBe('test-csrf');
     vi.unstubAllEnvs();
   });
-  it('传递 PostgreSQL 类型、schema 和 SSL 配置', async () => {
+  it('安装只传递 MySQL 配置，不携带多驱动参数', async () => {
     let submitted: any;
     installHttp.defaults.adapter = async (config) => {
       submitted = JSON.parse(config.data);
       return { data: { code: 200, data: { username: 'admin' } }, status: 200, statusText: 'OK', headers: {}, config };
     };
-    await installApi.install({ driver: 'pgsql', schema: 'tenant', sslmode: 'require', hostname: 'localhost', port: '5432', database: 'example', prefix: '', username: 'postgres', password: '', adminUserName: 'admin', adminPassword: 'safe-password-123', rePassword: 'safe-password-123', email: 'admin@example.com', appDebug: false });
-    expect(submitted).toMatchObject({ driver: 'pgsql', schema: 'tenant', sslmode: 'require', port: '5432' });
+    await installApi.install({ hostname: 'localhost', port: '3306', database: 'example', prefix: '', username: 'root', password: '', adminUserName: 'admin', adminPassword: 'safe-password-123', rePassword: 'safe-password-123', email: 'admin@example.com', appDebug: false });
+    expect(submitted).toMatchObject({ port: '3306', username: 'root' });
+    expect(submitted).not.toHaveProperty('driver');
+    expect(submitted).not.toHaveProperty('schema');
+    expect(submitted).not.toHaveProperty('sslmode');
   });
 
   it('2xx 且 code=200 时解包 data', async () => {

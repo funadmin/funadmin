@@ -8,9 +8,6 @@ export interface EnvironmentCheck {
 }
 
 export interface InstallForm {
-  driver?: 'mysql' | 'pgsql';
-  schema?: string;
-  sslmode?: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
   hostname: string;
   port: string;
   database: string;
@@ -29,11 +26,6 @@ export const anonymousTarget = (installed: boolean): typeof ADMIN_LOGIN_PATH | `
 
 export const canContinueInstallation = (checks: EnvironmentCheck[]) =>
   checks.length > 0 && checks.every((check) => !check.required || check.passed);
-
-export const databasePort = (previous: 'mysql' | 'pgsql', next: 'mysql' | 'pgsql', port: string): string => {
-  const defaults = { mysql: '3306', pgsql: '5432' };
-  return port === '' || port === defaults[previous] ? defaults[next] : port;
-};
 
 export const validateInstallForm = (form: InstallForm): string => {
   if (!form.hostname.trim() || !form.port.trim() || !form.database.trim()) return i18n.global.t('install.validation.dbIncomplete', '数据库配置不完整');

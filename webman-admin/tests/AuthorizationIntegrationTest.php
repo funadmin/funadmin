@@ -31,7 +31,6 @@ final class AuthorizationIntegrationTest extends TestCase
         }
         Db::table('auth_group')->insert(['id' => 1, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1, 'status' => 1]);
         Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => 'hidden', 'status' => 1]);
-        \app\common\service\database\PostgresqlSequences::synchronize(Db::connection());
         $request = new Request("GET /admin/system/role HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => 1];
         Context::set(\Webman\Http\Request::class, $request);

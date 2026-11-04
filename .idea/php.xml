@@ -153,6 +153,13 @@
       <path value="$PROJECT_DIR$/webman-admin/vendor/illuminate/container" />
       <path value="$PROJECT_DIR$/webman-admin/vendor/illuminate/http" />
       <path value="$PROJECT_DIR$/webman-admin/vendor/illuminate/support" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/league/oauth2-server" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/lcobucci/clock" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/league/uri" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/league/uri-interfaces" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/lcobucci/jwt" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/league/event" />
+      <path value="$PROJECT_DIR$/webman-admin/vendor/topthink/think-template" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.5" />

@@ -20,13 +20,7 @@ final class InstallSupport
             }
         }
         $driver = $db['driver'] ?? 'mysql';
-        if (!in_array($driver, ['mysql', 'pgsql'], true)) return '数据库类型仅支持 MySQL 或 PostgreSQL';
-        if ($driver === 'pgsql') {
-            $schema = $db['schema'] ?? 'public';
-            if (!preg_match('/\A[a-z_][a-z0-9_]{0,62}\z/D', $schema) || str_starts_with($schema, 'pg_') || $schema === 'information_schema') return 'PostgreSQL schema 不合法或属于系统 schema';
-            if (!in_array($db['sslmode'] ?? 'prefer', ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'], true)) return 'PostgreSQL SSL 模式不合法';
-            if (strlen($db['database'] ?? '') > 63) return 'PostgreSQL 数据库名最长63字节';
-        }
+        if ($driver !== 'mysql') return '数据库类型仅支持 MySQL';
         if (($admin['password'] ?? '') !== ($admin['repassword'] ?? '')) return '两次输入密码不一致！';
         $length = strlen($admin['password'] ?? '');
         if ($length < 12 || $length > 72) return '管理员密码需为12～72字节';
@@ -47,8 +41,6 @@ final class InstallSupport
             if (!is_string($value)) throw new DomainException('数据库配置必须为字符串', 422);
         }
         $db['driver'] ??= 'mysql';
-        $db['schema'] ??= 'public';
-        $db['sslmode'] ??= 'prefer';
         $db['prefix'] ??= '';
         if (preg_match('/^([^:]+):(\d+)$/', $db['host'] ?? '', $matches)) {
             $db['host'] = $matches[1];
@@ -73,10 +65,7 @@ final class InstallSupport
 
     public static function prepareDatabase(array $db, string $minMysqlVersion): void
     {
-        if (($db['driver'] ?? 'mysql') === 'pgsql') {
-            self::preparePostgresql($db);
-            return;
-        }
+        if (($db['driver'] ?? 'mysql') !== 'mysql') throw new DomainException('数据库类型仅支持 MySQL', 422);
         try {
             $pdo = new \PDO("mysql:host={$db['host']};port={$db['port']};charset=utf8mb4", $db['username'], $db['password'], [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_TIMEOUT => 5]);
             $version = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
@@ -93,46 +82,16 @@ final class InstallSupport
         }
     }
 
-    private static function preparePostgresql(array $db): void
-    {
-        $connect = static fn (string $database): \PDO => new \PDO(
-            "pgsql:host={$db['host']};port={$db['port']};dbname={$database};sslmode=" . ($db['sslmode'] ?? 'prefer') . ';connect_timeout=5',
-            $db['username'], $db['password'], [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
-        );
-        try {
-            try {
-                $pdo = $connect($db['database']);
-            } catch (\PDOException $error) {
-                // libpq 连接失败有时只提供 08006；只对明确的目标库不存在尝试建库。
-                $maintenance = $connect('postgres');
-                $exists = $maintenance->prepare('SELECT 1 FROM pg_database WHERE datname = ?');
-                $exists->execute([$db['database']]);
-                if ($exists->fetchColumn() !== false) throw $error;
-                $maintenance->exec('CREATE DATABASE "' . $db['database'] . '" ENCODING \'UTF8\' TEMPLATE template0');
-                $pdo = $connect($db['database']);
-            }
-            if ((int) $pdo->query('SHOW server_version_num')->fetchColumn() < 160000) throw new DomainException('PostgreSQL 版本不能低于16', 422);
-            if (strtoupper((string) $pdo->query('SHOW server_encoding')->fetchColumn()) !== 'UTF8') throw new DomainException('PostgreSQL 数据库必须使用 UTF8 编码', 422);
-            $schema = $db['schema'] ?? 'public';
-            $statement = $pdo->prepare('SELECT 1 FROM pg_namespace WHERE nspname = ?');
-            $statement->execute([$schema]);
-            if ($statement->fetchColumn() === false) $pdo->exec('CREATE SCHEMA "' . $schema . '"');
-        } catch (\PDOException) {
-            throw new DomainException('PostgreSQL 连接或初始化失败，请检查凭据、SSL、schema 权限；无建库权限时请预先创建 UTF8 数据库', 422);
-        }
-    }
-
     public static function databaseConfig(array $db, array $config): array
     {
         $driver = $db['driver'] ?? 'mysql';
+        if ($driver !== 'mysql') throw new DomainException('数据库类型仅支持 MySQL', 422);
         $config['default'] = $driver;
         $config['connections'][$driver] = array_merge($config['connections'][$driver] ?? [], [
             'driver' => $driver, 'host' => $db['host'], 'port' => (int) $db['port'],
             'database' => $db['database'], 'username' => $db['username'], 'password' => $db['password'],
             'prefix' => $db['prefix'],
-        ], $driver === 'pgsql' ? [
-            'charset' => 'utf8', 'search_path' => $db['schema'] ?? 'public', 'sslmode' => $db['sslmode'] ?? 'prefer',
-        ] : ['charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci']);
+        ], ['charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci']);
         return $config;
     }
 
@@ -174,7 +133,6 @@ final class InstallSupport
                 'icon' => 'i-ep-setting', 'app_name' => 'admin', 'status' => 1,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
-            \app\common\service\database\PostgresqlSequences::synchronize(Db::connection());
         });
     }
 
@@ -231,8 +189,7 @@ final class InstallSupport
             $manager->setDefaultConnection($name);
             self::assertNoAdministrator();
             $progress?->__invoke('schema');
-            $migrationDirectory = $db['driver'] === 'mysql' ? MigrationService::coreDirectory($rootPath) : $paths['php_fixtures'];
-            self::installSchemaAndAdmin($migrationDirectory, $admin);
+            self::installSchemaAndAdmin(MigrationService::coreDirectory($rootPath), $admin);
             $progress?->__invoke('configuration');
             self::writeFile($paths['env'], $content, 0600);
             self::writeFile($paths['lock'], json_encode(['installed_at' => date(DATE_ATOM), 'env_hash' => hash('sha256', $content)], JSON_THROW_ON_ERROR), 0644);
@@ -261,11 +218,11 @@ final class InstallSupport
         $db = [
             'host' => $env['DB_HOST'], 'port' => $env['DB_PORT'], 'database' => $env['DB_DATABASE'],
             'username' => $env['DB_USERNAME'], 'password' => $env['DB_PASSWORD'], 'prefix' => $env['DB_PREFIX'],
-            'driver' => $env['DB_CONNECTION'] ?? 'mysql', 'schema' => $env['DB_SCHEMA'] ?? 'public', 'sslmode' => $env['DB_SSLMODE'] ?? 'prefer',
+            'driver' => $env['DB_CONNECTION'] ?? 'mysql',
         ];
         $name = 'installed_' . $hash;
         class_exists(Db::class);
-        if (!in_array($db['driver'], ['mysql', 'pgsql'], true)) throw new RuntimeException('已安装的数据库类型不受支持');
+        if ($db['driver'] !== 'mysql') throw new RuntimeException('已安装的数据库类型不受支持');
         self::registerConnection($name, self::databaseConfig($db, config('database'))['connections'][$db['driver']]);
         $alias = $db['driver'];
         self::registerConnection($alias, self::databaseConfig($db, config('database'))['connections'][$alias]);
@@ -310,7 +267,6 @@ final class InstallSupport
     {
         return [
             'APP_DEBUG' => $debug ? 'true' : 'false', 'DB_CONNECTION' => $db['driver'] ?? 'mysql',
-            'DB_SCHEMA' => $db['schema'] ?? 'public', 'DB_SSLMODE' => $db['sslmode'] ?? 'prefer',
             'DB_HOST' => $db['host'], 'DB_PORT' => $db['port'], 'DB_DATABASE' => $db['database'],
             'DB_USERNAME' => $db['username'], 'DB_PASSWORD' => $db['password'], 'DB_PREFIX' => $db['prefix'],
         ];

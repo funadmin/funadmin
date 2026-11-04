@@ -31,8 +31,7 @@ final class SchemaInspector
     public function tables(): array
     {
         $connection = $this->connection ?? Db::connection();
-        $schema = $connection->getDriverName() === 'pgsql' ? (string) ($connection->getConfig('search_path') ?: 'public') : null;
-        return array_map(static fn (array $table): array => ['name' => $table['name'], 'comment' => $table['comment'] ?? ''], $connection->getSchemaBuilder()->getTables($schema));
+        return array_map(static fn (array $table): array => ['name' => $table['name'], 'comment' => $table['comment'] ?? ''], $connection->getSchemaBuilder()->getTables());
     }
 
     public function inspect(string $table): array
@@ -95,7 +94,7 @@ final class SchemaInspector
 
     private function inspectNative(string $table): array
     {
-        if (!preg_match('/\A[a-z_][a-z0-9_]*\z/D', $table) || ($this->connection->getDriverName() === 'pgsql' && strlen($table) > 63)) throw new InvalidArgumentException('表名不合法');
+        if (!preg_match('/\A[a-z_][a-z0-9_]*\z/D', $table)) throw new InvalidArgumentException('表名不合法');
         $info = array_column($this->tables(), null, 'name')[$table] ?? null;
         if ($info === null) throw new InvalidArgumentException('数据表不存在：' . $table);
         // Schema Builder 自动加前缀：使用相同 PDO 的零前缀连接读取物理表，避免重复加前缀。

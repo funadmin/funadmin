@@ -34,7 +34,7 @@ class MigrationService extends AbstractService
     public function run(?string $directory = null): array
     {
         $connection = Db::connection();
-        if (in_array($connection->getDriverName(), ['mysql', 'pgsql'], true)) {
+        if ($connection->getDriverName() === 'mysql') {
             return DatabaseLock::run($connection, 'php-migrations', fn (): array => $this->runPhpFiles($directory));
         }
         return $this->runPhpFiles($directory);
@@ -69,33 +69,15 @@ class MigrationService extends AbstractService
             if (!is_callable($migration)) {
                 throw new RuntimeException('迁移文件必须返回可调用闭包：' . $name . '（实际类型：' . get_debug_type($migration) . '）');
             }
-            $apply = static function () use ($migration, $name, $checksum): void {
-                $migration();
-                PostgresqlSequences::synchronize(Db::connection());
-                Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
-            };
-            if (Db::connection()->getDriverName() === 'pgsql') {
-                Db::transaction($apply);
-            } else {
-                $apply();
-            }
+            $migration();
+            Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
             $executed[] = $name;
         }
         return $executed;
     }
 
-    public static function driverDirectory(string $directory): string
-    {
-        if (Db::connection()->getDriverName() !== 'pgsql' || basename(rtrim($directory, '/')) === 'pgsql') return $directory;
-        $native = rtrim($directory, '/') . '/pgsql';
-        if (is_dir($native)) return $native;
-        if ((glob(rtrim($directory, '/') . '/*.sql') ?: []) !== []) throw new RuntimeException('迁移缺少 PostgreSQL 原生制品：' . $directory);
-        return $directory;
-    }
-
     public function runDirectory(string $directory, string $scope = 'core'): array
     {
-        $directory = self::driverDirectory($directory);
         if (!is_dir($directory)) {
             throw new RuntimeException('Migration 目录不存在：' . $directory);
         }
@@ -128,7 +110,6 @@ class MigrationService extends AbstractService
      */
     public function runVersion(string $directory, string $version, string $scope = 'core'): array
     {
-        $directory = self::driverDirectory($directory);
         if (preg_match('/\A[0-9]+_[A-Za-z0-9_]+\z/', $version) !== 1) {
             throw new RuntimeException('Migration 版本不合法：' . $version);
         }
@@ -159,10 +140,7 @@ class MigrationService extends AbstractService
     private function runFiles(array $files, string $scope, bool $completeDirectory = false): array
     {
         $connection = Db::connection();
-        if ($connection->getDriverName() === 'pgsql') {
-            return DatabaseLock::run($connection, 'sql-migrations', fn (): array => $this->runPostgresqlFiles($files, $scope, $completeDirectory));
-        }
-        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL 或 PostgreSQL');
+        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL');
         $lock = 'migration:' . substr(hash('sha256', $connection->getDatabaseName()), 0, 40);
         if ((int) $connection->selectOne('SELECT GET_LOCK(?, 0) acquired', [$lock])->acquired !== 1) {
             throw new RuntimeException('数据库迁移正在执行');
@@ -172,44 +150,6 @@ class MigrationService extends AbstractService
         } finally {
             $connection->selectOne('SELECT RELEASE_LOCK(?) released', [$lock]);
         }
-    }
-
-    private function runPostgresqlFiles(array $files, string $scope, bool $completeDirectory): array
-    {
-        $connection = Db::connection();
-        $repository = $connection->getSchemaBuilder()->hasTable('system_migration');
-        if ($completeDirectory && $repository) {
-            $available = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
-            if (array_diff($connection->table('system_migration')->where('scope', $scope)->pluck('version')->all(), $available) !== []) throw new RuntimeException('已登记的 migration 文件缺失');
-        }
-        $validated = [];
-        foreach ($files as $file) {
-            if (is_link($file) || !is_file($file) || !is_readable($file)) throw new RuntimeException('Migration 必须是可读普通文件');
-            $sql = (string) file_get_contents($file);
-            DdlEncodingGuard::check($connection, $sql);
-            $this->assertForwardOnly($sql, $file);
-            $checksum = hash('sha256', $sql);
-            $version = pathinfo($file, PATHINFO_FILENAME);
-            $record = $repository ? $connection->table('system_migration')->where('scope', $scope)->where('version', $version)->first() : null;
-            if ($record && !hash_equals($record->checksum, $checksum)) throw new RuntimeException('已执行的 migration checksum 发生变化：' . $version);
-            if ($record) continue;
-            $sql = self::rewritePrefix($sql, config('funadmin.mysqlPrefix', 'fun_'), $connection->getTablePrefix());
-            $statements = SqlStatements::split($sql, 'pgsql');
-            if ($statements === []) throw new RuntimeException('Migration 没有可执行 SQL');
-            if ($connection->transactionLevel() > 0) throw new RuntimeException('SQL migration 禁止在外层事务中执行');
-            $validated[] = compact('file', 'version', 'checksum', 'statements');
-        }
-        $executed = [];
-        foreach ($validated as $migration) {
-            if (!hash_equals($migration['checksum'], (string) hash_file('sha256', $migration['file']))) throw new RuntimeException('Migration 在预检后发生变化');
-            $connection->transaction(static function () use ($connection, $migration, $scope): void {
-                foreach ($migration['statements'] as $statement) $connection->statement($statement);
-                if (!$connection->getSchemaBuilder()->hasTable('system_migration')) throw new RuntimeException('Migration 未创建 system_migration 表');
-                $connection->table('system_migration')->insert(['scope' => $scope, 'version' => $migration['version'], 'checksum' => $migration['checksum'], 'executed_at' => time()]);
-            });
-            $executed[] = $migration['version'];
-        }
-        return $executed;
     }
 
     private function runLockedFiles(array $files, string $scope, bool $completeDirectory): array

@@ -15,15 +15,13 @@ services:
       APP_DEBUG: ${APP_DEBUG:-false}
       WEBMAN_LISTEN: http://0.0.0.0:8787
       WEBMAN_WORKERS: ${WEBMAN_WORKERS:-2}
-      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_CONNECTION: mysql
       DB_HOST: ${WEBMAN_DB_HOST:-mc-mysql}
       DB_PORT: ${DB_PORT:-3306}
       DB_DATABASE: ${DB_DATABASE:-${DB_NAME:-funadmin_git}}
       DB_USERNAME: ${DB_USERNAME:-${DB_USER:-root}}
       DB_PASSWORD: ${DB_PASSWORD:-${DB_PASS:?请配置现有数据库密码}}
       DB_PREFIX: ${DB_PREFIX-fun_}
-      DB_SCHEMA: ${DB_SCHEMA:-public}
-      DB_SSLMODE: ${DB_SSLMODE:-prefer}
       AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL:-7200}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       AI_QUEUE_ENABLED: ${AI_QUEUE_ENABLED:-false}

@@ -25,7 +25,7 @@ final class ListActionStore
             return ['claimed' => true, 'state' => 'processing', 'result' => null];
         } catch (PDOException $exception) {
             // 仅唯一约束冲突允许读取已有结果，连接或表结构故障必须失败关闭。
-            if (!in_array((string) $exception->getCode(), ['23000', '23505'], true)) throw $exception;
+            if ((string) $exception->getCode() !== '23000') throw $exception;
         }
         $statement = $this->connection->prepare("SELECT digest, state, result FROM {$this->table} WHERE scope = ?");
         $statement->execute([$scope]);

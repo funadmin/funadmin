@@ -115,26 +115,11 @@ final class ProductionTemplateContext
             $enFrontend[$key] = self::translationFor($translations, $key);
         }
         $result['languagePack'] = ['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend, 'placeholders' => $placeholders];
-        $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
-        if ((\app\common\service\database\DatabaseConnections::settings($connection)['driver'] ?? $connection) === 'pgsql') {
-            if (($data['target']['type'] ?? 'core') !== 'plugin') $result['permissionMigrationContent'] = PostgresqlResourceSql::permissions($data);
-            $result['langMigrationContent'] = PostgresqlResourceSql::languages(['zh-cn' => self::$i18nKeys, 'en-us' => $enFrontend]);
-        }
         return $result;
     }
 
     private static function migration(array $data, array $primary): string
     {
-        $connection = (string) ($data['connection'] ?? config('database.default', 'mysql'));
-        $driver = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['driver'] ?? $connection);
-        if ($driver === 'pgsql') {
-            $fields = $data['fields'];
-            $names = array_column($fields, 'name');
-            foreach (array_merge($data['timestamps'] ? ['created_at', 'updated_at'] : [], $data['softDeletes'] ? ['deleted_at'] : []) as $name) {
-                if (!in_array($name, $names, true)) $fields[] = ['name' => $name, 'dbType' => 'datetime', 'nullable' => true];
-            }
-            return (new \app\common\service\database\SqlDialect($driver))->createTable($data['table'], $fields, $data['title']);
-        }
         $columns = [];
         $indexes = [];
         foreach ($data['fields'] as $field) {

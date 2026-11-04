@@ -325,11 +325,7 @@ final class FormDesignerService
         $table = trim((string) $payload['table_name']);
         $exists = in_array($table, array_column(SchemaInspector::forConnection((string) ($payload['connection'] ?? config('database.default')))->tables(), 'name'), true);
         $connection = (string) ($payload['connection'] ?? config('database.default', 'mysql'));
-        if (Db::connection($connection)->getDriverName() === 'pgsql') {
-            $sql = $this->postgresqlDdl($table, $payload['fields'], $connection, $exists);
-        } else {
-            $sql = $exists ? $this->additiveSql($table, $payload['fields'], $connection) : $this->createTableSql($table, $payload['fields']);
-        }
+        $sql = $exists ? $this->additiveSql($table, $payload['fields'], $connection) : $this->createTableSql($table, $payload['fields']);
         return [
             'mode' => $exists ? 'additive' : 'create',
             'sql' => $sql,
@@ -351,25 +347,11 @@ final class FormDesignerService
             return $preview + ['applied' => false];
         }
         $connection = Db::connection((string) ($payload['connection'] ?? config('database.default', 'mysql')));
-        $postgresql = $connection->getDriverName() === 'pgsql';
-        $statements = $postgresql ? \app\common\service\database\SqlStatements::split((string) $preview['sql'], 'pgsql') : [];
-        if ($postgresql) {
-            foreach ($statements as $statement) {
-                if (!preg_match('/\A(?:CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS|CREATE\s+(?:UNIQUE\s+)?INDEX|COMMENT\s+ON\s+(?:TABLE|COLUMN)|ALTER\s+TABLE\s+"[a-z_][a-z0-9_]*"\s+ADD\s+COLUMN)\b/i', $statement)) throw new InvalidArgumentException('PostgreSQL 动态发布仅允许新增结构及注释');
-            }
-        } else {
-            $this->assertDynamicForwardSql((string) $preview['sql']);
-        }
+        $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
             \app\common\service\database\DdlEncodingGuard::check($connection, (string) $preview['sql']);
-            if ($postgresql) {
-                $connection->transaction(static function () use ($connection, $statements): void {
-                    foreach ($statements as $statement) $connection->statement($statement);
-                });
-            } else {
-                $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
-            }
+            $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
         } catch (Throwable $exception) {
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
@@ -499,39 +481,6 @@ final class FormDesignerService
         $key = trim((string) $payload['form_key']);
         $version = substr(hash('sha256', $sql), 0, 12);
         return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . 'form_' . $key . '_' . $version . '.sql';
-    }
-
-    private function postgresqlDdl(string $table, array $fields, string $connection, bool $exists): string
-    {
-        $dialect = new \app\common\service\database\SqlDialect('pgsql');
-        $columns = [['name' => 'id', 'dbType' => 'bigint', 'primary' => true, 'nullable' => false]];
-        $foreign = [];
-        foreach ($fields as $field) {
-            if ($this->isVirtualField($field)) continue;
-            $type = trim((string) ($field['column_type'] ?? '')) ?: (string) ($this->fieldCapabilities->get((string) ($field['type'] ?? 'input'))['defaultColumnType'] ?? '');
-            if ((int) ($field['unsigned'] ?? 0) === 1 && !str_contains($type, 'unsigned')) $type .= ' unsigned';
-            $column = ['name' => trim($field['field_name']), 'dbType' => $type, 'nullable' => (bool) ($field['nullable'] ?? true), 'comment' => $field['comment'] ?? '', 'unique' => ($field['index_type'] ?? '') === 'unique', 'search' => ($field['index_type'] ?? '') === 'index'];
-            $default = (string) ($field['default_value'] ?? '');
-            if ($default !== '' || (!$column['nullable'] && preg_match('/\A(?:varchar|char|text)/', $dialect->type($type)))) $column['default'] = $default;
-            $columns[] = $column;
-            if (($field['relation_type'] ?? '') === 'belongs_to') $foreign[] = ['column' => $column['name'], 'table' => $field['relation_table'], 'reference' => $field['relation_value_field'] ?: 'id', 'onDelete' => self::ON_DELETE[$field['relation_on_delete'] ?? 'restrict'] ?? 'RESTRICT'];
-        }
-        foreach (['created_at', 'updated_at', 'deleted_at'] as $name) $columns[] = ['name' => $name, 'dbType' => 'datetime', 'nullable' => true];
-        if (!$exists) return $dialect->createTable($table, $columns, '表单数据表', $foreign);
-        $metadata = SchemaInspector::forConnection($connection)->inspect($table);
-        $existing = array_column($metadata['columns'], 'name');
-        $indexes = array_column($metadata['indexes'], 'name');
-        $sql = [];
-        foreach ($columns as $column) {
-            $name = $column['name'];
-            if (!in_array($name, $existing, true)) {
-                $sql[] = 'ALTER TABLE ' . $dialect->identifier($table) . ' ADD COLUMN ' . $dialect->column($column) . ';';
-                if (($column['comment'] ?? '') !== '') $sql[] = 'COMMENT ON COLUMN ' . $dialect->identifier($table) . '.' . $dialect->identifier($name) . ' IS ' . $dialect->literal($column['comment']) . ';';
-            }
-            $unique = $column['unique'] ?? false;
-            if (($unique || ($column['search'] ?? false)) && !in_array($dialect->indexName(($unique ? 'uk_' : 'idx_') . $table . '_' . $name), $indexes, true)) $sql[] = $dialect->createIndex($table, $name, $unique);
-        }
-        return implode("\n", $sql);
     }
 
     private function createTableSql(string $table, array $fields): string

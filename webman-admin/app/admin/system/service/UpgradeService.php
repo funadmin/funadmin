@@ -157,7 +157,6 @@ final class UpgradeService extends AbstractService
         $dbBackup = $backup . '/database.snapshot';
         try {
             $verified ??= (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->verify($archive, $checksum, $version);
-            $this->databaseBackup()->preflight();
             $migrationDirectory = (new UpgradePackageVerifier())->mountedCoreDirectory($verified['manifest']);
             $deploymentFiles = array_values(array_filter($verified['files'], static fn (string $file): bool => !str_starts_with($file, 'database/migrations/')));
             $this->advance($task, 'extract', 20);

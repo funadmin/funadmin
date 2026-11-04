@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { anonymousTarget, canContinueInstallation, validateInstallForm } from '@/views/install/install';
 
 describe('安装向导', () => {
-  it('切换数据库时只替换默认端口，保留自定义端口', async () => {
-    const { databasePort } = await import('@/views/install/install');
-    expect(databasePort('mysql', 'pgsql', '3306')).toBe('5432');
-    expect(databasePort('pgsql', 'mysql', '5432')).toBe('3306');
-    expect(databasePort('mysql', 'pgsql', '15432')).toBe('15432');
+  it('安装页不再提供数据库类型切换', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/admin/views/install/index.vue'), 'utf8');
+    expect(source).not.toContain('form.driver');
+    expect(source).not.toContain('form.schema');
+    expect(source).not.toContain('form.sslmode');
+    expect(source).toContain('placeholder="3306"');
   });
 
   it('未安装时匿名访问默认引导到安装页', () => {

@@ -15,11 +15,10 @@ final class ReferenceInspector
         $reader->setTablePrefix('');
         $reader->useDefaultSchemaGrammar();
         $schema = $reader->getSchemaBuilder();
-        $namespace = $connection->getDriverName() === 'pgsql' ? (string) ($connection->getConfig('search_path') ?: 'public') : null;
         $result = [];
-        foreach ($schema->getTables($namespace) as $candidate) {
+        foreach ($schema->getTables() as $candidate) {
             foreach ($schema->getForeignKeys($candidate['name']) as $foreign) {
-                if ($foreign['foreign_table'] !== $table || ($namespace !== null && $foreign['foreign_schema'] !== $namespace)) continue;
+                if ($foreign['foreign_table'] !== $table) continue;
                 foreach ($foreign['foreign_columns'] as $position => $reference) {
                     if ($reference === $column) $result[] = (object) ['TABLE_NAME' => $candidate['name'], 'COLUMN_NAME' => $foreign['columns'][$position]];
                 }

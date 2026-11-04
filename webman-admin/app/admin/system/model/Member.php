@@ -145,8 +145,7 @@ class Member extends BackendModel {
     public static function duplicateError(\Throwable $exception): ?string
     {
         $message = $exception->getMessage();
-        $state = $exception instanceof \Illuminate\Database\QueryException ? ($exception->errorInfo[0] ?? null) : (string) $exception->getCode();
-        if ($state !== '23505' && !str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
+        if (!str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
             return null;
         }
         foreach (['username' => '用户名已存在', 'mobile' => '手机号已存在', 'email' => '邮箱已存在'] as $field => $error) {

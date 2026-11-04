@@ -18,11 +18,6 @@ final class DatabaseLock
             $arguments = [substr(hash('sha256', $name), 0, 60)];
             $acquire = 'SELECT GET_LOCK(?, 0)';
             $release = 'SELECT RELEASE_LOCK(?)';
-        } elseif ($driver === 'pgsql') {
-            $hash = hash('sha256', $connection->getDatabaseName() . ':' . ($connection->getConfig('search_path') ?: 'public') . ':' . $name);
-            $arguments = array_map(static fn (string $part): int => (int) hexdec($part) - 2147483648, [substr($hash, 0, 8), substr($hash, 8, 8)]);
-            $acquire = 'SELECT pg_try_advisory_lock(?::integer, ?::integer)';
-            $release = 'SELECT pg_advisory_unlock(?::integer, ?::integer)';
         } else {
             throw new RuntimeException('当前驱动不支持数据库互斥锁');
         }

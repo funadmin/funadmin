@@ -25,9 +25,6 @@
 
         <template v-else-if="active === 1">
           <div class="section-title"><div><h2>{{ t('install.envTitle', '运行环境检测') }}</h2><p>{{ t('install.envSubtitle', '必需项全部通过后才能继续安装') }}</p></div><el-button @click="loadEnvironment">{{ t('install.recheck', '重新检测') }}</el-button></div>
-          <el-select v-if="isWebmanBackend()" v-model="form.driver" :aria-label="t('install.dbDriver', '数据库类型')" :disabled="loading">
-            <el-option label="MySQL" value="mysql" /><el-option label="PostgreSQL" value="pgsql" />
-          </el-select>
           <el-table :data="environmentChecks" stripe>
             <el-table-column prop="label" :label="t('install.colItem', '检查项')" min-width="150" />
             <el-table-column prop="requiredValue" :label="t('install.colRequired', '要求')" min-width="150" />
@@ -41,14 +38,11 @@
         <el-form v-else-if="active === 2" ref="formRef" :model="form" label-position="top">
           <h2>{{ t('install.dbConfig', '数据库配置') }}</h2>
           <div class="form-grid">
-            <el-form-item v-if="isWebmanBackend()" :label="t('install.dbDriver', '数据库类型')" required><el-select v-model="form.driver"><el-option label="MySQL" value="mysql" /><el-option label="PostgreSQL" value="pgsql" /></el-select></el-form-item>
             <el-form-item :label="t('install.dbHost', '数据库主机')" required><el-input v-model="form.hostname" placeholder="127.0.0.1" /></el-form-item>
-            <el-form-item :label="t('install.dbPort', '端口')" required><el-input v-model="form.port" :placeholder="form.driver === 'pgsql' ? '5432' : '3306'" /></el-form-item>
+            <el-form-item :label="t('install.dbPort', '端口')" required><el-input v-model="form.port" placeholder="3306" /></el-form-item>
             <el-form-item :label="t('install.dbName', '数据库名')" required><el-input v-model="form.database" /></el-form-item>
             <el-form-item :label="t('install.dbPrefix', '数据表前缀')"><el-input v-model="form.prefix" :placeholder="t('install.dbPrefixPh', '可选，默认无前缀')" /></el-form-item>
             <el-form-item :label="t('install.dbUser', '数据库用户名')" required><el-input v-model="form.username" /></el-form-item>
-            <el-form-item v-if="form.driver === 'pgsql'" :label="t('install.dbSchema', '数据库 Schema')" required><el-input v-model="form.schema" placeholder="public" /></el-form-item>
-            <el-form-item v-if="form.driver === 'pgsql'" :label="t('install.dbSslmode', 'SSL 模式')" required><el-select v-model="form.sslmode"><el-option v-for="mode in ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full']" :key="mode" :label="mode" :value="mode" /></el-select></el-form-item>
             <el-form-item :label="t('install.dbPassword', '数据库密码')"><el-input v-model="form.password" type="password" show-password autocomplete="new-password" /></el-form-item>
           </div>
           <el-divider />
@@ -83,13 +77,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import LogoMark from '@/components/LogoMark.vue';
 import { ADMIN_LOGIN_PATH, isWebmanBackend } from '@/config';
 import { installApi, type InstallResult } from '@/api/install';
-import { canContinueInstallation, databasePort, validateInstallForm, type EnvironmentCheck, type InstallForm } from './install';
+import { canContinueInstallation, validateInstallForm, type EnvironmentCheck, type InstallForm } from './install';
 
 const { t } = useI18n();
 
@@ -101,16 +95,14 @@ const siteName = ref('FunAdmin');
 const siteVersion = ref('');
 const environmentChecks = ref<EnvironmentCheck[]>([]);
 const result = ref<InstallResult>();
-const form = reactive<InstallForm>({ driver: 'mysql', schema: 'public', sslmode: 'prefer', hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
+const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
 const canNext = computed(() => active.value === 0 ? agreed.value : canContinueInstallation(environmentChecks.value));
 
 const loadEnvironment = async () => {
   loading.value = true;
   environmentChecks.value = [];
   try {
-    const driver = form.driver ?? 'mysql';
-    const data = await installApi.environment(driver);
-    if (driver !== form.driver) return false;
+    const data = await installApi.environment();
     if (data.installed) return location.replace(`/admin-web/#${ADMIN_LOGIN_PATH}`);
     siteName.value = data.siteName;
     siteVersion.value = data.siteVersion;
@@ -148,11 +140,6 @@ const enterAdmin = async () => {
   try { await installApi.finish(); } catch {}
   location.href = `/admin-web/#${ADMIN_LOGIN_PATH}`;
 };
-
-watch(() => form.driver, (driver, previous) => {
-  form.port = databasePort(previous ?? 'mysql', driver ?? 'mysql', form.port);
-  void loadEnvironment();
-});
 
 onMounted(loadEnvironment);
 </script>
