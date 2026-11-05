@@ -35,7 +35,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item :label="t('systemUser.colStatus', '状态')" prop="status">
-            <el-radio-group v-model="form.status">
+            <el-radio-group v-model="form.status" :disabled="isSuperRow">
               <el-radio-button :value="1">{{ t('systemUser.enabled', '启用') }}</el-radio-button>
               <el-radio-button :value="0">{{ t('systemUser.disabled', '禁用') }}</el-radio-button>
             </el-radio-group>
@@ -45,6 +45,7 @@
           <el-form-item :label="t('systemUser.dept', '主部门')" prop="deptId">
             <el-tree-select
               v-model="form.deptId"
+              :disabled="isSuperRow"
               :data="departmentOptions"
               :props="{ label: 'name', children: 'children' }"
               node-key="id"
@@ -59,6 +60,7 @@
           <el-form-item :label="t('systemUser.additionalDept', '兼任部门')" prop="departmentIds">
             <el-tree-select
               v-model="form.departmentIds"
+              :disabled="isSuperRow"
               :data="additionalDepartmentOptions"
               :props="{ label: 'name', children: 'children' }"
               node-key="id"
@@ -79,6 +81,7 @@
           <el-form-item :label="t('systemUser.role', '角色')" prop="roleIds">
             <el-tree-select
               v-model="form.roleIds"
+              :disabled="isSuperRow"
               :data="roleTreeOptions"
               :props="{ label: 'name', children: 'children' }"
               node-key="id"
@@ -115,6 +118,7 @@ import { deptApi, type DeptModel } from '@/api/system/dept';
 import { roleTree } from '../../role/roleHierarchy';
 import { isWebmanBackend } from '@/config';
 import { filterDepartmentTree } from '../departmentAssignment';
+import { roleOptionsForRow } from '../superAdminAccess';
 
 interface Props {
   modelValue: boolean;
@@ -130,11 +134,13 @@ const emit = defineEmits<{
 
 const visible = ref(false);
 const isEdit = ref(false);
+/** 超管只改资料：状态、部门与角色由后端固定，前端也不允许改，并跳过角色必填校验 */
+const isSuperRow = computed(() => !!props.row?.isSuper);
 const saving = ref(false);
 const optionsLoading = ref(false);
 const formRef = ref<FormInstance>();
 const roleOptions = ref<RoleModel[]>([]);
-const roleTreeOptions = computed(() => roleTree(roleOptions.value));
+const roleTreeOptions = computed(() => roleTree(roleOptionsForRow(roleOptions.value, props.row, t('systemUser.superAdmin', '超级管理员'))));
 const departmentOptions = ref<DeptModel[]>([]);
 
 const initialForm = () => ({
@@ -172,7 +178,7 @@ const rules = computed<FormRules>(() => ({
   ],
   mobile: [{ pattern: /^1\d{10}$/, message: t('systemUser.mobileInvalid', '手机号格式不正确'), trigger: 'blur' }],
   deptId: [{ required: true, message: t('systemUser.deptPlaceholder', '选择部门'), trigger: 'change' }],
-  roleIds: [{ required: true, message: t('systemUser.rolePlaceholder', '选择角色'), trigger: 'change' }]
+  roleIds: isSuperRow.value ? [] : [{ required: true, message: t('systemUser.rolePlaceholder', '选择角色'), trigger: 'change' }]
 }));
 
 watch(

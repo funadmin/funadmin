@@ -376,6 +376,7 @@ export default {
     deleteManyConfirm: 'Delete the selected {n} account(s)? This cannot be undone',
     deleteOneConfirm: 'Delete account {name}?',
     statusUpdated: 'Status updated',
+    superAdmin: 'Super admin',
     resetPwdPrompt: 'Reset password for {name}',
     resetPwdTitle: 'Notice',
     resetPwdPlaceholder: 'New password (min 8 chars)',

@@ -29,5 +29,11 @@ return [
         'retention_seconds' => 86400,
         'heartbeat_timeout_seconds' => 300,
     ],
+    // SSE 票据的 HMAC 密钥：优先使用 AI_STREAM_TICKET_SECRET；未配置时由数据库密码等本机配置派生，
+    // 保证 AI 会话接口可用。正式部署请显式设置至少 32 字节的随机值。
+    'stream' => [
+        'ticket_secret' => getenv('AI_STREAM_TICKET_SECRET') ?: hash('sha256', 'funadmin-ai-stream|' . (getenv('OAUTH_ENCRYPTION_KEY') ?: '') . '|' . (getenv('DB_PASSWORD') ?: '') . '|' . base_path()),
+        'ticket_ttl' => (int) (getenv('AI_STREAM_TICKET_TTL') ?: 60),
+    ],
     'tools' => ['allowlist' => array_values(array_filter(array_map('trim', explode(',', getenv('AI_TOOLS_ALLOWLIST') ?: ''))))],
 ];

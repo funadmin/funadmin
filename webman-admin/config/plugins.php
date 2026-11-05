@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'bundled' => ['market', 'example'],
     'marketplace' => [
         'url' => getenv('PLUGIN_MARKETPLACE_URL') ?: '',
         'public_key' => getenv('PLUGIN_MARKETPLACE_PUBLIC_KEY') ?: '',

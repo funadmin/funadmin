@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace app\common\middleware;
 
-use Closure;
 use app\common\plugin\sdk\ActivationGate;
 use app\common\plugin\sdk\ActivationUnavailableException;
 use app\common\plugin\sdk\PluginActivationReader;
 use app\common\plugin\sdk\PluginNotActiveException;
-use Webman\Exception\BusinessException;
+use app\common\http\JsonEnvelope;
+use Webman\Http\Request;
+use Webman\Http\Response;
+use Webman\MiddlewareInterface;
 
 /** 在 MultiApp 解析前阻断不可用插件应用。 */
-final class PluginApplicationGuard
+final class PluginApplicationGuard implements MiddlewareInterface
 {
     private const CORE_APPLICATIONS = ['app', 'admin', 'api', 'index', 'install', 'common'];
 
@@ -20,9 +22,9 @@ final class PluginApplicationGuard
     {
     }
 
-    public function handle($request, Closure $next)
+    public function process(Request $request, callable $next): Response
     {
-        $target = $this->target((string) $request->pathinfo());
+        $target = $this->target($request->path());
         if ($target === null) {
             return $next($request);
         }
@@ -30,15 +32,23 @@ final class PluginApplicationGuard
         $reader = $this->reader ?? new PluginActivationReader(runtime_path('plugins/activation'));
         $bundle = $reader->readBundle();
         $snapshot = $bundle['activation'];
+        // 随核心发布的业务模块没有独立插件注册记录；一旦被注册则遵守插件状态。
+        $bundled = in_array($code, (array) config('plugins.bundled', []), true)
+            && !isset($snapshot->plugins()[$code])
+            && !$bundle['ownership']->owns($code, $application)
+            && !is_file(base_path('plugins/' . $code . '/plugin.json'));
+        if ($bundled) {
+            return $next($request);
+        }
         if (!$snapshot->isTrusted()) {
             if ($explicit) {
-                throw new BusinessException('服务暂不可用', 503);
+                return JsonEnvelope::create('服务暂不可用', null, 503, 503);
             }
             $ownership = $bundle['ownership'];
             if (!$ownership->isTrusted() || !$ownership->owns($code, $application)) {
                 return $next($request);
             }
-            throw new BusinessException('服务暂不可用', 503);
+            return JsonEnvelope::create('服务暂不可用', null, 503, 503);
         }
         if (!$explicit && !isset($snapshot->plugins()[$code])) {
             return $next($request);
@@ -46,9 +56,9 @@ final class PluginApplicationGuard
         try {
             (new ActivationGate($snapshot))->assertEnabled($code, $application);
         } catch (ActivationUnavailableException) {
-            throw new BusinessException('服务暂不可用', 503);
+            return JsonEnvelope::create('服务暂不可用', null, 503, 503);
         } catch (PluginNotActiveException) {
-            throw new BusinessException('页面不存在', 404);
+            return JsonEnvelope::create('页面不存在', null, 404, 404);
         }
         return $next($request);
     }

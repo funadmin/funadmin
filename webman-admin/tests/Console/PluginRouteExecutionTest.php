@@ -64,6 +64,28 @@ final class PluginRouteExecutionTest extends TestCase
         \app\common\plugin\sdk\PluginRoute::adminGroup(new Route(), 'routefixture', 'routefixture:item:delete', static function (): void {}, $this->root);
     }
 
+    public function test_annotated_plugin_controller_uses_declared_permissions_for_ordinary_admins(): void
+    {
+        (new \ReflectionProperty(App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
+        $controller = \app\admin\plugin\business\routefixture\controller\PermissionFixture::class;
+        $call = function (string $action, bool $authenticated = true, bool $csrf = true) use ($controller): int {
+            $headers = $authenticated ? 'Cookie: ' . BrowserAuthService::COOKIE . '=' . $this->login['cookie'] . "\r\n" : '';
+            if ($csrf) $headers .= 'X-CSRF-TOKEN: ' . $this->login['csrfToken'] . "\r\n";
+            $request = new Request("POST /admin/plugin/routefixture/metadata HTTP/1.1\r\nHost: localhost\r\n" . $headers . "\r\n");
+            $request->controller = $controller;
+            $request->action = $action;
+            Context::set(\Webman\Http\Request::class, $request);
+            return (App::getCallback('', 'admin', [$controller, $action], [], false))($request)->getStatusCode();
+        };
+        self::assertSame(401, $call('read', false));
+        self::assertSame(200, $call('read'));
+        self::assertSame(403, $call('read', csrf: false));
+        self::assertSame(403, $call('undeclared'));
+        self::assertSame(403, $call('foreign'));
+        Db::table('permission')->where('code', 'routefixture:item:list')->update(['status' => 0]);
+        self::assertSame(403, $call('read'));
+    }
+
     private function call(bool $authenticated, bool $csrf): int
     {
         $headers = $authenticated ? 'Cookie: ' . BrowserAuthService::COOKIE . '=' . $this->login['cookie'] . "\r\n" : '';
@@ -75,4 +97,15 @@ final class PluginRouteExecutionTest extends TestCase
         Context::set(\Webman\Http\Request::class, $request);
         return (App::getCallback('', 'admin', $match[1]['callback'], $match[2], false, $request->route))($request)->getStatusCode();
     }
+}
+
+namespace app\admin\plugin\business\routefixture\controller;
+
+final class PermissionFixture extends \app\admin\controller\base\AdminApiController
+{
+    #[\app\common\plugin\sdk\PluginPermission('routefixture:item:list')]
+    public function read(): \support\Response { return $this->ok(); }
+    public function undeclared(): \support\Response { return $this->ok(); }
+    #[\app\common\plugin\sdk\PluginPermission('other:item:list')]
+    public function foreign(): \support\Response { return $this->ok(); }
 }

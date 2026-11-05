@@ -130,7 +130,8 @@ final class AuthorizationIntegrationTest extends TestCase
         $id = $result['data']['id'];
         self::assertArrayNotHasKey('password', $result['data']);
         $this->asActor(1);
-        self::assertSame(1, json_decode($controller->index()->rawBody(), true)['data']['total']);
+        // 超管本人也会出现在列表中：新建的管理员 + 超管自己。
+        self::assertSame(2, json_decode($controller->index()->rawBody(), true)['data']['total']);
         $service = new \app\admin\authentication\service\AdminSessionService();
         $token = $service->login('test_operator', 'operator-safe-password', 'reset-test')['access_token'];
         $this->asActor(1, 'POST', ['password' => 'new-operator-safe-password']);
@@ -351,6 +352,66 @@ final class AuthorizationIntegrationTest extends TestCase
         $response = (new \app\admin\authorization\controller\SystemAdmin())->status(1);
         self::assertSame(403, json_decode($response->rawBody(), true)['code']);
         self::assertSame(1, (int) Db::table('admin')->where('id', 1)->value('status'));
+    }
+
+    public function test_super_administrator_is_listed_and_flagged(): void
+    {
+        $role = AuthGroup::forceCreate(['name' => '操作员', 'code' => 'operator', 'level' => 10, 'status' => 1]);
+        Db::table('admin')->insert(['id' => 2, 'username' => 'operator', 'password' => 'hidden', 'status' => 1]);
+        (new CasbinService())->syncAdminRoles(2, [$role->id]);
+        $this->asActor(1);
+        $controller = new \app\admin\authorization\controller\SystemAdmin();
+        $rows = json_decode($controller->index()->rawBody(), true)['data']['list'];
+        self::assertSame([1, 2], array_column($rows, 'id'));
+        self::assertTrue($rows[0]['isSuper']);
+        self::assertFalse($rows[1]['isSuper']);
+        self::assertSame(200, json_decode($controller->detail(1)->rawBody(), true)['code']);
+    }
+
+    public function test_lower_administrator_list_never_includes_super_administrator(): void
+    {
+        $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
+        $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
+        Db::table('admin')->insert([['id' => 2, 'username' => 'manager', 'password' => 'hidden', 'status' => 1], ['id' => 3, 'username' => 'staff', 'password' => 'hidden', 'status' => 1]]);
+        (new CasbinService())->syncAdminRoles(2, [$parent->id]);
+        (new CasbinService())->syncAdminRoles(3, [$child->id]);
+        $this->asActor(2);
+        $controller = new \app\admin\authorization\controller\SystemAdmin();
+        self::assertSame([3], array_column(json_decode($controller->index()->rawBody(), true)['data']['list'], 'id'));
+        self::assertSame(404, json_decode($controller->detail(1)->rawBody(), true)['code']);
+        $this->asActor(2, 'PUT', ['nickname' => '越权修改']);
+        self::assertSame(403, json_decode($controller->update(1)->rawBody(), true)['code']);
+        self::assertNotSame('越权修改', Db::table('admin')->where('id', 1)->value('real_name'));
+    }
+
+    public function test_super_administrator_edits_own_profile_but_keeps_reserved_role_and_status(): void
+    {
+        Db::table('department')->insert(['id' => 1, 'name' => '总部', 'pid' => 0, 'status' => 1]);
+        (new CasbinService())->syncAdminRoles(1, [1]);
+        $this->asActor(1, 'PUT', ['nickname' => '超级管理员', 'email' => 'root@example.com', 'mobile' => '13800000000', 'deptId' => 1, 'status' => 0, 'roleIds' => []]);
+        $response = json_decode((new \app\admin\authorization\controller\SystemAdmin())->update(1)->rawBody(), true);
+        self::assertSame(200, $response['code'], $response['msg']);
+        $row = Db::table('admin')->where('id', 1)->first();
+        self::assertSame('超级管理员', $row->real_name);
+        self::assertSame('root@example.com', $row->email);
+        self::assertSame(1, (int) $row->status);
+        self::assertSame([1], (new \app\admin\authorization\service\RoleScopeService())->adminRoleIds(1));
+    }
+
+    public function test_super_administrator_resets_own_password(): void
+    {
+        $this->asActor(1, 'POST', ['password' => 'replacement-safe-password']);
+        $response = json_decode((new \app\admin\authorization\controller\SystemAdmin())->resetPassword(1)->rawBody(), true);
+        self::assertSame(200, $response['code'], $response['msg']);
+        self::assertTrue(password_verify('replacement-safe-password', Db::table('admin')->where('id', 1)->value('password')));
+    }
+
+    public function test_super_administrator_cannot_be_deleted(): void
+    {
+        $this->asActor(1, 'DELETE', ['ids' => [1]]);
+        $response = json_decode((new \app\admin\authorization\controller\SystemAdmin())->delete()->rawBody(), true);
+        self::assertSame(403, $response['code']);
+        self::assertSame(1, Db::table('admin')->where('id', 1)->count());
     }
 
     public function test_role_workspace_can_still_find_disabled_roles(): void

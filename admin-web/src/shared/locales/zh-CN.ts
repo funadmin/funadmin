@@ -1880,7 +1880,7 @@ export default {
     title: '用户管理', subtitle: '管理系统用户、分配角色与部门',
     searchPlaceholder: '账号 / 昵称', statusPlaceholder: '请选择', add: '新增', edit: '编辑', delete: '删除', batchDelete: '批量删除', resetPwd: '重置密码',
     colUsername: '账号', colNickname: '昵称', colMobile: '手机', colEmail: '邮箱', colStatus: '状态', colCreatedAt: '创建时间', colActions: '操作',
-    enabled: '启用', disabled: '禁用', statusUpdated: '状态已更新',
+    enabled: '启用', disabled: '禁用', statusUpdated: '状态已更新', superAdmin: '超级管理员',
     deleteOneConfirm: '确认删除账号 {name} ?', deleteManyConfirm: '确认删除选中的 {n} 个账号？此操作不可恢复',
     resetPwdTitle: '提示', resetPwdPrompt: '重置 {name} 的密码', resetPwdPlaceholder: '至少 8 位新密码', resetPwdError: '密码长度至少 8 位',
     additionalDept: '兼任部门',

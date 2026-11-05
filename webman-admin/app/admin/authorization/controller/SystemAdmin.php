@@ -117,6 +117,9 @@ class SystemAdmin extends AdminApiController
             return $this->fail(msg: $error, code: 422);
         }
         try {
+            if ($this->isSuperAdminTarget($admin)) {
+                return $this->updateSuperAdmin($admin, $data);
+            }
             $guard = new RoleGuardService();
             $guard->assertManageAdmin($admin);
             if (!$this->isInDataScope($admin)) {
@@ -198,9 +201,13 @@ class SystemAdmin extends AdminApiController
             return $this->fail(msg: '密码需为 12～72 字节', code: 422);
         }
         try {
-            (new RoleGuardService())->assertManageAdmin($admin);
-            if (!$this->isInDataScope($admin)) {
-                throw new InvalidArgumentException('管理员不在当前数据范围内');
+            if ($this->isSuperAdminTarget($admin)) {
+                $this->assertSuperAdminSelf();
+            } else {
+                (new RoleGuardService())->assertManageAdmin($admin);
+                if (!$this->isInDataScope($admin)) {
+                    throw new InvalidArgumentException('管理员不在当前数据范围内');
+                }
             }
             Db::transaction(function () use ($admin, $password): void {
                 $admin->update(['password' => password_hash($password, PASSWORD_DEFAULT), 'token' => '']);
@@ -238,11 +245,12 @@ class SystemAdmin extends AdminApiController
 
     private function manageableQuery()
     {
-        $query = $this->applyDataScope(Admin::where('id', '<>', (int) config('auth.super_admin_id', 1)), 'id', 'dept_id');
         $roleScope = new RoleScopeService();
         if ($roleScope->isSuperAdmin()) {
-            return $query;
+            // 超管本人可在列表中看到自己（只能改资料与密码，见 update/resetPassword）。
+            return $this->applyDataScope(Admin::query(), 'id', 'dept_id');
         }
+        $query = $this->applyDataScope(Admin::where('id', '<>', $this->superAdminId()), 'id', 'dept_id');
         $currentLevel = (new RoleGuardService())->currentLevel();
         $branchRoleIds = $roleScope->manageableRoleIds();
         $allowedRoleIds = array_map('intval', AuthGroup::whereIn('id', $branchRoleIds ?: [0])
@@ -262,6 +270,36 @@ class SystemAdmin extends AdminApiController
             $query->whereNotIn('id', $forbiddenAdminIds);
         }
         return $query;
+    }
+
+    private function superAdminId(): int
+    {
+        return (int) config('auth.super_admin_id', 1);
+    }
+
+    private function isSuperAdminTarget(Admin $admin): bool
+    {
+        return (int) $admin->id === $this->superAdminId();
+    }
+
+    /** 系统超级管理员只能由其本人修改资料和密码。 */
+    private function assertSuperAdminSelf(): void
+    {
+        if (!(new RoleScopeService())->isSuperAdmin()) {
+            throw new InvalidArgumentException('系统超级管理员只能由本人修改');
+        }
+    }
+
+    /** 超管只更新资料字段；角色、状态、部门保持不变，避免锁死唯一的超管。 */
+    private function updateSuperAdmin(Admin $admin, array $data): Response
+    {
+        $this->assertSuperAdminSelf();
+        Db::transaction(function () use ($admin, $data): void {
+            $admin->update(['real_name' => $data['nickname'], 'email' => $data['email'], 'mobile' => $data['mobile']]);
+            $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
+        });
+        Cache::clear();
+        return $this->ok('保存成功', $this->adminData($admin));
     }
 
     private function payload(bool $create, ?Admin $admin = null): array
@@ -353,6 +391,7 @@ class SystemAdmin extends AdminApiController
         $roleScope = new RoleScopeService();
         return [
             'id' => (int) $admin->id,
+            'isSuper' => $this->isSuperAdminTarget($admin),
             'username' => (string) $admin->username,
             'nickname' => (string) $admin->real_name,
             'email' => (string) $admin->email,

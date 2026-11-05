@@ -20,7 +20,7 @@ class CheckAdminApiRole implements MiddlewareInterface
     public function process(Request $request, callable $handler): Response
     {
         unset($request->context['admin'], $request->context['admin_permissions'], $request->context['admin_csrf_token']);
-        if (str_starts_with((string) $request->controller, 'app\\admin\\plugin\\business\\market\\controller\\')) {
+        if (preg_match('/^app\\\\admin\\\\(?:plugin\\\\business\\\\[a-z][a-z0-9]*\\\\controller|controller\\\\plugin\\\\[a-z][a-z0-9]*)\\\\/', (string) $request->controller) === 1) {
             return (new \app\admin\plugin\middleware\CheckPluginPermission())->process($request, $handler);
         }
         try {

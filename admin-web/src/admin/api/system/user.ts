@@ -4,6 +4,8 @@ const PREFIX = '/system/user';
 
 export interface UserModel {
   id: number;
+  /** 是否为系统超级管理员；超管只能由本人修改资料和密码 */
+  isSuper?: boolean;
   username: string;
   nickname: string;
   email?: string;

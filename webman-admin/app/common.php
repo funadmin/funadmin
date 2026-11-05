@@ -16,6 +16,16 @@ declare(strict_types=1);
 
 use support\Cache;
 
+if (!function_exists('root_path')) {
+    /**
+     * 兼容从 ThinkPHP 迁移的代码：返回带结尾分隔符的项目根目录。
+     */
+    function root_path(string $path = ''): string
+    {
+        return base_path() . DIRECTORY_SEPARATOR . ($path !== '' ? $path . DIRECTORY_SEPARATOR : '');
+    }
+}
+
 if (!function_exists('getKeyVal')) {
     /**
      * 将平行的 key/value 输入转换为键值对。

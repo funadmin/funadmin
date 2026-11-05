@@ -10,7 +10,9 @@ use Webman\Http\Response;
 use Webman\MiddlewareInterface;
 use DomainException;
 use app\admin\plugin\service\PluginPermissionAuthorizationService;
-use Closure;
+use app\common\plugin\sdk\PluginPermission;
+use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * 插件管理端路由的登录与 manifest 权限校验。
@@ -36,7 +38,14 @@ class CheckPluginPermission implements MiddlewareInterface
         $adminId = (int) ($admin['id'] ?? 0);
         $plugin = $this->plugin;
         $permission = $this->permission;
-        if ($plugin === '' && preg_match('/^app\\\\admin\\\\plugin\\\\business\\\\market\\\\controller\\\\(Category|Plugin|Order|Grant|Setting|Stat)Controller$/', (string) $request->controller, $matches) === 1) {
+        if ($plugin === '' && preg_match('/^app\\\\admin\\\\plugin\\\\business\\\\([a-z][a-z0-9]*)\\\\controller\\\\/', (string) $request->controller, $owner) === 1) {
+            $plugin = $owner[1];
+            $method = new ReflectionMethod($request->controller, $request->action);
+            $attributes = $method->getAttributes(PluginPermission::class)
+                ?: (new ReflectionClass($request->controller))->getAttributes(PluginPermission::class);
+            $permission = $attributes ? $attributes[0]->newInstance()->code : '';
+        }
+        if ($permission === '' && preg_match('/^app\\\\admin\\\\plugin\\\\business\\\\market\\\\controller\\\\(Category|Plugin|Order|Grant|Setting|Stat)Controller$/', (string) $request->controller, $matches) === 1) {
             $plugin = 'market';
             $action = (string) $request->action;
             $permission = match ($matches[1]) {

@@ -45,7 +45,7 @@
           :header-cell-style="headerCellStyle"
           @selection-change="onSelectionChange"
         >
-          <el-table-column type="selection" width="48" align="center" />
+          <el-table-column type="selection" width="48" align="center" :selectable="(row: UserModel) => rowAccess(row).selectable" />
           <el-table-column
             v-if="columnKeys.includes('id')"
             prop="id"
@@ -55,10 +55,18 @@
           />
           <el-table-column
             v-if="columnKeys.includes('username')"
-            prop="username"
             :label="t('systemUser.colUsername', '账号')"
-            min-width="120"
-          />
+            min-width="170"
+          >
+            <template #default="{ row }">
+              <span class="user-name-cell">
+                <span>{{ row.username }}</span>
+                <el-tag v-if="row.isSuper" size="small" type="danger" effect="plain" disable-transitions>
+                  {{ t('systemUser.superAdmin', '超级管理员') }}
+                </el-tag>
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column
             v-if="columnKeys.includes('nickname')"
             prop="nickname"
@@ -84,6 +92,7 @@
                 <el-switch
                   size="small"
                   :model-value="row.status === 1"
+                  :disabled="!rowAccess(row as UserModel).statusToggle"
                   @change="(v: string | number | boolean) => onToggleStatus(row as UserModel, v === true)"
                 />
               </div>
@@ -104,13 +113,13 @@
           >
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button size="small" type="primary" link v-perm="'system:user:edit'" @click="onEdit(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).editable" size="small" type="primary" link v-perm="'system:user:edit'" @click="onEdit(row as UserModel)">
                   {{ t('systemUser.edit', '编辑') }}
                 </el-button>
-                <el-button size="small" type="warning" link v-perm="'system:user:reset'" @click="onResetPwd(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).resettable" size="small" type="warning" link v-perm="'system:user:reset'" @click="onResetPwd(row as UserModel)">
                   {{ t('systemUser.resetPwd', '重置密码') }}
                 </el-button>
-                <el-button size="small" type="danger" link v-perm="'system:user:delete'" @click="onDelete(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).deletable" size="small" type="danger" link v-perm="'system:user:delete'" @click="onDelete(row as UserModel)">
                   {{ t('systemUser.delete', '删除') }}
                 </el-button>
               </div>
@@ -145,10 +154,14 @@ import { userApi, type UserModel } from '@/api/system/user';
 import type { DataTableColumnOption } from '@/components/DataTable';
 import { useCrud } from '@/composables/useCrud';
 import { isWebmanBackend } from '@/config';
+import { useUserStore } from '@/store/modules/user';
 import UserFormDialog from './components/UserFormDialog.vue';
+import { userRowAccess } from './superAdminAccess';
 
 defineOptions({ name: 'SystemUser' });
 const { t } = useI18n();
+const userStore = useUserStore();
+const rowAccess = (row: UserModel) => userRowAccess(row, userStore.userInfo?.id);
 
 /** 与表格列一一对应，供工具栏「列设置」勾选显隐；操作列不可取消 */
 const userColumnOptions = computed<DataTableColumnOption[]>(() => [
@@ -216,6 +229,13 @@ async function onResetPwd(row: UserModel) {
 </script>
 
 <style scoped>
+.user-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 .app-status-switch {
   display: inline-flex;
   align-items: center;

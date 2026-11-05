@@ -13,5 +13,5 @@
  */
 
 return [
-    '' => [app\common\middleware\Install::class, app\middleware\LoadLangPack::class],
+    '' => [app\common\middleware\PluginApplicationGuard::class, app\common\middleware\Install::class, app\middleware\LoadLangPack::class],
 ];
