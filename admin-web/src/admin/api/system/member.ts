@@ -60,7 +60,7 @@ export interface MemberImportResult {
 }
 
 export const memberApi = {
-  list: (params: MemberQuery) => http.get<API.PageResult<MemberModel>>(PREFIX, { params }),
+  list: (params: MemberQuery) => http.get<API.PageResult<MemberModel>>(PREFIX, params),
   detail: (id: number) => http.get<MemberModel>(`${PREFIX}/${id}`),
   options: () => http.get<MemberOptions>(`${PREFIX}/options`),
   create: (data: MemberPayload) =>
@@ -78,5 +78,5 @@ export const memberApi = {
   importRows: (rows: Array<Partial<MemberPayload>>) =>
     http.post<MemberImportResult>(`${PREFIX}/import`, { rows }),
   exportRows: (params: Omit<MemberQuery, 'page' | 'pageSize'>) =>
-    http.get<MemberModel[]>(`${PREFIX}/export`, { params })
+    http.get<MemberModel[]>(`${PREFIX}/export`, params)
 };

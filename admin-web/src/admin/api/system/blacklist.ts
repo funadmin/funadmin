@@ -27,7 +27,7 @@ export interface BlacklistImportResult {
 }
 
 export const blacklistApi = {
-  list: (params: BlacklistQuery) => http.get<API.PageResult<BlacklistModel>>(PREFIX, { params }),
+  list: (params: BlacklistQuery) => http.get<API.PageResult<BlacklistModel>>(PREFIX, params),
   detail: (id: number) => http.get<BlacklistModel>(`${PREFIX}/${id}`),
   create: (data: Partial<BlacklistModel>) =>
     http.post<BlacklistModel>(PREFIX, data, { requestOptions: { showSuccessMsg: true } }),
@@ -44,5 +44,5 @@ export const blacklistApi = {
   importRows: (rows: Array<Pick<BlacklistModel, 'ip' | 'remark' | 'status'>>) =>
     http.post<BlacklistImportResult>(`${PREFIX}/import`, { rows }),
   exportRows: (params: Omit<BlacklistQuery, 'page' | 'pageSize'>) =>
-    http.get<BlacklistModel[]>(`${PREFIX}/export`, { params })
+    http.get<BlacklistModel[]>(`${PREFIX}/export`, params)
 };

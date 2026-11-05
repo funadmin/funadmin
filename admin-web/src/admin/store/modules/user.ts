@@ -47,9 +47,9 @@ export const useUserStore = defineStore('user', {
       return result;
     },
 
-    async fetchUserInfo() {
+    async fetchUserInfo(silent = false) {
       await this.ensureCsrf();
-      const info = await authApi.me();
+      const info = await authApi.me(silent);
       this.userInfo = info;
       this.roles = info.roles || [];
       this.permissions = info.permissions || [];

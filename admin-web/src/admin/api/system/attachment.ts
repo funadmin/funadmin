@@ -46,7 +46,7 @@ export interface AttachmentGroupModel {
 export type AttachmentGroupPayload = Pick<AttachmentGroupModel, 'parentId' | 'name' | 'thumb' | 'status' | 'sort'>;
 
 export const attachmentApi = {
-  list: (params: AttachmentQuery) => http.get<API.PageResult<AttachmentModel>>(PREFIX, { params }),
+  list: (params: AttachmentQuery) => http.get<API.PageResult<AttachmentModel>>(PREFIX, params),
   detail: (id: number) => http.get<AttachmentModel>(`${PREFIX}/${id}`),
   rename: (id: number, name: string) =>
     http.put<AttachmentModel>(`${PREFIX}/${id}/name`, { name }, { requestOptions: { showSuccessMsg: true } }),

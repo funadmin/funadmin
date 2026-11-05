@@ -37,6 +37,13 @@ export function setupRouterGuard(router: Router) {
     if (to.path === LOGIN_PATH && isWebmanBackend() && !(await isSystemInstalled())) {
       return next({ path: `${ADMIN_ROUTE_PREFIX}/install`, replace: true });
     }
+    if (to.path === LOGIN_PATH && isWebmanBackend() && !userStore.isLoggedIn) {
+      try {
+        await userStore.fetchUserInfo(true);
+      } catch {
+        // Cookie 不可用或服务暂时异常时保留登录表单。
+      }
+    }
     if (!userStore.isLoggedIn) {
       if (ROUTE_WHITELIST.includes(to.path)) return next();
       return next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });

@@ -14,6 +14,8 @@ export const authApi = {
       requestOptions: { showSuccessMsg: true, ignoreUnauthorized: true }
     }),
   logout: () => http.post<void>(`${PREFIX}/logout`),
-  me: () => http.get<API.UserInfo>(`${PREFIX}/me`),
+  me: (silent = false) => http.get<API.UserInfo>(`${PREFIX}/me`, undefined, silent
+    ? { requestOptions: { ignoreUnauthorized: true, showErrorMsg: false } }
+    : undefined),
   menus: () => http.get<API.MenuItem[]>(`${PREFIX}/menus`)
 };
