@@ -56,6 +56,8 @@
       </el-col>
     </el-row>
 
+    <PluginSlot v-if="hookActive" name="dashboard.cards" :context="{ user: userStore.userInfo }" />
+
     <!-- 趋势 / 来源 -->
     <el-row :gutter="16" class="mt-4">
       <el-col :xs="24" :lg="16">
@@ -174,7 +176,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onActivated, onDeactivated, onUnmounted, watch } from 'vue';
+import { hooks, PluginSlot, HookCancelledError } from '@/shared/plugins/hooks';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { useUserStore } from '@/store/modules/user';
@@ -513,6 +516,31 @@ const shortcuts = ref([
   { title: t('dashboard.shortcutLogs', '日志查看'), icon: 'i-ep-document', color: '#ef4444', path: adminRoutePath('/monitor/log') },
   { title: t('dashboard.shortcutSettings', '系统设置'), icon: 'i-ep-setting', color: '#06b6d4', path: adminRoutePath('/system/config') }
 ]);
+const baseShortcuts = shortcuts.value.slice();
+const hookActive = ref(false);
+let hookScope: AbortController | undefined;
+async function applyDashboardHooks() {
+  if (!hookActive.value) return;
+  hookScope?.abort();
+  const scope = new AbortController();
+  hookScope = scope;
+  shortcuts.value = baseShortcuts.slice();
+  const context = { user: userStore.userInfo, signal: scope.signal };
+  void hooks.action('dashboard.loaded', undefined, context).catch(console.error);
+  try {
+    const result = await hooks.filter('dashboard.quickActions', baseShortcuts.slice(), context);
+    if (scope.signal.aborted || !Array.isArray(result)) return;
+    shortcuts.value = result.filter(item => item && typeof item.path === 'string' && /^\/(?!\/)/.test(item.path) && !/[\\\x00-\x20]/.test(item.path) && ['title', 'icon', 'color'].every(key => typeof (item as Record<string, unknown>)[key] === 'string'));
+  } catch (error) { if (!(error instanceof HookCancelledError)) console.error(error); }
+}
+function activateHooks() { if (hookActive.value) return; hookActive.value = true; void applyDashboardHooks(); }
+function deactivateHooks() { hookActive.value = false; hookScope?.abort(); }
+onMounted(activateHooks);
+onActivated(activateHooks);
+onDeactivated(deactivateHooks);
+onUnmounted(deactivateHooks);
+watch(hooks.revision, () => void applyDashboardHooks());
+
 </script>
 
 <style scoped lang="scss">

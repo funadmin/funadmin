@@ -27,6 +27,7 @@ final class PluginRouteExecutionTest extends TestCase
         $this->root = sys_get_temp_dir() . '/funadmin-plugin-route-' . bin2hex(random_bytes(8));
         mkdir($this->root, 0700, true);
         (new PluginScaffolder($this->root . '/plugins'))->scaffold('routefixture');
+        (new \app\common\plugin\sdk\PluginActivationCompiler($this->root . '/runtime/plugins/activation', $this->root . '/plugins'))->compile(['routefixture' => ['code' => 'routefixture', 'status' => 1, 'lifecycle_state' => 'enabled']], []);
         Db::table('admin')->insert(['id' => 99, 'username' => 'plugin_route', 'password' => password_hash('isolated-route-password', PASSWORD_DEFAULT), 'status' => 1]);
         \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions([['code' => 'routefixture:item:list', 'name' => '插件读取']], 'plugin', 'routefixture');
         Db::table('auth_group')->insert(['id' => 99, 'name' => '插件测试', 'code' => 'plugin_route', 'status' => 1]);
@@ -64,10 +65,17 @@ final class PluginRouteExecutionTest extends TestCase
         \app\common\plugin\sdk\PluginRoute::adminGroup(new Route(), 'routefixture', 'routefixture:item:delete', static function (): void {}, $this->root);
     }
 
+    public function test_helper_blocks_disabled_plugins_even_on_custom_closure_routes(): void
+    {
+        Route::load([$this->root]);
+        (new \app\common\plugin\sdk\PluginActivationCompiler($this->root . '/runtime/plugins/activation', $this->root . '/plugins'))->compile(['routefixture' => ['code' => 'routefixture', 'status' => 0, 'lifecycle_state' => 'disabled']], []);
+        self::assertSame(404, $this->call(true, true));
+    }
+
     public function test_annotated_plugin_controller_uses_declared_permissions_for_ordinary_admins(): void
     {
         (new \ReflectionProperty(App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
-        $controller = \app\admin\plugin\business\routefixture\controller\PermissionFixture::class;
+        $controller = \app\admin\plugins\routefixture\controller\PermissionFixture::class;
         $call = function (string $action, bool $authenticated = true, bool $csrf = true) use ($controller): int {
             $headers = $authenticated ? 'Cookie: ' . BrowserAuthService::COOKIE . '=' . $this->login['cookie'] . "\r\n" : '';
             if ($csrf) $headers .= 'X-CSRF-TOKEN: ' . $this->login['csrfToken'] . "\r\n";
@@ -99,7 +107,7 @@ final class PluginRouteExecutionTest extends TestCase
     }
 }
 
-namespace app\admin\plugin\business\routefixture\controller;
+namespace app\admin\plugins\routefixture\controller;
 
 final class PermissionFixture extends \app\admin\controller\base\AdminApiController
 {

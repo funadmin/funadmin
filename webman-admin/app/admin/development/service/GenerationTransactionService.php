@@ -11,6 +11,7 @@ use app\admin\development\repository\DatabaseGenerationStateRepository;
 use app\admin\development\repository\GeneratedFileBaselineRepository;
 use app\common\crud\CrudDefinition;
 use app\common\crud\PathGuard;
+use app\common\crud\ArtifactPaths;
 use app\common\crud\SafeCommit;
 use Closure;
 use RuntimeException;
@@ -280,6 +281,7 @@ final class GenerationTransactionService
             || !in_array($journal['state'] ?? '', self::STATES, true)) {
             throw new RuntimeException('generation WAL 内容无效');
         }
+        ArtifactPaths::assertRoots($this->projectRoot, array_column($journal['files'], 'path'), $journal['artifact_roots_hash'] ?? null);
         return $journal;
     }
 
@@ -396,11 +398,12 @@ final class GenerationTransactionService
             throw new RuntimeException('bundle resources hash 不匹配');
         }
         $this->assertPluginPaths((array) ($bundle['target'] ?? []), $bundle['plan']['files'], (array) ($bundle['plan']['allowedPaths'] ?? []));
+        ArtifactPaths::assertRoots($this->projectRoot, array_column($bundle['plan']['files'], 'path'), $bundle['plan']['artifactRootsHash'] ?? null);
         foreach ($bundle['plan']['files'] as $file) {
             if (!is_array($file) || !is_string($file['path'] ?? null)) {
                 throw new RuntimeException('managed plan 文件无效');
             }
-            PathGuard::resolve($this->projectRoot, $file['path'], '项目目录');
+            ArtifactPaths::resolve($this->projectRoot, $file['path'], '项目目录');
             $status = (string) ($file['status'] ?? '');
             if (in_array($status, ['conflict', 'binary-conflict', 'conflict-no-base'], true)) {
                 throw new RuntimeException('冲突 managed plan 拒绝执行');
@@ -436,10 +439,10 @@ final class GenerationTransactionService
         foreach ($files as $file) {
             $path = (string) ($file['path'] ?? '');
             if (!in_array($path, $allowed, true) || !str_starts_with($path, 'plugins/' . $code . '/')
-                || preg_match('#^plugins/' . preg_quote($code, '#') . '/(?:plugin\\.json|app/(?:admin|' . preg_quote($code, '#') . ')/(?:model|validate|service|controller)/[A-Za-z0-9]+\\.php|admin-web/[a-z0-9-]+/(?:api\\.ts|index\\.vue|components/[A-Za-z0-9]+\\.vue)|database/migrations/[0-9]{3}_[a-z0-9_]+\\.sql)$#D', $path) !== 1) {
+                || preg_match('#^plugins/' . preg_quote($code, '#') . '/(?:plugin\\.json|app/(?:admin/plugins/' . preg_quote($code, '#') . '|' . preg_quote($code, '#') . ')/(?:model|validate|service|controller)/[A-Za-z0-9]+\\.php|admin-web/src/admin/modules/' . preg_quote($code, '#') . '/[a-z0-9-]+/(?:api\\.ts|index\\.vue|components/[A-Za-z0-9]+\\.vue)|database/migrations/[0-9]{3}_[a-z0-9_]+\\.sql)$#D', $path) !== 1) {
                 throw new \InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
             }
-            PathGuard::resolve($this->projectRoot, $path, '插件目录');
+            ArtifactPaths::resolve($this->projectRoot, $path, '插件目录');
             if (str_ends_with($path, '.sql') && !in_array($file['status'] ?? '', ['create', 'keep-local'], true)) {
                 throw new \InvalidArgumentException('插件 migration 不可覆盖或删除');
             }
@@ -459,7 +462,7 @@ final class GenerationTransactionService
     private function assertTargetsCurrent(array $files): void
     {
         foreach ($files as $file) {
-            $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
             $stat = @lstat($target);
             if ($stat !== false && (($stat['mode'] & 0170000) !== 0100000)) {
                 throw new RuntimeException('目标路径被非普通文件或符号链接阻塞');
@@ -495,6 +498,7 @@ final class GenerationTransactionService
             'generation_id' => $generationId, 'state' => 'prepared', 'history' => ['prepared'],
             'target' => $bundle['target'] ?? ['type' => 'core'],
             'allowed_paths' => $bundle['plan']['allowedPaths'] ?? [],
+            'artifact_roots_hash' => $bundle['plan']['artifactRootsHash'] ?? null,
             'bundle_digest' => $digest, 'plan_digest' => $bundle['plan']['planDigest'],
             'files' => $files, 'applied' => [], 'prepared_blobs' => [], 'updated_at' => gmdate(DATE_ATOM),
         ];
@@ -511,7 +515,7 @@ final class GenerationTransactionService
                 ? $bundle['remoteContents'][$file['path']]
                 : $bundle['mergedTextContents'][$file['path']];
             $relative = $root . '/staged/' . $file['path'];
-            $stage = PathGuard::resolve($this->projectRoot, $relative, '项目目录');
+            $stage = ArtifactPaths::resolve($this->projectRoot, $relative, '项目目录');
             $this->secureDirectory(dirname($stage));
             if (file_put_contents($stage, $content, LOCK_EX) === false || !chmod($stage, 0600)
                 || !hash_equals((string) $file['target_hash'], (string) hash_file('sha256', $stage))) {
@@ -531,9 +535,9 @@ final class GenerationTransactionService
             if (in_array($file['status'], ['keep-local'], true)) {
                 continue;
             }
-            $target = PathGuard::resolve($this->projectRoot, $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, $file['path'], '项目目录');
             $backupRelative = $root . '/backup/' . $file['path'];
-            $backup = PathGuard::resolve($this->projectRoot, $backupRelative, '项目目录');
+            $backup = ArtifactPaths::resolve($this->projectRoot, $backupRelative, '项目目录');
             $journal['files'][$index]['backup_path'] = $backupRelative;
             $journal['files'][$index]['write_state'] = 'committing';
             $this->writeJournal($journal);
@@ -546,7 +550,7 @@ final class GenerationTransactionService
             } else {
                 $this->secureDirectory(dirname($backup));
                 $result = $safeCommit->commit(
-                    PathGuard::resolve($this->projectRoot, (string) $file['stage_path'], '项目目录'),
+                    ArtifactPaths::resolve($this->projectRoot, (string) $file['stage_path'], '项目目录'),
                     $target,
                     $backup,
                     $file['local_hash'],
@@ -658,9 +662,9 @@ final class GenerationTransactionService
             if (($file['write_state'] ?? '') !== 'committing' || in_array($index, $indexes, true)) {
                 continue;
             }
-            $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
             $targetHash = is_file($target) && !is_link($target) ? hash_file('sha256', $target) : null;
-            $backup = PathGuard::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
+            $backup = ArtifactPaths::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
             $backupHash = is_file($backup) && !is_link($backup) ? hash_file('sha256', $backup) : null;
             $committed = $file['status'] === 'create'
                 ? $targetHash !== null && hash_equals((string) $file['target_hash'], (string) $targetHash)
@@ -680,8 +684,8 @@ final class GenerationTransactionService
 
     private function restoreFile(array $file): void
     {
-        $target = PathGuard::resolve($this->projectRoot, $file['path'], '项目目录');
-        $backup = PathGuard::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
+        $target = ArtifactPaths::resolve($this->projectRoot, $file['path'], '项目目录');
+        $backup = ArtifactPaths::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
         clearstatcache(true, $target);
         $targetHash = is_file($target) && !is_link($target) ? hash_file('sha256', $target) : null;
         if ($file['status'] === 'create') {
@@ -715,9 +719,9 @@ final class GenerationTransactionService
             if (($file['write_state'] ?? '') !== 'committing' || in_array($index, (array) $journal['applied'], true)) {
                 continue;
             }
-            $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
             $targetHash = is_file($target) && !is_link($target) ? hash_file('sha256', $target) : null;
-            $backup = PathGuard::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
+            $backup = ArtifactPaths::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
             $backupHash = is_file($backup) && !is_link($backup) ? hash_file('sha256', $backup) : null;
             $committed = $file['status'] === 'create'
                 ? $targetHash !== null && hash_equals((string) $file['target_hash'], (string) $targetHash)
@@ -768,7 +772,7 @@ final class GenerationTransactionService
     private function committedArtifactsMatch(array $journal): bool
     {
         foreach ($journal['files'] as $file) {
-            $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
             $actual = is_file($target) && !is_link($target) ? hash_file('sha256', $target) : null;
             $expected = $file['status'] === 'delete' ? null : ($file['target_hash'] ?? $file['local_hash'] ?? null);
             if ($actual !== $expected) {
@@ -791,13 +795,13 @@ final class GenerationTransactionService
         foreach ($this->rollbackIndexes($journal) as $index) {
             $file = $journal['files'][$index] ?? null;
             if (!is_array($file)) return false;
-            $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
             $actual = is_file($target) && !is_link($target) ? hash_file('sha256', $target) : null;
             if ($file['status'] === 'create') {
                 if ($actual !== null && !hash_equals((string) $file['target_hash'], (string) $actual)) return false;
                 continue;
             }
-            $backup = PathGuard::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
+            $backup = ArtifactPaths::resolve($this->projectRoot, (string) $file['backup_path'], '项目目录');
             if (!is_file($backup) || is_link($backup)
                 || !hash_equals((string) $file['local_hash'], (string) hash_file('sha256', $backup))) return false;
             if ($actual !== null && $file['target_hash'] !== null && !hash_equals((string) $file['target_hash'], (string) $actual)) return false;

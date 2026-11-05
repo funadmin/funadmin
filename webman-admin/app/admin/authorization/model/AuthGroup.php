@@ -19,10 +19,10 @@ use app\common\model\concern\LaravelSoftDelete;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\RoleGuardService;
 use app\admin\authorization\service\RoleScopeService;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\traits\DataFormat;
 
-class AuthGroup extends BackendModel
+class AuthGroup extends BaseModel
 {
     protected $table = 'auth_group';
 

@@ -213,7 +213,7 @@ final class DefinitionValidator
             if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true) || !is_string($path)) {
                 throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
-            PathGuard::resolve($projectRoot, $path, '项目目录');
+            ArtifactPaths::resolve($projectRoot, $path, '项目目录');
             if (preg_match('~^app/admin/generated/[a-z][a-z0-9_]*/(model|validate|service|controller)/([A-Za-z][A-Za-z0-9]*\.php)$~D', $path, $generated) === 1) {
                 $legacy = PathGuard::resolve($projectRoot, 'app/admin/' . $generated[1] . '/generated/' . $generated[2], '项目目录');
                 if (file_exists($legacy) || is_link($legacy)) {

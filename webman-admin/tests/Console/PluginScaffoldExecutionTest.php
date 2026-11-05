@@ -62,8 +62,9 @@ final class PluginScaffoldExecutionTest extends TestCase
             token_get_all($source, TOKEN_PARSE);
         }
         require $directory . '/app/' . $code . '/controller/Index.php';
-        require $directory . '/app/admin/controller/Index.php';
-        foreach (['app\\' . $code . '\\controller\\Index', 'app\\admin\\controller\\plugin\\' . $code . '\\Index'] as $class) {
+        require $directory . '/app/admin/plugins/' . $code . '/controller/Index.php';
+        foreach (['app\\' . $code . '\\controller\\Index', 'app\\admin\\plugins\\' . $code . '\\controller\\Index'] as $class) {
+            self::assertTrue(class_exists($class), '生成类必须匹配当前模块目录：' . $class);
             $controller = new $class();
             self::assertSame(200, $controller->index()->getStatusCode());
             $reflection = new \ReflectionClass($class);
@@ -71,7 +72,9 @@ final class PluginScaffoldExecutionTest extends TestCase
             self::assertCount(1, $attributes);
             self::assertNotEmpty($attributes[0]->newInstance());
         }
-        $adminClass = 'app\\admin\\controller\\plugin\\' . $code . '\\Index';
+        $adminClass = 'app\\admin\\plugins\\' . $code . '\\controller\\Index';
+        self::assertSame('/admin/plugin/' . $code, (new \ReflectionClass($adminClass))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
+        self::assertSame($code . ':item:list', (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\plugin\sdk\PluginPermission::class)[0]->newInstance()->code);
         $adminMiddleware = \Webman\Middleware::getMiddleware('', 'admin', [$adminClass, 'index'], null, false);
         self::assertCount(3, $adminMiddleware);
         self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRole::class));
@@ -113,8 +116,8 @@ final class PluginScaffoldExecutionTest extends TestCase
         $directory = $this->root . '/plugins/' . $code;
         $data = json_decode(file_get_contents($directory . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
         $data['adminWeb']['components']['value'] = 'components/Value.vue';
-        mkdir($directory . '/admin-web/components', 0700, true);
-        file_put_contents($directory . '/admin-web/components/Value.vue', '<template><span /></template>');
+        mkdir($directory . '/admin-web/src/admin/modules/' . $code . '/components', 0700, true);
+        file_put_contents($directory . '/admin-web/src/admin/modules/' . $code . '/components/Value.vue', '<template><span /></template>');
         $data['formComponents'] = [['type' => $code . ':value', 'component' => 'value', 'propertySchema' => (object) [], 'valueType' => 'object', 'defaultProps' => (object) [], 'allowedEvents' => [], 'capabilityVersion' => 1, 'validator' => $code . ':validate', 'codec' => $code . ':codec']];
         file_put_contents($directory . '/plugin.json', json_encode($data, JSON_THROW_ON_ERROR));
         file_put_contents($directory . '/Plugin.php', '<?php namespace plugins\\' . $code . '; final class Plugin extends \\app\\common\\plugin\\sdk\\Plugin {'

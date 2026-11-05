@@ -1,6 +1,8 @@
 # Webman Plugins Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Historical plan: directory decisions were superseded by `2026-11-05-plugin-layout.md`. Current layout: `docs/plugins.md`.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Make generated plugins run through the current Webman backend and Vue admin application.
 
@@ -31,10 +33,10 @@
 
 **Interfaces:** Webman `process(Request $request, callable $next): Response`; `PluginRoute::adminGroup` retains its public signature.
 
-- [ ] Add failing tests for global guard registration, enabled/disabled/busy/corrupt snapshots and real middleware execution.
-- [ ] Run PHPUnit for these tests and observe failures.
-- [ ] Implement the native guard and permission metadata path while retaining built-in plugin behavior.
-- [ ] Run runtime and plugin HTTP tests; expect PASS.
+- [x] Add failing tests for global guard registration, enabled/disabled/busy/corrupt snapshots and real middleware execution.
+- [x] Run PHPUnit for these tests and observe failures.
+- [x] Implement the native guard and permission metadata path while retaining built-in plugin behavior.
+- [x] Run runtime and plugin HTTP tests; expect PASS.
 
 ### Task 2: Generated and published backend code
 
@@ -42,10 +44,10 @@
 
 **Interfaces:** source `app/admin/{layer}` publishes to `app/admin/plugin/business/{code}/{layer}`; class and route prefixes match the spec.
 
-- [ ] Add/adjust failing generation and publication tests, including real annotated route dispatch and ordinary-user authorization.
-- [ ] Run targeted tests; observe old path/prefix failures.
-- [ ] Align generation, validation, publication and execution ownership; migrate the example to native code patterns.
-- [ ] Run generation, publication, lifecycle and HTTP tests; expect PASS.
+- [x] Add/adjust failing generation and publication tests, including real annotated route dispatch and ordinary-user authorization.
+- [x] Run targeted tests; observe old path/prefix failures.
+- [x] Align generation, validation, publication and execution ownership; migrate the example to native code patterns.
+- [x] Run generation, publication, lifecycle and HTTP tests; expect PASS.
 
 ### Task 3: Frontend publication and module routing
 
@@ -53,10 +55,10 @@
 
 **Interfaces:** enabled-module DTO stays compatible; published components resolve under `src/admin/modules` and routes use `/admin`.
 
-- [ ] Add failing Webman startup/route synchronization and frontend publication tests.
-- [ ] Run targeted PHPUnit/Vitest tests; observe failures.
-- [ ] Align configurable frontend root, module destination and route mounting/removal.
-- [ ] Run plugin frontend tests, type check and Webman build; expect PASS or record pre-existing failures precisely.
+- [x] Add failing Webman startup/route synchronization and frontend publication tests.
+- [x] Run targeted PHPUnit/Vitest tests; observe failures.
+- [x] Align configurable frontend root, module destination and route mounting/removal.
+- [x] Run plugin frontend tests, type check and Webman build; expect PASS or record pre-existing failures precisely.
 
 ### Task 4: Integration and review
 
@@ -64,9 +66,9 @@
 
 **Interfaces:** generated plugin completes install → enable → HTTP access → disable → upgrade → uninstall, with resource ownership preserved.
 
-- [ ] Add missing end-to-end regression coverage and run it before the final relevant fix.
-- [ ] Run the full backend/frontend suites and distinguish baseline failures.
-- [ ] Document commands, deployment/rebuild behavior and legacy plugin migration.
-- [ ] Review the complete diff and address material findings; report exact verification results.
+- [x] Add missing end-to-end regression coverage and run it before the final relevant fix.
+- [x] Run the full backend/frontend suites and distinguish baseline failures.
+- [x] Document commands, deployment/rebuild behavior and legacy plugin migration.
+- [x] Review the complete diff and address material findings; report exact verification results.
 
 Execution: native in this session, authorized by the user's instruction to make the agreed adjustments. Changes remain reviewable in the current checkout; preserve the existing staged user changes and do not commit them.

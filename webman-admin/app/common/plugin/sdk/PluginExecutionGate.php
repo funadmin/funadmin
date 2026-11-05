@@ -42,10 +42,10 @@ final class PluginExecutionGate
             throw new RuntimeException('插件执行 generation 已失效');
         }
         $applicationPrefix = 'app\\' . $context->pluginCode . '\\';
-        $consoleMarker = '\\plugin\\' . $context->pluginCode . '\\';
+        $consolePrefix = 'app\\admin\\plugins\\' . $context->pluginCode . '\\';
         $entryPrefix = 'plugins\\' . $context->pluginCode . '\\';
         $owned = str_starts_with($context->class, $applicationPrefix)
-            || (str_starts_with($context->class, 'app\\admin\\') && str_contains($context->class, $consoleMarker))
+            || str_starts_with($context->class, $consolePrefix)
             || str_starts_with($context->class, $entryPrefix);
         if (!$owned) {
             throw new RuntimeException('插件执行类不属于当前插件');

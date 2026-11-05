@@ -1,4 +1,5 @@
 import http from '@/utils/http';
+import { adminApiUrl } from '@/utils/apiUrl';
 
 const PREFIX = '/system/plugin';
 
@@ -130,6 +131,8 @@ export interface EnabledPluginModule {
   version: string;
   components: Record<string, string>;
   routes: PluginRouteDto[];
+  generation?: string;
+  frontendHooks?: import('@/shared/plugins/hooks/types').HookDescriptor[];
 }
 
 const success = { requestOptions: { showSuccessMsg: true } };
@@ -170,7 +173,7 @@ export const pluginApi = {
   purge: (code: string, purgeConfirm: string) => http.delete<unknown>(`${PREFIX}/${code}/purge`, { purgeConfirm }, success),
   deletePackage: (code: string) => http.delete<unknown>(`${PREFIX}/${code}/package`, undefined, success),
   history: (code: string) => http.get<PluginVersionHistory[]>(`${PREFIX}/${code}/history`),
-  historyDownloadUrl: (code: string, id: number) => `${PREFIX}/${code}/history/${id}/download`,
+  historyDownloadUrl: (code: string, id: number) => adminApiUrl(`${PREFIX}/${encodeURIComponent(code)}/history/${id}/download`),
   redeployHistory: (code: string, id: number, migrate = false) => http.post<unknown>(`${PREFIX}/${code}/history/${id}/redeploy`, { migrate }, success),
   recoveryInfo: (code: string) => http.get<PluginRecoveryInfo>(`${PREFIX}/${code}/recovery`),
   operations: (code: string) => http.get<PluginOperation[]>(`${PREFIX}/${code}/operations`),

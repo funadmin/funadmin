@@ -21,7 +21,7 @@ final class Index
     #[Get('')]
     public function index(Request $request): Response
     {
-        return redirect('/admin-web/#/admin/' . ($this->installed() ? 'login' : 'install'));
+        return redirect('/#/admin/' . ($this->installed() ? 'login' : 'install'));
     }
 
     #[Get('/step2')]
@@ -61,7 +61,7 @@ final class Index
         try {
             $this->assertCsrf($request);
             if (!$this->installed()) throw new DomainException('系统尚未完成安装', 409);
-            return $this->result(['installed' => true, 'backend' => '/admin-web/#/admin/login'], '安装完成')
+            return $this->result(['installed' => true, 'backend' => '/#/admin/login'], '安装完成')
                 ->cookie(self::COOKIE, '', 0, '/install', '', $this->secure(), true, 'Strict');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());

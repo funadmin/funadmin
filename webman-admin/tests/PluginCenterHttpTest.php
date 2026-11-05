@@ -91,6 +91,96 @@ final class PluginCenterHttpTest extends TestCase
         self::assertSame(403, $this->call('POST', '/admin/system/plugin/local/install', [], csrf: false)->getStatusCode());
     }
 
+    public function test_plugin_users_discover_only_permitted_pages_without_plugin_center_permission(): void
+    {
+        $code = 'catalog' . bin2hex(random_bytes(5));
+        $parent = base_path('plugins');
+        $createdParent = !is_dir($parent);
+        $directory = $parent . '/' . $code;
+        (new \app\common\plugin\sdk\PluginScaffolder($parent))->scaffold($code);
+        $activation = sys_get_temp_dir() . '/plugin-http-activation-' . bin2hex(random_bytes(5));
+        \support\Container::instance()->addDefinitions([\app\common\plugin\service\FrontendHookService::class => static fn () => new \app\common\plugin\service\FrontendHookService(new \app\common\plugin\sdk\PluginActivationReader($activation))]);
+        try {
+            $manifest = json_decode(file_get_contents($directory . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
+            $manifest['adminWeb']['permissions'][] = ['code' => $code . ':item:manage', 'name' => '管理'];
+            $manifest['adminWeb']['routes'][] = ['path' => '/plugin/' . $code . '/manage', 'name' => 'Plugin_' . $code . '_Manage', 'component' => 'Index', 'meta' => ['permission' => $code . ':item:manage']];
+            file_put_contents($directory . '/plugin.json', json_encode($manifest, JSON_THROW_ON_ERROR));
+            Db::table('plugin')->insert(['code' => $code, 'name' => '目录测试', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1, 'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
+            (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','needs_reinstall'=>false,'version'=>'1.0.0']], [$code=>$manifest]);
+            \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions($manifest['adminWeb']['permissions'], 'plugin', $code);
+            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin.systemplugin:installed', 'plugin.systemplugin:discovered', $code . ':item:list'])->pluck('id')->all());
+            self::assertSame(401, $this->call('GET', '/admin/system/plugin/modules/enabled', authenticated: false)->getStatusCode());
+            $response = $this->call('GET', '/admin/system/plugin/modules/enabled');
+            self::assertSame(200, $response->getStatusCode(), $response->rawBody());
+            $modules = json_decode($response->rawBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+            $module = array_values(array_filter($modules, static fn ($item) => $item['code'] === $code))[0] ?? null;
+            self::assertNotNull($module);
+            self::assertSame(['/plugin/' . $code . '/items'], array_column($module['routes'], 'path'));
+            (new CasbinService())->syncRolePermissions(2, []);
+            $response = $this->call('GET', '/admin/system/plugin/modules/enabled');
+            self::assertSame(200, $response->getStatusCode());
+            self::assertSame([], json_decode($response->rawBody(), true, 512, JSON_THROW_ON_ERROR)['data']);
+        } finally {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            rmdir($directory);
+            if ($createdParent) @rmdir($parent);
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($activation, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+            rmdir($activation);
+        }
+    }
+
+    public function test_frontend_hook_endpoint_authenticates_exact_audience_and_projects_dependencies(): void
+    {
+        new App(Request::class, new NullLogger(), app_path(), public_path());
+        $csrfResponse = (new \app\admin\authentication\controller\AdminAuth())->csrf(new Request("GET /admin/auth/csrf HTTP/1.1\r\nHost: localhost\r\n\r\n"));
+        self::assertStringContainsString('path=/admin', strtolower(implode(';', (array) $csrfResponse->getHeader('Set-Cookie'))));
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
+        $reader = new class('unused') extends \app\common\plugin\sdk\PluginActivationReader {
+            public function activeGeneration(): ?string { return str_repeat('a',32); }
+            public function read(): \app\common\plugin\sdk\PluginActivationSnapshot {
+                $base=['enabled'=>true,'state'=>'enabled','needs_reinstall'=>false,'operation_token'=>null,'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]];
+                return \app\common\plugin\sdk\PluginActivationSnapshot::trusted([
+                    'hookdemo'=>$base+['code'=>'hookdemo','dependencies'=>[]],
+                    'blocked'=>$base+['code'=>'blocked','dependencies'=>['missing']],
+                ]);
+            }
+        };
+        $make = static fn(string $code) => \app\common\plugin\sdk\Manifest::fromCompiled('/unused/'.$code,['code'=>$code,'adminWeb'=>['components'=>[]],'frontendHooks'=>[
+            ['id'=>'open','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','audiences'=>['public']],
+            ['id'=>'member','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','audiences'=>['member']],
+            ['id'=>'admin','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run'],
+        ]]);
+        \support\Container::instance()->addDefinitions([\app\common\plugin\service\FrontendHookService::class=>static fn()=>new \app\common\plugin\service\FrontendHookService($reader,static fn()=>['hookdemo'=>$make('hookdemo'),'blocked'=>$make('blocked')])]);
+        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
+        Db::table('member')->insert(['id'=>991,'username'=>'hook_member','nickname'=>'Hooks','sex'=>'0','level_id'=>1,'status'=>1]);
+        $token=(new \app\common\service\authentication\TokenService())->build(['id'=>991]);
+        $call=function(string $audience,bool $cookie=false,?string $bearer=null) {
+            $headers=$cookie ? 'Cookie: '.BrowserAuthService::COOKIE.'='.$this->session['cookie']."\r\n" : '';
+            if ($bearer!==null) $headers.='Authorization: Bearer '.$bearer."\r\n";
+            $request=new Request("GET ".($audience==='admin'?'/admin/plugins/hooks/frontend':'/plugins/hooks/frontend')."?audience=$audience HTTP/1.1\r\nHost: localhost\r\n".$headers."\r\n");
+            $matched=Route::dispatch('GET',$audience==='admin'?'/admin/plugins/hooks/frontend':'/plugins/hooks/frontend');
+            self::assertSame(\FastRoute\Dispatcher::FOUND,$matched[0]);
+            $request->controller=$matched[1]['callback'][0]; $request->action='index'; $request->route=$matched[1]['route'];
+            Context::set(\Webman\Http\Request::class,$request);
+            return (App::getCallback('','',$matched[1]['callback'],$matched[2],false,$request->route))($request);
+        };
+        foreach ([['public',true,$token,'open'],['member',false,$token,'member'],['admin',true,null,'admin']] as [$audience,$cookie,$bearer,$id]) {
+            $response=$call($audience,$cookie,$bearer);
+            self::assertSame(200,$response->getStatusCode(),$response->rawBody());
+            $data=json_decode($response->rawBody(),true)['data'];
+            self::assertSame(['hookdemo'],array_column($data['modules'],'code'));
+            self::assertSame([$id],array_column($data['modules'][0]['frontendHooks'],'id'));
+        }
+        self::assertSame(401,$call('member',true)->getStatusCode());
+        self::assertSame(401,$call('admin',false,$token)->getStatusCode());
+        Db::table('member')->where('id',991)->update(['status'=>0]);
+        self::assertSame(401,$call('member',false,$token)->getStatusCode());
+        self::assertSame(400,$call('invalid')->getStatusCode());
+    }
+
     private function call(string $method, string $path, array $data = [], bool $authenticated = true, bool $csrf = true): \Webman\Http\Response
     {
         $body = json_encode($data, JSON_THROW_ON_ERROR);

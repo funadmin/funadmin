@@ -1306,7 +1306,7 @@ export default {
     adminEmail: '管理员邮箱',
     devMode: '开发模式',
     prodMode: '生产模式',
-    entryTip: '后台入口固定为 /admin-web/，生产环境建议关闭开发模式。',
+    entryTip: '后台登录地址：{url}，生产环境建议关闭开发模式。',
     prev: '上一步',
     next: '下一步',
     installNow: '立即安装',

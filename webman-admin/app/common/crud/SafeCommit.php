@@ -60,12 +60,13 @@ final class SafeCommit
 
     private function relative(string $path): string
     {
-        return PathGuard::relative($this->projectRoot, $path);
+        ArtifactPaths::relative($this->projectRoot, $path);
+        return PathGuard::relative(ArtifactPaths::commitRoot($this->projectRoot), $path);
     }
 
     private function execute(string $operation, array $arguments): array
     {
-        $root = realpath($this->projectRoot);
+        $root = realpath(ArtifactPaths::commitRoot($this->projectRoot));
         if ($root === false || !is_dir($root)) {
             throw new RuntimeException('安全文件操作无法解析项目根');
         }

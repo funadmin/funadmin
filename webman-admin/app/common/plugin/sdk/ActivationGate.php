@@ -10,6 +10,17 @@ final class ActivationGate
     {
     }
 
+    public function assertPluginEnabled(string $code): void
+    {
+        if (!$this->snapshot->isTrusted()) {
+            throw new ActivationUnavailableException('插件激活状态不可用');
+        }
+        $plugins = $this->snapshot->plugins();
+        if (!isset($plugins[$code]) || !$this->enabled($plugins[$code], null, $plugins)) {
+            throw new PluginNotActiveException('插件不可用');
+        }
+    }
+
     public function assertEnabled(string $code, string $application): void
     {
         if (!$this->snapshot->isTrusted()) {
@@ -22,13 +33,13 @@ final class ActivationGate
         }
     }
 
-    private function enabled(array $plugin, string $application, array $plugins, array $visited = []): bool
+    private function enabled(array $plugin, ?string $application, array $plugins, array $visited = []): bool
     {
         if (($plugin['enabled'] ?? false) !== true
             || ($plugin['state'] ?? '') !== 'enabled'
             || ($plugin['needs_reinstall'] ?? true) !== false
             || ($plugin['operation_token'] ?? null) !== null
-            || ($plugin['applications'][$application] ?? false) !== true) {
+            || ($application !== null && ($plugin['applications'][$application] ?? false) !== true)) {
             return false;
         }
         $code = (string) ($plugin['code'] ?? '');
@@ -47,7 +58,6 @@ final class ActivationGate
 
     private function dependencyEnabled(array $plugin, array $plugins, array $visited): bool
     {
-        $plugin['applications']['dependency'] = true;
-        return $this->enabled($plugin, 'dependency', $plugins, $visited);
+        return $this->enabled($plugin, null, $plugins, $visited);
     }
 }

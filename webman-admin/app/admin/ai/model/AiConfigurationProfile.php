@@ -3,10 +3,10 @@
 declare(strict_types=1);
 namespace app\admin\ai\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /** 档案实体；序列化始终隐藏密文与内部唯一索引字段。 */
-final class AiConfigurationProfile extends BackendModel
+final class AiConfigurationProfile extends BaseModel
 {
     protected $name = 'ai_configuration_profile';
     protected $hidden = ['secret_ciphertext', 'default_admin_id'];

@@ -15,6 +15,8 @@
 use Webman\Route;
 
 Route::disableDefaultRoute();
+Route::get('/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
+Route::get('/admin/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
 Route::group('/identity', static function (): void {
     foreach ([
         ['GET', '/.well-known/openid-configuration', 'Metadata', 'discovery'],
@@ -76,9 +78,7 @@ Route::group('/market/api/v3', static function (): void {
     Route::post('/telemetry/installs', [\app\market\controller\Telemetry::class, 'installs']);
 });
 Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'webman-admin']));
-$adminWeb = static fn () => response()->withFile(public_path('admin-web/index.html'))->withHeader('Cache-Control', 'no-cache');
-Route::get('/admin-web', $adminWeb);
-Route::get('/admin-web/', $adminWeb);
+Route::get('/', static fn () => response()->withFile(public_path('index.html'))->withHeader('Cache-Control', 'no-cache'));
 Route::fallback(static function (\support\Request $request) {
     $matched = Route::dispatch($request->method(), $request->path());
     if ($matched[0] === \FastRoute\Dispatcher::METHOD_NOT_ALLOWED) {

@@ -46,13 +46,27 @@ final class PluginPackageExecutionTest extends TestCase
         self::assertSame($first, hash_file('sha256', $output));
     }
 
+    public function test_package_preserves_empty_canonical_application_directories(): void
+    {
+        $command = new CommandTester(new PluginPackage($this->root));
+        $output = $this->root . '/empty-directories.zip';
+        self::assertSame(0, $command->execute(['name' => 'packagefixture', '--output' => $output]), $command->getDisplay());
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($output));
+        try {
+            foreach (['app/admin/plugins/packagefixture/model/', 'app/packagefixture/view/', 'public/plugin-assets/packagefixture/public/'] as $path) {
+                self::assertNotFalse($zip->locateName('packagefixture/' . $path), $path);
+            }
+        } finally { $zip->close(); }
+    }
+
     public function test_market_inspector_uses_native_staging_and_manifest_migration_directory(): void
     {
         file_put_contents($this->root . '/plugins/packagefixture/database/migrations/001_initial.sql', 'SELECT 1;');
         $command = new CommandTester(new PluginPackage($this->root));
         $output = $this->root . '/market.zip';
         self::assertSame(0, $command->execute(['name' => 'packagefixture', '--output' => $output]), $command->getDisplay());
-        $meta = (new \app\admin\plugin\business\market\service\MarketPackageInspector())->inspect($output);
+        $meta = (new \app\admin\plugins\market\service\MarketPackageInspector())->inspect($output);
         self::assertSame('packagefixture', $meta['code']);
         self::assertSame('001_initial', $meta['database_capability']);
         self::assertSame(hash_file('sha256', $output), $meta['sha256']);
@@ -78,7 +92,7 @@ final class PluginPackageExecutionTest extends TestCase
         self::assertSame(0, $command->execute(['name' => 'packagefixture', '--output' => $output]), $command->getDisplay());
         $package = null;
         try {
-            $service = new \app\admin\plugin\business\market\service\MarketAdminService();
+            $service = new \app\admin\plugins\market\service\MarketAdminService();
             $version = $service->upload($output, '测试发布');
             self::assertSame('draft', $version['status']);
             $package = $service->versionPackage($version['id'])['path'];

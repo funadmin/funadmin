@@ -95,6 +95,114 @@ class PluginLifecycleExecutionTest extends TestCase
         self::assertGreaterThan(0, Db::table('plugin_operation')->where('result', 'success')->count());
     }
 
+    public function test_generated_plugin_http_access_follows_install_enable_update_and_uninstall(): void
+    {
+        $manifestFile = $this->root . '/plugins/lifecyclefixture/plugin.json';
+        $manifest = json_decode(file_get_contents($manifestFile), true, 512, JSON_THROW_ON_ERROR);
+        // 无 SQL 的插件同样需要覆盖完整生命周期；MySQL DDL 另由隔离测试覆盖。
+        unset($manifest['migrations']);
+        file_put_contents($manifestFile, json_encode($manifest, JSON_THROW_ON_ERROR));
+        $service = new PluginService($this->root);
+        self::assertTrue($service->installPlugin('lifecyclefixture'));
+        $controllerFile = $this->root . '/app/admin/plugins/lifecyclefixture/controller/Index.php';
+        self::assertFileExists($controllerFile);
+        self::assertFileExists($this->root . '/admin-web/src/admin/modules/lifecyclefixture/pages/Index.vue');
+        require $controllerFile;
+        $controller = 'app\\admin\\plugins\\lifecyclefixture\\controller\\Index';
+        $reader = new \app\common\plugin\sdk\PluginActivationReader($this->root . '/runtime/plugins/activation');
+        \support\Container::instance()->addDefinitions([\app\common\middleware\PluginApplicationGuard::class => static fn () => new \app\common\middleware\PluginApplicationGuard($reader)]);
+        \Webman\Middleware::load(['' => [\app\common\middleware\PluginApplicationGuard::class]]);
+        (new \ReflectionProperty(\Webman\App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
+        Db::table('admin')->insert(['id' => 99, 'username' => 'lifecycle_reader', 'password' => password_hash('test-password', PASSWORD_DEFAULT), 'status' => 1]);
+        Db::table('auth_group')->insert(['id' => 99, 'name' => '插件用户', 'code' => 'lifecycle_reader', 'status' => 1]);
+        $casbin = new \app\admin\authorization\service\CasbinService();
+        $casbin->syncAdminRoles(99, [99]);
+        $casbin->syncRolePermissions(99, Db::table('permission')->where('code', 'lifecyclefixture:item:list')->pluck('id')->all());
+        $auth = new \app\admin\authentication\service\BrowserAuthService();
+        $anonymous = $auth->bootstrap('');
+        $login = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'lifecycle_reader', 'test-password', '127.0.0.1');
+        $call = static function () use ($controller, $login): int {
+            $request = new \support\Request("GET /admin/plugin/lifecyclefixture/index HTTP/1.1\r\nHost: localhost\r\nCookie: " . \app\admin\authentication\service\BrowserAuthService::COOKIE . '=' . $login['cookie'] . "\r\n\r\n");
+            $request->controller = $controller;
+            $request->action = 'index';
+            \support\Context::set(\Webman\Http\Request::class, $request);
+            return (\Webman\App::getCallback('', 'admin', [$controller, 'index']))($request)->getStatusCode();
+        };
+        try {
+            self::assertSame(404, $call());
+            self::assertTrue($service->enablePlugin('lifecyclefixture'));
+            self::assertSame(200, $call());
+            self::assertTrue($service->disablePlugin('lifecyclefixture'));
+            self::assertSame(404, $call());
+            $manifest['version'] = '1.1.0';
+            file_put_contents($manifestFile, json_encode($manifest, JSON_THROW_ON_ERROR));
+            self::assertTrue($service->updatePlugin('lifecyclefixture'));
+            self::assertSame('1.1.0', Db::table('plugin')->where('code', 'lifecyclefixture')->value('version'));
+            self::assertSame(404, $call());
+            self::assertTrue($service->enablePlugin('lifecyclefixture'));
+            self::assertSame(200, $call());
+            self::assertTrue($service->disablePlugin('lifecyclefixture'));
+            self::assertTrue($service->uninstallPlugin('lifecyclefixture'));
+            self::assertSame(404, $call());
+            self::assertFileDoesNotExist($controllerFile);
+            self::assertFileDoesNotExist($this->root . '/admin-web/src/admin/modules/lifecyclefixture/pages/Index.vue');
+            self::assertSame(0, Db::table('plugin_resource')->where('plugin_code', 'lifecyclefixture')->count());
+        } finally {
+            \support\Context::destroy();
+        }
+    }
+
+
+    public function test_app_free_hook_examples_install_publish_enable_disable_and_uninstall(): void
+    {
+        $examples = dirname(__DIR__, 3) . '/docs/examples/plugin-hooks';
+        foreach (['hookdemo', 'hookconsumer'] as $code) {
+            $source = $examples . '/' . $code;
+            $target = $this->root . '/plugins/' . $code;
+            mkdir($target, 0700, true);
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+            foreach ($iterator as $file) {
+                $relative = substr($file->getPathname(), strlen($source) + 1);
+                $file->isDir() ? mkdir($target . '/' . $relative, 0700, true) : copy($file->getPathname(), $target . '/' . $relative);
+            }
+        }
+        $service = new PluginService($this->root);
+        $reader = new \app\common\plugin\sdk\PluginActivationReader($this->root . '/runtime/plugins/activation');
+        $runtime = new \app\common\plugin\hook\HookRuntime($reader, $this->root . '/plugins');
+        foreach (['hookdemo', 'hookconsumer'] as $code) {
+            self::assertTrue($service->installPlugin($code));
+            self::assertFileExists($this->root . '/admin-web/src/admin/modules/' . $code . '/hooks.ts');
+            self::assertDirectoryDoesNotExist($this->root . '/app/' . $code);
+            self::assertDirectoryDoesNotExist($this->root . '/app/admin/plugins/' . $code);
+            self::assertSame(0, Db::table('admin_menu')->where('source_name', $code)->count());
+        }
+        self::assertSame('订单', $runtime->filter('plugin.hookconsumer.decorate', '订单'));
+        self::assertTrue($service->enablePlugin('hookdemo'));
+        self::assertTrue($service->enablePlugin('hookconsumer'));
+        self::assertSame('订单 · hookdemo', $runtime->filter('plugin.hookconsumer.decorate', '订单'));
+        $descriptors = new \app\common\plugin\service\FrontendHookService(
+            $reader,
+            fn (): array => (new \app\common\plugin\sdk\Registry($this->root . '/plugins', static fn (): array => []))->discover()
+        );
+        self::assertSame(['hookconsumer', 'hookdemo'], array_column($descriptors->descriptors('public')['modules'], 'code'));
+        self::assertTrue($service->disablePlugin('hookdemo'));
+        self::assertSame('订单', $runtime->filter('plugin.hookconsumer.decorate', '订单'));
+        self::assertSame(['hookconsumer'], array_column($descriptors->descriptors('public')['modules'], 'code'));
+        $manifestFile = $this->root . '/plugins/hookdemo/plugin.json';
+        $manifest = json_decode(file_get_contents($manifestFile), false, 512, JSON_THROW_ON_ERROR);
+        $manifest->version = '1.1.0';
+        file_put_contents($manifestFile, json_encode($manifest, JSON_THROW_ON_ERROR));
+        self::assertTrue($service->updatePlugin('hookdemo'));
+        self::assertTrue($service->enablePlugin('hookdemo'));
+        self::assertSame('订单 · hookdemo', $runtime->filter('plugin.hookconsumer.decorate', '订单'));
+        self::assertTrue($service->disablePlugin('hookdemo'));
+        self::assertTrue($service->disablePlugin('hookconsumer'));
+        foreach (['hookdemo', 'hookconsumer'] as $code) {
+            self::assertTrue($service->uninstallPlugin($code));
+            self::assertFileDoesNotExist($this->root . '/admin-web/src/admin/modules/' . $code . '/hooks.ts');
+        }
+    }
+
     public function test_update_migration_and_redeploy_preserve_forward_history_and_hook_failures(): void
     {
         if (getenv('CONSOLE_TEST_MYSQL') !== '1') self::markTestSkipped('更新生命周期 SQL 依赖真实 MySQL');

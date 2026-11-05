@@ -36,7 +36,6 @@ final class GenerationResourceTransaction
         $registry = $this->registry ?? new ResourceRegistryService();
         $totals = ['inserted' => 0, 'skipped' => 0];
         foreach ($this->groupBySource($resources) as $sourceName => $group) {
-            $registry->removeSource('generated', $sourceName);
             $registry->registerPermissions($group['permissions'], 'generated', $sourceName);
             if ($group['menus'] !== []) {
                 foreach ($group['menus'] as $menu) {
@@ -45,6 +44,7 @@ final class GenerationResourceTransaction
                     $registry->registerTree([$menu], parentMenuId: $parentMenuId, sourceType: 'generated', sourceName: $sourceName);
                 }
             }
+            $registry->pruneSource('generated', $sourceName, array_column($group['permissions'], 'code'), $group['menus']);
             if ($group['languageLines'] !== []) {
                 $result = $registry->registerLanguageLines($group['languageLines'], 'generated', $sourceName);
                 $totals['inserted'] += (int) ($result['inserted'] ?? 0);

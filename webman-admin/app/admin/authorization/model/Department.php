@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace app\admin\authorization\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleScopeService;
 use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
-class Department extends BackendModel
+class Department extends BaseModel
 {
     use LaravelSoftDelete;
     use DataFormat;

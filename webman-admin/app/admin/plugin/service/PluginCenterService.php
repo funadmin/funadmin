@@ -100,28 +100,9 @@ final class PluginCenterService extends AbstractService
         }
     }
 
-    public function enabledModules(): array
+    public function enabledModules(?array $permissions = null): array
     {
-        $manifests = $this->manifests();
-        $modules = [];
-        foreach (Plugin::where('lifecycle_state', 'enabled')->where('needs_reinstall', 0)->get() as $record) {
-            $code = (string) $record->code;
-            $manifest = $manifests[$code] ?? null;
-            if (!$manifest) {
-                continue;
-            }
-            $adminWeb = $manifest->toArray()['adminWeb'] ?? null;
-            if (!is_array($adminWeb) || !is_array($adminWeb['components'] ?? null)) {
-                continue;
-            }
-            $modules[] = [
-                'code' => $code,
-                'version' => (string) $record->version,
-                'components' => $adminWeb['components'],
-                'routes' => $this->routeDtos($adminWeb['routes'] ?? [], $code),
-            ];
-        }
-        return $modules;
+        return \support\Container::get(\app\common\plugin\service\FrontendHookService::class)->descriptors('admin', $permissions, true)['modules'];
     }
 
     public function get(string $code): array
@@ -160,7 +141,7 @@ final class PluginCenterService extends AbstractService
                 throw new RuntimeException('插件配置变更钩子执行失败');
             }
             $snapshot = json_encode($this->snapshotValues($config), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-            if ($record->save(['config' => $snapshot]) === false) {
+            if ($record->fill(['config' => $snapshot])->save() === false) {
                 throw new RuntimeException('插件配置状态保存失败');
             }
         } catch (\Throwable $exception) {
@@ -168,7 +149,6 @@ final class PluginCenterService extends AbstractService
             throw $exception;
         }
 
-        config([], "plugin_{$code}_config");
         Cache::delete('pluginslist');
         Cache::delete('plugins_data_list');
         Cache::delete('plugins_data_list_config');
@@ -177,7 +157,7 @@ final class PluginCenterService extends AbstractService
 
     private function manifests(): array
     {
-        return (new Registry(base_path() . (defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins'), static fn (): array => []))->discover();
+        return (new Registry(base_path(defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins'), static fn (): array => []))->discover();
     }
 
     private function manifestData(?Manifest $manifest, ?Plugin $record, string $source): array
@@ -415,25 +395,22 @@ final class PluginCenterService extends AbstractService
 
     private function assertConfigColumn(): void
     {
-        $prefix = (string) config('database.connections.mysql.prefix');
-        $table = str_replace('`', '``', $prefix . 'plugin');
-        if (Db::query("SHOW COLUMNS FROM `{$table}` LIKE 'config'") === []) {
+        if (!Db::schema()->hasColumn('plugin', 'config')) {
             throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/001_baseline.sql');
         }
     }
 
     private function configFile(string $code): string
     {
-        return base_path() . (defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins') . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'config.php';
+        return base_path((defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins') . '/' . $code . '/config.php');
     }
 
     private function plugin(string $code): object
     {
-        $plugin = get_plugin_instance($code);
-        if (!$plugin) {
-            throw new RuntimeException('插件入口类不存在');
-        }
-        return $plugin;
+        return (new \app\common\plugin\sdk\PluginEntryFactory())->create(
+            Manifest::fromDirectory(base_path((defined('PLUGIN_DIR') ? PLUGIN_DIR : 'plugins') . '/' . $code)),
+            static fn (string $class): object => \support\Container::get($class)
+        );
     }
 
     private function assertCode(string $code): void

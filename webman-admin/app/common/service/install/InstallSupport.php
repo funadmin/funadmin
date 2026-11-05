@@ -184,7 +184,7 @@ final class InstallSupport
             self::writeFile($paths['env'], $content, 0600);
             self::writeFile($paths['lock'], json_encode(['installed_at' => date(DATE_ATOM), 'env_hash' => hash('sha256', $content)], JSON_THROW_ON_ERROR), 0644);
             $progress?->__invoke('complete');
-            return ['username' => $admin['username'], 'backend' => '/admin-web/#/admin/login'];
+            return ['username' => $admin['username'], 'backend' => '/#/admin/login'];
         } finally {
             $manager->setDefaultConnection($previous);
             flock($mutex, LOCK_UN);

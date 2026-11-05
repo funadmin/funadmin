@@ -325,7 +325,7 @@ final class SystemPlugin extends AdminApiController
     #[Get('/modules/enabled')]
     public function enabledModules(): Response
     {
-        return $this->execute(fn () => $this->center->enabledModules());
+        return $this->execute(fn () => $this->center->enabledModules((array) ($this->request->context['admin_permissions'] ?? [])));
     }
 
     private function execute(callable $operation, string $message = '操作成功'): Response

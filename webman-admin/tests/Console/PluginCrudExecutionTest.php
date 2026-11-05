@@ -55,14 +55,14 @@ final class PluginCrudExecutionTest extends TestCase
         self::assertSame(0, $preview->execute(['definition' => $this->root . '/definition.json', '--token-output' => $this->root . '/token']), $preview->getDisplay());
         self::assertSame(0600, fileperms($this->root . '/token') & 0777);
         self::assertSame($manifest, file_get_contents($this->root . '/plugins/crudfixture/plugin.json'));
-        self::assertFileDoesNotExist($this->root . '/plugins/crudfixture/app/admin/model/ConsoleItem.php');
+        self::assertFileDoesNotExist($this->root . '/plugins/crudfixture/app/admin/plugins/crudfixture/model/ConsoleItem.php');
         $generate = new CommandTester(new PluginCrudGenerate($this->root));
         $args = ['definition' => $this->root . '/definition.json', '--confirm-token-file' => $this->root . '/token'];
         chmod($this->root . '/token', 0644);
         self::assertSame(1, $generate->execute($args));
         chmod($this->root . '/token', 0600);
         self::assertSame(0, $generate->execute($args), $generate->getDisplay());
-        self::assertFileExists($this->root . '/plugins/crudfixture/app/admin/model/ConsoleItem.php');
+        self::assertFileExists($this->root . '/plugins/crudfixture/app/admin/plugins/crudfixture/model/ConsoleItem.php');
         self::assertSame(1, $generate->execute($args));
         self::assertSame('crudfixture', Manifest::fromDirectory($this->root . '/plugins/crudfixture')->code());
     }
@@ -86,6 +86,34 @@ final class PluginCrudExecutionTest extends TestCase
         $class = new \ReflectionClass('app\\crudfixture\\controller\\ConsoleItemController');
         self::assertCount(1, $class->getAttributes(\support\annotation\Middleware::class));
         self::assertSame('/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
+    }
+
+    public function test_admin_crud_binds_generated_actions_to_manifest_permissions(): void
+    {
+        $data = $this->definition()->toArray();
+        $data['permission'] = ['enabled' => true];
+        $definition = CrudDefinition::fromArray($data);
+        $context = \app\common\crud\PluginTemplateContext::build($definition, 'crudfixture', true);
+        foreach (['modelContent', 'serviceContent', 'validateContent', 'controllerContent'] as $artifact) {
+            $path = $this->root . '/' . $artifact . '.php';
+            file_put_contents($path, $context[$artifact]);
+            require $path;
+        }
+        self::assertTrue(class_exists('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController'), '插件 CRUD 必须使用模块命名空间');
+        $class = new \ReflectionClass('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController');
+        self::assertSame('/admin/plugin/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
+        foreach (['index' => 'list', 'create' => 'create', 'update' => 'update', 'remove' => 'delete', 'recycle' => 'batch-delete'] as $method => $suffix) {
+            $attributes = $class->getMethod($method)->getAttributes(\app\common\plugin\sdk\PluginPermission::class);
+            self::assertCount(1, $attributes, $method);
+            self::assertSame('crudfixture:console-item:' . $suffix, $attributes[0]->newInstance()->code);
+        }
+        $definitions = (new \ReflectionMethod(\Webman\Route::class, 'buildAnnotationRouteDefinitions'))->invoke(null, [new \Webman\Finder\FileInfo($this->root . '/controllerContent.php', ['class' => $class->getName()])]);
+        self::assertContains('/admin/plugin/crudfixture/console-item/restore', array_column($definitions, 'path'));
+        $dispatcher = \FastRoute\simpleDispatcher(static function (\FastRoute\RouteCollector $collector) use ($definitions): void {
+            foreach ($definitions as $route) $collector->addRoute($route['methods'], $route['path'], $route['callback']);
+        });
+        self::assertSame('destroyMany', $dispatcher->dispatch('DELETE', '/admin/plugin/crudfixture/console-item/destroy')[1][1]);
+        self::assertSame('export', $dispatcher->dispatch('GET', '/admin/plugin/crudfixture/console-item/export')[1][1]);
     }
 
     public function test_both_scopes_generate_native_php_and_history_is_immutable(): void

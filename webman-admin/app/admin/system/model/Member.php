@@ -14,7 +14,7 @@
 namespace app\admin\system\model;
 
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\admin\system\model\MemberTag;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberLevel;
@@ -23,7 +23,7 @@ use app\admin\system\model\MemberTagRelation;
 use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
-class Member extends BackendModel {
+class Member extends BaseModel {
     protected $table = 'member';
 
 

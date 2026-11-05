@@ -245,7 +245,7 @@ final class MemberIntegrationTest extends TestCase
         Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
         Db::table('market_plugin')->insert(['id' => 5, 'code' => 'paid', 'name' => '付费插件']);
         Db::table('member')->insert(['id' => 91, 'username' => 'buyer', 'sex' => '0', 'level_id' => 1, 'status' => 1]);
-        $admin = new \app\admin\plugin\business\market\service\MarketAdminService();
+        $admin = new \app\admin\plugins\market\service\MarketAdminService();
         Db::schema()->create('market_payment_log', static function (\Illuminate\Database\Schema\Blueprint $table): void {
             $table->id(); $table->string('order_no'); $table->string('channel'); $table->string('event'); $table->boolean('verified'); $table->string('result'); $table->dateTime('created_at');
         });
@@ -268,7 +268,7 @@ final class MemberIntegrationTest extends TestCase
         Db::table('market_plugin')->insert([['id' => 1], ['id' => 2]]);
         Db::table('market_version')->insert([['plugin_id' => 1, 'status' => 'draft'], ['plugin_id' => 2, 'status' => 'published']]);
         Db::table('market_grant')->insert([['plugin_id' => 1], ['plugin_id' => 2]]);
-        $service = new \app\admin\plugin\business\market\service\MarketAdminService();
+        $service = new \app\admin\plugins\market\service\MarketAdminService();
         $service->deletePlugin(1);
         self::assertFalse(Db::table('market_plugin')->where('id', 1)->exists());
         self::assertFalse(Db::table('market_version')->where('plugin_id', 1)->exists());
@@ -311,7 +311,7 @@ final class MemberIntegrationTest extends TestCase
         self::assertFalse($service->authorize(91, 'visible', '1.0.0', '', $context)['authorized']);
         self::assertTrue($service->authorize(92, 'visible', '1.0.0', '', $context)['authorized']);
         self::assertFalse($service->authorize(92, 'visible', '1.0.0', '002', $context)['authorized']);
-        $admin = new \app\admin\plugin\business\market\service\MarketAdminService();
+        $admin = new \app\admin\plugins\market\service\MarketAdminService();
         self::assertSame(2, $admin->plugins('', 1, 20)['total']);
         self::assertSame(1, $admin->plugins('Visible', 1, 20)['total']);
         self::assertCount(1, $admin->versions(1));

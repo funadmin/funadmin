@@ -2,4 +2,8 @@
 /runtime/
 /.env
 /.phpunit.cache/
-/public/admin-web/
+/public/index.html
+/public/assets/
+/public/plugin-assets/
+/public/favicon.svg
+/plugins/

@@ -2,9 +2,9 @@
 
 namespace app\admin\authorization\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
-class CasbinRule extends BackendModel
+class CasbinRule extends BaseModel
 {
     protected $table = 'casbin_rule';
 

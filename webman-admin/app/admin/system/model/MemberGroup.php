@@ -14,10 +14,10 @@
 namespace app\admin\system\model;
 
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
-class MemberGroup extends BackendModel {
+class MemberGroup extends BaseModel {
     protected $table = 'member_group';
     protected $fillable = ['name', 'icon', 'status'];
 

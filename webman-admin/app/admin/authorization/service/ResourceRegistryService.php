@@ -74,6 +74,40 @@ class ResourceRegistryService extends AbstractService
         $this->clearApplicationCache();
     }
 
+    /** 同步生成目录，只撤销已移除的资源；保留未变权限的 ID、角色及字段授权。 */
+    public function pruneSource(string $sourceType, string $sourceName, array $permissionCodes, array $menus): void
+    {
+        $codes = array_map([PermissionResource::class, 'canonicalCode'], $permissionCodes);
+        $menuKeys = [];
+        foreach ($menus as $menu) {
+            $href = trim((string) ($menu['href'] ?? ''));
+            $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
+            $code = PermissionResource::canonicalCode((string) ($menu['permission'] ?? ''));
+            $menuKeys[$href . "\0" . $this->queryWithPermission((string) ($menu['query'] ?? ''), $code)] = true;
+        }
+        Db::transaction(function () use ($sourceType, $sourceName, $codes, $menuKeys): void {
+            $removed = Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->whereNotIn('code', $codes)->get();
+            $ids = [];
+            foreach ($removed as $permission) {
+                $ids[] = (int) $permission->id;
+                if ($permission->obj !== '' && $permission->act !== '') {
+                    CasbinRule::where('ptype', 'p')->where('v2', $permission->obj)->where('v3', $permission->act)->delete();
+                }
+            }
+            foreach (AdminMenu::where('source_type', $sourceType)->where('source_name', $sourceName)->get() as $menu) {
+                if (!isset($menuKeys[$menu->href . "\0" . $menu->query])) $menu->delete();
+            }
+            if ($ids !== []) {
+                AdminMenu::whereIn('permission_id', $ids)->delete();
+                Permission::whereIn('pid', $ids)->update(['pid' => 0]);
+                $this->removePermissionFields($ids);
+                Permission::whereIn('id', $ids)->delete();
+            }
+        });
+        CasbinService::instance()->reload();
+        $this->clearApplicationCache();
+    }
+
     public function removeApplication(string $appName): void
     {
         $appName = strtolower(trim($appName));

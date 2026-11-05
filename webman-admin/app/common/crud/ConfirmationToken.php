@@ -46,6 +46,7 @@ final class ConfirmationToken
                 'operation' => $file['operation'] ?? null,
             ], $plan['files'] ?? []),
         ];
+        if (array_key_exists('artifactRootsHash', $plan)) $source['artifactRootsHash'] = $plan['artifactRootsHash'];
         return hash('sha256', CrudDefinition::canonicalJson($source));
     }
 

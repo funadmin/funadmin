@@ -8,6 +8,7 @@ use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\service\storage\UploadService;
+use app\common\plugin\hook\Hook;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;
 use support\Response;
@@ -63,7 +64,7 @@ class AdminUpload extends AdminApiController
             return $this->fail(msg: '上传记录保存失败', code: 500);
         }
 
-        return $this->ok('上传成功', [
+        $data = [
             'url' => (string) $attach->path,
             'name' => (string) $attach->original_name,
             'size' => $fileSize,
@@ -72,6 +73,32 @@ class AdminUpload extends AdminApiController
             'driver' => (string) $attach->driver,
             'reused' => $existingAttach && (int) $existingAttach->id === (int) $attach->id,
             'uploadedAt' => time() * 1000,
-        ]);
+        ];
+        try {
+            $filtered = Hook::filter('upload.result', $data, ['attachmentId' => $attachId]);
+            if (!is_array($filtered)
+                || array_diff(array_keys($filtered), [...array_keys($data), 'extensions']) !== []) {
+                throw new \UnexpectedValueException('上传钩子返回结构不正确');
+            }
+            foreach ($data as $key => $value) {
+                if (!array_key_exists($key, $filtered) || $filtered[$key] !== $value) {
+                    throw new \UnexpectedValueException('上传钩子不能修改附件核心字段');
+                }
+            }
+            if (array_key_exists('extensions', $filtered)) {
+                if (!is_array($filtered['extensions'])) {
+                    throw new \UnexpectedValueException('上传钩子扩展数据必须为对象');
+                }
+                foreach (array_keys($filtered['extensions']) as $code) {
+                    if (!is_string($code) || preg_match('/^[a-z][a-z0-9]*$/D', $code) !== 1) {
+                        throw new \UnexpectedValueException('上传钩子扩展数据必须使用插件标识');
+                    }
+                }
+            }
+            json_encode($filtered, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return $this->fail(msg: '上传已保存，扩展处理失败，请稍后重试', code: 422);
+        }
+        return $this->ok('上传成功', $filtered);
     }
 }

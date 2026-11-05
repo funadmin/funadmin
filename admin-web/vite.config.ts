@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
   const apiProxyPattern = `^${apiBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$|\\?)`;
 
   return {
-    base: env.VITE_APP_BASE || '/admin-web/',
+    base: env.VITE_APP_BASE || '/',
     // 显式纳入 main.ts 里手动引入的 EP 样式子路径，减少 dev 下预构建哈希漂移导致的
     // 「504 Outdated Optimize Dep」（浏览器还请求旧的 /node_modules/.vite/deps/*.js）
     optimizeDeps: {
@@ -65,6 +65,10 @@ export default defineConfig(({ mode }) => {
               changeOrigin: true,
               ws: true
             },
+            '^/plugins/hooks/frontend(?:[?]|$)': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
+            },
             '^/install(?:/|$)': {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true
@@ -75,6 +79,10 @@ export default defineConfig(({ mode }) => {
             },
             // 上传接口返回后端相对路径 /storage/...，开发环境需代理到后端才能显示头像等文件
             '^/storage(?:/|$)': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
+            },
+            '^/plugin-assets(?:/|$)': {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true
             }
@@ -112,8 +120,9 @@ export default defineConfig(({ mode }) => {
         })
     ].filter(Boolean),
     build: {
-      outDir: '../public/admin-web',
-      emptyOutDir: true,
+      outDir: mode === 'webman' ? '../webman-admin/public' : 'dist',
+      // Webman public 同时存放安装锁、上传文件和插件资源，不能清空整个目录。
+      emptyOutDir: mode !== 'webman',
       target: 'es2015',
       sourcemap: env.VITE_APP_BUILD_SOURCEMAP === 'true',
       chunkSizeWarningLimit: 2000,

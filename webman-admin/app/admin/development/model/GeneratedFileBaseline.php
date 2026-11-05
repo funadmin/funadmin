@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace app\admin\development\model;
 
 use app\common\model\concern\LaravelSoftDelete;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /**
  * 生成文件的可靠 Base 内容基线。
  */
-final class GeneratedFileBaseline extends BackendModel
+final class GeneratedFileBaseline extends BaseModel
 {
     use LaravelSoftDelete;
 

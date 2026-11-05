@@ -59,7 +59,7 @@ final class BusinessModuleService
         }
         if ($status !== '') $query->where('lifecycle_status', $status);
         if ($origin !== '') $query->where('origin', $origin);
-        $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        $result = $query->paginate($pageSize, ['*'], 'page', $page);
         $list = array_map(static function ($module): array {
             $row = $module->toArray();
             // 前端契约（BusinessModule.id/form_id）为 number；MySQL 驱动返回字符串，必须显式转换。
@@ -137,7 +137,7 @@ final class BusinessModuleService
         $query = CrudGeneration::query()->orderBy('id', 'desc');
         if ($moduleId > 0) $query->where('business_module_id', $moduleId);
         if ($status !== '') $query->where('status', $status);
-        $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        $result = $query->paginate($pageSize, ['*'], 'page', $page);
         return ['list' => array_map([$this, 'sanitizeGeneration'], $result->items()), 'total' => $result->total(), 'page' => $page, 'pageSize' => $pageSize];
     }
 

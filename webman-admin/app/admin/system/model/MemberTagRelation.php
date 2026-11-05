@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace app\admin\system\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
-class MemberTagRelation extends BackendModel
+class MemberTagRelation extends BaseModel
 {
     protected $table = 'member_tag_relation';
 

@@ -174,7 +174,7 @@ final class AdminHttpFoundationTest extends TestCase
             ['market', 'OrderController', 'update'],
             ['example', 'Index', 'index'],
         ] as [$plugin, $controller, $action]) {
-            $request->controller = 'app\\admin\\plugin\\business\\' . $plugin . '\\controller\\' . $controller;
+            $request->controller = 'app\\admin\\plugins\\' . $plugin . '\\controller\\' . $controller;
             $request->action = $action;
             self::assertSame(
                 PermissionResource::fromParts('admin', 'plugin.' . $plugin . '.' . $controller, $action),

@@ -13,10 +13,6 @@ describe('Webman 独立迁移模式', () => {
     expect(read('package.json')).toContain('vite --mode webman');
   });
 
-  it('Webman 插件启动仍有独立开关', () => {
-    expect(read('src/admin/router/pluginStartup.ts')).toContain('isWebmanBackend');
-  });
-
   it('移除四合一原型页面和 API，保留正式系统管理页面', () => {
     for (const path of ['src/admin/views/webman/management.vue', 'src/admin/api/webman/management.ts']) {
       expect(existsSync(resolve(process.cwd(), path))).toBe(false);

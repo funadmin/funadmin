@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Component } from 'vue';
 import type { RouteRecordNormalized, Router } from 'vue-router';
 import Layout from '@/layout/index.vue';
+import type { EnabledPluginModule } from '@/api/system/plugin';
 import {
   clearPluginModules,
-  syncPluginModules,
-  type EnabledPluginModule
+  syncPluginModules
 } from '@/router/pluginModules';
 
 const descriptor = (code: string): EnabledPluginModule => ({
@@ -38,6 +38,7 @@ describe('pluginModules', () => {
 
     expect(result.loaded).toEqual(['example']);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
+      path: '/admin/plugin/example/index',
       name: 'Plugin_example_Layout',
       component: Layout,
       children: [expect.objectContaining({ path: '', name: 'Plugin_example', component: expect.any(Object) })]
@@ -45,8 +46,8 @@ describe('pluginModules', () => {
   });
 
   it('移除菜单为同路径生成的空壳布局路由，保留显式配置页面的菜单', async () => {
-    const placeholder = { path: '/plugin/example/index', name: 'Menu_60', children: [], components: { default: Layout } };
-    const configured = { path: '/plugin/other/index', name: 'Menu_61', children: [{ path: '' }], components: { default: Layout } };
+    const placeholder = { path: '/admin/plugin/example/index', name: 'Menu_60', children: [], components: { default: Layout } };
+    const configured = { path: '/admin/plugin/other/index', name: 'Menu_61', children: [{ path: '' }], components: { default: Layout } };
     const router = routerStub([placeholder, configured] as Array<Partial<RouteRecordNormalized>>);
     const other = descriptor('other');
     await syncPluginModules(router, [descriptor('example'), other], { modules: modules(['example', 'other']) });

@@ -200,7 +200,7 @@ final class DevPluginService
             }
             $data = $manifest->toArray();
             $application = is_dir($directory . '/app/' . $manifest->code());
-            $console = is_dir($directory . '/app/admin');
+            $console = is_dir($directory . '/app/admin/plugins/' . $manifest->code());
             $scopes = [];
             if ($application) {
                 $scopes[] = 'application';

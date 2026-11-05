@@ -173,16 +173,23 @@ final class InstallTest extends TestCase
 
     #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
-    public function test_admin_web_directory_serves_the_spa_document(): void
+    public function test_public_root_serves_the_spa_document(): void
     {
         \Webman\Route::load([config_path()]);
-        foreach (['/admin-web', '/admin-web/'] as $path) {
+        foreach (['/'] as $path) {
             $routes = array_values(array_filter(\Webman\Route::getRoutes(), static fn ($route): bool => $route->getPath() === $path));
-            self::assertCount(1, $routes, '后台目录入口必须有显式路由：' . $path);
+            self::assertCount(1, $routes, '网站根目录必须有显式路由：' . $path);
             $response = ($routes[0]->getCallback())(new Request("GET $path HTTP/1.1\r\n\r\n"));
             self::assertSame(200, $response->getStatusCode());
             self::assertStringContainsString('no-cache', (string) $response);
         }
+    }
+
+    public function test_installer_redirects_to_the_frontend_at_the_public_root(): void
+    {
+        $response = (new Index())->index(new Request("GET /install/index HTTP/1.1\r\n\r\n"));
+        $page = is_file(public_path('install.lock')) ? 'login' : 'install';
+        self::assertSame('/#/admin/' . $page, $response->getHeader('Location'));
     }
 
     public function test_environment_and_csrf_rejection_do_not_require_a_database(): void

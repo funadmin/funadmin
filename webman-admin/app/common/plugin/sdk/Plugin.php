@@ -47,7 +47,6 @@ abstract class Plugin
     /**
      * 插件构造函数
      * Plugin constructor.
-     * @param \think\App $app
      */
     public function __construct()
     {
@@ -92,7 +91,6 @@ abstract class Plugin
      * @param string $template
      * @param array $vars           模板文件名
      * @return void
-     * @throws \think\Exception
      */
     protected function fetch(string $template = '', array $vars = []): string
     {

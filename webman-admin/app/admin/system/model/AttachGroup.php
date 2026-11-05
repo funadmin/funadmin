@@ -15,10 +15,10 @@
 namespace app\admin\system\model;
 
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
-class AttachGroup extends BackendModel
+class AttachGroup extends BaseModel
 {
     protected $table = 'attach_group';
 

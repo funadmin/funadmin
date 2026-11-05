@@ -1529,7 +1529,7 @@ export default {
     adminEmail: 'Admin Email',
     devMode: 'Development Mode',
     prodMode: 'Production Mode',
-    entryTip: 'Admin entry is fixed at /admin-web/; disable development mode in production.',
+    entryTip: 'Admin login URL: {url}; disable development mode in production.',
     prev: 'Previous',
     next: 'Next',
     installNow: 'Install Now',

@@ -54,13 +54,13 @@
             <el-form-item :label="t('install.confirmPassword', '确认密码')" required><el-input v-model="form.rePassword" type="password" show-password autocomplete="new-password" /></el-form-item>
           </div>
           <el-switch v-model="form.appDebug" :active-text="t('install.devMode', '开发模式')" :inactive-text="t('install.prodMode', '生产模式')" />
-          <p class="tip">{{ t('install.entryTip', '后台入口固定为 /admin-web/，生产环境建议关闭开发模式。') }}</p>
+          <p class="tip">{{ t('install.entryTip', { url: adminLoginUrl }, '后台登录地址：{url}，生产环境建议关闭开发模式。') }}</p>
         </el-form>
 
         <template v-else>
           <el-result icon="success" :title="t('install.successTitle', '安装成功')" :sub-title="t('install.successSub', 'FunAdmin 已完成初始化，可以进入后台登录。')">
             <template #extra>
-              <div class="result-info"><p>{{ t('install.resultAdmin', '管理员账号：') }}<strong>{{ result?.username }}</strong></p><p>{{ t('install.resultUrl', '后台地址：') }}<strong>/admin-web/</strong></p></div>
+              <div class="result-info"><p>{{ t('install.resultAdmin', '管理员账号：') }}<strong>{{ result?.username }}</strong></p><p>{{ t('install.resultUrl', '后台地址：') }}<strong>{{ adminLoginUrl }}</strong></p></div>
               <el-button type="primary" size="large" @click="enterAdmin">{{ t('install.enterAdmin', '进入后台') }}</el-button>
             </template>
           </el-result>
@@ -86,6 +86,7 @@ import { installApi, type InstallResult } from '@/api/install';
 import { canContinueInstallation, validateInstallForm, type EnvironmentCheck, type InstallForm } from './install';
 
 const { t } = useI18n();
+const adminLoginUrl = `${import.meta.env.BASE_URL}#${ADMIN_LOGIN_PATH}`;
 
 const active = ref(0);
 const agreed = ref(false);
@@ -103,7 +104,7 @@ const loadEnvironment = async () => {
   environmentChecks.value = [];
   try {
     const data = await installApi.environment();
-    if (data.installed) return location.replace(`/admin-web/#${ADMIN_LOGIN_PATH}`);
+    if (data.installed) return location.replace(adminLoginUrl);
     siteName.value = data.siteName;
     siteVersion.value = data.siteVersion;
     environmentChecks.value = data.checks;
@@ -138,7 +139,7 @@ const submitInstall = async () => {
 
 const enterAdmin = async () => {
   try { await installApi.finish(); } catch {}
-  location.href = `/admin-web/#${ADMIN_LOGIN_PATH}`;
+  location.href = adminLoginUrl;
 };
 
 onMounted(loadEnvironment);

@@ -31,8 +31,8 @@ final class PluginCrudTarget
         }
         if (in_array($scope, ['admin', 'both'], true)) {
             $context = PluginTemplateContext::build($definition, $plugin, true);
-            $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/admin", $class);
-            $base = "plugins/{$plugin}/admin-web/{$entity}";
+            $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/admin/plugins/{$plugin}", $class);
+            $base = "plugins/{$plugin}/admin-web/src/admin/modules/{$plugin}/{$entity}";
             foreach (['api' => 'api.ts', 'view' => 'index.vue', 'form' => "components/{$class}Form.vue", 'detail' => "components/{$class}Detail.vue"] as $type => $path) {
                 $files["{$base}/{$path}"] = $this->render($renderer, $templates, $type, $context);
             }

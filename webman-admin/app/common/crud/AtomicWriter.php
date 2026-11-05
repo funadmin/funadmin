@@ -59,6 +59,7 @@ final class AtomicWriter
             throw new RuntimeException('生成计划文件列表不合法');
         }
         $plannedPaths = array_column($files, 'path');
+        ArtifactPaths::assertRoots($this->projectRoot, $plannedPaths, $plan['artifactRootsHash'] ?? null);
         $unknownAllowed = array_diff(array_keys($allowed), $plannedPaths);
         if ($unknownAllowed !== []) {
             throw new RuntimeException('allowOverwrite 包含计划外路径：' . implode(', ', $unknownAllowed));
@@ -82,7 +83,7 @@ final class AtomicWriter
                 if (($file['status'] ?? '') === 'unchanged') {
                     continue;
                 }
-                $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+                $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
                 $stage = PathGuard::resolve($staged, (string) $file['path'], '临时目录');
                 $backupFile = PathGuard::resolve($backup, (string) $file['path'], '临时目录');
                 $this->ensureDirectory(dirname($stage));
@@ -93,7 +94,7 @@ final class AtomicWriter
                 if ($this->beforeReplace !== null) {
                     ($this->beforeReplace)($file);
                 }
-                $target = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+                $target = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
                 $this->assertCurrentTarget($target, $file);
                 $previousHash = isset($file['previousHash']) && is_string($file['previousHash'])
                     ? $file['previousHash']
@@ -127,7 +128,7 @@ final class AtomicWriter
                 if (!isset($commit['hash']) || !hash_equals((string) $file['hash'], (string) $commit['hash'])) {
                     throw new RuntimeException('安全提交 helper 返回 hash 不匹配');
                 }
-                $verifiedTarget = PathGuard::resolve($this->projectRoot, (string) $file['path'], '项目目录');
+                $verifiedTarget = ArtifactPaths::resolve($this->projectRoot, (string) $file['path'], '项目目录');
                 if ($verifiedTarget !== $target
                     || !is_file($verifiedTarget)
                     || !hash_equals((string) $file['hash'], (string) hash_file('sha256', $verifiedTarget))) {
@@ -170,7 +171,7 @@ final class AtomicWriter
     private function preflight(array $files, array $allowed): void
     {
         foreach ($files as $file) {
-            $target = PathGuard::resolve($this->projectRoot, (string) ($file['path'] ?? ''), '项目目录');
+            $target = ArtifactPaths::resolve($this->projectRoot, (string) ($file['path'] ?? ''), '项目目录');
             $this->assertCurrentTarget($target, $file);
             if (($file['status'] ?? '') === 'blocked') {
                 throw new RuntimeException('目标路径被非文件对象阻塞：' . $file['path']);
@@ -210,7 +211,7 @@ final class AtomicWriter
             if (!is_array($precondition) || ($precondition['type'] ?? '') !== 'plugin-migration-sequence') {
                 throw new RuntimeException('生成计划包含未知前置条件');
             }
-            $directory = PathGuard::resolve($this->projectRoot, (string) ($precondition['path'] ?? ''), '项目目录');
+            $directory = ArtifactPaths::resolve($this->projectRoot, (string) ($precondition['path'] ?? ''), '项目目录');
             $state = [];
             foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
                 $name = basename($file);
@@ -293,12 +294,12 @@ final class AtomicWriter
         }
         $missing = [];
         $cursor = $directory;
-        $root = rtrim($this->projectRoot, DIRECTORY_SEPARATOR);
+        $root = ArtifactPaths::commitRoot($this->projectRoot);
         while ($cursor !== $root && !file_exists($cursor) && !is_link($cursor)) {
             $missing[] = $cursor;
             $cursor = dirname($cursor);
         }
-        PathGuard::relative($this->projectRoot, $directory . DIRECTORY_SEPARATOR . '.guard');
+        ArtifactPaths::relative($this->projectRoot, $directory . DIRECTORY_SEPARATOR . '.guard');
         $this->ensureDirectory($directory);
         foreach (array_reverse($missing) as $created) {
             $createdDirectories[] = $created;

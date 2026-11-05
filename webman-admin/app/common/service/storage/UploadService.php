@@ -6,6 +6,7 @@ use app\common\model\Attach as AttachModel;
 use app\common\storage\StorageDriverRegistry;
 use InvalidArgumentException as Exception;
 use Webman\Event\Event;
+use app\common\plugin\hook\Hook;
 use support\Container;
 use Webman\Http\UploadFile as UploadedFile;
 
@@ -293,6 +294,7 @@ class UploadService extends AbstractService
         ];
         $storageDriver = $this->storageDrivers->resolve($this->driver);
         $attach = AttachModel::where('driver', $storageDriver->name())->where('md5', $metadata['md5'])->first();
+        $reused = $attach !== null;
         if(!$attach) {
             $storedFile = $storageDriver->store($this->file, $saveFilePath, $this->rule);
             $path = $storedFile->url;
@@ -333,6 +335,22 @@ class UploadService extends AbstractService
             }
         }
         Event::dispatch('afterUploadFile', $this->file, true);
+        Hook::action('upload.completed', [
+            'id' => (int) $attach->id,
+            'admin_id' => $admin_id,
+            'member_id' => $uid,
+            'group_id' => (int) $attach->group_id,
+            'name' => (string) $attach->name,
+            'original_name' => (string) $attach->original_name,
+            'path' => (string) $attach->path,
+            'storage_key' => (string) $attach->storage_key,
+            'driver' => (string) $attach->driver,
+            'ext' => (string) $attach->ext,
+            'mime' => (string) $attach->mime,
+            'size' => (int) $attach->size,
+            'created' => !$reused,
+            'reused' => $reused,
+        ]);
         return $attach;
 
     }

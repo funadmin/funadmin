@@ -1,3 +1,4 @@
+import { hooks } from '@/shared/plugins/hooks/runtime';
 import type { MemberAccount, MemberTokenResult } from '@/web/api/memberAuth';
 
 const ACCESS_KEY = 'WEB_MEMBER_ACCESS_TOKEN';
@@ -25,14 +26,18 @@ export const memberSession = {
   account: (): MemberAccount | null => read<MemberAccount>(ACCOUNT_KEY),
   authenticated: (): boolean => Boolean(read<string>(ACCESS_KEY)),
   save: (result: Pick<MemberTokenResult, 'access_token' | 'refresh_token' | 'account'>): void => {
+    hooks.clear();
     write(ACCESS_KEY, result.access_token);
     write(REFRESH_KEY, result.refresh_token);
     write(ACCOUNT_KEY, result.account);
+    window.dispatchEvent(new Event('plugin-hooks-session'));
   },
   updateAccount: (account: MemberAccount): void => write(ACCOUNT_KEY, account),
   clear: (): void => {
+    hooks.clear();
     browserStorage.removeItem(ACCESS_KEY);
     browserStorage.removeItem(REFRESH_KEY);
     browserStorage.removeItem(ACCOUNT_KEY);
+    window.dispatchEvent(new Event('plugin-hooks-session'));
   }
 };

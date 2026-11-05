@@ -17,7 +17,13 @@ class Service implements \Webman\Bootstrap
     public function register(): void
     {
         $container = \support\Container::instance();
-        $container->addDefinitions(['plugins' => static fn () => new self()]);
+        $container->addDefinitions([
+            'plugins' => static fn () => new self(),
+            \app\common\plugin\hook\HookRuntime::class => static fn () => new \app\common\plugin\hook\HookRuntime(
+                new PluginActivationReader(base_path('runtime/plugins/activation'), true),
+                base_path('plugins')
+            ),
+        ]);
         $this->plugins_path = $this->getPluginsPath();
     }
 

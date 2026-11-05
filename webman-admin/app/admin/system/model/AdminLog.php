@@ -11,12 +11,12 @@
  * Date: 2017/8/2
  */
 namespace app\admin\system\model;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\admin\authorization\service\DataScopeService;
 use app\common\traits\DataFormat;
 use app\common\model\concern\LaravelSoftDelete;
 
-class AdminLog extends BackendModel
+class AdminLog extends BaseModel
 {
     protected $table = 'admin_log';
 

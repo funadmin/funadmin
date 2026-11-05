@@ -111,10 +111,16 @@ final class Manifest
         if (!in_array('Plugin', self::declaredClasses($source), true)) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
         }
+        foreach (['resources/public', 'migrations'] as $oldPath) {
+            if (file_exists($directory . '/' . $oldPath)) {
+                throw new RuntimeException('插件包含已移除的旧目录：' . $oldPath);
+            }
+        }
         self::validateApplications($directory, (string) $data['code']);
         self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);
+        HookManifest::validate($directory, $data);
         self::validateFormComponents($data);
-        self::validateResourceSources($directory, $data['resources'] ?? []);
+        self::validateResourceSources($directory, $data['resources'] ?? [], (string) $data['code']);
         if (isset($data['migrations']['path'])) {
             $migrationDirectory = self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
             self::validateMigrationNames($migrationDirectory);
@@ -143,10 +149,18 @@ final class Manifest
 
     private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
     {
+        if (is_dir($directory . '/admin-web')) {
+            foreach (['admin-web' => ['src'], 'admin-web/src' => ['admin'], 'admin-web/src/admin' => ['modules'], 'admin-web/src/admin/modules' => [$data['code']]] as $path => $allowed) {
+                self::validateDirectoryChildren($directory . '/' . $path, $allowed);
+            }
+        }
         if ($adminWeb === null) {
             return;
         }
         $source = (string) ($adminWeb['source'] ?? '');
+        if ($source !== 'admin-web/src/admin/modules/' . $data['code']) {
+            throw new RuntimeException('adminWeb.source 必须使用统一目录 admin-web/src/admin/modules/' . $data['code']);
+        }
         $sourceRoot = self::existingRelativeDirectory($directory, $source, 'adminWeb.source');
         $declaredComponents = [];
         foreach ((array) ($adminWeb['components'] ?? []) as $component => $file) {
@@ -223,6 +237,7 @@ final class Manifest
         }
         $application = $appRoot . DIRECTORY_SEPARATOR . $code;
         $admin = $appRoot . DIRECTORY_SEPARATOR . 'admin';
+        self::validateDirectoryChildren($appRoot, [$code, 'admin']);
         if (!is_dir($application) && !is_dir($admin)) {
             throw new RuntimeException('插件 app 目录必须包含 app/' . $code . ' 或 app/admin');
         }
@@ -230,8 +245,25 @@ final class Manifest
             self::validatePhpNamespaces($application, 'app\\' . $code . '\\');
         }
         if (is_dir($admin)) {
-            self::validateConsoleNamespaces($admin, $code);
-            self::validateConsoleGroups($admin, $code);
+            self::validateDirectoryChildren($admin, ['plugins']);
+            self::validateDirectoryChildren($admin . '/plugins', [$code]);
+            $module = $admin . '/plugins/' . $code;
+            self::validateDirectoryChildren($module, ['controller', 'model', 'service', 'validate', 'middleware']);
+            self::validateConsoleNamespaces($module, $code);
+            self::validateConsoleGroups($module, $code);
+        }
+    }
+
+    private static function validateDirectoryChildren(string $directory, array $allowed): void
+    {
+        if (!is_dir($directory)) {
+            throw new RuntimeException('插件必须使用统一项目目录：' . $directory);
+        }
+        foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $item) {
+            if ($item->isFile() && $item->getFilename() === '.DS_Store') continue;
+            if (!$item->isDir() || !in_array($item->getFilename(), $allowed, true)) {
+                throw new RuntimeException('插件目录不符合统一项目结构：' . $item->getPathname());
+            }
         }
     }
 
@@ -243,7 +275,8 @@ final class Manifest
             if ($namespaces === [] && self::isApplicationConfigurationFile($directory, $file, $source)) {
                 continue;
             }
-            if (count($namespaces) !== 1 || !str_starts_with($namespaces[0], $expectedPrefix)) {
+            $expectedNamespace = rtrim($expectedPrefix, '\\');
+            if (count($namespaces) !== 1 || ($namespaces[0] !== $expectedNamespace && !str_starts_with($namespaces[0], $expectedNamespace . '\\'))) {
                 throw new RuntimeException('插件 PHP namespace 必须以 ' . $expectedPrefix . ' 开头：' . $file);
             }
         }
@@ -262,7 +295,7 @@ final class Manifest
         foreach (['controller', 'model', 'service', 'validate', 'middleware'] as $layer) {
             $directory = $console . DIRECTORY_SEPARATOR . $layer;
             if (is_dir($directory)) {
-                self::validatePhpNamespaces($directory, 'app\\admin\\' . $layer . '\\plugin\\' . $code);
+                self::validatePhpNamespaces($directory, 'app\\admin\\plugins\\' . $code . '\\' . $layer . '\\');
             }
         }
     }
@@ -279,10 +312,10 @@ final class Manifest
                 static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(/', $attribute) === 1
             ));
             if (count($groups) !== 1 || preg_match(
-                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/?plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/admin\/plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
                 $groups[0]
             ) !== 1) {
-                throw new RuntimeException('Console Attribute Group 必须使用 plugin/' . $code . ' 前缀：' . $file);
+                throw new RuntimeException('Console Attribute Group 必须使用 /admin/plugin/' . $code . ' 前缀：' . $file);
             }
         }
     }
@@ -454,9 +487,13 @@ final class Manifest
         return false;
     }
 
-    private static function validateResourceSources(string $directory, array $resources): void
+    private static function validateResourceSources(string $directory, array $resources, string $code): void
     {
         foreach ($resources as $resource) {
+            if ($resource['source'] !== 'public/' . $resource['target']
+                || !str_starts_with($resource['target'], 'plugin-assets/' . $code . '/')) {
+                throw new RuntimeException('插件公开资源必须使用统一目录 public/plugin-assets/' . $code . '/');
+            }
             self::existingRelativeDirectory($directory, (string) $resource['source'], 'resources.source');
         }
     }

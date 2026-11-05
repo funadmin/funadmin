@@ -1,5 +1,7 @@
 # Webman 插件适配
 
+> 目录部分已由 `2026-11-05-plugin-layout-design.md` 取代。当前规范见 `docs/plugins.md`，不再保留简写目录及旧发布记录兼容。
+
 用户已确认按插件适配检查结果实施。保留 Manifest v2、生命周期、签名包、资源归属、恢复日志和显式数据清理。
 
 采用现有 Webman 模块结构：后台源码发布到 `app/admin/plugin/business/{code}/{layer}`，命名空间与目录一致；后台 API 为 `/admin/plugin/{code}/…`，独立应用为 `/{code}/…`。插件源包仍使用 `app/admin/{layer}`。声明权限通过插件中间件校验，不再让生成插件走核心控制器权限推导。启停守卫使用 Webman `process()` 并接入全局配置。

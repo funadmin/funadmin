@@ -2,6 +2,7 @@ import type { Component } from 'vue';
 import type { RouteRecordRaw, Router } from 'vue-router';
 import type { EnabledPluginModule, PluginRouteDto } from '@/api/system/plugin';
 import Layout from '@/layout/index.vue';
+import { adminRoutePath } from '@/utils/route';
 
 export type PluginModuleErrorStage = 'component' | 'route';
 
@@ -40,6 +41,7 @@ export async function syncPluginModules(
     }
 
     let stage: PluginModuleErrorStage = 'component';
+    const addedRouteNames: string[] = [];
     try {
       previous?.routeNames.forEach((routeName) => {
         if (router.hasRoute(routeName)) router.removeRoute(routeName);
@@ -50,10 +52,12 @@ export async function syncPluginModules(
       routes.forEach((route) => {
         removeMenuPlaceholder(router, route.path);
         router.addRoute(route);
+        addedRouteNames.push(String(route.name));
       });
       mounted.set(descriptor.code, { signature, routeNames: routes.map((route) => String(route.name)) });
       loaded.push(descriptor.code);
     } catch (error) {
+      addedRouteNames.forEach(name => router.removeRoute(name));
       const message = error instanceof Error ? error.message : String(error);
       mountErrorRoute(router, descriptor, stage, message);
       errors.push({ code: descriptor.code, stage, message });
@@ -85,7 +89,7 @@ function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage:
   const name = `Plugin_${descriptor.code}_Error`;
   if (router.hasRoute(name)) router.removeRoute(name);
   router.addRoute({
-    path: `/plugin/${descriptor.code}/error`,
+    path: adminRoutePath(`/plugin/${descriptor.code}/error`),
     name,
     component: PluginModuleError,
     props: { plugin: descriptor.code, stage, message },
@@ -95,18 +99,18 @@ function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage:
 }
 
 function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginCode: string): RouteRecordRaw {
-  if (!dto.path.startsWith(`/plugin/${pluginCode}/`) || !dto.name.startsWith(`Plugin_${pluginCode}`)) {
+  if (!dto.path.startsWith(`/plugin/${pluginCode}/`) || !(dto.name === `Plugin_${pluginCode}` || dto.name.startsWith(`Plugin_${pluginCode}_`))) {
     throw new Error('插件路由 DTO 越界');
   }
   const component = components[dto.component];
   if (!component) throw new Error(`插件组件未注册：${dto.component}`);
   // 与核心单页菜单一致：外层主布局 + 空路径子页面，插件页才会出现在侧栏/标签布局内。
   return {
-    path: dto.path,
+    path: adminRoutePath(dto.path),
     name: `${dto.name}_Layout`,
     component: Layout,
     meta: { ...dto.meta, menuKey: dto.name },
-    children: [{ path: '', name: dto.name, component, meta: { ...dto.meta, activeMenu: dto.path } }]
+    children: [{ path: '', name: dto.name, component, meta: { ...dto.meta, activeMenu: adminRoutePath(dto.path) } }]
   } as RouteRecordRaw;
 }
 

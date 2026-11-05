@@ -160,7 +160,55 @@ final class PluginAppPublicationService
         if (!is_array($journal) || ($journal['token'] ?? '') !== $token) {
             throw new RuntimeException('publication journal 内容无效：' . $token);
         }
+        $this->assertJournalLayout($journal);
         return $journal;
+    }
+
+    private function assertJournalLayout(array $journal): void
+    {
+        $code = (string) ($journal['plugin'] ?? '');
+        $this->assertPluginCode($code);
+        foreach ((array) ($journal['units'] ?? []) as $unit) {
+            $name = (string) ($unit['unit'] ?? '');
+            $target = $this->unitTarget($name, $code);
+            $temp = dirname($target) . '/.publication-' . $journal['token'] . '-' . $this->unitSlug($name);
+            $backup = $this->backupPath($journal['token'], $target);
+            if (($unit['manual_materialized'] ?? false) === true) {
+                $durable = $this->runtimeDirectory() . '/publication-recovery/' . $journal['token'] . '/' . $this->unitSlug($name);
+                if (($unit['previous_backup'] ?? '') !== $backup || ($unit['recovery_backup'] ?? '') !== $durable) {
+                    throw new RuntimeException('publication journal 持久恢复目录无效：' . $name);
+                }
+                $backup = $durable;
+            }
+            if (($unit['target'] ?? '') !== $target || ($unit['temp'] ?? '') !== $temp
+                || ($unit['backup'] ?? '') !== $backup) {
+                throw new RuntimeException('publication journal 必须使用统一目录：' . $name);
+            }
+        }
+        foreach ((array) ($journal['registry_before'] ?? []) as $record) {
+            $root = $this->unitTarget((string) ($record['publication_unit'] ?? ''), $code);
+            if (($record['plugin_code'] ?? '') !== $code
+                || !str_starts_with($this->registryTarget((string) ($record['target_path'] ?? '')), $root . '/')) {
+                throw new RuntimeException('publication journal registry 归属或目录无效');
+            }
+        }
+        $context = (array) ($journal['recovery_context'] ?? []);
+        foreach ([(array) ($context['file_plan'] ?? []), ['snapshot' => (array) ($context['file_snapshot'] ?? [])]] as $plan) {
+            $snapshot = (array) ($plan['snapshot'] ?? []);
+            $targets = array_merge((array) ($plan['planned_targets'] ?? []), (array) ($plan['deletes'] ?? []),
+                (array) ($snapshot['touched_targets'] ?? []), array_keys((array) ($snapshot['files'] ?? [])));
+            foreach (['writes', 'registry_next', 'artifacts'] as $key) {
+                foreach ((array) ($plan[$key] ?? []) as $item) if (isset($item['target_path'])) $targets[] = $item['target_path'];
+            }
+            foreach ((array) ($snapshot['records'] ?? []) as $record) $targets[] = $record['target_path'] ?? '';
+            foreach ($targets as $path) {
+                if (!is_string($path) || (!str_starts_with($path, 'admin-web:src/admin/modules/' . $code . '/')
+                    && !str_starts_with($path, 'public:plugin-assets/' . $code . '/'))
+                    || str_contains($path, '\\') || preg_match('~(?:^|/)\.\.?(?:/|$)~', $path)) {
+                    throw new RuntimeException('publication journal 文件资源必须使用统一目录');
+                }
+            }
+        }
     }
 
     public function stale(?string $pluginCode = null): array
@@ -621,6 +669,7 @@ final class PluginAppPublicationService
         }
         $allowedRoot = [$manifest->code() => true, 'admin' => true];
         foreach ($this->directoryEntries($appSource) as $entry) {
+            if (is_file($entry) && basename($entry) === '.DS_Store') continue;
             if (is_link($entry)) {
                 throw new RuntimeException('原生 App 源目录禁止符号链接：' . $entry);
             }
@@ -637,9 +686,10 @@ final class PluginAppPublicationService
                 'target' => $this->appDirectory() . DIRECTORY_SEPARATOR . $manifest->code(),
             ];
         }
-        $console = $appSource . DIRECTORY_SEPARATOR . 'admin';
+        $console = $appSource . '/admin/plugins/' . $manifest->code();
         if (is_dir($console)) {
             foreach ($this->directoryEntries($console) as $entry) {
+                if (is_file($entry) && basename($entry) === '.DS_Store') continue;
                 if (is_link($entry)) {
                     throw new RuntimeException('原生 App 源目录禁止符号链接：' . $entry);
                 }
@@ -651,10 +701,10 @@ final class PluginAppPublicationService
                     throw new RuntimeException('未知 Console layer：' . $layer);
                 }
                 $this->assertSafeSourceTree($entry, $appSource);
-                $units['admin-plugin:' . $layer . ':' . $manifest->code()] = [
+                $unit = 'admin-plugins:' . $layer . ':' . $manifest->code();
+                $units[$unit] = [
                     'source' => $entry,
-                    'target' => $this->appDirectory() . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR
-                        . $layer . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . $manifest->code(),
+                    'target' => $this->unitTarget($unit, $manifest->code()),
                 ];
             }
         }
@@ -874,6 +924,7 @@ final class PluginAppPublicationService
             RecursiveIteratorIterator::SELF_FIRST
         );
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 throw new RuntimeException('原生 App 目录禁止符号链接：' . $item->getPathname());
             }
@@ -895,6 +946,7 @@ final class PluginAppPublicationService
             RecursiveIteratorIterator::SELF_FIRST
         );
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 throw new RuntimeException('原生 App 目录禁止符号链接：' . $item->getPathname());
             }
@@ -921,6 +973,7 @@ final class PluginAppPublicationService
         $files = [];
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 throw new RuntimeException('原生 App 目录禁止符号链接：' . $item->getPathname());
             }
@@ -947,10 +1000,9 @@ final class PluginAppPublicationService
         if ($unit === 'application:' . $pluginCode) {
             return $this->appDirectory() . DIRECTORY_SEPARATOR . $pluginCode;
         }
-        if (preg_match('/^admin-plugin:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
+        if (preg_match('/^admin-plugins:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
             && in_array($match[1], self::CONSOLE_LAYERS, true)) {
-            return $this->appDirectory() . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . $match[1]
-                . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . $pluginCode;
+            return $this->appDirectory() . '/admin/plugins/' . $pluginCode . '/' . $match[1];
         }
         throw new RuntimeException('registry publication unit 非法：' . $unit);
     }
@@ -961,8 +1013,8 @@ final class PluginAppPublicationService
         if ($parts[0] === 'application' && count($parts) === 2) {
             return 'app/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
         }
-        if ($parts[0] === 'admin-plugin' && count($parts) === 3 && in_array($parts[1], self::CONSOLE_LAYERS, true)) {
-            return 'app/admin/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
+        if ($parts[0] === 'admin-plugins' && count($parts) === 3 && in_array($parts[1], self::CONSOLE_LAYERS, true)) {
+            return 'app/admin/plugins/' . $parts[2] . '/' . $parts[1] . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
         }
         throw new RuntimeException('registry publication unit 非法：' . $unit);
     }
@@ -996,7 +1048,7 @@ final class PluginAppPublicationService
             $unit = $match[1] . ':' . $match[2];
             $pluginCode = $match[2];
             $relative = $match[3];
-        } elseif (preg_match('~^(admin-plugin):([a-z]+):([a-z][a-z0-9]*)/(.+)$~', $targetPath, $match) === 1
+        } elseif (preg_match('~^(admin-plugins):([a-z]+):([a-z][a-z0-9]*)/(.+)$~', $targetPath, $match) === 1
             && in_array($match[2], self::CONSOLE_LAYERS, true)) {
             $unit = $match[1] . ':' . $match[2] . ':' . $match[3];
             $pluginCode = $match[3];
@@ -1020,8 +1072,12 @@ final class PluginAppPublicationService
         if (($parts[0] ?? '') !== 'app') {
             throw new RuntimeException('原生 App 目标路径越界：' . $target);
         }
-        if (($parts[1] ?? '') === 'admin' && ($parts[3] ?? '') === 'plugin') {
-            return 'admin-plugin:' . $parts[2] . ':' . $parts[4] . '/' . implode('/', array_slice($parts, 5));
+        if (($parts[1] ?? '') === 'admin' && ($parts[2] ?? '') === 'plugins'
+            && in_array($parts[4] ?? '', self::CONSOLE_LAYERS, true)) {
+            return 'admin-plugins:' . $parts[4] . ':' . $parts[3] . '/' . implode('/', array_slice($parts, 5));
+        }
+        if (($parts[1] ?? '') === 'admin') {
+            throw new RuntimeException('后台插件必须使用统一业务目录：' . $target);
         }
         return 'application:' . $parts[1] . '/' . implode('/', array_slice($parts, 2));
     }
@@ -1132,7 +1188,7 @@ final class PluginAppPublicationService
 
     private function directoryEntries(string $directory): array
     {
-        $names = array_values(array_diff(scandir($directory) ?: [], ['.', '..']));
+        $names = array_values(array_filter(array_diff(scandir($directory) ?: [], ['.', '..']), static fn (string $name): bool => !($name === '.DS_Store' && is_file($directory . '/' . $name) && !is_link($directory . '/' . $name))));
         sort($names, SORT_STRING);
         return array_map(
             static fn (string $name): string => $directory . DIRECTORY_SEPARATOR . $name,

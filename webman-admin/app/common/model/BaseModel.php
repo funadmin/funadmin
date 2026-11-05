@@ -19,19 +19,19 @@ class BaseModel extends EloquentModel
         return parent::getTable();
     }
 
-    public static function get_table_prefix(): string
+    public static function getTablePrefix(): string
     {
         return (string) (config('database.connections.' . config('database.default') . '.prefix') ?? '');
     }
 
-    public static function get_databasename(): string
+    public static function getDatabaseName(): string
     {
         return (string) (config('database.connections.' . config('database.default') . '.database') ?? '');
     }
 
-    public static function get_pluginstablename($tablename, $plugin): string
+    public static function getPluginTableName(string $tableName, string $plugin): string
     {
-        $tablename = str_replace($plugin . '_', '', str_replace('plugins_', '', (string) $tablename));
-        return self::get_table_prefix() . $plugin . '_' . $tablename;
+        $tableName = str_replace($plugin . '_', '', str_replace('plugins_', '', $tableName));
+        return self::getTablePrefix() . $plugin . '_' . $tableName;
     }
 }

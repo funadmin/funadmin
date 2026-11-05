@@ -30,7 +30,7 @@ final class PluginModificationDetector
         return new self(
                         base_path('app'),
             public_path(),
-                        base_path('admin-web'),
+            PluginInfrastructureService::adminWebPath(),
             new DatabasePluginResourceRepository()
         );
     }
@@ -94,15 +94,15 @@ final class PluginModificationDetector
         if (preg_match('~^public:plugin-assets/' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
             return $this->safeTarget($this->publicRoot, 'plugin-assets/' . $pluginCode . '/' . $match[1]);
         }
-        if (preg_match('~^admin-web:src/modules/' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
-            return $this->safeTarget($this->adminWebRoot, 'src/modules/' . $pluginCode . '/' . $match[1]);
+        if (preg_match('~^admin-web:(src/admin/modules/)' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
+            return $this->safeTarget($this->adminWebRoot, $match[1] . $pluginCode . '/' . $match[2]);
         }
         if (preg_match('~^application:' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
             return $this->safeTarget($this->appRoot, $pluginCode . '/' . $match[1]);
         }
-        if (preg_match('~^admin-plugin:([a-z]+):' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1
+        if (preg_match('~^admin-plugins:([a-z]+):' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1
             && in_array($match[1], self::CONSOLE_LAYERS, true)) {
-            return $this->safeTarget($this->appRoot, 'admin/' . $match[1] . '/plugin/' . $pluginCode . '/' . $match[2]);
+            return $this->safeTarget($this->appRoot, 'admin/plugins/' . $pluginCode . '/' . $match[1] . '/' . $match[2]);
         }
         throw new RuntimeException('插件 registry 目标路径无效：' . $targetPath);
     }
@@ -112,9 +112,9 @@ final class PluginModificationDetector
         if ($unit === 'application:' . $pluginCode) {
             return $this->safeTarget($this->appRoot, $pluginCode);
         }
-        if (preg_match('/^admin-plugin:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
+        if (preg_match('/^admin-plugins:([a-z]+):' . preg_quote($pluginCode, '/') . '$/', $unit, $match) === 1
             && in_array($match[1], self::CONSOLE_LAYERS, true)) {
-            return $this->safeTarget($this->appRoot, 'admin/' . $match[1] . '/plugin/' . $pluginCode);
+            return $this->safeTarget($this->appRoot, 'admin/plugins/' . $pluginCode . '/' . $match[1]);
         }
         throw new RuntimeException('插件 registry publication unit 无效：' . $unit);
     }
@@ -129,8 +129,8 @@ final class PluginModificationDetector
             $targetPath = (string) ($record['target_path'] ?? '');
             if (str_starts_with($targetPath, 'public:plugin-assets/' . $pluginCode . '/')) {
                 $roots[$this->safeTarget($this->publicRoot, 'plugin-assets/' . $pluginCode)] = true;
-            } elseif (str_starts_with($targetPath, 'admin-web:src/modules/' . $pluginCode . '/')) {
-                $roots[$this->safeTarget($this->adminWebRoot, 'src/modules/' . $pluginCode)] = true;
+            } elseif (preg_match('~^admin-web:(src/admin/modules/)' . preg_quote($pluginCode, '~') . '/~', $targetPath, $match) === 1) {
+                $roots[$this->safeTarget($this->adminWebRoot, $match[1] . $pluginCode)] = true;
             }
         }
         return array_keys($roots);
@@ -144,6 +144,7 @@ final class PluginModificationDetector
             RecursiveIteratorIterator::SELF_FIRST
         );
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 return '';
             }
@@ -170,6 +171,7 @@ final class PluginModificationDetector
         $files = [];
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 return [''];
             }

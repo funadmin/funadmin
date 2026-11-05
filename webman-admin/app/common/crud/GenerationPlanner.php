@@ -24,7 +24,7 @@ final class GenerationPlanner
             if (!is_string($relativePath) || !is_string($content)) {
                 throw new \InvalidArgumentException('生成文件路径和内容必须为字符串');
             }
-            $absolutePath = PathGuard::resolve($this->projectRoot, $relativePath, '项目目录');
+            $absolutePath = ArtifactPaths::resolve($this->projectRoot, $relativePath, '项目目录');
             $blocked = file_exists($absolutePath) && !is_file($absolutePath);
             $existing = is_file($absolutePath) ? file_get_contents($absolutePath) : false;
             $oldHash = $existing === false ? null : hash('sha256', $existing);
@@ -49,6 +49,7 @@ final class GenerationPlanner
         }
         $tokenSource = [
             'definitionHash' => $definition->hash(),
+            'artifactRootsHash' => ArtifactPaths::rootsHash($this->projectRoot, array_keys($generatedFiles)),
             'preconditions' => $preconditions,
             'files' => array_map(static fn (array $file): array => [
                 'path' => $file['path'],
@@ -62,6 +63,7 @@ final class GenerationPlanner
         return [
             'dryRun' => true,
             'definitionHash' => $definition->hash(),
+            'artifactRootsHash' => $tokenSource['artifactRootsHash'],
             'preconditions' => $preconditions,
             'files' => $files,
             'planDigest' => $planDigest,
@@ -121,6 +123,7 @@ final class GenerationPlanner
         $plan['definitionHash'] = $definition->hash();
         $plan['planDigest'] = hash('sha256', CrudDefinition::canonicalJson([
             'definitionHash' => $definition->hash(),
+            'artifactRootsHash' => $plan['artifactRootsHash'],
             'files' => array_map(static function (array $file): array {
                 unset($file['content'], $file['baseContent'], $file['localContent'], $file['remoteContent']);
                 return $file;

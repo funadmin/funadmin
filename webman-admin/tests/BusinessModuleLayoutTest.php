@@ -412,17 +412,17 @@ final class BusinessModuleLayoutTest extends TestCase
     public function test_plugin_example_business_layers_live_under_business_code(): void
     {
         foreach ([
-            'controller/Index.php' => 'app\\admin\\plugin\\business\\example\\controller\\Index',
-            'controller/TestController.php' => 'app\\admin\\plugin\\business\\example\\controller\\TestController',
-            'model/Test.php' => 'app\\admin\\plugin\\business\\example\\model\\Test',
-            'service/TestService.php' => 'app\\admin\\plugin\\business\\example\\service\\TestService',
+            'controller/Index.php' => 'app\\admin\\plugins\\example\\controller\\Index',
+            'controller/TestController.php' => 'app\\admin\\plugins\\example\\controller\\TestController',
+            'model/Test.php' => 'app\\admin\\plugins\\example\\model\\Test',
+            'service/TestService.php' => 'app\\admin\\plugins\\example\\service\\TestService',
         ] as $relativePath => $class) {
-            self::assertTrue(class_exists($class), '插件业务类应归入 plugin/business：' . $class);
-            self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/business/example/' . $relativePath), (new ReflectionClass($class))->getFileName());
+            self::assertTrue(class_exists($class), '插件业务类应归入 plugins/：' . $class);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/plugins/example/' . $relativePath), (new ReflectionClass($class))->getFileName());
         }
-        $validate = file_get_contents(__DIR__ . '/../app/admin/plugin/business/example/validate/TestValidate.php');
+        $validate = file_get_contents(__DIR__ . '/../app/admin/plugins/example/validate/TestValidate.php');
         token_get_all($validate, TOKEN_PARSE);
-        self::assertStringContainsString('namespace app\\admin\\plugin\\business\\example\\validate;', $validate);
+        self::assertStringContainsString('namespace app\\admin\\plugins\\example\\validate;', $validate);
 
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/example/Index.php');
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/example/TestController.php');
@@ -434,9 +434,9 @@ final class BusinessModuleLayoutTest extends TestCase
     public function test_plugin_market_controllers_live_under_business_code(): void
     {
         foreach (['CategoryController', 'GrantController', 'OrderController', 'PluginController', 'SettingController', 'StatController'] as $class) {
-            $fqcn = 'app\\admin\\plugin\\business\\market\\controller\\' . $class;
-            self::assertTrue(class_exists($fqcn), '插件市场控制器应归入 plugin/business：' . $fqcn);
-            self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/business/market/controller/' . $class . '.php'), (new ReflectionClass($fqcn))->getFileName());
+            $fqcn = 'app\\admin\\plugins\\market\\controller\\' . $class;
+            self::assertTrue(class_exists($fqcn), '插件市场控制器应归入 plugins/：' . $fqcn);
+            self::assertSame(realpath(__DIR__ . '/../app/admin/plugins/market/controller/' . $class . '.php'), (new ReflectionClass($fqcn))->getFileName());
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/market/' . $class . '.php');
         }
     }
@@ -591,7 +591,7 @@ final class BusinessModuleLayoutTest extends TestCase
             self::assertStringContainsString('namespace app\\admin\\generated\\layout_example\\' . $layer . ';', $context[$layer . 'Content']);
             token_get_all($context[$layer . 'Content'], TOKEN_PARSE);
         }
-        self::assertStringContainsString("#[Group('/generated/layout-example')]", $context['controllerContent']);
+        self::assertStringContainsString("#[Group('/admin/generated/layout-example')]", $context['controllerContent']);
         self::assertSame('/generated/layout-example', $context['apiPrefix']);
         self::assertSame('generated:layout-example', $context['permissionPrefix']);
         self::assertStringContainsString('use app\\admin\\generated\\layout_example\\model\\LayoutExample;', $context['serviceContent']);

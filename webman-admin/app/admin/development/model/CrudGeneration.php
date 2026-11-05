@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace app\admin\development\model;
 
 use app\admin\form\model\Form;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /**
  * CRUD 生成审计记录，不包含确认 token 或数据库凭据。
  */
-final class CrudGeneration extends BackendModel
+final class CrudGeneration extends BaseModel
 {
     protected $name = 'crud_generation';
 

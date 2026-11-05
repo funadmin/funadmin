@@ -162,6 +162,7 @@ admin-web/
 | ---- | ---- | ---- |
 | `VITE_APP_TITLE` | 应用标题 | `Admin Web` |
 | `VITE_APP_VERSION` | 版本号 | `0.1.0` |
+| `VITE_APP_BASE` | 页面与静态资源的部署路径 | `/` |
 | `VITE_APP_BASE_API` | 前端请求 base 路径 | `/admin` |
 | `VITE_APP_PROXY_TARGET` | dev 代理目标 | `http://127.0.0.1:8787` |
 | `VITE_APP_PORT` | 开发服务器端口；未配置或无效时回退 **5173**（见 `vite.config.ts`） | `8080` |
@@ -347,21 +348,44 @@ pnpm test
 
 ## 九、生产部署
 
-构建后将 `dist/` 部署到任意静态服务器。Nginx 关键配置：
+支持两种部署方式，均默认从网站根路径 `/` 访问，后台登录地址为 `/#/admin/login`。
+
+**后端同端口部署：**
+
+```bash
+cd admin-web
+npm run build:webman
+```
+
+产物直接输出到 `webman-admin/public/` 根目录。启动 Webman 后访问 `http://127.0.0.1:8787/`，也可以使用指向后端的 IP 或域名。构建不会清空 `public/`，已有 `install.lock`、`storage/` 和插件资源会保留。首次更新后端路由后，在后端目录执行 `php start.php reload`。
+
+**独立前端域名部署：**
+
+```bash
+cd admin-web
+npm run build:standalone
+```
+
+将 `admin-web/dist/` 部署到前端域名的网站根目录，并将接口和后端资源路径代理到 Webman。此命令同样使用 Webman 配置，但只清空独立的 `dist/`。`VITE_APP_PROXY_TARGET` 只在开发环境生效，生产环境需要配置服务器代理。例如：
 
 ```nginx
-location / {
-    root   /var/www/admin-web/dist;
-    index  index.html;
-    try_files $uri $uri/ /index.html;
-    # 透出 .gz（vite-plugin-compression 已生成）
-    gzip_static on;
-}
+server {
+    listen 80;
+    server_name frontend.example.com;
+    root /var/www/admin-web/dist;
+    index index.html;
 
-location /admin/ {
-    proxy_pass http://127.0.0.1:8787/admin/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~ ^/(admin|api|install|identity|market|plugins|storage|plugin-assets)(/|$) {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
 

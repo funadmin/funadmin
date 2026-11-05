@@ -51,7 +51,7 @@ describe('pluginApi', () => {
     expect(http.upload).toHaveBeenCalledWith('/system/plugin/local/demo/update', expect.any(FormData), expect.any(Object));
     await pluginApi.redeployHistory('demo', 3);
     expect(http.post).toHaveBeenCalledWith('/system/plugin/demo/history/3/redeploy', { migrate: false }, expect.any(Object));
-    expect(pluginApi.historyDownloadUrl('demo', 3)).toBe('/system/plugin/demo/history/3/download');
+    expect(pluginApi.historyDownloadUrl('demo', 3)).toBe('/admin/system/plugin/demo/history/3/download');
     await pluginApi.recoveryInfo('demo');
     expect(http.get).toHaveBeenCalledWith('/system/plugin/demo/recovery');
   });

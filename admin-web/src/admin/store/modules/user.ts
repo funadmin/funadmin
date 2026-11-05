@@ -1,3 +1,4 @@
+import { hooks } from '@/shared/plugins/hooks/runtime';
 import { defineStore } from 'pinia';
 import { authApi } from '@/api/auth';
 import { applyRemotePack } from '@/locales/remotePack';
@@ -64,6 +65,8 @@ export const useUserStore = defineStore('user', {
     },
 
     async logout() {
+      this.authenticated = false;
+      hooks.clear();
       try {
         await this.ensureCsrf();
         await authApi.logout();
@@ -74,6 +77,7 @@ export const useUserStore = defineStore('user', {
     },
 
     resetState() {
+      hooks.clear();
       clearAuth();
       this.authenticated = false;
       this.userInfo = null;

@@ -46,10 +46,15 @@ final class PluginInfrastructureService
     {
         return $this->resourcePublisher ?? new PluginResourcePublisher(
             $this->projectRoot === null ? public_path() : $this->projectRoot . '/public',
-            ($this->projectRoot ?? base_path()) . '/admin-web',
+            self::adminWebPath($this->projectRoot),
             new DatabasePluginResourceRepository(),
             $this->projectRoot === null ? runtime_path('plugins/publication-recovery') : $this->projectRoot . '/runtime/plugins/publication-recovery'
         );
+    }
+
+    public static function adminWebPath(?string $projectRoot = null): string
+    {
+        return $projectRoot !== null ? $projectRoot . '/admin-web' : (string) config('plugins.admin_web_path', dirname(base_path()) . '/admin-web');
     }
 
     public function appPublisher(): PluginAppPublicationService
@@ -465,15 +470,15 @@ final class PluginInfrastructureService
         try {
             $code = $manifest->code();
             $declaredPath = $manifest->toArray()['migrations']['path'] ?? null;
-            $relative = (string) ($declaredPath ?? 'migrations');
-            $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
             $scope = 'plugin:' . strtolower($code);
             $migrations = MigrationService::instance();
-            // 仅未声明迁移且无历史的插件允许目录不存在；声明目录丢失必须报错。
-            if ($declaredPath === null && !file_exists($directory) && !is_link($directory)
-                && $migrations->latestAppliedVersion($scope) === '') {
+            if ($declaredPath === null) {
+                if ($migrations->latestAppliedVersion($scope) !== '') {
+                    throw new RuntimeException('已有迁移历史的插件必须声明 migrations.path');
+                }
                 return ['executed' => [], 'version' => ''];
             }
+            $directory = $manifest->directory() . DIRECTORY_SEPARATOR . $declaredPath;
             $versions = $migrations->runDirectory($directory, $scope);
             return ['executed' => $versions, 'version' => $migrations->latestAppliedVersion($scope)];
         } catch (\Throwable $exception) {

@@ -79,7 +79,10 @@ final class BusinessTargetService
         if (!($this->authorized)()) throw new InvalidArgumentException('BUSINESS_TARGET_FORBIDDEN');
         if ($connection !== $this->defaultConnection) throw new InvalidArgumentException('BUSINESS_DEFAULT_CONNECTION_ONLY');
         $code = (string) $target['pluginCode'];
-        $candidates = array_column($this->candidates()['list'], null, 'pluginCode');
+        $candidates = [];
+        foreach ($this->candidates()['list'] as $candidate) {
+            if (is_string($candidate['pluginCode'] ?? null)) $candidates[$candidate['pluginCode']] = $candidate;
+        }
         if (($candidates[$code]['available'] ?? false) !== true) throw new InvalidArgumentException('BUSINESS_TARGET_UNAVAILABLE');
         $owners = ($this->owners)();
         if (isset($owners[$table]) && $owners[$table] !== $code) throw new InvalidArgumentException('BUSINESS_TABLE_FORBIDDEN');
@@ -125,9 +128,10 @@ final class BusinessTargetService
         try {
             $directory = PathGuard::resolve($this->root, 'plugins/' . $option['code'], '插件目录');
             $data = Manifest::fromDirectory($directory)->toArray();
-            if (($data['adminWeb']['source'] ?? '') !== 'admin-web' || !is_dir($directory . '/admin-web')) return 'ADMIN_WEB_MISSING';
+            $frontend = 'admin-web/src/admin/modules/' . $option['code'];
+            if (($data['adminWeb']['source'] ?? '') !== $frontend || !is_dir($directory . '/' . $frontend)) return 'ADMIN_WEB_MISSING';
             if (($data['migrations']['path'] ?? 'database/migrations') !== 'database/migrations') return 'MIGRATION_PATH_UNSUPPORTED';
-            foreach ([$directory, $directory . '/plugin.json', $directory . '/app/admin', $directory . '/admin-web'] as $path) {
+            foreach ([$directory, $directory . '/plugin.json', $directory . '/app/admin/plugins/' . $option['code'], $directory . '/' . $frontend] as $path) {
                 clearstatcache(true, $path);
                 if (!is_writable($path)) return 'READ_ONLY';
             }
@@ -143,7 +147,6 @@ final class BusinessTargetService
         $owners = [];
         $files = glob($this->root . '/database/migrations/*.sql') ?: [];
         foreach (glob($this->root . '/plugins/*/database/migrations/*.sql') ?: [] as $file) $files[] = $file;
-        foreach (glob($this->root . '/plugins/*/migrations/*.sql') ?: [] as $file) $files[] = $file;
         foreach ($files as $file) {
             if (is_link($file)) throw new InvalidArgumentException('BUSINESS_TABLE_FORBIDDEN');
             $owner = preg_match('#/plugins/([^/]+)/#', $file, $match) ? $match[1] : 'core';

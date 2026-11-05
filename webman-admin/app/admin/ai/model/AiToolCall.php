@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\admin\ai\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /** AI 开发助手不可软删的工具调用安全记录。 */
-final class AiToolCall extends BackendModel
+final class AiToolCall extends BaseModel
 {
     protected $name = 'ai_tool_call';
 

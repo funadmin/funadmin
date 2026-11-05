@@ -23,16 +23,16 @@ final class PluginScaffolder
         bool $adminWeb = true
     ): array {
         self::assertValidName($name);
-        $files = ['plugin.json', 'Plugin.php', 'config.php', 'database/migrations/.gitkeep', 'resources/public/.gitkeep', 'storage/.gitkeep'];
+        $files = ['plugin.json', 'Plugin.php', 'config.php', 'database/migrations/.gitkeep', "public/plugin-assets/{$name}/public/.gitkeep", 'storage/.gitkeep'];
         if ($application) {
             array_push($files, "app/{$name}/controller/Index.php", "app/{$name}/config/app.php", "app/{$name}/route/app.php", "app/{$name}/lang/zh-cn.php", "app/{$name}/event.php", "app/{$name}/provider.php");
             foreach (['model', 'service', 'middleware', 'view'] as $layer) $files[] = "app/{$name}/{$layer}/.gitkeep";
         }
         if ($console) {
-            $files[] = 'app/admin/controller/Index.php';
-            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/admin/{$layer}/.gitkeep";
+            $files[] = "app/admin/plugins/{$name}/controller/Index.php";
+            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/admin/plugins/{$name}/{$layer}/.gitkeep";
         }
-        if ($adminWeb) array_push($files, 'admin-web/api.ts', 'admin-web/types.ts', 'admin-web/pages/Index.vue', 'admin-web/pages/components/EditDialog.vue');
+        if ($adminWeb) array_push($files, "admin-web/src/admin/modules/{$name}/api.ts", "admin-web/src/admin/modules/{$name}/types.ts", "admin-web/src/admin/modules/{$name}/pages/Index.vue", "admin-web/src/admin/modules/{$name}/pages/components/EditDialog.vue");
         sort($files, SORT_STRING);
         return ['code' => $name, 'target' => 'plugins/' . $name, 'files' => $files];
     }
@@ -102,16 +102,16 @@ final class PluginScaffolder
             'description' => '',
             'author' => '',
             'version' => '1.0.0',
-            'requires' => ['php' => '>=8.1', 'funadmin' => '>=1.0.0', 'plugins' => (object) []],
+            'requires' => ['php' => '>=8.5', 'funadmin' => '>=1.0.0', 'plugins' => (object) []],
             'entry' => ['class' => 'plugins\\' . $name . '\\Plugin', 'file' => 'Plugin.php'],
-            'resources' => ['public' => ['source' => 'resources/public', 'target' => 'plugin-assets/' . $name . '/public']],
+            'resources' => ['public' => ['source' => 'public/plugin-assets/' . $name . '/public', 'target' => 'plugin-assets/' . $name . '/public']],
             'migrations' => ['path' => 'database/migrations'],
             'storage' => ['path' => 'storage'],
             'purge' => ['supported' => false],
         ];
         if ($adminWeb) {
             $manifest['adminWeb'] = [
-                'source' => 'admin-web',
+                'source' => 'admin-web/src/admin/modules/' . $name,
                 'components' => ['Index' => 'pages/Index.vue'],
                 'minFrontendVersion' => '1.0.0',
                 'permissions' => [[
@@ -125,7 +125,7 @@ final class PluginScaffolder
                 ]],
                 'routes' => [[
                     'path' => '/plugin/' . $name . '/items',
-                    'name' => ucfirst($name) . 'Index',
+                    'name' => 'Plugin_' . $name . '_Index',
                     'component' => 'Index',
                     'meta' => ['permission' => $name . ':item:list'],
                 ]],
@@ -139,7 +139,7 @@ final class PluginScaffolder
         $this->write($directory . '/Plugin.php', $this->entrySource($name));
         $this->write($directory . '/config.php', $this->pluginConfigSource());
         $this->keep($directory . '/database/migrations');
-        $this->keep($directory . '/resources/public');
+        $this->keep($directory . '/public/plugin-assets/' . $name . '/public');
         $this->keep($directory . '/storage');
 
         if ($application) {
@@ -155,13 +155,13 @@ final class PluginScaffolder
             $this->write($applicationRoot . '/provider.php', $this->returnArraySource());
         }
         if ($console) {
-            $this->write($directory . '/app/admin/controller/Index.php', $this->consoleControllerSource($name));
+            $this->write($directory . '/app/admin/plugins/' . $name . '/controller/Index.php', $this->consoleControllerSource($name));
             foreach (['model', 'service', 'validate', 'middleware'] as $layer) {
-                $this->keep($directory . '/app/admin/' . $layer);
+                $this->keep($directory . '/app/admin/plugins/' . $name . '/' . $layer);
             }
         }
         if ($adminWeb) {
-            $adminWebRoot = $directory . '/admin-web';
+            $adminWebRoot = $directory . '/admin-web/src/admin/modules/' . $name;
             $this->write($adminWebRoot . '/api.ts', $this->adminWebApiSource($name));
             $this->write($adminWebRoot . '/types.ts', $this->adminWebTypesSource());
             $this->write($adminWebRoot . '/pages/Index.vue', $this->adminWebSource($name, $title));
@@ -225,17 +225,19 @@ PHP;
 
 declare(strict_types=1);
 
-namespace app\\admin\\controller\\plugin\\{$name};
+namespace app\\admin\\plugins\\{$name}\\controller;
 
 use app\\admin\\controller\\base\\AdminApiController;
+use app\\common\\plugin\\sdk\\PluginPermission;
 use support\\annotation\\route\\Get;
 use support\\annotation\\route\\RouteGroup;
 use support\\Response;
 
-#[RouteGroup('/plugin/{$name}')]
+#[RouteGroup('/admin/plugin/{$name}')]
 final class Index extends AdminApiController
 {
 
+    #[PluginPermission('{$name}:item:list')]
     #[Get('/index')]
     public function index(): Response
     {

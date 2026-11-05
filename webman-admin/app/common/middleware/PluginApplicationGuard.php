@@ -13,18 +13,21 @@ use Webman\Http\Request;
 use Webman\Http\Response;
 use Webman\MiddlewareInterface;
 
-/** 在 MultiApp 解析前阻断不可用插件应用。 */
+/** 通过 URL、控制器归属或显式路由组阻断不可用插件应用。 */
 final class PluginApplicationGuard implements MiddlewareInterface
 {
     private const CORE_APPLICATIONS = ['app', 'admin', 'api', 'index', 'install', 'common'];
 
-    public function __construct(private readonly ?PluginActivationReader $reader = null)
-    {
+    public function __construct(
+        private readonly ?PluginActivationReader $reader = null,
+        private readonly ?string $pluginsPath = null,
+        private readonly ?string $pluginCode = null
+    ) {
     }
 
     public function process(Request $request, callable $next): Response
     {
-        $target = $this->target($request->path());
+        $target = $this->target($request);
         if ($target === null) {
             return $next($request);
         }
@@ -36,7 +39,7 @@ final class PluginApplicationGuard implements MiddlewareInterface
         $bundled = in_array($code, (array) config('plugins.bundled', []), true)
             && !isset($snapshot->plugins()[$code])
             && !$bundle['ownership']->owns($code, $application)
-            && !is_file(base_path('plugins/' . $code . '/plugin.json'));
+            && !$this->hasManifest($code);
         if ($bundled) {
             return $next($request);
         }
@@ -64,9 +67,23 @@ final class PluginApplicationGuard implements MiddlewareInterface
     }
 
     /** @return null|array{string, string, bool} */
-    private function target(string $path): ?array
+    private function target(Request $request): ?array
     {
-        $segments = array_values(array_filter(explode('/', trim($path, '/')), static fn (string $segment): bool => $segment !== ''));
+        if ($this->pluginCode !== null) {
+            return [$this->pluginCode, 'admin', true];
+        }
+        // Core hook discovery is independent of plugins whose code matches its URL prefix.
+        if ((string) $request->controller === \app\common\plugin\controller\FrontendHooks::class) {
+            return null;
+        }
+        if (preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\/', (string) $request->controller, $owner) === 1) {
+            return [$owner[1], 'admin', true];
+        }
+        if (preg_match('/^app\\\\([a-z][a-z0-9]*)\\\\controller\\\\/', (string) $request->controller, $owner) === 1
+            && !in_array($owner[1], self::CORE_APPLICATIONS, true)) {
+            return [$owner[1], 'app', $this->hasManifest($owner[1])];
+        }
+        $segments = array_values(array_filter(explode('/', trim($request->path(), '/')), static fn (string $segment): bool => $segment !== ''));
         if (($segments[0] ?? '') === 'admin' && ($segments[1] ?? '') === 'plugin') {
             $code = (string) ($segments[2] ?? '');
             return preg_match('/^[a-z][a-z0-9]*$/', $code) === 1 ? [$code, 'admin', true] : null;
@@ -75,6 +92,11 @@ final class PluginApplicationGuard implements MiddlewareInterface
         if ($code === '' || in_array($code, self::CORE_APPLICATIONS, true) || preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1) {
             return null;
         }
-        return [$code, 'app', false];
+        return [$code, 'app', $this->hasManifest($code)];
+    }
+
+    private function hasManifest(string $code): bool
+    {
+        return is_file(rtrim($this->pluginsPath ?? base_path('plugins'), DIRECTORY_SEPARATOR) . '/' . $code . '/plugin.json');
     }
 }

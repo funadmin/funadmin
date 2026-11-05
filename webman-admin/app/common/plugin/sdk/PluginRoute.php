@@ -7,6 +7,7 @@ namespace app\common\plugin\sdk;
 use app\admin\middleware\CheckAdminApiCsrf;
 use app\admin\plugin\middleware\CheckPluginPermission;
 use app\common\middleware\MApi;
+use app\common\middleware\PluginApplicationGuard;
 use Closure;
 use InvalidArgumentException;
 use RuntimeException;
@@ -38,6 +39,11 @@ final class PluginRoute
         }
 
         $route->group($registrar)->middleware([
+            static fn () => new PluginApplicationGuard(
+                new PluginActivationReader(($projectRoot ?? base_path()) . '/runtime/plugins/activation'),
+                ($projectRoot ?? base_path()) . '/plugins',
+                $plugin
+            ),
             static fn () => new CheckPluginPermission(plugin: $plugin, permission: $permission),
             CheckAdminApiCsrf::class,
         ]);

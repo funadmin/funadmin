@@ -1,5 +1,5 @@
+import { refreshPluginHooks } from '@/shared/plugins/hooks/startup';
 import type { Router } from 'vue-router';
-import { isWebmanBackend } from '@/config';
 import { pluginApi, type EnabledPluginModule } from '@/api/system/plugin';
 import { syncPluginModules } from '@/router/pluginModules';
 
@@ -13,10 +13,10 @@ export async function loadPluginModulesSafely(
   fetchModules: () => Promise<EnabledPluginModule[]> = pluginApi.enabledModules,
   reportError: (error: unknown) => void = console.error
 ): Promise<PluginModuleSyncResult> {
-  if (isWebmanBackend()) return { loaded: [], errors: [] };
   try {
     const result = await syncPluginModules(router, await fetchModules());
     result.errors.forEach((error) => reportError(`[plugin:${error.code}] ${error.message}`));
+    await refreshPluginHooks();
     return result;
   } catch (error) {
     reportError(error);

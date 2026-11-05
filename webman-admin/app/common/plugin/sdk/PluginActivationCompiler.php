@@ -110,6 +110,17 @@ final class PluginActivationCompiler
                     'admin' => is_dir($base . DIRECTORY_SEPARATOR . 'admin'),
                 ],
             ];
+            if (!empty($manifest['backendHooks'])) {
+                $plugins[$code]['backendHooks'] = $manifest['backendHooks'];
+                $files = [];
+                foreach ($manifest['backendHooks'] as $hook) {
+                    $relative = $hook['file'];
+                    $file = \app\common\plugin\hook\HookRuntime::ownedFile($this->pluginsPath, $code, $relative);
+                    $files[$relative] = hash_file('sha256', $file);
+                }
+                ksort($files, SORT_STRING);
+                $plugins[$code]['backendHookFiles'] = $files;
+            }
         }
         return $plugins;
     }

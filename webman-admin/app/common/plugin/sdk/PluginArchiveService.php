@@ -177,6 +177,20 @@ final class PluginArchiveService
             || preg_match('/(?:^|\.)local(?:\.[^.]+)?$/i', $name) === 1;
     }
 
+    /** @return list<string> */
+    private function collectDirectories(string $source): array
+    {
+        $directories = [];
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($iterator as $item) {
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($item->getPathname(), strlen($source) + 1));
+            if ($item->isLink()) throw new RuntimeException('插件目录不允许包含符号链接：' . $relative);
+            if ($item->isDir() && !$this->excluded($relative)) $directories[] = $relative;
+        }
+        sort($directories, SORT_STRING);
+        return $directories;
+    }
+
     /** @param list<string> $files */
     private function writeArchive(string $source, string $name, array $files, string $archive): void
     {
@@ -185,11 +199,14 @@ final class PluginArchiveService
             throw new RuntimeException('无法创建插件包：' . $archive);
         }
         try {
-            foreach (['database/migrations', 'resources/public', 'storage'] as $directory) {
+            foreach ($this->collectDirectories($source) as $directory) {
                 $entry = $name . '/' . $directory;
-                $zip->addEmptyDir($entry);
+                if (!$zip->addEmptyDir($entry)) throw new RuntimeException('无法归档插件目录：' . $directory);
                 if (method_exists($zip, 'setMtimeName')) {
                     $zip->setMtimeName($entry . '/', self::FIXED_MTIME);
+                }
+                if (method_exists($zip, 'setExternalAttributesName')) {
+                    $zip->setExternalAttributesName($entry . '/', ZipArchive::OPSYS_UNIX, 040755 << 16);
                 }
             }
             foreach ($files as $relative) {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace app\admin\ai\model;
 
 use app\common\model\concern\LaravelSoftDelete;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /** AI 开发助手变更集。 */
-final class AiChangeSet extends BackendModel
+final class AiChangeSet extends BaseModel
 {
     use LaravelSoftDelete;
 

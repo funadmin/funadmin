@@ -1,4 +1,5 @@
 import http from '@/utils/http';
+import { adminApiUrl } from '@/utils/apiUrl';
 
 const PREFIX = '/development/plugin';
 
@@ -42,7 +43,10 @@ export const pluginDevelopmentApi = {
   previewCreate: (input: PluginCreateInput) => http.post<PluginDevelopmentResult>(`${PREFIX}/create/preview`, input),
   create: (input: PluginCreateInput) => http.post<PluginDevelopmentResult>(`${PREFIX}/create`, input),
   validate: (code: string) => http.post<PluginDevelopmentResult>(`${PREFIX}/validate`, { code }),
-  package: (code: string) => http.post<PluginDevelopmentResult>(`${PREFIX}/package`, { code }),
-  downloadUrl: (code: string) => `${PREFIX}/package/${encodeURIComponent(code)}/download`,
+  package: async (code: string) => {
+    const result = await http.post<PluginDevelopmentResult>(`${PREFIX}/package`, { code });
+    return result?.downloadUrl ? { ...result, downloadUrl: pluginDevelopmentApi.downloadUrl(code) } : result;
+  },
+  downloadUrl: (code: string) => adminApiUrl(`${PREFIX}/package/${encodeURIComponent(code)}/download`),
   options: () => http.get<DevelopmentPluginOption[]>(`${PREFIX}/options`)
 };

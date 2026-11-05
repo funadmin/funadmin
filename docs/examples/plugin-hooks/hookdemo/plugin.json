@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "code": "hookdemo",
+  "name": "前后端钩子示例",
+  "version": "1.0.0",
+  "description": "无需独立应用、菜单或路由的插件钩子示例",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\hookdemo\\Plugin",
+    "file": "Plugin.php"
+  },
+  "adminWeb": {
+    "source": "admin-web/src/admin/modules/hookdemo",
+    "components": {
+      "HookCard": "components/HookCard.vue"
+    },
+    "minFrontendVersion": "0.1.0",
+    "permissions": [],
+    "menu": [],
+    "routes": []
+  },
+  "backendHooks": [
+    {
+      "id": "upload-notification",
+      "point": "upload.completed",
+      "type": "action",
+      "file": "hooks/main.php",
+      "handler": "afterUpload"
+    },
+    {
+      "id": "upload-extra",
+      "point": "upload.result",
+      "type": "filter",
+      "file": "hooks/main.php",
+      "handler": "extendUpload"
+    },
+    {
+      "id": "decorate",
+      "point": "plugin.hookdemo.decorate",
+      "type": "filter",
+      "file": "hooks/main.php",
+      "handler": "decorate"
+    }
+  ],
+  "frontendHooks": [
+    {
+      "id": "card",
+      "point": "dashboard.cards",
+      "type": "component",
+      "component": "HookCard"
+    },
+    {
+      "id": "loaded",
+      "point": "dashboard.loaded",
+      "type": "action",
+      "file": "hooks.ts",
+      "export": "dashboardLoaded"
+    },
+    {
+      "id": "decorate",
+      "point": "plugin.hookdemo.decorate",
+      "type": "filter",
+      "file": "hooks.ts",
+      "export": "decorate",
+      "audiences": [
+        "public",
+        "member",
+        "admin"
+      ]
+    }
+  ]
+}

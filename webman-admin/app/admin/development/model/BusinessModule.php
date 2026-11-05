@@ -6,12 +6,12 @@ namespace app\admin\development\model;
 
 use app\common\model\concern\LaravelSoftDelete;
 use app\admin\form\model\Form;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /**
  * 统一业务开发中心的业务模块领域模型。
  */
-final class BusinessModule extends BackendModel
+final class BusinessModule extends BaseModel
 {
     use LaravelSoftDelete;
 

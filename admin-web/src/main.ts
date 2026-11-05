@@ -21,6 +21,10 @@ import { setupDirectives } from '@/directives';
 import { APP_CONFIG } from '@/config';
 import { i18n } from '@/locales';
 import { applyRemotePack } from '@/locales/remotePack';
+import { startPluginHooks } from '@/shared/plugins/hooks';
+import { router } from '@/router';
+import { useUserStore } from '@/store/modules/user';
+import { memberSession } from '@/web/session/memberSession';
 import { useAppStore } from '@/store/modules/app';
 
 async function bootstrap() {
@@ -48,6 +52,14 @@ async function bootstrap() {
   appStore.applyTheme();
 
   setupRouter(app);
+  startPluginHooks(router, () => {
+    const user = useUserStore();
+    return {
+      admin: user.isLoggedIn ? JSON.stringify([user.userInfo?.id, user.permissions]) : '',
+      member: JSON.stringify([memberSession.account()?.id, memberSession.accessToken()]),
+      memberToken: memberSession.accessToken()
+    };
+  });
   setupComponents(app);
   setupDirectives(app);
 

@@ -14,10 +14,10 @@
 
 namespace app\admin\system\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
 
-class MemberLevel extends BackendModel
+class MemberLevel extends BaseModel
 {
     protected $table = 'member_level';
     protected $fillable = ['name', 'amount', 'discount', 'thumb', 'status', 'sort_order', 'description'];

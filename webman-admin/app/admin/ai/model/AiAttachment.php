@@ -4,10 +4,10 @@ declare(strict_types=1);
 namespace app\admin\ai\model;
 
 use app\common\model\concern\LaravelSoftDelete;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
 /** 私有附件；删除标记与绑定状态仅由仓储事务更新。 */
-final class AiAttachment extends BackendModel
+final class AiAttachment extends BaseModel
 {
     use LaravelSoftDelete;
     protected $name = 'ai_attachment';

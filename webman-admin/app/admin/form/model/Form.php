@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace app\admin\form\model;
 
 use app\common\model\concern\LaravelSoftDelete;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 
 /**
  * 表单定义模型：元数据驱动表单管理的主表。
  */
-class Form extends BackendModel
+class Form extends BaseModel
 {
     use LaravelSoftDelete;
 

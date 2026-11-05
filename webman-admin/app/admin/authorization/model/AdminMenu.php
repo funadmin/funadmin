@@ -5,13 +5,13 @@ namespace app\admin\authorization\model;
 use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use app\admin\form\model\FormSchemaVersion;
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\traits\DataFormat;
 
 /**
  * 后台菜单只负责导航展示，授权资源由 Permission 独立维护。
  */
-class AdminMenu extends BackendModel
+class AdminMenu extends BaseModel
 {
     use DataFormat;
 

@@ -36,4 +36,30 @@ final class PluginCenterIntegrationTest extends TestCase
         self::assertIsArray($service->installed());
         self::assertIsArray($service->discovered());
     }
+
+    public function test_disabled_plugin_configuration_persists_to_file_and_registry(): void
+    {
+        $code = 'config' . bin2hex(random_bytes(5));
+        $parent = base_path('plugins');
+        $createdParent = !is_dir($parent);
+        $directory = $parent . '/' . $code;
+        (new \app\common\plugin\sdk\PluginScaffolder($parent))->scaffold($code);
+        Db::table('plugin')->insert(['code' => $code, 'version' => '1.0.0', 'status' => 0, 'lifecycle_state' => 'disabled']);
+        try {
+            $service = new PluginCenterService();
+            self::assertSame(20, $service->get($code)['page_size']['value']);
+            $error = null;
+            try { $service->save($code, ['page_size' => 7]); }
+            catch (\Throwable $exception) { $error = $exception->getMessage(); }
+            self::assertNull($error, (string) $error);
+            self::assertSame(7, $service->get($code)['page_size']['value']);
+            self::assertSame(7, json_decode(Db::table('plugin')->where('code', $code)->value('config'), true, 512, JSON_THROW_ON_ERROR)['page_size']);
+            self::assertSame('disabled', Db::table('plugin')->where('code', $code)->value('lifecycle_state'));
+        } finally {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            rmdir($directory);
+            if ($createdParent) @rmdir($parent);
+        }
+    }
 }

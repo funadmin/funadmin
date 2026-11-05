@@ -87,7 +87,7 @@ final class PluginResourcePublisher
                 $next[] = [
                     'plugin_code' => $manifest->code(), 'version' => $manifest->version(), 'resource_type' => 'file',
                     'publication_unit' => null, 'operation_token' => $token,
-                    'source_path' => str_replace(DIRECTORY_SEPARATOR, '/', substr($source, strlen($manifest->directory()) + 1)),
+                    'source_path' => rtrim((string) $resource['source'], '/') . '/' . $relative,
                     'target_path' => $targetPath, 'sha256' => $sha256,
                     'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
                 ];
@@ -536,8 +536,8 @@ final class PluginResourcePublisher
         }
         if (is_array($data['adminWeb'] ?? null)) {
             $publications[] = [
-                'source' => (string) ($data['adminWeb']['source'] ?? 'admin-web'),
-                'target' => 'src/modules/' . $manifest->code(),
+                'source' => (string) $data['adminWeb']['source'],
+                'target' => 'src/admin/modules/' . $manifest->code(),
                 'root' => $roots['admin-web'],
                 'type' => 'admin-web',
             ];
@@ -552,6 +552,7 @@ final class PluginResourcePublisher
             new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)
         );
         foreach ($iterator as $item) {
+            if ($item->getFilename() === '.DS_Store' && $item->isFile() && !$item->isLink()) continue;
             if ($item->isLink()) {
                 throw new RuntimeException('资源目录禁止符号链接：' . $item->getPathname());
             }
@@ -583,7 +584,7 @@ final class PluginResourcePublisher
 
     private function targetDirectory(string $root, string $pluginCode, string $relative, string $type): string
     {
-        $prefix = $type === 'admin-web' ? 'src/modules/' . $pluginCode : 'plugin-assets/' . $pluginCode;
+        $prefix = $type === 'admin-web' ? 'src/admin/modules/' . $pluginCode : 'plugin-assets/' . $pluginCode;
         if ($relative !== $prefix && !str_starts_with($relative, $prefix . '/')) {
             throw new RuntimeException('资源目标必须位于 ' . $prefix . '/');
         }
@@ -598,7 +599,11 @@ final class PluginResourcePublisher
     private function resolveRegistryPath(array $roots, string $targetPath): array
     {
         if (str_starts_with($targetPath, self::ADMIN_WEB_PREFIX)) {
-            return [$roots['admin-web'], substr($targetPath, strlen(self::ADMIN_WEB_PREFIX))];
+            $relative = substr($targetPath, strlen(self::ADMIN_WEB_PREFIX));
+            if (preg_match('~^src/admin/modules/[a-z][a-z0-9]*/.+$~D', $relative) !== 1) {
+                throw new RuntimeException('前端资源登记必须使用统一目录 src/admin/modules/{code}/');
+            }
+            return [$roots['admin-web'], $relative];
         }
         if (str_starts_with($targetPath, self::PUBLIC_PREFIX)) {
             return [$roots['public'], substr($targetPath, strlen(self::PUBLIC_PREFIX))];

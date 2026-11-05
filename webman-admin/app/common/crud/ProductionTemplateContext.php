@@ -17,13 +17,19 @@ final class ProductionTemplateContext
         self::$backendLangKeys = [];
         $data = $definition->toArray();
         $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\admin');
-        $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim((string) $data['apiPrefix'], '/'));
-        $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? $data['apiPrefix']);
+        $apiPrefix = '/' . ltrim((string) $data['apiPrefix'], '/');
+        $adminApi = ($target['consoleController'] ?? true) === true;
+        $hasAdminPrefix = $apiPrefix === '/admin' || str_starts_with($apiPrefix, '/admin/');
+        $controllerPrefix = $adminApi && !$hasAdminPrefix ? '/admin' . $apiPrefix : $apiPrefix;
+        $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim($controllerPrefix, '/'));
+        // 管理前端的 HTTP 客户端已带 /admin，兼容显式包含该前缀的旧 Definition。
+        $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? ($adminApi && $hasAdminPrefix ? (substr($apiPrefix, 6) ?: '/') : $apiPrefix));
         $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/generated/{$data['entity']}");
         $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
-        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? 'use app\\admin\\model\\BackendModel;');
-        $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? 'BackendModel');
+        $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
+        $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? '\\app\\common\\model\\BaseModel');
         $data['_consoleController'] = (bool) ($target['consoleController'] ?? true);
+        $data['_pluginCode'] = (string) ($target['pluginCode'] ?? '');
         $data['_listActionHost'] = ($target['type'] ?? $data['target']['type'] ?? 'core') === 'core'
             && $data['_consoleController'] && ($data['capabilities']['list'] ?? true) && !empty($data['formSchema']['key']);
         $data['_modelNamespace'] = (string) ($target['modelNamespace'] ?? $data['_namespace'] . '\\model');
@@ -424,7 +430,7 @@ final class ProductionTemplateContext
             $field = $data['list']['leftTree']['mapping']['targetField'];
             $leftAlias = "        applyFilters as private crudOriginalFilters;\n";
             $leftMethods = "\n    private function treeService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(new \\app\\common\\form\\validation\\FormAsyncValidatorRegistry((array) config('form.validators', [])), \\app\\common\\form\\dataSource\\FormDataSourceRegistry::core((array) config('form.data_sources', [])), permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route));\n    }\n"
-                . "    #[Get('left-tree')]\n    public function leftTree(): Response { return \$this->ok(data: \$this->treeService()->leftTree('{$key}')); }\n"
+                . "    #[Get('/left-tree')]\n    public function leftTree(): Response { return \$this->ok(data: \$this->treeService()->leftTree('{$key}')); }\n"
                 . "    #[Get('/left-tree-form/{operation:create|addChild|edit}')]\n    public function leftTreeForm(string \$operation): Response { return \$this->ok(data: \$this->treeService()->leftTreeForm('{$key}', \$operation, (string) \$this->request->get('id', ''), '{$hash}', (string) \$this->request->get('optionField', ''), (array) \$this->request->get('context', []))); }\n"
                 . "    #[Post('/left-tree/{operation:create|addChild|edit|delete}')]\n    public function mutateLeftTree(string \$operation): Response\n    {\n        \$payload = \$this->request->post('data', []);\n        if (!is_array(\$payload)) throw new \\InvalidArgumentException('data 必须为对象');\n        \$post = \$this->request->post();\n        \$post['data'] = '[REDACTED]';\n        \$this->request->setPost(\$post);\n        return \$this->ok(data: \$this->treeService()->mutateLeftTree('{$key}', \$operation, (string) \$this->request->post('id', ''), \$payload, '{$hash}', (string) \$this->request->post('sourceSchemaHash', '')));\n    }\n"
                 . "    protected function applyFilters(\$query)\n    {\n        \$query = \$this->crudOriginalFilters(\$query);\n        \$selected = \$this->request->get('__leftTree', []);\n        if (is_string(\$selected)) \$selected = json_decode(\$selected, true, 512, JSON_THROW_ON_ERROR);\n        if (!is_array(\$selected)) throw new \\InvalidArgumentException('左树选择必须为数组');\n        \$values = \$this->treeService()->resolveLeftTreeFilter('{$key}', \$selected, '{$hash}');\n        return \$values === [] ? \$query : \$query->whereIn('{$field}', \$values);\n    }\n";
@@ -435,8 +441,8 @@ final class ProductionTemplateContext
             $key = $data['formSchema']['key'];
             $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
             $methods[] = "    private function listButtonService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
-                . "    #[Get('list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
-                . "    #[Post('list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->setPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
+                . "    #[Get('/list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
+                . "    #[Post('/list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->setPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
                 . "    private function listButtonResponse(callable \$operation): Response\n    {\n        try { return \$this->ok(data: \$operation()); }\n        catch (\\Throwable \$error) {\n            return \$this->listActionFailure(\$error);\n        }\n    }";
         }
         if ($enabled['list']) {
@@ -474,11 +480,24 @@ final class ProductionTemplateContext
             $methods[] = "    #[Delete('')]\n    public function recycle(): Response { return \$this->crudRecycle(); }";
         }
         if ($enabled['batchSoftDelete']) {
-            $methods[] = "    #[Post('restore')]\n    public function restoreMany(): Response { return \$this->crudRestoreMany(); }";
-            $methods[] = "    #[Delete('destroy')]\n    public function destroyMany(): Response { return \$this->crudDestroyMany(); }";
+            $methods[] = "    #[Post('/restore')]\n    public function restoreMany(): Response { return \$this->crudRestoreMany(); }";
+            $methods[] = "    #[Delete('/destroy')]\n    public function destroyMany(): Response { return \$this->crudDestroyMany(); }";
         }
-        if ($enabled['import']) $methods[] = "    #[Post('import')]\n    public function import(): Response { return \$this->crudImport(); }";
-        if ($enabled['export']) $methods[] = "    #[Get('export')]\n    public function export(): Response { return \$this->crudExport(); }";
+        if ($enabled['import']) $methods[] = "    #[Post('/import')]\n    public function import(): Response { return \$this->crudImport(); }";
+        if ($enabled['export']) $methods[] = "    #[Get('/export')]\n    public function export(): Response { return \$this->crudExport(); }";
+        // FastRoute 要求静态路由先于可能匹配同一路径的参数路由注册。
+        usort($methods, static fn (string $left, string $right): int =>
+            (int) preg_match('/#\[(?:Get|Post|Put|Delete)\(\x27[^\x27]*\{/', $left)
+            <=> (int) preg_match('/#\[(?:Get|Post|Put|Delete)\(\x27[^\x27]*\{/', $right));
+        if ($data['_pluginCode'] !== '') {
+            foreach ($data['permission']['actions'] as $action) {
+                $code = var_export($data['permissionPrefix'] . ':' . $action['codeSuffix'], true);
+                foreach ($methods as &$method) {
+                    $method = preg_replace('/(    )public function (' . preg_quote($action['action'], '/') . ')\(/i', '$1#[PluginPermission(' . $code . ")]\n" . '$1public function $2(', $method);
+                }
+                unset($method);
+            }
+        }
         $controllerImports = $data['_consoleController']
             ? "use app\\admin\\controller\\base\\AdminApiController;\n"
             : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
@@ -494,6 +513,7 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
+            . ($data['_pluginCode'] !== '' ? "use app\\common\\plugin\\sdk\\PluginPermission;\n" : '')
             . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\authorization\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"

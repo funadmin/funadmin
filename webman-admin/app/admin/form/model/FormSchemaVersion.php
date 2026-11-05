@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace app\admin\form\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 
-final class FormSchemaVersion extends BackendModel
+final class FormSchemaVersion extends BaseModel
 {
     protected $name = 'form_schema_version';
 

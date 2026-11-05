@@ -259,7 +259,9 @@ class PluginService extends AbstractService
                 'migration_pending' => 1,
                 'db_version' => (string) ($record->db_version ?? ''),
             ])))->save();
-            $this->storage()->ensure($manifest);
+            if (isset($manifest->toArray()['storage'])) {
+                $this->storage()->ensure($manifest);
+            }
             $plugin = $this->plugin($code);
             $this->recordStage($code, 'install', 'hooks');
             if ($plugin->install() === false) {
@@ -313,7 +315,9 @@ class PluginService extends AbstractService
             $record->fill($this->filterPluginColumns(array_merge($this->manifestInfo($manifest), $this->packageContext($code), [
                 'migration_pending' => 1,
             ])))->save();
-            $this->storage()->ensure($manifest);
+            if (isset($manifest->toArray()['storage'])) {
+                $this->storage()->ensure($manifest);
+            }
             $operation = $allowCodeDowngrade ? 'redeploy' : 'update';
             $this->recordStage($code, $operation, 'hooks');
             if ($plugin->beforeUpdate($fromVersion, $toVersion, $migrate) === false) {

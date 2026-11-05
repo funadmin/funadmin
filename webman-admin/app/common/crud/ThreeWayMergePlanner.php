@@ -41,6 +41,7 @@ final class ThreeWayMergePlanner
             'managed' => true,
             'blocked' => $blocked,
             'files' => $files,
+            'artifactRootsHash' => ArtifactPaths::rootsHash($this->projectRoot, array_column($files, 'path')),
             'planDigest' => hash('sha256', CrudDefinition::canonicalJson($this->digestFiles($files))),
         ];
     }
@@ -48,7 +49,7 @@ final class ThreeWayMergePlanner
     private function planFile(array $input): array
     {
         $path = str_replace('\\', '/', (string) ($input['path'] ?? ''));
-        $absolute = PathGuard::resolve($this->projectRoot, $path, '项目目录');
+        $absolute = ArtifactPaths::resolve($this->projectRoot, $path, '项目目录');
         $stat = @lstat($absolute);
         if ($stat !== false && (($stat['mode'] & 0170000) !== 0100000)) {
             throw new InvalidArgumentException('项目目录目标必须是普通文件且禁止符号链接：' . $path);

@@ -25,7 +25,7 @@ final class PluginHttpActivationTest extends TestCase
         (new PluginScaffolder($root . '/plugins'))->scaffold('httpfixture');
         $reader = new PluginActivationReader($root . '/activation');
         $compiler = new PluginActivationCompiler($root . '/activation', $root . '/plugins');
-        Container::instance()->addDefinitions([PluginApplicationGuard::class => static fn () => new PluginApplicationGuard($reader)]);
+        Container::instance()->addDefinitions([PluginApplicationGuard::class => static fn () => new PluginApplicationGuard($reader, $root . '/plugins')]);
         Middleware::load(['' => array_values(array_filter(config('middleware')[''], static fn ($class) => $class === PluginApplicationGuard::class))]);
         (new \ReflectionProperty(App::class, 'logger'))->setValue(null, new NullLogger());
         try {
@@ -44,8 +44,12 @@ final class PluginHttpActivationTest extends TestCase
                     if ($expected !== 200) self::assertStringNotContainsString('controller reached', $response->rawBody());
                 }
             }
+            $alias = new Request("GET /custom-alias HTTP/1.1\r\n\r\n");
+            $alias->controller = 'app\\admin\\plugins\\httpfixture\\controller\\Index';
+            self::assertSame(404, $callback($alias)->getStatusCode(), '插件控制器别名路由也必须检查启停状态');
             file_put_contents($root . '/activation/active', 'corrupt');
             self::assertSame(503, $callback(new Request("GET /admin/plugin/httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
+            self::assertSame(503, $callback(new Request("GET /httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(200, $callback(new Request("GET /admin/system/plugin/local/installed HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(200, $callback(new Request("GET /admin/plugin/market/category/ HTTP/1.1\r\n\r\n"))->getStatusCode());
         } finally {

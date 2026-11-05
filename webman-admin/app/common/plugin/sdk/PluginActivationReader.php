@@ -7,7 +7,7 @@ namespace app\common\plugin\sdk;
 /** 仅从 active generation 的 JSON 文件读取插件激活状态，不访问控制面。 */
 class PluginActivationReader
 {
-    public function __construct(private readonly string $runtimePath)
+    public function __construct(private readonly string $runtimePath, private readonly bool $allowUninitialized = false)
     {
     }
 
@@ -30,6 +30,11 @@ class PluginActivationReader
     /** @return array{activation: PluginActivationSnapshot, ownership: PluginOwnershipSnapshot} */
     public function readBundle(): array
     {
+        // Existing deployments without any activation directory have no hook contributions.
+        // Once initialized, a missing or damaged pointer must always fail closed.
+        if ($this->allowUninitialized && !file_exists($this->runtimePath) && !is_link($this->runtimePath)) {
+            return ['activation' => PluginActivationSnapshot::trusted([]), 'ownership' => PluginOwnershipSnapshot::trusted([])];
+        }
         $untrusted = $this->untrustedBundle();
         $pointer = $this->runtimePath . DIRECTORY_SEPARATOR . 'active';
         $generation = trim((string) @file_get_contents($pointer));
@@ -114,7 +119,7 @@ class PluginActivationReader
     private function validPlugin(mixed $plugin, string $code): bool
     {
         if (!is_array($plugin)
-            || array_keys($plugin) !== ['code', 'state', 'enabled', 'needs_reinstall', 'operation_token', 'version', 'package_hash', 'dependencies', 'applications']
+            || array_keys(array_diff_key($plugin, array_flip(['backendHooks', 'backendHookFiles']))) !== ['code', 'state', 'enabled', 'needs_reinstall', 'operation_token', 'version', 'package_hash', 'dependencies', 'applications']
             || $plugin['code'] !== $code
             || preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1
             || !is_string($plugin['state'])
@@ -129,6 +134,21 @@ class PluginActivationReader
             return false;
         }
 
+        if (array_key_exists('backendHooks', $plugin) || array_key_exists('backendHookFiles', $plugin)) {
+            if (!is_array($plugin['backendHooks'] ?? null) || !array_is_list($plugin['backendHooks']) || !is_array($plugin['backendHookFiles'] ?? null)) {
+                return false;
+            }
+            foreach ($plugin['backendHooks'] as $hook) {
+                if (!is_array($hook) || !is_string($hook['id'] ?? null) || !is_string($hook['point'] ?? null)
+                    || !in_array($hook['type'] ?? null, ['action', 'filter'], true) || !is_string($hook['file'] ?? null)
+                    || !is_string($hook['handler'] ?? null) || !is_int($hook['priority'] ?? 100)
+                    || preg_match('/^hooks\/[A-Za-z0-9_.\/-]+\.php$/D', $hook['file']) !== 1
+                    || !is_string($plugin['backendHookFiles'][$hook['file']] ?? null)
+                    || preg_match('/^[a-f0-9]{64}$/D', $plugin['backendHookFiles'][$hook['file']]) !== 1) {
+                    return false;
+                }
+            }
+        }
         foreach ($plugin['dependencies'] as $dependency) {
             if (!is_string($dependency) || preg_match('/^[a-z][a-z0-9]*$/', $dependency) !== 1) {
                 return false;

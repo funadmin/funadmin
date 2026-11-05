@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "code": "hookconsumer",
+  "name": "跨插件调用示例",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\hookconsumer\\Plugin",
+    "file": "Plugin.php"
+  },
+  "adminWeb": {
+    "source": "admin-web/src/admin/modules/hookconsumer",
+    "components": {},
+    "minFrontendVersion": "0.1.0",
+    "permissions": [],
+    "menu": [],
+    "routes": []
+  },
+  "backendHooks": [
+    {
+      "id": "relay",
+      "point": "plugin.hookconsumer.decorate",
+      "type": "filter",
+      "file": "hooks/main.php",
+      "handler": "relay"
+    }
+  ],
+  "frontendHooks": [
+    {
+      "id": "relay",
+      "point": "plugin.hookconsumer.decorate",
+      "type": "filter",
+      "file": "hooks.ts",
+      "export": "relay",
+      "audiences": [
+        "public",
+        "member",
+        "admin"
+      ]
+    }
+  ]
+}

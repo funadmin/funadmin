@@ -2,10 +2,10 @@
 
 namespace app\admin\authorization\model;
 
-use app\admin\model\BackendModel;
+use app\common\model\BaseModel;
 use app\common\traits\DataFormat;
 
-class Permission extends BackendModel
+class Permission extends BaseModel
 {
     use DataFormat;
 

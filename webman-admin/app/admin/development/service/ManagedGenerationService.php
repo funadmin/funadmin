@@ -8,6 +8,7 @@ use app\common\crud\ConfirmationToken;
 use app\common\crud\CrudDefinition;
 use app\common\crud\CrudGenerator;
 use app\common\crud\PathGuard;
+use app\common\crud\ArtifactPaths;
 use app\common\crud\SchemaInspector;
 use app\common\form\schema\FormSchema;
 use app\admin\development\exception\BusinessOperationException;
@@ -367,7 +368,7 @@ final class ManagedGenerationService
         if (!is_array($planned) || !hash_equals((string) ($planned['remoteHash'] ?? ''), $remoteHash)) {
             throw new InvalidArgumentException('路径不是该计划的 conflict-no-base 或 Remote hash 不匹配');
         }
-        $absolute = PathGuard::resolve($this->projectRoot, $path, '冲突文件');
+        $absolute = ArtifactPaths::resolve($this->projectRoot, $path, '冲突文件');
         $stat = @lstat($absolute);
         if ($stat === false || is_link($absolute) || (($stat['mode'] & 0170000) !== 0100000)) {
             throw new InvalidArgumentException('当前 Local 必须为项目内普通文件');
@@ -451,7 +452,7 @@ final class ManagedGenerationService
                 $projection = (new \app\common\crud\ManifestMerger($this->projectRoot))->plan($definition, $base);
                 $previewContents[$path] = array_intersect_key($projection, array_flip(['baseContent', 'localContent', 'remoteContent']));
             } else {
-                $absolute = PathGuard::resolve($this->projectRoot, $path, '项目目录');
+                $absolute = ArtifactPaths::resolve($this->projectRoot, $path, '项目目录');
                 $local = is_file($absolute) && !is_link($absolute) ? (string) file_get_contents($absolute) : '';
                 if (($file['localHash'] ?? null) !== ($local === '' && !is_file($absolute) ? null : hash('sha256', $local))) {
                     throw new BusinessOperationException('GENERATION_TARGET_DRIFT');
