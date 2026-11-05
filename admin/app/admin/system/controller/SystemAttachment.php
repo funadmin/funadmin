@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
@@ -29,6 +31,37 @@ class SystemAttachment extends AdminApiController
         $this->storageDrivers = $storageDrivers ?? Container::get(StorageDriverRegistry::class);
     }
 
+    /**
+     * 获取附件列表。
+     *
+     * 查询参数：keyword、mimeType、groupId、page、pageSize。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/attachment",
+     *     operationId="admin_system_controller_SystemAttachment_index_get",
+     *     tags={"附件"},
+     *     summary="获取附件列表。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="keyword", in="query", required=false, description="搜索关键字。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="mimeType", in="query", required=false, description="mimeType 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="groupId", in="query", required=false, description="groupId 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10)
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
@@ -46,9 +79,57 @@ class SystemAttachment extends AdminApiController
         return $this->ok(data: $this->paginationData($items->map(fn (Attach $attach): array => $this->attachmentData($attach))->all(), $total, $page, $pageSize));
     }
 
+    /**
+     * 获取指定附件的详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/attachment/{id}",
+     *     operationId="admin_system_controller_SystemAttachment_detail_get",
+     *     tags={"附件"},
+     *     summary="获取指定附件的详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response { $attach = Attach::find($id); return $attach ? $this->ok(data: $this->attachmentData($attach)) : $this->fail(msg: '附件不存在', code: 404); }
 
+    /**
+     * 更新附件显示名称，保留底层存储路径。
+     *
+     * 请求字段：name。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/attachment/{id}/name",
+     *     operationId="admin_system_controller_SystemAttachment_rename_put",
+     *     tags={"附件"},
+     *     summary="更新附件显示名称，保留底层存储路径。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(type="object", required={"name"}, @OA\Property(property="name", type="string", description="name 参数。"))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/{id:\d+}/name')]
     public function rename(int $id): Response
     {
@@ -58,6 +139,34 @@ class SystemAttachment extends AdminApiController
         $attach->forceFill(['original_name' => $name])->save(); return $this->ok('重命名成功', $this->attachmentData($attach));
     }
 
+    /**
+     * 将选中的附件移动到指定分组。
+     *
+     * 请求字段：groupId、ids。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/attachment/move",
+     *     operationId="admin_system_controller_SystemAttachment_move_post",
+     *     tags={"附件"},
+     *     summary="将选中的附件移动到指定分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="groupId", type="integer", description="groupId 参数。"),
+     *             @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/move')]
     public function move(): Response
     {
@@ -68,6 +177,30 @@ class SystemAttachment extends AdminApiController
         return $this->ok('移动成功', ['moved' => count($attachments)]);
     }
 
+    /**
+     * 删除附件记录；底层文件无其他引用时同步删除存储对象。
+     *
+     * 请求字段：ids。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/attachment",
+     *     operationId="admin_system_controller_SystemAttachment_delete_delete",
+     *     tags={"附件"},
+     *     summary="删除附件记录；底层文件无其他引用时同步删除存储对象。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('')]
     public function delete(): Response
     {

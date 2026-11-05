@@ -2,6 +2,8 @@
 
 namespace app\admin\authentication\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
@@ -18,6 +20,29 @@ use support\annotation\route\RouteGroup;
 #[RouteGroup('/admin/auth')]
 final class AdminAuth
 {
+    /**
+     * 建立或读取浏览器会话，返回 CSRF 令牌并设置会话 Cookie。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/auth/csrf",
+     *     operationId="admin_authentication_controller_AdminAuth_csrf_get",
+     *     tags={"后台浏览器认证"},
+     *     summary="建立或读取浏览器会话，返回 CSRF 令牌并设置会话 Cookie。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={},
+     *     @OA\Response(
+     *         response=200,
+     *         description="业务响应；以响应体 code 判断成功与失败。",
+     *         @OA\JsonContent(ref="#/components/schemas/AdminAuthCsrfResult"),
+     *         @OA\Header(header="Set-Cookie", description="后台会话 Cookie，浏览器保存后供后续请求使用。", @OA\Schema(type="string")),
+     *         @OA\Header(header="X-CSRF-TOKEN", description="后续写请求使用的 CSRF 令牌。", @OA\Schema(type="string"))
+     *     ),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Get('/csrf')]
     public function csrf(Request $request): Response
     {
@@ -25,6 +50,37 @@ final class AdminAuth
         return $this->attachCookie($this->result(['csrfToken' => $session['csrfToken'], 'captchaEnabled' => false]), $session);
     }
 
+    /**
+     * 验证账号、密码和 CSRF 令牌后建立后台浏览器登录会话。
+     *
+     * 请求字段：username、password。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/auth/login",
+     *     operationId="admin_authentication_controller_AdminAuth_login_post",
+     *     tags={"后台浏览器认证"},
+     *     summary="验证账号、密码和 CSRF 令牌后建立后台浏览器登录会话。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/LoginInput"), @OA\Schema(type="object", required={"username", "password"})})
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="业务响应；以响应体 code 判断成功与失败。",
+     *         @OA\JsonContent(ref="#/components/schemas/AdminAuthLoginResult"),
+     *         @OA\Header(header="Set-Cookie", description="后台会话 Cookie，浏览器保存后供后续请求使用。", @OA\Schema(type="string")),
+     *         @OA\Header(header="X-CSRF-TOKEN", description="后续写请求使用的 CSRF 令牌。", @OA\Schema(type="string"))
+     *     ),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=422, description="认证输入校验失败。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Post('/login')]
     public function login(Request $request): Response
     {
@@ -42,6 +98,25 @@ final class AdminAuth
         }
     }
 
+    /**
+     * 根据浏览器会话获取当前管理员及其权限信息。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/auth/me",
+     *     operationId="admin_authentication_controller_AdminAuth_me_get",
+     *     tags={"后台浏览器认证"},
+     *     summary="根据浏览器会话获取当前管理员及其权限信息。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Get('/me')]
     public function me(Request $request): Response
     {
@@ -53,6 +128,25 @@ final class AdminAuth
         }
     }
 
+    /**
+     * 根据浏览器会话获取当前管理员可访问的菜单。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/auth/menus",
+     *     operationId="admin_authentication_controller_AdminAuth_menus_get",
+     *     tags={"后台浏览器认证"},
+     *     summary="根据浏览器会话获取当前管理员可访问的菜单。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Get('/menus')]
     public function menus(Request $request): Response
     {
@@ -64,6 +158,25 @@ final class AdminAuth
         }
     }
 
+    /**
+     * 验证 CSRF 令牌后注销浏览器会话，并清除登录 Cookie。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/auth/logout",
+     *     operationId="admin_authentication_controller_AdminAuth_logout_post",
+     *     tags={"后台浏览器认证"},
+     *     summary="验证 CSRF 令牌后注销浏览器会话，并清除登录 Cookie。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminAuthLogoutResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Post('/logout')]
     public function logout(Request $request): Response
     {

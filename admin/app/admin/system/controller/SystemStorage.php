@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\common\model\Config;
 use app\common\storage\StorageDriverRegistry;
@@ -29,6 +31,24 @@ final class SystemStorage extends AdminApiController
         $this->drivers = $drivers ?? Container::get(StorageDriverRegistry::class);
     }
 
+    /**
+     * 获取当前存储驱动、回退状态及全部可用驱动。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/storage",
+     *     operationId="admin_system_controller_SystemStorage_index_get",
+     *     tags={"存储驱动"},
+     *     summary="获取当前存储驱动、回退状态及全部可用驱动。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
@@ -41,6 +61,30 @@ final class SystemStorage extends AdminApiController
         ]);
     }
 
+    /**
+     * 校验驱动可用性后更新上传存储驱动并清理缓存。
+     *
+     * 请求字段：driver。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/storage",
+     *     operationId="admin_system_controller_SystemStorage_update_put",
+     *     tags={"存储驱动"},
+     *     summary="校验驱动可用性后更新上传存储驱动并清理缓存。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(type="object", required={"driver"}, @OA\Property(property="driver", type="string", description="driver 参数。"))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('')]
     public function update(): Response
     {

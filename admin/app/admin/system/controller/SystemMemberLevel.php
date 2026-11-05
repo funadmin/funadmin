@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberLevel;
@@ -37,60 +39,284 @@ class SystemMemberLevel extends AdminApiController
 
     protected string $model = MemberLevel::class;
 
+    /**
+     * 按筛选条件导出会员等级数据。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/member-level/export",
+     *     operationId="admin_system_controller_SystemMemberLevel_export_get",
+     *     tags={"会员等级"},
+     *     summary="按筛选条件导出会员等级数据。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="pageSize", in="query", required=false, description="每页记录数。", @OA\Schema(type="integer", minimum=1, maximum=100)),
+     *     @OA\Parameter(name="recycled", in="query", required=false, description="recycled 参数。", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="sort", in="query", required=false, description="排序字段或排序权重，按接口用途区分。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="order", in="query", required=false, description="排序方向。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/export')]
     public function export(): Response
     {
         return $this->crudExport();
     }
 
+    /**
+     * 批量导入会员等级，返回导入结果。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/member-level/import",
+     *     operationId="admin_system_controller_SystemMemberLevel_import_post",
+     *     tags={"会员等级"},
+     *     summary="批量导入会员等级，返回导入结果。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="rows", type="array", description="待导入的记录数组。", @OA\Items()))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/import')]
     public function import(): Response
     {
         return $this->crudImport();
     }
 
+    /**
+     * 获取会员等级列表。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/member-level",
+     *     operationId="admin_system_controller_SystemMemberLevel_index_get",
+     *     tags={"会员等级"},
+     *     summary="获取会员等级列表。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="pageSize", in="query", required=false, description="每页记录数。", @OA\Schema(type="integer", minimum=1, maximum=100)),
+     *     @OA\Parameter(name="recycled", in="query", required=false, description="recycled 参数。", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="sort", in="query", required=false, description="排序字段或排序权重，按接口用途区分。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="order", in="query", required=false, description="排序方向。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/SystemMemberLevelIndexResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
         return $this->crudIndex();
     }
 
+    /**
+     * 获取指定会员等级的详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/member-level/{id}",
+     *     operationId="admin_system_controller_SystemMemberLevel_detail_get",
+     *     tags={"会员等级"},
+     *     summary="获取指定会员等级的详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/SystemMemberLevelDetailResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
         return $this->crudDetail($id);
     }
 
+    /**
+     * 创建会员等级，校验提交字段后保存。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/member-level",
+     *     operationId="admin_system_controller_SystemMemberLevel_create_post",
+     *     tags={"会员等级"},
+     *     summary="创建会员等级，校验提交字段后保存。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/MemberLevelInput"), @OA\Schema(type="object", required={"name"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/SystemMemberLevelCreateResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('')]
     public function create(): Response
     {
         return $this->crudCreate();
     }
 
+    /**
+     * 更新指定会员等级。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/member-level/{id}",
+     *     operationId="admin_system_controller_SystemMemberLevel_update_put",
+     *     tags={"会员等级"},
+     *     summary="更新指定会员等级。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(ref="#/components/schemas/MemberLevelInput")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/SystemMemberLevelUpdateResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
         return $this->crudUpdate($id);
     }
 
+    /**
+     * 更新会员等级的启用状态。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/member-level/{id}/status",
+     *     operationId="admin_system_controller_SystemMemberLevel_status_post",
+     *     tags={"会员等级"},
+     *     summary="更新会员等级的启用状态。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="status", type="integer", description="状态筛选或启用状态，具体取值由当前资源校验。"))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/SystemMemberLevelStatusResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/{id:\d+}/status')]
     public function status(int $id): Response
     {
         return $this->crudStatus($id);
     }
 
+    /**
+     * 将选中的会员等级移入回收站。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/member-level",
+     *     operationId="admin_system_controller_SystemMemberLevel_recycle_delete",
+     *     tags={"会员等级"},
+     *     summary="将选中的会员等级移入回收站。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('')]
     public function recycle(): Response
     {
         return $this->crudRecycle();
     }
 
+    /**
+     * 恢复回收站中的会员等级。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/member-level/restore",
+     *     operationId="admin_system_controller_SystemMemberLevel_restore_post",
+     *     tags={"会员等级"},
+     *     summary="恢复回收站中的会员等级。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/restore')]
     public function restore(): Response
     {
         return $this->crudRestore();
     }
 
+    /**
+     * 永久删除会员等级，删除后不可通过回收站恢复。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/member-level/destroy",
+     *     operationId="admin_system_controller_SystemMemberLevel_destroy_delete",
+     *     tags={"会员等级"},
+     *     summary="永久删除会员等级，删除后不可通过回收站恢复。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/destroy')]
     public function destroy(): Response
     {

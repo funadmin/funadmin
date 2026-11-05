@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\ai\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use Webman\RedisQueue\Redis;
 use app\admin\ai\infrastructure\NativeDockerProcessRunner;
@@ -58,32 +60,368 @@ final class Ai extends AdminApiController
         $this->sandbox = new AgentSandboxManager(new NativeDockerProcessRunner(), base_path(), (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
     }
 
+    /**
+     * 分页查询当前管理员的 AI 会话。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/conversations",
+     *     operationId="admin_ai_controller_Ai_conversationIndex_get",
+     *     tags={"AI 开发"},
+     *     summary="分页查询当前管理员的 AI 会话。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         description="每批读取上限。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=30)
+     *     ),
+     *     @OA\Parameter(name="cursor", in="query", required=false, description="分页或事件游标。", @OA\Schema(type="string", pattern="^[1-9][0-9]*$")),
+     *     @OA\Parameter(name="search", in="query", required=false, description="search", @OA\Schema(type="string", maxLength=255)),
+     *     @OA\Parameter(name="is_archived", in="query", required=false, description="是否查询归档会话。", @OA\Schema(type="integer", enum={0, 1})),
+     *     @OA\Parameter(name="group_id", in="query", required=false, description="group_id", @OA\Schema(type="integer", minimum=0)),
+     *     @OA\Parameter(name="is_unread", in="query", required=false, description="is_unread", @OA\Schema(type="integer", enum={0, 1})),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AiConversationIndexResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/conversations')]
     public function conversationIndex(): Response { return $this->run(fn () => $this->ai->conversationPage($this->adminId(), $this->request->get())); }
+    /**
+     * 获取当前管理员的会话分组。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/conversation-groups",
+     *     operationId="admin_ai_controller_Ai_conversationGroupIndex_get",
+     *     tags={"AI 开发"},
+     *     summary="获取当前管理员的会话分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/conversation-groups')]
     public function conversationGroupIndex(): Response { return $this->run(fn () => $this->ai->listConversationGroups($this->adminId())); }
+    /**
+     * 为当前管理员创建会话分组。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/conversation-groups",
+     *     operationId="admin_ai_controller_Ai_conversationGroupCreate_post",
+     *     tags={"AI 开发"},
+     *     summary="为当前管理员创建会话分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(required=true, @OA\JsonContent(type="object", required={"name"}, @OA\Property(property="name", type="string"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/conversation-groups')]
     public function conversationGroupCreate(): Response { return $this->run(fn () => $this->ai->createConversationGroup($this->adminId(), $this->input())); }
+    /**
+     * 更新当前管理员的会话分组。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/development/ai/conversation-groups/{id}",
+     *     operationId="admin_ai_controller_Ai_conversationGroupUpdate_put",
+     *     tags={"AI 开发"},
+     *     summary="更新当前管理员的会话分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(type="object", required={"name"}, @OA\Property(property="name", type="string"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/conversation-groups/{id:\d+}')]
     public function conversationGroupUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversationGroup($id, $this->adminId(), $this->input())); }
+    /**
+     * 删除当前管理员的会话分组。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/development/ai/conversation-groups/{id}",
+     *     operationId="admin_ai_controller_Ai_conversationGroupDelete_delete",
+     *     tags={"AI 开发"},
+     *     summary="删除当前管理员的会话分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/conversation-groups/{id:\d+}')]
     public function conversationGroupDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversationGroup($id, $this->adminId())]); }
 
+    /**
+     * 创建 AI 会话，并检查审批模式所需权限。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/conversations",
+     *     operationId="admin_ai_controller_Ai_conversationCreate_post",
+     *     tags={"AI 开发"},
+     *     summary="创建 AI 会话，并检查审批模式所需权限。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="group_id", type="integer", nullable=true),
+     *             @OA\Property(property="profile_id", type="integer", nullable=true),
+     *             @OA\Property(property="model", type="string"),
+     *             @OA\Property(property="provider", type="string"),
+     *             @OA\Property(property="approval_mode", type="string", enum={"request_approval", "agent_approval", "full_access"}),
+     *             @OA\Property(property="reasoning_effort", type="string", nullable=true),
+     *             @OA\Property(property="context", oneOf={@OA\Schema(type="object", additionalProperties=true), @OA\Schema(type="array", @OA\Items())})
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/conversations')]
     public function conversationCreate(): Response { return $this->run(fn () => $this->ai->createConversation($this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
+    /**
+     * 读取当前管理员所属的 AI 会话详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/conversations/{id}",
+     *     operationId="admin_ai_controller_Ai_conversationRead_get",
+     *     tags={"AI 开发"},
+     *     summary="读取当前管理员所属的 AI 会话详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/conversations/{id:\d+}')]
     public function conversationRead(int $id): Response { return $this->run(fn () => $this->ai->getConversation($id, $this->adminId())); }
+    /**
+     * 更新 AI 会话配置，并检查审批模式所需权限。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/development/ai/conversations/{id}",
+     *     operationId="admin_ai_controller_Ai_conversationUpdate_put",
+     *     tags={"AI 开发"},
+     *     summary="更新 AI 会话配置，并检查审批模式所需权限。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="title", type="string"),
+     *             @OA\Property(property="profile_id", type="integer", nullable=true),
+     *             @OA\Property(property="model", type="string"),
+     *             @OA\Property(property="provider", type="string"),
+     *             @OA\Property(property="approval_mode", type="string", enum={"request_approval", "agent_approval", "full_access"}),
+     *             @OA\Property(property="reasoning_effort", type="string", nullable=true),
+     *             @OA\Property(property="context", oneOf={@OA\Schema(type="object", additionalProperties=true), @OA\Schema(type="array", @OA\Items())})
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/conversations/{id:\d+}')]
     public function conversationUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversation($id, $this->adminId(), $this->input(), $this->can('development:ai:full-access'), $this->can('development:ai:approve'))); }
+    /**
+     * 部分更新 AI 会话的展示状态。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Patch(
+     *     path="/admin/development/ai/conversations/{id}/state",
+     *     operationId="admin_ai_controller_Ai_conversationStateUpdate_patch",
+     *     tags={"AI 开发"},
+     *     summary="部分更新 AI 会话的展示状态。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="group_id", type="integer", nullable=true),
+     *             @OA\Property(property="is_archived", type="boolean"),
+     *             @OA\Property(property="is_unread", type="boolean")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Patch('/conversations/{id:\d+}/state')]
     public function conversationStateUpdate(int $id): Response { return $this->run(fn () => $this->ai->updateConversationState($id, $this->adminId(), $this->input())); }
+    /**
+     * 删除当前管理员所属的 AI 会话。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/development/ai/conversations/{id}",
+     *     operationId="admin_ai_controller_Ai_conversationDelete_delete",
+     *     tags={"AI 开发"},
+     *     summary="删除当前管理员所属的 AI 会话。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/conversations/{id:\d+}')]
     public function conversationDelete(int $id): Response { return $this->run(fn () => ['deleted' => $this->ai->deleteConversation($id, $this->adminId())]); }
+    /**
+     * 按游标读取指定会话的消息。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/conversations/{id}/messages",
+     *     operationId="admin_ai_controller_Ai_messageIndex_get",
+     *     tags={"AI 开发"},
+     *     summary="按游标读取指定会话的消息。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 before 与 after 互斥，消息游标为 sequence:id；after 允许 0:0。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         required=false,
+     *         description="每批读取上限。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=50)
+     *     ),
+     *     @OA\Parameter(name="before", in="query", required=false, description="before", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="after", in="query", required=false, description="after", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AiMessageIndexResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/conversations/{id:\d+}/messages')]
     public function messageIndex(int $id): Response { return $this->run(fn () => $this->ai->messagePage($id, $this->adminId(), $this->request->get())); }
+    /**
+     * 向指定会话追加用户消息。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/conversations/{id}/messages",
+     *     operationId="admin_ai_controller_Ai_messageCreate_post",
+     *     tags={"AI 开发"},
+     *     summary="向指定会话追加用户消息。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/AiMessageInput"), @OA\Schema(type="object", required={"content"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/conversations/{id:\d+}/messages')]
     public function messageCreate(int $id): Response { return $this->run(fn () => $this->ai->appendUserMessage($id, $this->adminId(), $this->input())); }
 
+    /**
+     * 上传单个 multipart file 到当前会话的私有附件存储。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/conversations/{id}/attachments",
+     *     operationId="admin_ai_controller_Ai_attachmentCreate_post",
+     *     tags={"AI 开发"},
+     *     summary="上传单个 multipart file 到当前会话的私有附件存储。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"file"},
+     *                 @OA\Property(property="file", type="string", description="上传文件，使用 multipart/form-data。", format="binary")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AiAttachmentCreateResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=413, description="上传内容超过大小上限，或请求体超过服务端限制。", @OA\JsonContent(ref="#/components/schemas/AdminEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/conversations/{id:\d+}/attachments')]
     public function attachmentCreate(int $id): Response
     {
@@ -100,6 +438,34 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 验证会话归属后返回私有附件内容，并设置禁止缓存响应头。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @param int $attachmentId 当前会话的附件 ID。
+     * @return Response 成功时为附件原始内容，失败时为 JSON 错误响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/conversations/{id}/attachments/{attachmentId}/content",
+     *     operationId="admin_ai_controller_Ai_attachmentContent_get",
+     *     tags={"AI 开发"},
+     *     summary="验证会话归属后返回私有附件内容，并设置禁止缓存响应头。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="attachmentId", in="path", required=true, description="当前会话的附件 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="文件内容；实际 MIME 与 Content-Disposition 由服务端返回。",
+     *         @OA\MediaType(mediaType="application/octet-stream", @OA\Schema(type="string", format="binary"))
+     *     ),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=409, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/conversations/{id:\d+}/attachments/{attachmentId:\d+}/content')]
     public function attachmentContent(int $id, int $attachmentId): Response
     {
@@ -116,12 +482,66 @@ final class Ai extends AdminApiController
         }
     }
 
+    /**
+     * 删除当前会话中的私有附件。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @param int $attachmentId 当前会话的附件 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/development/ai/conversations/{id}/attachments/{attachmentId}",
+     *     operationId="admin_ai_controller_Ai_attachmentDelete_delete",
+     *     tags={"AI 开发"},
+     *     summary="删除当前会话中的私有附件。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="attachmentId", in="path", required=true, description="当前会话的附件 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/conversations/{id:\d+}/attachments/{attachmentId:\d+}')]
     public function attachmentDelete(int $id, int $attachmentId): Response
     {
         return $this->run(fn () => ['deleted'=>\app\admin\ai\service\AiAttachmentService::production()->delete($id, $this->adminId(), $attachmentId)]);
     }
 
+    /**
+     * 创建 AI 任务并投递至 ai-agent 队列。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/conversations/{id}/tasks",
+     *     operationId="admin_ai_controller_Ai_taskExecute_post",
+     *     tags={"AI 开发"},
+     *     summary="创建 AI 任务并投递至 ai-agent 队列。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"message_id", "idempotency_key"},
+     *             @OA\Property(property="message_id", type="integer", description="本会话中已保存的 user 消息 ID。", minimum=1),
+     *             @OA\Property(property="idempotency_key", type="string", minLength=1, maxLength=128),
+     *             @OA\Property(property="type", type="string", enum={"chat"}, default="chat")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/conversations/{id:\d+}/tasks')]
     public function taskExecute(int $id): Response
     {
@@ -134,14 +554,105 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 获取当前管理员所属的 AI 任务详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/tasks/{id}",
+     *     operationId="admin_ai_controller_Ai_taskRead_get",
+     *     tags={"AI 开发"},
+     *     summary="获取当前管理员所属的 AI 任务详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tasks/{id:\d+}')]
     public function taskRead(int $id): Response { return $this->run(fn () => $this->ai->getTask($id, $this->adminId())); }
 
+    /**
+     * 请求取消当前管理员所属的 AI 任务。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/tasks/{id}/cancel",
+     *     operationId="admin_ai_controller_Ai_taskCancel_post",
+     *     tags={"AI 开发"},
+     *     summary="请求取消当前管理员所属的 AI 任务。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/tasks/{id:\d+}/cancel')]
     public function taskCancel(int $id): Response { return $this->run(fn () => ['cancelled' => $this->ai->cancelTask($id, $this->adminId())]); }
+    /**
+     * 验证任务归属后签发事件读取票据。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/tasks/{id}/events/ticket",
+     *     operationId="admin_ai_controller_Ai_eventTicket_post",
+     *     tags={"AI 开发"},
+     *     summary="验证任务归属后签发事件读取票据。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AiEventTicketResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/tasks/{id:\d+}/events/ticket')]
     public function eventTicket(int $id): Response { return $this->run(function () use ($id): array { $this->ai->getTask($id, $this->adminId()); return ['ticket' => $this->events->issueTicket($this->adminId(), $id)]; }); }
 
+    /**
+     * 使用事件票据和游标读取任务事件，返回 SSE 格式响应。
+     *
+     * 查询参数：ticket、cursor。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response text/event-stream 格式的任务事件，读取失败时按异常处理。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/tasks/{id}/events",
+     *     operationId="admin_ai_controller_Ai_eventStream_get",
+     *     tags={"AI 开发"},
+     *     summary="使用事件票据和游标读取任务事件，返回 SSE 格式响应。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="ticket", in="query", required=true, description="ticket 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="cursor", in="query", required=false, description="分页或事件游标。", @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="SSE 事件文本，每条事件包含 id、event 和 JSON data。",
+     *         @OA\MediaType(mediaType="text/event-stream", @OA\Schema(type="string"))
+     *     ),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tasks/{id:\d+}/events')]
     public function eventStream(int $id): Response
     {
@@ -154,9 +665,57 @@ final class Ai extends AdminApiController
         return $response;
     }
 
+    /**
+     * 获取当前管理员待处理的 AI 审批。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/approvals",
+     *     operationId="admin_ai_controller_Ai_approvalIndex_get",
+     *     tags={"AI 开发"},
+     *     summary="获取当前管理员待处理的 AI 审批。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/approvals')]
     public function approvalIndex(): Response { return $this->run(fn () => $this->approvals->pending($this->adminId())); }
 
+    /**
+     * 校验审批上下文后批准或拒绝工具调用，并处理任务续跑与沙箱收尾。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/approvals/{id}/decision",
+     *     operationId="admin_ai_controller_Ai_approvalDecide_post",
+     *     tags={"AI 开发"},
+     *     summary="校验审批上下文后批准或拒绝工具调用，并处理任务续跑与沙箱收尾。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/AiApprovalInput"),
+     *                 @OA\Schema(type="object", required={"action", "nonce", "digest", "casVersion", "mode"})
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/approvals/{id:\d+}/decision')]
     public function approvalDecide(int $id): Response
     {
@@ -192,9 +751,59 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 验证任务归属后获取工具调用记录。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/tasks/{id}/tool-calls",
+     *     operationId="admin_ai_controller_Ai_taskToolCalls_get",
+     *     tags={"AI 开发"},
+     *     summary="验证任务归属后获取工具调用记录。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tasks/{id:\d+}/tool-calls')]
     public function taskToolCalls(int $id): Response { return $this->run(function () use ($id): array { $this->ai->getTask($id, $this->adminId()); return $this->security->toolCalls($id); }); }
 
+    /**
+     * 验证任务归属及日志路径后读取 stdout 或 stderr 日志。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @param string $stream 日志流名称，仅允许 stdout 或 stderr。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/tool-calls/{id}/logs/{stream}",
+     *     operationId="admin_ai_controller_Ai_toolCallLog_get",
+     *     tags={"AI 开发"},
+     *     summary="验证任务归属及日志路径后读取 stdout 或 stderr 日志。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(
+     *         name="stream",
+     *         in="path",
+     *         required=true,
+     *         description="日志流名称，仅允许 stdout 或 stderr。",
+     *         @OA\Schema(type="string", pattern="^(?:stdout|stderr)$")
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AiToolCallLogResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tool-calls/{id:\d+}/logs/{stream:stdout|stderr}')]
     public function toolCallLog(int $id, string $stream): Response
     {
@@ -210,9 +819,45 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 查询 AI 沙箱运行环境状态。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/sandbox/status",
+     *     operationId="admin_ai_controller_Ai_sandboxStatus_get",
+     *     tags={"AI 开发"},
+     *     summary="查询 AI 沙箱运行环境状态。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/sandbox/status')]
     public function sandboxStatus(): Response { return $this->run(fn () => $this->sandbox->status()); }
 
+    /**
+     * 清理当前管理员已结束且超过保留期的任务沙箱。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/sandbox/cleanup",
+     *     operationId="admin_ai_controller_Ai_sandboxCleanup_post",
+     *     tags={"AI 开发"},
+     *     summary="清理当前管理员已结束且超过保留期的任务沙箱。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/sandbox/cleanup')]
     public function sandboxCleanup(): Response
     {
@@ -243,6 +888,27 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 读取当前管理员可见的变更集信息。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/change-sets/{id}",
+     *     operationId="admin_ai_controller_Ai_changeSetDetail_get",
+     *     tags={"AI 开发"},
+     *     summary="读取当前管理员可见的变更集信息。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/change-sets/{id:\d+}')]
     public function changeSetDetail(int $id): Response
     {
@@ -251,6 +917,28 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 检查预览权限后生成变更计划，并记录选择范围与计划摘要。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/change-sets/{id}/preview",
+     *     operationId="admin_ai_controller_Ai_changeSetPreview_post",
+     *     tags={"AI 开发"},
+     *     summary="检查预览权限后生成变更计划，并记录选择范围与计划摘要。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="selection", type="array", @OA\Items(type="string")))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/change-sets/{id:\d+}/preview')]
     public function changeSetPreview(int $id): Response
     {
@@ -265,6 +953,36 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 验证应用权限、最终审批及确认令牌后应用变更集。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/change-sets/{id}/apply",
+     *     operationId="admin_ai_controller_Ai_changeSetApply_post",
+     *     tags={"AI 开发"},
+     *     summary="验证应用权限、最终审批及确认令牌后应用变更集。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="selection", type="array", @OA\Items(type="string")),
+     *             @OA\Property(property="confirmToken", type="string"),
+     *             @OA\Property(property="finalApprovalId", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/change-sets/{id:\d+}/apply')]
     public function changeSetApply(int $id): Response
     {
@@ -286,6 +1004,29 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 验证恢复权限及 recoveryVersion 后恢复变更集事务。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/change-sets/{id}/recover",
+     *     operationId="admin_ai_controller_Ai_changeSetRecover_post",
+     *     tags={"AI 开发"},
+     *     summary="验证恢复权限及 recoveryVersion 后恢复变更集事务。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="recoveryVersion", type="integer"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=409, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/change-sets/{id:\d+}/recover')]
     public function changeSetRecover(int $id): Response
     {
@@ -306,6 +1047,35 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 验证会话和任务归属后预览 AI 提交的 CRUD 生成提案。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/crud-proposals/preview",
+     *     operationId="admin_ai_controller_Ai_crudProposalPreview_post",
+     *     tags={"AI 开发"},
+     *     summary="验证会话和任务归属后预览 AI 提交的 CRUD 生成提案。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="moduleId", type="integer"),
+     *             @OA\Property(property="taskId", type="integer"),
+     *             @OA\Property(property="conversationId", type="integer"),
+     *             @OA\Property(property="proposal", ref="#/components/schemas/DynamicObject"),
+     *             @OA\Property(property="nonce", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/crud-proposals/preview')]
     public function crudProposalPreview(): Response
     {
@@ -320,6 +1090,35 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 检查提案应用权限及审批后执行 CRUD 生成提案。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/crud-proposals/apply",
+     *     operationId="admin_ai_controller_Ai_crudProposalApply_post",
+     *     tags={"AI 开发"},
+     *     summary="检查提案应用权限及审批后执行 CRUD 生成提案。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="taskId", type="integer"),
+     *             @OA\Property(property="conversationId", type="integer"),
+     *             @OA\Property(property="generationId", type="integer"),
+     *             @OA\Property(property="confirmToken", type="string"),
+     *             @OA\Property(property="finalApprovalId", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/crud-proposals/apply')]
     public function crudProposalApply(): Response
     {
@@ -337,12 +1136,71 @@ final class Ai extends AdminApiController
         });
     }
 
+    /**
+     * 读取 AI 供应商设置及运行限制。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/ai/settings",
+     *     operationId="admin_ai_controller_Ai_settingsRead_get",
+     *     tags={"AI 开发"},
+     *     summary="读取 AI 供应商设置及运行限制。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/settings')]
     public function settingsRead(): Response
     {
         return $this->ok(data: $this->providerSettings()->read((array) config('ai.limits', [])));
     }
 
+    /**
+     * 使用提交的临时供应商配置测试连接。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/settings/test",
+     *     operationId="admin_ai_controller_Ai_settingsTest_post",
+     *     tags={"AI 开发"},
+     *     summary="使用提交的临时供应商配置测试连接。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="name", type="string", maxLength=100),
+     *             @OA\Property(property="provider", type="string", maxLength=64),
+     *             @OA\Property(property="protocol", type="string", enum={"openai-chat", "openai-responses", "anthropic-messages"}),
+     *             @OA\Property(property="base_url", type="string", format="uri", maxLength=2048),
+     *             @OA\Property(property="model", type="string", maxLength=200),
+     *             @OA\Property(
+     *                 property="api_key",
+     *                 type="string",
+     *                 description="省略保留密钥，空字符串清空，非空加密替换。",
+     *                 format="password",
+     *                 writeOnly=true,
+     *                 maxLength=8192
+     *             ),
+     *             @OA\Property(property="max_output_tokens", type="integer", minimum=1, maximum=10000000, nullable=true),
+     *             @OA\Property(property="connect_timeout", type="integer", minimum=1, maximum=30),
+     *             @OA\Property(property="request_timeout", type="integer", minimum=1, maximum=300),
+     *             @OA\Property(property="max_retries", type="integer", minimum=0, maximum=3)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/settings/test')]
     public function settingsTest(): Response
     {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\identity\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\common\model\Member;
 use app\common\model\identity\IdentityAdminLink;
 use app\common\model\identity\IdentityMemberLink;
@@ -21,9 +23,41 @@ use support\annotation\route\Post;
 use support\Db;
 use support\Response;
 
+/**
+ * 统一身份用户接口。
+ */
 #[RouteGroup('/admin/identity/users')]
 final class IdentityUser extends AdminApiController
 {
+    /**
+     * 分页查询当前租户的统一身份用户。
+     *
+     * 查询参数：keyword、pageSize、page。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/users",
+     *     operationId="admin_identity_controller_IdentityUser_index_get",
+     *     tags={"统一身份用户"},
+     *     summary="分页查询当前租户的统一身份用户。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="keyword", in="query", required=false, description="搜索关键字。", @OA\Schema(type="string")),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=20)
+     *     ),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/IdentityUserIndexResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
@@ -44,6 +78,27 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: ['list' => $rows, 'total' => $total]);
     }
 
+    /**
+     * 读取统一身份用户详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/users/{id}",
+     *     operationId="admin_identity_controller_IdentityUser_detail_get",
+     *     tags={"统一身份用户"},
+     *     summary="读取统一身份用户详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
@@ -58,6 +113,27 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: $user);
     }
 
+    /**
+     * 读取统一身份用户与业务账号的绑定关系。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/users/{id}/links",
+     *     operationId="admin_identity_controller_IdentityUser_links_get",
+     *     tags={"统一身份用户"},
+     *     summary="读取统一身份用户与业务账号的绑定关系。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}/links')]
     public function links(int $id): Response
     {
@@ -69,6 +145,27 @@ final class IdentityUser extends AdminApiController
         ]);
     }
 
+    /**
+     * 读取统一身份用户的会话记录。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/users/{id}/sessions",
+     *     operationId="admin_identity_controller_IdentityUser_sessions_get",
+     *     tags={"统一身份用户"},
+     *     summary="读取统一身份用户的会话记录。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}/sessions')]
     public function sessions(int $id): Response
     {
@@ -77,6 +174,27 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: OidcSession::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['session_token_hash', 'password_version', 'session_version'])->toArray());
     }
 
+    /**
+     * 读取统一身份用户的客户端授权记录。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/users/{id}/authorizations",
+     *     operationId="admin_identity_controller_IdentityUser_authorizations_get",
+     *     tags={"统一身份用户"},
+     *     summary="读取统一身份用户的客户端授权记录。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}/authorizations')]
     public function authorizations(int $id): Response
     {
@@ -85,6 +203,27 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: OAuthAuthorization::forTenant($tenantId)->where('user_id', $id)->orderByDesc('id')->get()->makeHidden(['transaction_hash', 'state', 'nonce', 'code_challenge', 'redirect_uri'])->toArray());
     }
 
+    /**
+     * 撤销指定统一身份用户的会话。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/identity/users/{id}/sessions/revoke",
+     *     operationId="admin_identity_controller_IdentityUser_revokeSessions_post",
+     *     tags={"统一身份用户"},
+     *     summary="撤销指定统一身份用户的会话。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/{id:\d+}/sessions/revoke')]
     public function revokeSessions(int $id): Response
     {
@@ -97,6 +236,27 @@ final class IdentityUser extends AdminApiController
         return $this->ok(data: null, msg: '用户会话已撤销');
     }
 
+    /**
+     * 撤销指定统一身份用户的客户端授权。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/identity/users/{id}/authorizations/revoke",
+     *     operationId="admin_identity_controller_IdentityUser_revokeAuthorizations_post",
+     *     tags={"统一身份用户"},
+     *     summary="撤销指定统一身份用户的客户端授权。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/{id:\d+}/authorizations/revoke')]
     public function revokeAuthorizations(int $id): Response
     {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\authorization\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\CasbinRule;
@@ -28,6 +30,29 @@ use InvalidArgumentException;
 class SystemPermission extends AdminApiController
 {
 
+    /**
+     * 获取权限资源树形数据。
+     *
+     * 查询参数：name、resource、status。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/permission/tree",
+     *     operationId="admin_authorization_controller_SystemPermission_tree_get",
+     *     tags={"权限资源"},
+     *     summary="获取权限资源树形数据。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="name", in="query", required=false, description="name 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="resource", in="query", required=false, description="resource 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="status", in="query", required=false, description="状态筛选或启用状态，具体取值由当前资源校验。", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tree')]
     public function tree(): Response
     {
@@ -53,6 +78,27 @@ class SystemPermission extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    /**
+     * 获取指定权限资源的详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/permission/{id}",
+     *     operationId="admin_authorization_controller_SystemPermission_detail_get",
+     *     tags={"权限资源"},
+     *     summary="获取指定权限资源的详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
@@ -65,6 +111,28 @@ class SystemPermission extends AdminApiController
             : $this->fail(msg: '权限资源不存在', code: 404);
     }
 
+    /**
+     * 创建权限资源，校验提交字段后保存。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/permission",
+     *     operationId="admin_authorization_controller_SystemPermission_create_post",
+     *     tags={"权限资源"},
+     *     summary="创建权限资源，校验提交字段后保存。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/PermissionInput"), @OA\Schema(type="object", required={"name"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('')]
     public function create(): Response
     {
@@ -91,6 +159,28 @@ class SystemPermission extends AdminApiController
         return $this->ok('创建成功', $permission->toApiData());
     }
 
+    /**
+     * 更新指定权限资源。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/permission/{id}",
+     *     operationId="admin_authorization_controller_SystemPermission_update_put",
+     *     tags={"权限资源"},
+     *     summary="更新指定权限资源。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(ref="#/components/schemas/PermissionInput")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
@@ -149,12 +239,62 @@ class SystemPermission extends AdminApiController
         return $this->ok('保存成功', $permission->toApiData());
     }
 
+    /**
+     * 按 ID 删除单条权限资源。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/permission/{id}",
+     *     operationId="admin_authorization_controller_SystemPermission_deleteById_delete",
+     *     tags={"权限资源"},
+     *     summary="按 ID 删除单条权限资源。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
     }
 
+    /**
+     * 删除指定权限资源。
+     *
+     * 请求字段：ids。
+     *
+     * @param int $id 路由中的目标记录 ID；默认值 0 时由请求中的 ID 集合确定目标。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/permission",
+     *     operationId="admin_authorization_controller_SystemPermission_delete_delete",
+     *     tags={"权限资源"},
+     *     summary="删除指定权限资源。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('')]
     public function delete(int $id = 0): Response
     {

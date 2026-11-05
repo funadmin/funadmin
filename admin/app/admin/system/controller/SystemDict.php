@@ -2,6 +2,8 @@
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\common\model\DictItem;
 use app\common\model\DictType;
@@ -21,6 +23,37 @@ use support\Response;
 class SystemDict extends AdminApiController
 {
 
+    /**
+     * 按名称、编码和状态分页查询字典类型。
+     *
+     * 查询参数：name、code、status、page、pageSize。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/dict/types",
+     *     operationId="admin_system_controller_SystemDict_types_get",
+     *     tags={"数据字典"},
+     *     summary="按名称、编码和状态分页查询字典类型。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="name", in="query", required=false, description="name 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="code", in="query", required=false, description="code 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="status", in="query", required=false, description="状态筛选或启用状态，具体取值由当前资源校验。", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10)
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/types')]
     public function types(): Response
     {
@@ -47,6 +80,35 @@ class SystemDict extends AdminApiController
         return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
+    /**
+     * 创建字典类型，并检查字典编码唯一性。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/dict/types",
+     *     operationId="admin_system_controller_SystemDict_createType_post",
+     *     tags={"数据字典"},
+     *     summary="创建字典类型，并检查字典编码唯一性。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="code", type="string"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="status", type="integer"),
+     *             @OA\Property(property="sort", type="integer"),
+     *             @OA\Property(property="remark", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/types')]
     public function createType(): Response
     {
@@ -62,6 +124,37 @@ class SystemDict extends AdminApiController
         return $this->ok('创建成功', $this->typeData($type));
     }
 
+    /**
+     * 更新字典类型信息，保留原字典编码。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/dict/types/{id}",
+     *     operationId="admin_system_controller_SystemDict_updateType_put",
+     *     tags={"数据字典"},
+     *     summary="更新字典类型信息，保留原字典编码。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="status", type="integer"),
+     *             @OA\Property(property="sort", type="integer"),
+     *             @OA\Property(property="remark", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/types/{id:\d+}')]
     public function updateType(int $id): Response
     {
@@ -80,6 +173,27 @@ class SystemDict extends AdminApiController
         return $this->ok('保存成功', $this->typeData($type));
     }
 
+    /**
+     * 删除单个字典类型；存在字典项时拒绝删除。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/dict/types/{id}",
+     *     operationId="admin_system_controller_SystemDict_deleteType_delete",
+     *     tags={"数据字典"},
+     *     summary="删除单个字典类型；存在字典项时拒绝删除。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/types/{id:\d+}')]
     public function deleteType(int $id): Response
     {
@@ -95,6 +209,30 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功');
     }
 
+    /**
+     * 批量删除字典类型；存在字典项时拒绝删除。
+     *
+     * 请求字段：ids。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/dict/types",
+     *     operationId="admin_system_controller_SystemDict_deleteTypes_delete",
+     *     tags={"数据字典"},
+     *     summary="批量删除字典类型；存在字典项时拒绝删除。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/types')]
     public function deleteTypes(): Response
     {
@@ -113,6 +251,38 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($types)]);
     }
 
+    /**
+     * 按字典编码及筛选条件分页查询字典项。
+     *
+     * 查询参数：typeCode、label、value、status、page、pageSize。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/dict/items",
+     *     operationId="admin_system_controller_SystemDict_items_get",
+     *     tags={"数据字典"},
+     *     summary="按字典编码及筛选条件分页查询字典项。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="typeCode", in="query", required=false, description="typeCode 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="label", in="query", required=false, description="label 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="value", in="query", required=false, description="结构由具体业务、插件或已发布 Schema 决定；不推断未声明的字段。", @OA\Schema()),
+     *     @OA\Parameter(name="status", in="query", required=false, description="状态筛选或启用状态，具体取值由当前资源校验。", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10)
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/items')]
     public function items(): Response
     {
@@ -153,6 +323,37 @@ class SystemDict extends AdminApiController
         return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
+    /**
+     * 创建字典项，检查所属类型及字典值唯一性。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/dict/items",
+     *     operationId="admin_system_controller_SystemDict_createItem_post",
+     *     tags={"数据字典"},
+     *     summary="创建字典项，检查所属类型及字典值唯一性。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="typeCode", type="string"),
+     *             @OA\Property(property="label", type="string"),
+     *             @OA\Property(property="value", type="string"),
+     *             @OA\Property(property="status", type="integer"),
+     *             @OA\Property(property="sort", type="integer"),
+     *             @OA\Property(property="cssClass", type="string"),
+     *             @OA\Property(property="remark", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/items')]
     public function createItem(): Response
     {
@@ -175,6 +376,39 @@ class SystemDict extends AdminApiController
         return $this->ok('创建成功', $this->itemData($item, (string) $type->code));
     }
 
+    /**
+     * 更新字典项，并检查同类型内字典值唯一性。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/dict/items/{id}",
+     *     operationId="admin_system_controller_SystemDict_updateItem_put",
+     *     tags={"数据字典"},
+     *     summary="更新字典项，并检查同类型内字典值唯一性。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="label", type="string"),
+     *             @OA\Property(property="value", type="string"),
+     *             @OA\Property(property="status", type="integer"),
+     *             @OA\Property(property="sort", type="integer"),
+     *             @OA\Property(property="cssClass", type="string"),
+     *             @OA\Property(property="remark", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/items/{id:\d+}')]
     public function updateItem(int $id): Response
     {
@@ -200,6 +434,27 @@ class SystemDict extends AdminApiController
         return $this->ok('保存成功', $this->itemData($item, $type ? (string) $type->code : ''));
     }
 
+    /**
+     * 删除指定字典项。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/dict/items/{id}",
+     *     operationId="admin_system_controller_SystemDict_deleteItem_delete",
+     *     tags={"数据字典"},
+     *     summary="删除指定字典项。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/items/{id:\d+}')]
     public function deleteItem(int $id): Response
     {
@@ -212,6 +467,30 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功');
     }
 
+    /**
+     * 批量删除指定字典项。
+     *
+     * 请求字段：ids。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/dict/items",
+     *     operationId="admin_system_controller_SystemDict_deleteItems_delete",
+     *     tags={"数据字典"},
+     *     summary="批量删除指定字典项。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/items')]
     public function deleteItems(): Response
     {
@@ -227,6 +506,33 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($items)]);
     }
 
+    /**
+     * 根据字典编码获取已启用且按顺序排列的选项。
+     *
+     * @param string $code 路由中的编码标识。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/dict/{code}/options",
+     *     operationId="admin_system_controller_SystemDict_options_get",
+     *     tags={"数据字典"},
+     *     summary="根据字典编码获取已启用且按顺序排列的选项。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(
+     *         name="code",
+     *         in="path",
+     *         required=true,
+     *         description="路由中的编码标识。",
+     *         @OA\Schema(type="string", pattern="^(?:[A-Za-z][A-Za-z0-9_]{0,59})$")
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{code:[A-Za-z][A-Za-z0-9_]{0,59}}/options')]
     public function options(string $code): Response
     {
@@ -244,6 +550,30 @@ class SystemDict extends AdminApiController
         return $this->ok(data: array_map(fn (DictItem $item) => $this->optionData($item), $items->all()));
     }
 
+    /**
+     * 批量读取字典选项；codes 最多允许 50 个字典编码。
+     *
+     * 请求字段：codes。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/dict/batch",
+     *     operationId="admin_system_controller_SystemDict_batch_post",
+     *     tags={"数据字典"},
+     *     summary="批量读取字典选项；codes 最多允许 50 个字典编码。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="codes", type="array", description="codes 参数。", @OA\Items(type="string")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/batch')]
     public function batch(): Response
     {

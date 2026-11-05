@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\authentication\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\authentication\model\Admin;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
@@ -20,12 +22,61 @@ use support\annotation\route\RouteGroup;
 #[RouteGroup('/admin/profile')]
 final class AdminProfile
 {
+    /**
+     * 读取当前浏览器会话对应的管理员个人资料。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/profile",
+     *     operationId="admin_authentication_controller_AdminProfile_index_get",
+     *     tags={"管理员个人资料"},
+     *     summary="读取当前浏览器会话对应的管理员个人资料。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminProfileIndexResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Get('')]
     public function index(Request $request): Response
     {
         return $this->execute($request, static fn (Admin $admin): array => $admin->toProfileData());
     }
 
+    /**
+     * 更新当前管理员的昵称、头像、邮箱及手机号。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/profile",
+     *     operationId="admin_authentication_controller_AdminProfile_update_put",
+     *     tags={"管理员个人资料"},
+     *     summary="更新当前管理员的昵称、头像、邮箱及手机号。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="nickname", type="string", maxLength=50),
+     *             @OA\Property(property="avatar", type="string", maxLength=255),
+     *             @OA\Property(property="email", type="string", maxLength=60),
+     *             @OA\Property(property="mobile", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminProfileUpdateResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=422, description="认证输入校验失败。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Put('')]
     public function update(Request $request): Response
     {
@@ -54,6 +105,37 @@ final class AdminProfile
         }, '资料已更新');
     }
 
+    /**
+     * 校验原密码后修改密码，撤销全部会话并清除浏览器登录 Cookie。
+     *
+     * 请求字段：oldPassword、newPassword。
+     *
+     * @param Request $request 当前 HTTP 请求，包含会话、请求头及提交参数。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/profile/password",
+     *     operationId="admin_authentication_controller_AdminProfile_password_post",
+     *     tags={"管理员个人资料"},
+     *     summary="校验原密码后修改密码，撤销全部会话并清除浏览器登录 Cookie。",
+     *     description="浏览器认证协议：code 与 HTTP 状态一致。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"oldPassword", "newPassword"},
+     *             @OA\Property(property="oldPassword", type="string", format="password", writeOnly=true),
+     *             @OA\Property(property="newPassword", type="string", description="12 至 72 字节，不能与旧密码相同。", format="password", writeOnly=true)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminProfilePasswordResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=403, ref="#/components/responses/BrowserAuthError"),
+     *     @OA\Response(response=422, description="认证输入校验失败。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Post('/password')]
     public function password(Request $request): Response
     {

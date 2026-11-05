@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\common\model\Language;
 use app\common\model\LanguageLine;
@@ -23,6 +25,35 @@ use support\Response;
 class SystemLanguage extends AdminApiController
 {
 
+    /**
+     * 获取语言列表。
+     *
+     * 查询参数：name、page、pageSize。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/language",
+     *     operationId="admin_system_controller_SystemLanguage_index_get",
+     *     tags={"语言"},
+     *     summary="获取语言列表。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="name", in="query", required=false, description="name 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10)
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
@@ -43,6 +74,27 @@ class SystemLanguage extends AdminApiController
         ));
     }
 
+    /**
+     * 获取指定语言的详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/language/{id}",
+     *     operationId="admin_system_controller_SystemLanguage_detail_get",
+     *     tags={"语言"},
+     *     summary="获取指定语言的详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
@@ -52,6 +104,25 @@ class SystemLanguage extends AdminApiController
             : $this->fail(msg: '语言不存在', code: 404);
     }
 
+    /**
+     * 创建语言，校验提交字段后保存。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/language",
+     *     operationId="admin_system_controller_SystemLanguage_create_post",
+     *     tags={"语言"},
+     *     summary="创建语言，校验提交字段后保存。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="name", type="string", description="name 参数。"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('')]
     public function create(): Response
     {
@@ -72,6 +143,28 @@ class SystemLanguage extends AdminApiController
         return $this->ok('创建成功', $language->toApiData());
     }
 
+    /**
+     * 重命名语言并同步译文 locale，默认语言不允许重命名。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/language/{id}",
+     *     operationId="admin_system_controller_SystemLanguage_update_put",
+     *     tags={"语言"},
+     *     summary="重命名语言并同步译文 locale，默认语言不允许重命名。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="name", type="string", description="name 参数。"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/{id:\d+}')]
     public function update(int $id): Response
     {
@@ -100,12 +193,62 @@ class SystemLanguage extends AdminApiController
         return $this->ok('保存成功', $language->toApiData());
     }
 
+    /**
+     * 按 ID 删除单条语言。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/language/{id}",
+     *     operationId="admin_system_controller_SystemLanguage_deleteById_delete",
+     *     tags={"语言"},
+     *     summary="按 ID 删除单条语言。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/{id:\d+}')]
     public function deleteById(int $id): Response
     {
         return $this->delete($id);
     }
 
+    /**
+     * 删除语言及其译文，默认语言不允许删除。
+     *
+     * 请求字段：ids。
+     *
+     * @param int $id 路由中的目标记录 ID；默认值 0 时由请求中的 ID 集合确定目标。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/language",
+     *     operationId="admin_system_controller_SystemLanguage_delete_delete",
+     *     tags={"语言"},
+     *     summary="删除语言及其译文，默认语言不允许删除。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('')]
     public function delete(int $id = 0): Response
     {
@@ -147,6 +290,22 @@ class SystemLanguage extends AdminApiController
      * version 覆盖 INSERT/UPDATE/软删三种变化（同秒连续修改除外，见 packVersion 注释）；
      * 客户端带匹配 version 时返回 unchanged 空包，前端复用 localStorage 缓存。
      * ns 参数按命名空间等值过滤（idx_locale_ns），为将来按模块分包加载预留。
+     *
+     * @OA\Get(
+     *     path="/admin/system/language/pack",
+     *     operationId="admin_system_controller_SystemLanguage_pack_get",
+     *     tags={"语言"},
+     *     summary="译文包：前端启动/切语言时拉取并合并覆盖静态语言包。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="locale", in="query", required=true, description="locale 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="ns", in="query", required=false, description="ns 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="version", in="query", required=false, description="version 参数。", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
      */
     #[Get('/pack')]
     public function pack(): Response
@@ -182,6 +341,20 @@ class SystemLanguage extends AdminApiController
 
     /**
      * 命名空间列表：语言管理页译文筛选下拉的数据源（ns 为生成列，去重返回）。
+     *
+     * @OA\Get(
+     *     path="/admin/system/language/ns",
+     *     operationId="admin_system_controller_SystemLanguage_namespaces_get",
+     *     tags={"语言"},
+     *     summary="命名空间列表：语言管理页译文筛选下拉的数据源（ns 为生成列，去重返回）。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="locale", in="query", required=true, description="locale 参数。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
      */
     #[Get('/ns')]
     public function namespaces(): Response
@@ -198,6 +371,30 @@ class SystemLanguage extends AdminApiController
 
     /**
      * 译文条目列表：按 locale 分页，支持命名空间与 key/译文关键字过滤。
+     *
+     * @OA\Get(
+     *     path="/admin/system/language/lines",
+     *     operationId="admin_system_controller_SystemLanguage_lines_get",
+     *     tags={"语言"},
+     *     summary="译文条目列表：按 locale 分页，支持命名空间与 key/译文关键字过滤。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="locale", in="query", required=true, description="locale 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="keyword", in="query", required=false, description="搜索关键字。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="ns", in="query", required=false, description="ns 参数。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1, default=1)),
+     *     @OA\Parameter(
+     *         name="pageSize",
+     *         in="query",
+     *         required=false,
+     *         description="每页记录数。",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, default=10)
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
      */
     #[Get('/lines')]
     public function lines(): Response
@@ -236,6 +433,28 @@ class SystemLanguage extends AdminApiController
 
     /**
      * 译文保存：locale+key 存在则覆盖，不存在则新增。
+     *
+     * @OA\Post(
+     *     path="/admin/system/language/lines",
+     *     operationId="admin_system_controller_SystemLanguage_saveLine_post",
+     *     tags={"语言"},
+     *     summary="译文保存：locale+key 存在则覆盖，不存在则新增。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="locale", type="string", description="locale 参数。"),
+     *             @OA\Property(property="key", type="string", description="key 参数。"),
+     *             @OA\Property(property="value", description="结构由具体业务、插件或已发布 Schema 决定；不推断未声明的字段。")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
      */
     #[Post('/lines')]
     public function saveLine(): Response
@@ -273,6 +492,29 @@ class SystemLanguage extends AdminApiController
         return implode('.', array_slice($parts, 0, in_array($parts[0], ['crud', 'plugin'], true) ? 2 : 1));
     }
 
+    /**
+     * 删除请求中 id 指定的译文条目。
+     *
+     * 查询参数：id。
+     * 请求字段：id。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/language/lines",
+     *     operationId="admin_system_controller_SystemLanguage_removeLine_delete",
+     *     tags={"语言"},
+     *     summary="删除请求中 id 指定的译文条目。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="query", required=false, description="id 参数。", @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="id", type="integer", description="id 参数。"))),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/lines')]
     public function removeLine(): Response
     {

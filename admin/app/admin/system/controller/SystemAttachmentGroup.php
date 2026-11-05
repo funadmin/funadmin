@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
@@ -19,14 +21,118 @@ use support\Response;
 #[RouteGroup('/admin/system/attachment-group')]
 class SystemAttachmentGroup extends AdminApiController
 {
+    /**
+     * 获取附件分组树形数据。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/attachment-group/tree",
+     *     operationId="admin_system_controller_SystemAttachmentGroup_tree_get",
+     *     tags={"附件分组"},
+     *     summary="获取附件分组树形数据。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/tree')]
     public function tree(): Response { $groups = AttachGroup::orderBy('sort_order')->orderBy('id')->get(); return $this->ok(data: $this->buildTree($groups->map(fn (AttachGroup $group): array => $this->groupData($group))->all())); }
+    /**
+     * 获取指定附件分组的详情。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/system/attachment-group/{id}",
+     *     operationId="admin_system_controller_SystemAttachmentGroup_detail_get",
+     *     tags={"附件分组"},
+     *     summary="获取指定附件分组的详情。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response { $group = AttachGroup::find($id); return $group ? $this->ok(data: $this->groupData($group)) : $this->fail(msg: '附件分组不存在', code: 404); }
+    /**
+     * 创建附件分组，校验提交字段后保存。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/system/attachment-group",
+     *     operationId="admin_system_controller_SystemAttachmentGroup_create_post",
+     *     tags={"附件分组"},
+     *     summary="创建附件分组，校验提交字段后保存。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/AttachmentGroupInput"), @OA\Schema(type="object", required={"name"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('')]
     public function create(): Response { $data = $this->payload(); if ($error = $this->validatePayload($data)) return $this->fail(msg: $error, code: 422); $group = new AttachGroup(); $group->forceFill($data)->save(); return $this->ok('创建成功', $this->groupData($group)); }
+    /**
+     * 更新指定附件分组。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/system/attachment-group/{id}",
+     *     operationId="admin_system_controller_SystemAttachmentGroup_update_put",
+     *     tags={"附件分组"},
+     *     summary="更新指定附件分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(ref="#/components/schemas/AttachmentGroupInput")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/{id:\d+}')]
     public function update(int $id): Response { $group = AttachGroup::find($id); if (!$group) return $this->fail(msg: '附件分组不存在', code: 404); $data = $this->payload($group); if ($error = $this->validatePayload($data, $id)) return $this->fail(msg: $error, code: 422); $group->forceFill($data)->save(); return $this->ok('保存成功', $this->groupData($group)); }
+    /**
+     * 删除指定附件分组。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/attachment-group/{id}",
+     *     operationId="admin_system_controller_SystemAttachmentGroup_delete_delete",
+     *     tags={"附件分组"},
+     *     summary="删除指定附件分组。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Delete('/{id:\d+}')]
     public function delete(int $id): Response
     {

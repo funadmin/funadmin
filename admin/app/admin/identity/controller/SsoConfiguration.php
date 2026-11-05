@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\identity\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\common\model\identity\ApplicationDomain;
 use app\common\model\identity\ClientScope;
 use app\common\model\identity\IdentitySsoConfig;
@@ -18,9 +20,30 @@ use support\annotation\route\RouteGroup;
 use support\annotation\route\Put;
 use support\Response;
 
+/**
+ * 单点登录配置接口。
+ */
 #[RouteGroup('/admin/identity/sso')]
 final class SsoConfiguration extends AdminApiController
 {
+    /**
+     * 获取当前租户的 SSO 配置，无记录时返回默认配置。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/sso/config",
+     *     operationId="admin_identity_controller_SsoConfiguration_config_get",
+     *     tags={"单点登录配置"},
+     *     summary="获取当前租户的 SSO 配置，无记录时返回默认配置。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/config')]
     public function config(): Response
     {
@@ -28,6 +51,36 @@ final class SsoConfiguration extends AdminApiController
         return $this->ok(data: $row?->toArray() ?? ['enabled' => 0, 'provider_mode' => 'identity_provider', 'issuer' => (string) config('identity.issuer'), 'external_identity_enabled' => 0, 'backchannel_logout_enabled' => 1]);
     }
 
+    /**
+     * 保存 SSO 配置，校验身份提供方模式及固定 issuer。
+     *
+     * 请求字段：providerMode、issuer、enabled、backchannelLogoutEnabled。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Put(
+     *     path="/admin/identity/sso/config",
+     *     operationId="admin_identity_controller_SsoConfiguration_save_put",
+     *     tags={"单点登录配置"},
+     *     summary="保存 SSO 配置，校验身份提供方模式及固定 issuer。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="providerMode", type="string", description="providerMode 参数。"),
+     *             @OA\Property(property="issuer", type="string", description="issuer 参数。"),
+     *             @OA\Property(property="enabled", type="boolean", description="enabled 参数。"),
+     *             @OA\Property(property="backchannelLogoutEnabled", type="boolean", description="backchannelLogoutEnabled 参数。")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Put('/config')]
     public function save(): Response
     {
@@ -49,6 +102,24 @@ final class SsoConfiguration extends AdminApiController
         return $this->ok(data: $row->toArray(), msg: 'SSO 配置已保存');
     }
 
+    /**
+     * 检查 SSO 的 issuer、客户端回调及后通道退出配置。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/identity/sso/check",
+     *     operationId="admin_identity_controller_SsoConfiguration_check_get",
+     *     tags={"单点登录配置"},
+     *     summary="检查 SSO 的 issuer、客户端回调及后通道退出配置。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/check')]
     public function check(): Response
     {

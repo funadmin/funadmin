@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\plugin\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\plugin\service\DevPluginService;
 use InvalidArgumentException;
@@ -27,24 +29,119 @@ final class DevPlugin extends AdminApiController
         $this->plugins = new DevPluginService(root_path());
     }
 
+    /**
+     * 预览插件脚手架创建计划。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/plugin/create/preview",
+     *     operationId="admin_plugin_controller_DevPlugin_previewCreate_post",
+     *     tags={"插件开发工具"},
+     *     summary="预览插件脚手架创建计划。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/DevPluginInput"), @OA\Schema(type="object", required={"name", "title"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/create/preview')]
     public function previewCreate(): Response
     {
         return $this->execute(fn (): array => $this->plugins->previewCreate($this->createInput()));
     }
 
+    /**
+     * 按提交的模块选项创建插件骨架。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/plugin/create",
+     *     operationId="admin_plugin_controller_DevPlugin_create_post",
+     *     tags={"插件开发工具"},
+     *     summary="按提交的模块选项创建插件骨架。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(allOf={@OA\Schema(ref="#/components/schemas/DevPluginInput"), @OA\Schema(type="object", required={"name", "title"})})
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/create')]
     public function create(): Response
     {
         return $this->execute(fn (): array => $this->plugins->create($this->createInput()), '插件骨架创建完成');
     }
 
+    /**
+     * 校验指定插件的清单与目录结构。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/plugin/validate",
+     *     operationId="admin_plugin_controller_DevPlugin_validate_post",
+     *     tags={"插件开发工具"},
+     *     summary="校验指定插件的清单与目录结构。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(type="object", required={"code"}, @OA\Property(property="code", type="string", description="code 参数。"))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/validate')]
     public function validate(): Response
     {
         return $this->execute(fn (): array => $this->plugins->validate($this->code()));
     }
 
+    /**
+     * 将指定插件打包到输出目录。
+     *
+     * 请求字段：output。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/plugin/package",
+     *     operationId="admin_plugin_controller_DevPlugin_package_post",
+     *     tags={"插件开发工具"},
+     *     summary="将指定插件打包到输出目录。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"code"},
+     *             @OA\Property(property="output", type="string", description="output 参数。"),
+     *             @OA\Property(property="code", type="string", description="code 参数。")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/package')]
     public function package(): Response
     {
@@ -54,6 +151,31 @@ final class DevPlugin extends AdminApiController
         ), '插件打包完成');
     }
 
+    /**
+     * 下载指定插件生成的安装包。
+     *
+     * @param string $code 路由中的编码标识。
+     * @return Response 成功时为文件下载响应，失败时为 JSON 错误响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/plugin/package/{code}/download",
+     *     operationId="admin_plugin_controller_DevPlugin_packageDownload_get",
+     *     tags={"插件开发工具"},
+     *     summary="下载指定插件生成的安装包。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="code", in="path", required=true, description="路由中的编码标识。", @OA\Schema(type="string", pattern="^(?:[a-z][a-z0-9]*)$")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="文件内容；实际 MIME 与 Content-Disposition 由服务端返回。",
+     *         @OA\MediaType(mediaType="application/octet-stream", @OA\Schema(type="string", format="binary"))
+     *     ),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/package/{code:[a-z][a-z0-9]*}/download')]
     public function packageDownload(string $code): Response
     {
@@ -65,6 +187,24 @@ final class DevPlugin extends AdminApiController
         }
     }
 
+    /**
+     * 获取插件开发工具可选配置。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/plugin/options",
+     *     operationId="admin_plugin_controller_DevPlugin_options_get",
+     *     tags={"插件开发工具"},
+     *     summary="获取插件开发工具可选配置。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('/options')]
     public function options(): Response
     {

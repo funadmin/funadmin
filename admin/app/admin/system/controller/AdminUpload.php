@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\system\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\controller\base\AdminApiController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
@@ -20,6 +22,40 @@ use support\Response;
 class AdminUpload extends AdminApiController
 {
 
+    /**
+     * 处理通用文件上传，返回附件信息并执行上传结果扩展钩子。
+     *
+     * 请求字段：bizType、groupId。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/upload",
+     *     operationId="admin_system_controller_AdminUpload_upload_post",
+     *     tags={"通用文件上传"},
+     *     summary="处理通用文件上传，返回附件信息并执行上传结果扩展钩子。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"file"},
+     *                 @OA\Property(property="bizType", type="string", description="bizType 参数。"),
+     *                 @OA\Property(property="groupId", type="integer", description="groupId 参数。"),
+     *                 @OA\Property(property="file", type="string", description="上传文件，使用 multipart/form-data。", format="binary")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=413, description="上传内容超过大小上限，或请求体超过服务端限制。", @OA\JsonContent(ref="#/components/schemas/AdminEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/upload')]
     public function upload(): Response
     {
