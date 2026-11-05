@@ -4,7 +4,7 @@
 
 - Nonempty module/history lists use explicit Eloquent pagination.
 - Generated controller groups include /admin once; frontend API paths rely on the HTTP client's existing base. Default, explicit /admin/generated/..., and exact /admin configurations execute correctly.
-- Core frontend artifacts target sibling admin-web/src/admin/{api,views}/generated. Planning, writing, conflict detection, safe commits and managed recovery use the same mapping. Roots are hash-bound to signed plans and WAL. Traversal and symlinks are rejected; cross-filesystem roots are rejected before writes.
+- Core frontend artifacts target sibling web/src/admin/{api,views}/generated. Planning, writing, conflict detection, safe commits and managed recovery use the same mapping. Roots are hash-bound to signed plans and WAL. Traversal and symlinks are rejected; cross-filesystem roots are rejected before writes.
 - Resource synchronization preserves unchanged permission/menu IDs, role grants and field grants. Removed resources are pruned, and resource rollback remains effective.
 
 ## Passing checks

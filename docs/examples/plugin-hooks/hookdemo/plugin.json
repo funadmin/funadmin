@@ -14,7 +14,7 @@
     "file": "Plugin.php"
   },
   "adminWeb": {
-    "source": "admin-web/src/admin/modules/hookdemo",
+    "source": "web/src/admin/modules/hookdemo",
     "components": {
       "HookCard": "components/HookCard.vue"
     },

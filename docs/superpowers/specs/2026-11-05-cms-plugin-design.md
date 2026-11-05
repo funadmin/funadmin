@@ -35,7 +35,7 @@
 ## 插件与运行目录
 
 ```text
-webman-admin/plugins/cms/
+admin/plugins/cms/
   plugin.json
   Plugin.php
   config.php
@@ -45,7 +45,7 @@ webman-admin/plugins/cms/
     controller/ model/ service/ middleware/ template/ tags/
     view/default/
     config/app.php
-  admin-web/src/admin/modules/cms/
+  web/src/admin/modules/cms/
     api.ts types.ts pages/ components/
   public/plugin-assets/cms/public/
     css/ js/ vendor/

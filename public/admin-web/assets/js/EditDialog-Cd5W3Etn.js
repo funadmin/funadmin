@@ -1,1 +1,0 @@
-import"./rolldown-runtime-hePW80VL.js";import{U as e,_n as t,cr as n,jn as r,ln as i}from"./element-Bpuryqbo.js";import{s as a}from"./vendor-CLTBBYp2.js";var o=t({__name:`EditDialog`,setup(t){let{t:o}=a();return(t,a)=>{let s=e;return r(),i(s,{title:n(o)(`common.edit`,`编辑`)},null,8,[`title`])}}});export{o as default};

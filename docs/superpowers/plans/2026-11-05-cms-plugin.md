@@ -10,7 +10,7 @@
 ## Global Constraints
 
 - Preserve all pre-existing working tree changes; no production migrations, DNS changes, certificate requests or service reloads.
-- Source at webman-admin/plugins/cms, matching docs/plugins.md. Keep global Raw view configuration unchanged.
+- Source at admin/plugins/cms, matching docs/plugins.md. Keep global Raw view configuration unchanged.
 - Explicit site and locale scope; published revisions only on public requests; backend-managed templates never execute PHP/SQL.
 - Public front end has no npm build; use pinned local Vue/Element Plus distributions.
 - IDs serialize as strings. Uninstall retains CMS data.
@@ -25,7 +25,7 @@
 
 ## File Map
 
-All production paths below are relative to webman-admin/plugins/cms. Tests live at webman-admin/tests/Cms. No package files are implicitly installed into the running application.
+All production paths below are relative to admin/plugins/cms. Tests live at admin/tests/Cms. No package files are implicitly installed into the running application.
 
 ### Task 1: Template language and extensible tag registry
 
@@ -63,7 +63,7 @@ All production paths below are relative to webman-admin/plugins/cms. Tests live 
 
 ### Task 5: Admin APIs and working management UI
 
-**Files:** app/admin/plugins/cms/controller/{Base,Sites,Content,Categories,Models,Menus,Tags}.php; admin-web/src/admin/modules/cms/{api.ts,types.ts,pages/Index.vue,components/*}; tests/Cms/AdminTest.php; admin-web/tests/cms/*.spec.ts.
+**Files:** app/admin/plugins/cms/controller/{Base,Sites,Content,Categories,Models,Menus,Tags}.php; web/src/admin/modules/cms/{api.ts,types.ts,pages/Index.vue,components/*}; tests/Cms/AdminTest.php; web/tests/cms/*.spec.ts.
 **Interfaces:** /admin/plugin/cms endpoints expose scoped sites/locales/domains/grants, models/versions, categories, content/revisions/save/publish/offline/preview, menus/items and tag providers/save/publish/preview. Reuse AdminApiController and declared PluginPermission attributes; responses use host envelope.
 - [x] Write RED tests for real actions, site access and separate save/publish permissions; frontend selection and requests must exercise real exported API contracts.
 - [x] Implement focused controllers and tabbed pages with site/language context, structured model fields and SEO/path/version controls.

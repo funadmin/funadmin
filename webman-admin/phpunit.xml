@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php" colors="true" cacheDirectory=".phpunit.cache">
-    <testsuites>
-        <testsuite name="webman-admin"><directory>tests</directory></testsuite>
-    </testsuites>
-</phpunit>

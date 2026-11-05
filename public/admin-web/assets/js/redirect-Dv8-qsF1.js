@@ -1,1 +1,0 @@
-import{En as e,_n as t,dn as n,jn as r}from"./element-Bpuryqbo.js";import{c as i,s as a}from"./vue-D-KOkiar.js";var o=t({__name:`index`,setup(t){let o=a(),s=i();return e(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(e,t)=>(r(),n(`div`))}});export{o as default};

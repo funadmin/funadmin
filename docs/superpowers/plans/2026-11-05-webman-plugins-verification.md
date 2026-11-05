@@ -9,7 +9,7 @@
 - 后端定向回归：106 项、99 通过、7 项 MySQL 环境测试跳过，1273 次断言。
 - PHP 语法检查 `php tests/lint.php`：766 个文件通过。
 - 前端类型检查 `npm run type-check`：通过。
-- 前端构建 `npm run build:webman`：通过，输出到 `webman-admin/public/admin-web`。
+- 前端构建 `npm run build:webman`：通过，输出到 `admin/public/web`。
 - 路由、插件模块、表单组件加载器的定向 Vitest：7 个文件、31 项测试通过。
 - 生成插件真实生命周期 HTTP 集成：安装、启用、普通用户访问、禁用、升级、再启用、卸载均通过（不含 SQL DDL）。
 - 旧后台资源目录迁移、回滚、人工修改保护：通过。

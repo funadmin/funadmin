@@ -6,7 +6,7 @@
 
 采用现有 Webman 模块结构：后台源码发布到 `app/admin/plugin/business/{code}/{layer}`，命名空间与目录一致；后台 API 为 `/admin/plugin/{code}/…`，独立应用为 `/{code}/…`。插件源包仍使用 `app/admin/{layer}`。声明权限通过插件中间件校验，不再让生成插件走核心控制器权限推导。启停守卫使用 Webman `process()` 并接入全局配置。
 
-前端源码发布到同级 `admin-web/src/admin/modules/{code}`；可通过配置指定前端根目录。Webman 启用插件模块加载，页面路径使用现有 `/admin` 路由约定。前端仍需构建收录新增源码，不引入远程脚本加载。
+前端源码发布到同级 `web/src/admin/modules/{code}`；可通过配置指定前端根目录。Webman 启用插件模块加载，页面路径使用现有 `/admin` 路由约定。前端仍需构建收录新增源码，不引入远程脚本加载。
 
 同步脚手架、CRUD、Manifest 校验、执行代理和示例代码。验证真实 HTTP 中间件链、普通用户权限、禁用/异常激活清单、源码发布恢复、生成代码和路由挂载。
 

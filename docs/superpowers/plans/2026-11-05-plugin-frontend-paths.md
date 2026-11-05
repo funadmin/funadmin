@@ -26,7 +26,7 @@
 
 ### Task 1: API and Hook endpoint paths
 
-**Files:** `admin-web/src/shared/utils/apiUrl.ts`, `admin-web/src/admin/api/system/plugin.ts`, `admin-web/src/shared/plugins/hooks/startup.ts` and corresponding tests.
+**Files:** `web/src/shared/utils/apiUrl.ts`, `web/src/admin/api/system/plugin.ts`, `web/src/shared/plugins/hooks/startup.ts` and corresponding tests.
 
 - [x] Add failing API-link/configuration tests; observe failures.
 - [x] Implement shared API joining for downloads; retain the concurrently fixed Hook prefix implementation.
@@ -34,7 +34,7 @@
 
 ### Task 2: Development assets and route hrefs
 
-**Files:** `admin-web/vite.config.ts`, configuration tests and `pluginModules.spec.ts`.
+**Files:** `web/vite.config.ts`, configuration tests and `pluginModules.spec.ts`.
 
 - [x] Add failing proxy and root/subdirectory href tests.
 - [x] Add the missing plugin-assets proxy without widening other routes.

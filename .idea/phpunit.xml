@@ -3,7 +3,7 @@
   <component name="PHPUnit">
     <option name="directories">
       <list>
-        <option value="$PROJECT_DIR$/webman-admin/tests" />
+        <option value="$PROJECT_DIR$/admin/tests" />
       </list>
     </option>
   </component>

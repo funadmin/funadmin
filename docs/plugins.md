@@ -2,10 +2,10 @@
 
 插件包按项目相对路径组织，开发路径、PHP 命名空间和安装路径保持一致。以下以 `demo` 为例，省略空目录中的 `.gitkeep`。
 
-后台管理模块为 `webman-admin/app/admin/plugin/`；已安装插件的后台业务为同级的 `webman-admin/app/admin/plugins/{code}/`。插件源码包保留在根目录 `webman-admin/plugins/{code}/`，包内使用相同的 `app/admin/plugins/{code}/` 相对路径。
+后台管理模块为 `admin/app/admin/plugin/`；已安装插件的后台业务为同级的 `admin/app/admin/plugins/{code}/`。插件源码包保留在根目录 `admin/plugins/{code}/`，包内使用相同的 `app/admin/plugins/{code}/` 相对路径。
 
 ```text
-webman-admin/plugins/demo/
+admin/plugins/demo/
 ├── plugin.json
 ├── Plugin.php
 ├── config.php
@@ -34,7 +34,7 @@ webman-admin/plugins/demo/
 │       │   └── zh-cn.php
 │       ├── event.php
 │       └── provider.php
-├── admin-web/
+├── web/
 │   └── src/
 │       └── admin/
 │           └── modules/
@@ -58,33 +58,33 @@ webman-admin/plugins/demo/
 
 | 包内相对路径 | 安装位置（相对于仓库根目录） |
 |---|---|
-| `app/admin/plugins/demo/` | `webman-admin/app/admin/plugins/demo/` |
-| `app/demo/` | `webman-admin/app/demo/` |
-| `admin-web/src/admin/modules/demo/` | `admin-web/src/admin/modules/demo/` |
-| `public/plugin-assets/demo/public/` | `webman-admin/public/plugin-assets/demo/public/` |
+| `app/admin/plugins/demo/` | `admin/app/admin/plugins/demo/` |
+| `app/demo/` | `admin/app/demo/` |
+| `web/src/admin/modules/demo/` | `web/src/admin/modules/demo/` |
+| `public/plugin-assets/demo/public/` | `admin/public/plugin-assets/demo/public/` |
 
 后台控制器的命名空间为 `app\admin\plugins\demo\controller`。独立应用控制器为 `app\demo\controller`。管理端模型和生成模型统一继承 `app\common\model\BaseModel`，已移除空包装类 `app\admin\model\BackendModel`。
 
-插件源包保留在 `webman-admin/plugins/demo/`。`plugin.json`、`Plugin.php`、`config.php` 保留在源包中；迁移 SQL 从 `database/migrations/` 执行；私有运行数据写入 `webman-admin/runtime/plugins-data/demo/storage/`，不随源码发布覆盖。
+插件源包保留在 `admin/plugins/demo/`。`plugin.json`、`Plugin.php`、`config.php` 保留在源包中；迁移 SQL 从 `database/migrations/` 执行；私有运行数据写入 `admin/runtime/plugins-data/demo/storage/`，不随源码发布覆盖。
 
 ## 声明和生成
 
 ```sh
-cd webman-admin
+cd admin
 php webman plugin:make demo --title=示例
 php webman plugin:validate demo
 php webman plugin:package demo
 ```
 
-Manifest 的前端入口固定为 `admin-web/src/admin/modules/demo`。公开资源的 `source` 使用 `public/plugin-assets/demo/public`，`target` 使用 `plugin-assets/demo/public`。声明迁移时路径固定为 `database/migrations`；无 SQL 插件可不声明 `migrations`，有迁移历史后必须保留声明。
+Manifest 的前端入口固定为 `web/src/admin/modules/demo`。公开资源的 `source` 使用 `public/plugin-assets/demo/public`，`target` 使用 `plugin-assets/demo/public`。声明迁移时路径固定为 `database/migrations`；无 SQL 插件可不声明 `migrations`，有迁移历史后必须保留声明。
 
 CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修改检测和恢复只接受统一后的目录及资源标识。旧包结构和旧资源登记会明确报错，不自动转换或删除原文件。
 
 ## 部署
 
-前端项目默认位于与 `webman-admin` 同级的 `admin-web`，可通过 `PLUGIN_ADMIN_WEB_PATH` 指定源码项目根目录。新增前端页面后重新运行 `npm run build:webman`。新增或更新 PHP 类和路由后运行 `php start.php reload`。纯启停通过激活清单即时控制。
+前端项目默认位于与 `admin` 同级的 `web`，可通过 `PLUGIN_ADMIN_WEB_PATH` 指定源码项目根目录。新增前端页面后重新运行 `npm run build:webman`。新增或更新 PHP 类和路由后运行 `php start.php reload`。纯启停通过激活清单即时控制。
 
-页面默认部署在网站根目录 `/`，`admin-web` 是源码项目名称。当前默认访问地址如下：
+页面默认部署在网站根目录 `/`，`web` 是源码项目名称。当前默认访问地址如下：
 
 | 用途 | 地址 |
 |---|---|
@@ -94,9 +94,9 @@ CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修�
 | demo 插件后台接口 | `/admin/plugin/demo/index` |
 | demo 公开静态资源 | `/plugin-assets/demo/public/文件名` |
 
-`VITE_APP_BASE` 控制页面与构建资源的部署目录；`VITE_APP_BASE_API` 控制管理接口及下载链接的前缀，默认 `/admin`。两者分别处理。`npm run build:webman` 输出到 `webman-admin/public/index.html` 和 `webman-admin/public/assets/`，保留已有安装锁、上传文件及插件资源。独立前端部署可运行 `npm run build:standalone` 输出到 `admin-web/dist/`。
+`VITE_APP_BASE` 控制页面与构建资源的部署目录；`VITE_APP_BASE_API` 控制管理接口及下载链接的前缀，默认 `/admin`。两者分别处理。`npm run build:webman` 输出到 `admin/public/index.html` 和 `admin/public/assets/`，保留已有安装锁、上传文件及插件资源。独立前端部署可运行 `npm run build:standalone` 输出到 `web/dist/`。
 
-开发环境由 Vite 将 `/admin/...`、Hook 描述接口及 `/plugin-assets/...` 等请求代理到 `VITE_APP_PROXY_TARGET`，默认 Webman 地址为 `http://127.0.0.1:8787`。同端口部署直接请求后端；独立前端域名部署需要配置对应接口和公开资源代理，参见 `admin-web/README.md`。
+开发环境由 Vite 将 `/admin/...`、Hook 描述接口及 `/plugin-assets/...` 等请求代理到 `VITE_APP_PROXY_TARGET`，默认 Webman 地址为 `http://127.0.0.1:8787`。同端口部署直接请求后端；独立前端域名部署需要配置对应接口和公开资源代理，参见 `web/README.md`。
 
 ## 后端钩子、前端钩子与跨插件调用
 

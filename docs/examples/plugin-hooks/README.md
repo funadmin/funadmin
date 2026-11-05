@@ -2,7 +2,7 @@
 
 `hookdemo` 和 `hookconsumer` 都不含应用目录、控制器、菜单或路由。后者只有函数；前者同时演示 PHP 函数、前端函数和 Vue 插槽组件。
 
-将所需示例目录复制到 `webman-admin/plugins/`，通过插件中心或现有命令校验、安装、启用。前端文件按插件发布规则进入 `admin-web/src/admin/modules/{code}`，然后运行 `npm run build:webman`；PHP 新代码部署后 reload 工作进程。不要将私有 `hooks/` 文件放进 public。
+将所需示例目录复制到 `admin/plugins/`，通过插件中心或现有命令校验、安装、启用。前端文件按插件发布规则进入 `web/src/admin/modules/{code}`，然后运行 `npm run build:webman`；PHP 新代码部署后 reload 工作进程。不要将私有 `hooks/` 文件放进 public。
 
 PHP 普通服务、CLI、队列、模板与插件可以统一调用：
 

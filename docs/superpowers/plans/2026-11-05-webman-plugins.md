@@ -17,7 +17,7 @@
 - Preserve user changes and existing lifecycle recovery and resource ownership guarantees.
 - No production database migration or new dependencies.
 - Backend API: `/admin/plugin/{code}/…`; backend module: `app/admin/plugin/business/{code}/{layer}`.
-- Frontend module: sibling `admin-web/src/admin/modules/{code}`; new sources require frontend rebuild.
+- Frontend module: sibling `web/src/admin/modules/{code}`; new sources require frontend rebuild.
 
 ## Review Focus
 
@@ -29,7 +29,7 @@
 
 ### Task 1: Runtime HTTP boundary
 
-**Files:** `webman-admin/config/middleware.php`, `app/common/middleware/PluginApplicationGuard.php`, `app/admin/plugin/middleware/CheckPluginPermission.php`, `app/common/plugin/sdk/PluginRoute.php`, tests under `webman-admin/tests`.
+**Files:** `admin/config/middleware.php`, `app/common/middleware/PluginApplicationGuard.php`, `app/admin/plugin/middleware/CheckPluginPermission.php`, `app/common/plugin/sdk/PluginRoute.php`, tests under `admin/tests`.
 
 **Interfaces:** Webman `process(Request $request, callable $next): Response`; `PluginRoute::adminGroup` retains its public signature.
 
@@ -51,7 +51,7 @@
 
 ### Task 3: Frontend publication and module routing
 
-**Files:** `PluginInfrastructureService.php`, `PluginResourcePublisher.php`, `config/plugins.php`, `admin-web/src/admin/router/pluginStartup.ts`, `pluginModules.ts`, component loader and corresponding tests.
+**Files:** `PluginInfrastructureService.php`, `PluginResourcePublisher.php`, `config/plugins.php`, `web/src/admin/router/pluginStartup.ts`, `pluginModules.ts`, component loader and corresponding tests.
 
 **Interfaces:** enabled-module DTO stays compatible; published components resolve under `src/admin/modules` and routes use `/admin`.
 
@@ -62,7 +62,7 @@
 
 ### Task 4: Integration and review
 
-**Files:** integration tests and `webman-admin/README.md`.
+**Files:** integration tests and `admin/README.md`.
 
 **Interfaces:** generated plugin completes install → enable → HTTP access → disable → upgrade → uninstall, with resource ownership preserved.
 

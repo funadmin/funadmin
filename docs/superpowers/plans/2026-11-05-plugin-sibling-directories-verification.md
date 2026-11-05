@@ -4,7 +4,7 @@
 
 ## 最终结构
 
-所有路径相对 `webman-admin/`：
+所有路径相对 `admin/`：
 
 - 框架插件管理：`app/admin/plugin/`。
 - 已安装插件后台：`app/admin/plugins/{code}/`。
@@ -29,7 +29,7 @@
 
 ## 最终全量后台快照
 
-执行 `cd webman-admin && vendor/bin/phpunit`：814 项、6244 次断言，5 个错误、2 个失败、108 项跳过，退出码 2。日志：`/tmp/funadmin-sibling-full-final.log`。
+执行 `cd admin && vendor/bin/phpunit`：814 项、6244 次断言，5 个错误、2 个失败、108 项跳过，退出码 2。日志：`/tmp/funadmin-sibling-full-final.log`。
 
 以下既有或并行工作问题仍存在，全量不能标为通过：
 

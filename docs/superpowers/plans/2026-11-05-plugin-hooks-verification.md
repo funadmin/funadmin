@@ -18,7 +18,7 @@
 后端：
 
 ```sh
-cd webman-admin
+cd admin
 php vendor/bin/phpunit tests/PluginHookRuntimeTest.php tests/PluginHookManifestTest.php tests/PluginHookDescriptorTest.php tests/PluginHookExampleTest.php tests/UploadHooksIntegrationTest.php tests/AttachmentHttpTest.php tests/AttachmentIntegrationTest.php tests/PluginHttpActivationTest.php tests/PluginCenterHttpTest.php tests/PluginCenterIntegrationTest.php tests/Console/PluginScaffoldExecutionTest.php tests/Console/PluginPackageExecutionTest.php tests/Console/PluginPublicationExecutionTest.php tests/Console/PluginLifecycleExecutionTest.php
 ```
 
@@ -27,7 +27,7 @@ php vendor/bin/phpunit tests/PluginHookRuntimeTest.php tests/PluginHookManifestT
 前端：
 
 ```sh
-cd admin-web
+cd web
 npx vitest run src/shared/plugins/hooks src/admin/router/pluginModules.spec.ts tests/router/pluginModules.spec.ts src/admin/router/menu-tree.spec.ts
 npm run type-check
 npx vite build --mode webman --outDir /tmp/funadmin-hooks-build

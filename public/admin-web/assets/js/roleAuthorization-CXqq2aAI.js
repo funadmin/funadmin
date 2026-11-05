@@ -1,1 +1,0 @@
-var e=e=>({view:e.view||e.edit,edit:e.edit}),t=(e,t)=>({view:e.view||t,edit:t}),n=(e,t)=>({view:t,edit:t?e.edit:!1});export{t as n,n as r,e as t};

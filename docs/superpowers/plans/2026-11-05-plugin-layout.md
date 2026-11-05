@@ -15,7 +15,7 @@
 ## Global Constraints
 
 - Preserve existing user work; no production database operations or automatic deletion of old installed resources.
-- Canonical backend `app/admin/plugin/business/{code}`; frontend `admin-web/src/admin/modules/{code}`; public source `public/plugin-assets/{code}/public`.
+- Canonical backend `app/admin/plugin/business/{code}`; frontend `web/src/admin/modules/{code}`; public source `public/plugin-assets/{code}/public`.
 - Old packages and resource paths must be rejected, never translated or silently discarded.
 
 ## Review Focus
@@ -30,7 +30,7 @@
 
 **Files:** `PluginScaffolder.php`, `Manifest.php`, `PluginArchiveService.php`, `PluginCrudTarget.php`, `DevPluginService.php`, `BusinessTargetService.php` and generation tests.
 
-**Interfaces:** Plugin manifest `adminWeb.source` is `admin-web/src/admin/modules/{code}`; public source is `public/plugin-assets/{code}/public`; admin namespace matches its file path under `app/admin/plugin/business/{code}`.
+**Interfaces:** Plugin manifest `adminWeb.source` is `web/src/admin/modules/{code}`; public source is `public/plugin-assets/{code}/public`; admin namespace matches its file path under `app/admin/plugin/business/{code}`.
 
 - [x] Write failing scaffold and old-layout rejection tests; run and observe failures.
 - [x] Implement canonical paths in generation, strict validation and archive empty directories.
@@ -40,7 +40,7 @@
 
 **Files:** `PluginAppPublicationService.php`, `PluginResourcePublisher.php`, `PluginModificationDetector.php`, `CheckAdminApiRole.php`, publication/lifecycle tests.
 
-**Interfaces:** Only `admin-business` native resources and `admin-web:src/admin/modules` frontend resources are accepted.
+**Interfaces:** Only `admin-business` native resources and `web:src/admin/modules` frontend resources are accepted.
 
 - [x] Replace legacy migration test with rejection-before-mutation and canonical rollback/conflict tests; observe failure on old compatibility code.
 - [x] Publish from canonical paths and remove all old directory/identifier/namespace branches.
@@ -48,7 +48,7 @@
 
 ### Task 3: Documentation and verification
 
-**Files:** `docs/plugins.md`, `webman-admin/README.md`, prior design supersession notices and verification record.
+**Files:** `docs/plugins.md`, `admin/README.md`, prior design supersession notices and verification record.
 
 - [x] Document one canonical directory tree and fixed publication destinations.
 - [x] Run scoped plugin/development tests, PHP lint and full backend/frontend suites; report existing baseline failures separately.

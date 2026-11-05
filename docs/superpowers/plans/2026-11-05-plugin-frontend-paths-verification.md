@@ -2,7 +2,7 @@
 
 ## 本轮调整
 
-- 保留另一会话已确定的根部署 `/`、hash 路由和 `webman-admin/public/` 构建输出。
+- 保留另一会话已确定的根部署 `/`、hash 路由和 `admin/public/` 构建输出。
 - 插件历史包和开发包下载链接使用 `VITE_APP_BASE_API`，支持相对、绝对及带尾斜杠的 API base。
 - 开发包响应中的下载地址按当前 API 配置归一化，保留审计信息和哈希等原有字段。
 - Vite 代理 `/plugin-assets/` 到后端，按路径段匹配，不误代理页面和构建资产。
@@ -13,7 +13,7 @@
 
 - 9 个相关测试文件、49 项测试通过。
 - 独立只读审查未发现重要问题；审查方另行运行的 12 项测试通过。
-- `npm run build:webman` 通过，包含 `vue-tsc --noEmit`；产物输出到 `webman-admin/public/`，构建保留该目录中的其它文件。
+- `npm run build:webman` 通过，包含 `vue-tsc --noEmit`；产物输出到 `admin/public/`，构建保留该目录中的其它文件。
 - `git diff --check` 通过。
 - 前端全量：923 项，806 通过、117 失败，60 个测试文件失败。与先前 116 个失败的基线相比，新增的是并行 CMS 工作中的 `tests/cms/content.spec.ts > publishes the revision the editor loaded and keeps its optimistic lock`；本轮路径相关用例全部通过。旧失败明细见之前验证记录。
 
