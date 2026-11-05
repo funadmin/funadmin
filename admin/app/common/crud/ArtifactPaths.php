@@ -15,7 +15,7 @@ final class ArtifactPaths
         // 先验证清单路径，不能借助根目录映射绕过 ../ 或绝对路径检查。
         $local = PathGuard::resolve($root, $path, $label);
         if (!str_starts_with($path, 'web/')) return $local;
-        $relative = substr($path, 10);
+        $relative = substr($path, strlen('web/'));
         if (preg_match('~^(?:src/admin/(?:api|views)/generated/|tests/generated/)~D', $relative) !== 1) {
             throw new InvalidArgumentException('前端生成路径必须位于标准 generated 目录');
         }
