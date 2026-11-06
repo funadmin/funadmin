@@ -6,7 +6,7 @@ namespace app\admin\ai\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use Webman\RedisQueue\Redis;
 use app\admin\ai\infrastructure\NativeDockerProcessRunner;
 use app\admin\ai\model\AiApproval;
@@ -41,7 +41,7 @@ use Webman\Http\UploadFile;
 
 /** AI 开发助手阶段二 Admin API。 */
 #[\support\annotation\route\RouteGroup('/admin/development/ai')]
-final class Ai extends AdminApiController
+final class Ai extends AdminController
 {
     private readonly AiConversationService $ai;
     private readonly AiEventStreamService $events;

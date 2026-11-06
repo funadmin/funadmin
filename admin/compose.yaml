@@ -9,7 +9,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-      - ../database:/core-database:ro
+      - ./database/core:/core-database:ro
     environment:
       CORE_DATABASE_PATH: /core-database
       APP_DEBUG: ${APP_DEBUG:-false}
