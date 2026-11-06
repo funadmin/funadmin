@@ -1,17 +1,23 @@
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { nextTick, reactive } from 'vue';
 import { ElImage, ElUpload } from 'element-plus';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Upload from './index.vue';
 import { uploadApi, type UploadResult } from '@/api/common/upload';
 
 vi.mock('@/api/common/upload', () => ({ uploadApi: { upload: vi.fn() } }));
+const user = reactive({ permissions: ['system:attachment:upload'] as string[] });
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 
 const file = (overrides: Partial<UploadResult> = {}): UploadResult => ({
   url: '/uploads/photo.png', name: 'photo.png', size: 1024, ext: 'png',
   groupId: 0, driver: 'local', reused: false, uploadedAt: 0, ...overrides
 });
 const wrappers: ReturnType<typeof mount>[] = [];
+beforeEach(() => {
+  user.permissions = ['system:attachment:upload'];
+  vi.clearAllMocks();
+});
 function render(files: UploadResult[], disabled = false) {
   const wrapper = mount(Upload, { props: { type: 'file', modelValue: files, disabled }, attachTo: document.body });
   wrappers.push(wrapper);
@@ -23,6 +29,30 @@ afterEach(() => {
 });
 
 describe('公共上传文件列表', () => {
+  it('无上传权限时禁用上传入口，直接请求也不发送文件', async () => {
+    user.permissions = ['system:attachment:list'];
+    const wrapper = render([]);
+    const upload = wrapper.getComponent(ElUpload);
+    expect(upload.props('disabled')).toBe(true);
+    const request = upload.props('httpRequest')!;
+    await request({ file: new File(['image'], 'photo.png') } as Parameters<typeof request>[0]);
+    expect(uploadApi.upload).not.toHaveBeenCalled();
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+  });
+
+  it('文件校验通过后撤销权限，仍禁止实际上传请求', async () => {
+    const wrapper = render([]);
+    const upload = wrapper.getComponent(ElUpload);
+    const image = new File(['image'], 'photo.png');
+    expect(await upload.props('beforeUpload')!(image as never)).toBe(true);
+    user.permissions = [];
+    await nextTick();
+    const request = upload.props('httpRequest')!;
+    await request({ file: image } as Parameters<typeof request>[0]);
+    expect(uploadApi.upload).not.toHaveBeenCalled();
+    expect(wrapper.emitted('success')).toBeUndefined();
+  });
+
   it('图片显示缩略图，点击后大图预览传送到 body，关闭不修改文件', async () => {
     const item = file();
     const wrapper = render([item]);

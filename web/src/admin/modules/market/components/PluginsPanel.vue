@@ -41,8 +41,8 @@
       <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openVersions(row as MarketPlugin)">版本管理</el-button>
-          <el-button v-if="canManage" link type="primary" @click="openEdit(row as MarketPlugin)">编辑</el-button>
-          <el-button v-if="canManage" link type="danger" @click="remove(row as MarketPlugin)">删除</el-button>
+          <el-button v-perm="'market:plugin:manage'" v-if="canManage" link type="primary" @click="openEdit(row as MarketPlugin)">编辑</el-button>
+          <el-button v-perm="'market:plugin:manage'" v-if="canManage" link type="danger" @click="remove(row as MarketPlugin)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -59,7 +59,7 @@
       <el-input v-model="changelog" type="textarea" :rows="4" maxlength="20000" show-word-limit placeholder="更新日志（可选，会展示在客户端插件中心）" class="mt-3" />
       <template #footer>
         <el-button @click="uploadOpen = false">取消</el-button>
-        <el-button type="primary" :loading="uploading" :disabled="!uploadFile" @click="submitUpload">上传并签名</el-button>
+        <el-button v-perm="'market:plugin:manage'" type="primary" :loading="uploading" :disabled="!uploadFile" @click="submitUpload">上传并签名</el-button>
       </template>
     </el-dialog>
 
@@ -91,7 +91,7 @@
       </el-form>
       <template #footer>
         <el-button @click="editOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveEdit">保存</el-button>
+        <el-button v-perm="'market:plugin:manage'" type="primary" :loading="saving" @click="saveEdit">保存</el-button>
       </template>
     </el-dialog>
 
@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox, type UploadFile, type UploadUserFile } from 'element-plus';
 import { marketApi, yuan, type MarketCategory, type MarketPlugin, type PluginPayload } from '../api';
@@ -116,7 +117,7 @@ const pageSize = ref(10);
 const keyword = ref('');
 const categories = ref<MarketCategory[]>([]);
 
-async function load() {
+async function load() { if (!(hasPermission('market:plugin:view'))) return;
   loading.value = true;
   try {
     const result = await marketApi.plugins({ keyword: keyword.value, page: page.value, pageSize: pageSize.value });
@@ -133,7 +134,7 @@ const uploadList = ref<UploadUserFile[]>([]);
 const changelog = ref('');
 function pickFile(file: UploadFile) { uploadFile.value = file.raw ?? null; uploadList.value = [file]; }
 function resetUpload() { uploadFile.value = null; uploadList.value = []; changelog.value = ''; }
-async function submitUpload() {
+async function submitUpload() { if (!(hasPermission('market:plugin:manage'))) return;
   if (!uploadFile.value) return;
   uploading.value = true;
   try {
@@ -148,7 +149,7 @@ const editOpen = ref(false);
 const saving = ref(false);
 const editingId = ref(0);
 const form = reactive<PluginPayload>({ name: '', description: '', author: '', categoryId: 0, licenseType: 'free', status: 1, sort: 0, pricePerpetual: '', priceYearly: '', cover: '', homepage: '' });
-async function openEdit(row: MarketPlugin) {
+async function openEdit(row: MarketPlugin) { if (!(hasPermission('market:plugin:manage'))) return;
   editingId.value = row.id;
   Object.assign(form, {
     name: row.name, description: row.description, author: row.author, categoryId: row.categoryId, licenseType: row.licenseType, status: row.status, sort: row.sort,
@@ -157,7 +158,7 @@ async function openEdit(row: MarketPlugin) {
   editOpen.value = true;
   categories.value = await marketApi.categories();
 }
-async function saveEdit() {
+async function saveEdit() { if (!(hasPermission('market:plugin:manage'))) return;
   saving.value = true;
   try {
     await marketApi.updatePlugin(editingId.value, { ...form });
@@ -166,10 +167,11 @@ async function saveEdit() {
   } finally { saving.value = false; }
 }
 
-async function remove(row: MarketPlugin) {
+async function remove(row: MarketPlugin) { if (!(hasPermission('market:plugin:manage'))) return;
   try {
     await ElMessageBox.confirm(`删除插件「${row.name}」及其全部版本与授权？已发布版本需要先撤回。`, '删除插件', { type: 'warning', confirmButtonText: '删除' });
   } catch { return; }
+  if (!hasPermission('market:plugin:manage')) return;
   await marketApi.deletePlugin(row.id);
   await load();
   emit('changed');
@@ -177,7 +179,7 @@ async function remove(row: MarketPlugin) {
 
 const versionsOpen = ref(false);
 const current = ref<MarketPlugin | null>(null);
-function openVersions(row: MarketPlugin) { current.value = row; versionsOpen.value = true; }
+function openVersions(row: MarketPlugin) { if (!(hasPermission('market:plugin:view'))) return; current.value = row; versionsOpen.value = true; }
 async function afterVersionChange() { await load(); emit('changed'); }
 
 onMounted(load);

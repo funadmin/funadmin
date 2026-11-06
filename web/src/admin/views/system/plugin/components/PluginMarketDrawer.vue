@@ -35,6 +35,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { pluginApi, type MarketplacePlugin } from '@/api/plugin';
@@ -51,15 +52,16 @@ function applicationCapabilities(applications: Record<string, boolean>) {
   return Object.entries(applications || {}).filter(([, enabled]) => enabled).map(([name]) => t(`plugin.application.${name}`, applicationLabel(name))).join('、') || t('plugin.none', '无');
 }
 
-function install(compatible: boolean, version: string) {
+function install(compatible: boolean, version: string) { if (!(hasPermission('system:plugin:install'))) return;
   if (compatible) emit('install', version);
 }
 
 watch(visible, async (open) => {
-  if (!open || !props.code) return;
+  if (!open || !props.code || !hasPermission('system:plugin:list')) return;
   loading.value = true;
   try {
     detail.value = await pluginApi.marketDetail(props.code);
+    if (!hasPermission('system:plugin:list')) return;
     detail.value.versions = await pluginApi.marketVersions(props.code);
   } finally {
     loading.value = false;

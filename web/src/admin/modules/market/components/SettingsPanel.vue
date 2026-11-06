@@ -5,7 +5,7 @@
       <p class="settings-desc">所有版本在上传时用 Ed25519 私钥签名，客户端用对应公钥校验下载的插件包。私钥保存在插件私有存储（runtime 目录）中，或通过环境变量 <code>MARKET_SIGNING_SECRET_KEY</code> 提供；不会随插件包导出。</p>
       <el-alert v-if="status && !status.sodium" type="error" show-icon :closable="false" title="服务器未启用 PHP sodium 扩展，无法签名" />
       <template v-else-if="status?.keySource === 'none'">
-        <el-button type="primary" :loading="generating" @click="generate"><i class="i-ep-key" />生成签名密钥</el-button>
+        <el-button v-perm="'market:setting:manage'" type="primary" :loading="generating" @click="generate"><i class="i-ep-key" />生成签名密钥</el-button>
       </template>
       <div v-else-if="status" class="key-box">
         <label>公钥（Base64）</label>
@@ -45,7 +45,7 @@
           <div class="pay-channel__head"><strong>模拟支付（仅开发环境）</strong><el-switch v-model="payForm.mock.enabled" /></div>
           <p class="settings-desc">APP_DEBUG 开启时可用，买家在收银台点击即视为支付成功，用于联调下单、授权与安装流程。生产环境关闭调试后自动失效。</p>
         </div>
-        <div><el-button type="primary" :loading="savingPayment" @click="savePayment">保存支付配置</el-button></div>
+        <div><el-button v-perm="'market:setting:manage'" type="primary" :loading="savingPayment" @click="savePayment">保存支付配置</el-button></div>
       </el-form>
     </section>
 
@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { marketApi, type MarketSigning, type PaymentSettings } from '../api';
@@ -99,7 +100,7 @@ function fillPayment(settings: PaymentSettings) {
   payForm.mock.enabled = settings.mock.enabled;
 }
 
-async function savePayment() {
+async function savePayment() { if (!(hasPermission('market:setting:manage'))) return;
   savingPayment.value = true;
   try {
     fillPayment(await marketApi.savePayment(JSON.parse(JSON.stringify(payForm))));
@@ -107,7 +108,7 @@ async function savePayment() {
   } finally { savingPayment.value = false; }
 }
 
-async function load() {
+async function load() { if (!(hasPermission('market:setting:manage'))) return;
   loading.value = true;
   try {
     const [signing, settings] = await Promise.all([marketApi.setting(), marketApi.payment()]);
@@ -115,7 +116,7 @@ async function load() {
     fillPayment(settings);
   } finally { loading.value = false; }
 }
-async function generate() {
+async function generate() { if (!(hasPermission('market:setting:manage'))) return;
   generating.value = true;
   try {
     status.value = await marketApi.generateKey();

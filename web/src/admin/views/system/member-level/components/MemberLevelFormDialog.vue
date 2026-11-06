@@ -48,12 +48,13 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:member-level:edit' : 'system:member-level:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -116,9 +117,11 @@ function resetForm() {
 }
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:member-level:edit' : 'system:member-level:add')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
+    if (!hasPermission(props.row?.id ? 'system:member-level:edit' : 'system:member-level:add')) return;
     if (props.row?.id) await memberLevelApi.update(props.row.id, form);
     else await memberLevelApi.create(form);
     visible.value = false;

@@ -98,18 +98,17 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { blacklistApi, type BlacklistModel, type BlacklistQuery } from '@/api/system/blacklist';
 import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';
-import { useUserStore } from '@/store/modules/user';
 import BlacklistFormDialog from './components/BlacklistFormDialog.vue';
 
 defineOptions({ name: 'SystemBlacklist' });
 
 const { t } = useI18n();
-const userStore = useUserStore();
 const loading = ref(false);
 const list = ref<BlacklistModel[]>([]);
 const total = ref(0);
@@ -126,9 +125,7 @@ const csvColumns: CsvColumn<Record<string, any>>[] = [
   { key: 'status', label: t('common.status', '状态'), parser: (value) => (['1', '启用', '开启'].includes(value.trim()) ? 1 : 0) }
 ];
 
-function hasPermission(permission: string) {
-  return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission);
-}
+
 
 async function loadData() {
   loading.value = true;
@@ -160,20 +157,23 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
+  if (!hasPermission('system:blacklist:add')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: BlacklistModel) {
+  if (!hasPermission('system:blacklist:edit')) return;
   current.value = row;
   dialogVisible.value = true;
 }
 
 async function toggleStatus(row: BlacklistModel, enabled: boolean) {
+  if (!hasPermission("system:blacklist:status")) return;
   const previous = row.status;
   row.status = enabled ? 1 : 0;
   try {
-    await blacklistApi.updateStatus(row.id, row.status);
+     await blacklistApi.updateStatus(row.id, row.status);
   } catch (error) {
     row.status = previous;
     throw error;
@@ -181,27 +181,31 @@ async function toggleStatus(row: BlacklistModel, enabled: boolean) {
 }
 
 async function moveToRecycle() {
+  if (!hasPermission("system:blacklist:delete")) return;
   await ElMessageBox.confirm(t('systemBlacklist.recycleConfirm', { n: selection.value.length }, { default: '确认将选中的 {n} 条记录移入回收站吗？' }), t('systemBlacklist.operateConfirmTitle', '操作确认'), { type: 'warning' });
-  await blacklistApi.removeMany(selection.value.map((item) => item.id));
+  if (!hasPermission("system:blacklist:delete")) return;
+ await blacklistApi.removeMany(selection.value.map((item) => item.id));
   await loadData();
 }
 
-async function restoreSelected() {
-  await blacklistApi.restore(selection.value.map((item) => item.id));
+async function restoreSelected() { if (!hasPermission("system:blacklist:restore")) return; await blacklistApi.restore(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function destroySelected() {
+  if (!hasPermission("system:blacklist:destroy")) return;
   await ElMessageBox.confirm(
     t('systemBlacklist.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 条记录吗？此操作不可恢复。' }),
     t('systemBlacklist.destroyConfirmTitle', '永久删除确认'),
     { type: 'error', confirmButtonText: t('systemBlacklist.destroy', '永久删除') }
   );
-  await blacklistApi.destroy(selection.value.map((item) => item.id));
+  if (!hasPermission("system:blacklist:destroy")) return;
+ await blacklistApi.destroy(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function importCsv(event: Event) {
+  if (!hasPermission("system:blacklist:import")) return;
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
@@ -211,6 +215,7 @@ async function importCsv(event: Event) {
     remark: String(row.remark ?? ''),
     status: Number(row.status) === 1 ? (1 as const) : (0 as const)
   }));
+  if (!hasPermission("system:blacklist:import")) return;
   const result = await blacklistApi.importRows(rows);
   if (result.skipped) {
     await ElMessageBox.alert(result.errors.slice(0, 20).join('\n'), t('systemBlacklist.importResult', { created: result.created, skipped: result.skipped }, { default: '导入完成：成功 {created}，跳过 {skipped}' }), {
@@ -222,8 +227,7 @@ async function importCsv(event: Event) {
   await loadData();
 }
 
-async function exportRows() {
-  const rows = await blacklistApi.exportRows({ ip: query.ip, status: query.status, recycled: query.recycled });
+async function exportRows() { if (!hasPermission("system:blacklist:export")) return; const rows = await blacklistApi.exportRows({ ip: query.ip, status: query.status, recycled: query.recycled });
   const columns: CsvColumn<BlacklistModel>[] = [
     { key: 'ip', label: t('systemBlacklist.ipRule', 'IP/规则') },
     { key: 'remark', label: t('systemBlacklist.remark', '备注') },

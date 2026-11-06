@@ -92,7 +92,7 @@
                 <el-switch
                   size="small"
                   :model-value="row.status === 1"
-                  :disabled="!rowAccess(row as UserModel).statusToggle"
+                  :disabled="!canToggleStatus(row as UserModel)"
                   @change="(v: string | number | boolean) => onToggleStatus(row as UserModel, v === true)"
                 />
               </div>
@@ -147,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -162,6 +163,8 @@ defineOptions({ name: 'SystemUser' });
 const { t } = useI18n();
 const userStore = useUserStore();
 const rowAccess = (row: UserModel) => userRowAccess(row, userStore.userInfo?.id);
+const hasStatusPermission = computed(() => hasPermission('system:user:status'));
+const canToggleStatus = (row: UserModel) => hasStatusPermission.value && rowAccess(row).statusToggle;
 
 /** 与表格列一一对应，供工具栏「列设置」勾选显隐；操作列不可取消 */
 const userColumnOptions = computed<DataTableColumnOption[]>(() => [
@@ -192,6 +195,7 @@ const {
   onBatchDelete,
   onSelectionChange
 } = useCrud<UserModel, { page: number; pageSize: number; username: string; status?: number }>({
+  permissions: { add: 'system:user:add', edit: 'system:user:edit', delete: 'system:user:delete' },
   api: {
     list: (params) => userApi.list(params),
     // userApi.remove 同时支持单 id 与 ids[]，所以两条都接到同一个方法
@@ -207,13 +211,16 @@ const {
 });
 
 async function onToggleStatus(row: UserModel, v: boolean) {
+  if (!hasPermission("system:user:status")) return;
+  if (!canToggleStatus(row)) return;
   const target = (v ? 1 : 0) as 0 | 1;
-  await userApi.toggleStatus(row.id, target);
+   await userApi.toggleStatus(row.id, target);
   row.status = target;
   ElMessage.success(t('systemUser.statusUpdated', '状态已更新'));
 }
 
 async function onResetPwd(row: UserModel) {
+  if (!hasPermission("system:user:reset")) return;
   const { value } = await ElMessageBox.prompt(t('systemUser.resetPwdPrompt', { name: row.username }, { default: '重置 {name} 的密码' }), t('systemUser.resetPwdTitle', '提示'), {
     inputType: 'password',
     inputPlaceholder: isWebmanBackend() ? t('profile.passwordBytes', '新密码需为 12～72 字节') : t('systemUser.resetPwdPlaceholder', '至少 8 位新密码'),
@@ -223,7 +230,8 @@ async function onResetPwd(row: UserModel) {
       return bytes < 12 || bytes > 72 || value.includes('\0') ? t('profile.passwordBytes', '新密码需为 12～72 字节') : true;
     }
   });
-  await userApi.resetPassword(row.id, value);
+  if (!hasPermission("system:user:reset")) return;
+ await userApi.resetPassword(row.id, value);
 }
 
 </script>

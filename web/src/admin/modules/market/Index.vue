@@ -30,9 +30,9 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, ref } from 'vue';
 import PageWrapper from '@/components/PageWrapper/index.vue';
-import { useUserStore } from '@/store/modules/user';
 import { marketApi, yuan, type MarketOverview } from './api';
 import PluginsPanel from './components/PluginsPanel.vue';
 import OrdersPanel from './components/OrdersPanel.vue';
@@ -41,8 +41,7 @@ import CategoriesPanel from './components/CategoriesPanel.vue';
 import GrantsPanel from './components/GrantsPanel.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 
-const userStore = useUserStore();
-const can = (code: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === code);
+const can = hasPermission;
 const tab = ref('plugins');
 const overview = ref<MarketOverview | null>(null);
 
@@ -53,7 +52,7 @@ const stats = computed(() => [
   { label: `累计收入（${overview.value?.paidOrders ?? 0} 单）`, value: overview.value ? `¥${yuan(overview.value.revenue)}` : '-', icon: 'i-ep-wallet', tone: '#08979c' }
 ]);
 
-async function loadOverview() {
+async function loadOverview() { if (!(hasPermission('market:plugin:view'))) return;
   try { overview.value = await marketApi.overview(); } catch { overview.value = null; }
 }
 onMounted(loadOverview);

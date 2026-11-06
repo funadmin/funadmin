@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -145,7 +146,7 @@ async function loadStorageSettings() {
     if (settings.fallback) ElMessage.warning(t('systemAttachment.storageFallback', '原存储驱动不可用，已回退到本地存储'));
   } finally { storageLoading.value = false; }
 }
-async function changeStorageDriver(driver: string) { await storageApi.update(driver); storageDriver.value = driver; }
+async function changeStorageDriver(driver: string) { if (!hasPermission("system:attachment:storage")) return; await storageApi.update(driver); storageDriver.value = driver; }
 async function reloadGroups() { await loadGroups(); await loadData(); }
 async function loadData() {
   loading.value = true;
@@ -156,17 +157,21 @@ function onSearch() { query.page = 1; loadData(); }
 function onReset() { Object.assign(query, { page: 1, pageSize: 20, keyword: '', groupId: undefined, mimeType: '' }); loadData(); }
 function selectGroupFilter(groupId: number | undefined) { query.groupId = groupId; query.page = 1; loadData(); }
 function selectGroup(data: AttachmentGroupModel) { selectGroupFilter(data.id); }
-function openGroupAdd(parentId: number) { currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, name: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
+function openGroupAdd(parentId: number) { if (!hasPermission('system:attachment-group:add')) return;  currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, name: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
 function openGroupEdit(group: AttachmentGroupModel) { currentGroup.value = group; groupDialogVisible.value = true; }
 async function onGroupCommand(command: string, group: AttachmentGroupModel) {
+  const permission = command === 'add' ? 'system:attachment-group:add' : command === 'edit' ? 'system:attachment-group:edit' : 'system:attachment-group:delete';
+  if (!hasPermission(permission)) return;
   if (command === 'add') return openGroupAdd(group.id);
   if (command === 'edit') return openGroupEdit(group);
   await ElMessageBox.confirm(t('systemAttachment.deleteGroupConfirm', { name: group.name }, { default: '确认删除附件分组“{name}”吗？组内附件将移至未分组。' }), t('systemAttachment.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  await attachmentGroupApi.remove(group.id);
+  if (!hasPermission("system:attachment-group:delete")) return;
+ await attachmentGroupApi.remove(group.id);
   if (query.groupId === group.id) query.groupId = 0;
   await reloadGroups();
 }
 async function uploadFiles(event: Event) {
+  if (!hasPermission("system:attachment:upload")) return;
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files || []); input.value = '';
   if (!files.length) return;
@@ -175,6 +180,7 @@ async function uploadFiles(event: Event) {
   let uploaded = 0;
   const failed: string[] = [];
   for (const file of files) {
+    if (!hasPermission('system:attachment:upload')) return;
     try {
       const result = await uploadApi.upload(file, file.type.startsWith('image/') ? 'image' : 'file', uploadGroupId);
       uploaded++;
@@ -187,16 +193,22 @@ async function uploadFiles(event: Event) {
   await loadData();
 }
 async function renameOne(row: AttachmentModel) {
+  if (!hasPermission("system:attachment:edit")) return;
   const result = await ElMessageBox.prompt(t('systemAttachment.renamePrompt', '请输入新的文件名称'), t('systemAttachment.rename', '重命名'), { inputValue: row.originalName, inputPattern: /^.{1,255}$/, inputErrorMessage: t('systemAttachment.renameRule', '名称长度必须为 1 至 255 个字符') });
-  await attachmentApi.rename(row.id, result.value.trim()); await loadData();
+  if (!hasPermission("system:attachment:edit")) return;
+ await attachmentApi.rename(row.id, result.value.trim()); await loadData();
 }
 async function moveSelected() {
+  if (!hasPermission("system:attachment:move")) return;
   const result = await ElMessageBox.prompt(t('systemAttachment.movePrompt', '请输入目标附件分组 ID，0 表示未分组'), t('systemAttachment.moveTitle', '移动附件'), { inputPattern: /^\d+$/, inputErrorMessage: t('systemAttachment.moveRule', '请输入非负整数') });
-  await attachmentApi.move(selection.value.map((item) => item.id), Number(result.value)); await loadData();
+  if (!hasPermission("system:attachment:move")) return;
+ await attachmentApi.move(selection.value.map((item) => item.id), Number(result.value)); await loadData();
 }
 async function removeSelected() {
+  if (!hasPermission("system:attachment:delete")) return;
   await ElMessageBox.confirm(t('systemAttachment.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个附件吗？本地文件将同步删除。' }), t('systemAttachment.destroyConfirmTitle', '永久删除确认'), { type: 'error', confirmButtonText: t('systemAttachment.destroyButton', '永久删除') });
-  await attachmentApi.remove(selection.value.map((item) => item.id)); await loadData();
+  if (!hasPermission("system:attachment:delete")) return;
+ await attachmentApi.remove(selection.value.map((item) => item.id)); await loadData();
 }
 function formatBytes(size: number) { if (size < 1024) return `${size} B`; if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`; return `${(size / 1024 / 1024).toFixed(2)} MB`; }
 function fileIcon(ext: string) { return ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) ? 'i-ep-folder-opened' : ['mp4', 'mov', 'avi'].includes(ext) ? 'i-ep-video-camera' : ['mp3', 'wav'].includes(ext) ? 'i-ep-headset' : 'i-ep-document'; }

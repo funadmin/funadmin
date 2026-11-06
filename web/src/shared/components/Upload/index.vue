@@ -6,7 +6,7 @@
         :show-file-list="false"
         :before-upload="beforeUpload"
         :http-request="customRequest"
-        :disabled="disabled"
+        :disabled="!canUpload"
         accept="image/*"
         class="app-upload__image"
       >
@@ -30,7 +30,7 @@
         :show-file-list="false"
         :before-upload="beforeUpload"
         :http-request="customRequest"
-        :disabled="disabled || isMaxReached"
+        :disabled="!canUpload || isMaxReached"
         accept="image/*"
         multiple
         class="app-upload__grid"
@@ -78,7 +78,7 @@
         :show-file-list="false"
         :before-upload="beforeUpload"
         :http-request="customRequest"
-        :disabled="disabled || isMaxReached"
+        :disabled="!canUpload || isMaxReached"
         :accept="accept"
         :multiple="multiple"
         drag
@@ -170,6 +170,7 @@ import {
 } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { uploadApi, type UploadResult } from '@/api/common/upload';
+import { hasPermission } from '@/utils/permission';
 
 type UploadType = 'image' | 'images' | 'file';
 
@@ -214,6 +215,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const loading = ref(false);
+const canUpload = computed(() => !props.disabled && hasPermission('system:attachment:upload'));
 
 /* ---------- 单图 ---------- */
 const previewUrl = computed(() =>
@@ -295,6 +297,7 @@ function getFileIcon(name: string): string {
 
 /* ---------- 上传校验 ---------- */
 function beforeUpload(file: File): boolean {
+  if (!canUpload.value) return false;
   const sizeMB = file.size / 1024 / 1024;
   if (sizeMB > props.maxSize) {
     ElMessage.warning(t('common.fileTooLarge', { name: file.name, size: props.maxSize }, '文件 {name} 超过 {size}MB'));
@@ -305,6 +308,7 @@ function beforeUpload(file: File): boolean {
 
 /* ---------- 自定义请求 ---------- */
 async function customRequest(opts: UploadRequestOptions) {
+  if (!canUpload.value) return;
   loading.value = true;
   try {
     const file = opts.file as unknown as File;

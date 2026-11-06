@@ -46,12 +46,13 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:dept:edit' : 'system:dept:add'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -141,13 +142,16 @@ watch(visible, (v) => {
 });
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
   await formRef.value?.validate();
   submitting.value = true;
   try {
     if (isEdit.value && props.row) {
-      await deptApi.update(props.row.id, form);
+      if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
+     await deptApi.update(props.row.id, form);
     } else {
-      await deptApi.create(form);
+      if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
+     await deptApi.create(form);
     }
     visible.value = false;
     emit('success');

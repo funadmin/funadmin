@@ -217,6 +217,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -273,25 +274,30 @@ function onResetType() {
 }
 
 function onAddType() {
+  if (!hasPermission('system:dict:add')) return;
   currentEditType.value = null;
   typeDialogVisible.value = true;
 }
 
 function onEditType(row: DictType) {
+  if (!hasPermission('system:dict:edit')) return;
   currentEditType.value = row;
   typeDialogVisible.value = true;
 }
 
 async function onDeleteType(row: DictType) {
+  if (!hasPermission("system:dict:delete")) return;
   await ElMessageBox.confirm(t('systemDict.deleteTypeConfirm', { name: row.name }, { default: '确认删除分类「{name}」？请先清空分类下的字典项' }), t('common.tip', '提示'), {
     type: 'warning'
   });
-  await dictTypeApi.remove(row.id);
+  if (!hasPermission("system:dict:delete")) return;
+ await dictTypeApi.remove(row.id);
   if (currentType.value?.id === row.id) currentType.value = null;
   reloadTypes();
 }
 
 async function onBatchDeleteType() {
+  if (!hasPermission("system:dict:delete")) return;
   if (!typeSelection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -302,7 +308,8 @@ async function onBatchDeleteType() {
     { type: 'warning' }
   );
   const ids = typeSelection.value.map((r) => r.id);
-  await dictTypeApi.removeMany(ids);
+  if (!hasPermission("system:dict:delete")) return;
+ await dictTypeApi.removeMany(ids);
   if (currentType.value && ids.includes(currentType.value.id)) currentType.value = null;
   typeSelection.value = [];
   reloadTypes();
@@ -370,6 +377,7 @@ function onResetItem() {
 }
 
 function onAddItem() {
+  if (!hasPermission('system:dict:add')) return;
   if (!currentType.value) {
     ElMessage.warning(t('systemDict.selectTypeFirst', '请先在左侧选择一个分类'));
     return;
@@ -379,17 +387,21 @@ function onAddItem() {
 }
 
 function onEditItem(row: DictItemModel) {
+  if (!hasPermission('system:dict:edit')) return;
   currentEditItem.value = row;
   itemDialogVisible.value = true;
 }
 
 async function onDeleteItem(row: DictItemModel) {
+  if (!hasPermission("system:dict:delete")) return;
   await ElMessageBox.confirm(t('systemDict.deleteItemConfirm', { name: row.label }, { default: '确认删除字典项「{name}」?' }), t('common.tip', '提示'), { type: 'warning' });
-  await dictItemApi.remove(row.id);
+  if (!hasPermission("system:dict:delete")) return;
+ await dictItemApi.remove(row.id);
   reloadItems();
 }
 
 async function onBatchDeleteItem() {
+  if (!hasPermission("system:dict:delete")) return;
   if (!itemSelection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -397,7 +409,8 @@ async function onBatchDeleteItem() {
   await ElMessageBox.confirm(t('systemDict.batchDeleteItemConfirm', { n: itemSelection.value.length }, { default: '确认删除选中的 {n} 个字典项？此操作不可恢复' }), t('common.tip', '提示'), {
     type: 'warning'
   });
-  await dictItemApi.removeMany(itemSelection.value.map((r) => r.id));
+  if (!hasPermission("system:dict:delete")) return;
+ await dictItemApi.removeMany(itemSelection.value.map((r) => r.id));
   itemSelection.value = [];
   reloadItems();
 }

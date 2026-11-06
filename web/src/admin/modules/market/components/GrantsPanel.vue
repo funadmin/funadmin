@@ -4,7 +4,7 @@
       <el-select v-model="pluginId" clearable placeholder="全部插件" class="panel-filter" @change="reload">
         <el-option v-for="item in plugins" :key="item.id" :value="item.id" :label="`${item.name}（${item.code}）`" />
       </el-select>
-      <el-button type="primary" @click="openCreate"><i class="i-ep-plus" />新增授权</el-button>
+      <el-button v-perm="'market:grant:manage'" type="primary" @click="openCreate"><i class="i-ep-plus" />新增授权</el-button>
       <span class="panel-hint">付费插件只有获得授权的会员才能下载安装；在线购买会自动生成授权，也可在此手动开通或延期。</span>
     </div>
     <el-table v-loading="loading" :data="rows" row-key="id" empty-text="暂无授权记录">
@@ -18,8 +18,8 @@
       <el-table-column label="备注" prop="remark" min-width="140" show-overflow-tooltip />
       <el-table-column label="操作" width="140">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row as MarketGrant)">编辑</el-button>
-          <el-button link type="danger" @click="remove(row as MarketGrant)">删除</el-button>
+          <el-button v-perm="'market:grant:manage'" link type="primary" @click="openEdit(row as MarketGrant)">编辑</el-button>
+          <el-button v-perm="'market:grant:manage'" link type="danger" @click="remove(row as MarketGrant)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -45,13 +45,14 @@
       </el-form>
       <template #footer>
         <el-button @click="editOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+        <el-button v-perm="'market:grant:manage'" type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { marketApi, type GrantPayload, type MarketGrant, type MarketPlugin } from '../api';
@@ -65,7 +66,7 @@ const pageSize = ref(10);
 const pluginId = ref<number | undefined>();
 const plugins = ref<MarketPlugin[]>([]);
 
-async function load() {
+async function load() { if (!(hasPermission('market:grant:manage'))) return;
   loading.value = true;
   try {
     const result = await marketApi.grants({ pluginId: pluginId.value, page: page.value, pageSize: pageSize.value });
@@ -79,17 +80,17 @@ const editOpen = ref(false);
 const saving = ref(false);
 const editingId = ref(0);
 const form = reactive<Required<GrantPayload>>({ pluginId: 0, account: '', expiresAt: '', status: 1, remark: '' });
-function openCreate() {
+function openCreate() { if (!(hasPermission('market:grant:manage'))) return;
   editingId.value = 0;
   Object.assign(form, { pluginId: pluginId.value ?? 0, account: '', expiresAt: '', status: 1, remark: '' });
   editOpen.value = true;
 }
-function openEdit(row: MarketGrant) {
+function openEdit(row: MarketGrant) { if (!(hasPermission('market:grant:manage'))) return;
   editingId.value = row.id;
   Object.assign(form, { pluginId: row.pluginId, account: row.username, expiresAt: row.expiresAt, status: row.status, remark: row.remark });
   editOpen.value = true;
 }
-async function save() {
+async function save() { if (!(hasPermission('market:grant:manage'))) return;
   saving.value = true;
   try {
     const payload = { expiresAt: form.expiresAt ?? '', status: form.status, remark: form.remark };
@@ -100,14 +101,16 @@ async function save() {
     emit('changed');
   } finally { saving.value = false; }
 }
-async function remove(row: MarketGrant) {
+async function remove(row: MarketGrant) { if (!(hasPermission('market:grant:manage'))) return;
   try { await ElMessageBox.confirm(`删除 ${row.username} 对「${row.pluginName}」的授权？`, '删除授权', { type: 'warning' }); } catch { return; }
+  if (!hasPermission('market:grant:manage')) return;
   await marketApi.deleteGrant(row.id);
   await load();
   emit('changed');
 }
 
 onMounted(async () => {
+  if (!hasPermission('market:grant:manage')) return;
   const result = await marketApi.plugins({ page: 1, pageSize: 100 });
   plugins.value = result.list;
   await load();

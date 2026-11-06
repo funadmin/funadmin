@@ -108,6 +108,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -150,7 +151,7 @@ const selectedModule = computed(() => modules.value.find((module) => module.id =
 const pageSubtitle = computed(() => selectedModule.value
   ? t('business.records.subtitleScoped', { name: selectedModule.value.name, code: selectedModule.value.code }, '{name}（{code}）的 managed 生成、冲突与恢复状态')
   : t('business.records.subtitleAll', '查看全部业务模块的 managed 生成、冲突与恢复状态'));
-const canRecover = computed(() => detail.value?.availableActions?.includes('recover') === true);
+const canRecover = computed(() => hasPermission('development.business:recovergeneration') && hasPermission('development:business:recover') && detail.value?.availableActions?.includes('recover') === true);
 // 页面统一承担恢复确认，drawer 继续负责结构化展示，避免未确认即调用恢复接口。
 const drawerGeneration = computed(() => detail.value ? { ...detail.value, availableActions: detail.value.availableActions?.filter((action) => action !== 'recover') } : null);
 
@@ -257,6 +258,7 @@ async function recoverDetail() {
   recovering.value = true;
   try {
     await ElMessageBox.confirm(t('business.records.recoverConfirm', '恢复将回滚本次生成产生的变更，是否继续？'), t('business.records.recoverConfirmTitle', '确认恢复'), { type: 'warning' });
+    if (!detail.value || !canRecover.value) return;
     await businessDevelopmentApi.recoverGeneration(detail.value.id, detail.value.recoveryStatus || detail.value.recovery_status || 'recovery_required');
     await refreshAfterRecovery();
     ElMessage.success(t('business.records.recoverSuccess', '恢复成功'));

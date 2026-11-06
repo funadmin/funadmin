@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('@/utils/permission', () => ({ hasPermission: () => true }));
 vi.mock('@/router', () => ({ default: { push: mocks.push } }));
 vi.mock('@/router/pluginStartup', () => ({ loadPluginModulesSafely: vi.fn() }));
 vi.mock('@/api/plugin', () => ({ pluginApi: { installed: async () => [], discovered: async () => [] } }));

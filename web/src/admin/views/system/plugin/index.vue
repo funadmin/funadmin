@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessageBox } from 'element-plus';
@@ -121,11 +122,11 @@ function businessReason(row: PluginItem) {
   if (row.operation || !['discovered', 'enabled', 'disabled'].includes(row.state)) return row.disabledReason || t('plugin.businessReason', '插件正在发布、恢复或当前状态不可开发');
   return '';
 }
-function developBusiness(row: PluginItem) {
+function developBusiness(row: PluginItem) { if (!(hasPermission('development:business:save'))) return;
   if (businessReason(row)) return;
   void router.push({ path: '/admin/development/business/visual', query: { plugin: row.code } });
 }
-function openDevelopment(mode: 'create' | 'maintain') {
+function openDevelopment(mode: 'create' | 'maintain') { if (!(hasPermission(mode === 'create' ? 'development:plugin:create' : ['development:plugin:validate', 'development:plugin:package']))) return;
   developmentMode.value = mode;
   developmentVisible.value = true;
 }
@@ -157,7 +158,7 @@ function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' 
   if (action === 'install' && row.state !== 'discovered') return t('plugin.stateNotInstall', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许安装' });
   return '';
 }
-async function load() {
+async function load() { if (!(hasPermission('system:plugin:list'))) return;
   pageError.value = '';
   if (activeTab.value === 'market') return loadMarket();
   loading.value = true;
@@ -194,21 +195,21 @@ async function load() {
     loading.value = false;
   }
 }
-async function loadMarket() { pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
+async function loadMarket() { if (!(hasPermission('system:plugin:list'))) return; pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
 async function installedFromZip() { activeTab.value = 'installed'; await load(); }
-function selectLocalUpdate(row: PluginItem) { selectedCode.value = row.code; updateInput.value?.click(); }
-async function updateLocalZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(t('plugin.localUpdateConfirm', { file: file.name, code: selectedCode.value }, { default: '确认使用 {file} 更新插件 {code} 吗？' }), t('plugin.localUpdateTitle', '本地更新确认')), async () => { await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
+function selectLocalUpdate(row: PluginItem) { if (!(hasPermission('system:plugin:local-update'))) return; selectedCode.value = row.code; updateInput.value?.click(); }
+async function updateLocalZip(event: Event) { if (!(hasPermission('system:plugin:local-update'))) return; const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(t('plugin.localUpdateConfirm', { file: file.name, code: selectedCode.value }, { default: '确认使用 {file} 更新插件 {code} 吗？' }), t('plugin.localUpdateTitle', '本地更新确认')), async () => { if (!hasPermission('system:plugin:local-update')) return; await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
 async function syncPluginRoutes() { await loadPluginModulesSafely(router); }
-async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: t('plugin.confirmMigrate', '确认迁移插件'), enable: t('plugin.confirmEnable', '确认启用插件'), disable: t('plugin.confirmDisable', '确认禁用插件') } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} ${t('plugin.confirmSuffix', '吗？')}`, t('plugin.operateTitle', '操作确认')), async () => { await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
-async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.updateConfirm', { code: row.code, version: row.latestVersion }, { default: '确认将 {code} 更新到 {version} 吗？' }), t('plugin.updateTitle', '更新确认')), async () => { await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
-async function installDiscovered(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.installConfirm', { code: row.code }, { default: '确认安装发现目录中的插件 {code} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
-async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.uninstallConfirm', { code: row.code }, { default: '确认卸载插件 {code} 吗？业务数据与配置将保留。' }), t('plugin.uninstallTitle', '卸载确认')), async () => { await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
-async function purge(row: PluginItem) { pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(t('plugin.purgePrompt', { code: row.code }, { default: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认' }), t('plugin.purgeTitle', '危险操作')).then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
-async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(t('plugin.deleteConfirm', { code: row.code }, { default: '确认删除本地插件包 {code} 吗？' }), t('plugin.deleteTitle', '删除确认')), async () => { await pluginApi.deletePackage(row.code); await load(); }); }
-function openConfig(row: PluginItem) { selectedCode.value = row.code; configVisible.value = true; }
-function openHistory(row: PluginItem) { selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
-function openMarket(row: MarketplacePlugin) { selectedCode.value = row.code; marketVisible.value = true; }
-async function installMarket(row: MarketplacePlugin) { const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: row.code, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
-async function installSelectedVersion(version: string) { await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: selectedCode.value, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { if (!(hasPermission('system:plugin:' + action))) return; const messages = { migrate: t('plugin.confirmMigrate', '确认迁移插件'), enable: t('plugin.confirmEnable', '确认启用插件'), disable: t('plugin.confirmDisable', '确认禁用插件') } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} ${t('plugin.confirmSuffix', '吗？')}`, t('plugin.operateTitle', '操作确认')), async () => { if (!hasPermission('system:plugin:' + action)) return; await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
+async function updatePlugin(row: PluginItem) { if (!(hasPermission('system:plugin:update'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.updateConfirm', { code: row.code, version: row.latestVersion }, { default: '确认将 {code} 更新到 {version} 吗？' }), t('plugin.updateTitle', '更新确认')), async () => { if (!hasPermission('system:plugin:update')) return; await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
+async function installDiscovered(row: PluginItem) { if (!(hasPermission('system:plugin:discovered-install'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.installConfirm', { code: row.code }, { default: '确认安装发现目录中的插件 {code} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:discovered-install')) return; await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
+async function uninstall(row: PluginItem) { if (!(hasPermission('system:plugin:uninstall'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.uninstallConfirm', { code: row.code }, { default: '确认卸载插件 {code} 吗？业务数据与配置将保留。' }), t('plugin.uninstallTitle', '卸载确认')), async () => { if (!hasPermission('system:plugin:uninstall')) return; await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
+async function purge(row: PluginItem) { if (!(hasPermission('system:plugin:purge'))) return; pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(t('plugin.purgePrompt', { code: row.code }, { default: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认' }), t('plugin.purgeTitle', '危险操作')).then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); if (!hasPermission('system:plugin:purge')) return; await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
+async function deletePackage(row: PluginItem) { if (!(hasPermission('system:plugin:package-delete'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.deleteConfirm', { code: row.code }, { default: '确认删除本地插件包 {code} 吗？' }), t('plugin.deleteTitle', '删除确认')), async () => { if (!hasPermission('system:plugin:package-delete')) return; await pluginApi.deletePackage(row.code); await load(); }); }
+function openConfig(row: PluginItem) { if (!(hasPermission('system:plugin:config'))) return; selectedCode.value = row.code; configVisible.value = true; }
+function openHistory(row: PluginItem) { if (!(hasPermission('system:plugin:history'))) return; selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
+function openMarket(row: MarketplacePlugin) { if (!(hasPermission('system:plugin:list'))) return; selectedCode.value = row.code; marketVisible.value = true; }
+async function installMarket(row: MarketplacePlugin) { if (!(hasPermission('system:plugin:install'))) return; const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: row.code, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:install')) return; await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
+async function installSelectedVersion(version: string) { if (!(hasPermission('system:plugin:install'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: selectedCode.value, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:install')) return; await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
 onMounted(load);
 </script>

@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -131,26 +132,32 @@ function onReset() {
 }
 
 function openAdd() {
+  if (!hasPermission('system:language:add')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: LanguageModel) {
+  if (!hasPermission('system:language:edit')) return;
   current.value = row;
   dialogVisible.value = true;
 }
 
 async function removeOne(row: LanguageModel) {
+  if (!hasPermission("system:language:delete")) return;
   await ElMessageBox.confirm(t('systemLanguage.deleteOneConfirm', { name: row.name }, { default: '确认删除语言“{name}”吗？' }), t('systemLanguage.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  await languageApi.remove(row.id);
+  if (!hasPermission("system:language:delete")) return;
+ await languageApi.remove(row.id);
   await loadData();
 }
 
 async function removeSelected() {
+  if (!hasPermission("system:language:delete")) return;
   await ElMessageBox.confirm(t('systemLanguage.deleteManyConfirm', { n: deletableSelection.value.length }, { default: '确认删除选中的 {n} 个语言吗？' }), t('systemLanguage.batchDeleteConfirmTitle', '批量删除确认'), {
     type: 'warning'
   });
-  await languageApi.removeMany(deletableSelection.value.map((item) => item.id));
+  if (!hasPermission("system:language:delete")) return;
+ await languageApi.removeMany(deletableSelection.value.map((item) => item.id));
   await loadData();
 }
 

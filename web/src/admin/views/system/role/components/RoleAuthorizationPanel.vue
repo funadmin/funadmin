@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessageBox } from 'element-plus';
@@ -93,18 +94,20 @@ function setFieldEdit(field: FieldPermission, checked: unknown) { Object.assign(
 function inheritanceText(sources: AuthorizationSource[]) { return sources.length ? t('systemRole.inheritedFrom', { names: sources.map((source) => source.roleName).join('、') }, '继承自：{names}') : ''; }
 function syncDepartmentIds(_data: AuthorizationTreeNode, checked: { checkedKeys: Array<number | string> }) { props.authorization.departmentIds = checked.checkedKeys.map(Number); }
 async function save() {
+  if (!hasPermission("system:role:perm")) return;
   if (!props.roleId) return; saving.value = true;
   try {
     const permissionIds = permissionGroups.value.flatMap((group) => group.resources).flatMap((resource) => resource.actions).filter((action) => action.direct).map((action) => action.id);
     const fieldPermissions = fields.value.map((field) => ({ fieldId: field.id, ...normalizeFieldGrant(field) })).filter((field) => field.view || field.edit);
     const departmentIds = props.authorization.dataScope === 'custom' ? props.authorization.departmentIds : [];
-    await roleApi.saveAuthorization(props.roleId, { permissionIds, fieldPermissions, dataScope: props.authorization.dataScope, departmentIds }); emit('reload');
+     await roleApi.saveAuthorization(props.roleId, { permissionIds, fieldPermissions, dataScope: props.authorization.dataScope, departmentIds }); emit('reload');
   } finally { saving.value = false; }
 }
 async function copyAuthorization() {
+  if (!hasPermission("system:role:perm-copy")) return;
   if (!props.roleId || !copySourceRoleId.value) return;
   await ElMessageBox.confirm(t('systemRole.copyConfirm', '确认复制所选角色的整套授权吗？'), t('systemRole.copyAuth', '复制授权'), { type: 'warning' }); copying.value = true;
-  try { await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); emit('reload'); } finally { copying.value = false; }
+  try {  if (!hasPermission("system:role:perm-copy")) return; await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); emit('reload'); } finally { copying.value = false; }
 }
 </script>
 

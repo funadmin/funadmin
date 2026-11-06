@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -46,11 +47,11 @@ const planFiles = (files: PluginDevelopmentPlan['files']) => files.map((file) =>
 const fileStatusLabel = (status?: string) => ({ create: t('plugin.devFileCreate', '新建'), unchanged: t('plugin.devFileUnchanged', '未变化'), overwrite: t('plugin.devFileOverwrite', '覆盖'), conflict: t('plugin.devFileConflict', '冲突') }[status || ''] || t('plugin.devFilePending', '待处理'));
 
 async function run(operation: () => Promise<void>) { error.value = ''; loading.value = true; try { await operation(); } catch (reason) { error.value = message(reason); } finally { loading.value = false; } }
-async function loadOptions() { mode.value = props.initialMode; await run(async () => { plugins.value = await pluginDevelopmentApi.options(); selectedCode.value ||= plugins.value[0]?.code || ''; }); }
-async function previewPlugin() { await run(async () => { preview.value = await pluginDevelopmentApi.previewCreate({ ...createForm }); }); }
-async function createPlugin() { await run(async () => { result.value = await pluginDevelopmentApi.create({ ...createForm }); ElMessage.success(t('plugin.devCreateSuccess', { id: result.value.auditId }, { default: '插件已创建，审计编号：{id}' })); const pluginCode = result.value.plugin?.code || createForm.name; preview.value = null; await loadOptions(); emit('changed', pluginCode); }); }
-async function validatePlugin() { if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.validate(selectedCode.value); ElMessage.success(t('plugin.devValidateSuccess', '插件校验通过')); }); }
-async function packagePlugin() { if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.package(selectedCode.value); ElMessage.success(t('plugin.devPackageSuccess', '插件打包完成')); }); }
+async function loadOptions() { mode.value = props.initialMode; if (!hasPermission('development:plugin:options')) return; await run(async () => { plugins.value = await pluginDevelopmentApi.options(); selectedCode.value ||= plugins.value[0]?.code || ''; }); }
+async function previewPlugin() { if (!(hasPermission('development:plugin:create-preview'))) return; await run(async () => { preview.value = await pluginDevelopmentApi.previewCreate({ ...createForm }); }); }
+async function createPlugin() { if (!(hasPermission('development:plugin:create'))) return; await run(async () => { result.value = await pluginDevelopmentApi.create({ ...createForm }); ElMessage.success(t('plugin.devCreateSuccess', { id: result.value.auditId }, { default: '插件已创建，审计编号：{id}' })); const pluginCode = result.value.plugin?.code || createForm.name; preview.value = null; await loadOptions(); emit('changed', pluginCode); }); }
+async function validatePlugin() { if (!(hasPermission('development:plugin:validate'))) return; if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.validate(selectedCode.value); ElMessage.success(t('plugin.devValidateSuccess', '插件校验通过')); }); }
+async function packagePlugin() { if (!(hasPermission('development:plugin:package'))) return; if (!selectedCode.value) return; await run(async () => { result.value = await pluginDevelopmentApi.package(selectedCode.value); ElMessage.success(t('plugin.devPackageSuccess', '插件打包完成')); }); }
 </script>
 
 <style scoped>

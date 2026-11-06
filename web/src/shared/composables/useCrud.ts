@@ -14,6 +14,7 @@
 import { getCurrentInstance, onMounted, reactive, ref, type Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { hasPermission, type PermissionRequirement } from '@/utils/permission';
 
 export interface UseCrudApi<T, ID = number> {
   list: (params: any) => Promise<API.PageResult<T> | T[]>;
@@ -35,6 +36,8 @@ export interface UseCrudOptions<T, Q extends Record<string, any>, ID = number> {
   deleteConfirm?: (target: T | T[]) => string;
   /** 是否在 mounted 时自动加载（默认 true） */
   immediate?: boolean;
+  /** 当前宿主业务动作的权限声明；未声明的宿主保留原有行为。 */
+  permissions?: { add?: PermissionRequirement; edit?: PermissionRequirement; delete?: PermissionRequirement };
 }
 
 export function useCrud<T extends Record<string, any>, Q extends Record<string, any>, ID = number>(
@@ -85,11 +88,13 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   }
 
   function onAdd() {
+    if (!hasPermission(options.permissions?.add)) return;
     current.value = null;
     dialogVisible.value = true;
   }
 
   function onEdit(row: T) {
+    if (!hasPermission(options.permissions?.edit)) return;
     current.value = row;
     dialogVisible.value = true;
   }
@@ -101,14 +106,17 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   }
 
   async function onDelete(row: T) {
+    if (!hasPermission(options.permissions?.delete)) return;
     if (!api.remove) return;
     const text = deleteConfirm?.(row) ?? t('common.deleteConfirm', '确认删除该记录？此操作不可恢复');
     await ElMessageBox.confirm(text, t('common.tip', '提示'), { type: 'warning' });
+    if (!hasPermission(options.permissions?.delete)) return;
     await api.remove(row[rowKey] as ID);
     loadData();
   }
 
   async function onBatchDelete() {
+    if (!hasPermission(options.permissions?.delete)) return;
     if (!api.remove && !api.removeMany) return;
     if (!selection.value.length) {
       ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
@@ -118,6 +126,7 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
       deleteConfirm?.(selection.value) ??
       t('common.batchDeleteConfirm', { n: selection.value.length }, '确认删除选中的 {n} 条？此操作不可恢复');
     await ElMessageBox.confirm(text, t('common.tip', '提示'), { type: 'warning' });
+    if (!hasPermission(options.permissions?.delete)) return;
     const ids = selection.value.map((r) => r[rowKey] as ID);
     if (api.removeMany) {
       await api.removeMany(ids);

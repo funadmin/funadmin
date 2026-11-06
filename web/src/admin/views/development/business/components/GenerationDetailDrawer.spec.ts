@@ -6,7 +6,8 @@ import zhCN from '@/locales/zh-CN';
 import GenerationDetailDrawer from './GenerationDetailDrawer.vue';
 import type { BusinessGeneration } from '@/api/development/business';
 
-const mocks = vi.hoisted(() => ({ recover: vi.fn() }));
+const mocks = vi.hoisted(() => ({ recover: vi.fn(), permitted: true }));
+vi.mock('@/utils/permission', () => ({ hasPermission: () => mocks.permitted }));
 vi.mock('@/api/development/business', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/development/business')>();
   return { ...actual, businessDevelopmentApi: { ...actual.businessDevelopmentApi, recoverGeneration: mocks.recover } };
@@ -43,7 +44,7 @@ function render(value = generation) {
 }
 
 describe('GenerationDetailDrawer', () => {
-  beforeEach(() => { mocks.recover.mockReset().mockResolvedValue({ state: 'rolled_back' }); });
+  beforeEach(() => { mocks.permitted = true; mocks.recover.mockReset().mockResolvedValue({ state: 'rolled_back' }); });
 
   it('按摘要、状态、hash、文件、恢复、结果和安全错误分区', () => {
     const wrapper = render();
@@ -52,6 +53,14 @@ describe('GenerationDetailDrawer', () => {
     }
     expect(wrapper.text()).toContain('GENERATION_RECOVERY_REQUIRED');
     expect(wrapper.text()).not.toContain('/Users/');
+  });
+
+  it('即使后端动作目录允许恢复，未授权时也不展示或提交', async () => {
+    mocks.permitted = false;
+    const wrapper = render();
+    expect(wrapper.find('[data-action="recover"]').exists()).toBe(false);
+    await (wrapper.vm as any).recover();
+    expect(mocks.recover).not.toHaveBeenCalled();
   });
 
   it('path 和 hash 可通过键盘复制', async () => {

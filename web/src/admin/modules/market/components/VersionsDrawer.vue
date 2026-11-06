@@ -12,7 +12,7 @@
               <dt>签名</dt><dd>{{ row.signed ? 'Ed25519 已签名' : '未签名' }}</dd>
             </dl>
             <div class="changelog">
-              <div class="changelog__head"><strong>更新日志</strong><el-button v-if="canManage" link type="primary" @click="editChangelog(row as MarketVersion)">编辑</el-button></div>
+              <div class="changelog__head"><strong>更新日志</strong><el-button v-perm="'market:plugin:manage'" v-if="canManage" link type="primary" @click="editChangelog(row as MarketVersion)">编辑</el-button></div>
               <pre>{{ row.changelog || '（未填写）' }}</pre>
             </div>
           </div>
@@ -31,11 +31,11 @@
       <el-table-column label="操作" width="170" fixed="right">
         <template #default="{ row }">
           <template v-if="canManage">
-            <el-button v-if="row.status === 'draft'" link type="primary" @click="act('publish', row as MarketVersion)">发布</el-button>
-            <el-button v-if="row.status === 'published'" link type="warning" @click="act('withdraw', row as MarketVersion)">撤回</el-button>
-            <el-button v-if="row.status === 'withdrawn'" link type="primary" @click="act('republish', row as MarketVersion)">重新发布</el-button>
-            <el-button v-if="row.status !== 'published' && row.downloadCount === 0" link type="danger" @click="act('delete', row as MarketVersion)">删除</el-button>
-            <el-button link @click="download(row as MarketVersion)">下载包</el-button>
+            <el-button v-perm="'market:plugin:manage'" v-if="row.status === 'draft'" link type="primary" @click="act('publish', row as MarketVersion)">发布</el-button>
+            <el-button v-perm="'market:plugin:manage'" v-if="row.status === 'published'" link type="warning" @click="act('withdraw', row as MarketVersion)">撤回</el-button>
+            <el-button v-perm="'market:plugin:manage'" v-if="row.status === 'withdrawn'" link type="primary" @click="act('republish', row as MarketVersion)">重新发布</el-button>
+            <el-button v-perm="'market:plugin:manage'" v-if="row.status !== 'published' && row.downloadCount === 0" link type="danger" @click="act('delete', row as MarketVersion)">删除</el-button>
+            <el-button v-perm="'market:plugin:manage'" link @click="download(row as MarketVersion)">下载包</el-button>
           </template>
         </template>
       </el-table-column>
@@ -45,13 +45,14 @@
       <el-input v-model="changelogDraft" type="textarea" :rows="8" maxlength="20000" show-word-limit />
       <template #footer>
         <el-button @click="changelogOpen = false">取消</el-button>
-        <el-button type="primary" :loading="savingChangelog" @click="saveChangelog">保存</el-button>
+        <el-button v-perm="'market:plugin:manage'" type="primary" :loading="savingChangelog" @click="saveChangelog">保存</el-button>
       </template>
     </el-dialog>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { formatSize, marketApi, type MarketPlugin, type MarketVersion, type VersionStatus } from '../api';
@@ -67,7 +68,7 @@ const statusMeta: Record<VersionStatus, { label: string; type: 'info' | 'success
 const loading = ref(false);
 const versions = ref<MarketVersion[]>([]);
 
-async function load() {
+async function load() { if (!(hasPermission('market:plugin:view'))) return;
   if (!props.plugin) return;
   loading.value = true;
   try { versions.value = await marketApi.versions(props.plugin.id); } finally { loading.value = false; }
@@ -79,17 +80,19 @@ const confirmTexts = {
   republish: (version: string) => `重新发布 v${version}？发布前会再次校验签名与包文件。`,
   delete: (version: string) => `删除 v${version} 及其包文件？此操作不可恢复。`
 };
-async function act(action: keyof typeof confirmTexts, row: MarketVersion) {
+async function act(action: keyof typeof confirmTexts, row: MarketVersion) { if (!(hasPermission('market:plugin:manage'))) return;
   try {
     await ElMessageBox.confirm(confirmTexts[action](row.version), '确认操作', { type: action === 'delete' || action === 'withdraw' ? 'warning' : 'info' });
   } catch { return; }
   const run = { publish: marketApi.publishVersion, withdraw: marketApi.withdrawVersion, republish: marketApi.republishVersion, delete: marketApi.deleteVersion }[action];
+  if (!hasPermission('market:plugin:manage')) return;
   await run(row.id);
   await load();
   emit('changed');
 }
 
-async function download(row: MarketVersion) {
+async function download(row: MarketVersion) { if (!(hasPermission('market:plugin:manage'))) return;
+  if (!hasPermission('market:plugin:manage')) return;
   const blob = await marketApi.downloadVersion(row.id);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -109,8 +112,8 @@ const changelogOpen = ref(false);
 const changelogDraft = ref('');
 const savingChangelog = ref(false);
 let editingVersion = 0;
-function editChangelog(row: MarketVersion) { editingVersion = row.id; changelogDraft.value = row.changelog; changelogOpen.value = true; }
-async function saveChangelog() {
+function editChangelog(row: MarketVersion) { if (!(hasPermission('market:plugin:manage'))) return; editingVersion = row.id; changelogDraft.value = row.changelog; changelogOpen.value = true; }
+async function saveChangelog() { if (!(hasPermission('market:plugin:manage'))) return;
   savingChangelog.value = true;
   try {
     await marketApi.updateVersion(editingVersion, changelogDraft.value);

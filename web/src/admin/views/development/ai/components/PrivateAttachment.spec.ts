@@ -1,3 +1,5 @@
+const access = vi.hoisted(() => ({ denied: [] as string[] }));
+vi.mock('@/utils/permission', () => ({ hasPermission: (required: string | string[]) => (Array.isArray(required) ? required : [required]).every(code => !access.denied.includes(code)) }));
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
@@ -7,7 +9,7 @@ import { aiDevelopmentApi as api } from '@/api/development/ai';
 vi.mock('@/api/development/ai', () => ({ aiDevelopmentApi: { attachmentContent: vi.fn() } }));
 const setup = () => mount(PrivateAttachment, { props: { conversationId: 1, attachmentId: 9 }, global: { plugins: [createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })] } });
 const deferred = () => { let resolve!: (blob: Blob) => void; const promise = new Promise<Blob>(r => { resolve = r; }); return { promise, resolve }; };
-beforeEach(() => { vi.resetAllMocks(); let id = 0; URL.createObjectURL = vi.fn(() => `blob:private-${++id}`); URL.revokeObjectURL = vi.fn(); vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {}); });
+beforeEach(() => { access.denied = []; vi.resetAllMocks(); let id = 0; URL.createObjectURL = vi.fn(() => `blob:private-${++id}`); URL.revokeObjectURL = vi.fn(); vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {}); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 describe('私有附件 BlobURL 生命周期', () => {
   it('卸载后迟到响应不得创建预览，且取消请求', async () => {

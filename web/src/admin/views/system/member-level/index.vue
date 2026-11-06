@@ -104,18 +104,17 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { memberLevelApi, type MemberLevelModel, type MemberLevelPayload, type MemberLevelQuery } from '@/api/system/memberLevel';
-import { useUserStore } from '@/store/modules/user';
 import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';
 import MemberLevelFormDialog from './components/MemberLevelFormDialog.vue';
 
 defineOptions({ name: 'SystemMemberLevel' });
 
 const { t } = useI18n();
-const userStore = useUserStore();
 const loading = ref(false);
 const list = ref<MemberLevelModel[]>([]);
 const total = ref(0);
@@ -135,9 +134,7 @@ const csvColumns: CsvColumn<MemberLevelPayload>[] = [
   { key: 'description', label: t('systemMemberLevel.description', '描述') }
 ];
 
-function hasPermission(permission: string) {
-  return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission);
-}
+
 
 async function loadData() {
   loading.value = true;
@@ -169,20 +166,23 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
+  if (!hasPermission('system:member-level:add')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberLevelModel) {
+  if (!hasPermission('system:member-level:edit')) return;
   current.value = row;
   dialogVisible.value = true;
 }
 
 async function toggleStatus(row: MemberLevelModel, enabled: boolean) {
+  if (!hasPermission("system:member-level:status")) return;
   const previous = row.status;
   row.status = enabled ? 1 : 0;
   try {
-    await memberLevelApi.updateStatus(row.id, row.status);
+     await memberLevelApi.updateStatus(row.id, row.status);
   } catch (error) {
     row.status = previous;
     throw error;
@@ -190,26 +190,30 @@ async function toggleStatus(row: MemberLevelModel, enabled: boolean) {
 }
 
 async function recycleSelected() {
+  if (!hasPermission("system:member-level:delete")) return;
   await ElMessageBox.confirm(t('systemMemberLevel.recycleConfirm', { n: selection.value.length }, { default: '确认将选中的 {n} 个会员等级移入回收站吗？' }), t('systemMemberLevel.operateConfirmTitle', '操作确认'), { type: 'warning' });
-  await memberLevelApi.recycle(selection.value.map((item) => item.id));
+  if (!hasPermission("system:member-level:delete")) return;
+ await memberLevelApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }
 
-async function restoreSelected() {
-  await memberLevelApi.restore(selection.value.map((item) => item.id));
+async function restoreSelected() { if (!hasPermission("system:member-level:restore")) return; await memberLevelApi.restore(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function destroySelected() {
+  if (!hasPermission("system:member-level:destroy")) return;
   await ElMessageBox.confirm(t('systemMemberLevel.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个会员等级吗？此操作不可恢复。' }), t('systemMemberLevel.destroyConfirmTitle', '永久删除确认'), {
     type: 'error',
     confirmButtonText: t('systemMemberLevel.destroyButton', '永久删除')
   });
-  await memberLevelApi.destroy(selection.value.map((item) => item.id));
+  if (!hasPermission("system:member-level:destroy")) return;
+ await memberLevelApi.destroy(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function importCsv(event: Event) {
+  if (!hasPermission("system:member-level:import")) return;
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
@@ -227,12 +231,12 @@ async function importCsv(event: Event) {
     ElMessage.warning(t('systemMemberLevel.csvEmpty', 'CSV 中没有可导入的数据'));
     return;
   }
-  await memberLevelApi.importRows(rows);
+  if (!hasPermission("system:member-level:import")) return;
+ await memberLevelApi.importRows(rows);
   await loadData();
 }
 
-async function exportRows() {
-  const rows = await memberLevelApi.exportRows({ name: query.name, status: query.status, recycled: query.recycled });
+async function exportRows() { if (!hasPermission("system:member-level:export")) return; const rows = await memberLevelApi.exportRows({ name: query.name, status: query.status, recycled: query.recycled });
   const columns: CsvColumn<MemberLevelModel>[] = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: t('systemMemberLevel.name', '等级名称') },

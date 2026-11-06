@@ -103,6 +103,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -164,18 +165,21 @@ async function loadData() {
 }
 
 function onAdd(parent?: DeptModel) {
+  if (!hasPermission('system:dept:add')) return;
   current.value = null;
   defaultParentId.value = parent?.id || 0;
   dialogVisible.value = true;
 }
 
 function onEdit(row: DeptModel) {
+  if (!hasPermission('system:dept:edit')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: DeptModel) {
+  if (!hasPermission("system:dept:delete")) return;
   if (row.children?.length) {
     ElMessage.warning(t('systemDept.hasChildrenWarn'));
     return;
@@ -183,7 +187,8 @@ async function onDelete(row: DeptModel) {
   await ElMessageBox.confirm(t('systemDept.deleteConfirm', { name: row.name }), t('layout.tip'), {
     type: 'warning'
   });
-  await deptApi.remove(row.id);
+  if (!hasPermission("system:dept:delete")) return;
+ await deptApi.remove(row.id);
   loadData();
 }
 
@@ -195,6 +200,7 @@ function onSelectionChange(rows: DeptModel[]) {
  * 树形批量删除：去除「已被选中父节点的子节点」，避免后端级联+前端重复删
  */
 async function onBatchDelete() {
+  if (!hasPermission("system:dept:delete")) return;
   if (!selection.value.length) {
     ElMessage.warning(t('systemDept.selectAtLeastOne'));
     return;
@@ -219,7 +225,8 @@ async function onBatchDelete() {
     t('layout.tip'),
     { type: 'warning' }
   );
-  await deptApi.removeMany(topIds);
+  if (!hasPermission("system:dept:delete")) return;
+ await deptApi.removeMany(topIds);
   loadData();
 }
 

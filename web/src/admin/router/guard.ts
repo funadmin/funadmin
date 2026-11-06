@@ -3,6 +3,7 @@ import NProgress from 'nprogress';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
+import { checkPermission } from '@/utils/permission';
 import { memberSession } from '@/web/session/memberSession';
 import { APP_CONFIG, ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, MEMBER_LOGIN_PATH, ROUTE_WHITELIST, isWebmanBackend } from '@/config';
 import { isSystemInstalled } from '@/api/install';
@@ -52,8 +53,7 @@ export function setupRouterGuard(router: Router) {
     const hasRoutePermission = (permission: unknown): boolean => {
       if (!permission) return true;
       const required = Array.isArray(permission) ? permission.map(String) : [String(permission)];
-      const granted = userStore.permissions || [];
-      return granted.some((code) => code === '*' || code === '*:*:*') || required.some((code) => granted.includes(code));
+      return checkPermission(userStore.permissions, required);
     };
     if (permissionStore.mounted) {
       return hasRoutePermission(to.meta?.permission) ? next() : next({ path: `${ADMIN_ROUTE_PREFIX}/403`, replace: true });

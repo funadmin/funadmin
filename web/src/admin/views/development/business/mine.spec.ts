@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import zhCN from '@/locales/zh-CN';
+import { permission as permissionDirective } from '@/directives/permission';
 import type {
   BusinessFormalGenerationPreview,
   BusinessModule,
@@ -38,8 +39,9 @@ vi.mock('./composables/useBusinessMenuRefresh', () => ({
 import BusinessMine from './mine.vue';
 
 it.each([
-  [['*'], '/development/business/visual'],
-  [['development.business:inspectdatabase'], '/development/business/database'],
+  [['*'], '/admin/development/business/visual'],
+  [['development.business:createvisual'], '/admin/development/business/visual'],
+  [['development.business:inspectdatabase'], '/admin/development/business/database'],
   [['development:business:save'], null],
   [[], null]
 ] as [string[], string | null][])('统一入口按独立动作选择现有路由并保留 query：%j', async (permissions, path) => {
@@ -162,12 +164,12 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function render() {
+function render(enforcePermissions = false) {
   return mount(BusinessMine, {
     global: {
       plugins: [i18n],
       stubs,
-      directives: { perm: () => undefined }
+      directives: { perm: enforcePermissions ? permissionDirective : () => undefined }
     }
   });
 }
@@ -294,4 +296,13 @@ describe('BusinessMine', () => {
     expect(wrapper.find('.business-pagination').exists()).toBe(true);
     expect(wrapper.get('[data-pagination]').attributes('aria-label')).toBe('业务模块分页');
   });
+});
+
+it('有设计权限但无删除权限仍可打开设计器', async () => {
+  mocks.permissions = ['development.business:saveschema'];
+  const wrapper = render(true); await flushPromises();
+  expect(wrapper.get('[data-design="1"]').isVisible()).toBe(true);
+  await wrapper.get('[data-design="1"]').trigger('click');
+  expect(mocks.push).toHaveBeenCalledWith({ path: '/admin/development/business/designer', query: { id: '10', moduleId: '1' } });
+  wrapper.unmount(); mocks.permissions = ['*'];
 });

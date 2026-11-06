@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, defineComponent, h, ref, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { BusinessGeneration } from '@/api/development/business';
@@ -58,7 +59,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean]; recovered: [re
 const { t } = useI18n();
 const recovering = ref(false);
 const hashes = computed(() => [props.generation?.planDigest, props.generation?.definitionHash, props.generation?.schemaHash].filter((value): value is string => Boolean(value)));
-const canRecover = computed(() => props.generation?.availableActions?.includes('recover') === true);
+const canRecover = computed(() => hasPermission('development.business:recovergeneration') && hasPermission('development:business:recover') && props.generation?.availableActions?.includes('recover') === true);
 
 const CopyValue = defineComponent({
   props: { value: { type: String, required: true } },

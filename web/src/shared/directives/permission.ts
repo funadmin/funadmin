@@ -1,5 +1,6 @@
 import type { Directive, DirectiveBinding } from 'vue';
-import { useUserStore } from '@/store/modules/user';
+import { shallowRef, watchEffect } from 'vue';
+import { hasPermission, type PermissionMode, type PermissionRequirement } from '@/utils/permission';
 
 /**
  * 按钮级权限指令：
@@ -7,29 +8,47 @@ import { useUserStore } from '@/store/modules/user';
  *   v-perm="['system:user:add', 'system:user:edit']" 任意一个匹配即可
  *   v-perm:all="['a', 'b']" 必须全部匹配
  */
-function check(value: unknown, mode: 'any' | 'all' = 'any'): boolean {
-  if (!value) return true;
-  const userStore = useUserStore();
-  const perms = userStore.permissions || [];
-  /** 超级权限：`*` 或与接口文档常见的 `*:*:*` 全通配 */
-  if (perms.some((p) => p === '*' || p === '*:*:*')) return true;
-
-  if (Array.isArray(value)) {
-    return mode === 'all'
-      ? value.every((v) => perms.includes(v))
-      : value.some((v) => perms.includes(v));
-  }
-  return perms.includes(String(value));
+interface PermissionState {
+  requirement: ReturnType<typeof shallowRef<PermissionRequirement>>;
+  mode: ReturnType<typeof shallowRef<PermissionMode>>;
+  display: string;
+  priority: string;
+  stop: () => void;
 }
 
-function update(el: HTMLElement, binding: DirectiveBinding) {
-  const mode = binding.arg === 'all' ? 'all' : 'any';
-  if (!check(binding.value, mode)) {
-    el.parentNode?.removeChild(el);
+const states = new WeakMap<HTMLElement, PermissionState>();
+
+function apply(el: HTMLElement, state: PermissionState) {
+  if (hasPermission(state.requirement.value, state.mode.value)) {
+    if (state.display) el.style.setProperty('display', state.display, state.priority);
+    else el.style.removeProperty('display');
+  } else {
+    // 保留 Vue 管理的节点，重新授权后可恢复显示；important 防止按钮样式覆盖。
+    el.style.setProperty('display', 'none', 'important');
   }
 }
 
-export const permission: Directive = {
-  mounted: update,
-  updated: update
+export const permission: Directive<HTMLElement, PermissionRequirement> = {
+  mounted(el, binding) {
+    const state: PermissionState = {
+      requirement: shallowRef(binding.value),
+      mode: shallowRef(binding.arg === 'all' ? 'all' : 'any'),
+      display: el.style.getPropertyValue('display'),
+      priority: el.style.getPropertyPriority('display'),
+      stop: () => {}
+    };
+    states.set(el, state);
+    state.stop = watchEffect(() => apply(el, state));
+  },
+  updated(el, binding: DirectiveBinding<PermissionRequirement>) {
+    const state = states.get(el);
+    if (!state) return;
+    state.requirement.value = binding.value;
+    state.mode.value = binding.arg === 'all' ? 'all' : 'any';
+    apply(el, state);
+  },
+  beforeUnmount(el) {
+    states.get(el)?.stop();
+    states.delete(el);
+  }
 };

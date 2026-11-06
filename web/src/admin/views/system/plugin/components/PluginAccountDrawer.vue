@@ -81,7 +81,7 @@
             v-perm="'system:plugin:account-refresh'"
             @click="refreshToken"
           >{{ t('plugin.refreshToken', '刷新令牌') }}</el-button>
-          <el-button type="danger" plain :loading="loggingOut" @click="logout">{{ t('plugin.logoutButton', '退出市场账号') }}</el-button>
+          <el-button v-perm="'system:plugin:account'" type="danger" plain :loading="loggingOut" @click="logout">{{ t('plugin.logoutButton', '退出市场账号') }}</el-button>
         </div>
       </template>
 
@@ -126,7 +126,7 @@
             data-testid="account-submit"
             class="login-button"
             type="primary"
-            native-type="submit"
+            v-perm="'system:plugin:account'" native-type="submit"
             :loading="loggingIn"
             :disabled="!canLogin"
           >{{ t('plugin.loginSubmit', '登录并连接') }}</el-button>
@@ -142,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import { Connection, Download, Key, Lock, Refresh, Shop, User, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -183,7 +184,7 @@ function validateLogin() {
   return !validation.account && !validation.password;
 }
 
-async function load() {
+async function load() { if (!(hasPermission('system:plugin:account'))) return;
   initialLoading.value = true;
   loadFailed.value = false;
   error.value = '';
@@ -198,7 +199,7 @@ async function load() {
   }
 }
 
-async function login() {
+async function login() { if (!(hasPermission('system:plugin:account'))) return;
   if (!validateLogin()) return;
   loggingIn.value = true;
   error.value = '';
@@ -216,7 +217,7 @@ async function login() {
   }
 }
 
-async function refreshToken() {
+async function refreshToken() { if (!(hasPermission('system:plugin:account-refresh'))) return;
   refreshing.value = true;
   error.value = '';
   try {
@@ -230,7 +231,7 @@ async function refreshToken() {
   }
 }
 
-async function logout() {
+async function logout() { if (!(hasPermission('system:plugin:account'))) return;
   try {
     await ElMessageBox.confirm(t('plugin.logoutConfirm', '退出后将无法同步授权、版本信息和下载插件，确认退出吗？'), t('plugin.logoutTitle', '退出云市场账号'), {
       type: 'warning',
@@ -246,6 +247,7 @@ async function logout() {
   loggingOut.value = true;
   error.value = '';
   try {
+    if (!hasPermission('system:plugin:account')) return;
     await pluginApi.accountLogout();
     account.value = null;
     form.password = '';

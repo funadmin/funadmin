@@ -92,7 +92,7 @@
       <SchemaRenderer v-if="meta" ref="schemaRendererRef" :form-key="formKey" :schema="meta.schema" :values="dialogValues" />
       <template #footer>
         <el-button @click="requestDialogClose">{{ t('common.cancel', '取消') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">{{ t('common.save', '保存') }}</el-button>
+        <el-button v-if="hasPermission(editingId === null ? 'form.data:create' : 'form.data:update')" type="primary" :loading="saving" @click="onSave">{{ t('common.save', '保存') }}</el-button>
       </template>
     </el-dialog>
 
@@ -115,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import { useRoute } from 'vue-router';
@@ -147,7 +148,6 @@ import {
 provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form.data:listactions', executePermission: 'form.data:listaction' } });
 const { t } = useI18n();
 const user = useUserStore();
-const hasPermission = (code: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === code);
 const buttonLock = reactive({ busy: false });
 const recycled = ref(false);
 const importVisible = ref(false);
@@ -176,13 +176,16 @@ const buttonHandlers: ListButtonHandlers = {
     const ids = selectedRows.value.map(record => record[primaryKeyName.value] as FormRecordId);
     if (!ids.length) { ElMessage.warning(t('formData.selectRecordsToDelete', '请先勾选需要删除的记录')); return; }
     await ElMessageBox.confirm(t('formData.batchDeleteConfirm', { n: ids.length }, '确认删除选中的 {n} 条记录吗？'), t('common.batchRemove', '批量删除'), { type: 'warning' });
+    if (!hasPermission('form.data:batchremove')) return;
     await formDataApi.batchRemove(formKey.value, ids, meta.value?.schemaHash ?? '');
     clearSelection();
     await loadData();
   },
-  restore: async (row) => { await formDataApi.restore(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
+  restore: async (row) => { if (!hasPermission('form.data:restore')) return;
+    await formDataApi.restore(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
   destroy: async (row) => {
     await ElMessageBox.confirm(t('formData.destroyConfirm', '永久删除后不可恢复，确认继续吗？'), t('formData.destroyTitle', '永久删除'), { type: 'warning' });
+    if (!hasPermission('form.data:destroy')) return;
     await formDataApi.destroy(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? '');
     await loadData();
   },
@@ -317,6 +320,7 @@ const onSearch = () => {
   loadData();
 };
 const onImportRows = async (importRows: Array<Record<string, unknown>>) => {
+  if (!hasPermission('form.data:import')) return;
   await formDataApi.importRows(formKey.value, importRows, meta.value?.schemaHash ?? '');
   importVisible.value = false;
   await loadData();
@@ -429,6 +433,7 @@ async function onDelete(row: Record<string, unknown>) {
   await refreshAfterWrite();
 }
 async function onExport() {
+  if (!hasPermission('form.data:export')) return;
   const data = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
   const columns = [primaryKeyName.value, ...listFields.value.map((f) => f.field_name), 'created_at'];
   const lines = [columns.join(',')];

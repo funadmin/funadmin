@@ -18,8 +18,8 @@
         <el-tag :type="saveStatusType" effect="plain">{{ saveStatusLabel }}</el-tag>
         <el-tag v-if="businessModule" data-business-target>{{ isPluginTarget ? t('formDesigner.pluginBadge', { code: businessTarget?.pluginCode }, '所属插件：{code}') : t('formDesigner.coreAdmin', '核心后台') }} · {{ businessTarget?.locked ? t('formDesigner.targetLocked', '目标已锁定') : t('formDesigner.lockAfterGenerate', '首次成功生成后锁定') }}</el-tag>
         <span v-if="isPluginTarget">{{ t('formDesigner.pluginGenerateHint', '使用已保存草稿生成源码，不动态发布；安装／更新后生效。') }}</span>
-        <el-button v-if="businessModule && !isPluginTarget" type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
-        <el-button v-perm="'development:business:generate'" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">{{ t('formDesigner.generateFormal', '生成正式模块') }}</el-button>
+        <el-button v-if="businessModule && !isPluginTarget && hasPermission(['development.business:previewpublish', 'development.business:publish'], 'all')" type="primary" :disabled="store.dirty.value" @click="onDynamicPublish">{{ t('formDesigner.publish', '动态发布') }}</el-button>
+        <el-button v-perm:all="['development.business:previewformalgeneration', 'development:business:generate']" :disabled="!businessModule || store.dirty.value || saveBlocked || publishing" :loading="previewingPublish" @click="openFormalGeneration">{{ t('formDesigner.generateFormal', '生成正式模块') }}</el-button>
       <div v-if="saveBlocked" data-testid="save-conflict-alert" role="alert" class="w-full">
         <strong>{{ t('formDesigner.savePausedTitle', '保存已暂停。') }}</strong>{{ t('formDesigner.savePausedHint', '本地草稿已保留，刷新不会解除暂停。请核对版本并明确选择恢复方式。') }}
         <el-button :loading="conflictReviewLoading" :disabled="conflictResolving" @click="reviewSaveConflict">{{ t('formDesigner.reviewVersion', '核对版本') }}</el-button>
@@ -49,7 +49,7 @@
           <div class="save-conflict-actions">
             <el-button :disabled="conflictResolving" @click="cancelConflictReview">{{ t('formDesigner.saveConflict.cancel', '取消，保留本地') }}</el-button>
             <el-button :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('server')">{{ t('formDesigner.saveConflict.useServer', '放弃本地，采用服务端') }}</el-button>
-            <el-button type="primary" :loading="conflictResolving" :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('local')">{{ t('formDesigner.saveConflict.useLocal', '以核对后的本地覆盖') }}</el-button>
+            <el-button v-if="hasPermission('development.business:saveschema')" type="primary" :loading="conflictResolving" :disabled="!conflictReview || conflictReviewLoading || conflictResolving" @click="resolveSaveConflict('local')">{{ t('formDesigner.saveConflict.useLocal', '以核对后的本地覆盖') }}</el-button>
           </div>
         </div>
       </template>
@@ -231,7 +231,7 @@
         <el-step :title="t('formDesigner.stepResult', '发布结果')" />
       </el-steps>
 
-      <el-form v-if="publishStep === 0" :model="publishConfig" label-width="110px" class="publish-config-grid">
+      <el-form v-if="publishStep === 0 && hasPermission('development.business:savepublishconfig')" :model="publishConfig" label-width="110px" class="publish-config-grid">
         <el-form-item :label="t('formDesigner.moduleName', '模块名')"><el-input v-model="publishConfig.module" /></el-form-item>
         <el-form-item :label="t('formDesigner.apiPrefix', 'API 前缀')"><el-input v-model="publishConfig.apiPrefix" /></el-form-item>
         <el-form-item :label="t('formDesigner.routePath', '页面路由')"><el-input v-model="publishConfig.routePath" /></el-form-item>
@@ -303,9 +303,9 @@
         <el-button @click="publishVisible = false">{{ t('common.close', '关闭') }}</el-button>
         <el-button v-if="publishStep === 1" @click="publishStep = 0">{{ t('formDesigner.prevStep', '上一步') }}</el-button>
         <el-button v-if="publishStep === 2" @click="publishStep = 1">{{ t('formDesigner.prevStep', '上一步') }}</el-button>
-        <el-button v-if="publishStep === 0" type="primary" :loading="previewingPublish" @click="onPreviewPublish">{{ t('formDesigner.previewPublish', '预览发布') }}</el-button>
+        <el-button v-if="publishStep === 0 && hasPermission('development.business:savepublishconfig')" type="primary" :loading="previewingPublish" @click="onPreviewPublish">{{ t('formDesigner.previewPublish', '预览发布') }}</el-button>
         <el-button v-else-if="publishStep === 1" type="primary" @click="publishStep = 2">{{ t('formDesigner.nextStep', '下一步') }}</el-button>
-        <el-button v-else-if="publishStep === 2" v-perm="'development:business:apply-resources'" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">{{ t('formDesigner.confirmGenerate', '确认生成') }}</el-button>
+        <el-button v-else-if="publishStep === 2" v-perm:all="['development.business:formalgeneration', 'development:business:generate', 'development:business:apply-resources']" type="primary" :loading="publishing" :disabled="!canConfirmGeneration" @click="onPublish">{{ t('formDesigner.confirmGenerate', '确认生成') }}</el-button>
       </template>
     </el-dialog>
 
@@ -322,6 +322,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -674,6 +675,7 @@ function cancelConflictReview() {
 }
 
 async function resolveSaveConflict(choice: 'local' | 'server') {
+  if (choice === 'local' && !hasPermission('development.business:saveschema')) return;
   const reviewed = conflictReview.value;
   if (!designerActive || !saveBlocked.value || !reviewed || conflictReviewLoading.value || conflictResolving.value || saveInFlight) return;
   const unchanged = () => moduleId.value === reviewed.moduleId && JSON.stringify(definition()) === JSON.stringify(reviewed.local);
@@ -691,7 +693,7 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
   } catch {
     return;
   }
-  if (!unchanged()) return;
+  if (!unchanged() || (choice === 'local' && !hasPermission('development.business:saveschema'))) return;
   conflictResolving.value = true;
   saveInFlight = true;
   conflictReviewError.value = '';
@@ -732,6 +734,7 @@ async function resolveSaveConflict(choice: 'local' | 'server') {
 }
 
 async function saveDefinition(automatic: boolean) {
+  if (!hasPermission('development.business:saveschema')) return;
   if (!designerActive || saveBlocked.value || !store.dirty.value || (automatic && !online.value)) return;
   if (saveInFlight) { saveQueued = true; return; }
   if (!validateDefinitionBasics(automatic)) return;
@@ -782,12 +785,14 @@ async function saveDefinition(automatic: boolean) {
 }
 
 const onDynamicPublish = async () => {
+  if (!hasPermission(['development.business:previewpublish', 'development.business:publish'], 'all')) return;
   if (!businessModule.value || isPluginTarget.value || saveBlocked.value || !validateDefinitionBasics() || store.dirty.value) return;
   const moduleId = instanceModuleId;
   const schemaHash = String(store.form.value.schema_hash ?? '');
   if (!moduleId || !schemaHash) throw new Error(t('formDesigner.moduleOrHashMissing', '业务模块或 Schema hash 缺失'));
   const payload = { schema_document: store.schemaDocument.value, schemaHash, expected_schema_hash: schemaHash, publish_config: publishConfig.value };
   const previewResult = await businessDevelopmentApi.previewPublish(moduleId, payload);
+  if (!hasPermission('development.business:publish')) return;
   await businessDevelopmentApi.publish(moduleId, { ...payload, formDependencyHash: previewResult.formDependencyHash });
   ElMessage.success(t('formDesigner.publishSuccess', '动态发布成功'));
 };
@@ -803,6 +808,7 @@ const syncPublishConfig = () => {
   };
 };
 const openFormalGeneration = async () => {
+  if (!hasPermission(['development.business:previewformalgeneration', 'development:business:generate'], 'all')) return;
   const moduleId = instanceModuleId;
   syncPublishConfig();
   if (!moduleId || !businessModule.value || store.dirty.value || saveBlocked.value || saveInFlight || previewingPublish.value || publishing.value) { ElMessage.warning(t('formDesigner.saveSchemaFirst', '请先保存业务 Schema')); return; }
@@ -862,6 +868,7 @@ const validatePublishConfig = () => {
 };
 // 发布设置须先保存到业务模块，正式生成预览才会采用。
 const onPreviewPublish = async () => {
+  if (!hasPermission('development.business:savepublishconfig')) return;
   if (!validatePublishConfig()) return;
   if (instanceModuleId) {
     try {
@@ -927,6 +934,7 @@ const retryGenerationQuery = async () => {
   }
 };
 const onPublish = async () => {
+  if (!hasPermission(['development.business:formalgeneration', 'development:business:generate', 'development:business:apply-resources'], 'all')) return;
   if (!canConfirmGeneration.value) return;
   publishing.value = true;
   const formId = Number(store.form.value.id || 0);

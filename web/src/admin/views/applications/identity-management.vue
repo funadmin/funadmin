@@ -6,8 +6,8 @@
         <el-option :label="t('common.success', '成功')" value="success" /><el-option :label="t('common.failed', '失败')" value="failure" />
       </el-select>
       <el-button @click="load">{{ t('common.refresh', '刷新') }}</el-button>
-      <el-button v-if="mode === 'scopes'" type="primary" plain @click="openScope()">{{ t('applications.createScope', '新建 Scope') }}</el-button>
-      <el-button v-if="mode === 'keys'" type="primary" plain @click="rotateKey">{{ t('applications.rotateKey', '轮换密钥') }}</el-button>
+      <el-button v-if="mode === 'scopes'" v-perm="'identity.scopeclaim:save'" type="primary" plain @click="openScope()">{{ t('applications.createScope', '新建 Scope') }}</el-button>
+      <el-button v-perm="'identity.oidcsigningkey:rotate'" v-if="mode === 'keys'" type="primary" plain @click="rotateKey">{{ t('applications.rotateKey', '轮换密钥') }}</el-button>
     </div>
 
     <el-tabs v-if="mode === 'sessions'" v-model="sessionTab" @tab-change="load">
@@ -17,15 +17,15 @@
     <el-table v-loading="loading" :data="rows" stripe :aria-label="title">
       <el-table-column v-for="column in columns" :key="column.prop" :prop="column.prop" :label="column.label" :min-width="column.width" show-overflow-tooltip />
       <el-table-column v-if="mode === 'users'" :label="t('common.operation', '操作')" width="120"><template #default="scope"><el-button link type="primary" @click="showUser(scope.row.id)">{{ t('common.detail', '详情') }}</el-button></template></el-table-column>
-      <el-table-column v-if="mode === 'sessions'" :label="t('common.operation', '操作')" width="140"><template #default="scope"><el-button v-if="sessionTab === 'sessions'" link type="danger" @click="revokeSession(scope.row.id)">{{ t('applications.revoke', '撤销') }}</el-button><el-button v-else link type="primary" :disabled="scope.row.status === 'delivered'" @click="retryDelivery(scope.row.id)">{{ t('applications.retry', '重试') }}</el-button></template></el-table-column>
-      <el-table-column v-if="mode === 'scopes'" :label="t('common.operation', '操作')" width="160"><template #default="scope"><el-button link type="primary" @click="openScope(scope.row as ScopeClaim)">{{ t('common.edit', '编辑') }}</el-button><el-button link type="danger" :disabled="scope.row.isBuiltin" @click="removeScope(scope.row.id)">{{ t('common.remove', '删除') }}</el-button></template></el-table-column>
+      <el-table-column v-if="mode === 'sessions'" :label="t('common.operation', '操作')" width="140"><template #default="scope"><el-button v-perm="'identity.oidcsession:revoke'" v-if="sessionTab === 'sessions'" link type="danger" @click="revokeSession(scope.row.id)">{{ t('applications.revoke', '撤销') }}</el-button><el-button v-perm="'identity.oidcsession:retrydelivery'" v-else link type="primary" :disabled="scope.row.status === 'delivered'" @click="retryDelivery(scope.row.id)">{{ t('applications.retry', '重试') }}</el-button></template></el-table-column>
+      <el-table-column v-if="mode === 'scopes'" :label="t('common.operation', '操作')" width="160"><template #default="scope"><el-button v-perm="'identity.scopeclaim:update'" link type="primary" @click="openScope(scope.row as ScopeClaim)">{{ t('common.edit', '编辑') }}</el-button><el-button v-perm="'identity.scopeclaim:delete'" link type="danger" :disabled="scope.row.isBuiltin" @click="removeScope(scope.row.id)">{{ t('common.remove', '删除') }}</el-button></template></el-table-column>
     </el-table>
 
     <el-pagination v-if="['users', 'sessions', 'audit'].includes(mode)" class="pagination" v-model:current-page="page" v-model:page-size="pageSize" layout="total, prev, pager, next" :total="total" @current-change="load" />
 
     <el-dialog v-model="scopeVisible" :title="t('applications.scopeDialogTitle', 'Scope 与 Claim')" width="min(560px, 92vw)">
       <el-form label-width="100px"><el-form-item :label="t('applications.name', '名称')"><el-input v-model="scopeForm.name" /></el-form-item><el-form-item :label="t('applications.desc', '说明')"><el-input v-model="scopeForm.description" /></el-form-item><el-form-item label="Claims"><el-select v-model="scopeForm.claims" multiple allow-create filterable class="full-width" /></el-form-item><el-form-item :label="t('common.enable', '启用')"><el-switch v-model="scopeForm.status" /></el-form-item></el-form>
-      <template #footer><el-button @click="scopeVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" @click="saveScope">{{ t('common.save', '保存') }}</el-button></template>
+      <template #footer><el-button @click="scopeVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button v-perm="scopeForm.id ? 'identity.scopeclaim:update' : 'identity.scopeclaim:save'" type="primary" @click="saveScope">{{ t('common.save', '保存') }}</el-button></template>
     </el-dialog>
 
     <el-drawer v-model="userVisible" :title="t('applications.userDetailTitle', '身份用户详情')" size="min(760px, 96vw)">
@@ -33,12 +33,13 @@
       <h3>{{ t('applications.linksTitle', '身份关联') }}</h3><el-table :data="userLinks"><el-table-column prop="type" :label="t('applications.colType', '类型')" /><el-table-column prop="reference" :label="t('applications.colRefId', '关联 ID')" /></el-table>
       <h3>{{ t('applications.sessionsTitle', '会话') }}</h3><el-table :data="activeUser?.sessions || []"><el-table-column prop="sid" label="SID" /><el-table-column prop="status" :label="t('common.status', '状态')" /><el-table-column prop="expires_at" :label="t('applications.colExpiresAt', '过期时间')" /></el-table>
       <h3>{{ t('applications.authorizationsTitle', '授权') }}</h3><el-table :data="activeUser?.authorizations || []"><el-table-column prop="id" label="ID" /><el-table-column prop="client_id" label="Client" /><el-table-column prop="status" :label="t('common.status', '状态')" /></el-table>
-      <div class="drawer-actions"><el-button type="danger" @click="revokeUserSessions">{{ t('applications.revokeAllSessions', '撤销全部会话') }}</el-button><el-button type="warning" @click="revokeUserAuthorizations">{{ t('applications.revokeAllAuthorizations', '撤销全部授权') }}</el-button></div>
+      <div class="drawer-actions"><el-button v-perm="'identity.identityuser:revokesessions'" type="danger" @click="revokeUserSessions">{{ t('applications.revokeAllSessions', '撤销全部会话') }}</el-button><el-button v-perm="'identity.identityuser:revokeauthorizations'" type="warning" @click="revokeUserAuthorizations">{{ t('applications.revokeAllAuthorizations', '撤销全部授权') }}</el-button></div>
     </el-drawer>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -71,15 +72,15 @@ const loadDomains = async () => {
   rows.value = nested.flat(); total.value = rows.value.length;
 };
 const load = async () => { loading.value = true; try { if (mode.value === 'domains') await loadDomains(); else if (mode.value === 'scopes') { const result = await scopeClaimApi.list({ page: page.value, pageSize: pageSize.value }); rows.value = result.list as unknown as TableRow[]; total.value = result.total; } else if (mode.value === 'users') { const result = await identityUserApi.list({ page: page.value, pageSize: pageSize.value, keyword: keyword.value }); rows.value = result.list as unknown as TableRow[]; total.value = result.total; } else if (mode.value === 'sessions') { const result = sessionTab.value === 'sessions' ? await identitySessionApi.list({ page: page.value, pageSize: pageSize.value }) : await identitySessionApi.deliveries({ page: page.value, pageSize: pageSize.value }); rows.value = result.list; total.value = result.total; } else if (mode.value === 'keys') { rows.value = (await signingKeyApi.list()) as unknown as TableRow[]; total.value = rows.value.length; } else { const result = await identityAuditApi.list({ page: page.value, pageSize: pageSize.value, outcome: auditOutcome.value }); rows.value = result.list; total.value = result.total; } } finally { loading.value = false; } };
-const openScope = (row?: ScopeClaim) => { Object.assign(scopeForm, row || { id: 0, name: '', description: '', claims: [], status: true }); scopeVisible.value = true; };
-const saveScope = async () => { scopeForm.id ? await scopeClaimApi.update(scopeForm.id, scopeForm) : await scopeClaimApi.create(scopeForm); scopeVisible.value = false; await load(); };
-const removeScope = async (id: number) => { await ElMessageBox.confirm(t('applications.deleteScopeConfirm', '确定删除该 Scope？'), t('applications.deleteTitle', '删除确认')); await scopeClaimApi.remove(id); await load(); };
+const openScope = (row?: ScopeClaim) => { if (!hasPermission(row?.id ? 'identity.scopeclaim:update' : 'identity.scopeclaim:save')) return;  Object.assign(scopeForm, row || { id: 0, name: '', description: '', claims: [], status: true }); scopeVisible.value = true; };
+const saveScope = async () => { if (!hasPermission(scopeForm.id ? 'identity.scopeclaim:update' : 'identity.scopeclaim:save')) return; scopeForm.id ? await scopeClaimApi.update(scopeForm.id, scopeForm) : await scopeClaimApi.create(scopeForm); scopeVisible.value = false; await load(); };
+const removeScope = async (id: number) => { if (!hasPermission("identity.scopeclaim:delete")) return;  await ElMessageBox.confirm(t('applications.deleteScopeConfirm', '确定删除该 Scope？'), t('applications.deleteTitle', '删除确认'));  if (!hasPermission("identity.scopeclaim:delete")) return; await scopeClaimApi.remove(id); await load(); };
 const showUser = async (id: number) => { const [user, links, sessions, authorizations] = await Promise.all([identityUserApi.detail(id), identityUserApi.links(id), identityUserApi.sessions(id), identityUserApi.authorizations(id)]); activeUser.value = { ...user, links, sessions, authorizations }; userVisible.value = true; };
-const revokeSession = async (id: number) => { await ElMessageBox.confirm(t('applications.revokeSessionConfirm', '确定撤销该会话？'), t('applications.revokeTitle', '撤销确认')); await identitySessionApi.revoke(id); await load(); };
-const retryDelivery = async (id: number) => { await identitySessionApi.retry(id); await load(); };
-const revokeUserSessions = async () => { if (activeUser.value) await identityUserApi.revokeSessions(activeUser.value.id); };
-const revokeUserAuthorizations = async () => { if (activeUser.value) await identityUserApi.revokeAuthorizations(activeUser.value.id); };
-const rotateKey = async () => { await ElMessageBox.confirm(t('applications.rotateKeyConfirm', '确定轮换签名密钥？'), t('applications.rotateKeyTitle', '密钥轮换')); await signingKeyApi.rotate(); await load(); };
+const revokeSession = async (id: number) => { if (!hasPermission("identity.oidcsession:revoke")) return;  await ElMessageBox.confirm(t('applications.revokeSessionConfirm', '确定撤销该会话？'), t('applications.revokeTitle', '撤销确认'));  if (!hasPermission("identity.oidcsession:revoke")) return; await identitySessionApi.revoke(id); await load(); };
+const retryDelivery = async (id: number) => { if (!hasPermission("identity.oidcsession:retrydelivery")) return; await identitySessionApi.retry(id); await load(); };
+const revokeUserSessions = async () => { if (!hasPermission("identity.identityuser:revokesessions")) return; if (activeUser.value) await identityUserApi.revokeSessions(activeUser.value.id); };
+const revokeUserAuthorizations = async () => { if (!hasPermission("identity.identityuser:revokeauthorizations")) return; if (activeUser.value) await identityUserApi.revokeAuthorizations(activeUser.value.id); };
+const rotateKey = async () => { if (!hasPermission("identity.oidcsigningkey:rotate")) return;  await ElMessageBox.confirm(t('applications.rotateKeyConfirm', '确定轮换签名密钥？'), t('applications.rotateKeyTitle', '密钥轮换'));  if (!hasPermission("identity.oidcsigningkey:rotate")) return; await signingKeyApi.rotate(); await load(); };
 watch(mode, () => { page.value = 1; void load(); });
 onMounted(load);
 </script>

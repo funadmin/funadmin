@@ -51,8 +51,8 @@
         <div v-if="canManage && detail.status !== 'paid'" class="order-actions">
           <el-input v-model="confirmRemark" maxlength="200" placeholder="收款说明（例如对公转账流水号），人工确认时必填" />
           <div class="order-actions__buttons">
-            <el-button type="primary" :loading="acting" @click="confirmPaid">确认已收款并开通授权</el-button>
-            <el-button v-if="detail.status === 'pending'" :loading="acting" @click="closeOrder">关闭订单</el-button>
+            <el-button v-perm="'market:order:manage'" type="primary" :loading="acting" @click="confirmPaid">确认已收款并开通授权</el-button>
+            <el-button v-perm="'market:order:manage'" v-if="detail.status === 'pending'" :loading="acting" @click="closeOrder">关闭订单</el-button>
           </div>
         </div>
 
@@ -69,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { marketApi, yuan, type MarketOrder, type OrderStatus } from '../api';
@@ -90,7 +91,7 @@ const status = ref('');
 const keyword = ref('');
 const summary = ref({ paidCount: 0, paidAmount: 0 });
 
-async function load() {
+async function load() { if (!(hasPermission('market:order:view'))) return;
   loading.value = true;
   try {
     const result = await marketApi.orders({ status: status.value, keyword: keyword.value, page: page.value, pageSize: pageSize.value });
@@ -106,33 +107,35 @@ const detailLoading = ref(false);
 const detail = ref<MarketOrder | null>(null);
 const confirmRemark = ref('');
 const acting = ref(false);
-async function openDetail(row: MarketOrder) {
+async function openDetail(row: MarketOrder) { if (!(hasPermission('market:order:view'))) return;
   detail.value = row;
   confirmRemark.value = '';
   detailOpen.value = true;
   await refreshDetail(row.orderNo);
 }
-async function refreshDetail(orderNo: string) {
+async function refreshDetail(orderNo: string) { if (!(hasPermission('market:order:view'))) return;
   detailLoading.value = true;
   try { detail.value = await marketApi.order(orderNo); } finally { detailLoading.value = false; }
 }
-async function confirmPaid() {
+async function confirmPaid() { if (!(hasPermission('market:order:manage'))) return;
   if (!detail.value) return;
   try {
     await ElMessageBox.confirm(`确认已收到 ¥${yuan(detail.value.amount)}，并为 @${detail.value.username} 开通「${detail.value.pluginName}」${detail.value.planText}？`, '确认收款', { type: 'warning' });
   } catch { return; }
   acting.value = true;
   try {
+    if (!hasPermission('market:order:manage')) return;
     await marketApi.confirmOrder(detail.value.orderNo, confirmRemark.value);
     await Promise.all([refreshDetail(detail.value.orderNo), load()]);
     emit('changed');
   } finally { acting.value = false; }
 }
-async function closeOrder() {
+async function closeOrder() { if (!(hasPermission('market:order:manage'))) return;
   if (!detail.value) return;
   try { await ElMessageBox.confirm('关闭后用户需要重新下单，确定关闭？', '关闭订单', { type: 'warning' }); } catch { return; }
   acting.value = true;
   try {
+    if (!hasPermission('market:order:manage')) return;
     await marketApi.closeOrder(detail.value.orderNo);
     await Promise.all([refreshDetail(detail.value.orderNo), load()]);
   } finally { acting.value = false; }

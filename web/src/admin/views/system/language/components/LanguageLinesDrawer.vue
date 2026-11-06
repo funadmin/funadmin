@@ -6,7 +6,7 @@
         <el-option v-for="item in nsOptions" :key="item" :label="item" :value="item" />
       </el-select>
       <el-button type="primary" plain @click="reload(1)"><i class="i-ep-search" /> {{ t('common.search', '查询') }}</el-button>
-      <el-button type="info" plain @click="openAdd"><i class="i-ep-plus" /> {{ t('systemLanguage.addLine', '新增译文') }}</el-button>
+      <el-button v-perm="'systemlanguage:saveline'" type="info" plain @click="openAdd"><i class="i-ep-plus" /> {{ t('systemLanguage.addLine', '新增译文') }}</el-button>
       <span class="text-xs text-[var(--el-text-color-secondary)]">{{ t('systemLanguage.inlineTip', '行内修改失焦即保存；保存后当前语言译文包即时刷新。') }}</span>
     </div>
     <el-table v-loading="loading" :data="rows" border>
@@ -14,13 +14,13 @@
       <el-table-column prop="ns" :label="t('systemLanguage.nsFilter', '命名空间')" width="140" show-overflow-tooltip />
       <el-table-column :label="t('systemLanguage.lineValue', '译文')" min-width="260">
         <template #default="{ row }">
-          <el-input v-model="row.value" size="small" @change="save(row as LanguageLineModel)" />
+          <el-input v-model="row.value" :disabled="!hasPermission('systemlanguage:saveline')" size="small" @change="save(row as LanguageLineModel)" />
         </template>
       </el-table-column>
       <el-table-column prop="updatedAt" :label="t('systemLanguage.updatedAt', '更新时间')" width="170" />
       <el-table-column :label="t('common.operation', '操作')" width="80" align="center">
         <template #default="{ row }">
-          <el-button link type="danger" @click="remove(row as LanguageLineModel)">{{ t('common.remove', '删除') }}</el-button>
+          <el-button v-perm="'systemlanguage:removeline'" link type="danger" @click="remove(row as LanguageLineModel)">{{ t('common.remove', '删除') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -48,13 +48,14 @@
       </el-form>
       <template #footer>
         <el-button @click="addVisible = false">{{ t('common.cancel', '取消') }}</el-button>
-        <el-button type="primary" :disabled="!addKey" @click="submitAdd">{{ t('systemLanguage.save', '保存') }}</el-button>
+        <el-button v-perm="'systemlanguage:saveline'" type="primary" :disabled="!addKey" @click="submitAdd">{{ t('systemLanguage.save', '保存') }}</el-button>
       </template>
     </el-dialog>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -104,27 +105,28 @@ async function reload(target?: number) {
   }
 }
 
-async function save(row: LanguageLineModel) {
-  await languageApi.saveLine({ locale: props.locale, key: row.key, value: row.value });
+async function save(row: LanguageLineModel) { if (!hasPermission("systemlanguage:saveline")) return; await languageApi.saveLine({ locale: props.locale, key: row.key, value: row.value });
   void applyRemotePack(props.locale);
   await reload();
 }
 
 async function remove(row: LanguageLineModel) {
+  if (!hasPermission("systemlanguage:removeline")) return;
   await ElMessageBox.confirm(t('systemLanguage.deleteLineConfirm', { key: row.key }, { default: '确认删除译文 {key}？删除后该 key 回落静态语言包。' }), t('systemLanguage.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  await languageApi.removeLine(row.id);
+  if (!hasPermission("systemlanguage:removeline")) return;
+ await languageApi.removeLine(row.id);
   void applyRemotePack(props.locale);
   await reload();
 }
 
 function openAdd() {
+  if (!hasPermission('systemlanguage:saveline')) return;
   addKey.value = '';
   addValue.value = '';
   addVisible.value = true;
 }
 
-async function submitAdd() {
-  await languageApi.saveLine({ locale: props.locale, key: addKey.value.trim(), value: addValue.value });
+async function submitAdd() { if (!hasPermission("systemlanguage:saveline")) return; await languageApi.saveLine({ locale: props.locale, key: addKey.value.trim(), value: addValue.value });
   addVisible.value = false;
   void applyRemotePack(props.locale);
   await reload(1);

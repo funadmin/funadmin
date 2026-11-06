@@ -12,6 +12,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
 import type { UploadFile } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -27,7 +28,7 @@ function selectFile(upload: UploadFile) {
   file.value = upload.raw ?? null;
 }
 
-async function install() {
+async function install() { if (!(hasPermission('system:plugin:install'))) return;
   if (!file.value) return;
   loading.value = true;
   try {

@@ -8,12 +8,13 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('systemConfig.saveValue', '保存配置值') }}</el-button>
+      <el-button v-perm="'system:config:value'" type="primary" :loading="saving" @click="onSubmit">{{ t('systemConfig.saveValue', '保存配置值') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { configApi, type ConfigModel } from '@/api/system/config';
@@ -29,10 +30,11 @@ watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
   if (opened && row) value.value = row.value || '';
 }, { immediate: true });
 async function onSubmit() {
+  if (!hasPermission("system:config:value")) return;
   if (!props.row) return;
   saving.value = true;
   try {
-    await configApi.updateValue(props.row.id, value.value);
+     await configApi.updateValue(props.row.id, value.value);
     visible.value = false;
     emit('success');
   } finally {

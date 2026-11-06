@@ -1,3 +1,4 @@
+vi.mock('@/utils/permission', () => ({ hasPermission: () => true }));
 import { defineComponent, h, inject, nextTick, provide, reactive, ref, type Ref } from 'vue';
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -41,7 +41,7 @@
                   <el-button
                     link
                     type="primary"
-                    v-perm="'development:business:save'"
+                    v-perm="'development.business:saveschema'"
                     :data-design="row.id"
                     :disabled="!row.form_id"
                     :title="row.form_id ? t('business.mine.designTitle', '设计业务模块') : t('business.mine.noFormTitle', '缺少表单定义，无法进入设计器')"
@@ -50,14 +50,14 @@
                   <el-button v-if="row.runtime_route && row.metadata?.target?.type !== 'plugin'" link :data-runtime="row.id" @click="openRuntime(row as BusinessModule)">{{ t('business.mine.runtime', '运行时') }}</el-button>
                   <el-button
                     link
-                    v-perm="'development:business:generate'"
+                    v-perm:all="['development.business:previewformalgeneration', 'development:business:generate']"
                     :data-preview="row.id"
                     :loading="previewingIds.has(row.id)"
                     :aria-label="t('business.mine.previewAria', { name: row.name }, '{name}生成预览')"
                     @click="previewGeneration(row as BusinessModule)"
                   >{{ t('business.mine.preview', '生成预览') }}</el-button>
                   <el-button link v-perm="'development:business:records'" @click="router.push({ path: '/admin/development/business/records', query: { moduleId: row.id } })">{{ t('business.mine.records', '记录') }}</el-button>
-                  <el-button link type="danger" v-perm="'development:business:save'" :loading="deletingIds.has(row.id)" @click="removeModule(row as BusinessModule)">{{ t('common.remove', '删除') }}</el-button>
+                  <el-button link type="danger" v-perm:all="['development.business:deletemodule', 'development.business:saveschema']" :loading="deletingIds.has(row.id)" @click="removeModule(row as BusinessModule)">{{ t('common.remove', '删除') }}</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -89,10 +89,10 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { useUserStore } from '@/store/modules/user';
 import { ElMessageBox } from 'element-plus';
 import type { TagProps } from 'element-plus';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessFormalGenerationPreview, type BusinessModule } from '@/api/development/business';
@@ -102,15 +102,14 @@ import GenerationStatusTag from './components/GenerationStatusTag.vue';
 import { LIFECYCLE_STATUS_META } from './constants';
 import { useBusinessMenuRefresh } from './composables/useBusinessMenuRefresh';
 import { useLatestRequest } from './composables/useLatestRequest';
+import { adminRoutePath } from '@/utils/route';
 
 defineOptions({ name: 'BusinessMine' });
 const router = useRouter();
 const route = useRoute();
-const user = useUserStore();
 const creationPath = computed(() => {
-  const permissions = user.permissions;
-  if (permissions.some(permission => ['*', '*:*:*', 'development.business:createvisual'].includes(permission))) return '/development/business/visual';
-  if (permissions.includes('development.business:inspectdatabase')) return '/development/business/database';
+  if (hasPermission('development.business:createvisual')) return adminRoutePath('/development/business/visual');
+  if (hasPermission('development.business:inspectdatabase')) return adminRoutePath('/development/business/database');
   return '';
 });
 const { t } = useI18n();
@@ -174,7 +173,7 @@ async function openRuntime(row: BusinessModule) {
 }
 
 async function removeModule(row: BusinessModule) {
-  if (deletingIds.has(row.id)) return;
+  if (!hasPermission(['development.business:deletemodule', 'development.business:saveschema'], 'all') || deletingIds.has(row.id)) return;
   await ElMessageBox.confirm(
     t('business.mine.deleteConfirm', { name: row.name }, '确认删除业务“{name}”？对应的生成菜单和权限将同时清理，已生成源码与数据表不会自动删除。'),
     t('business.mine.deleteTitle', '删除业务'),
@@ -182,6 +181,7 @@ async function removeModule(row: BusinessModule) {
   );
   deletingIds.add(row.id);
   try {
+    if (!hasPermission(['development.business:deletemodule', 'development.business:saveschema'], 'all')) return;
     await businessDevelopmentApi.removeModule(row.id);
     await loadData();
     await refreshBusinessMenu();
@@ -191,7 +191,7 @@ async function removeModule(row: BusinessModule) {
 }
 
 async function previewGeneration(row: BusinessModule) {
-  if (previewingIds.has(row.id)) return;
+  if (!hasPermission('development.business:previewformalgeneration') || !hasPermission('development:business:generate') || previewingIds.has(row.id)) return;
   previewingIds.add(row.id);
   activePreviewModuleId.value = row.id;
   previewVisible.value = true;

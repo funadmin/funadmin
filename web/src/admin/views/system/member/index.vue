@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import { parsePageSchema, type PageSchema, type PageHandler } from '@/components/DataTable/pageSchema';
@@ -95,9 +96,7 @@ const csvColumns: CsvColumn<any>[] = [
   { key: 'status', label: t('common.status', '状态'), parser: (raw) => (raw === '0' || raw === '停用' ? 0 : 1) }
 ];
 
-function hasPermission(permission: string) {
-  return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission);
-}
+
 
 function sexText(sex: MemberModel['sex']) {
   return sex === '1' ? t('systemMember.sexMale', '男') : sex === '2' ? t('systemMember.sexFemale', '女') : t('systemMember.sexSecret', '保密');
@@ -186,44 +185,45 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
+  if (!hasPermission('system:member:add')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberModel) {
+  if (!hasPermission('system:member:edit')) return;
   current.value = row;
   dialogVisible.value = true;
 }
 
 async function toggleStatus(row: MemberModel, enabled: boolean) {
+  if (!hasPermission("system:member:status")) return;
   if (buttonLock.busy || recycled.value || !hasPermission('system:member:status')) return;
   buttonLock.busy = true;
   const previous = row.status;
   row.status = enabled ? 1 : 0;
   try {
-    await memberApi.updateStatus(row.id, row.status);
+     await memberApi.updateStatus(row.id, row.status);
   } catch (error) {
     row.status = previous;
     throw error;
   } finally { buttonLock.busy = false; }
 }
 
-async function recycleSelected() {
-  await memberApi.recycle(selection.value.map((item) => item.id));
+async function recycleSelected() { if (!hasPermission("system:member:delete")) return; await memberApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }
 
-async function restoreSelected() {
-  await memberApi.restore(selection.value.map((item) => item.id));
+async function restoreSelected() { if (!hasPermission("system:member:restore")) return; await memberApi.restore(selection.value.map((item) => item.id));
   await loadData();
 }
 
-async function destroySelected() {
-  await memberApi.destroy(selection.value.map((item) => item.id));
+async function destroySelected() { if (!hasPermission("system:member:destroy")) return; await memberApi.destroy(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function importCsv(event: Event) {
+  if (!hasPermission("system:member:import")) return;
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
@@ -237,6 +237,7 @@ async function importCsv(event: Event) {
     return;
   }
   if (snapshot !== JSON.stringify(actionContext.value.values) || !hasPermission('system:member:import')) return;
+  if (!hasPermission("system:member:import")) return;
   const result: MemberImportResult = await memberApi.importRows(parsed);
   if (result.errors.length) {
     ElMessage.warning(t('systemMember.importResult', { created: result.created, skipped: result.skipped, errors: result.errors.slice(0, 3).join('；') }, { default: '成功 {created} 条，跳过 {skipped} 条：{errors}' }));
@@ -245,8 +246,7 @@ async function importCsv(event: Event) {
   } finally { buttonLock.busy = false; }
 }
 
-async function exportRows() {
-  const rows = await memberApi.exportRows({
+async function exportRows() { if (!hasPermission("system:member:export")) return; const rows = await memberApi.exportRows({
     keyword: query.keyword,
     status: query.status,
     groupId: query.groupId,

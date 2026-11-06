@@ -105,12 +105,13 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'systemmenu:update' : 'systemmenu:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -219,13 +220,16 @@ function initForm() {
 }
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
   await formRef.value?.validate();
   saving.value = true;
   try {
     if (isEdit.value && props.row) {
-      await menuApi.update(props.row.id, { ...form });
+      if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
+     await menuApi.update(props.row.id, { ...form });
     } else {
-      await menuApi.create({ ...form });
+      if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
+     await menuApi.create({ ...form });
     }
     emit('success');
     visible.value = false;

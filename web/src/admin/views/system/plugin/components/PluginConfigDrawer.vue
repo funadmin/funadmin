@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { pluginApi, type PluginConfigDefinition } from '@/api/plugin';
@@ -40,7 +41,7 @@ const values = reactive<Record<string, ConfigValue>>({});
 const loading = ref(false);
 const saving = ref(false);
 
-async function load() {
+async function load() { if (!(hasPermission('system:plugin:config'))) return;
   loading.value = true;
   try {
     schema.value = await pluginApi.config(props.code);
@@ -71,7 +72,7 @@ function arrayValue(key: string): Array<string | number> { const value = values[
 function scalarValue(key: string): string | number | boolean | null { const value = values[key]; return Array.isArray(value) ? value[0] || '' : value ?? null; }
 function inputValue(key: string): string | number | null { const value = values[key]; return Array.isArray(value) ? value.join(',') : typeof value === 'boolean' ? String(value) : value ?? null; }
 
-async function save() {
+async function save() { if (!(hasPermission('system:plugin:config'))) return;
   saving.value = true;
   try {
     await pluginApi.saveConfig(props.code, { ...values });

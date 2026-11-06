@@ -1,3 +1,5 @@
+const access = vi.hoisted(() => ({ denied: [] as string[] }));
+vi.mock('@/utils/permission', () => ({ hasPermission: (required: string | string[]) => (Array.isArray(required) ? required : [required]).every(code => !access.denied.includes(code)) }));
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
@@ -5,11 +7,26 @@ import AiComposer from './AiComposer.vue';
 import zhCN from '@/locales/zh-CN';
 import { aiDevelopmentApi as api } from '@/api/development/ai';
 vi.mock('@/api/development/ai', async original => ({ ...await original<object>(), aiDevelopmentApi: { createMessage: vi.fn(), executeTask: vi.fn(), uploadAttachment: vi.fn(), deleteAttachment: vi.fn() } }));
-beforeEach(() => { vi.resetAllMocks(); URL.createObjectURL = vi.fn(() => 'blob:private'); URL.revokeObjectURL = vi.fn(); });
+beforeEach(() => { access.denied = []; vi.resetAllMocks(); URL.createObjectURL = vi.fn(() => 'blob:private'); URL.revokeObjectURL = vi.fn(); });
 const setup = () => mount(AiComposer, { props: { conversationId: 1, model: 'm', running: false, saving: false }, global: { plugins: [createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })] } });
 import { readFileSync } from 'node:fs';
 
 describe('独立 composer 边界', () => {
+  it('消息创建等待期间撤销执行权限后，不再启动任务', async () => {
+    let finish!: (value: any) => void;
+    vi.mocked(api.createMessage).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const wrapper = setup(); await wrapper.get('textarea').setValue('hello');
+    await wrapper.get('.send').trigger('click');
+    access.denied = ['development.ai:taskexecute'];
+    finish({ id: 7 }); await flushPromises();
+    expect(api.executeTask).not.toHaveBeenCalled(); wrapper.unmount();
+  });
+  it('仅查看权限不能发送消息', async () => {
+    access.denied = ['development.ai:messagecreate'];
+    const wrapper = setup(); await wrapper.get('textarea').setValue('hello');
+    await wrapper.get('textarea').trigger('keydown', { key: 'Enter' });
+    expect(api.createMessage).not.toHaveBeenCalled(); wrapper.unmount();
+  });
   it('IME、repeat、ShiftEnter 不发送；失败重试复用 message_id 和任务 key', async () => {
     vi.mocked(api.createMessage).mockResolvedValue({ id: 7 } as never);
     vi.mocked(api.executeTask).mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce({ id: 8 } as never);

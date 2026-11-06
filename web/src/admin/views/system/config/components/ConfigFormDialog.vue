@@ -66,12 +66,13 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:config:edit' : 'system:config:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -156,9 +157,11 @@ function onTypeChange() {
   if (form.type === 'switch' && !['0', '1'].includes(form.value)) form.value = '0';
 }
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:config:edit' : 'system:config:add')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
+    if (!hasPermission(props.row?.id ? 'system:config:edit' : 'system:config:add')) return;
     if (props.row?.id) await configApi.update(props.row.id, form);
     else await configApi.create(form);
     visible.value = false;

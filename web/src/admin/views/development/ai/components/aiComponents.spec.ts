@@ -1,3 +1,5 @@
+const access = vi.hoisted(() => ({ denied: [] as string[] }));
+vi.mock('@/utils/permission', () => ({ hasPermission: (required: string | string[]) => (Array.isArray(required) ? required : [required]).every(code => !access.denied.includes(code)) }));
 import { mount, type VueWrapper } from '@vue/test-utils';
 import ElementPlus, { ElSwitch, ElInput, ElInputNumber, ElForm } from 'element-plus';
 import { readFileSync } from 'node:fs';

@@ -23,12 +23,13 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:blacklist:edit' : 'system:blacklist:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -72,13 +73,16 @@ function resetForm() {
 }
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:blacklist:edit' : 'system:blacklist:add')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
     if (props.row?.id) {
-      await blacklistApi.update(props.row.id, form);
+      if (!hasPermission(props.row?.id ? 'system:blacklist:edit' : 'system:blacklist:add')) return;
+     await blacklistApi.update(props.row.id, form);
     } else {
-      await blacklistApi.create(form);
+      if (!hasPermission(props.row?.id ? 'system:blacklist:edit' : 'system:blacklist:add')) return;
+     await blacklistApi.create(form);
     }
     visible.value = false;
     emit('success');

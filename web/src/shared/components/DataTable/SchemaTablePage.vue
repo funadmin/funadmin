@@ -49,6 +49,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { checkPermission } from '@/utils/permission';
 import { buildListTree } from '@/views/form/runtime/listPresentation';
 import DataTableShell from './DataTableShell.vue';
 import SearchForm from '@/components/SearchForm/index.vue';
@@ -68,7 +69,7 @@ const definition = computed(() => parsePageSchema(props.schema));
 const treeEnabled = computed(() => definition.value.list?.tree?.enabled === true);
 const displayRows = computed(() => treeEnabled.value ? buildListTree(props.rows, definition.value.primaryKey || 'id', definition.value.list?.tree?.parentField || '') : props.rows);
 const category = computed(() => definition.value.list?.category?.enabled ? definition.value.search.find(s => s.field === definition.value.list?.category?.field) : undefined);
-const permitted = (code: string) => props.context.permissions.some(p => p === '*' || p === '*:*:*' || p === code);
+const permitted = (code: string) => checkPermission(props.context.permissions, code);
 function onCategory(value: string | number | undefined) {
   if (!category.value) return;
   props.query[category.value.field] = value;

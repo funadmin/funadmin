@@ -1,7 +1,7 @@
 <template>
   <div class="panel">
     <div class="panel-toolbar">
-      <el-button v-if="canManage" type="primary" @click="openEdit()"><i class="i-ep-plus" />新建分类</el-button>
+      <el-button v-perm="'market:category:manage'" v-if="canManage" type="primary" @click="openEdit()"><i class="i-ep-plus" />新建分类</el-button>
       <span class="panel-hint">分类会通过 /api/v3/plugins/categories 下发给客户端插件中心，停用的分类不会下发。</span>
     </div>
     <el-table v-loading="loading" :data="rows" row-key="id" empty-text="暂无分类">
@@ -13,7 +13,7 @@
       </el-table-column>
       <el-table-column v-if="canManage" label="操作" width="140">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row as MarketCategory)">编辑</el-button>
+          <el-button v-perm="'market:category:manage'" link type="primary" @click="openEdit(row as MarketCategory)">编辑</el-button>
           <el-button link type="danger" :disabled="row.pluginCount > 0" @click="remove(row as MarketCategory)">删除</el-button>
         </template>
       </el-table-column>
@@ -27,13 +27,14 @@
       </el-form>
       <template #footer>
         <el-button @click="editOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+        <el-button v-perm="'market:category:manage'" type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { marketApi, type CategoryPayload, type MarketCategory } from '../api';
@@ -41,7 +42,7 @@ import { marketApi, type CategoryPayload, type MarketCategory } from '../api';
 defineProps<{ canManage: boolean }>();
 const loading = ref(false);
 const rows = ref<MarketCategory[]>([]);
-async function load() {
+async function load() { if (!(hasPermission('market:plugin:view'))) return;
   loading.value = true;
   try { rows.value = await marketApi.categories(); } finally { loading.value = false; }
 }
@@ -50,12 +51,12 @@ const editOpen = ref(false);
 const saving = ref(false);
 const editingId = ref(0);
 const form = reactive<CategoryPayload>({ name: '', sort: 0, status: 1 });
-function openEdit(row?: MarketCategory) {
+function openEdit(row?: MarketCategory) { if (!(hasPermission('market:category:manage'))) return;
   editingId.value = row?.id ?? 0;
   Object.assign(form, { name: row?.name ?? '', sort: row?.sort ?? 0, status: row?.status ?? 1 });
   editOpen.value = true;
 }
-async function save() {
+async function save() { if (!(hasPermission('market:category:manage'))) return;
   saving.value = true;
   try {
     if (editingId.value) await marketApi.updateCategory(editingId.value, { ...form });
@@ -64,8 +65,9 @@ async function save() {
     await load();
   } finally { saving.value = false; }
 }
-async function remove(row: MarketCategory) {
+async function remove(row: MarketCategory) { if (!(hasPermission('market:category:manage'))) return;
   try { await ElMessageBox.confirm(`删除分类「${row.name}」？`, '删除分类', { type: 'warning' }); } catch { return; }
+  if (!hasPermission('market:category:manage')) return;
   await marketApi.deleteCategory(row.id);
   await load();
 }

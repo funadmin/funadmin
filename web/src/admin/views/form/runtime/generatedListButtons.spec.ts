@@ -14,9 +14,10 @@ import SchemaTablePage from '@/components/DataTable/SchemaTablePage.vue';
 import * as host from './listButtonHost';
 import * as buttons from '../schema/listButtons';
 import { useCrud } from '@/composables/useCrud';
+import { checkPermission } from '@/utils/permission';
 import * as fieldPresentation from './fieldPresentation';
 
-const root = resolve(process.cwd(), '..');
+const root = resolve(process.cwd(), '../admin');
 const permission = Vue.reactive({ permissions: [] as string[] });
 const php = process.env.PHP_BINARY || 'php';
 function generate(empty: boolean | 'defaults' = false, batch = true, soft = true, plugin = false, search = true, presentation: Record<string, unknown> = {}) {
@@ -58,7 +59,7 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const api = evaluate(generated.apiContent, { '@/utils/http': { default: http } });
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
-  const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {} }).default;
+  const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {}, '@/utils/permission': { hasPermission: (required: string | readonly string[], mode: 'any' | 'all' = 'any') => checkPermission(permission.permissions, required, mode) } }).default;
   permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
   const wrapper = mount(page, { global: { plugins: [ElementPlus, VueI18n.createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': {} } })], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
@@ -148,16 +149,16 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
       const generated = generate(false, batch, soft, plugin, search);
       const { descriptor } = parse(generated.viewContent);
       const script = compileScript(descriptor, { id: 'typecheck' }).content;
-      const pagePath = resolve(process.cwd(), 'src/views/generated/host-demo/index.ts');
-      const apiPath = resolve(process.cwd(), 'src/api/generated/host-demo.ts');
+      const pagePath = resolve(process.cwd(), 'src/admin/views/generated/host-demo/index.ts');
+      const apiPath = resolve(process.cwd(), 'src/admin/api/generated/host-demo.ts');
       const files: Record<string, string> = { [pagePath]: script, [apiPath]: generated.apiContent };
-      const options: ts.CompilerOptions = { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, skipLibCheck: true, noEmit: true, paths: { '@/*': [resolve(process.cwd(), 'src/*')] } };
+      const options: ts.CompilerOptions = { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, skipLibCheck: true, noEmit: true, paths: { '@/utils/*': [resolve(process.cwd(), 'src/shared/utils/*')], '@/composables/*': [resolve(process.cwd(), 'src/shared/composables/*')], '@/components/*': [resolve(process.cwd(), 'src/shared/components/*')], '@/*': [resolve(process.cwd(), 'src/admin/*')] } };
       const compilerHost = ts.createCompilerHost(options);
       const read = compilerHost.readFile; const exists = compilerHost.fileExists;
       compilerHost.readFile = path => files[path] ?? read(path);
       compilerHost.fileExists = path => Object.hasOwn(files, path) || exists(path);
       compilerHost.getSourceFile = (path, version) => { const content = compilerHost.readFile(path); return content === undefined ? undefined : ts.createSourceFile(path, content, version); };
-      const program = ts.createProgram([pagePath, apiPath, resolve(process.cwd(), 'src/types/api.d.ts'), resolve(process.cwd(), 'src/vite-env.d.ts')], options, compilerHost);
+      const program = ts.createProgram([pagePath, apiPath, resolve(process.cwd(), 'src/shared/types/api.d.ts'), resolve(process.cwd(), 'src/vite-env.d.ts')], options, compilerHost);
       const errors = ts.getPreEmitDiagnostics(program).filter(error => error.file && Object.hasOwn(files, error.file.fileName) && (error.code !== 2307 || !String(error.messageText).includes('.vue')));
       expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
     }

@@ -104,10 +104,10 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { useUserStore } from '@/store/modules/user';
 import { ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { businessDevelopmentApi, isBusinessApiError, type BusinessDatabaseTable, type BusinessFieldInspection } from '@/api/development/business';
 import BusinessPageState from './components/BusinessPageState.vue';
@@ -119,10 +119,9 @@ defineOptions({ name: 'BusinessVisual' });
 const props = defineProps<{ initialMode?: 'created' | 'adopted' }>();
 const router = useRouter();
 const route = useRoute();
-const user = useUserStore();
 const { t } = useI18n();
 // 合并的 save/inspect 别名不能推导后台独立动作授权。
-const hasAction = (action: string) => user.permissions.some(permission => permission === '*' || permission === '*:*:*' || permission === `development.business:${action}`);
+const hasAction = (action: string) => hasPermission(`development.business:${action}`);
 const canInspect = computed(() => hasAction('inspectdatabase'));
 const canListTables = computed(() => hasAction('databasetables'));
 const canCreate = computed(() => hasAction('createvisual'));

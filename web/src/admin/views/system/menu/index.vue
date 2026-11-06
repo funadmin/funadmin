@@ -90,12 +90,12 @@
           <el-table-column prop="sort" :label="t('systemMenu.sort', '排序')" width="100" align="center">
             <template #default="{ row }">
               <InlineEdit
-                v-if="!row.readOnly"
+                v-if="!row.readOnly && hasPermission('systemmenu:update')"
                 :model-value="row.sort"
                 type="number"
                 :min="0"
                 :max="999"
-                :save="(v: number) => menuApi.update(row.id, { sort: v })"
+                :save="(v: number) => saveSort(row as API.MenuItem, v)"
                 @update:model-value="row.sort = $event"
               />
               <span v-else>{{ row.sort }}</span>
@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -182,6 +183,7 @@ const displayTree = computed(() =>
 /** 筛选或折叠时 DOM 与整树不一致，禁用拖拽避免错乱 */
 const dragEnabled = computed(
   () =>
+    hasPermission('systemmenu:update') &&
     !query.name?.trim() &&
     !query.path?.trim() &&
     query.hidden === undefined &&
@@ -211,7 +213,13 @@ function destroyMenuRowSortable() {
   menuRowSortable = null;
 }
 
+async function saveSort(row: API.MenuItem, sort: number) {
+  if (!hasPermission('systemmenu:update')) throw new Error(t('common.noPermission', '没有操作权限'));
+  return menuApi.update(row.id, { sort });
+}
+
 async function onMenuRowSortEnd() {
+  if (!hasPermission("systemmenu:update")) return;
   if (!dragEnabled.value) return;
   const map = menuNodeMap();
   const tbody = getMenuTbody();
@@ -240,7 +248,7 @@ async function onMenuRowSortEnd() {
   if (!toUpdate.length) return;
 
   try {
-    await Promise.all(
+      await Promise.all(
       toUpdate.map((u) =>
         menuApi.update(u.id, { sort: u.sort }, { requestOptions: { showSuccessMsg: false } }),
       ),
@@ -321,6 +329,7 @@ function typeText(type: API.MenuItem['type']) {
 }
 
 function onAdd(parent?: API.MenuItem) {
+  if (!hasPermission('systemmenu:create')) return;
   if (parent?.readOnly) return;
   current.value = null;
   defaultParentId.value = parent?.id || 0;
@@ -328,18 +337,21 @@ function onAdd(parent?: API.MenuItem) {
 }
 
 function onEdit(row: API.MenuItem) {
+  if (!hasPermission('systemmenu:update')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: API.MenuItem) {
+  if (!hasPermission("systemmenu:delete")) return;
   const orphaned = row.orphaned && row.sourceType === 'generated';
   const message = orphaned
     ? t('systemMenu.deleteOrphanConfirm', { name: row.name }, { default: '确认清理孤儿资源 {name}？同一生成来源的菜单、权限与授权规则将一并删除。' })
     : t('systemMenu.deleteConfirm', { name: row.name }, { default: '确认删除 {name} ?' });
   await ElMessageBox.confirm(message, orphaned ? t('systemMenu.cleanOrphan', '清理孤儿资源') : t('common.tip', '提示'), { type: 'warning' });
-  await menuApi.remove(row.id);
+  if (!hasPermission("systemmenu:delete")) return;
+ await menuApi.remove(row.id);
   await loadData();
 }
 
@@ -353,6 +365,7 @@ function onSelectionChange(rows: API.MenuItem[]) {
  *      如果祖先链上任一节点已在 set 中，说明此节点是「冗余子节点」，跳过。
  */
 async function onBatchDelete() {
+  if (!hasPermission("systemmenu:delete")) return;
   if (!selection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -379,7 +392,8 @@ async function onBatchDelete() {
     { type: 'warning' }
   );
 
-  await menuApi.removeMany(topIds);
+  if (!hasPermission("systemmenu:delete")) return;
+ await menuApi.removeMany(topIds);
   loadData();
 }
 

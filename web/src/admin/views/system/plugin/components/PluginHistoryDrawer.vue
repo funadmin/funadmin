@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -66,20 +67,20 @@ const loading = ref(false);
 const redeploying = ref<number | null>(null);
 
 async function load() {
-  if (!props.code) return;
+  if (!props.code || !hasPermission('system:plugin:history')) return;
   loading.value = true;
   try {
     [operations.value, versions.value, recovery.value] = await Promise.all([
       pluginApi.operations(props.code),
       pluginApi.history(props.code),
-      pluginApi.recoveryInfo(props.code)
+      hasPermission('system:plugin:recovery') ? pluginApi.recoveryInfo(props.code) : Promise.resolve(null)
     ]);
   } finally {
     loading.value = false;
   }
 }
 
-async function redeploy(row: PluginVersionHistory) {
+async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('system:plugin:history-redeploy'))) return;
   if (props.redeployDisabledReason) return;
   try {
     await ElMessageBox.confirm(t('plugin.redeployConfirm', { code: props.code, version: row.version }, { default: '确认将插件 {code} 重部署为历史版本 {version} 吗？数据库不会自动降级。' }), t('plugin.redeployTitle', '历史版本重部署'));
@@ -89,6 +90,7 @@ async function redeploy(row: PluginVersionHistory) {
   }
   redeploying.value = row.id;
   try {
+    if (!hasPermission('system:plugin:history-redeploy')) return;
     await pluginApi.redeployHistory(props.code, row.id, false);
     await load();
   } finally {

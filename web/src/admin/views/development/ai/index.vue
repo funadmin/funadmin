@@ -12,7 +12,7 @@
       <section v-if="regionVisible('conversations')" ref="conversationPane" class="ai-conversations-pane" data-ai-region="conversations" @scroll="loadAtBottom">
         <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" :filters="conversationFilters" :has-more="store.conversationsHasMore" :loading="store.conversationsLoading" @filter="changeFilters" @load-more="store.loadMoreConversations()" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
           <template #actions>
-            <el-button size="small" :aria-label="t('aiDevelopment.profiles.title')" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
+            <el-button v-if="hasPermission('development:ai:configure')" size="small" :aria-label="t('aiDevelopment.profiles.title')" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
           </template>
         </ConversationList>
       </section>
@@ -31,7 +31,7 @@
             <el-badge class="task-permissions-badge" data-testid="pending-approvals-badge" :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
               <el-button size="small" data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
             </el-badge>
-            <el-button v-if="store.activeTask && running" size="small" type="danger" plain @click="store.cancelActiveTask()"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+            <el-button v-if="store.activeTask && running && hasPermission('development.ai:taskcancel')" size="small" type="danger" plain @click="cancelTask"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
         </header>
         <div ref="messagePane" class="workspace-scroll" data-scroll-container="primary" @scroll="messageScrolled">
@@ -46,7 +46,7 @@
               <li><i class="i-ep-operation" /><span>{{ t('aiDevelopment.welcome.tools') }}</span></li>
               <li><i class="i-ep-lock" /><span>{{ t('aiDevelopment.welcome.approval') }}</span></li>
             </ul>
-            <el-button type="primary" round @click="createConversation"><i class="i-ep-plus" />{{ t('aiDevelopment.welcome.action') }}</el-button>
+            <el-button v-if="hasPermission('development.ai:conversationcreate')" type="primary" round @click="createConversation"><i class="i-ep-plus" />{{ t('aiDevelopment.welcome.action') }}</el-button>
           </section>
           <MessageTimeline v-else :messages="store.messages" />
           <section v-show="store.toolCalls.length" class="workspace-tools">
@@ -54,7 +54,7 @@
             <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
           </section>
         </div>
-        <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="store.cancelActiveTask()">
+        <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="cancelTask">
           <template #models>
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
             <el-tooltip placement="top" :popper-style="{ maxWidth: 'calc(100vw - 32px)' }">
@@ -65,17 +65,17 @@
             </el-tooltip>
             <small data-testid="current-model">{{ t('aiDevelopment.modelSelection.current') }}: {{ selectedConversation?.model || t('aiDevelopment.modelSelection.unset') }}</small>
             <div class="model-controls">
-              <el-select size="small" :teleported="false" data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
+              <el-select size="small" :teleported="false" data-testid="conversation-profile" :model-value="selectedConversation?.profile_id" :disabled="!hasPermission('development.ai:conversationupdate') || modelSaving || !selectedConversation" :aria-label="t('aiDevelopment.profiles.title')" @visible-change="(visible: boolean) => { if (visible) void loadProfiles(); }" @change="selectProfile">
                 <el-option v-for="profile in profiles" :key="profile.id" :value="profile.id" :label="`${profile.name}${profile.is_default ? t('aiDevelopment.profiles.defaultShort', '（默认）') : ''} · ${profile.model}`" :disabled="!profile.enabled" />
               </el-select>
-              <el-button size="small" :disabled="modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
+              <el-button size="small" :disabled="!hasPermission('development.ai:conversationupdate') || modelSaving || !selectedConversation" @click="inheritProfile">{{ t('aiDevelopment.profiles.inherit') }}</el-button>
               <label for="ai-model-id">{{ t('aiDevelopment.modelSelection.id') }}</label>
-              <el-input size="small" id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" :disabled="modelSaving || !selectedConversation" />
-              <el-button size="small" type="primary" data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
+              <el-input size="small" id="ai-model-id" v-model="modelDraft" data-testid="model-id" :aria-label="t('aiDevelopment.modelSelection.id')" :disabled="!hasPermission('development.ai:conversationupdate') || modelSaving || !selectedConversation" />
+              <el-button size="small" type="primary" data-testid="save-model" native-type="submit" :loading="modelSaving" :disabled="!hasPermission('development.ai:conversationupdate') || modelSaving || !selectedConversation || !modelDraft.trim()">{{ t('aiDevelopment.modelSelection.save') }}</el-button>
             </div>
             <div v-if="selectedProfile?.favorite_models?.length" class="favorite-models" data-testid="favorite-models"><span>{{ t('aiDevelopment.profiles.favorites') }}</span><el-button v-for="model in selectedProfile.favorite_models" :key="model" size="small" :disabled="modelSaving" @click="modelDraft = model">{{ model }}</el-button></div>
             <label for="ai-conversation-reasoning">{{ t('aiDevelopment.reasoning.conversation') }}</label>
-            <el-select id="ai-conversation-reasoning" size="small" :teleported="false" :aria-label="t('aiDevelopment.reasoning.conversation')" data-testid="conversation-reasoning" :model-value="selectedConversation?.reasoning_effort ?? ''" :disabled="modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
+            <el-select id="ai-conversation-reasoning" size="small" :teleported="false" :aria-label="t('aiDevelopment.reasoning.conversation')" data-testid="conversation-reasoning" :model-value="selectedConversation?.reasoning_effort ?? ''" :disabled="!hasPermission('development.ai:conversationupdate') || modelSaving || !selectedProfile || !selectedProfile.enabled" @change="selectReasoning">
               <el-option value="" :label="t('aiDevelopment.reasoning.inherit')" />
               <el-option v-for="effort in legalReasoningEfforts" :key="effort" :value="effort" :label="effort" />
             </el-select>
@@ -97,25 +97,26 @@
             <h3 id="ai-risk-heading">{{ t('aiDevelopment.riskAndApproval') }}</h3>
             <p v-if="!pendingApprovals.length" class="empty-context">{{ t('aiDevelopment.noPendingRisk') }}</p>
             <ToolCallTimeline v-if="store.toolCalls.length" :tool-calls="store.toolCalls" @open-log="openToolLog" />
-            <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => store.decideApproval(approval, action, scope, feedback)" />
+            <ApprovalCard v-if="hasPermission('development.ai:approvaldecide')" v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => { if (hasPermission('development.ai:approvaldecide')) store.decideApproval(approval, action, scope, feedback); }" />
           </section>
         </el-config-provider>
       </div>
     </el-drawer>
     <ChangeSetDrawer v-model="changeSetOpen" :files="preview?.files || []" :preview="preview" :test-status="store.changeSet?.test_status || 'unknown'" :security-status="store.changeSet?.security_status || 'unknown'" @preview="previewChangeSet" @apply="applyChangeSet" />
-    <ProviderSettingsDrawer v-model="providerOpen" :profiles="profiles" :busy="profileBusy" :models="profileModels" :saved-profile="savedProfile" :error="profileError" :notice="profileNotice" @select="resetProfileFeedback" @save="saveProfile" @copy="copyProfile" @remove="removeProfile" @default="defaultProfile" @models="fetchProfileModels" @test="testProvider" />
+    <ProviderSettingsDrawer v-if="hasPermission('development:ai:configure')" v-model="providerOpen" :profiles="profiles" :busy="profileBusy" :models="profileModels" :saved-profile="savedProfile" :error="profileError" :notice="profileNotice" @select="resetProfileFeedback" @save="saveProfile" @copy="copyProfile" @remove="removeProfile" @default="defaultProfile" @models="fetchProfileModels" @test="testProvider" />
     <el-dialog v-model="moveOpen" :title="t('aiDevelopment.management.move')" width="min(440px, 94vw)">
       <el-select v-model="moveGroupId" :aria-label="t('aiDevelopment.management.groupName')">
         <el-option :value="0" :label="t('aiDevelopment.management.ungrouped')" />
         <el-option v-for="group in store.conversationGroups" :key="group.id" :value="group.id" :label="group.name" />
       </el-select>
-      <template #footer><el-button @click="moveOpen = false">{{ t('aiDevelopment.management.cancel') }}</el-button><el-button type="primary" :loading="moving" @click="confirmMove">{{ t('aiDevelopment.management.confirm') }}</el-button></template>
+      <template #footer><el-button @click="moveOpen = false">{{ t('aiDevelopment.management.cancel') }}</el-button><el-button v-if="hasPermission('development.ai:conversationupdate')" type="primary" :loading="moving" @click="confirmMove">{{ t('aiDevelopment.management.confirm') }}</el-button></template>
     </el-dialog>
     <el-dialog v-model="logOpen" :title="t('aiDevelopment.toolLog')" width="min(760px, 94vw)"><pre class="tool-log">{{ toolLog }}</pre></el-dialog>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -123,7 +124,6 @@ import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElMessage, ElMess
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import { AI_REASONING_EFFORTS, aiDevelopmentApi, profileCapabilityError, type AiCatalogModel, type AiApprovalMode, type AiChangeSetPreview, type AiProfile, type AiProfileInput, type AiReasoningEffort } from '@/api/development/ai';
 import { useAiDevelopmentStore } from '@/store/modules/aiDevelopment';
-import { useUserStore } from '@/store/modules/user';
 import ConversationList from './components/ConversationList.vue';
 import AiComposer from './components/AiComposer.vue';
 import type { AiTask, AiMessage, AiConversationQuery } from '@/api/development/ai';
@@ -137,7 +137,6 @@ import { aiEnumLabel } from './i18n';
 
 const { t } = useI18n();
 const store = useAiDevelopmentStore();
-const userStore = useUserStore();
 const route = useRoute();
 const showArchived = ref(false);
 const conversationFilters = computed({
@@ -216,8 +215,9 @@ const savedProfile = ref<AiProfile | null>(null);
 let profileGeneration = 0;
 function resetProfileFeedback() { profileGeneration++; profileModels.value = []; profileError.value = ''; profileNotice.value = ''; }
 watch(providerOpen, () => resetProfileFeedback());
-async function loadProfiles() { await manage(async () => { profiles.value = await aiDevelopmentApi.profiles(); }); }
+async function loadProfiles() { if (!hasPermission(['development:ai:configure', 'ai.profiles:index'], 'all')) return; await manage(async () => { profiles.value = await aiDevelopmentApi.profiles(); }); }
 async function selectProfile(id: number) {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   const profile = profiles.value.find((item) => item.id === id);
   const conversationId = store.selectedConversationId;
   const generation = store.selectionGeneration;
@@ -231,10 +231,11 @@ async function selectProfile(id: number) {
   finally { modelSaving.value = false; }
 }
 async function inheritProfile() {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   const id = store.selectedConversationId;
   const generation = store.selectionGeneration;
   await manage(async () => {
-    const profile = await aiDevelopmentApi.defaultProfile();
+    const profile = hasPermission(['development:ai:configure', 'ai.profiles:defaultread'], 'all') ? await aiDevelopmentApi.defaultProfile() : null;
     if (id !== store.selectedConversationId || generation !== store.selectionGeneration) return;
     if (!profile) throw new Error(t('aiDevelopment.errors.noDefaultProfile', '没有默认档案'));
     profiles.value = [...profiles.value.filter((item) => item.id !== profile.id), profile];
@@ -251,6 +252,7 @@ async function profileOperation(operation: () => Promise<void>) {
   finally { profileBusy.value = false; }
 }
 async function saveProfile(payload: AiProfileInput, id: number | null) {
+  if (!hasPermission('development:ai:configure') || !hasPermission(id === null ? 'ai.profiles:create' : 'ai.profiles:update')) return;
   const generation = profileGeneration;
   await profileOperation(async () => {
     const result = id === null ? await aiDevelopmentApi.createProfile(payload) : await aiDevelopmentApi.updateProfile(id, payload);
@@ -262,29 +264,36 @@ async function saveProfile(payload: AiProfileInput, id: number | null) {
   });
 }
 async function copyProfile(id: number) {
+  if (!hasPermission('development:ai:configure') || !hasPermission('ai.profiles:copy')) return;
   const generation = profileGeneration;
   await profileOperation(async () => {
     const name = await askName('title');
+    if (!hasPermission(['development:ai:configure', 'ai.profiles:copy'], 'all')) return;
     const result = await aiDevelopmentApi.copyProfile(id, name);
     profiles.value.push(result);
     if (generation === profileGeneration && providerOpen.value) savedProfile.value = result;
   });
 }
 async function removeProfile(id: number) {
+  if (!hasPermission('development:ai:configure') || !hasPermission('ai.profiles:delete')) return;
   await profileOperation(async () => {
     await confirmRemoval('deleteConfirm');
+    if (!hasPermission(['development:ai:configure', 'ai.profiles:delete'], 'all')) return;
     await aiDevelopmentApi.deleteProfile(id);
     profiles.value = profiles.value.filter((item) => item.id !== id);
     providerOpen.value = false; savedProfile.value = null;
   });
 }
 async function defaultProfile(id: number) {
+  if (!hasPermission('development:ai:configure') || !hasPermission('ai.profiles:defaultset')) return;
   await profileOperation(async () => {
+    if (!hasPermission(['development:ai:configure', 'ai.profiles:defaultset'], 'all')) return;
     await aiDevelopmentApi.makeDefaultProfile(id);
     profiles.value = profiles.value.map((item) => ({ ...item, is_default: item.id === id }));
   });
 }
 async function fetchProfileModels(id: number) {
+  if (!hasPermission('development:ai:configure') || !hasPermission('ai.profiles:models')) return;
   const generation = profileGeneration;
   await profileOperation(async () => {
     const result = await aiDevelopmentApi.profileModels(id);
@@ -298,6 +307,7 @@ const selectedProfile = computed(() => profiles.value.find(p => p.id === selecte
 const effectiveReasoning = computed(() => selectedConversation.value?.reasoning_effort ?? selectedProfile.value?.reasoning_effort ?? null);
 const legalReasoningEfforts = computed(() => AI_REASONING_EFFORTS.filter(reasoning_effort => selectedProfile.value && !profileCapabilityError({ ...selectedProfile.value, model: selectedConversation.value?.model || selectedProfile.value.model, reasoning_effort })));
 async function selectReasoning(value: string) {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   const id = selectedConversation.value?.id;
   const profile = selectedProfile.value;
   if (!id || !profile || !profile.enabled || modelSaving.value) return;
@@ -320,6 +330,7 @@ watch([() => store.selectedConversationId, () => store.selectionGeneration, () =
 }, { immediate: true });
 
 async function saveModel() {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   const id = selectedConversation.value?.id;
   const model = modelDraft.value.trim();
   if (id === undefined || !model || modelSaving.value) return;
@@ -342,8 +353,9 @@ async function saveModel() {
 }
 // 数量与审批卡共用真实审批记录，避免重复响应或工具调用重复计数。
 const pendingApprovals = computed(() => [...new Map(store.approvals.map((item) => [item.id, item])).values()].filter((item) => item.status === 'pending'));
+function cancelTask() { if (hasPermission('development.ai:taskcancel')) void store.cancelActiveTask(); }
 const running = computed(() => store.activeTask?.status === 'running' || store.activeTask?.status === 'paused');
-const hasCapability = (capability: string) => userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === capability);
+const hasCapability = hasPermission;
 const regionVisible = (region: string) => !isMobile.value || mobileTab.value === region;
 const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
 const statusTagType = (status: string) => ({ running: 'primary', pending: 'primary', paused: 'warning', recovery_required: 'warning', succeeded: 'success', failed: 'danger', cancelled: 'info' } as Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'>)[status] || 'info';
@@ -398,8 +410,10 @@ async function confirmRemoval(key: 'deleteGroupConfirm' | 'deleteConfirm') {
 }
 
 async function createConversationGroup() {
+  if (!hasPermission('development.ai:conversationcreate')) return;
   await manage(async () => {
     const name = await askName('groupName');
+    if (!hasPermission('development.ai:conversationcreate')) return;
     const group = await aiDevelopmentApi.createConversationGroup(name);
     store.conversationGroups.push(group);
     showArchived.value = false;
@@ -407,28 +421,34 @@ async function createConversationGroup() {
 }
 
 async function renameConversationGroup(id: number) {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   await manage(async () => {
     const current = store.conversationGroups.find((group) => group.id === id);
     if (!current) return;
     const name = await askName('groupName', current.name);
+    if (!hasPermission('development.ai:conversationupdate')) return;
     const group = await aiDevelopmentApi.updateConversationGroup(id, name);
     Object.assign(current, group);
   });
 }
 
 async function deleteConversationGroup(id: number) {
+  if (!hasPermission('development.ai:conversationdelete')) return;
   await manage(async () => {
     await confirmRemoval('deleteGroupConfirm');
+    if (!hasPermission('development.ai:conversationdelete')) return;
     await store.deleteConversationGroup(id);
   });
 }
 
 async function conversationAction(command: string, id: number) {
+  if (!hasPermission(command === 'delete' ? 'development.ai:conversationdelete' : 'development.ai:conversationupdate')) return;
   await manage(async () => {
     const current = store.conversations.find((item) => item.id === id);
     if (!current) return;
     if (command === 'rename') {
       const title = await askName('title', current.title);
+      if (!hasPermission('development.ai:conversationupdate')) return;
       const updated = await aiDevelopmentApi.updateConversation(id, { title });
       current.title = updated.title;
     } else if (command === 'move') {
@@ -437,6 +457,7 @@ async function conversationAction(command: string, id: number) {
       moveOpen.value = true;
     } else if (command === 'delete') {
       await confirmRemoval('deleteConfirm');
+      if (!hasPermission('development.ai:conversationdelete')) return;
       await store.deleteConversation(id);
     } else if (command === 'archive' || command === 'restore') {
       await store.updateConversationState(id, { is_archived: command === 'archive' });
@@ -447,6 +468,7 @@ async function conversationAction(command: string, id: number) {
 }
 
 async function confirmMove() {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   if (moveConversationId.value === null || moving.value) return;
   const id = moveConversationId.value;
   moving.value = true;
@@ -465,8 +487,10 @@ watch(() => store.selectedConversationId, () => {
 });
 
 async function createConversation() {
+  if (!hasPermission('development.ai:conversationcreate')) return;
   await manage(async () => {
-    const profile = await aiDevelopmentApi.defaultProfile();
+    const profile = hasPermission(['development:ai:configure', 'ai.profiles:defaultread'], 'all') ? await aiDevelopmentApi.defaultProfile() : null;
+    if (!hasPermission('development.ai:conversationcreate')) return;
     const conversation = await aiDevelopmentApi.createConversation({ title: t('aiDevelopment.newConversationTitle'), approval_mode: 'request_approval', ...(profile ? { profile_id: profile.id } : {}) });
     store.conversations.unshift(conversation);
     showArchived.value = false;
@@ -483,6 +507,7 @@ async function selectConversation(id: number) {
 
 const approvalSaving = ref(false);
 async function updateApprovalMode(mode: AiApprovalMode) {
+  if (!hasPermission('development.ai:conversationupdate')) return;
   const conversation = selectedConversation.value;
   if (!conversation || approvalSaving.value || mode === conversation.approval_mode) return;
   if ((mode === 'agent_approval' && !hasCapability('development:ai:approve')) || (mode === 'full_access' && !hasCapability('development:ai:full-access'))) return;
@@ -491,7 +516,8 @@ async function updateApprovalMode(mode: AiApprovalMode) {
   try {
     const levels = { request_approval: 0, agent_approval: 1, full_access: 2 };
     if (levels[mode] > levels[conversation.approval_mode]) await ElMessageBox.confirm(t(mode === 'full_access' ? 'aiDevelopment.approvalModes.fullAccessBoundary' : 'aiDevelopment.approvalModes.agentBoundary'), t('aiComposer.approval'), { type: 'warning' });
-    if (store.selectedConversationId !== conversation.id || store.selectionGeneration !== generation) return;
+    if (store.selectedConversationId !== conversation.id || store.selectionGeneration !== generation || !hasPermission('development.ai:conversationupdate') || (mode === 'agent_approval' && !hasPermission('development:ai:approve')) || (mode === 'full_access' && !hasPermission('development:ai:full-access'))) return;
+    if (!hasPermission('development.ai:conversationupdate')) return;
     const updated = await aiDevelopmentApi.updateConversation(conversation.id, { approval_mode: mode });
     if (store.selectedConversationId === conversation.id && store.selectionGeneration === generation) Object.assign(conversation, updated);
   } catch (error) {
@@ -513,14 +539,20 @@ async function messageSent(task: AiTask, message: AiMessage, id: number) {
 }
 
 async function ensurePreview() {
-  if (!store.changeSet) return;
+  if (!hasPermission('development.ai:changesetpreview')) return;
+  if (!store.changeSet || !hasPermission('development:ai:changesetpreview')) return;
   preview.value = await aiDevelopmentApi.previewChangeSet(store.changeSet.id, store.changeSet.selection || []);
 }
-async function previewChangeSet(selection: string[]) { if (store.changeSet) preview.value = await aiDevelopmentApi.previewChangeSet(store.changeSet.id, selection); }
+async function previewChangeSet(selection: string[]) {
+  if (!store.changeSet || !hasPermission(['development.ai:changesetpreview', 'development:ai:changesetpreview'], 'all')) return;
+  preview.value = await aiDevelopmentApi.previewChangeSet(store.changeSet.id, selection);
+}
 async function applyChangeSet(confirmToken: string, selection: string[]) {
+  if (!hasPermission('development.ai:changesetapply')) return;
   if (!store.changeSet || preview.value?.blocked) return;
   await ElMessageBox.confirm(t('aiDevelopment.changeSet.applyConfirm'), t('aiDevelopment.changeSet.applyConfirmTitle'), { type: 'warning', confirmButtonText: t('aiDevelopment.changeSet.applyConfirmButton') });
   try {
+    if (!hasPermission(['development.ai:changesetapply', 'development:ai:changesetapply'], 'all')) return;
     await store.applyChangeSet(confirmToken, selection);
   } catch {
     ElMessage.error(t('aiDevelopment.errors.applyUnavailable'));
@@ -529,11 +561,17 @@ async function applyChangeSet(confirmToken: string, selection: string[]) {
   changeSetOpen.value = false;
   ElMessage.success(t('aiDevelopment.changeSet.applied'));
 }
-async function openToolLog(id: number, stream: 'stdout' | 'stderr') { toolLog.value = (await aiDevelopmentApi.toolLog(id, stream)).content; logOpen.value = true; }
-async function openProviderSettings() { await loadProfiles(); providerOpen.value = true; }
+async function openToolLog(id: number, stream: 'stdout' | 'stderr') {
+  if (!hasPermission('development.ai:toolcalllog')) return;
+  toolLog.value = (await aiDevelopmentApi.toolLog(id, stream)).content;
+  logOpen.value = true;
+}
+async function openProviderSettings() { if (!hasPermission('development:ai:configure')) return; await loadProfiles(); providerOpen.value = true; }
 async function testProvider(payload: Record<string, unknown>) {
+  if (!hasPermission('development.ai:settingstest')) return;
   const generation = profileGeneration;
   await profileOperation(async () => {
+    if (!hasPermission('development.ai:settingstest')) return;
     const result = await aiDevelopmentApi.testSettings(payload);
     if (!result.reachable) throw new Error(t('aiDevelopment.errors.connectionFailed', '连接失败'));
     if (generation === profileGeneration) profileNotice.value = t('aiDevelopment.providerSettings.testSuccess');

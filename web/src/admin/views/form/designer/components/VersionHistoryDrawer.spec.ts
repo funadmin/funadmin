@@ -1,3 +1,8 @@
+const actor = vi.hoisted(() => ({ permissions: [
+  'development.business:schemaversions', 'development.business:schemaversion',
+  'development.business:schemadiff', 'development.business:rollbackschema'
+] }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => actor }));
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -103,12 +103,13 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:user:edit' : 'system:user:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -223,6 +224,7 @@ async function loadOptions() {
 }
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
   await formRef.value?.validate();
   saving.value = true;
   try {
@@ -235,9 +237,11 @@ async function onSubmit() {
     if (isEdit.value && props.row) {
       const { password, ...rest } = payload;
       void password;
-      await userApi.update(props.row.id, rest);
+      if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
+     await userApi.update(props.row.id, rest);
     } else {
-      await userApi.create(payload);
+      if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
+     await userApi.create(payload);
     }
     emit('success');
     visible.value = false;

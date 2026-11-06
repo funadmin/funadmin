@@ -29,7 +29,7 @@
                 :value="role.id"
               />
             </el-select>
-            <el-button :disabled="!copySourceRoleId" :loading="copying" @click="copyAuthorization">
+            <el-button v-perm="'system:role:perm-copy'" :disabled="!copySourceRoleId" :loading="copying" @click="copyAuthorization">
               {{ t('systemRole.copyAuth', '复制授权') }}
             </el-button>
           </div>
@@ -128,7 +128,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="saving" :disabled="!activeRoleId" @click="save">
+      <el-button v-perm="'system:role:perm'" type="primary" :loading="saving" :disabled="!activeRoleId" @click="save">
         {{ t('systemRole.saveAll', '保存整套授权') }}
       </el-button>
     </template>
@@ -136,6 +136,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ElTree } from 'element-plus';
@@ -243,6 +244,7 @@ const inheritanceText = (sources: AuthorizationSource[]) => sources.length
   : '';
 
 const save = async () => {
+  if (!hasPermission("system:role:perm")) return;
   if (!activeRoleId.value) return;
   saving.value = true;
   try {
@@ -255,7 +257,7 @@ const save = async () => {
     const customDepartmentIds = dataScope.value === 'custom'
       ? (departmentTreeRef.value?.getCheckedKeys() as number[] || [])
       : [];
-    await roleApi.saveAuthorization(activeRoleId.value, {
+     await roleApi.saveAuthorization(activeRoleId.value, {
       permissionIds,
       fieldPermissions,
       dataScope: dataScope.value,
@@ -269,10 +271,11 @@ const save = async () => {
 };
 
 const copyAuthorization = async () => {
+  if (!hasPermission("system:role:perm-copy")) return;
   if (!activeRoleId.value || !copySourceRoleId.value) return;
   copying.value = true;
   try {
-    await roleApi.copyAuthorization(activeRoleId.value, copySourceRoleId.value);
+     await roleApi.copyAuthorization(activeRoleId.value, copySourceRoleId.value);
     await load(activeRoleId.value);
     emit('success');
   } finally {

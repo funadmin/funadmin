@@ -6,10 +6,11 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { useI18n } from 'vue-i18n';
 import { listItems } from '../api';
 
 const { t } = useI18n();
 
-const load = async () => { await listItems(); };
+const load = async () => { if (!hasPermission('etst:item:list')) return; await listItems(); };
 </script>

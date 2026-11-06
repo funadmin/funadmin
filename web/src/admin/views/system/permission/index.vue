@@ -108,6 +108,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -180,28 +181,34 @@ function typeText(resourceType: PermissionModel['resourceType']) {
 }
 
 function onAdd(parent?: PermissionModel) {
+  if (!hasPermission('system:permission:add')) return;
   current.value = null;
   defaultParentId.value = parent?.id ?? 0;
   dialogVisible.value = true;
 }
 
 function onEdit(row: PermissionModel) {
+  if (!hasPermission('system:permission:edit')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: PermissionModel) {
+  if (!hasPermission("system:permission:delete")) return;
   await ElMessageBox.confirm(t('systemPermission.deleteOneConfirm', { name: row.name }, { default: '确认删除权限资源“{name}”吗？' }), t('systemPermission.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  await permissionApi.remove(row.id);
+  if (!hasPermission("system:permission:delete")) return;
+ await permissionApi.remove(row.id);
   await loadData();
 }
 
 async function onBatchDelete() {
+  if (!hasPermission("system:permission:delete")) return;
   await ElMessageBox.confirm(t('systemPermission.batchDeleteConfirm', { n: selection.value.length }, { default: '确认删除已选中的 {n} 个权限资源吗？' }), t('systemPermission.batchDeleteTitle', '批量删除'), {
     type: 'warning'
   });
-  await permissionApi.removeMany(selection.value.map((item) => item.id));
+  if (!hasPermission("system:permission:delete")) return;
+ await permissionApi.removeMany(selection.value.map((item) => item.id));
   ElMessage.success(t('systemPermission.batchDeleteSuccess', '批量删除成功'));
   await loadData();
 }

@@ -140,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import type { TagProps } from 'element-plus';
@@ -173,6 +174,7 @@ const {
   loading, list, total, query, selection, loadData, onSearch, onReset,
   onDelete, onBatchDelete, onSelectionChange
 } = useCrud<OperationLog, OperationLogQuery>({
+  permissions: { delete: 'system:log:operation:delete' },
   api: {
     list: (params) => operationLogApi.list(params),
     remove: (id) => operationLogApi.remove(id),
@@ -191,12 +193,14 @@ function methodTag(method: string): TagProps['type'] {
   return ({ GET: 'info', POST: 'success', PUT: 'warning', DELETE: 'danger' } as Record<string, TagProps['type']>)[method] || 'info';
 }
 async function onClear() {
+  if (!hasPermission("system:log:operation:delete")) return;
   await ElMessageBox.confirm(
     t('systemLog.clearAllConfirm', '确认清空全部操作日志？该操作不可恢复。'),
     t('systemLog.clearAllTitle', '清空日志'),
     { type: 'warning', confirmButtonText: t('systemLog.clearAll', '清空') }
   );
-  await operationLogApi.clear();
+  if (!hasPermission("system:log:operation:delete")) return;
+ await operationLogApi.clear();
   await loadData();
 }
 async function showDetail(row: OperationLog) {

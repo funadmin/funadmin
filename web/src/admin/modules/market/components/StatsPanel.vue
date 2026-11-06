@@ -32,6 +32,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, ref } from 'vue';
 import Echarts from '@/components/Echarts/index.vue';
 import { marketApi, yuan, type MarketStats } from '../api';
@@ -40,7 +41,7 @@ const loading = ref(false);
 const days = ref(30);
 const data = ref<MarketStats | null>(null);
 
-async function load() {
+async function load() { if (!(hasPermission('market:stat:view'))) return;
   loading.value = true;
   try { data.value = await marketApi.stats(days.value); } finally { loading.value = false; }
 }

@@ -47,13 +47,14 @@
         :request-keys="requestKeys"
         :action-handlers="actionHandlers"
       />
-      <template #footer><el-button @click="dialogVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" :loading="saving" @click="saveRow">{{ t('common.save', '保存') }}</el-button></template>
+      <template #footer><el-button @click="dialogVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button v-if="hasPermission(editingId === null ? 'form.data:create' : 'form.data:update')" type="primary" :loading="saving" @click="saveRow">{{ t('common.save', '保存') }}</el-button></template>
     </el-dialog>
     <el-drawer v-model="detailVisible" :title="t('common.detail', '详情')" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">{{ presentField(field, detail?.row ?? {}, detailOptions) }}</el-descriptions-item></el-descriptions></el-drawer>
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -86,7 +87,6 @@ import {
 provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form.data:listactions', executePermission: 'form.data:listaction' } });
 const { t } = useI18n();
 const user = useUserStore();
-const hasPermission = (code: string) => user.permissions.some(p => p === '*' || p === '*:*:*' || p === code);
 const buttonLock = reactive({ busy: false });
 const recycled = ref(false);
 const importVisible = ref(false);
@@ -115,13 +115,16 @@ const buttonHandlers: ListButtonHandlers = {
     const ids = selectedRows.value.map(record => record[primaryKey.value] as FormRecordId);
     if (!ids.length) { ElMessage.warning(t('formData.selectRecordsToDelete', '请先勾选需要删除的记录')); return; }
     await ElMessageBox.confirm(t('formData.batchDeleteConfirm', { n: ids.length }, '确认删除选中的 {n} 条记录吗？'), t('common.batchRemove', '批量删除'), { type: 'warning' });
+    if (!hasPermission('form.data:batchremove')) return;
     await formDataApi.batchRemove(formKey.value, ids, meta.value?.schemaHash ?? '');
     clearSelection();
     await loadData();
   },
-  restore: async (row) => { await formDataApi.restore(formKey.value, [row![primaryKey.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
+  restore: async (row) => { if (!hasPermission('form.data:restore')) return;
+    await formDataApi.restore(formKey.value, [row![primaryKey.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
   destroy: async (row) => {
     await ElMessageBox.confirm(t('formData.destroyConfirm', '永久删除后不可恢复，确认继续吗？'), t('formData.destroyTitle', '永久删除'), { type: 'warning' });
+    if (!hasPermission('form.data:destroy')) return;
     await formDataApi.destroy(formKey.value, [row![primaryKey.value] as FormRecordId], meta.value?.schemaHash ?? '');
     await loadData();
   },
@@ -191,6 +194,7 @@ const actionHandlers: Partial<ActionHandlers> = {
   request: async (action, context) => {
     const request = action as FormAction & { key?: string; parameters?: Record<string, unknown> };
     if (!request.key) return;
+    if (!hasPermission('form.data:action')) throw new Error(t('formData.noActionPermission', '没有执行动作的权限'));
     await formDataApi.action(formKey.value, request.key, { ...dialogValues, ...(request.parameters ?? {}) }, crypto.randomUUID(), context.signal as AbortSignal | undefined);
   },
   notify: async (action) => { ElMessage({ message: String(action.message ?? ''), type: String(action.tone ?? 'success') as 'success' | 'warning' | 'info' | 'error' }); },
@@ -232,6 +236,7 @@ const loadData = async () => {
 };
 const onSearch = () => { query.page = 1; void loadData(); };
 const onImportRows = async (importRows: Array<Record<string, unknown>>) => {
+  if (!hasPermission('form.data:import')) return;
   await formDataApi.importRows(formKey.value, importRows, meta.value?.schemaHash ?? '');
   importVisible.value = false;
   await loadData();
@@ -247,6 +252,7 @@ const onSortChange = ({ prop, order }: { prop: string | null; order: string | nu
   void loadData();
 };
 const onExport = async () => {
+  if (!hasPermission('form.data:export')) return;
   const result = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
   const blob = new Blob([JSON.stringify(result.list, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

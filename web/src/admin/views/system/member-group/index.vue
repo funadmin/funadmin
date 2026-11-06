@@ -102,18 +102,17 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { memberGroupApi, type MemberGroupImportRow, type MemberGroupModel, type MemberGroupQuery } from '@/api/system/memberGroup';
-import { useUserStore } from '@/store/modules/user';
 import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';
 import MemberGroupFormDialog from './components/MemberGroupFormDialog.vue';
 
 defineOptions({ name: 'SystemMemberGroup' });
 
 const { t } = useI18n();
-const userStore = useUserStore();
 const loading = ref(false);
 const list = ref<MemberGroupModel[]>([]);
 const total = ref(0);
@@ -129,9 +128,7 @@ const csvColumns: CsvColumn<MemberGroupImportRow>[] = [
   { key: 'status', label: t('common.status', '状态') }
 ];
 
-function hasPermission(permission: string) {
-  return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission);
-}
+
 
 async function loadData() {
   loading.value = true;
@@ -163,20 +160,23 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
+  if (!hasPermission('system:member-group:add')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberGroupModel) {
+  if (!hasPermission('system:member-group:edit')) return;
   current.value = row;
   dialogVisible.value = true;
 }
 
 async function toggleStatus(row: MemberGroupModel, enabled: boolean) {
+  if (!hasPermission("system:member-group:status")) return;
   const previous = row.status;
   row.status = enabled ? 1 : 0;
   try {
-    await memberGroupApi.updateStatus(row.id, row.status);
+     await memberGroupApi.updateStatus(row.id, row.status);
   } catch (error) {
     row.status = previous;
     throw error;
@@ -184,26 +184,30 @@ async function toggleStatus(row: MemberGroupModel, enabled: boolean) {
 }
 
 async function recycleSelected() {
+  if (!hasPermission("system:member-group:delete")) return;
   await ElMessageBox.confirm(t('systemMemberGroup.recycleConfirm', { n: selection.value.length }, { default: '确认将选中的 {n} 个会员组移入回收站吗？' }), t('systemMemberGroup.operateConfirmTitle', '操作确认'), { type: 'warning' });
-  await memberGroupApi.recycle(selection.value.map((item) => item.id));
+  if (!hasPermission("system:member-group:delete")) return;
+ await memberGroupApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }
 
-async function restoreSelected() {
-  await memberGroupApi.restore(selection.value.map((item) => item.id));
+async function restoreSelected() { if (!hasPermission("system:member-group:restore")) return; await memberGroupApi.restore(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function destroySelected() {
+  if (!hasPermission("system:member-group:destroy")) return;
   await ElMessageBox.confirm(t('systemMemberGroup.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个会员组吗？此操作不可恢复。' }), t('systemMemberGroup.destroyConfirmTitle', '永久删除确认'), {
     type: 'error',
     confirmButtonText: t('systemMemberGroup.destroyButton', '永久删除')
   });
-  await memberGroupApi.destroy(selection.value.map((item) => item.id));
+  if (!hasPermission("system:member-group:destroy")) return;
+ await memberGroupApi.destroy(selection.value.map((item) => item.id));
   await loadData();
 }
 
 async function importCsv(event: Event) {
+  if (!hasPermission("system:member-group:import")) return;
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
@@ -217,12 +221,12 @@ async function importCsv(event: Event) {
     ElMessage.warning(t('systemMemberGroup.csvEmpty', 'CSV 中没有可导入的数据'));
     return;
   }
-  await memberGroupApi.importRows(rows);
+  if (!hasPermission("system:member-group:import")) return;
+ await memberGroupApi.importRows(rows);
   await loadData();
 }
 
-async function exportRows() {
-  const rows = await memberGroupApi.exportRows({ name: query.name, status: query.status, recycled: query.recycled });
+async function exportRows() { if (!hasPermission("system:member-group:export")) return; const rows = await memberGroupApi.exportRows({ name: query.name, status: query.status, recycled: query.recycled });
   const columns: CsvColumn<MemberGroupModel>[] = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: t('systemMemberGroup.groupName', '会员组名称') },

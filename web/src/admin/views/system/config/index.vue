@@ -66,18 +66,17 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { configApi, type ConfigGroupModel, type ConfigModel, type ConfigOptions, type ConfigQuery } from '@/api/system/config';
-import { useUserStore } from '@/store/modules/user';
 import ConfigFormDialog from './components/ConfigFormDialog.vue';
 import ConfigValueDialog from './components/ConfigValueDialog.vue';
 import ConfigGroupDialog from './components/ConfigGroupDialog.vue';
 
 defineOptions({ name: 'SystemConfig' });
 const { t } = useI18n();
-const userStore = useUserStore();
 const loading = ref(false);
 const list = ref<ConfigModel[]>([]);
 const total = ref(0);
@@ -92,21 +91,21 @@ const current = ref<ConfigModel | null>(null);
 const currentGroup = ref<ConfigGroupModel | null>(null);
 const uniqueTypes = computed(() => Array.from(new Map(options.types.map((item) => [item.name, item])).values()));
 const deletableSelection = computed(() => selection.value.filter((item) => item.isSystem !== 1));
-function hasPermission(permission: string) { return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission); }
+
 async function loadOptions() { Object.assign(options, await configApi.options()); }
 async function loadData() { loading.value = true; try { const result = await configApi.list(query); list.value = result.list; total.value = result.total; selection.value = []; } finally { loading.value = false; } }
 async function reloadOptions() { await loadOptions(); await loadData(); }
 async function onConfigChanged() { await reloadOptions(); }
 function onSearch() { query.page = 1; loadData(); }
 function onReset() { Object.assign(query, { page: 1, pageSize: 20, keyword: '', group: '', type: '', status: undefined }); loadData(); }
-function openAdd() { current.value = null; formVisible.value = true; }
-function openEdit(row: ConfigModel) { current.value = row; formVisible.value = true; }
-function openValue(row: ConfigModel) { current.value = row; valueVisible.value = true; }
-function openGroupAdd() { currentGroup.value = null; groupVisible.value = true; }
-function openGroupEdit(row: ConfigGroupModel) { currentGroup.value = row; groupVisible.value = true; }
-async function toggleStatus(row: ConfigModel, enabled: boolean) { await configApi.updateStatus(row.id, enabled ? 1 : 0); await loadData(); }
-async function removeOne(row: ConfigModel) { await ElMessageBox.confirm(t('systemConfig.deleteOneConfirm', { code: row.code }, { default: '确认删除配置“{code}”吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' }); await configApi.remove([row.id]); await reloadOptions(); }
-async function removeSelected() { const ids = deletableSelection.value.map((item) => item.id); if (!ids.length) return; await ElMessageBox.confirm(t('systemConfig.deleteManyConfirm', { n: ids.length }, { default: '确认删除选中的 {n} 个配置吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' }); await configApi.remove(ids); await reloadOptions(); }
-async function removeGroup(row: ConfigGroupModel) { await ElMessageBox.confirm(t('systemConfig.deleteGroupConfirm', { title: row.title }, { default: '确认删除配置分组“{title}”吗？仅空分组可删除。' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' }); await configApi.removeGroup(row.id); await reloadOptions(); }
+function openAdd() { if (!hasPermission('system:config:add')) return;  current.value = null; formVisible.value = true; }
+function openEdit(row: ConfigModel) { if (!hasPermission('system:config:edit')) return;  current.value = row; formVisible.value = true; }
+function openValue(row: ConfigModel) { if (!hasPermission('system:config:value')) return;  current.value = row; valueVisible.value = true; }
+function openGroupAdd() { if (!hasPermission('system:config-group:add')) return;  currentGroup.value = null; groupVisible.value = true; }
+function openGroupEdit(row: ConfigGroupModel) { if (!hasPermission('system:config-group:edit')) return;  currentGroup.value = row; groupVisible.value = true; }
+async function toggleStatus(row: ConfigModel, enabled: boolean) { if (!hasPermission("system:config:status")) return; await configApi.updateStatus(row.id, enabled ? 1 : 0); await loadData(); }
+async function removeOne(row: ConfigModel) { if (!hasPermission("system:config:delete")) return;  await ElMessageBox.confirm(t('systemConfig.deleteOneConfirm', { code: row.code }, { default: '确认删除配置“{code}”吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config:delete")) return; await configApi.remove([row.id]); await reloadOptions(); }
+async function removeSelected() { if (!hasPermission("system:config:delete")) return;  const ids = deletableSelection.value.map((item) => item.id); if (!ids.length) return; await ElMessageBox.confirm(t('systemConfig.deleteManyConfirm', { n: ids.length }, { default: '确认删除选中的 {n} 个配置吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config:delete")) return; await configApi.remove(ids); await reloadOptions(); }
+async function removeGroup(row: ConfigGroupModel) { if (!hasPermission("system:config-group:delete")) return;  await ElMessageBox.confirm(t('systemConfig.deleteGroupConfirm', { title: row.title }, { default: '确认删除配置分组“{title}”吗？仅空分组可删除。' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config-group:delete")) return; await configApi.removeGroup(row.id); await reloadOptions(); }
 onMounted(async () => { await loadOptions(); await loadData(); });
 </script>

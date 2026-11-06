@@ -112,6 +112,12 @@ class Permission extends BaseModel
     public static function webPermissions(array $permissionCodes, bool $isSuperAdmin): array
     {
         $mapping = [
+            'development.devplugin:previewcreate' => 'development:plugin:create-preview',
+            'development.devplugin:create' => 'development:plugin:create',
+            'development.devplugin:validate' => 'development:plugin:validate',
+            'development.devplugin:package' => 'development:plugin:package',
+            'development.devplugin:packagedownload' => 'development:plugin:download',
+            'development.devplugin:options' => 'development:plugin:options',
             'development.business:modules' => 'development:business:view',
             'development.business:module' => 'development:business:view',
             'development.business:createvisual' => 'development:business:save',

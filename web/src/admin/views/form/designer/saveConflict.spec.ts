@@ -11,8 +11,15 @@ vi.mock('@/api/development/business', async (original) => ({ ...await original<o
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
 vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
 vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [] } }));
-// 用户权限不是冲突测试的目标；导入前隔离会话读取，草稿仍使用每例独立的 localStorage。
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] }) }));
+// 冲突与生成测试使用明确授权的设计人员，仍由公共判断验证真实动作码。
+const actor = vi.hoisted(() => ({ permissions: [
+  'development.business:module', 'development.business:saveschema',
+  'development.business:savepublishconfig', 'development.business:previewpublish',
+  'development.business:publish', 'development.business:previewformalgeneration',
+  'development.business:formalgeneration', 'development.business:generation',
+  'development:business:generate', 'development:business:apply-resources'
+] }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => actor }));
 vi.mock('../schema/pluginComponentLoader', () => ({ loadPluginFormComponents: async () => {} }));
 vi.mock('../../development/business/composables/useBusinessMenuRefresh', () => ({ useBusinessMenuRefresh: () => ({ refreshBusinessMenu: vi.fn() }) }));
 vi.mock('sortablejs', () => ({ default: { create: () => ({ destroy() {} }) } }));

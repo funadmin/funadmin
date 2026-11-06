@@ -1,4 +1,5 @@
 import type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';
+import { checkPermission } from '@/utils/permission';
 
 export interface PageCondition { field: string; op: 'eq' | 'neq'; value: unknown }
 export interface PageAction extends Omit<FormListButton, 'visibleWhen' | 'disabledWhen'> {
@@ -226,7 +227,7 @@ export function actionState(a: PageAction, c: PageContext) {
     for (const value of [a.visibleWhen, a.disabledWhen]) if (value) condition(value);
   } catch { return { visible: false, disabled: true }; }
   const handler = identifier(a.action.key) && owns(c.handlers, a.action.key) ? c.handlers[a.action.key] : undefined;
-  const permitted = (p?: string) => !p || c.permissions.some(v => v === '*' || v === '*:*:*' || v === p);
+  const permitted = (p?: string) => checkPermission(c.permissions, p);
   const visible = a.action.type === 'registered' && !!handler && handler.version === a.action.capabilityVersion && !a.hidden
     && permitted(a.permission) && permitted(handler.permission) && matchesPageCondition(a.visibleWhen, c.values);
   const disabled = !!a.disabled || (!!a.disabledWhen && (!owns(c.values, a.disabledWhen.field) || matchesPageCondition(a.disabledWhen, c.values))) || (handler?.available ? !handler.available(c.row) : false);

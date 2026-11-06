@@ -42,12 +42,13 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:dict:edit' : 'system:dict:add'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -110,6 +111,7 @@ watch(visible, (v) => {
 });
 
 async function onSubmit() {
+  if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
   if (!form.typeCode) {
     form.typeCode = props.typeCode;
   }
@@ -117,9 +119,11 @@ async function onSubmit() {
   submitting.value = true;
   try {
     if (isEdit.value && props.row) {
-      await dictItemApi.update(props.row.id, form);
+      if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
+     await dictItemApi.update(props.row.id, form);
     } else {
-      await dictItemApi.create(form);
+      if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
+     await dictItemApi.create(form);
     }
     visible.value = false;
     emit('success');

@@ -8,7 +8,7 @@
     <div class="mb-4 flex gap-2">
       <el-input v-model="keyword" clearable :placeholder="t('applications.searchPlaceholder', '搜索应用名称或标识')" class="max-w-80" @keyup.enter="load" />
       <el-button type="primary" plain @click="load">{{ t('applications.searchButton', '搜索') }}</el-button>
-      <el-button type="success" plain @click="openCreate">{{ t('applications.createApp', '新建应用') }}</el-button>
+      <el-button v-perm="'identity.enterpriseapplication:save'" type="success" plain @click="openCreate">{{ t('applications.createApp', '新建应用') }}</el-button>
       <el-radio-group v-model="viewMode"><el-radio-button value="card">{{ t('applications.viewCard', '卡片') }}</el-radio-button><el-radio-button value="list">{{ t('applications.viewList', '列表') }}</el-radio-button></el-radio-group>
     </div>
     <div v-loading="loading">
@@ -22,9 +22,9 @@
           <template #default="{ row }">
             <el-button link type="primary" :disabled="!canLaunchApplication(appRow(row))" @click="launch(appRow(row))">{{ t('applications.enterApp', '进入应用') }}</el-button>
             <el-button link @click="openSettings(appRow(row))">{{ t('applications.settings', '设置') }}</el-button>
-            <el-button v-if="row.status === 'draft'" link type="success" @click="publish(appRow(row))">{{ t('applications.publish', '发布') }}</el-button>
-            <el-button v-if="row.status === 'published'" link type="warning" @click="disable(appRow(row))">{{ t('applications.stop', '停用') }}</el-button>
-            <el-button v-if="row.status !== 'published'" link type="danger" @click="remove(appRow(row))">{{ t('common.remove', '删除') }}</el-button>
+            <el-button v-perm="'identity.enterpriseapplication:publish'" v-if="row.status === 'draft'" link type="success" @click="publish(appRow(row))">{{ t('applications.publish', '发布') }}</el-button>
+            <el-button v-perm="'identity.enterpriseapplication:disable'" v-if="row.status === 'published'" link type="warning" @click="disable(appRow(row))">{{ t('applications.stop', '停用') }}</el-button>
+            <el-button v-perm="'identity.enterpriseapplication:delete'" v-if="row.status !== 'published'" link type="danger" @click="remove(appRow(row))">{{ t('common.remove', '删除') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -32,7 +32,7 @@
         <el-card v-for="item in applications" :key="item.id">
           <template #header><div class="flex items-center justify-between"><strong>{{ item.name }}</strong><el-tag>{{ item.status }}</el-tag></div></template>
           <p>{{ item.description || '-' }}</p><p class="text-sm text-gray-500">{{ item.code }} · {{ item.runtimeType }}</p>
-          <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">{{ t('applications.enterApp', '进入应用') }}</el-button><el-button @click="openSettings(item)">{{ t('applications.settings', '设置') }}</el-button><el-button v-if="item.status === 'draft'" type="success" plain @click="publish(item)">{{ t('applications.publish', '发布') }}</el-button><el-button v-if="item.status === 'published'" type="warning" plain @click="disable(item)">{{ t('applications.stop', '停用') }}</el-button><el-button v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">{{ t('common.remove', '删除') }}</el-button></div>
+          <div class="mt-4 flex flex-wrap gap-2"><el-button type="primary" plain :disabled="!canLaunchApplication(item)" @click="launch(item)">{{ t('applications.enterApp', '进入应用') }}</el-button><el-button @click="openSettings(item)">{{ t('applications.settings', '设置') }}</el-button><el-button v-perm="'identity.enterpriseapplication:publish'" v-if="item.status === 'draft'" type="success" plain @click="publish(item)">{{ t('applications.publish', '发布') }}</el-button><el-button v-perm="'identity.enterpriseapplication:disable'" v-if="item.status === 'published'" type="warning" plain @click="disable(item)">{{ t('applications.stop', '停用') }}</el-button><el-button v-perm="'identity.enterpriseapplication:delete'" v-if="item.status !== 'published'" type="danger" plain @click="remove(item)">{{ t('common.remove', '删除') }}</el-button></div>
         </el-card>
       </div>
     </div>
@@ -45,11 +45,12 @@
         <el-tab-pane :label="t('applications.tabBrand', '品牌')" name="brand"><el-form label-width="100"><el-form-item label="Logo"><el-input v-model="form.logoUrl" /></el-form-item><el-form-item :label="t('applications.primaryColor', '主色')"><el-color-picker v-model="brandColor" /></el-form-item></el-form></el-tab-pane>
         <el-tab-pane label="OAuth" name="oauth"><el-alert :title="t('applications.oauthHint', 'OAuth Client 已真实接入，可在当前应用内管理 Client、Scope、Grant、Redirect URI 与一次性 Secret。')" type="info" :closable="false"/><el-button class="mt-3" type="primary" plain :disabled="selectedId <= 0" @click="openOAuthManagement">{{ t('applications.manageOAuth', '管理 OAuth Client') }}</el-button></el-tab-pane>
       </el-tabs>
-      <template #footer><el-button @click="drawerVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button type="primary" @click="saveSettings">{{ t('common.save', '保存') }}</el-button></template>
+      <template #footer><el-button @click="drawerVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button v-perm:all="settingsPermissions" type="primary" @click="saveSettings">{{ t('common.save', '保存') }}</el-button></template>
     </el-drawer>
   </PageWrapper>
 </template>
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -89,7 +90,7 @@ function resetSettings() {
   Object.assign(assignment, { id: undefined, subjectType: 'all', subjectId: undefined, effect: 'allow' });
   brandColor.value = '#409eff'; domainTouched.value = false; expectedDomainIds.value = []; activeTab.value = 'basic';
 }
-function openCreate() { selectedId.value = 0; resetSettings(); drawerVisible.value = true; }
+function openCreate() { if (!hasPermission('identity.enterpriseapplication:save')) return;  selectedId.value = 0; resetSettings(); drawerVisible.value = true; }
 async function openSettings(item: EnterpriseApplication) {
   selectedId.value = item.id; resetSettings();
   Object.assign(form, { code: item.code, name: item.name, description: item.description, runtimeType: item.runtimeType, launchUrl: item.launchUrl, logoUrl: item.logoUrl, databaseMode: item.databaseMode, visibility: item.visibility, baseUrl: item.baseUrl, owner: item.owner, ownerIdentityUserId: item.ownerIdentityUserId });
@@ -100,18 +101,31 @@ async function openSettings(item: EnterpriseApplication) {
   if (assignments[0]) Object.assign(assignment, assignments[0]);
   drawerVisible.value = true;
 }
+const settingsPermissions = computed(() => [
+  selectedId.value ? 'identity.enterpriseapplication:update' : 'identity.enterpriseapplication:save',
+  'identity.enterpriseapplication:savedatabase',
+  'identity.enterpriseapplication:saveassignments',
+  ...(domainTouched.value || expectedDomainIds.value.length > 0 || domain.identityCallback !== '' || domain.logoutCallback !== ''
+    ? ['identity.enterpriseapplication:savedomains'] : [])
+]);
 async function saveSettings() {
+  // 创建完成后 selectedId 会变化；本次保存始终使用提交时的操作权限。
+  const requiredPermissions = [...settingsPermissions.value];
+  if (!hasPermission(requiredPermissions, 'all')) return;
   const input = { ...form, databaseMode: database.mode, brandConfig: { ...form.brandConfig, color: brandColor.value } };
   const saved = selectedId.value ? await applicationApi.update(selectedId.value, input) : await applicationApi.create(input);
   selectedId.value = saved.id;
   const domainChange = serializeDomainChange(domain, expectedDomainIds.value, selectedId.value === saved.id && (domainTouched.value || expectedDomainIds.value.length > 0 || domain.identityCallback !== '' || domain.logoutCallback !== ''));
+  if (!hasPermission(requiredPermissions, 'all')) return;
   const writes: Promise<unknown>[] = [applicationApi.saveDatabase(saved.id, database), applicationApi.saveAssignments(saved.id, [assignment])];
   if (domainChange) writes.push(applicationApi.saveDomains(saved.id, domainChange));
-  await Promise.all(writes); drawerVisible.value = false; await load();
+  await Promise.all(writes);
+  drawerVisible.value = false;
+  await load();
 }
 async function openOAuthManagement() { if (selectedId.value > 0) { drawerVisible.value = false; await router.push({ path: '/applications/oauth-client', query: { applicationId: String(selectedId.value) } }); } }
-async function publish(item: EnterpriseApplication) { await applicationApi.publish(item.id); await load(); }
-async function disable(item: EnterpriseApplication) { await applicationApi.disable(item.id); await load(); }
-async function remove(item: EnterpriseApplication) { await ElMessageBox.confirm(t('applications.deleteConfirm', { name: item.name }, '确定删除应用“{name}”吗？'), t('applications.deleteTitle', '删除确认'), { type: 'warning' }); await applicationApi.remove(item.id); await load(); }
+async function publish(item: EnterpriseApplication) { if (!hasPermission("identity.enterpriseapplication:publish")) return; await applicationApi.publish(item.id); await load(); }
+async function disable(item: EnterpriseApplication) { if (!hasPermission("identity.enterpriseapplication:disable")) return; await applicationApi.disable(item.id); await load(); }
+async function remove(item: EnterpriseApplication) { if (!hasPermission("identity.enterpriseapplication:delete")) return;  await ElMessageBox.confirm(t('applications.deleteConfirm', { name: item.name }, '确定删除应用“{name}”吗？'), t('applications.deleteTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("identity.enterpriseapplication:delete")) return; await applicationApi.remove(item.id); await load(); }
 onMounted(load);
 </script>

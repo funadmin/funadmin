@@ -1,7 +1,13 @@
+const actor = vi.hoisted(() => ({ permissions: [
+  'development:ai:configure', 'ai.profiles:create', 'ai.profiles:update',
+  'ai.profiles:copy', 'ai.profiles:delete', 'ai.profiles:defaultset',
+  'ai.profiles:models', 'development.ai:settingstest'
+] }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => actor }));
 import { mount, type VueWrapper } from '@vue/test-utils';
 import ElementPlus from 'element-plus';
 import { createI18n } from 'vue-i18n';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import Drawer from './ProviderSettingsDrawer.vue';
 import zhCN from '@/locales/zh-CN';
 import type { AiProfile } from '@/api/development/ai';

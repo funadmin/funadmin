@@ -3,7 +3,7 @@
     <div class="conversation-list__header">
       <strong class="conversation-list__title">{{ t('aiDevelopment.conversations') }}<span v-if="visibleCount" class="conversation-list__count">{{ visibleCount }}</span></strong>
       <el-button size="small" text class="conversation-list__archived" data-testid="archived-conversations" :aria-pressed="archived" @click="$emit('toggle-archived')"><i :class="archived ? 'i-ep-chat-line-round' : 'i-ep-box'" />{{ t(archived ? 'aiDevelopment.management.active' : 'aiDevelopment.management.archived') }}</el-button>
-      <div class="conversation-list__actions"><el-button size="small" @click="$emit('create-group')"><i class="i-ep-folder-add" />{{ t('aiDevelopment.management.createGroup') }}</el-button><el-button size="small" type="primary" @click="$emit('create')"><i class="i-ep-plus" />{{ t('aiDevelopment.newConversation') }}</el-button><slot name="actions" /></div>
+      <div class="conversation-list__actions"><el-button size="small" v-if="hasPermission('development.ai:conversationcreate')" @click="$emit('create-group')"><i class="i-ep-folder-add" />{{ t('aiDevelopment.management.createGroup') }}</el-button><el-button size="small" type="primary" v-if="hasPermission('development.ai:conversationcreate')" @click="$emit('create')"><i class="i-ep-plus" />{{ t('aiDevelopment.newConversation') }}</el-button><slot name="actions" /></div>
     </div>
     <div class="conversation-list__filters">
       <el-input size="small" clearable :model-value="filters?.search || ''" data-testid="conversation-search" :placeholder="t('aiDevelopment.pagination.search')" @update:model-value="value => $emit('filter', { search: String(value) })">
@@ -22,7 +22,7 @@
         <span class="conversation-group__name"><i :class="section.id === null ? 'i-ep-files' : 'i-ep-folder'" />{{ section.name }}<small>{{ section.conversations.length }}</small></span>
         <el-dropdown v-if="section.id !== null" trigger="click" @command="(command: string) => command === 'rename' ? $emit('rename-group', section.id!) : $emit('delete-group', section.id!)">
           <el-button link class="conversation-more" :aria-label="t('aiDevelopment.management.actions')"><i class="i-ep-more" /></el-button>
-          <template #dropdown><el-dropdown-menu><el-dropdown-item command="rename">{{ t('aiDevelopment.management.rename') }}</el-dropdown-item><el-dropdown-item command="delete" divided>{{ t('aiDevelopment.management.deleteGroup') }}</el-dropdown-item></el-dropdown-menu></template>
+          <template #dropdown><el-dropdown-menu><el-dropdown-item v-if="hasPermission('development.ai:conversationupdate')" command="rename">{{ t('aiDevelopment.management.rename') }}</el-dropdown-item><el-dropdown-item v-if="hasPermission('development.ai:conversationdelete')" command="delete" divided>{{ t('aiDevelopment.management.deleteGroup') }}</el-dropdown-item></el-dropdown-menu></template>
         </el-dropdown>
       </div>
       <div v-for="conversation in section.conversations" :key="conversation.id" class="conversation-row" :class="{ active: conversation.id === selectedId }">
@@ -33,11 +33,11 @@
       <el-dropdown trigger="click" @command="(command: string) => $emit('action', command, conversation.id)">
         <el-button link class="conversation-more" :aria-label="t('aiDevelopment.management.actions')"><i class="i-ep-more" /></el-button>
         <template #dropdown><el-dropdown-menu>
-          <el-dropdown-item command="rename">{{ t('aiDevelopment.management.rename') }}</el-dropdown-item>
-          <el-dropdown-item command="move">{{ t('aiDevelopment.management.move') }}</el-dropdown-item>
-          <el-dropdown-item :command="conversation.is_unread ? 'read' : 'unread'">{{ t(conversation.is_unread ? 'aiDevelopment.management.markRead' : 'aiDevelopment.management.markUnread') }}</el-dropdown-item>
-          <el-dropdown-item :command="conversation.is_archived ? 'restore' : 'archive'">{{ t(conversation.is_archived ? 'aiDevelopment.management.restore' : 'aiDevelopment.management.archive') }}</el-dropdown-item>
-          <el-dropdown-item command="delete" divided>{{ t('aiDevelopment.management.delete') }}</el-dropdown-item>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationupdate')" command="rename">{{ t('aiDevelopment.management.rename') }}</el-dropdown-item>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationupdate')" command="move">{{ t('aiDevelopment.management.move') }}</el-dropdown-item>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationupdate')" :command="conversation.is_unread ? 'read' : 'unread'">{{ t(conversation.is_unread ? 'aiDevelopment.management.markRead' : 'aiDevelopment.management.markUnread') }}</el-dropdown-item>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationupdate')" :command="conversation.is_archived ? 'restore' : 'archive'">{{ t(conversation.is_archived ? 'aiDevelopment.management.restore' : 'aiDevelopment.management.archive') }}</el-dropdown-item>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationdelete')" command="delete" divided>{{ t('aiDevelopment.management.delete') }}</el-dropdown-item>
         </el-dropdown-menu></template>
       </el-dropdown>
       </div>
@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { hasPermission } from '@/utils/permission';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AiConversation, AiConversationGroup, AiConversationQuery } from '@/api/development/ai';
