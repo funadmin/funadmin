@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 
 const project = resolve(process.cwd(), '..');
-const src = resolve(process.cwd(), 'src');
+const src = resolve(process.cwd(), 'src/admin');
 const read = (path: string) => readFileSync(resolve(src, path), 'utf8');
 const readProject = (path: string) => readFileSync(resolve(project, path), 'utf8');
 
@@ -46,7 +46,7 @@ describe('SSO Phase 8 管理控制台与应用门户', () => {
   });
 
   it('migration 菜单复用既有权限并匹配真实控制器 action', () => {
-    const migration = readProject('database/migrations/archive/114_sso_phase8_admin_portal.sql');
+    const migration = readProject('admin/database/core/migrations/archive/114_sso_phase8_admin_portal.sql');
     for (const routeName of ['ApplicationList', 'DomainManagement', 'SsoConfiguration', 'OAuthClientManagement', 'ScopeClaimManagement', 'IdentityUsers', 'IdentitySessions', 'SigningKeys', 'IdentityAudit']) expect(migration).toContain(`name=${routeName}`);
     expect(migration).toContain('console/identity.ssoconfiguration:config');
     expect(migration).toContain('console/identity.identityaudit:index');

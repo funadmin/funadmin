@@ -8,7 +8,7 @@ use OpenApi\Annotations as OA;
 
 use app\common\model\identity\IdentityAuditLog;
 use app\common\service\identity\AdminIdentityAdapter;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
 use support\Response;
@@ -17,7 +17,7 @@ use support\Response;
  * 身份审计日志接口。
  */
 #[RouteGroup('/admin/identity/audit')]
-final class IdentityAudit extends AdminApiController
+final class IdentityAudit extends AdminController
 {
     /**
      * 获取身份审计日志列表。

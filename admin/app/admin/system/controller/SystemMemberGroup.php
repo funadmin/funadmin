@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberGroupRelation;
 use app\common\traits\Crud;
@@ -22,7 +22,7 @@ use support\Response;
  * Admin Web 会员组管理。
  */
 #[RouteGroup('/admin/system/member-group')]
-class SystemMemberGroup extends AdminApiController
+class SystemMemberGroup extends AdminController
 {
     use Crud {
         index as private crudIndex;

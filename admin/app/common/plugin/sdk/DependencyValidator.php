@@ -13,7 +13,8 @@ final class DependencyValidator
 {
     public function __construct(
         private readonly string $funadminVersion,
-        private readonly string $phpVersion
+        private readonly string $phpVersion,
+        private readonly HostPackageRepository $hostPackages = new HostPackageRepository()
     ) {
     }
 
@@ -42,6 +43,33 @@ final class DependencyValidator
             if (!$this->matches($version, $constraint)) {
                 throw new RuntimeException("依赖插件 {$code} 版本不满足 {$constraint}，当前 {$version}");
             }
+        }
+    }
+
+    /** Separate from generic lifecycle checks so removal never depends on Composer. */
+    public function assertComposerSatisfied(Manifest $manifest): void
+    {
+        $requirements = $manifest->composerRequirements();
+        if ($requirements === []) { return; }
+        $packages = $this->hostPackages->packages();
+        $errors = []; $arguments = [];
+        foreach ($requirements as $name => $constraint) {
+            // Limit the existing constraint grammar explicitly; never pass arbitrary strings to version_compare.
+            if (!preg_match('/^[a-z0-9][a-z0-9_.-]*\/[a-z0-9][a-z0-9_.-]*$/D', $name)
+                || !preg_match('/^(?:\^|>=|<=|>|<|=)?v?\d+(?:\.\d+)*(?:(?:\s*,\s*|\s+)(?:\^|>=|<=|>|<|=)?v?\d+(?:\.\d+)*)*$/D', $constraint)) {
+                throw new RuntimeException('不支持的 Composer 包名或版本约束：' . $name . ' ' . $constraint);
+            }
+            $version = $packages[$name] ?? null;
+            $normalized = $version === null ? '' : ltrim($version, 'v');
+            $normalizedConstraint = preg_replace('/(?<=[\^<>= ,])v(?=\d)|^v(?=\d)/', '', $constraint);
+            if ($version === null || !preg_match('/^\d+(?:\.\d+)*$/D', $normalized) || !$this->matchesComposer($normalized, $normalizedConstraint)) {
+                $errors[] = $name . ' 需要 ' . $constraint . '，当前 ' . ($version ?? '未安装');
+                $arguments[] = '"' . $name . ':' . $constraint . '"';
+            }
+        }
+        if ($errors !== []) {
+            throw new RuntimeException('宿主 Composer 依赖不满足：' . implode('；', $errors)
+                . '。请在宿主项目根目录执行：composer require ' . implode(' ', $arguments) . '，然后重启服务');
         }
     }
 
@@ -94,6 +122,24 @@ final class DependencyValidator
                 throw new RuntimeException("存在已启用的反向依赖：{$dependent} -> {$code}");
             }
         }
+    }
+
+    /** Composer caret excludes the next breaking 0.x release, unlike legacy plugin constraints. */
+    private function matchesComposer(string $version, string $constraint): bool
+    {
+        foreach (preg_split('/\s*,\s*|\s+/', trim($constraint)) ?: [] as $part) {
+            if (str_starts_with($part, '^')) {
+                $minimum = substr($part, 1);
+                $parts = array_map('intval', explode('.', $minimum));
+                $upper = $parts;
+                $index = 0;
+                while ($index < count($parts) - 1 && $parts[$index] === 0) { $index++; }
+                $upper[$index]++;
+                for ($i = $index + 1; $i < count($upper); $i++) { $upper[$i] = 0; }
+                if (version_compare($version, $minimum, '<') || version_compare($version, implode('.', $upper), '>=')) { return false; }
+            } elseif (!$this->matches($version, $part)) { return false; }
+        }
+        return true;
     }
 
     private function matches(string $version, string $constraint): bool

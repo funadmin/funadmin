@@ -29,7 +29,8 @@ class AiProfileImageConsumerTest extends AiSandboxConsumerExecutionTest
     protected function setUp(): void
     {
         parent::setUp();
-        $this->privateRoot = sys_get_temp_dir() . '/funadmin-ai-image-' . bin2hex(random_bytes(8));
+        // macOS 的临时目录位于 /var -> /private/var 符号链接下，附件存储会拒绝符号链接路径。
+        $this->privateRoot = realpath(sys_get_temp_dir()) . '/funadmin-ai-image-' . bin2hex(random_bytes(8));
         mkdir($this->privateRoot . '/project', 0700, true);
         file_put_contents($this->privateRoot . '/project/example.txt', 'snapshot');
         Db::schema()->table('ai_task', static function (Blueprint $table): void { $table->string('model')->nullable(); $table->string('provider')->nullable(); });

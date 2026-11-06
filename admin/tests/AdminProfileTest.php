@@ -39,7 +39,7 @@ final class AdminProfileTest extends TestCase
 
     public function test_profile_is_native_webman_and_requires_a_browser_identity(): void
     {
-        self::assertFalse(is_subclass_of(AdminProfile::class, \app\admin\controller\base\AdminApiController::class));
+        self::assertFalse(is_subclass_of(AdminProfile::class, \app\common\controller\AdminController::class));
         $controller = new AdminProfile();
         self::assertSame(401, $controller->index(new Request("GET /admin/profile HTTP/1.1\r\n\r\n"))->getStatusCode());
         $response = $controller->index($this->request('GET'));
@@ -52,7 +52,7 @@ final class AdminProfileTest extends TestCase
 
     public function test_profile_update_is_whitelisted_validated_and_csrf_protected(): void
     {
-        self::assertFalse(is_subclass_of(AdminProfile::class, \app\admin\controller\base\AdminApiController::class));
+        self::assertFalse(is_subclass_of(AdminProfile::class, \app\common\controller\AdminController::class));
         $controller = new AdminProfile();
         self::assertSame(403, $controller->update($this->request('PUT', ['nickname' => '测试'], false))->getStatusCode());
         self::assertSame(422, $controller->update($this->request('PUT', ['email' => str_repeat('x', 65) . '@test.com']))->getStatusCode());
@@ -67,7 +67,7 @@ final class AdminProfileTest extends TestCase
 
     public function test_password_change_revokes_all_credentials_without_changing_other_accounts(): void
     {
-        self::assertFalse(is_subclass_of(AdminProfile::class, \app\admin\controller\base\AdminApiController::class));
+        self::assertFalse(is_subclass_of(AdminProfile::class, \app\common\controller\AdminController::class));
         $service = new AdminSessionService();
         $api = $service->login('profile_admin', 'profile-safe-password', 'api-test')['access_token'];
         $service->createAdmin('another_admin', 'another-safe-password');

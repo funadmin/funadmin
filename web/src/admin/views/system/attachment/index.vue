@@ -67,9 +67,10 @@
           </el-button>
           <div class="flex items-center gap-2" v-perm="'system:attachment:storage'">
             <span class="text-sm text-[var(--el-text-color-secondary)]">{{ t('systemAttachment.storageDriver', '存储驱动') }}</span>
-            <el-select v-model="storageDriver" class="!w-36" :loading="storageLoading" @change="changeStorageDriver">
+            <el-select v-model="storageDriver" class="!w-36" :loading="storageLoading" :disabled="!!storageManaged" @change="changeStorageDriver">
               <el-option v-for="driver in storageDrivers" :key="driver.name" :label="driver.label" :value="driver.name" :disabled="!driver.available" />
             </el-select>
+            <span v-if="storageManaged" class="text-sm text-[var(--el-text-color-secondary)]">由 {{ storageManaged.label }} 接管，请在对应插件的存储配置页管理。</span>
           </div>
           <input ref="uploadInput" class="hidden" type="file" multiple @change="uploadFiles" />
         </template>
@@ -111,7 +112,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { attachmentApi, attachmentGroupApi, type AttachmentGroupModel, type AttachmentModel, type AttachmentQuery } from '@/api/system/attachment';
 import { uploadApi } from '@/api/common/upload';
-import { storageApi, type StorageDriver } from '@/api/system/storage';
+import { storageApi, type StorageDriver, type StorageSettings } from '@/api/system/storage';
 import AttachmentGroupDialog from './components/AttachmentGroupDialog.vue';
 
 defineOptions({ name: 'SystemAttachment' });
@@ -127,6 +128,7 @@ const uploadInput = ref<HTMLInputElement>();
 const storageLoading = ref(false);
 const storageDriver = ref('local');
 const storageDrivers = ref<StorageDriver[]>([]);
+const storageManaged = ref<StorageSettings['managed']>(null);
 const query = reactive<AttachmentQuery>({ page: 1, pageSize: 20, keyword: '', groupId: 1, mimeType: '' });
 const flatGroups = computed(() => {
   const result: AttachmentGroupModel[] = [];
@@ -143,10 +145,11 @@ async function loadStorageSettings() {
     const settings = await storageApi.settings();
     storageDriver.value = settings.driver;
     storageDrivers.value = settings.drivers;
+    storageManaged.value = settings.managed ?? null;
     if (settings.fallback) ElMessage.warning(t('systemAttachment.storageFallback', '原存储驱动不可用，已回退到本地存储'));
   } finally { storageLoading.value = false; }
 }
-async function changeStorageDriver(driver: string) { if (!hasPermission("system:attachment:storage")) return; await storageApi.update(driver); storageDriver.value = driver; }
+async function changeStorageDriver(driver: string) { if (storageManaged.value || !hasPermission("system:attachment:storage")) return; await storageApi.update(driver); storageDriver.value = driver; }
 async function reloadGroups() { await loadGroups(); await loadData(); }
 async function loadData() {
   loading.value = true;
@@ -206,9 +209,10 @@ async function moveSelected() {
 }
 async function removeSelected() {
   if (!hasPermission("system:attachment:delete")) return;
-  await ElMessageBox.confirm(t('systemAttachment.destroyConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个附件吗？本地文件将同步删除。' }), t('systemAttachment.destroyConfirmTitle', '永久删除确认'), { type: 'error', confirmButtonText: t('systemAttachment.destroyButton', '永久删除') });
+  await ElMessageBox.confirm(t('systemAttachment.destroyStorageConfirm', { n: selection.value.length }, { default: '确认永久删除选中的 {n} 个附件吗？对应存储中的文件将同步删除。' }), t('systemAttachment.destroyConfirmTitle', '永久删除确认'), { type: 'error', confirmButtonText: t('systemAttachment.destroyButton', '永久删除') });
   if (!hasPermission("system:attachment:delete")) return;
- await attachmentApi.remove(selection.value.map((item) => item.id)); await loadData();
+  try { await attachmentApi.remove(selection.value.map((item) => item.id)); }
+  finally { await loadData(); }
 }
 function formatBytes(size: number) { if (size < 1024) return `${size} B`; if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`; return `${(size / 1024 / 1024).toFixed(2)} MB`; }
 function fileIcon(ext: string) { return ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) ? 'i-ep-folder-opened' : ['mp4', 'mov', 'avi'].includes(ext) ? 'i-ep-video-camera' : ['mp3', 'wav'].includes(ext) ? 'i-ep-headset' : 'i-ep-document'; }

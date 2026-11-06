@@ -12,14 +12,8 @@
       </div>
       <el-input v-model="draft.text" type="textarea" :disabled="locked || !conversationId" :placeholder="t('aiDevelopment.promptPlaceholder')" :aria-label="t('aiDevelopment.promptPlaceholder')" :rows="3" resize="none" @keydown="keydown" @compositionstart="composing = true" @compositionend="composing = false" @paste="paste" />
       <div class="toolbar">
-        <el-popover v-model:visible="modelsOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="approvalOpen = false">
-          <template #reference><el-button size="small" round ref="modelTrigger" class="model-menu" data-testid="model-menu-trigger" :aria-expanded="modelsOpen" @keydown.esc="modelsOpen = false"><i class="i-ep-cpu" /><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}</span></el-button></template>
-          <div v-if="modelsOpen" @keydown.esc.stop="closeModels"><slot name="models" /></div>
-        </el-popover>
-        <el-popover v-model:visible="approvalOpen" trigger="click" placement="top-start" :width="360" :teleported="true" :persistent="false" :popper-style="popoverStyle" @show="modelsOpen = false">
-          <template #reference><el-button size="small" round :aria-expanded="approvalOpen" @keydown.esc="approvalOpen = false"><i class="i-ep-lock" />{{ t('aiComposer.approval') }}</el-button></template>
-          <div v-if="approvalOpen"><slot name="approval" /></div>
-        </el-popover>
+        <el-button size="small" round class="model-menu" data-testid="model-menu-trigger" :aria-label="t('aiDevelopment.settings.open', '打开会话设置')" @click="$emit('open-settings')"><i class="i-ep-cpu" /><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}<template v-if="reasoning"> · {{ t('aiDevelopment.settings.reasoningShort', { effort: reasoning }, { default: '思考 {effort}' }) }}</template></span></el-button>
+        <el-button size="small" round data-testid="approval-mode-trigger" @click="$emit('open-settings')"><i class="i-ep-lock" />{{ approvalLabel }}</el-button>
         <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
         <el-button size="small" circle :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId || !hasPermission('development.ai:attachmentcreate')" @click="fileInput?.click()" />
         <span class="send-hint">{{ t('aiComposer.sendHint') }}</span>
@@ -36,11 +30,11 @@
 import { hasPermission } from '@/utils/permission';
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElButton, ElInput, ElPopover } from 'element-plus';
+import { ElButton, ElInput } from 'element-plus';
 import { Paperclip } from '@element-plus/icons-vue';
-import { aiDevelopmentApi as api, profileModelCapability, type AiAttachment, type AiMessage, type AiProfile, type AiTask } from '@/api/development/ai';
-const props = defineProps<{ conversationId: number | null; model: string; profile?: AiProfile; running: boolean; saving: boolean }>();
-const emit = defineEmits<{ sent: [task: AiTask, message: AiMessage, conversationId: number]; stop: [] }>();
+import { aiDevelopmentApi as api, profileModelCapability, type AiApprovalMode, type AiAttachment, type AiMessage, type AiProfile, type AiTask } from '@/api/development/ai';
+const props = defineProps<{ conversationId: number | null; model: string; profile?: AiProfile; reasoning?: string | null; approvalMode?: AiApprovalMode; running: boolean; saving: boolean }>();
+const emit = defineEmits<{ sent: [task: AiTask, message: AiMessage, conversationId: number]; stop: []; 'open-settings': [] }>();
 const { t } = useI18n();
 type Entry = { key: string; file: File; preview: string; state: 'uploading' | 'ready' | 'failed'; attachment?: AiAttachment };
 type Draft = { text: string; files: Entry[]; error: string; busy: boolean; message?: AiMessage; payload?: { role: 'user'; content: AiMessage['content']; idempotency_key: string }; taskKey: string };
@@ -55,15 +49,7 @@ const draft = computed(() => {
 const locked = computed(() => draft.value.busy || !!draft.value.payload);
 const composing = ref(false);
 const fileInput = ref<HTMLInputElement>();
-const modelsOpen = ref(false);
-const approvalOpen = ref(false);
-const popoverStyle = { maxWidth: 'calc(100vw - 32px)', maxHeight: '55vh', overflow: 'auto', overflowWrap: 'anywhere' } as const;
-const modelTrigger = ref<InstanceType<typeof ElButton>>();
-async function closeModels() {
-  modelsOpen.value = false;
-  await nextTick();
-  modelTrigger.value?.$el.focus();
-}
+const approvalLabel = computed(() => t(`aiDevelopment.approvalModes.${({ request_approval: 'request', agent_approval: 'agent', full_access: 'fullAccess' } as const)[props.approvalMode || 'request_approval']}`));
 const extensions = 'txt md csv json yaml yml xml html css scss js jsx ts tsx vue php py rb go rs java c h cpp hpp cs sql sh bash zsh toml ini conf log diff patch kt swift'.split(' ');
 const imageMimes: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
 const accept = [...Object.keys(imageMimes), ...extensions].map(e => `.${e}`).join(',');
@@ -80,8 +66,6 @@ const imageError = computed(() => {
 const canSend = computed(() => hasPermission(['development.ai:messagecreate', 'development.ai:taskexecute'], 'all') && !!props.conversationId && !props.running && !props.saving && !draft.value.busy && !imageError.value && (!!draft.value.text.trim() || draft.value.files.length > 0) && draft.value.files.every(f => f.state === 'ready'));
 function release(d: Draft) { for (const f of d.files) { if (f.preview) URL.revokeObjectURL(f.preview); f.preview = ''; } }
 watch(() => props.conversationId, (_, previous) => {
-  modelsOpen.value = false;
-  approvalOpen.value = false;
   if (previous && drafts.has(previous)) release(drafts.get(previous)!);
   for (const f of draft.value.files) if (f.file.type.startsWith('image/') && !f.preview) f.preview = URL.createObjectURL(f.file);
 });

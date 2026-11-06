@@ -78,7 +78,7 @@ final class ConsoleTraitModel extends BaseModel
     protected $fillable = ['title', 'status'];
 }
 
-final class ConsoleTraitController extends \app\admin\controller\base\AdminApiController
+final class ConsoleTraitController extends \app\common\controller\AdminController
 {
     use \app\common\traits\Crud;
     protected string $model = ConsoleTraitModel::class;

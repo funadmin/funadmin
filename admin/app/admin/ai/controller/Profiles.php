@@ -5,7 +5,7 @@ namespace app\admin\ai\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\ai\repository\DatabaseAiProfileRepository;
 use app\admin\ai\service\AiConfigurationProfileService;
 use app\admin\ai\service\AiProfileSecret;
@@ -22,7 +22,7 @@ use Throwable;
 
 /** 独立档案 API；snake_case JSON 契约，不影响临时 settings/test 或任务运行。 */
 #[RouteGroup('/admin/development/ai/profiles')]
-final class Profiles extends AdminApiController
+final class Profiles extends AdminController
 {
 
     /**

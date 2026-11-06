@@ -1,0 +1,15 @@
+export default {
+    nsFilter: 'Namespace',
+    title: 'Languages', subtitle: 'Maintain switchable admin language entries; language packs are managed in the code repository',
+    name: 'Language Name', namePlaceholder: 'Enter language name', isDefault: 'Default Language', systemProtected: 'System Protected', yes: 'Yes', no: 'No', stopped: 'Disabled', createdAt: 'Created At', updatedAt: 'Updated At',
+    lines: 'Translations', linesTitle: 'Translation Entries · {locale}', addLine: 'Add Translation', lineValue: 'Translation', keyPlaceholder: 'Select or enter an i18n key', valuePlaceholder: 'Translation of this key in the current language', keywordPlaceholder: 'Search key / translation',
+    inlineTip: 'Inline edits are saved on blur; the current language pack refreshes immediately after saving.', save: 'Save',
+    deleteOneConfirm: 'Delete language "{name}"?', deleteManyConfirm: 'Delete the selected {n} language(s)?', deleteConfirmTitle: 'Delete Confirmation',
+    deleteLineConfirm: 'Delete translation {key}? The key will fall back to the static language pack.', batchDeleteConfirmTitle: 'Batch Delete Confirmation',
+    dialogAdd: 'Add Language',
+    dialogEdit: 'Edit Language',
+    nameEg: 'e.g. zh-cn, en-us',
+    nameMax: 'Up to 20 characters',
+    nameRequired: 'Enter a language name',
+    protectedTip: 'The default language zh-cn is protected by the system and cannot be renamed or deleted.',
+  };

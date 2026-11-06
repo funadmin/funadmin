@@ -11,6 +11,9 @@ final class MySqlSchemaTest extends \PHPUnit\Framework\TestCase
         $pdo=new \PDO('mysql:unix_socket='.(getenv('CMS_MYSQL_SOCKET')?:'/tmp/mysql.sock').';dbname='.$database.';charset=utf8mb4','root','',[\PDO::ATTR_ERRMODE=>\PDO::ERRMODE_EXCEPTION]);
         $sql=file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/001_cms.sql');$pdo->exec($sql);
         self::assertCount(count(\app\cms\service\Schema::tables()),$pdo->query('SHOW TABLES')->fetchAll());
+        $pdo->exec(file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/002_site_roles.sql'));
+        self::assertCount(count(\app\cms\service\Schema::tables())+4,$pdo->query('SHOW TABLES')->fetchAll());
+        self::assertSame(file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/002_site_roles.sql'),\app\cms\service\SiteRoleSchema::mysql());
         $statement=$pdo->prepare('INSERT INTO fun_cms_route (site_id,path,locale,kind,target_type,target_id) VALUES (?,?,?,?,?,?)');
         $statement->execute([1,'/same','zh-cn','page','content',1]);$statement->execute([2,'/same','zh-cn','page','content',2]);
         try{$statement->execute([1,'/same','en-us','page','category',3]);self::fail('Same site path must be unique across types and languages');}catch(\PDOException $e){self::assertSame('23000',$e->getCode());}

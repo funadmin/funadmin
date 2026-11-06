@@ -44,6 +44,13 @@ describe('console HTTP 业务失败', () => {
     await expect(send({ code: 422, message: '失败' }, 200, { showErrorMsg: false })).rejects.toBeDefined();
     expect(ui.error).not.toHaveBeenCalled();
   });
+  it.each([200, 409])('structured Composer %s conflicts suppress only the generic toast', async status => {
+    const body = { code: 409, msg: '依赖冲突', data: { reason: 'composer_conflict', conflicts: [{ package: 'test/lib' }] } };
+    await expect(send(body, status, { confirmComposerConflicts: true })).rejects.toEqual(body);
+    expect(ui.error).not.toHaveBeenCalled(); expect(ui.success).not.toHaveBeenCalled();
+    await expect(send({ code: 422, msg: '其他错误' }, 200, { confirmComposerConflicts: true })).rejects.toBeDefined();
+    expect(ui.error).toHaveBeenCalledWith('其他错误');
+  });
   it('成功继续返回 data', async () => {
     await expect(send({ code: 200, msg: '保存成功', data: { id: 1 } })).resolves.toEqual({ id: 1 });
     expect(ui.success).toHaveBeenCalledWith('保存成功');

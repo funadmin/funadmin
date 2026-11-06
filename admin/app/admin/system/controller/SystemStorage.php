@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\common\model\Config;
 use app\common\storage\StorageDriverRegistry;
 use support\annotation\route\Get;
@@ -20,7 +20,7 @@ use support\Response;
  * 附件存储驱动配置。
  */
 #[RouteGroup('/admin/system/storage')]
-final class SystemStorage extends AdminApiController
+final class SystemStorage extends AdminController
 {
 
     private readonly StorageDriverRegistry $drivers;
@@ -53,10 +53,12 @@ final class SystemStorage extends AdminApiController
     public function index(): Response
     {
         $configured = strtolower(trim((string) syscfg('upload', 'upload_driver')));
-        $active = $this->drivers->resolve($configured)->name();
+        $resolved = $this->drivers->forUpload($configured);
+        $active = $resolved->name();
         return $this->ok(data: [
             'driver' => $active,
-            'fallback' => $configured !== '' && $configured !== $active,
+            'fallback' => $resolved->source() === 'core' && $configured !== '' && $configured !== $active,
+            'managed' => $resolved->source() === 'core' ? null : ['source'=>$resolved->source(),'label'=>$resolved->label(),'driver'=>$active],
             'drivers' => $this->drivers->all(),
         ]);
     }
@@ -88,6 +90,7 @@ final class SystemStorage extends AdminApiController
     #[Put('')]
     public function update(): Response
     {
+        if ($this->drivers->forUpload((string) syscfg('upload', 'upload_driver'))->source() !== 'core') return $this->fail(msg:'上传已由存储插件接管，请在插件中切换当前存储',code:422);
         $driver = strtolower(trim((string) $this->request->post('driver', '')));
         if (!$this->drivers->has($driver)) {
             return $this->fail(msg: '存储驱动不存在或当前不可用', code: 422);

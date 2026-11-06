@@ -2,35 +2,35 @@
   <main class="member-profile-page">
     <header class="member-profile-header">
       <RouterLink class="member-brand" to="/"><LogoMark :size="32" /><span>FunAdmin</span></RouterLink>
-      <nav><RouterLink to="/">官网首页</RouterLink><button type="button" @click="logout">退出登录</button></nav>
+      <nav><RouterLink to="/web/questions">{{ t('community.labels.qACommunity') }}</RouterLink><RouterLink to="/">{{ t('community.labels.home') }}</RouterLink><button type="button" @click="logout">{{ t('community.labels.signOut') }}</button></nav>
     </header>
     <section class="member-profile-shell">
-      <div class="member-profile-intro"><span class="member-kicker">MEMBER CENTER</span><h1>个人中心</h1><p>管理你的会员资料和账号安全。</p></div>
+      <div class="member-profile-intro"><span class="member-kicker">{{ t('community.labels.memberCenter') }}</span><h1>{{ t('community.labels.myAccount') }}</h1><p>{{ t('community.labels.manageYourMemberProfileAndAccountSecurity') }}</p></div>
       <div class="member-profile-grid">
         <el-card shadow="never" class="member-account-card">
           <div class="member-avatar">{{ account?.nickname?.charAt(0).toUpperCase() || 'U' }}</div>
-          <h2>{{ account?.nickname || account?.username || '会员用户' }}</h2>
+          <h2>{{ account?.nickname || account?.username || t('community.labels.member') }}</h2>
           <p>{{ account?.email || account?.username }}</p>
-          <el-tag type="success" effect="light">账号正常</el-tag>
-          <div class="member-account-meta"><span>用户名</span><b>{{ account?.username }}</b></div><div class="member-account-meta"><span>注册时间</span><b>{{ account?.created_at || '—' }}</b></div>
+          <el-tag type="success" effect="light">{{ t('community.labels.accountActive') }}</el-tag>
+          <div class="member-account-meta"><span>{{ t('community.labels.username') }}</span><b>{{ account?.username }}</b></div><div class="member-account-meta"><span>{{ t('community.labels.registeredAt') }}</span><b>{{ account?.created_at || '—' }}</b></div>
         </el-card>
         <el-card shadow="never" class="member-settings-card">
           <el-tabs v-model="activeTab">
-            <el-tab-pane label="基本资料" name="profile">
+            <el-tab-pane :label="t('community.labels.basicProfile')" name="profile">
               <el-form :model="profileForm" label-position="top" @submit.prevent="saveProfile">
-                <el-form-item label="昵称"><el-input v-model="profileForm.nickname" placeholder="请输入昵称" /></el-form-item>
-                <el-form-item label="个人简介"><el-input v-model="profileForm.motto" type="textarea" :rows="4" maxlength="255" show-word-limit placeholder="介绍一下自己" /></el-form-item>
-                <el-form-item label="头像地址"><el-input v-model="profileForm.avatar" placeholder="请输入 https 开头的图片地址" /></el-form-item>
-                <el-button type="primary" :loading="saving" @click="saveProfile">保存资料</el-button>
+                <el-form-item :label="t('community.labels.nickname')"><el-input v-model="profileForm.nickname" :placeholder="t('community.labels.enterANickname')" /></el-form-item>
+                <el-form-item :label="t('community.labels.bio')"><el-input v-model="profileForm.motto" type="textarea" :rows="4" maxlength="255" show-word-limit :placeholder="t('community.labels.tellUsAboutYourself')" /></el-form-item>
+                <el-form-item :label="t('community.labels.avatarUrl')"><el-input v-model="profileForm.avatar" :placeholder="t('community.labels.enterAnImageUrlStartingWithHttps')" /></el-form-item>
+                <el-button type="primary" :loading="saving" @click="saveProfile">{{ t('community.labels.saveProfile') }}</el-button>
               </el-form>
             </el-tab-pane>
-            <el-tab-pane label="安全设置" name="password">
+            <el-tab-pane :label="t('community.labels.securitySettings')" name="password">
               <el-form :model="passwordForm" label-position="top" @submit.prevent="changePassword">
-                <el-form-item label="当前密码"><el-input v-model="passwordForm.current" type="password" show-password autocomplete="current-password" /></el-form-item>
-                <el-form-item label="新密码"><el-input v-model="passwordForm.password" type="password" show-password autocomplete="new-password" /></el-form-item>
-                <el-form-item label="确认新密码"><el-input v-model="passwordForm.password_confirm" type="password" show-password autocomplete="new-password" /></el-form-item>
-                <el-alert title="修改密码后当前会员令牌会失效，需要重新登录。" type="info" :closable="false" class="member-security-tip" />
-                <el-button type="primary" :loading="changingPassword" @click="changePassword">修改密码</el-button>
+                <el-form-item :label="t('community.labels.currentPassword')"><el-input v-model="passwordForm.current" type="password" show-password autocomplete="current-password" /></el-form-item>
+                <el-form-item :label="t('community.labels.newPassword')"><el-input v-model="passwordForm.password" type="password" show-password autocomplete="new-password" /></el-form-item>
+                <el-form-item :label="t('community.labels.confirmNewPassword')"><el-input v-model="passwordForm.password_confirm" type="password" show-password autocomplete="new-password" /></el-form-item>
+                <el-alert :title="t('community.labels.changingYourPasswordInvalidatesTheCurrentMemberTokenYou')" type="info" :closable="false" class="member-security-tip" />
+                <el-button type="primary" :loading="changingPassword" @click="changePassword">{{ t('community.labels.changePassword') }}</el-button>
               </el-form>
             </el-tab-pane>
           </el-tabs>
@@ -41,6 +41,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCmsI18n } from '@/composables/useCmsI18n';
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -48,6 +49,7 @@ import LogoMark from '@/components/LogoMark.vue';
 import { memberAuthApi, type MemberAccount } from '@/web/api/memberAuth';
 import { memberSession } from '@/web/session/memberSession';
 
+const { t } = useCmsI18n();
 const router = useRouter();
 const account = ref<MemberAccount | null>(memberSession.account());
 const activeTab = ref<'profile' | 'password'>('profile');
@@ -74,16 +76,16 @@ async function loadProfile() {
 
 async function saveProfile() {
   if (!profileForm.nickname.trim()) {
-    ElMessage.warning('请输入昵称');
+    ElMessage.warning(t('community.labels.enterANickname'));
     return;
   }
   saving.value = true;
   try {
     const result = await memberAuthApi.updateProfile(profileForm);
     applyAccount(result.account);
-    ElMessage.success('资料已保存');
+    ElMessage.success(t('community.labels.profileSaved'));
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '资料保存失败');
+    ElMessage.error(error?.msg || error?.message || t('community.labels.couldNotSaveProfile'));
   } finally {
     saving.value = false;
   }
@@ -91,17 +93,17 @@ async function saveProfile() {
 
 async function changePassword() {
   if (!passwordForm.current || !passwordForm.password || passwordForm.password !== passwordForm.password_confirm) {
-    ElMessage.warning('请完整填写密码，并确认两次新密码一致');
+    ElMessage.warning(t('community.labels.completeAllPasswordFieldsAndMakeSureTheNew'));
     return;
   }
   changingPassword.value = true;
   try {
     await memberAuthApi.changePassword(passwordForm);
     memberSession.clear();
-    ElMessage.success('密码已修改，请重新登录');
+    ElMessage.success(t('community.labels.passwordChangedSignInAgain'));
     await router.replace('/web/login');
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '密码修改失败');
+    ElMessage.error(error?.msg || error?.message || t('community.labels.couldNotChangePassword'));
   } finally {
     changingPassword.value = false;
   }

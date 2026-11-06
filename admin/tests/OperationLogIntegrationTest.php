@@ -48,7 +48,7 @@ final class OperationLogIntegrationTest extends TestCase
 
     public function test_real_audit_write_redacts_secrets_and_preserves_request_metadata(): void
     {
-        $body = json_encode(['name' => '记录操作', 'nested' => ['password' => 'must-not-store', 'client_secret' => 'must-not-store']], JSON_THROW_ON_ERROR);
+        $body = json_encode(['name' => '记录操作', 'nested' => ['password' => 'must-not-store', 'client_secret' => 'must-not-store', 'access_key' => 'must-not-store', 'secret_key' => 'must-not-store']], JSON_THROW_ON_ERROR);
         $request = new Request("POST /admin/system/dict/types HTTP/1.1\r\nAuthorization: must-not-store\r\nCookie: must-not-store\r\nX-CSRF-TOKEN: must-not-store\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
         $request->controller = \app\admin\system\controller\SystemDict::class;
         $request->action = 'createType';
@@ -87,7 +87,7 @@ final class OperationLogIntegrationTest extends TestCase
         $request->controller = \app\admin\system\controller\SystemDict::class;
         $request->action = 'updateType';
         $request->context['admin'] = ['id' => 1, 'username' => 'root'];
-        $middleware = new \app\admin\middleware\SystemLog();
+        $middleware = new \app\admin\middleware\SystemLogMiddleware();
         foreach ([200, 422] as $code) {
             $middleware->process($request, static fn () => new Response(200, ['Content-Type' => 'application/json'], json_encode(['code' => $code])));
         }

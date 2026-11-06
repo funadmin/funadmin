@@ -2,6 +2,8 @@ import http from '@/utils/http';
 
 /** 上传成功后的统一返回结构 */
 export interface UploadResult {
+  /** 附件标识，字符串避免 bigint 精度丢失 */
+  id?: string;
   /** 文件可访问 URL（mock 环境为 base64 / blob URL） */
   url: string;
   /** 原始文件名 */

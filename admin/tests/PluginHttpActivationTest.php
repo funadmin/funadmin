@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\common\middleware\PluginApplicationGuard;
+use app\common\middleware\PluginApplicationGuardMiddleware;
 use app\common\plugin\sdk\PluginActivationCompiler;
 use app\common\plugin\sdk\PluginActivationReader;
 use app\common\plugin\sdk\PluginScaffolder;
@@ -25,8 +25,8 @@ final class PluginHttpActivationTest extends TestCase
         (new PluginScaffolder($root . '/plugins'))->scaffold('httpfixture');
         $reader = new PluginActivationReader($root . '/activation');
         $compiler = new PluginActivationCompiler($root . '/activation', $root . '/plugins');
-        Container::instance()->addDefinitions([PluginApplicationGuard::class => static fn () => new PluginApplicationGuard($reader, $root . '/plugins')]);
-        Middleware::load(['' => array_values(array_filter(config('middleware')[''], static fn ($class) => $class === PluginApplicationGuard::class))]);
+        Container::instance()->addDefinitions([PluginApplicationGuardMiddleware::class => static fn () => new PluginApplicationGuardMiddleware($reader, $root . '/plugins')]);
+        Middleware::load(['' => array_values(array_filter(config('middleware')[''], static fn ($class) => $class === PluginApplicationGuardMiddleware::class))]);
         (new \ReflectionProperty(App::class, 'logger'))->setValue(null, new NullLogger());
         try {
             $callback = App::getCallback('', 'admin', static fn () => response('controller reached'));

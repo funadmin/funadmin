@@ -1,0 +1,12 @@
+[
+  { "slug": "framework", "scope": "framework", "name": "FunAdmin 主框架", "parent": null, "sort": 10 },
+  { "slug": "framework-architecture", "scope": "framework", "name": "架构设计", "parent": "framework", "sort": 10 },
+  { "slug": "framework-deployment", "scope": "framework", "name": "安装部署", "parent": "framework", "sort": 20 },
+  { "slug": "framework-backend", "scope": "framework", "name": "后端开发", "parent": "framework", "sort": 30 },
+  { "slug": "framework-frontend", "scope": "framework", "name": "前端开发", "parent": "framework", "sort": 40 },
+  { "slug": "plugin-dev", "scope": "plugin_dev", "name": "插件开发", "parent": null, "sort": 20 },
+  { "slug": "plugin-dev-structure", "scope": "plugin_dev", "name": "目录与 Manifest", "parent": "plugin-dev", "sort": 10 },
+  { "slug": "plugin-dev-lifecycle", "scope": "plugin_dev", "name": "生命周期与权限", "parent": "plugin-dev", "sort": 20 },
+  { "slug": "official-plugins", "scope": "official_plugin", "name": "官方插件", "parent": null, "sort": 30 },
+  { "slug": "third-party-plugins", "scope": "third_party", "name": "第三方插件", "parent": null, "sort": 40 }
+]

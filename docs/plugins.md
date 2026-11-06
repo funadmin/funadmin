@@ -117,7 +117,7 @@ Manifest 的可选声明示例：
 
 ```json
 {
-  "backendHooks": [
+  "serverHooks": [
     {
       "id": "calculate",
       "point": "plugin.pricing.calculate",
@@ -127,7 +127,7 @@ Manifest 的可选声明示例：
       "priority": 100
     }
   ],
-  "frontendHooks": [
+  "clientHooks": [
     {
       "id": "dashboard-card",
       "point": "dashboard.cards",
@@ -145,6 +145,8 @@ Manifest 的可选声明示例：
   ]
 }
 ```
+
+> 不兼容变更：旧字段 `backendHooks` / `frontendHooks` 已更名为 `serverHooks` / `clientHooks`，且不再兼容。仍使用旧字段的 `plugin.json` 会在安装时被拒绝；已安装的旧插件会在重建激活快照（`php webman plugin:activation-cache` 或任意生命周期操作）时被标记为“需要重新安装”，其钩子不再生效，需改用新字段后重新安装。激活快照 `schema_version` 同步升级为 2，升级后必须重建一次快照，否则旧快照会被判定为不可信。
 
 私有 `hooks/pricing.php` 返回具名 callable 映射：
 
@@ -204,3 +206,75 @@ export function decorate(value: string, context: HookContext) {
 `upload.completed` 提供 created/reused 标记，size 沿用附件模型的 KB 单位；复用记录时不应重复处理文件。动作报错不撤销已保存文件。上传响应过滤失败保留已保存附件，并按现有后台协议返回可恢复错误（业务 code=422）。
 
 可直接安装的无应用示例和跨插件示例位于 [examples/plugin-hooks](examples/plugin-hooks/README.md)。
+
+## Composer 依赖
+
+插件有两种 Composer 依赖方式，可以组合使用。宿主不会在后台执行任何 Composer 命令。
+
+### 宿主提供依赖（B）
+
+在 `plugin.json` 中声明：
+
+```json
+{
+  "requires": {
+    "plugins": {},
+    "composer": {
+      "guzzlehttp/guzzle": "^7.0",
+      "monolog/monolog": ">=3.0, <4.0"
+    }
+  }
+}
+```
+
+这里只认宿主 `admin/vendor/composer/installed.php` 中的包，其他插件的 vendor 不会代替宿主满足依赖。安装、更新、启用和历史重部署前检查；缺少或版本不满足时拒绝，并提供需由管理员手动执行的 `composer require` 命令。执行目录为 `admin/`，之后需重启/重载 Webman worker。禁用、卸载不做这项检查。
+
+版本约束支持 `^`、`>=`、`>`、`<=`、`<`、`=` 和精确版本；逗号或空格表示 AND。不支持 `~`、`||`、通配符或 dev/预发布版本；Composer 依赖的 `^0.2.1` 只接受 `<0.3.0`，`^0.0.1` 只接受 `<0.0.2`。`php` 用已有的 `requires.php` 声明；`ext-*` 不可放入 `requires.composer`，PHP 扩展由部署环境另行确保。
+
+### 插件自带依赖（A）
+
+在插件开发目录维护自己的 `composer.json`、`composer.lock`，构建时运行：
+
+```sh
+composer install --no-dev --optimize-autoloader
+```
+
+将 `vendor/` 和锁文件一起打入插件 ZIP。无需在控制器或钩子里手动 require `vendor/autoload.php`；宿主在 worker 启动、插件应用守卫、钩子执行前及创建生命周期入口时统一加载。插件 ClassLoader 追加注册，普通未加载类优先由宿主解析；不同插件同时提供同名类时，由先注册/加载的版本提供。启动时插件按 code 字母序注册，但运行中新增插件或此前已加载的类仍会影响结果。**安装后启用、更新、重部署或禁用后应重载 worker**，PHP 无法卸载已加载的类和函数。
+
+启动时的注解路由扫描也会先检查激活状态：停用或状态不可信的插件控制器不会被反射/加载，避免它们继承自带库基类时使整个 worker 启动失败。冷启动时被跳过的插件后来启用，需要重载 worker 才会注册对应注解路由；禁用仍由运行时守卫立即阻断请求。
+
+这不是命名空间隔离：不能保证同一个进程并存同一库的多个版本。Composer 的 `autoload.files` 会在加载时立即执行，不受 ClassLoader 追加顺序保护；同名函数、动态类加载及全局状态也可能冲突。对于需要不同版本的依赖，插件作者应先自行用 **php-scoper** 加前缀（例如 `plugins\sample\Vendor\...`），在插件构建环境中配置后运行 `php-scoper add-prefix`，再生成匹配的新 autoload，并测试反射、字符串类名及运行时加载。不建议宿主自动执行 scoper；每个库的配置不同。
+
+不要将宿主框架再次打入插件。path repository 如果生成符号链接，安装会被拒绝；需要使用复制模式。安装包上限为压缩后 100MB、解压后 500MB。
+
+### 冲突确认
+
+安装、更新、启用和重部署时，将自带包与宿主、其他已启用插件比对；同主版本默认视为兼容，0.x 比较主次版本，dev/预发布版本按兼容性未知处理。**这只是兼容性预警，不是完整 Composer 依赖求解**，同主版本也可能因为新增 API 或间接依赖而不兼容。
+
+发现冲突时，服务端返回 HTTP/业务码 `409`，`data.reason` 为 `composer_conflict`，`data.conflicts` 包含 `package`、`pluginVersion`、`otherVersion`、`source`（`host` / `plugin:{code}`）和 `reason`。后台显示明细，可选择“仍然继续”或“取消”。前端确认后以 `acceptComposerConflicts=true` 重发原操作（云包会重新下载，本地 ZIP 会重新上传）。取消或首次拦截不会记成生命周期失败。
+
+成功执行后会保存冲突清单指纹到 `plugin.composer_conflict_ack`，并记录警告及操作人。同一清单之后不再重复提示；冲突版本/来源变化会再次提示。仅有确认并不代表依赖兼容。`plugin:validate` 对宿主依赖不满足返回失败，对自带包冲突只在 JSON 输出的 `warnings` 字段中提示，不改变成功退出码。
+
+部署此功能先在 `admin/` 执行 `php bin/console.php migrate`：MySQL 使用核心 SQL 增量 **`023_plugin_composer_conflict_ack.sql`**，其他受支持驱动使用 PHP 迁移 **`032_plugin_composer_conflict_ack.php`**。勿直接修改已执行迁移文件。之后重载 worker。
+
+## 接口权限注解
+
+插件后台控制器继承 `app\common\controller\AdminController`，用方法注解声明权限码，权限码必须在 `plugin.json` 的 `adminWeb.permissions` 中注册：
+
+```php
+use app\common\annotation\Permission;
+
+#[Permission('demo:item:list')]
+public function index(): Response { ... }
+
+#[Permission(['demo:item:edit', 'demo:item:manage'])] // 任一满足即可
+public function update(int $id): Response { ... }
+```
+
+未声明权限码的插件后台方法一律拒绝访问。注解也可加在类上，方法注解优先。插件后台方法总是要求登录且必须声明权限码，`#[NoNeedLogin]`、`#[NoNeedPermission]` 在插件后台控制器上不生效。
+
+CRUD 生成器与插件脚手架输出的就是 `#[Permission]`。`admin/tests/PluginAuthAnnotationTest.php` 会检查仓库内插件控制器的写法。
+
+## 中间件命名
+
+项目自有 PHP 中间件类统一以 `Middleware` 结尾，文件名与类名一致，例如 `CheckAdminApiRoleMiddleware.php`、`CheckPluginPermissionMiddleware.php`。引用和代码生成模板使用完整的新类名；`middleware.php` 等框架约定配置文件保留原名。第三方依赖遵循其自身命名。命名清单与管线可加载性由 `admin/tests/MiddlewareNamingTest.php` 检查。

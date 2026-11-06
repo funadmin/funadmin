@@ -15,7 +15,7 @@ use app\common\model\identity\OidcSession;
 use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\MemberIdentityAdapter;
 use app\admin\authentication\model\Admin;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\identity\service\AuthorizationRevocationService;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
@@ -27,7 +27,7 @@ use support\Response;
  * 统一身份用户接口。
  */
 #[RouteGroup('/admin/identity/users')]
-final class IdentityUser extends AdminApiController
+final class IdentityUser extends AdminController
 {
     /**
      * 分页查询当前租户的统一身份用户。

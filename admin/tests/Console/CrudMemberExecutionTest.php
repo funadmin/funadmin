@@ -6,9 +6,9 @@ namespace Tests\Console;
 
 use app\common\crud\CrudDefinition;
 use app\common\crud\ProductionTemplateContext;
-use app\common\middleware\MApi;
+use app\common\middleware\ApiMiddleware;
 use app\common\service\authentication\BearerTokenExtractor;
-use app\common\service\member\MemberAuthService;
+use app\common\service\member\MemberApiSessionService;
 use app\common\service\authentication\TokenService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
@@ -32,6 +32,7 @@ final class CrudMemberExecutionTest extends TestCase
         Db::schema()->create('member', static function (Blueprint $table): void {
             $table->id(); $table->string('username'); $table->string('nickname'); $table->integer('status'); $table->softDeletes();
         });
+        (require base_path() . '/database/migrations/033_member_api_session.php')();
         Db::table('member')->insert([
             ['id' => 1, 'username' => 'one', 'nickname' => '会员一', 'status' => 1],
             ['id' => 2, 'username' => 'two', 'nickname' => '会员二', 'status' => 1],
@@ -43,6 +44,8 @@ final class CrudMemberExecutionTest extends TestCase
     {
         Db::schema()->dropIfExists('member');
         Db::schema()->dropIfExists('console_member');
+        Db::schema()->dropIfExists('member_api_session_used');
+        Db::schema()->dropIfExists('member_api_session');
         foreach ($this->files as $file) unlink($file);
         Context::destroy();
         putenv('MEMBER_JWT_SECRET');
@@ -52,18 +55,29 @@ final class CrudMemberExecutionTest extends TestCase
 
     public function test_native_middleware_rejects_missing_refresh_disabled_and_deleted_members(): void
     {
-        self::assertInstanceOf(\Webman\MiddlewareInterface::class, \support\Container::get(MApi::class));
-        $middleware = new MApi(new TokenService(), new MemberAuthService(), new BearerTokenExtractor());
+        self::assertInstanceOf(\Webman\MiddlewareInterface::class, \support\Container::get(ApiMiddleware::class));
+        $middleware = new ApiMiddleware(new MemberApiSessionService(), new BearerTokenExtractor());
         self::assertInstanceOf(\Webman\MiddlewareInterface::class, $middleware);
         $tokens = new TokenService();
+        $sessions = new MemberApiSessionService();
+        $one = $sessions->open(1, '127.0.0.1');
+        $deleted = $sessions->open(2, '127.0.0.1');
+        $disabled = $sessions->open(3, '127.0.0.1');
+        $revoked = $sessions->open(1, '127.0.0.1');
+        $sessions->revoke((new TokenService())->validateToken($revoked['access_token'])['sid']);
         Db::table('member')->where('id', 2)->update(['deleted_at' => date('Y-m-d H:i:s')]);
-        foreach ([null, 'invalid', $tokens->build(['id' => 1], TokenService::TYPE_REFRESH), $tokens->build(['id' => 2]), $tokens->build(['id' => 3])] as $token) {
+        foreach ([
+            null, 'invalid',
+            $tokens->build(['id' => 1], TokenService::TYPE_REFRESH),
+            $tokens->build(['id' => 1]),
+            $deleted['access_token'], $disabled['access_token'], $revoked['access_token'],
+        ] as $token) {
             $request = $this->request($token);
             $response = $middleware->process($request, static function (): Response { throw new \RuntimeException('拒绝请求不得进入控制器'); });
             self::assertSame(401, $response->getStatusCode());
             self::assertNull($request->member_id);
         }
-        $request = $this->request($tokens->build(['id' => 1]));
+        $request = $this->request($one['access_token']);
         self::assertSame(204, $middleware->process($request, static fn () => new Response(204))->getStatusCode());
         self::assertSame(1, $request->member_id);
         self::assertSame('one', $request->member['username']);
@@ -81,19 +95,18 @@ final class CrudMemberExecutionTest extends TestCase
         }
         $class = 'app\\api\\controller\\generated\\ConsoleMemberController';
         $reflection = new \ReflectionClass($class);
-        $attributes = $reflection->getAttributes(\support\annotation\Middleware::class);
-        self::assertCount(1, $attributes);
-        self::assertContains(MApi::class, $attributes[0]->getArguments());
+        self::assertTrue($reflection->isSubclassOf(\app\common\controller\ApiController::class), '生成的会员控制器继承 ApiController');
+        self::assertSame([], $reflection->getAttributes(\support\annotation\Middleware::class), '不再直接挂中间件');
         $middleware = \Webman\Middleware::getMiddleware('', 'api', [$class, 'index'], null, false);
-        self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === MApi::class));
+        self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === ApiMiddleware::class));
         self::assertSame('/api/v2/console-member', $reflection->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
         Db::schema()->create('console_member', static function (Blueprint $table): void {
             $table->id(); $table->string('title'); $table->integer('member_id'); $table->json('metadata')->nullable(); $table->timestamps(); $table->softDeletes();
         });
-        $request = $this->request((new TokenService())->build(['id' => 1]));
+        $request = $this->request((new MemberApiSessionService())->open(1, '127.0.0.1')['access_token']);
         $request->setPost(['title' => '本人数据', 'member_id' => 2]);
         Context::set(\Webman\Http\Request::class, $request);
-        $middleware = new MApi(new TokenService(), new MemberAuthService(), new BearerTokenExtractor());
+        $middleware = new ApiMiddleware(new MemberApiSessionService(), new BearerTokenExtractor());
         $response = $middleware->process($request, static fn () => (new $class())->create());
         $created = json_decode($response->rawBody(), true);
         self::assertSame(200, $created['code'], $response->rawBody());
@@ -111,6 +124,20 @@ final class CrudMemberExecutionTest extends TestCase
         self::assertSame(200, $controller->remove($id)->getStatusCode());
         self::assertSame(404, $controller->detail($id)->getStatusCode());
         foreach (['restore', 'destroy', 'export', 'import', 'status'] as $method) self::assertFalse($reflection->getMethod($method)->isPublic());
+
+        // 生成的会员接口可用 #[NoNeedLogin] 公开，但游客仍看不到任何会员数据（memberId() 返回 -1）。
+        $guestClass = 'app\\api\\controller\\generated\\GuestProbeController';
+        eval('namespace app\\api\\controller\\generated; final class GuestProbeController extends \\app\\common\\controller\\ApiController {
+            #[\\app\\common\\annotation\\NoNeedLogin] public function index(): \\support\\Response {
+                $memberId = (int) (request()->member_id ?? 0);
+                return $this->ok(data: ["total" => \\support\\Db::table("console_member")->where("member_id", $memberId > 0 ? $memberId : -1)->count()]);
+            } }');
+        $guest = $this->request(null);
+        $guest->controller = $guestClass; $guest->action = 'index';
+        Context::set(\Webman\Http\Request::class, $guest);
+        $guestResponse = (new ApiMiddleware(new MemberApiSessionService(), new BearerTokenExtractor()))->process($guest, static fn () => (new $guestClass())->index());
+        self::assertSame(200, $guestResponse->getStatusCode(), '标注 NoNeedLogin 后游客可访问');
+        self::assertSame(0, json_decode($guestResponse->rawBody(), true)['data']['total'], '游客看不到任何会员记录');
     }
 
     private function request(?string $token): Request

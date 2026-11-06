@@ -93,6 +93,8 @@ async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('system
     if (!hasPermission('system:plugin:history-redeploy')) return;
     await pluginApi.redeployHistory(props.code, row.id, false);
     await load();
+  } catch (reason) {
+    if (reason !== 'cancel' && reason !== 'close') throw reason;
   } finally {
     redeploying.value = null;
   }

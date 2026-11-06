@@ -41,7 +41,7 @@ Route::group('/identity', static function (): void {
     ] as [$method, $path, $controller, $action]) {
         $route = Route::add([$method], $path, ['app\\identity\\controller\\' . $controller, $action]);
         if (!in_array($controller, ['Metadata', 'Status'], true) && !in_array($action, ['page', 'csrf', 'captcha'], true)) {
-            $route->middleware(\app\identity\middleware\IdentityProtocolThrottle::class);
+            $route->middleware(\app\identity\middleware\IdentityProtocolThrottleMiddleware::class);
         }
     }
     Route::get('/resource/identity', static function (\support\Request $request) {
@@ -61,8 +61,10 @@ Route::group('/identity', static function (): void {
 Route::group('/api/v2', static function (): void {
     Route::post('/token', [\app\api\controller\v2\Token::class, 'build']);
     Route::post('/token/refresh', [\app\api\controller\v2\Token::class, 'refresh']);
-    Route::get('/member', [\app\api\controller\v2\Member::class, 'show'])
-        ->middleware(\app\common\middleware\MApi::class);
+    // 会员鉴权：ApiController 统一挂载 ApiMiddleware，默认需要登录；公开方法标注 #[NoNeedLogin]。
+    Route::get('/member', [\app\api\controller\v2\Member::class, 'show']);
+    Route::get('/member/status', [\app\api\controller\v2\Member::class, 'status']);
+    Route::post('/logout', [\app\api\controller\v2\Token::class, 'logout']);
 });
 Route::group('/market/api/v3', static function (): void {
     foreach (['login', 'refresh', 'register', 'me', 'password', 'logout'] as $action) {

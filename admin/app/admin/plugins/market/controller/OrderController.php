@@ -6,10 +6,7 @@ namespace app\admin\plugins\market\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\plugin\middleware\CheckPluginPermission;
-use app\admin\middleware\SystemLog;
+use app\common\controller\AdminController;
 use app\admin\plugins\market\service\MarketAdminService;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
@@ -20,13 +17,8 @@ use support\Response;
  * 插件市场订单接口。
  */
 #[RouteGroup('/admin/plugin/market/order')]
-final class OrderController extends AdminApiController
+final class OrderController extends AdminController
 {
-    protected array $middleware = [
-        CheckPluginPermission::class,
-        CheckAdminApiCsrf::class,
-        SystemLog::class,
-    ];
     /**
      * 按订单状态、关键字和插件分页查询市场订单。
      *

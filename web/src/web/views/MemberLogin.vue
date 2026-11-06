@@ -7,25 +7,25 @@
       </RouterLink>
       <div class="member-card">
         <div class="member-card__heading">
-          <span class="member-kicker">MEMBER ACCOUNT</span>
-          <h1>登录前台账号</h1>
-          <p>登录后管理你的资料、插件和个人服务。</p>
+          <span class="member-kicker">{{ t('community.labels.memberAccount') }}</span>
+          <h1>{{ t('community.labels.signInToYourAccount') }}</h1>
+          <p>{{ t('community.labels.signInToManageYourProfilePluginsAndPersonal') }}</p>
         </div>
         <el-form :model="form" label-position="top" @submit.prevent="submit">
-          <el-form-item label="账号">
-            <el-input v-model="form.account" size="large" autocomplete="username" placeholder="用户名或邮箱" />
+          <el-form-item :label="t('community.labels.account')">
+            <el-input v-model="form.account" size="large" autocomplete="username" :placeholder="t('community.labels.usernameOrEmail')" />
           </el-form-item>
-          <el-form-item label="密码">
-            <el-input v-model="form.password" size="large" type="password" show-password autocomplete="current-password" placeholder="请输入密码" @keyup.enter="submit" />
+          <el-form-item :label="t('community.labels.password')">
+            <el-input v-model="form.password" size="large" type="password" show-password autocomplete="current-password" :placeholder="t('community.labels.enterYourPassword')" @keyup.enter="submit" />
           </el-form-item>
-          <el-button class="member-submit" type="primary" size="large" :loading="loading" @click="submit">登录</el-button>
+          <el-button class="member-submit" type="primary" size="large" :loading="loading" @click="submit">{{ t('community.labels.signIn') }}</el-button>
         </el-form>
         <div class="member-card__footer">
-          <span>还没有账号？</span>
-          <RouterLink to="/web/register">立即注册</RouterLink>
+          <span>{{ t('community.labels.donTHaveAnAccount') }}</span>
+          <RouterLink to="/web/register">{{ t('community.labels.registerNow') }}</RouterLink>
         </div>
       </div>
-      <RouterLink class="member-back" to="/">返回官网首页</RouterLink>
+      <RouterLink class="member-back" to="/">{{ t('community.labels.backToHome') }}</RouterLink>
     </section>
     <div class="member-decoration member-decoration--one" />
     <div class="member-decoration member-decoration--two" />
@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCmsI18n } from '@/composables/useCmsI18n';
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -40,6 +41,7 @@ import LogoMark from '@/components/LogoMark.vue';
 import { memberAuthApi } from '@/web/api/memberAuth';
 import { memberSession } from '@/web/session/memberSession';
 
+const { t } = useCmsI18n();
 const router = useRouter();
 const route = useRoute();
 const loading = ref(false);
@@ -52,17 +54,17 @@ const safeRedirect = (value: unknown): string => {
 
 async function submit() {
   if (!form.account.trim() || !form.password) {
-    ElMessage.warning('请输入账号和密码');
+    ElMessage.warning(t('community.labels.enterYourAccountAndPassword'));
     return;
   }
   loading.value = true;
   try {
     const result = await memberAuthApi.login(form);
     memberSession.save(result);
-    ElMessage.success('登录成功');
+    ElMessage.success(t('community.labels.signedIn'));
     await router.replace(safeRedirect(route.query.redirect));
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '登录失败，请检查账号和密码');
+    ElMessage.error(error?.msg || error?.message || t('community.labels.signInFailedCheckYourAccountAndPassword'));
   } finally {
     loading.value = false;
   }

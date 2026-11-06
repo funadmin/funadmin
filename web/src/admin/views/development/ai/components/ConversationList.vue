@@ -1,21 +1,37 @@
 <template>
   <aside class="conversation-list">
     <div class="conversation-list__header">
-      <strong class="conversation-list__title">{{ t('aiDevelopment.conversations') }}<span v-if="visibleCount" class="conversation-list__count">{{ visibleCount }}</span></strong>
-      <el-button size="small" text class="conversation-list__archived" data-testid="archived-conversations" :aria-pressed="archived" @click="$emit('toggle-archived')"><i :class="archived ? 'i-ep-chat-line-round' : 'i-ep-box'" />{{ t(archived ? 'aiDevelopment.management.active' : 'aiDevelopment.management.archived') }}</el-button>
-      <div class="conversation-list__actions"><el-button size="small" v-if="hasPermission('development.ai:conversationcreate')" @click="$emit('create-group')"><i class="i-ep-folder-add" />{{ t('aiDevelopment.management.createGroup') }}</el-button><el-button size="small" type="primary" v-if="hasPermission('development.ai:conversationcreate')" @click="$emit('create')"><i class="i-ep-plus" />{{ t('aiDevelopment.newConversation') }}</el-button><slot name="actions" /></div>
+      <strong class="conversation-list__title">{{ t(archived ? 'aiDevelopment.management.archived' : 'aiDevelopment.conversations') }}<span v-if="visibleCount" class="conversation-list__count">{{ visibleCount }}</span></strong>
+      <div class="conversation-list__actions"><el-button size="small" type="primary" data-testid="new-conversation" v-if="hasPermission('development.ai:conversationcreate')" @click="$emit('create')"><i class="i-ep-plus" />{{ t('aiDevelopment.newConversation') }}</el-button></div>
+      <el-dropdown trigger="click" placement="bottom-end">
+        <el-button size="small" text class="conversation-list__menu" data-testid="conversation-more" :aria-label="t('aiDevelopment.management.more', '更多会话操作')"><i class="i-ep-more-filled" /></el-button>
+        <template #dropdown><el-dropdown-menu>
+          <el-dropdown-item v-if="hasPermission('development.ai:conversationcreate')" data-command="create-group" @click="$emit('create-group')"><i class="i-ep-folder-add" />{{ t('aiDevelopment.management.createGroup') }}</el-dropdown-item>
+          <el-dropdown-item data-testid="archived-conversations" :aria-pressed="archived" @click="$emit('toggle-archived')"><i :class="archived ? 'i-ep-chat-line-round' : 'i-ep-box'" />{{ t(archived ? 'aiDevelopment.management.active' : 'aiDevelopment.management.viewArchived', '查看已归档') }}</el-dropdown-item>
+          <slot name="menu" />
+        </el-dropdown-menu></template>
+      </el-dropdown>
     </div>
     <div class="conversation-list__filters">
       <el-input size="small" clearable :model-value="filters?.search || ''" data-testid="conversation-search" :placeholder="t('aiDevelopment.pagination.search')" @update:model-value="value => $emit('filter', { search: String(value) })">
         <template #prefix><i class="i-ep-search" /></template>
       </el-input>
-      <el-select size="small" :model-value="filters?.is_unread ?? ''" :placeholder="t('aiDevelopment.pagination.allReadStates')" :aria-label="t('aiDevelopment.pagination.unreadFilter')" @update:model-value="value => $emit('filter', { is_unread: value === '' ? undefined : value })">
-        <el-option :value="''" :label="t('aiDevelopment.pagination.allReadStates')" /><el-option :value="1" :label="t('aiDevelopment.management.unread')" />
-      </el-select>
-      <el-select size="small" :model-value="filters?.group_id ?? -1" :aria-label="t('aiDevelopment.pagination.groupFilter')" @update:model-value="value => $emit('filter', { group_id: value === -1 ? undefined : value })">
-        <el-option :value="-1" :label="t('aiDevelopment.pagination.allGroups')" /><el-option :value="0" :label="t('aiDevelopment.management.ungrouped')" />
-        <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.name" />
-      </el-select>
+      <el-popover trigger="click" placement="bottom-end" :width="240" :teleported="true">
+        <template #reference><el-button size="small" class="conversation-list__filter" data-testid="conversation-filter-trigger" :data-active="String(filterActive)" :aria-label="t('aiDevelopment.pagination.filter', '筛选')"><i class="i-ep-operation" /><span v-if="filterActive" class="filter-dot" aria-hidden="true" /></el-button></template>
+        <div class="conversation-list__filter-panel">
+          <label>{{ t('aiDevelopment.pagination.unreadFilter') }}
+            <el-select size="small" :teleported="false" :model-value="filters?.is_unread ?? ''" :placeholder="t('aiDevelopment.pagination.allReadStates')" :aria-label="t('aiDevelopment.pagination.unreadFilter')" @update:model-value="value => $emit('filter', { is_unread: value === '' ? undefined : value })">
+              <el-option :value="''" :label="t('aiDevelopment.pagination.allReadStates')" /><el-option :value="1" :label="t('aiDevelopment.management.unread')" />
+            </el-select>
+          </label>
+          <label>{{ t('aiDevelopment.pagination.groupFilter') }}
+            <el-select size="small" :teleported="false" :model-value="filters?.group_id ?? -1" :aria-label="t('aiDevelopment.pagination.groupFilter')" @update:model-value="value => $emit('filter', { group_id: value === -1 ? undefined : value })">
+              <el-option :value="-1" :label="t('aiDevelopment.pagination.allGroups')" /><el-option :value="0" :label="t('aiDevelopment.management.ungrouped')" />
+              <el-option v-for="group in groups" :key="group.id" :value="group.id" :label="group.name" />
+            </el-select>
+          </label>
+        </div>
+      </el-popover>
     </div>
     <div v-for="section in sections" :key="section.id ?? 'ungrouped'" class="conversation-group">
       <div class="conversation-group__header">
@@ -66,6 +82,7 @@ const sections = computed(() => {
   const groups = props.archived ? props.groups.filter((group) => visible.some((item) => item.group_id === group.id)) : props.groups;
   return groupConversations(visible, groups, t('aiDevelopment.management.ungrouped'));
 });
+const filterActive = computed(() => props.filters?.is_unread !== undefined || props.filters?.group_id !== undefined);
 const visibleCount = computed(() => sections.value.reduce((total, section) => total + section.conversations.length, 0));
 </script>
 
@@ -74,18 +91,22 @@ const visibleCount = computed(() => sections.value.reduce((total, section) => to
 .conversation-list__header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 8px; padding: 0 4px; }
 .conversation-list__title { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--el-text-color-primary); }
 .conversation-list__count { min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--el-fill-color); color: var(--el-text-color-secondary); font-size: 11px; font-weight: 500; line-height: 18px; text-align: center; }
-.conversation-list__archived { color: var(--el-text-color-secondary); }
-.conversation-list__archived[aria-pressed="true"] { color: var(--el-color-primary); }
-.conversation-list__header > div { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 6px; min-width: 0; }
-.conversation-list__header > div :deep(.el-button) { flex: 1 1 auto; min-width: 0; padding-inline: 8px; }
+.conversation-list__header { flex-wrap: nowrap; }
+.conversation-list__title { flex: 1; min-width: 0; }
+.conversation-list__actions { display: flex; gap: 6px; }
 .conversation-list__header :deep(.el-button) { margin-left: 0; }
 .conversation-list :deep(.el-button + .el-button) { margin-left: 0; }
 .conversation-list :deep(.el-button--small) { min-height: 28px; padding: 5px 8px; }
 .conversation-list :deep(.el-button [class^="i-ep-"]), .conversation-list :deep(.el-button [class*=" i-ep-"]) { margin-right: 4px; font-size: 13px; }
-.conversation-list__header > div :deep(.el-button > span) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.conversation-list__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 0 4px; }
-.conversation-list__filters > .el-input { grid-column: 1 / -1; }
-.conversation-list__filters > .el-input, .conversation-list__filters > .el-select { width: 100%; min-width: 0; }
+.conversation-list__menu :deep([class^="i-ep-"]) { margin-right: 0 !important; }
+.conversation-list__filters { display: flex; gap: 6px; padding: 0 4px; }
+.conversation-list__filters > .el-input { flex: 1; min-width: 0; }
+.conversation-list__filter { position: relative; flex: none; }
+.conversation-list__filter :deep([class^="i-ep-"]) { margin-right: 0 !important; }
+.filter-dot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--el-color-primary); }
+.conversation-list__filter-panel { display: grid; gap: 10px; }
+.conversation-list__filter-panel label { display: grid; gap: 4px; color: var(--el-text-color-secondary); font-size: 12px; }
+.conversation-list__filter-panel .el-select { width: 100%; }
 .conversation-group { display: grid; gap: 2px; }
 .conversation-group__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; padding: 0 6px 0 8px; }
 .conversation-group__name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--el-text-color-secondary); font-size: 12px; font-weight: 500; }

@@ -17,7 +17,7 @@ use support\Log;
 use Webman\Bootstrap;
 use Webman\Config;
 use Webman\Middleware;
-use Webman\Route;
+use app\common\plugin\sdk\PluginRouteLoader as Route;
 use Webman\Util;
 use Workerman\Events\Select;
 use Workerman\Worker;

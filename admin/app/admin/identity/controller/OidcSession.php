@@ -9,7 +9,7 @@ use OpenApi\Annotations as OA;
 use app\common\model\identity\BackchannelLogoutDelivery;
 use app\common\model\identity\OidcSession as SessionModel;
 use app\common\service\identity\AdminIdentityAdapter;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\identity\service\BackchannelLogoutWorker;
 use app\identity\service\OidcLogoutService;
 use support\annotation\route\Get;
@@ -22,7 +22,7 @@ use support\Response;
  * OIDC 会话接口。
  */
 #[RouteGroup('/admin/identity/oidc-sessions')]
-final class OidcSession extends AdminApiController
+final class OidcSession extends AdminController
 {
     /**
      * 分页查询 OIDC 会话，响应中隐藏会话令牌哈希和版本字段。

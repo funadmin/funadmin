@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\service\UpgradeService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -17,7 +17,7 @@ use support\Response;
 
 /** Admin Web 系统升级 API。 */
 #[RouteGroup('/admin/system/upgrade')]
-final class SystemUpgrade extends AdminApiController
+final class SystemUpgrade extends AdminController
 {
 
     /**

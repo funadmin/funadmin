@@ -33,7 +33,7 @@ final class BusinessTargetService
         $this->authorized = Closure::fromCallable($authorized ?? static fn (): bool => (new AdminAuthorizationService())->nodeAccess('admin/development.devplugin/options'));
         $this->states = Closure::fromCallable($states ?? static function (): array {
             $result = [];
-            foreach (Plugin::whereNull('deleted_at')->select() as $record) $result[(string) $record->code] = $record->toArray();
+            foreach (Plugin::whereNull('deleted_at')->get() as $record) $result[(string) $record->code] = $record->toArray();
             return $result;
         });
         $this->options = Closure::fromCallable($options ?? fn (): array => (new DevPluginService($this->root))->options(true));

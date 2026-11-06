@@ -11,7 +11,7 @@ use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\ClientSecretService;
 use app\common\service\identity\OAuthClientService;
 use app\common\service\identity\RedirectUriService;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use InvalidArgumentException;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -24,7 +24,7 @@ use support\Response;
  * OAuth 客户端接口。
  */
 #[RouteGroup('/admin/identity/oauth-clients')]
-final class OAuthClient extends AdminApiController
+final class OAuthClient extends AdminController
 {
     private readonly OAuthClientService $clients;
     private readonly ClientSecretService $clientSecrets;

@@ -15,7 +15,7 @@ export interface HookModule {
     version: string;
     generation?: string;
     components: Record<string, string>;
-    frontendHooks: HookDescriptor[];
+    clientHooks: HookDescriptor[];
     routes?: unknown[];
 }
 export interface HookCalls {

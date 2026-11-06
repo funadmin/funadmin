@@ -295,7 +295,7 @@ final class IdentityTokenRuntimeTest extends TestCase
     public function test_protocol_throttle_limits_endpoint_client_and_ip_without_using_secrets(): void
     {
         \Webman\Limiter\Limiter::init(null);
-        $middleware = new \app\identity\middleware\IdentityProtocolThrottle();
+        $middleware = new \app\identity\middleware\IdentityProtocolThrottleMiddleware();
         $request = new Request("POST /identity/token HTTP/1.1\r\nAuthorization: Basic " . base64_encode('client:test-secret') . "\r\n\r\n");
         for ($i = 0; $i < 30; $i++) self::assertSame(204, $middleware->process($request, static fn () => new Response(204))->getStatusCode());
         self::assertSame(429, $middleware->process($request, static fn () => new Response(204))->getStatusCode());

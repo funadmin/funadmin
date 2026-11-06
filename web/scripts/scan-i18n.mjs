@@ -144,12 +144,12 @@ function main() {
   lines.push('# i18n 缺失清单');
   lines.push('');
   lines.push(`> 自动生成自 \`scripts/scan-i18n.mjs\`，命中文件 **${totalFiles}** 个，去重短语共 **${totalPhrases}** 条。`);
-  lines.push('> 已跳过：`src/locales/**`、`src/mock/**`、`*.d.ts`、`*.spec.ts`、`__tests__/**` 与所有注释。');
+  lines.push('> 已跳过：`src/shared/locales/**`、`src/admin/mock/**`、`*.d.ts`、`*.spec.ts`、`__tests__/**` 与所有注释。');
   lines.push('> 仅作"应当 i18n 但还没接入 vue-i18n"的盘点参考，不代表所有命中都必须改造。');
   lines.push('');
   lines.push('## 现状');
   lines.push('');
-  lines.push('- 已有 i18n key：仅 `menu / layout / login` 三个命名空间（见 `src/locales/zh-CN.ts`）。');
+  lines.push('- 语言入口：`src/shared/locales/zh-CN.ts` 与 `en-US.ts`；词条按命名空间放在对应语言目录。运行 `npm run check:i18n` 检查缺键和占位符。');
   lines.push('- 业务页面、通用组件、`ElMessage` / `ElMessageBox` 文案、表单校验提示几乎全部为硬编码中文。');
   lines.push('- 推荐渐进式策略：');
   lines.push('  1. **第 1 步（建议立刻做）**：把高频通用文案抽到 `common` 命名空间（确定/取消/操作/提示/成功/失败/请输入/请选择/重置/查询/新增/编辑/删除/批量删除/导入/导出/搜索/状态/启用/禁用）。');
@@ -185,7 +185,7 @@ function main() {
   lines.push('## 建议补齐的 `common` 命名空间（草案）');
   lines.push('');
   lines.push('```ts');
-  lines.push('// src/locales/zh-CN.ts');
+  lines.push('// src/shared/locales/zh-CN/<namespace>.ts');
   lines.push('common: {');
   lines.push('  ok: \'确定\', cancel: \'取消\', confirm: \'确认\', tip: \'提示\',');
   lines.push('  success: \'成功\', failed: \'失败\', loading: \'加载中\',');

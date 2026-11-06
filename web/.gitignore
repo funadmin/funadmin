@@ -48,11 +48,23 @@ pnpm-debug.log*
 !/tests/utils/
 /tests/utils/*
 !/tests/utils/consoleHttp.spec.ts
+# Vitest discovers these source tests; keep them reproducible in clean checkouts.
 !/tests/contracts/
 /tests/contracts/*
-!/tests/contracts/form-publish.spec.ts
-!/tests/contracts/plugin-code-name-cutover.spec.ts
-!/tests/contracts/dialog-viewport.spec.ts
+!/tests/contracts/*.ts
+!/tests/helpers/
+/tests/helpers/*
+!/tests/helpers/*.ts
+!/tests/router/
+/tests/router/*
+!/tests/router/*.spec.ts
 
 # CMS plugin integration tests.
 !/tests/cms/
+!/tests/qa/
+!/tests/document/
+
+# Composer conflict confirmation regression test.
+!/tests/api/
+/tests/api/*
+!/tests/api/plugin-composer-conflicts.spec.ts

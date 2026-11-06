@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\AdminLog;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -17,7 +17,7 @@ use support\Response;
  * 后台操作日志，只暴露已落库的真实审计字段。
  */
 #[RouteGroup('/admin/system/log/operation')]
-class SystemOperationLog extends AdminApiController
+class SystemOperationLog extends AdminController
 {
 
     /**

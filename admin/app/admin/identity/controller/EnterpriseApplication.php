@@ -15,7 +15,7 @@ use app\common\service\identity\ApplicationDatabaseService;
 use app\common\service\identity\ApplicationDomainService;
 use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\OidcClaimPolicyService;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authorization\service\RoleScopeService;
 use DomainException;
 use InvalidArgumentException;
@@ -28,7 +28,7 @@ use support\Response;
 
 /** 企业应用中心 Admin API。 */
 #[RouteGroup('/admin/identity/applications')]
-final class EnterpriseApplication extends AdminApiController
+final class EnterpriseApplication extends AdminController
 {
     private readonly ApplicationCatalogService $catalog;
     private readonly ApplicationAssignmentService $assignmentService;

@@ -41,7 +41,7 @@ class PluginLifecycleExecutionTest extends TestCase
             $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');
             foreach (['config', 'manifest', 'last_error', 'recovery_path'] as $name) $table->text($name)->nullable();
             foreach (['db_version', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'requires'] as $name) $table->string($name)->nullable();
-            $table->string('lifecycle_state')->default('discovered'); $table->boolean('status')->default(false);
+            $table->string('composer_conflict_ack', 64)->default(''); $table->string('lifecycle_state')->default('discovered'); $table->boolean('status')->default(false);
             $table->boolean('migration_pending')->default(false); $table->boolean('needs_reinstall')->default(false);
             $table->unsignedBigInteger('state_changed_at')->nullable(); $table->unsignedBigInteger('installed_at')->nullable();
             $table->timestamps(); $table->softDeletes();
@@ -66,6 +66,49 @@ class PluginLifecycleExecutionTest extends TestCase
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
         rmdir($this->root);
+    }
+
+    public function test_composer_conflict_does_not_poison_enable_and_acknowledgement_is_scoped(): void
+    {
+        $directory = $this->root . '/plugins/lifecyclefixture';
+        mkdir($this->root . '/vendor/composer', 0755, true);
+        file_put_contents($this->root . '/vendor/composer/installed.php', '<?php return ["versions"=>["test/lib"=>["pretty_version"=>"1.0.0"]]];');
+        mkdir($directory . '/vendor/composer', 0755, true);
+        file_put_contents($directory . '/vendor/composer/installed.json', '{"packages":[{"name":"test/lib","version":"2.0.0"}]}');
+        Db::table('plugin')->insert(['code'=>'lifecyclefixture','version'=>'1.0.0','lifecycle_state'=>'disabled','status'=>0]);
+        $service = new PluginService($this->root);
+        mkdir($this->root . '/runtime/plugins', 0755, true);
+        $publicationLock = fopen($this->root . '/runtime/plugins/publication.lock', 'c+');
+        self::assertTrue(flock($publicationLock, LOCK_EX | LOCK_NB));
+        try {
+            try { $service->enablePlugin('lifecyclefixture'); self::fail('Expected conflict'); }
+            catch (\app\common\plugin\sdk\ComposerConflictException $error) { self::assertCount(1, $error->conflicts); }
+        } finally { flock($publicationLock, LOCK_UN); fclose($publicationLock); }
+        self::assertEmpty(Db::table('plugin')->value('last_error'));
+        self::assertSame('disabled', Db::table('plugin')->value('lifecycle_state'));
+        $manifest = \app\common\plugin\sdk\Manifest::fromDirectory($directory);
+        $service->withComposerConflictAcceptance(true, function () use ($service, $manifest): void {
+            $service->assertComposerDependencies($manifest);
+            // A successful coordinated request persists the pending acknowledgement.
+            $service->runPackageOperation('update', 'lifecyclefixture', fn()=>true);
+        });
+        self::assertNotEmpty(Db::table('plugin')->value('composer_conflict_ack'));
+        self::assertCount(1, $service->assertComposerDependencies($manifest));
+        file_put_contents($directory . '/vendor/composer/installed.json', '{"packages":[{"name":"test/lib","version":"3.0.0"}]}');
+        $this->expectException(\app\common\plugin\sdk\ComposerConflictException::class);
+        $service->assertComposerDependencies($manifest);
+    }
+
+    public function test_missing_host_requirement_blocks_install_without_creating_record(): void
+    {
+        $directory = $this->root . '/plugins/lifecyclefixture';
+        $file = $directory . '/plugin.json'; $data = json_decode(file_get_contents($file), true);
+        $data['requires']['composer'] = ['test/missing'=>'^1.0']; file_put_contents($file, json_encode($data));
+        mkdir($this->root . '/vendor/composer', 0755, true);
+        file_put_contents($this->root . '/vendor/composer/installed.php', '<?php return ["versions"=>[]];');
+        try { (new PluginService($this->root))->installPlugin('lifecyclefixture'); self::fail('Expected missing dependency'); }
+        catch (\app\admin\plugin\PluginPreconditionException $e) { self::assertStringContainsString('composer require', $e->getMessage()); }
+        self::assertSame(0, Db::table('plugin')->count());
     }
 
     public function test_native_install_enable_disable_uninstall_and_reinstall_persist_lifecycle_and_resources(): void
@@ -110,8 +153,8 @@ class PluginLifecycleExecutionTest extends TestCase
         require $controllerFile;
         $controller = 'app\\admin\\plugins\\lifecyclefixture\\controller\\Index';
         $reader = new \app\common\plugin\sdk\PluginActivationReader($this->root . '/runtime/plugins/activation');
-        \support\Container::instance()->addDefinitions([\app\common\middleware\PluginApplicationGuard::class => static fn () => new \app\common\middleware\PluginApplicationGuard($reader)]);
-        \Webman\Middleware::load(['' => [\app\common\middleware\PluginApplicationGuard::class]]);
+        \support\Container::instance()->addDefinitions([\app\common\middleware\PluginApplicationGuardMiddleware::class => static fn () => new \app\common\middleware\PluginApplicationGuardMiddleware($reader)]);
+        \Webman\Middleware::load(['' => [\app\common\middleware\PluginApplicationGuardMiddleware::class]]);
         (new \ReflectionProperty(\Webman\App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
         Db::table('admin')->insert(['id' => 99, 'username' => 'lifecycle_reader', 'password' => password_hash('test-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 99, 'name' => '插件用户', 'code' => 'lifecycle_reader', 'status' => 1]);

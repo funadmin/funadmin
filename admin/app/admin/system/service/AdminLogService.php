@@ -97,7 +97,7 @@ class AdminLogService extends AbstractService
 
     private function sanitize(array $data): array
     {
-        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', 'api_key', 'apikey', 'client_secret', 'signing_key', 'private_key', 'authorization', 'cookie', 'x-csrf-token', 'csrf_token', '__token__'];
+        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'confirmtoken', 'confirm_token', 'access_token', 'refresh_token', 'secret', 'api_key', 'apikey', 'client_secret', 'access_key', 'secret_key', 'accesskey', 'accesskeyid', 'accesskeysecret', 'secretid', 'secretkey', 'signing_key', 'private_key', 'authorization', 'cookie', 'x-csrf-token', 'csrf_token', '__token__'];
         foreach ($data as $key => $value) {
             if (in_array(strtolower((string) $key), $sensitive, true)) {
                 $data[$key] = '[REDACTED]';

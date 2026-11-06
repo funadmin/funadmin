@@ -4,7 +4,7 @@ import epIconPack from '@iconify-json/ep/icons.json' with { type: 'json' };
 
 const output = resolve('src/styles/ep-icons.css');
 const icons = epIconPack.icons ?? {};
-const sourceRoots = [resolve('src'), resolve('../plugins'), resolve('../database/migrations')];
+const sourceRoots = [resolve('src'), resolve('../plugins'), resolve('../admin/database/core/migrations')];
 const sourceExts = new Set(['.vue', '.ts', '.tsx', '.sql']);
 const menuIconSafelist = ['i-ep-briefcase', 'i-ep-coin'];
 

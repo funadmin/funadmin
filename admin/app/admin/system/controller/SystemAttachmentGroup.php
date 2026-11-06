@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use support\annotation\route\Delete;
@@ -19,7 +19,7 @@ use support\Response;
 
 /** Admin Web 附件分组管理；保留模型供旧文件选择器兼容使用。 */
 #[RouteGroup('/admin/system/attachment-group')]
-class SystemAttachmentGroup extends AdminApiController
+class SystemAttachmentGroup extends AdminController
 {
     /**
      * 获取附件分组树形数据。

@@ -45,7 +45,18 @@ const aiStore = reactive({
 
 let realStore: ReturnType<typeof import('@/store/modules/aiDevelopment').useAiDevelopmentStore> | null = null;
 vi.mock('@/store/modules/aiDevelopment', () => ({ useAiDevelopmentStore: () => realStore ?? aiStore }));
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] }) }));
+// 这些交互用例使用明确授予动作的账号；保留真实 hasPermission，避免绕过新增的 RBAC 门禁。
+const interactionPermissions = [
+  'development.ai:conversationcreate', 'development.ai:conversationupdate', 'development.ai:conversationdelete',
+  'development.ai:messagecreate', 'development.ai:taskexecute', 'development.ai:taskcancel',
+  'development.ai:approvaldecide', 'development.ai:changesetpreview', 'development.ai:changesetapply',
+  'development.ai:toolcalllog', 'development.ai:settingstest',
+  'development:ai:configure', 'development:ai:changesetpreview', 'development:ai:changesetapply',
+  'ai.profiles:index', 'ai.profiles:create', 'ai.profiles:update', 'ai.profiles:copy',
+  'ai.profiles:delete', 'ai.profiles:defaultread', 'ai.profiles:defaultset', 'ai.profiles:models'
+];
+const userStore = reactive({ permissions: [...interactionPermissions] });
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => userStore }));
 vi.mock('@/api/development/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/development/ai')>();
   return {
@@ -74,8 +85,8 @@ vi.mock('@/api/development/ai', async (importOriginal) => {
 
 import AiDevelopment from './index.vue';
 
-const pageSource = readFileSync(resolve(process.cwd(), 'src/views/development/ai/index.vue'), 'utf8');
-const timelineSource = readFileSync(resolve(process.cwd(), 'src/views/development/ai/components/MessageTimeline.vue'), 'utf8');
+const pageSource = readFileSync(resolve(process.cwd(), 'src/admin/views/development/ai/index.vue'), 'utf8');
+const timelineSource = readFileSync(resolve(process.cwd(), 'src/admin/views/development/ai/components/MessageTimeline.vue'), 'utf8');
 
 type TabsContext = { active: Ref<string>; select: (name: string) => void };
 const tabsKey: InjectionKey<TabsContext> = Symbol('ai-tabs');
@@ -127,7 +138,7 @@ const stubs = {
   ElEmpty: emptyStub,
   ElDropdown: defineComponent({ emits: ['command'], template: '<div><slot /><slot name="dropdown" /></div>' }),
   ElDropdownMenu: passthrough,
-  ElDropdownItem: passthrough,
+  ElDropdownItem: defineComponent({ emits: ['click'], template: '<button type="button" @click="$emit(\'click\')"><slot /></button>' }),
   ElSelect: true,
   ElOption: true,
   ElCheckbox: defineComponent({ template: '<input type="checkbox" />' }),
@@ -182,6 +193,7 @@ const keys = (value: unknown, prefix = ''): string[] => Object.entries(value as 
 describe('AI Development 真实 i18n 与响应式区域', () => {
   beforeEach(() => {
     realStore = null;
+    userStore.permissions = [...interactionPermissions];
     sessionStorage.clear();
     setActivePinia(createPinia());
     aiStore.conversationFilters = { is_archived: 0 };
@@ -196,6 +208,58 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     aiStore.toolCalls = [];
     aiStore.changeSet = null;
     vi.clearAllMocks();
+  });
+
+  it('只读账号隐藏写入入口，组件事件和表单提交也不能绕过动作权限', async () => {
+    userStore.permissions = ['development.ai:index'];
+    aiStore.conversations = [{ id: 1, title: '只读会话', model: 'm' }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 8, status: 'paused' };
+    aiStore.approvals = [{ id: 9, task_id: 8, status: 'pending' }];
+    const { wrapper } = await mountPage('zh-CN');
+    try {
+      await flushPromises();
+      expect(wrapper.findAll('.conversation-list__actions button')).toHaveLength(0);
+      expect(wrapper.findComponent(ProviderSettingsDrawer).exists()).toBe(false);
+      expect(wrapper.get('[data-testid="save-model"]').attributes('disabled')).toBeDefined();
+      expect(wrapper.get('[data-testid="conversation-profile"]').attributes('disabled')).toBeDefined();
+      await wrapper.get('[data-testid="toggle-inspector"]').trigger('click');
+      expect(wrapper.find('.approval-card').exists()).toBe(false);
+      const list = wrapper.getComponent(ConversationList);
+      list.vm.$emit('create');
+      list.vm.$emit('create-group');
+      list.vm.$emit('delete-group', 10);
+      list.vm.$emit('action', 'rename', 1);
+      list.vm.$emit('action', 'delete', 1);
+      list.vm.$emit('action', 'archive', 1);
+      await wrapper.get('[data-testid="model-form"]').trigger('submit');
+      await flushPromises();
+      for (const action of [aiDevelopmentApi.profiles, aiDevelopmentApi.defaultProfile,
+        aiDevelopmentApi.createConversation, aiDevelopmentApi.createConversationGroup,
+        aiDevelopmentApi.deleteConversationGroup, aiDevelopmentApi.updateConversation,
+        aiStore.deleteConversation, aiStore.updateConversationState, aiStore.updateConversationModel,
+        aiStore.decideApproval, aiStore.cancelActiveTask]) expect(action).not.toHaveBeenCalled();
+    } finally { wrapper.unmount(); }
+  });
+
+  it('读取默认档案期间撤销新建权限，晚到结果不能创建会话', async () => {
+    let finish!: (profile: unknown) => void;
+    vi.mocked(aiDevelopmentApi.defaultProfile).mockImplementationOnce(() => new Promise(resolve => {
+      finish = resolve as typeof finish;
+    }));
+    const { wrapper } = await mountPage('zh-CN');
+    try {
+      await flushPromises();
+      wrapper.getComponent(ConversationList).vm.$emit('create');
+      await flushPromises();
+      expect(aiDevelopmentApi.defaultProfile).toHaveBeenCalledTimes(1);
+      userStore.permissions = ['development.ai:index'];
+      finish({ id: 7, model: 'm', enabled: true });
+      await flushPromises();
+      expect(aiDevelopmentApi.createConversation).not.toHaveBeenCalled();
+      expect(aiStore.selectConversation).not.toHaveBeenCalled();
+      expect(wrapper.findAll('.conversation-list__actions button')).toHaveLength(0);
+    } finally { wrapper.unmount(); }
   });
 
   it('红框控件统一 small，保留入口、禁用与展开语义', async () => {
@@ -411,25 +475,26 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     } });
     try {
       await flushPromises();
-      expect(wrapper.get('[data-testid="toggle-inspector"]').text()).toBe('任务与权限');
+      expect(wrapper.get('[data-testid="toggle-inspector"]').text()).toBe('任务详情');
       expect(wrapper.get('[data-testid="pending-approvals-badge"]').text()).toContain('1');
       expect(wrapper.find('[data-ai-region="context"]').exists()).toBe(false);
       await wrapper.get('[data-testid="toggle-inspector"]').trigger('click');
       await flushPromises();
-      const dialog = wrapper.findAllComponents({ name: 'ElDrawer' }).find(item => item.props('title') === '任务与权限');
-      expect(dialog, '任务与权限必须使用右侧抽屉').toBeDefined();
+      const dialog = wrapper.findAllComponents({ name: 'ElDrawer' }).find(item => item.props('title') === '任务详情');
+      expect(dialog, '任务详情必须使用右侧抽屉').toBeDefined();
       expect(dialog!.props('direction')).toBe('rtl');
       expect(dialog!.props('destroyOnClose')).toBe(false);
       expect(dialog!.props('size')).toBe('min(520px, 100vw)');
-      expect(wrapper.findAll('.task-permissions-scroll h3').map(item => item.text())).toEqual(['审批模式', '任务概况', '风险及审批操作']);
-      expect(wrapper.get('.task-permissions-scroll').text()).not.toContain('任务与权限');
+      expect(wrapper.findAll('.task-permissions-scroll h3').map(item => item.text())).toEqual(['任务概况', '工具调用']);
+      expect(wrapper.get('.task-permissions-scroll').text()).not.toContain('任务详情');
       expect(wrapper.get('.task-permissions-scroll').findAllComponents({ name: 'ElConfigProvider' })[0]?.props('size')).toBe('small');
       const panel = wrapper.getComponent({ name: 'AiContextPanel' });
       const instance = panel.vm;
       expect(panel.text()).toContain('#7 代码变更');
-      const card = wrapper.get('.task-permissions-scroll .approval-card');
+      const card = wrapper.get('[data-testid="approval-dock"] .approval-card');
+      expect(wrapper.find('.task-permissions-scroll .approval-card').exists(), '抽屉不再重复渲染审批卡').toBe(false);
       await card.get('textarea').setValue('保留审批反馈');
-      expect(wrapper.findAll('.task-permissions-scroll .approval-card')).toHaveLength(1);
+      expect(wrapper.findAll('[data-testid="approval-dock"] .approval-card')).toHaveLength(1);
       const generation = aiStore.selectionGeneration;
       vi.clearAllMocks();
       await dialog!.get('.el-drawer__close-btn').trigger('click');
@@ -459,14 +524,40 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     } finally { wrapper.unmount(); }
   });
 
-  it('真实 Element Plus 模型弹层统一控件并保留 nullable 思考事件', async () => {
+  it('待审批停靠在输入框上方可直接决定，工具调用内嵌在对应回复中', async () => {
+    aiStore.conversations = [{ id: 1, approval_mode: 'request_approval' }];
+    aiStore.selectedConversationId = 1;
+    aiStore.activeTask = { id: 7, status: 'paused' };
+    aiStore.messages = [{ id: 31, conversation_id: 1, role: 'assistant', content: [{ type: 'text', text: '准备修改' }] }];
+    const approval = { id: 11, task_id: 7, conversation_id: 1, status: 'pending', operation: 'apply_workspace', impact: { files: 2 }, risk_reason: '将修改工作区文件' };
+    aiStore.approvals = [approval];
+    aiStore.toolCalls = [{ id: 21, message_id: 31, approval_id: 11, tool_name: 'apply_workspace', operation: 'apply_workspace', risk_level: 'high', status: 'awaiting_approval' }];
+    const { wrapper } = await mountPage('zh-CN');
+    try {
+      await flushPromises();
+      const dock = wrapper.get('[data-testid="approval-dock"]');
+      const bottom = wrapper.get('.workspace-bottom').element;
+      expect(bottom.firstElementChild).toBe(dock.element);
+      expect(dock.element.compareDocumentPosition(wrapper.get('.ai-composer').element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(dock.text()).toContain('将修改工作区文件');
+      expect(wrapper.get('.message--assistant').find('[data-tool-call="21"]').exists()).toBe(true);
+      expect(wrapper.find('.workspace-tools').exists()).toBe(false);
+      await dock.findAll('button').find(button => button.text() === '仅本次允许')!.trigger('click');
+      expect(aiStore.decideApproval).toHaveBeenCalledWith(approval, 'approve', 'once', '');
+      userStore.permissions = ['development.ai:index'];
+      await nextTick();
+      expect(wrapper.find('[data-testid="approval-dock"]').exists(), '无审批权限不显示可操作审批卡').toBe(false);
+    } finally { wrapper.unmount(); }
+  });
+
+  it('真实 Element Plus 会话设置抽屉统一控件并保留 nullable 思考事件', async () => {
     setMobile(false);
     aiStore.conversations = [{ id: 1, model: 'm', profile_id: 7 }];
     aiStore.selectedConversationId = 1;
     vi.mocked(aiDevelopmentApi.profiles).mockResolvedValueOnce([{ id: 7, name: '档案', enabled: true, model: 'm', favorite_models: ['m'], reasoning_effort: null, model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] }] as never);
     const wrapper = mount(AiDevelopment, { attachTo: document.body, global: {
       plugins: [ElementPlus, createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })],
-      stubs: { ...stubs, ElSelect: false, ElOption: false, ElInput: false, ElButton: false, ElTooltip: false, ElPopover: false, ProviderSettingsDrawer: true }
+      stubs: { ...stubs, transition: false, ElDrawer: false, ElSelect: false, ElOption: false, ElInput: false, ElButton: false, ElTooltip: false, ElPopover: false, ProviderSettingsDrawer: true }
     } });
     try {
       await flushPromises();
@@ -511,27 +602,32 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
       expect(aiStore.updateConversationModel).toHaveBeenCalledTimes(1);
       finish();
       await flushPromises();
-      modelInput.get('input').element.focus();
-      await modelInput.get('input').trigger('keydown', { key: 'Escape', code: 'Escape' });
-      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).toBeNull());
+      // 设置改为右侧抽屉：关闭后表单保留实例（不重建），焦点回到摘要按钮。
+      const drawer = wrapper.findAllComponents({ name: 'ElDrawer' }).find(item => item.props('title') === '会话设置')!;
+      expect(drawer.props('modelValue')).toBe(true);
+      expect(drawer.props('destroyOnClose')).toBe(false);
+      drawer.vm.$emit('update:modelValue', false);
+      await flushPromises();
+      expect(drawer.props('modelValue')).toBe(false);
+      drawer.vm.$emit('closed');
+      await flushPromises();
       expect(document.activeElement).toBe(composer.get('[data-testid="model-menu-trigger"]').element);
-      await composer.get('[data-testid="model-menu-trigger"]').trigger('keydown', { code: 'Enter', key: 'Enter' });
-      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).not.toBeNull());
-      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-      document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-      document.body.click();
-      await vi.waitFor(() => expect(document.querySelector('[data-testid="model-form"]')).toBeNull());
+      await composer.get('[data-testid="model-menu-trigger"]').trigger('click');
+      await flushPromises();
+      expect(drawer.props('modelValue')).toBe(true);
     } finally { wrapper.unmount(); }
   });
 
-  it.each([false, true])('Provider 位于会话栏新建工具区并保持打开行为，移动端=%s', async (mobile) => {
+  it.each([false, true])('配置档案位于会话栏更多菜单并保持打开行为，移动端=%s', async (mobile) => {
     const { wrapper } = await mountPage('zh-CN', mobile);
     await flushPromises();
     if (mobile) await wrapper.get('[data-testid="mobile-conversations"]').trigger('click');
-    const actions = wrapper.get('.conversation-list__header > div');
-    expect(actions.findAll('button').map((button) => button.text())).toEqual(['新建分组', '新建', 'Provider']);
-    const provider = actions.findAll('button').find((button) => button.text() === 'Provider')!;
-    expect(provider.attributes('disabled')).toBeUndefined();
+    const actions = wrapper.get('.conversation-list__actions');
+    expect(actions.findAll('button').map((button) => button.text())).toEqual(['新建']);
+    const menu = wrapper.get('.conversation-list__header');
+    expect(menu.text()).toContain('新建分组');
+    const provider = wrapper.get('[data-testid="open-provider-settings"]');
+    expect(provider.text()).toBe('配置档案');
     expect(wrapper.findComponent(ProviderSettingsDrawer).props('modelValue')).toBe(false);
     vi.mocked(aiDevelopmentApi.profiles).mockClear();
     await provider.trigger('click');
@@ -542,16 +638,16 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     wrapper.unmount();
   });
 
-  it('会话栏标题和工具区允许换行，按钮间距不叠加', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/views/development/ai/components/ConversationList.vue'), 'utf8');
-    expect(source).toMatch(/\.conversation-list__header\s*\{[^}]*flex-wrap:\s*wrap/s);
-    expect(source).toMatch(/\.conversation-list__header > div\s*\{[^}]*flex-wrap:\s*wrap/s);
+  it('会话栏头部单行收纳，标题可截断，按钮间距不叠加', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/admin/views/development/ai/components/ConversationList.vue'), 'utf8');
+    expect(source).toMatch(/\.conversation-list__header\s*\{[^}]*flex-wrap:\s*nowrap/s);
+    expect(source).toMatch(/\.conversation-list__title\s*\{[^}]*min-width:\s*0/s);
     expect(source).toMatch(/\.conversation-list__header :deep\(\.el-button\)\s*\{[^}]*margin-left:\s*0/s);
   });
 
   it('保存档案途中关闭再打开，不把旧响应切回当前编辑档案', async () => {
     const { wrapper } = await mountPage('zh-CN');
-    await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
+    await wrapper.get('[data-testid="open-provider-settings"]').trigger('click');
     await flushPromises();
     const drawer = wrapper.findComponent(ProviderSettingsDrawer);
     let resolveSave!: (value: unknown) => void;
@@ -579,7 +675,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   it('显示档案选择与默认继承入口，档案设置不再读取临时全局设置', async () => {
     const { wrapper } = await mountPage('zh-CN');
     expect(wrapper.find('[data-testid="conversation-profile"]').exists()).toBe(true);
-    await wrapper.findAll('button').find((button) => button.text().includes('Provider'))!.trigger('click');
+    await wrapper.get('[data-testid="open-provider-settings"]').trigger('click');
     await flushPromises();
     expect(aiDevelopmentApi.profiles).toHaveBeenCalled();
     expect(aiDevelopmentApi.settings).not.toHaveBeenCalled();
@@ -839,12 +935,17 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
   });
 
   it('审批升级取消时不更新真实会话', async () => {
+    userStore.permissions.push('development:ai:full-access');
     aiStore.conversations = [{ id: 1, approval_mode: 'request_approval' }]; aiStore.selectedConversationId = 1;
     const { wrapper } = await mountPage('zh-CN'); await flushPromises();
-    vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel');
-    await wrapper.findAll('.toolbar button').find(button => button.text() === zhCN.aiComposer.approval)!.trigger('click');
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel');
+    await wrapper.get('[data-testid="approval-mode-trigger"]').trigger('click');
     wrapper.findComponent({ name: 'ApprovalModeSelector' }).vm.$emit('update:modelValue', 'full_access');
-    await flushPromises(); expect(aiDevelopmentApi.updateConversation).not.toHaveBeenCalled(); wrapper.unmount();
+    await flushPromises();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(aiDevelopmentApi.updateConversation).not.toHaveBeenCalled();
+    confirm.mockRestore();
+    wrapper.unmount();
   });
   it('发送中切换会话不把旧消息或任务写入新工作区', async () => {
     aiStore.conversations = [{ id: 1, title: '旧会话' }, { id: 2, title: '新会话' }];
@@ -869,7 +970,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.text()).not.toContain('AI 开发助手');
     expect(wrapper.text()).not.toContain('会话、工具审批与工作区变更');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('会话');
-    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('任务与权限');
+    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('任务详情');
     expect(wrapper.text()).toContain('发送');
     expect(wrapper.text()).toContain('开始一个新的 AI 会话');
 
@@ -879,7 +980,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
     expect(wrapper.text()).not.toContain('AI Development Assistant');
     expect(wrapper.text()).not.toContain('Conversations, tool approvals, and workspace changes');
     expect(wrapper.find('[data-testid="mobile-conversations"]').text()).toBe('Conversations');
-    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('Task and permissions');
+    expect(wrapper.find('[data-testid="mobile-context"]').text()).toBe('Task details');
     expect(wrapper.text()).toContain('Send');
     expect(wrapper.text()).toContain('Start a new AI conversation');
     expect(wrapper.text()).not.toContain('开始一个新的 AI 会话');
@@ -934,7 +1035,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
     await wrapper.find('[data-testid="toggle-inspector"]').trigger('click');
     expect(visibleRegions(wrapper)).toEqual(['conversations', 'workspace']);
-    expect(wrapper.find('[data-testid="toggle-inspector"]').text()).toContain('任务与权限');
+    expect(wrapper.find('[data-testid="toggle-inspector"]').text()).toContain('任务详情');
     expect(wrapper.find('.ai-layout--inspector').exists()).toBe(false);
 
     await wrapper.find('[data-testid="toggle-inspector"]').trigger('click');
@@ -944,7 +1045,7 @@ describe('AI Development 真实 i18n 与响应式区域', () => {
 
   it.each([
     ['消息列表', timelineSource, '.message-timeline'],
-    ['输入区', readFileSync(resolve(process.cwd(), 'src/views/development/ai/components/AiComposer.vue'), 'utf8'), '.ai-composer']
+    ['输入区', readFileSync(resolve(process.cwd(), 'src/admin/views/development/ai/components/AiComposer.vue'), 'utf8'), '.ai-composer']
   ])('%s 满宽且仅保留左右 16px 内距，所有断点均不恢复固定宽度或自动居中', (_name, source, selector) => {
     const css = source.slice(source.indexOf('<style scoped>') + '<style scoped>'.length);
     const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]

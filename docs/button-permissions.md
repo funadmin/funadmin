@@ -64,7 +64,7 @@ useCrud({
 
 - 系统业务别名由 `admin/app/admin/authorization/model/Permission.php::webPermissions()` 下发；该方法保留原始动作码。
 - 多级控制器的原始动作码依据 `PermissionResource::fromRequest/fromParts()`，包含模块命名空间；不要从菜单标题或 URL 随意拼接。
-- 插件优先使用其清单及 `PluginPermission` 声明。市场插件旧动作兼容映射以 `CheckPluginPermission` 实际契约为准。
+- 插件后台方法以 `#[Permission('code')]` 声明权限码，码须在插件清单注册；未声明的方法一律拒绝。市场插件已逐方法声明，不再依赖中间件内的动作映射。
 - 动态表单保留后端动作目录、注册能力、版本、可用动作和数据范围限制，公共判断只统一权限匹配。
 - 新生成的 CRUD 页面和表单也使用公共判断，后续代码生成不会重新复制局部实现。
 - 关闭、取消、返回、折叠等纯界面操作不新增业务权限；登录、安装、本人资料继续走其原有认证流程。

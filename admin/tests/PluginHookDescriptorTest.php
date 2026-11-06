@@ -23,7 +23,7 @@ final class PluginHookDescriptorTest extends TestCase
                 ];
             }
         };
-        $guard = new \app\common\middleware\PluginApplicationGuard($reader, '/unused');
+        $guard = new \app\common\middleware\PluginApplicationGuardMiddleware($reader, '/unused');
         foreach (['/plugins/hooks/frontend', '/admin/plugins/hooks/frontend'] as $path) {
             $request = new \support\Request("GET $path HTTP/1.1\r\nHost: localhost\r\n\r\n");
             $request->controller = \app\common\plugin\controller\FrontendHooks::class;
@@ -36,16 +36,16 @@ final class PluginHookDescriptorTest extends TestCase
             public function read(): PluginActivationSnapshot { return PluginActivationSnapshot::trusted(['demo'=>['code'=>'demo','enabled'=>true,'state'=>'enabled','needs_reinstall'=>false,'operation_token'=>null,'dependencies'=>[],'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]]]); }
             public function activeGeneration(): ?string {return str_repeat('a',32);}
         };
-        $manifest=Manifest::fromCompiled('/unused/demo',['code'=>'demo','version'=>'1.0.0','adminWeb'=>['components'=>['Card'=>'Card.vue']], 'frontendHooks'=>[
+        $manifest=Manifest::fromCompiled('/unused/demo',['code'=>'demo','version'=>'1.0.0','adminWeb'=>['components'=>['Card'=>'Card.vue']], 'clientHooks'=>[
             ['id'=>'public','point'=>'demo.test','type'=>'action','file'=>'hooks.ts','export'=>'run','audiences'=>['public']],
             ['id'=>'private','point'=>'demo.test','type'=>'component','component'=>'Card','permission'=>'demo:card:read'],
         ]]);
         $service=new FrontendHookService($reader,fn()=>['demo'=>$manifest]);
         $public=$service->descriptors('public');
-        self::assertSame(['public'],array_column($public['modules'][0]['frontendHooks'],'id'));
+        self::assertSame(['public'],array_column($public['modules'][0]['clientHooks'],'id'));
         self::assertEquals((object)[], $public['modules'][0]['components']);
         self::assertSame([], $service->descriptors('admin',[])['modules']);
-        self::assertSame(['private'],array_column($service->descriptors('admin',['demo:card:read'])['modules'][0]['frontendHooks'],'id'));
+        self::assertSame(['private'],array_column($service->descriptors('admin',['demo:card:read'])['modules'][0]['clientHooks'],'id'));
     }
     public function test_untrusted_snapshot_returns_no_descriptors(): void {
         $reader=new class('unused') extends PluginActivationReader {public function read(): PluginActivationSnapshot{return PluginActivationSnapshot::untrusted();}};

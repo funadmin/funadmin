@@ -493,27 +493,26 @@ final class ProductionTemplateContext
             foreach ($data['permission']['actions'] as $action) {
                 $code = var_export($data['permissionPrefix'] . ':' . $action['codeSuffix'], true);
                 foreach ($methods as &$method) {
-                    $method = preg_replace('/(    )public function (' . preg_quote($action['action'], '/') . ')\(/i', '$1#[PluginPermission(' . $code . ")]\n" . '$1public function $2(', $method);
+                    $method = preg_replace('/(    )public function (' . preg_quote($action['action'], '/') . ')\(/i', '$1#[Permission(' . $code . ")]\n" . '$1public function $2(', $method);
                 }
                 unset($method);
             }
         }
         $controllerImports = $data['_consoleController']
-            ? "use app\\admin\\controller\\base\\AdminApiController;\n"
-            : "use app\\BaseController;\nuse app\\common\\middleware\\MApi;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
-                . "use app\\common\\traits\\JsonResponse;\nuse support\\annotation\\Middleware;\n";
+            ? "use app\\common\\controller\\AdminController;\n"
+            : "use app\\common\\controller\\ApiController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n";
         $controllerDeclaration = $data['_consoleController']
-            ? "final class {$class}Controller extends AdminApiController"
-            : "final class {$class}Controller extends BaseController";
-        $controllerDeclaration = ($data['_consoleController'] ? '' : "#[Middleware(MApi::class)]\n") . $controllerDeclaration;
-        $controllerTraits = $data['_consoleController'] ? '' : "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n";
+            ? "final class {$class}Controller extends AdminController"
+            : "final class {$class}Controller extends ApiController";
+        // 会员接口继承 ApiController：统一经过 ApiMiddleware，默认需登录，可用 #[NoNeedLogin] 公开单个方法。
+        $controllerTraits = $data['_consoleController'] ? '' : "    use AdminCrudRequest;\n    use AdminPagination;\n\n";
         if ($data['dataScope']['enabled']) {
             self::collectBackend('dataScopeRequired', '数据范围字段 {:field} 必填');
             self::collectBackend('dataScopeDenied', '无权写入指定数据范围');
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
-            . ($data['_pluginCode'] !== '' ? "use app\\common\\plugin\\sdk\\PluginPermission;\n" : '')
+            . ($data['_pluginCode'] !== '' ? "use app\\common\\annotation\\Permission;\n" : '')
             . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\authorization\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"
@@ -560,7 +559,7 @@ final class ProductionTemplateContext
     }
 
     /**
-     * 前台会员增删改查控制器：全部接口需会员登录（MApi），只能访问归属字段等于当前会员的记录。
+     * 前台会员增删改查控制器：继承 ApiController，默认需会员登录，只能访问归属字段等于当前会员的记录。
      * 不暴露批量、回收站、恢复、导入导出、状态与 options，缩小会员侧攻击面。
      */
     private static function memberController(array $data, string $class, array $primary): string
@@ -581,14 +580,14 @@ final class ProductionTemplateContext
             $hidden .= "        {$method} as private {$alias}; {$method} as private;\n";
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_memberControllerNamespace']};\n\n"
-            . "use app\\BaseController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
-            . "use app\\common\\middleware\\MApi;\nuse app\\common\\traits\\Crud;\nuse app\\common\\traits\\JsonResponse;\nuse support\\annotation\\Middleware;\n"
+            . "use app\\common\\controller\\ApiController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n"
+            . "use app\\common\\traits\\Crud;\n"
             . "use {$data['_modelNamespace']}\\{$class};\nuse {$data['_serviceNamespace']}\\{$class}Service;\nuse {$data['_validateNamespace']}\\{$class}Validate;\n"
             . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"
             . "use support\\annotation\\route\\Post;\nuse support\\annotation\\route\\Put;\n"
             . "use Illuminate\\Database\\Eloquent\\Model;\nuse support\\Response;\n\n"
-            . "#[Group('{$data['_memberRoutePrefix']}')]\n#[Middleware(MApi::class)]\nfinal class {$class}Controller extends BaseController\n{\n"
-            . "    use AdminCrudRequest;\n    use AdminPagination;\n    use JsonResponse;\n\n"
+            . "#[Group('{$data['_memberRoutePrefix']}')]\nfinal class {$class}Controller extends ApiController\n{\n"
+            . "    use AdminCrudRequest;\n    use AdminPagination;\n\n"
             . "    use Crud {\n{$hidden}        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
             . '    protected function searchFields(): array { return ' . self::phpArray($search) . "; }\n"

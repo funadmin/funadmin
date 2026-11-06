@@ -158,7 +158,7 @@ final class UpgradeService extends AbstractService
         try {
             $verified ??= (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->verify($archive, $checksum, $version);
             $migrationDirectory = (new UpgradePackageVerifier())->mountedCoreDirectory($verified['manifest']);
-            $deploymentFiles = array_values(array_filter($verified['files'], static fn (string $file): bool => !str_starts_with($file, 'database/migrations/')));
+            $deploymentFiles = array_values(array_filter($verified['files'], static fn (string $file): bool => !str_starts_with($file, 'database/core/migrations/')));
             $this->advance($task, 'extract', 20);
             (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->extract($archive, $stage, $verified['files']);
             $this->advance($task, 'backup', 35);

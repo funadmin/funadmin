@@ -1,1 +1,6 @@
 /public/web/
+/node_modules/
+/.superpowers/
+/admin/*.zip
+/admin/public/storage/
+.DS_Store

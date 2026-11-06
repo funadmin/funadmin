@@ -34,7 +34,7 @@ $d['features']['dictionary']=${enabled ? 'true' : 'false'}; $d['features']['uplo
 $d['optionsSource'][]=['name'=>'owner_options','type'=>'endpoint','endpoint'=>'/owners','labelField'=>'label','valueField'=>'value'];
 foreach($d['fields'] as &$field) if($field['name']==='owner') $field['optionsSource']='owner_options'; unset($field);
 echo json_encode(app\\common\\crud\\ProductionTemplateContext::build(app\\common\\crud\\CrudDefinition::fromArray($d)));
-`], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' }));
+`], { cwd: resolve(process.cwd(), '../admin'), encoding: 'utf8' }));
     const schema = JSON.parse(output.formContent.match(/const sourceSchema=(.*?) as unknown as FormSchemaDocument;/)[1]);
     const request = vi.fn(async () => ({ options: [{ label: '关联值', value: 7 }] }));
     const wrapper = mount(SchemaRenderer, {

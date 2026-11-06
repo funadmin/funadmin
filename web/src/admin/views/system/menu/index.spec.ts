@@ -8,11 +8,12 @@ import Sortable from 'sortablejs';
 import MenuPage from './index.vue';
 
 const api = vi.hoisted(() => ({ tree: vi.fn(), update: vi.fn() }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['systemmenu:list', 'systemmenu:update', 'systemmenu:delete', 'systemmenu:create'] }) }));
 vi.mock('@/api/system/menu', () => ({ menuApi: api }));
 vi.mock('./components/MenuFormDialog.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('@/components/InlineEdit/index.vue', () => ({ default: { template: '<span />' } }));
 
-const menuView = readFileSync(resolve(process.cwd(), 'src/views/system/menu/index.vue'), 'utf8');
+const menuView = readFileSync(resolve(process.cwd(), 'src/admin/views/system/menu/index.vue'), 'utf8');
 const dragColumnIndex = menuView.search(/<el-table-column\b[^>]*label=""[^>]*width="52"/);
 const nameColumnIndex = menuView.indexOf('<el-table-column prop="name" :label="t(\'systemMenu.colName\', \'名称\')"');
 const selectionColumnIndex = menuView.indexOf('<el-table-column type="selection"');

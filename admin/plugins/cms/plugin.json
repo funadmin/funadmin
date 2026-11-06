@@ -1,0 +1,348 @@
+{
+  "schema_version": 2,
+  "code": "cms",
+  "name": "CMS 内容管理",
+  "description": "多站点、多语言、服务端模板与自定义标签",
+  "version": "1.3.0",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\cms\\Plugin",
+    "file": "Plugin.php"
+  },
+  "resources": {
+    "public": {
+      "source": "public/plugin-assets/cms/public",
+      "target": "plugin-assets/cms/public"
+    }
+  },
+  "migrations": {
+    "path": "database/migrations"
+  },
+  "storage": {
+    "path": "storage"
+  },
+  "purge": {
+    "supported": false
+  },
+  "adminWeb": {
+    "source": "web/src/admin/modules/cms",
+    "components": {
+      "Index": "pages/Index.vue",
+      "Sites": "pages/Sites.vue",
+      "Categories": "pages/Categories.vue",
+      "Content": "pages/Content.vue",
+      "Menus": "pages/Menus.vue",
+      "Tags": "pages/Tags.vue",
+      "Models": "pages/Models.vue",
+      "Access": "pages/Access.vue",
+      "Contributions": "pages/Contributions.vue"
+    },
+    "minFrontendVersion": "1.0.0",
+    "permissions": [
+      {
+        "code": "cms:content:list",
+        "name": "查看内容"
+      },
+      {
+        "code": "cms:content:publish",
+        "name": "发布内容"
+      },
+      {
+        "code": "cms:content:offline",
+        "name": "下架内容"
+      },
+      {
+        "code": "cms:content:preview",
+        "name": "预览内容"
+      },
+      {
+        "code": "cms:category:list",
+        "name": "查看栏目"
+      },
+      {
+        "code": "cms:model:list",
+        "name": "查看模型"
+      },
+      {
+        "code": "cms:menu:list",
+        "name": "查看导航"
+      },
+      {
+        "code": "cms:tag:list",
+        "name": "查看标签"
+      },
+      {
+        "code": "cms:tag:publish",
+        "name": "发布标签"
+      },
+      {
+        "code": "cms:tag:preview",
+        "name": "预览标签"
+      },
+      {
+        "code": "cms:site:detail",
+        "name": "查看设置"
+      },
+      {
+        "code": "cms:site:edit",
+        "name": "修改基本设置"
+      },
+      {
+        "code": "cms:site:domain",
+        "name": "管理域名"
+      },
+      {
+        "code": "cms:site:locale",
+        "name": "管理语言"
+      },
+      {
+        "code": "cms:category:create",
+        "name": "新建栏目"
+      },
+      {
+        "code": "cms:category:edit",
+        "name": "编辑栏目"
+      },
+      {
+        "code": "cms:category:status",
+        "name": "启用/停用栏目"
+      },
+      {
+        "code": "cms:content:create",
+        "name": "新建内容"
+      },
+      {
+        "code": "cms:content:edit",
+        "name": "编辑草稿"
+      },
+      {
+        "code": "cms:menu:create",
+        "name": "新建导航"
+      },
+      {
+        "code": "cms:menu:edit",
+        "name": "编辑导航"
+      },
+      {
+        "code": "cms:menu:status",
+        "name": "启用/停用导航"
+      },
+      {
+        "code": "cms:menu:delete",
+        "name": "删除导航组"
+      },
+      {
+        "code": "cms:tag:create",
+        "name": "新建标签"
+      },
+      {
+        "code": "cms:tag:edit",
+        "name": "编辑标签草稿"
+      },
+      {
+        "code": "cms:model:status",
+        "name": "本站模型启停"
+      },
+      {
+        "code": "cms:model:template",
+        "name": "设置本站模型模板"
+      },
+      {
+        "code": "cms:access:list",
+        "name": "查看成员/角色"
+      },
+      {
+        "code": "cms:access:members",
+        "name": "管理站点成员"
+      },
+      {
+        "code": "cms:access:roles",
+        "name": "管理站点角色"
+      },
+      {
+        "code": "cms:submission:list",
+        "name": "查看会员投稿"
+      },
+      {
+        "code": "cms:submission:review",
+        "name": "审核会员投稿"
+      },
+      {
+        "code": "cms:sites:index",
+        "name": "查看站点列表"
+      },
+      {
+        "code": "cms:categories:index",
+        "name": "查看栏目列表"
+      },
+      {
+        "code": "cms:content:index",
+        "name": "查看内容列表"
+      },
+      {
+        "code": "cms:contributions:index",
+        "name": "查看会员投稿列表"
+      },
+      {
+        "code": "cms:menus:index",
+        "name": "查看导航列表"
+      },
+      {
+        "code": "cms:tags:index",
+        "name": "查看标签列表"
+      },
+      {
+        "code": "cms:models:index",
+        "name": "查看模型列表"
+      },
+      {
+        "code": "cms:access:index",
+        "name": "查看站点成员与角色"
+      }
+    ],
+    "menu": [
+      {
+        "name": "CMS 内容管理",
+        "path": "/plugin/cms",
+        "menulist": [
+          {
+            "name": "站点管理",
+            "path": "/plugin/cms/sites",
+            "permission": "cms:sites:index"
+          },
+          {
+            "name": "栏目管理",
+            "path": "/plugin/cms/categories",
+            "permission": "cms:categories:index"
+          },
+          {
+            "name": "内容管理",
+            "path": "/plugin/cms/content",
+            "permission": "cms:content:index"
+          },
+          {
+            "name": "会员投稿",
+            "path": "/plugin/cms/contributions",
+            "permission": "cms:contributions:index"
+          },
+          {
+            "name": "导航管理",
+            "path": "/plugin/cms/menus",
+            "permission": "cms:menus:index"
+          },
+          {
+            "name": "模板标签",
+            "path": "/plugin/cms/tags",
+            "permission": "cms:tags:index"
+          },
+          {
+            "name": "内容模型",
+            "path": "/plugin/cms/models",
+            "permission": "cms:models:index"
+          },
+          {
+            "name": "站点权限",
+            "path": "/plugin/cms/access",
+            "permission": "cms:access:index"
+          }
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "path": "/plugin/cms/manage",
+        "name": "Plugin_cms_Manage",
+        "component": "Index",
+        "meta": {
+          "title": "CMS 内容管理"
+        }
+      },
+      {
+        "path": "/plugin/cms/sites",
+        "name": "Plugin_cms_Sites",
+        "component": "Sites",
+        "meta": {
+          "title": "站点管理",
+          "permission": "cms:sites:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/categories",
+        "name": "Plugin_cms_Categories",
+        "component": "Categories",
+        "meta": {
+          "title": "栏目管理",
+          "permission": "cms:categories:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/content",
+        "name": "Plugin_cms_Content",
+        "component": "Content",
+        "meta": {
+          "title": "内容管理",
+          "permission": "cms:content:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/menus",
+        "name": "Plugin_cms_Menus",
+        "component": "Menus",
+        "meta": {
+          "title": "导航管理",
+          "permission": "cms:menus:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/tags",
+        "name": "Plugin_cms_Tags",
+        "component": "Tags",
+        "meta": {
+          "title": "模板标签",
+          "permission": "cms:tags:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/models",
+        "name": "Plugin_cms_Models",
+        "component": "Models",
+        "meta": {
+          "title": "内容模型",
+          "permission": "cms:models:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/access",
+        "name": "Plugin_cms_Access",
+        "component": "Access",
+        "meta": {
+          "title": "站点权限",
+          "permission": "cms:access:index"
+        }
+      },
+      {
+        "path": "/plugin/cms/contributions",
+        "name": "Plugin_cms_Contributions",
+        "component": "Contributions",
+        "meta": {
+          "title": "会员投稿",
+          "permission": "cms:contributions:index"
+        }
+      }
+    ]
+  },
+  "serverHooks": [
+    {
+      "id": "sitePermissions",
+      "type": "filter",
+      "point": "admin.permission_codes",
+      "file": "hooks/permissions.php",
+      "handler": "scope",
+      "priority": 100
+    }
+  ]
+}

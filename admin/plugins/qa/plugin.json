@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "code": "qa",
+  "name": "问答社区",
+  "description": "会员提问、回答、审核与作者采纳，复用 CMS 投稿和站点权限",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {
+      "cms": ">=1.3.0"
+    }
+  },
+  "entry": {
+    "class": "plugins\\qa\\Plugin",
+    "file": "Plugin.php"
+  },
+  "migrations": {
+    "path": "database/migrations"
+  },
+  "storage": {
+    "path": "storage"
+  },
+  "purge": {
+    "supported": false
+  },
+  "adminWeb": {
+    "source": "web/src/admin/modules/qa",
+    "components": {
+      "Moderation": "pages/Moderation.vue"
+    },
+    "minFrontendVersion": "1.0.0",
+    "permissions": [
+      {
+        "code": "qa:moderation:index",
+        "name": "查看问答投稿"
+      },
+      {
+        "code": "qa:moderation:review",
+        "name": "审核问答投稿"
+      }
+    ],
+    "menu": [
+      {
+        "name": "问答社区",
+        "path": "/plugin/qa",
+        "menulist": [
+          {
+            "name": "问答审核",
+            "path": "/plugin/qa/moderation",
+            "permission": "qa:moderation:index"
+          }
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "path": "/plugin/qa/moderation",
+        "name": "Plugin_qa_Moderation",
+        "component": "Moderation",
+        "meta": {
+          "title": "问答审核",
+          "permission": "qa:moderation:index"
+        }
+      }
+    ]
+  }
+}

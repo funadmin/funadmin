@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace Tests\Cms;
 require_once __DIR__.'/CmsTestCase.php';
 use app\common\plugin\sdk\{Manifest,PluginActivationCompiler,PluginActivationReader};
-use app\common\middleware\PluginApplicationGuard;
+use app\common\middleware\PluginApplicationGuardMiddleware;
 use app\admin\plugin\service\PluginAppPublicationService;
 use Webman\{Route,Finder\FileInfo};
 final class LifecycleTest extends CmsTestCase
@@ -25,7 +25,7 @@ final class LifecycleTest extends CmsTestCase
             $publisher->publish(Manifest::fromDirectory($source),'cms-publication');$publisher->complete('cms-publication');
             self::assertFileExists($root.'/app/cms/controller/Index.php');self::assertFileExists($root.'/app/admin/plugins/cms/controller/Content.php');self::assertFileExists($root.'/app/cms/view/default/detail.html');
             $compiler=new PluginActivationCompiler($root.'/activation',dirname($source));$compiler->compile(['cms'=>['code'=>'cms','version'=>'1.0.0','status'=>0,'lifecycle_state'=>'disabled']],[]);
-            $guard=new PluginApplicationGuard(new PluginActivationReader($root.'/activation'),dirname($source));
+            $guard=new PluginApplicationGuardMiddleware(new PluginActivationReader($root.'/activation'),dirname($source));
             foreach(['/cms/about.html','/admin/plugin/cms/content'] as $path)self::assertSame(404,$guard->process(new \support\Request("GET $path HTTP/1.1\r\nHost: cms.test\r\n\r\n"),static fn()=>response('should not run'))->getStatusCode());
         } finally {
             $iterator=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root,\FilesystemIterator::SKIP_DOTS),\RecursiveIteratorIterator::CHILD_FIRST);foreach($iterator as $file)$file->isDir()&&!$file->isLink()?rmdir($file->getPathname()):unlink($file->getPathname());rmdir($root);

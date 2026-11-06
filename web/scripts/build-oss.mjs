@@ -1,0 +1,11 @@
+import { build } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import Components from 'unplugin-vue-components/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import os from 'node:os';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const outDir=path.join(os.tmpdir(),`funadmin-oss-build-${process.pid}`);
+await build({root,configFile:false,plugins:[vue(),Components({dts:false,resolvers:[ElementPlusResolver()]})],build:{outDir,emptyOutDir:true,lib:{entry:path.resolve(root,'../admin/plugins/oss/web/src/admin/modules/oss/pages/Index.vue'),name:'OssStorage',formats:['es'],fileName:'oss-admin'},rollupOptions:{external:id=>(id==='vue'||id==='vue-router')||/^element-plus(?:\/|$)/.test(id)||id.startsWith('@/')}},logLevel:'warn'});
+process.stdout.write(`OSS source production compilation passed: ${outDir}\n`);

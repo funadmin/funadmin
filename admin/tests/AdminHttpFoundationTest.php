@@ -7,11 +7,11 @@ namespace Tests;
 use app\BaseController;
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\PermissionResource;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\common\http\AdminResponse;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
+use app\admin\middleware\CheckAdminApiCsrfMiddleware;
+use app\admin\middleware\CheckAdminApiRoleMiddleware;
+use app\admin\middleware\SystemLogMiddleware;
 use app\common\http\JsonEnvelope;
 use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -40,6 +40,18 @@ final class AdminHttpFoundationTest extends TestCase
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/http/AdminResponse.php');
     }
 
+    public function test_admin_and_api_base_controllers_live_in_common_controller_without_legacy_classes(): void
+    {
+        $common = realpath(__DIR__ . '/../app/common/controller');
+        self::assertSame($common . '/AdminController.php', (new \ReflectionClass('app\\common\\controller\\AdminController'))->getFileName());
+        self::assertSame($common . '/ApiController.php', (new \ReflectionClass('app\\common\\controller\\ApiController'))->getFileName());
+        self::assertTrue(is_subclass_of('app\\common\\controller\\AdminController', BaseController::class));
+        foreach (['app\\admin\\controller\\base\\AdminApiController', 'app\\admin\\common\\controller\\BaseController', 'app\\common\\controller\\Api'] as $legacy) {
+            self::assertFalse(class_exists($legacy), $legacy);
+        }
+        self::assertDirectoryDoesNotExist(__DIR__ . '/../app/admin/common/controller');
+    }
+
     public function test_json_envelope_uses_webman_status_and_preserves_unicode(): void
     {
         $response = JsonEnvelope::create('参数错误', ['name' => '中文'], 422, 200, ['X-Test' => 'value']);
@@ -60,7 +72,7 @@ final class AdminHttpFoundationTest extends TestCase
     {
         $first = new Request("GET /admin/example?page=2 HTTP/1.1\r\n\r\n");
         Context::set(\Webman\Http\Request::class, $first);
-        $controller = new class extends AdminApiController {
+        $controller = new class extends AdminController {
             public function currentPage(): int { return $this->page(); }
             public function result(): Response { return $this->ok(data: ['page' => $this->page()]); }
         };
@@ -93,25 +105,25 @@ final class AdminHttpFoundationTest extends TestCase
 
     public function test_security_middlewares_implement_webman_process_contract(): void
     {
-        foreach ([CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class] as $class) {
+        foreach ([CheckAdminApiRoleMiddleware::class, CheckAdminApiCsrfMiddleware::class, SystemLogMiddleware::class] as $class) {
             self::assertTrue(is_subclass_of($class, MiddlewareInterface::class), $class);
         }
     }
 
     public function test_admin_base_declares_each_security_middleware_once(): void
     {
-        $attributes = (new \ReflectionClass(AdminApiController::class))->getAttributes(\support\annotation\Middleware::class);
+        $attributes = (new \ReflectionClass(AdminController::class))->getAttributes(\support\annotation\Middleware::class);
         self::assertCount(1, $attributes);
         self::assertSame([
-            [CheckAdminApiRole::class, 'process'],
-            [CheckAdminApiCsrf::class, 'process'],
-            [SystemLog::class, 'process'],
+            [CheckAdminApiRoleMiddleware::class, 'process'],
+            [CheckAdminApiCsrfMiddleware::class, 'process'],
+            [SystemLogMiddleware::class, 'process'],
         ], $attributes[0]->newInstance()->getMiddlewares());
     }
 
     public function test_native_callback_executes_inherited_security_chain_before_controller(): void
     {
-        $controller = new class extends AdminApiController {
+        $controller = new class extends AdminController {
             public function index(): Response { return $this->ok(data: ['shouldNotRun' => true]); }
         };
         $class = get_class($controller);
@@ -130,7 +142,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request = new Request("GET /admin/system/role?admin_id=1 HTTP/1.1\r\nX-Admin-Id: 1\r\n\r\n");
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';
-        $response = (new CheckAdminApiRole())->process($request, static function (): Response {
+        $response = (new CheckAdminApiRoleMiddleware())->process($request, static function (): Response {
             self::fail('匿名请求不得进入控制器');
         });
         self::assertSame(401, $response->getStatusCode());
@@ -202,7 +214,7 @@ final class AdminHttpFoundationTest extends TestCase
         (new MigrationService())->run();
         $auth = new BrowserAuthService();
         $session = $auth->bootstrap('');
-        $middleware = new CheckAdminApiCsrf();
+        $middleware = new CheckAdminApiCsrfMiddleware();
         foreach (['', 'wrong'] as $token) {
             $request = new Request("PUT /admin/example HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . '=' . $session['cookie'] . "\r\nX-CSRF-TOKEN: $token\r\n\r\n");
             self::assertSame(403, $middleware->process($request, static function (): Response {
@@ -225,7 +237,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request = new Request("GET /admin/system/role HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . "=$cookie\r\n\r\n");
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';
-        $middleware = new CheckAdminApiRole();
+        $middleware = new CheckAdminApiRoleMiddleware();
         $handler = static fn (): Response => new Response(204);
         self::assertSame(403, $middleware->process($request, $handler)->getStatusCode());
         self::assertArrayNotHasKey('admin', $request->context);
@@ -253,7 +265,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'create';
         $request->context['admin'] = ['id' => 7, 'username' => 'operator'];
-        $response = (new SystemLog())->process($request, static fn (): Response => AdminResponse::create('参数错误', null, 422));
+        $response = (new SystemLogMiddleware())->process($request, static fn (): Response => AdminResponse::create('参数错误', null, 422));
         self::assertSame(200, $response->getStatusCode());
         $row = Db::table('admin_log')->first();
         self::assertNotNull($row);
@@ -275,7 +287,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';
         $expected = new Response(202, [], 'accepted');
-        self::assertSame($expected, (new SystemLog())->process($request, static fn (): Response => $expected));
+        self::assertSame($expected, (new SystemLogMiddleware())->process($request, static fn (): Response => $expected));
     }
 
     public function test_audit_failure_does_not_replace_original_exception(): void
@@ -285,7 +297,7 @@ final class AdminHttpFoundationTest extends TestCase
         $request->action = 'create';
         $expected = new \DomainException('业务失败', 409);
         try {
-            (new SystemLog())->process($request, static function () use ($expected): never { throw $expected; });
+            (new SystemLogMiddleware())->process($request, static function () use ($expected): never { throw $expected; });
             self::fail('必须保持原始异常');
         } catch (\DomainException $actual) {
             self::assertSame($expected, $actual);
@@ -300,7 +312,7 @@ final class AdminHttpFoundationTest extends TestCase
         $auth = new BrowserAuthService();
         $anonymous = $auth->bootstrap('');
         $session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'root', $password, '127.0.0.1');
-        $middleware = new CheckAdminApiRole();
+        $middleware = new CheckAdminApiRoleMiddleware();
         $request = new Request("GET /admin/system/role HTTP/1.1\r\nCookie: " . BrowserAuthService::COOKIE . '=' . $session['cookie'] . "\r\n\r\n");
         $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
         $request->action = 'index';

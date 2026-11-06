@@ -88,4 +88,18 @@ final class ContentTest extends CmsTestCase
         self::assertSame('detail',$service->save($site['id'],'zh-cn',array_replace($base,['desired_path'=>'/template-three','category_id'=>$category['id'],'template'=>'detail']),'1')['revision']['template']);
     }
 
+    public function test_required_gallery_rejects_empty_arrays(): void
+    {
+        $models=new \app\cms\service\ModelService();$model=$models->save(['code'=>'requiredgallery','name'=>'Required gallery','fields'=>[['name'=>'pictures','type'=>'gallery','required'=>true]]]);
+        $version=(string)Db::table('cms_model_version')->where('model_id',$model['id'])->value('id');
+        $this->expectException(\InvalidArgumentException::class);
+        $models->validate($version,['pictures'=>[]]);
+    }
+    public function test_optional_gallery_can_be_empty_and_false_or_zero_still_satisfy_required_fields(): void
+    {
+        $models=new \app\cms\service\ModelService();$model=$models->save(['code'=>'optionalvalues','name'=>'Optional gallery','fields'=>[['name'=>'pictures','type'=>'gallery'],['name'=>'enabled','type'=>'boolean','required'=>true],['name'=>'count','type'=>'number','required'=>true]]]);
+        $version=(string)Db::table('cms_model_version')->where('model_id',$model['id'])->value('id');
+        self::assertSame(['pictures'=>[],'enabled'=>false,'count'=>0.0],$models->validate($version,['pictures'=>[],'enabled'=>false,'count'=>0]));
+    }
+
 }

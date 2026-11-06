@@ -1,12 +1,15 @@
 import axios from 'axios';
 import { memberSession } from '@/web/session/memberSession';
+import { backendOrigin } from './backendOrigin';
+import { i18n } from '@/locales';
 
 const service = axios.create({
-  baseURL: '/api',
+  baseURL: `${backendOrigin}/api`,
   timeout: 30_000
 });
 
 service.interceptors.request.use((config) => {
+  config.headers['X-Locale'] = i18n.global.locale.value;
   const token = memberSession.accessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

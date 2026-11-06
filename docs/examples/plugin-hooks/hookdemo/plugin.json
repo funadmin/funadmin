@@ -23,7 +23,7 @@
     "menu": [],
     "routes": []
   },
-  "backendHooks": [
+  "serverHooks": [
     {
       "id": "upload-notification",
       "point": "upload.completed",
@@ -46,7 +46,7 @@
       "handler": "decorate"
     }
   ],
-  "frontendHooks": [
+  "clientHooks": [
     {
       "id": "card",
       "point": "dashboard.cards",

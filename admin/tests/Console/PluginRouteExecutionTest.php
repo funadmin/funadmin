@@ -109,11 +109,12 @@ final class PluginRouteExecutionTest extends TestCase
 
 namespace app\admin\plugins\routefixture\controller;
 
-final class PermissionFixture extends \app\admin\controller\base\AdminApiController
+final class PermissionFixture extends \app\common\controller\AdminController
 {
-    #[\app\common\plugin\sdk\PluginPermission('routefixture:item:list')]
+    #[\app\common\annotation\Permission('routefixture:item:list')]
     public function read(): \support\Response { return $this->ok(); }
     public function undeclared(): \support\Response { return $this->ok(); }
-    #[\app\common\plugin\sdk\PluginPermission('other:item:list')]
+    // 声明其它插件命名空间的权限码：必须拒绝。
+    #[\app\common\annotation\Permission('other:item:list')]
     public function foreign(): \support\Response { return $this->ok(); }
 }

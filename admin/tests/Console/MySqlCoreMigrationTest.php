@@ -66,9 +66,10 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('ai_task'));
         self::assertTrue(Db::schema()->hasTable('identity_tenant'));
         self::assertTrue(Db::schema()->hasTable('plugin'));
+        self::assertTrue(Db::schema()->hasColumn('plugin', 'composer_conflict_ack'));
         foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_token', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertTrue(Db::schema()->hasTable($table), '缺少市场运行时结构：' . $table);
         foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->exists(), $code);
-        require_once base_path('app/common.php');
+        require_once base_path('app/functions.php');
         Db::beginTransaction();
         try {
             $request = new \support\Request("POST /api/v3/auth/register HTTP/1.1\r\n\r\n");
@@ -612,14 +613,14 @@ final class MySqlCoreMigrationTest extends TestCase
             $signer = new \app\admin\system\service\UpgradeManifestVerifier(base64_encode(sodium_crypto_sign_publickey($keys)));
             $files = ['app/core-version.php' => hash('sha256', '<?php return "core-fixture";')];
             $checksums = $audit->manifest()['checksums'];
-            foreach ($checksums as $name => $hash) $files['database/migrations/' . $name] = $hash;
+            foreach ($checksums as $name => $hash) $files['database/core/migrations/' . $name] = $hash;
             $manifest = ['version' => '99.0.0', 'files' => $files, 'coreMigrations' => $checksums];
             $manifest['signature'] = ['algorithm' => 'ed25519', 'value' => base64_encode(sodium_crypto_sign_detached($signer->canonicalPayload($manifest), sodium_crypto_sign_secretkey($keys)))];
             $archive = $upgradeRoot . '/release.zip';
             $zip = new \ZipArchive();
             self::assertTrue($zip->open($archive, \ZipArchive::CREATE));
             $zip->addFromString('app/core-version.php', '<?php return "core-fixture";');
-            foreach ($checksums as $name => $hash) $zip->addFile($directory . '/' . $name, 'database/migrations/' . $name);
+            foreach ($checksums as $name => $hash) $zip->addFile($directory . '/' . $name, 'database/core/migrations/' . $name);
             $zip->addFromString('upgrade.json', json_encode($manifest, JSON_THROW_ON_ERROR));
             $zip->close();
             $beforeUpgrade = $audit->inspect(Db::connection());

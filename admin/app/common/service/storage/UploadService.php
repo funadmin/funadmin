@@ -50,6 +50,8 @@ class UploadService extends AbstractService
     /**
      * @var int
      */
+    protected bool $lastReused = false;
+
     protected int $duration = 0;
     /**
      * @var int
@@ -78,7 +80,7 @@ class UploadService extends AbstractService
     {
         $this->rule = syscfg('upload','upload_file_rule')?:'';
         $this->storageDrivers = Container::get(StorageDriverRegistry::class);
-        $this->driver = $this->storageDrivers->resolve((string) syscfg('upload', 'upload_driver'))->name();
+
         $configuredTypes = strtolower((string) syscfg('upload', 'upload_file_type'));
         $listed = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $configuredTypes) ?: []));
         if ($configuredTypes === '*' || !$listed) {
@@ -91,10 +93,8 @@ class UploadService extends AbstractService
     }
 
     /**
-     * @return \think\response\Json
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @return array
+     * @throws Exception
      * 文件上传总入口 集成qiniu alioss tenxunoss
      */
     public function uploads($uid,$adminid)
@@ -144,6 +144,7 @@ class UploadService extends AbstractService
                 $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
                 $result['success'] = 1; //兼容editormd
                 $result['id'] = $attach->id;
+                $result['reused'] = $this->lastReused;
                 $result['fileType'] = $type;
                 $result["url"] = $attach->path;
             }
@@ -275,6 +276,7 @@ class UploadService extends AbstractService
 
         $this->file = $file?:$this->file;
         $saveFilePath = input('path','uploads') =='undefined' ? $this->saveFilePath : $this->sanitizeSavePath((string) input('path', 'uploads'));
+        $this->width = $this->height = $this->duration = 0;
         // 落库前强制校验扩展名：直传与分片两条路径都经过这里
         $this->checkFile();
         $ext = $this->safeExt((string) $this->file->getUploadExtension());
@@ -292,15 +294,17 @@ class UploadService extends AbstractService
             'sha1' => hash_file('sha1', $source),
             'mime' => (new \finfo(FILEINFO_MIME_TYPE))->file($source),
         ];
-        $storageDriver = $this->storageDrivers->resolve($this->driver);
+        $storageDriver = $this->storageDrivers->forUpload((string) syscfg('upload', 'upload_driver'));
         $attach = AttachModel::where('driver', $storageDriver->name())->where('md5', $metadata['md5'])->first();
         $reused = $attach !== null;
+        $this->lastReused = $reused;
         if(!$attach) {
+            if ($this->width && $storageDriver->name() !== 'local') $this->applyWatermarkAt($source, (array) syscfg('upload'));
             $storedFile = $storageDriver->store($this->file, $saveFilePath, $this->rule);
             $path = $storedFile->url;
             try {
                 // 整合上传接口 获取视频音频长度
-                $analyzeFileInfo = Event::dispatch('getID3Hook', ['path' => public_path(ltrim($path, '/'))], true);
+                $analyzeFileInfo = Event::dispatch('getID3Hook', ['path' => $storageDriver->name() === 'local' ? public_path(ltrim($path, '/')) : $source], true);
                 if ($analyzeFileInfo) {
                     $analyzeFileInfo = is_string($analyzeFileInfo) ? unserialize($analyzeFileInfo, ['allowed_classes' => false]) : $analyzeFileInfo;
                     $this->duration = (int) ($analyzeFileInfo['playtime_seconds'] ?? 0);
@@ -330,7 +334,11 @@ class UploadService extends AbstractService
                 ];
                 $attach = AttachModel::forceCreate($data);
             } catch (\Throwable $e) {
-                $storageDriver->delete($storedFile->key);
+                try {
+                    if (!$storageDriver->delete($storedFile->key)) throw new \RuntimeException('cleanup failed');
+                } catch (\Throwable) {
+                    error_log(json_encode(['event'=>'upload.cleanup_failed','driver'=>$storageDriver->name(),'key'=>$storedFile->key]));
+                }
                 throw $e;
             }
         }
@@ -364,7 +372,6 @@ class UploadService extends AbstractService
     protected function checkFile()
     {
         //禁止上传可执行/脚本类文件（小写净化后比对，避免大小写绕过）
-        $this->width = $this->height = $this->duration = 0;
         if (!$this->file instanceof UploadedFile || !$this->file->isValid()) {
             throw new Exception('上传文件无效');
         }
@@ -441,22 +448,29 @@ class UploadService extends AbstractService
             if ($root === false || !str_starts_with($path, $baseUrl . '/')) throw new Exception('水印文件路径无效');
             $target = realpath($root . '/' . substr($path, strlen($baseUrl) + 1));
             if ($target === false || !str_starts_with($target, $root . '/')) throw new Exception('水印文件路径无效');
-            $image = (new \Intervention\Image\ImageManager(\Intervention\Image\Drivers\Gd\Driver::class))->decodePath($target);
-            $positions = [1 => 'top-left', 2 => 'top', 3 => 'top-right', 4 => 'left', 5 => 'center', 6 => 'right', 7 => 'bottom-left', 8 => 'bottom', 9 => 'bottom-right'];
-            if ((int) $water['upload_water'] === 1) {
-                $mark = realpath(public_path(ltrim((string) ($water['upload_water_thumb'] ?? ''), '/')));
-                $public = realpath(public_path());
-                if ($mark === false || $public === false || !str_starts_with($mark, $public . '/')) throw new Exception('水印图片不存在');
-                $image->insert($mark, alignment: $positions[(int) ($water['upload_water_position'] ?? 9)] ?? 'bottom-right', transparency: max(0, min(100, (int) ($water['upload_water_alpha'] ?? 100))) / 100);
-            } elseif ((int) $water['upload_water'] === 2) {
-                $fontPath = public_path('assets/fonts/simhei.ttf');
-                if (!is_file($fontPath)) throw new Exception('文字水印字体文件不存在：public/assets/fonts/simhei.ttf');
-                $image->text((string) ($water['upload_water_thumb'] ?? ''), $this->width - 10, $this->height - 10, static function (\Intervention\Image\Typography\FontFactory $font) use ($fontPath, $water): void {
-                    $font->file($fontPath)->size((float) ($water['upload_water_size'] ?? 20))->color((string) ($water['upload_water_color'] ?? '#ffffff'))->align('right', 'bottom');
-                });
-            }
-            $image->save($target);
+            $this->applyWatermarkAt($target, $water);
         }
+    }
+
+    /** Apply configured processing before a remote driver reads the upload temporary file. */
+    protected function applyWatermarkAt(string $target, array $water): void
+    {
+        if (empty($water['upload_water'])) return;
+        $image = (new \Intervention\Image\ImageManager(\Intervention\Image\Drivers\Gd\Driver::class))->decodePath($target);
+        $positions = [1 => 'top-left', 2 => 'top', 3 => 'top-right', 4 => 'left', 5 => 'center', 6 => 'right', 7 => 'bottom-left', 8 => 'bottom', 9 => 'bottom-right'];
+        if ((int) $water['upload_water'] === 1) {
+            $mark = realpath(public_path(ltrim((string) ($water['upload_water_thumb'] ?? ''), '/')));
+            $public = realpath(public_path());
+            if ($mark === false || $public === false || !str_starts_with($mark, $public . '/')) throw new Exception('水印图片不存在');
+            $image->insert($mark, alignment: $positions[(int) ($water['upload_water_position'] ?? 9)] ?? 'bottom-right', transparency: max(0, min(100, (int) ($water['upload_water_alpha'] ?? 100))) / 100);
+        } elseif ((int) $water['upload_water'] === 2) {
+            $fontPath = public_path('assets/fonts/simhei.ttf');
+            if (!is_file($fontPath)) throw new Exception('文字水印字体文件不存在：public/assets/fonts/simhei.ttf');
+            $image->text((string) ($water['upload_water_thumb'] ?? ''), $this->width - 10, $this->height - 10, static function (\Intervention\Image\Typography\FontFactory $font) use ($fontPath, $water): void {
+                $font->file($fontPath)->size((float) ($water['upload_water_size'] ?? 20))->color((string) ($water['upload_water_color'] ?? '#ffffff'))->align('right', 'bottom');
+            });
+        }
+        $image->encodeUsingFileExtension(strtolower($this->file->getUploadExtension()))->save($target);
     }
 
 }

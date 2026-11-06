@@ -6,7 +6,7 @@ namespace app\admin\authorization\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\ResourceRegistryService;
@@ -21,7 +21,7 @@ use support\Response;
  * 后台菜单接口。
  */
 #[RouteGroup('/admin/system/menu')]
-class SystemMenu extends AdminApiController
+class SystemMenu extends AdminController
 {
 
 

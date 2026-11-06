@@ -8,7 +8,7 @@ use OpenApi\Annotations as OA;
 
 use app\common\model\identity\OAuthScope;
 use app\common\service\identity\AdminIdentityAdapter;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
@@ -21,7 +21,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
  * OAuth Scope接口。
  */
 #[RouteGroup('/admin/identity/scopes')]
-final class ScopeClaim extends AdminApiController
+final class ScopeClaim extends AdminController
 {
     /**
      * 分页查询当前租户的 OAuth Scope。

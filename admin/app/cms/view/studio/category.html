@@ -1,0 +1,3 @@
+{cms:include file="partials/header" /}
+<section class="container page-intro" data-template="category">{cms:include file="partials/breadcrumb" /}<span class="eyebrow">EXPLORE OUR WORLD</span><h1>{$category.name}</h1><p>{cms:if test="$category.description"}{$category.description}{cms:else /}{$ui.category_intro}{/cms:if}</p></section>
+{cms:include file="partials/listing" /}{cms:include file="partials/footer" /}

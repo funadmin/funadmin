@@ -6,7 +6,7 @@ namespace app\admin\plugins\example\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\plugins\example\model\Test;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\plugins\example\service\TestService;
@@ -19,13 +19,12 @@ use support\annotation\route\Post;
 use support\annotation\route\Put;
 use Illuminate\Database\Eloquent\Model;
 use support\Response;
-use app\common\plugin\sdk\PluginPermission;
 
 /**
  * 示例插件测试记录接口。
  */
 #[Group('/admin/plugin/example/test')]
-final class TestController extends AdminApiController
+final class TestController extends AdminController
 {
     use Crud {
         index as private crudIndex; index as private;
@@ -69,7 +68,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Get('')]
-    #[PluginPermission('example:test:list')]
     public function index(): Response { return $this->crudIndex(); }
 
     /**
@@ -95,7 +93,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Get('/{id:\d+}')]
-    #[PluginPermission('example:test:detail')]
     public function detail(int|string $id): Response { return $this->crudDetail($id); }
 
     /**
@@ -118,7 +115,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Post('')]
-    #[PluginPermission('example:test:create')]
     public function create(): Response { return $this->crudCreate(); }
 
     /**
@@ -144,7 +140,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Put('/{id:\d+}')]
-    #[PluginPermission('example:test:update')]
     public function update(int|string $id): Response { return $this->crudUpdate($id); }
 
     /**
@@ -170,7 +165,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Delete('/{id:\d+}')]
-    #[PluginPermission('example:test:delete')]
     public function remove(int|string $id): Response { return $this->crudRemove($id); }
 
     /**
@@ -196,7 +190,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Post('/{id:\d+}/restore')]
-    #[PluginPermission('example:test:restore')]
     public function restore(int|string $id): Response { return $this->crudRestoreOne($id); }
 
     /**
@@ -222,7 +215,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Delete('/{id:\d+}/destroy')]
-    #[PluginPermission('example:test:destroy')]
     public function destroy(int|string $id): Response { return $this->crudDestroyOne($id); }
 
     /**
@@ -249,7 +241,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Delete('')]
-    #[PluginPermission('example:test:batch-delete')]
     public function recycle(): Response { return $this->crudRecycle(); }
 
     /**
@@ -272,7 +263,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Post('/restore')]
-    #[PluginPermission('example:test:batch-restore')]
     public function restoreMany(): Response { return $this->crudRestoreMany(); }
 
     /**
@@ -295,7 +285,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Delete('/destroy')]
-    #[PluginPermission('example:test:batch-destroy')]
     public function destroyMany(): Response { return $this->crudDestroyMany(); }
 
     /**
@@ -322,7 +311,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Post('/import')]
-    #[PluginPermission('example:test:import')]
     public function import(): Response { return $this->crudImport(); }
 
     /**
@@ -350,7 +338,6 @@ final class TestController extends AdminApiController
      * )
      */
     #[Get('/export')]
-    #[PluginPermission('example:test:export')]
     public function export(): Response { return $this->crudExport(); }
 
     protected function searchFields(): array { return array (

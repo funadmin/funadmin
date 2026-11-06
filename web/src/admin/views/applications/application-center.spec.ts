@@ -11,7 +11,7 @@ import {
 } from '@/api/identity/applications';
 import { getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 
-const src = resolve(process.cwd(), 'src');
+const src = resolve(process.cwd(), 'src/admin');
 const read = (path: string) => readFileSync(resolve(src, path), 'utf8');
 
 describe('企业应用中心', () => {
@@ -90,7 +90,7 @@ describe('企业应用中心', () => {
     const mock = read('mock/modules/applications.ts');
     expect(mock).toContain('enterpriseApplicationMockHandlers');
     expect(mock).toContain("method: 'DELETE'");
-    expect(read('locales/zh-CN.ts')).toContain('enterpriseApplications:');
-    expect(read('locales/en-US.ts')).toContain('enterpriseApplications:');
+    expect(read('../shared/locales/zh-CN.ts')).toContain('enterpriseApplications:');
+    expect(read('../shared/locales/en-US.ts')).toContain('enterpriseApplications:');
   });
 });

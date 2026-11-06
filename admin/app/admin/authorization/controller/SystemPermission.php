@@ -6,7 +6,7 @@ namespace app\admin\authorization\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
@@ -27,7 +27,7 @@ use InvalidArgumentException;
  * Admin Web 权限资源管理。
  */
 #[RouteGroup('/admin/system/permission')]
-class SystemPermission extends AdminApiController
+class SystemPermission extends AdminController
 {
 
     /**

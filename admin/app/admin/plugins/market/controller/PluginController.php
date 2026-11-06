@@ -6,10 +6,7 @@ namespace app\admin\plugins\market\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\plugin\middleware\CheckPluginPermission;
-use app\admin\middleware\SystemLog;
+use app\common\controller\AdminController;
 use app\admin\plugins\market\service\MarketAdminService;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -22,13 +19,8 @@ use support\Response;
  * 市场插件接口。
  */
 #[RouteGroup('/admin/plugin/market/plugin')]
-final class PluginController extends AdminApiController
+final class PluginController extends AdminController
 {
-    protected array $middleware = [
-        CheckPluginPermission::class,
-        CheckAdminApiCsrf::class,
-        SystemLog::class,
-    ];
     /**
      * 获取插件市场运营概览。
      *

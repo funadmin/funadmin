@@ -9,7 +9,7 @@ use OpenApi\Annotations as OA;
 use app\common\form\action\FormActionRegistry;
 use app\common\form\observability\FormObservability;
 use app\common\form\validation\FormAsyncValidationException;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\form\service\FormDataService;
 use app\common\form\dataSource\FormDataSourceRegistry;
 use app\common\form\validation\FormAsyncValidatorRegistry;
@@ -27,7 +27,7 @@ use Throwable;
  * 表单数据运行态 Admin API（M3）：元数据驱动通用读写。
  */
 #[RouteGroup('/admin/form/data')]
-final class Data extends AdminApiController
+final class Data extends AdminController
 {
 
     private readonly FormDataService $data;

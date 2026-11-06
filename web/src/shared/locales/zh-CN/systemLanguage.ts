@@ -1,0 +1,15 @@
+export default {
+    nsFilter: '命名空间',
+    title: '多语言', subtitle: '维护后台可切换的语言注册项；语言包文件仍由代码仓库管理',
+    name: '语言名称', namePlaceholder: '请输入语言名称', isDefault: '默认语言', systemProtected: '系统保护', yes: '是', no: '否', stopped: '停用', createdAt: '创建时间', updatedAt: '更新时间',
+    lines: '译文', linesTitle: '译文条目 · {locale}', addLine: '新增译文', lineValue: '译文', keyPlaceholder: '选择或输入 i18n key', valuePlaceholder: '该 key 在当前语言下的译文', keywordPlaceholder: '搜索 key / 译文',
+    inlineTip: '行内修改失焦即保存；保存后当前语言译文包即时刷新。', save: '保存',
+    deleteOneConfirm: '确认删除语言“{name}”吗？', deleteManyConfirm: '确认删除选中的 {n} 个语言吗？', deleteConfirmTitle: '删除确认',
+    deleteLineConfirm: '确认删除译文 {key}？删除后该 key 回落静态语言包。', batchDeleteConfirmTitle: '批量删除确认',
+    dialogAdd: '新增语言',
+    dialogEdit: '编辑语言',
+    nameEg: '如 zh-cn、en-us',
+    nameMax: '最多 20 个字符',
+    nameRequired: '请输入语言名称',
+    protectedTip: '默认语言 zh-cn 由系统保护，不能重命名或删除。',
+  };

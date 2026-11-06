@@ -3,24 +3,25 @@
     <section class="member-shell">
       <RouterLink class="member-brand" to="/"><LogoMark :size="34" /><span>FunAdmin</span></RouterLink>
       <div class="member-card">
-        <div class="member-card__heading"><span class="member-kicker">JOIN FUNADMIN</span><h1>创建前台账号</h1><p>注册会员账号，开始使用 FunAdmin 的前台服务。</p></div>
+        <div class="member-card__heading"><span class="member-kicker">{{ t('community.labels.joinFunAdmin') }}</span><h1>{{ t('community.labels.createAnAccount') }}</h1><p>{{ t('community.labels.registerAsAMemberToUseFunadminSPublic') }}</p></div>
         <el-form :model="form" label-position="top" @submit.prevent="submit">
-          <el-form-item label="用户名"><el-input v-model="form.username" size="large" autocomplete="username" placeholder="4-20 位字母、数字或下划线" /></el-form-item>
-          <el-form-item label="邮箱"><el-input v-model="form.email" size="large" type="email" autocomplete="email" placeholder="name@example.com" /></el-form-item>
-          <el-form-item label="昵称"><el-input v-model="form.nickname" size="large" autocomplete="nickname" placeholder="用于展示的昵称" /></el-form-item>
-          <el-form-item label="密码"><el-input v-model="form.password" size="large" type="password" show-password autocomplete="new-password" placeholder="至少 8 位，包含字母和数字" /></el-form-item>
-          <el-form-item label="确认密码"><el-input v-model="form.password_confirm" size="large" type="password" show-password autocomplete="new-password" placeholder="再次输入密码" @keyup.enter="submit" /></el-form-item>
-          <el-button class="member-submit" type="primary" size="large" :loading="loading" @click="submit">注册并登录</el-button>
+          <el-form-item :label="t('community.labels.username')"><el-input v-model="form.username" size="large" autocomplete="username" :placeholder="t('community.labels.label420LettersNumbersOrUnderscores')" /></el-form-item>
+          <el-form-item :label="t('community.labels.email')"><el-input v-model="form.email" size="large" type="email" autocomplete="email" placeholder="name@example.com" /></el-form-item>
+          <el-form-item :label="t('community.labels.nickname')"><el-input v-model="form.nickname" size="large" autocomplete="nickname" :placeholder="t('community.labels.yourPublicDisplayName')" /></el-form-item>
+          <el-form-item :label="t('community.labels.password')"><el-input v-model="form.password" size="large" type="password" show-password autocomplete="new-password" :placeholder="t('community.labels.atLeast8CharactersIncludingLettersAndNumbers')" /></el-form-item>
+          <el-form-item :label="t('community.labels.confirmPassword')"><el-input v-model="form.password_confirm" size="large" type="password" show-password autocomplete="new-password" :placeholder="t('community.labels.enterYourPasswordAgain')" @keyup.enter="submit" /></el-form-item>
+          <el-button class="member-submit" type="primary" size="large" :loading="loading" @click="submit">{{ t('community.labels.registerAndSignIn') }}</el-button>
         </el-form>
-        <div class="member-card__footer"><span>已经有账号？</span><RouterLink to="/web/login">返回登录</RouterLink></div>
+        <div class="member-card__footer"><span>{{ t('community.labels.alreadyHaveAnAccount') }}</span><RouterLink to="/web/login">{{ t('community.labels.backToSignIn') }}</RouterLink></div>
       </div>
-      <RouterLink class="member-back" to="/">返回官网首页</RouterLink>
+      <RouterLink class="member-back" to="/">{{ t('community.labels.backToHome') }}</RouterLink>
     </section>
     <div class="member-decoration member-decoration--one" /><div class="member-decoration member-decoration--two" />
   </main>
 </template>
 
 <script setup lang="ts">
+import { useCmsI18n } from '@/composables/useCmsI18n';
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -28,23 +29,24 @@ import LogoMark from '@/components/LogoMark.vue';
 import { memberAuthApi } from '@/web/api/memberAuth';
 import { memberSession } from '@/web/session/memberSession';
 
+const { t } = useCmsI18n();
 const router = useRouter();
 const loading = ref(false);
 const form = reactive({ username: '', email: '', nickname: '', password: '', password_confirm: '' });
 
 async function submit() {
   if (!form.username.trim() || !form.email.trim() || !form.password || form.password !== form.password_confirm) {
-    ElMessage.warning('请完整填写注册信息，并确认两次密码一致');
+    ElMessage.warning(t('community.labels.completeAllRegistrationFieldsAndMakeSureThePasswords'));
     return;
   }
   loading.value = true;
   try {
     const result = await memberAuthApi.register(form);
     memberSession.save(result);
-    ElMessage.success('注册成功，欢迎加入');
+    ElMessage.success(t('community.labels.registrationSuccessfulWelcome'));
     await router.replace('/web/profile');
   } catch (error: any) {
-    ElMessage.error(error?.msg || error?.message || '注册失败，请检查填写内容');
+    ElMessage.error(error?.msg || error?.message || t('community.labels.registrationFailedCheckYourInformation'));
   } finally {
     loading.value = false;
   }

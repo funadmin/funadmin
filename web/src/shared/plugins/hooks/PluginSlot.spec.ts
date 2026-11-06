@@ -8,7 +8,7 @@ it('renders context, isolates broken components, unmounts on clear', async () =>
                     throw Error('bad');
                 } }) }) }, () => {
     });
-    r.sync([{ code: 'a', version: '1', components: { good: 'card.vue', bad: 'bad.vue' }, frontendHooks: [{ id: 'bad', point: 'cards', type: 'component', component: 'bad' }, { id: 'good', point: 'cards', type: 'component', component: 'good' }] }], 'x');
+    r.sync([{ code: 'a', version: '1', components: { good: 'card.vue', bad: 'bad.vue' }, clientHooks: [{ id: 'bad', point: 'cards', type: 'component', component: 'bad' }, { id: 'good', point: 'cards', type: 'component', component: 'good' }] }], 'x');
     const wrapper = mount(PluginSlot, { props: { name: 'cards', runtime: r, context: { label: 'hello' } } });
     await flushPromises();
     expect(wrapper.text()).toBe('hello');
@@ -20,7 +20,7 @@ it('renders context, isolates broken components, unmounts on clear', async () =>
 
 function slotRuntime(loader: () => Promise<any>) {
     const runtime = new HookRuntime({ '/src/admin/modules/a/card.vue': loader }, () => {});
-    runtime.sync([{ code: 'a', version: '1', components: { card: 'card.vue' }, frontendHooks: [{ id: 'card', point: 'cards', type: 'component', component: 'card' }] }], 'admin:1');
+    runtime.sync([{ code: 'a', version: '1', components: { card: 'card.vue' }, clientHooks: [{ id: 'card', point: 'cards', type: 'component', component: 'card' }] }], 'admin:1');
     return runtime;
 }
 function widget(cleanup: () => void, mounted: () => void = () => {}) {
@@ -130,7 +130,7 @@ it('does not load revised contributions while the slot is deactivated', async ()
     await flushPromises();
     visible.value = false;
     await flushPromises();
-    runtime.sync([{ code: 'a', version: '2', components: { card: 'card.vue' }, frontendHooks: [{ id: 'card', point: 'cards', type: 'component', component: 'card' }] }], 'admin:1');
+    runtime.sync([{ code: 'a', version: '2', components: { card: 'card.vue' }, clientHooks: [{ id: 'card', point: 'cards', type: 'component', component: 'card' }] }], 'admin:1');
     await flushPromises();
     expect(loader).toHaveBeenCalledTimes(1);
     visible.value = true;

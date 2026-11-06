@@ -86,8 +86,8 @@ final class UpgradePackageVerifier
         if (!is_array($declared) || !isset($declared['001_baseline.sql'])) throw new RuntimeException('升级包缺少核心 SQL 完整版本清单');
         $payload = [];
         foreach ($manifest['files'] ?? [] as $file => $checksum) {
-            if (!str_starts_with($file, 'database/migrations/')) continue;
-            $name = substr($file, strlen('database/migrations/'));
+            if (!str_starts_with($file, 'database/core/migrations/')) continue;
+            $name = substr($file, strlen('database/core/migrations/'));
             if (preg_match('/^[0-9]+_[A-Za-z0-9_]+\.sql$/D', $name) !== 1) throw new RuntimeException('升级包核心 SQL 禁止 PHP、archive 或嵌套路径');
             $payload[$name] = $checksum;
         }
@@ -113,7 +113,7 @@ final class UpgradePackageVerifier
         $declared = $this->coreMigrationManifest($manifest);
         $directory = \app\common\service\database\MigrationService::coreDirectory();
         $current = (new \app\common\service\database\CoreDatabaseAudit($directory))->manifest()['checksums'];
-        if ($declared !== $current) throw new RuntimeException('升级包与只读核心 SQL 源不一致，请先部署发布包中的根 database');
+        if ($declared !== $current) throw new RuntimeException('升级包与只读核心 SQL 源不一致，请先部署发布包中的 admin/database/core');
         return $directory;
     }
 

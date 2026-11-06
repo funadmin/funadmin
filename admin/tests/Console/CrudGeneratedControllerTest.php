@@ -30,9 +30,9 @@ final class CrudGeneratedControllerTest extends TestCase
             $class = 'app\\admin\\controller\\generated\\ConsoleControllerController';
             $middleware = \Webman\Middleware::getMiddleware('', 'admin', [$class, 'index'], null, false);
             self::assertCount(3, $middleware);
-            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRole::class));
-            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiCsrf::class));
-            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\SystemLog::class));
+            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRoleMiddleware::class));
+            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiCsrfMiddleware::class));
+            self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\SystemLogMiddleware::class));
             $group = (new \ReflectionClass($class))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance();
             self::assertSame('/admin/generated/console-controller', $group->prefix);
             $request = new Request("POST /admin/generated/console-controller HTTP/1.1\r\n\r\n");

@@ -81,23 +81,21 @@ describe('PHP 真实生成页面消费正式宿主', () => {
       expect(() => compileScript(descriptor, { id: 'presentation', inlineTemplate: true })).not.toThrow();
     }
   });
-  it('列表和详情特殊展示均可编译，详情选项中的插值符号与引号原样显示', () => {
+  it.each(['', 'tag', 'switch', 'boolean', 'image', 'images', 'money', 'percent', 'number', 'link', 'email', 'phone', 'json', 'date', 'datetime', 'time'])('列表和详情展示 %s 均可编译，插值符号与引号原样显示', (formatter) => {
     const label = `嵌套 }} {{ "引号" '单引号' \\ & </script> scope.row.`;
-    for (const formatter of ['', 'tag', 'switch', 'boolean', 'image', 'images', 'money', 'percent', 'number', 'link', 'email', 'phone', 'json', 'date', 'datetime', 'time']) {
-      const generated = generate(false, true, true, false, true, { listFormatter: formatter, options: [{ label, value: 'chosen' }] });
-      for (const content of [generated.viewContent, generated.detailContent]) {
-        const { descriptor, errors } = parse(content);
-        expect(errors).toEqual([]);
-        expect(() => compileScript(descriptor, { id: 'special-presentation', inlineTemplate: true })).not.toThrow();
-      }
-      if (formatter === 'tag') {
-        const { descriptor } = parse(generated.detailContent);
-        const script = compileScript(descriptor, { id: 'detail-presentation', inlineTemplate: true });
-        const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, '@/views/form/runtime/fieldPresentation': fieldPresentation }).default;
-        const wrapper = mount(page, { props: { modelValue: true, row: { orderId: 42, orderTitle: 'chosen' } }, global: { stubs: { ElDrawer: box, ElDescriptions: box, ElDescriptionsItem: box, ElTag: box } } });
-        expect(wrapper.text()).toContain(label);
-        wrapper.unmount();
-      }
+    const generated = generate(false, true, true, false, true, { listFormatter: formatter, options: [{ label, value: 'chosen' }] });
+    for (const content of [generated.viewContent, generated.detailContent]) {
+      const { descriptor, errors } = parse(content);
+      expect(errors).toEqual([]);
+      expect(() => compileScript(descriptor, { id: 'special-presentation', inlineTemplate: true })).not.toThrow();
+    }
+    if (formatter === 'tag') {
+      const { descriptor } = parse(generated.detailContent);
+      const script = compileScript(descriptor, { id: 'detail-presentation', inlineTemplate: true });
+      const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, '@/views/form/runtime/fieldPresentation': fieldPresentation }).default;
+      const wrapper = mount(page, { props: { modelValue: true, row: { orderId: 42, orderTitle: 'chosen' } }, global: { stubs: { ElDrawer: box, ElDescriptions: box, ElDescriptionsItem: box, ElTag: box } } });
+      expect(wrapper.text()).toContain(label);
+      wrapper.unmount();
     }
   });
   it('安全元数据不重新引入敏感字段或关闭的列表详情字段', () => {

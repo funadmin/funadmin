@@ -1471,7 +1471,7 @@ final class FormDataService
     }
 
     /**
-     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \think\Collection, module: BusinessModule}
+     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \Illuminate\Support\Collection<int, FormField>, module: BusinessModule}
      */
     private function publishedRuntime(Form $form): array
     {

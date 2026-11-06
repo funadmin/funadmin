@@ -148,7 +148,7 @@ final class PluginCenterHttpTest extends TestCase
                 ]);
             }
         };
-        $make = static fn(string $code) => \app\common\plugin\sdk\Manifest::fromCompiled('/unused/'.$code,['code'=>$code,'adminWeb'=>['components'=>[]],'frontendHooks'=>[
+        $make = static fn(string $code) => \app\common\plugin\sdk\Manifest::fromCompiled('/unused/'.$code,['code'=>$code,'adminWeb'=>['components'=>[]],'clientHooks'=>[
             ['id'=>'open','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','audiences'=>['public']],
             ['id'=>'member','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','audiences'=>['member']],
             ['id'=>'admin','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run'],
@@ -172,7 +172,7 @@ final class PluginCenterHttpTest extends TestCase
             self::assertSame(200,$response->getStatusCode(),$response->rawBody());
             $data=json_decode($response->rawBody(),true)['data'];
             self::assertSame(['hookdemo'],array_column($data['modules'],'code'));
-            self::assertSame([$id],array_column($data['modules'][0]['frontendHooks'],'id'));
+            self::assertSame([$id],array_column($data['modules'][0]['clientHooks'],'id'));
         }
         self::assertSame(401,$call('member',true)->getStatusCode());
         self::assertSame(401,$call('admin',false,$token)->getStatusCode());

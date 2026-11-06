@@ -23,7 +23,7 @@ describe('实际页面按钮接线', () => {
     expect(source).toContain(':buttons="toolbarButtons"');
     expect(source).toContain(':schema="tableSchema"');
     expect(source).toContain('tools: meta.value.schema.list.tools');
-    expect(read('../../../components/DataTable/SchemaTablePage.vue')).toContain(':show-refresh="definition.list?.tools?.refresh !== false"');
+    expect(read('../../../../shared/components/DataTable/SchemaTablePage.vue')).toContain(':show-refresh="definition.list?.tools?.refresh !== false"');
     expect(source).toContain('hasRowButtons.value ?');
     expect(source).not.toContain('@click="openDialog(row)"');
   });

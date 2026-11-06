@@ -6,7 +6,7 @@ namespace app\admin\plugin\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\plugin\service\DevPluginService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -18,7 +18,7 @@ use Throwable;
 
 /** 受 RBAC、CSRF 与审计中间件保护的插件开发 API。 */
 #[RouteGroup('/admin/development/plugin')]
-final class DevPlugin extends AdminApiController
+final class DevPlugin extends AdminController
 {
 
     private readonly DevPluginService $plugins;

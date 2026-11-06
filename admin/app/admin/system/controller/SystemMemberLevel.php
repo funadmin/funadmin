@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberLevel;
 use app\common\traits\Crud;
@@ -22,7 +22,7 @@ use support\Response;
  * Admin Web 会员等级管理。
  */
 #[RouteGroup('/admin/system/member-level')]
-class SystemMemberLevel extends AdminApiController
+class SystemMemberLevel extends AdminController
 {
     use Crud {
         index as private crudIndex;

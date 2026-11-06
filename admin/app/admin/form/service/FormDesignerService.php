@@ -224,7 +224,7 @@ final class FormDesignerService
             if ($id === 0 && Form::where('form_key', $payload['form_key'])->first()) {
                 throw new InvalidArgumentException('表单标识已存在');
             }
-            $form->save([
+            $form->fill([
                 'form_key' => trim((string) $payload['form_key']),
                 'name' => trim((string) $payload['name']),
                 'table_name' => trim((string) $payload['table_name']),
@@ -241,10 +241,10 @@ final class FormDesignerService
                 'publish_status' => isset($payload['schema_hash']) && $payload['schema_hash'] !== ($form->schema_hash ?? null) ? 'draft' : ($form->publish_status ?? 'draft'),
                 'remark' => trim((string) ($payload['remark'] ?? '')),
                 'sort_order' => (int) ($payload['sort_order'] ?? 0),
-            ]);
+            ])->save();
             FormField::where('form_id', (int) $form->id)->delete();
             foreach (array_values($payload['fields']) as $sort => $field) {
-                (new FormField())->save($this->fieldRow((int) $form->id, $field, $sort));
+                FormField::create($this->fieldRow((int) $form->id, $field, $sort));
             }
             $this->schemas->saveCompiledVersion(
                 (int) $form->id,

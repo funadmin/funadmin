@@ -30,8 +30,18 @@ final class HookRuntime
         return $this->dispatch('filter', $point, $value, $context, []);
     }
 
+    /**
+     * Filter variant that isolates listener failures per plugin: a failing listener is reported and
+     * $onFailure(value, pluginCode, error) decides the value passed to the next listener.
+     * Snapshot or depth failures still throw, because no listener could be attributed.
+     */
+    public function filterIsolated(string $point, mixed $value, callable $onFailure, array $context = []): mixed
+    {
+        return $this->dispatch('filter', $point, $value, $context, [], $onFailure);
+    }
+
     /** Internal chain entry, exposed only through the bound context dispatcher. */
-    public function dispatch(string $type, string $point, mixed $value, array $context, array $chain): mixed
+    public function dispatch(string $type, string $point, mixed $value, array $context, array $chain, ?callable $onFilterFailure = null): mixed
     {
         $chain[] = $point;
         if (count($chain) > 32) {
@@ -50,9 +60,9 @@ final class HookRuntime
         $listeners = [];
         foreach ($snapshot->plugins() as $code => $plugin) {
             try { $gate->assertPluginEnabled($code); } catch (PluginNotActiveException) { continue; }
-            foreach ($plugin['backendHooks'] ?? [] as $hook) {
+            foreach ($plugin['serverHooks'] ?? [] as $hook) {
                 if ($hook['point'] === $point && $hook['type'] === $type) {
-                    $listeners[] = $hook + ['pluginCode' => $code, 'hash' => $plugin['backendHookFiles'][$hook['file']]];
+                    $listeners[] = $hook + ['pluginCode' => $code, 'hash' => $plugin['serverHookFiles'][$hook['file']]];
                 }
             }
         }
@@ -64,6 +74,7 @@ final class HookRuntime
                 if (!hash_equals($hook['hash'], hash_file('sha256', $file))) { throw new RuntimeException('Plugin hook file hash mismatch'); }
                 if (!array_key_exists($file, self::$maps)) {
                     try {
+                        \app\common\plugin\sdk\PluginVendorAutoloader::ensure(rtrim($this->pluginsPath, '/\\') . '/' . $hook['pluginCode']);
                         $map = (static fn(string $path): mixed => include $path)($file);
                         if (!is_array($map)) { throw new RuntimeException('Plugin hook file must return a callable map'); }
                         self::$maps[$file] = $map;
@@ -79,7 +90,10 @@ final class HookRuntime
                 if ($type === 'filter') { $value = $result; }
             } catch (Throwable $error) {
                 $this->report($error, $metadata);
-                if ($type === 'filter') { throw $error; }
+                if ($type === 'filter') {
+                    if ($onFilterFailure === null) { throw $error; }
+                    $value = $onFilterFailure($value, $hook['pluginCode'], $error);
+                }
             }
         }
         return $value;

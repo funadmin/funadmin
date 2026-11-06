@@ -53,7 +53,7 @@ final class FrontendHookService
             }
             $hooks = [];
             $components = [];
-            foreach ($data['frontendHooks'] ?? [] as $hook) {
+            foreach ($data['clientHooks'] ?? [] as $hook) {
                 if (!in_array($audience, $hook['audiences'] ?? ['admin'], true)
                     || !$this->allowed($hook['permission'] ?? '', $permissions)) {
                     continue;
@@ -87,7 +87,7 @@ final class FrontendHookService
                 'version' => $snapshot->plugins()[$code]['version'],
                 'generation' => $generation,
                 'components' => $components === [] ? (object) [] : $components,
-                'frontendHooks' => $hooks,
+                'clientHooks' => $hooks,
             ];
             if ($includeRoutes) {
                 $module['routes'] = $routes;

@@ -7,7 +7,7 @@ namespace app\admin\development\controller;
 use OpenApi\Annotations as OA;
 
 use app\common\form\schema\FormSchemaException;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authorization\service\AdminAuthorizationService;
 use app\admin\development\http\BusinessApiErrorMapper;
 use app\admin\development\service\BusinessDevelopmentService;
@@ -22,7 +22,7 @@ use Throwable;
 
 /** 统一业务开发 Admin API。 */
 #[RouteGroup('/admin/development/business')]
-final class Business extends AdminApiController
+final class Business extends AdminController
 {
 
     private readonly BusinessDevelopmentService $business;

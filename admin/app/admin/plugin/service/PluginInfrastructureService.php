@@ -489,9 +489,16 @@ final class PluginInfrastructureService
     public function registerResources(array $permissions, array $menus, string $code): void
     {
         Db::transaction(function () use ($permissions, $menus, $code): void {
-            $this->enablePermissions($permissions, $code);
+            // 代码即权限：清单中与控制器方法推导码相同的条目只为该接口权限命名，其余条目是能力权限。
+            $derived = (new \app\admin\authorization\service\PermissionSyncService())->pluginCodes($code);
+            $named = $capabilities = [];
+            foreach ($permissions as $permission) {
+                if (in_array((string) ($permission['code'] ?? ''), $derived, true)) $named[] = $permission; else $capabilities[] = $permission;
+            }
+            $this->enablePermissions($capabilities, $code);
+            $this->syncDerivedPermissions($named, $code);
             $this->enableMenus($menus, $code);
-            $this->disableUndeclaredPermissions($permissions, $code);
+            $this->disableUndeclaredPermissions($permissions, $code, $derived);
             $this->disableUndeclaredMenus($menus, $code);
         });
     }
@@ -532,9 +539,22 @@ final class PluginInfrastructureService
         ResourceRegistryService::instance()->removePermissions('plugin', $code);
     }
 
-    private function disableUndeclaredPermissions(array $permissions, string $code): void
+    /**
+     * 代码即权限：按插件控制器方法推导并登记接口权限码；$named 为清单中给推导码命名的条目。
+     */
+    private function syncDerivedPermissions(array $named, string $code): void
+    {
+        $names = [];
+        foreach ($named as $permission) {
+            $names[(string) $permission['code']] = (string) ($permission['name'] ?? $permission['code']);
+        }
+        (new \app\admin\authorization\service\PermissionSyncService())->sync($code, $names);
+    }
+
+    private function disableUndeclaredPermissions(array $permissions, string $code, array $derived = []): void
     {
         $codes = array_values(array_filter(array_map(static fn (array $permission): string => (string) ($permission['code'] ?? ''), $permissions)));
+        $codes = array_values(array_unique(array_merge($codes, $derived)));
         $query = \app\admin\authorization\model\Permission::where('source_type', 'plugin')->where('source_name', $code);
         if ($codes !== []) {
             $query->whereNotIn('code', $codes);
@@ -544,7 +564,15 @@ final class PluginInfrastructureService
 
     private function disableUndeclaredMenus(array $menus, string $code): void
     {
-        $paths = array_values(array_filter(array_map(static fn (array $menu): string => strtolower((string) ($menu['path'] ?? $menu['href'] ?? '')), $menus)));
+        $paths = [];
+        $collect = function (array $items) use (&$collect, &$paths): void {
+            foreach ($items as $item) {
+                $paths[] = strtolower((string) ($item['path'] ?? $item['href'] ?? ''));
+                $collect($item['menulist'] ?? []);
+            }
+        };
+        $collect($menus);
+        $paths = array_values(array_unique(array_filter($paths)));
         $query = AdminMenu::where('source_type', 'plugin')->where('source_name', $code);
         if ($paths !== []) {
             $query->whereNotIn('href', $paths);

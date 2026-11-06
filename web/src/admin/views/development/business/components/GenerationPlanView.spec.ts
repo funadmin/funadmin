@@ -126,7 +126,7 @@ describe('GenerationPlanView 行级差异', () => {
 describe('GenerationPlanView', () => {
   it('真实 PHP 授权预览响应能显示 SQL 和受管 Manifest 增量', () => {
     const response = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php',
-      [resolve(process.cwd(), '../tests/business_plugin_managed_test.php'), '--preview-json'], { encoding: 'utf8' }));
+      [resolve(process.cwd(), '../admin/tests/fixtures/business-preview.php'), '--preview-json'], { encoding: 'utf8' }));
     const wrapper = mount(GenerationPlanView, { props: { plan: response.plan }, global: { plugins: [i18n], stubs } });
     expect(response.bundleDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(wrapper.get('[data-file-diff="plugins/closeout/plugin.json"]').text()).toContain('模块 A 再次更新');

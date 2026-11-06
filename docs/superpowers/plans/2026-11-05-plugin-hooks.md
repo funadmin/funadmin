@@ -3,7 +3,7 @@
 > **For agentic workers:** Use superpowers:dispatching-parallel-agents for independent backend runtime, manifest/API, and frontend runtime domains; root integrates and verifies the completed interfaces.
 
 **Goal:** 全局可调用、跨插件的 PHP/JS 动作与过滤钩子，支持前端组件插槽和纯钩子插件。
-**Architecture:** Manifest v2 optional backendHooks/frontendHooks, activation snapshot for PHP runtime, permission/audience projected descriptors for shared browser runtime. Existing publication and lifecycle remain authoritative.
+**Architecture:** Manifest v2 optional serverHooks/clientHooks, activation snapshot for PHP runtime, permission/audience projected descriptors for shared browser runtime. Existing publication and lifecycle remain authoritative.
 **Tech Stack:** PHP 8.5, Webman, Vue 3, TypeScript, PHPUnit, Vitest; no new dependencies.
 **Spec:** docs/superpowers/specs/2026-11-05-plugin-hooks-design.md
 
@@ -29,7 +29,7 @@ Files: create app/common/plugin/hook/{Hook,HookRuntime}.php and tests/PluginHook
 Interfaces:
 - HookRuntime(reader: PluginActivationReader, pluginsPath: string, reporter?: callable), action(point,payload=null,context=[]):void and filter(point,value,context=[]):mixed.
 - Hook facade resolves runtime from Container and exposes same static methods.
-- Compiled plugin optional backendHooks field contains manifest records; handler file integrity metadata is compiled and validated by runtime.
+- Compiled plugin optional serverHooks field contains manifest records; handler file integrity metadata is compiled and validated by runtime.
 - Snapshot remains backward compatible with old no-hooks shape.
 Steps:
 - [x] Write/run failing tests for no-app cross-plugin callable dispatch, deterministic order, false/null chain, errors, dependency, corrupt snapshot, disable across readers, gate-before-include, depth32.
@@ -39,11 +39,11 @@ Steps:
 ### Task 2: Manifest, publication, and descriptor APIs
 Files: modify sdk/{Manifest,schema/plugin.schema.json,PluginArchiveService}.php as needed; new sdk/HookManifest.php or focused validator; service FrontendHookService and HTTP descriptor controller; tests PluginHookManifestTest/PluginHookDescriptorTest; extend PluginCenterService.enabledModules.
 Interfaces:
-- optional backendHooks/frontendHooks arrays as spec.
-- frontend HookModule DTO: {code:string,version:string,generation?:string,components:Record<string,string>,frontendHooks:HookDescriptor[],routes?:existing route DTO[]}.
+- optional serverHooks/clientHooks arrays as spec.
+- frontend HookModule DTO: {code:string,version:string,generation?:string,components:Record<string,string>,clientHooks:HookDescriptor[],routes?:existing route DTO[]}.
 - standalone GET /plugins/hooks/frontend?audience=public|member|admin returns normal JSON success envelope data:{generation:string,modules:HookModule[]}.
 - Admin uses BrowserAuthService session; member uses existing MemberAuthService identity; public reveals only explicit public hooks. No hook execution endpoint.
-- enabledModules existing array remains compatible; include pure frontend-hook plugins and fields frontendHooks,generation.
+- enabledModules existing array remains compatible; include pure frontend-hook plugins and fields clientHooks,generation.
 Steps:
 - [x] Write/run failing manifest tests for no-app/no-route, duplicates, ownership, path symlink/extension, permission audience.
 - [x] Implement validation and descriptors without invoking plugin handlers, with snapshot/dependency gating.

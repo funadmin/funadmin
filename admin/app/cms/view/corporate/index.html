@@ -1,0 +1,27 @@
+{cms:include file="partials/header" /}
+{cms:if test="$home.is_home"}
+<div data-template="corporate-home">
+{cms:if test="$home.has_slides"}{cms:include file="partials/slides" /}{cms:else /}
+<section class="corporate-hero"><div class="container corporate-hero-layout"><div class="enterprise-hero-copy"><span class="hero-kicker"><i aria-hidden="true"></i> BUSINESS, WITH A CLEAR DIRECTION</span><h1>{$ui.hero_line_one}<span>{$ui.hero_line_two}</span></h1><p>{$home.intro}</p><div class="enterprise-hero-actions"><a class="cms-button-link" href="#products"><el-button tag="span" tabindex="-1" class="button" type="primary">{$ui.explore} <span aria-hidden="true">↗</span></el-button></a><a class="text-link" href="#about">{$ui.company} <span aria-hidden="true">→</span></a></div><div class="corporate-hero-note"><span class="note-line"></span>{$ui.hero_badge}</div></div><figure class="corporate-hero-art"><img src="{$theme.hero}" alt="" width="720" height="700"><figcaption><span>CONSIDERED IDEAS.</span><span>CONNECTED POSSIBILITIES.</span></figcaption></figure></div><div class="container corporate-topic-strip"><a href="#products"><span>01</span>{$ui.products}<i aria-hidden="true">↗</i></a><a href="#cases"><span>02</span>{$ui.cases}<i aria-hidden="true">↗</i></a><a href="#insights"><span>03</span>{$ui.insights}<i aria-hidden="true">↗</i></a></div></section>
+{/cms:if}
+<section id="about" class="enterprise-section enterprise-about"><div class="container enterprise-overview">
+  <div><span class="eyebrow">ABOUT {$site.name}</span><h2 class="multiline">{$ui.about_title}</h2></div>
+  <div><p class="overview-intro">{$ui.about_intro}</p><div class="enterprise-principles"><article><span>01</span><h3>{$ui.principle_one}</h3><p>{$ui.principle_one_body}</p></article><article><span>02</span><h3>{$ui.principle_two}</h3><p>{$ui.principle_two_body}</p></article><article><span>03</span><h3>{$ui.principle_three}</h3><p>{$ui.principle_three_body}</p></article></div></div>
+</div></section>
+<section id="products" class="enterprise-section "><div class="container">
+  <div class="enterprise-section-heading"><div><span class="eyebrow">PRODUCTS & SOLUTIONS</span><h2>{$ui.products}</h2></div><p>{$ui.products_intro}</p></div>
+  {cms:if test="$home.has_products"}<div class="content-grid enterprise-grid products-grid cms-el-grid-host"><el-row gutter="24" class="cms-el-grid">{cms:theme name="products"}<el-col xs="24" sm="12" md="12" lg="8">{cms:include file="partials/card" /}</el-col>{/cms:theme}</el-row></div>{cms:else /}{cms:include file="partials/empty" /}{/cms:if}
+</div></section>
+<section id="cases" class="enterprise-section "><div class="container">
+  <div class="enterprise-section-heading"><div><span class="eyebrow">SELECTED WORK</span><h2>{$ui.cases}</h2></div><p>{$ui.cases_intro}</p></div>
+  {cms:if test="$home.has_cases"}<div class="content-grid enterprise-grid cases-grid cms-el-grid-host"><el-row gutter="24" class="cms-el-grid">{cms:theme name="cases"}<el-col xs="24" sm="12" md="12" lg="12">{cms:include file="partials/card" /}</el-col>{/cms:theme}</el-row></div>{cms:else /}{cms:include file="partials/empty" /}{/cms:if}
+</div></section>
+<section id="insights" class="enterprise-section "><div class="container">
+  <div class="enterprise-section-heading"><div><span class="eyebrow">NEWS & PERSPECTIVES</span><h2>{$ui.insights}</h2></div><p>{$ui.insights_intro}</p></div>
+  {cms:if test="$home.has_articles"}<div class="content-grid enterprise-grid insights-grid cms-el-grid-host"><el-row gutter="24" class="cms-el-grid">{cms:theme name="articles"}<el-col xs="24" sm="12" md="12" lg="6">{cms:include file="partials/card" /}</el-col>{/cms:theme}</el-row></div>{cms:else /}{cms:include file="partials/empty" /}{/cms:if}
+</div></section>
+{cms:include file="partials/partners" /}{cms:include file="partials/ads" /}{cms:include file="partials/contacts" /}
+<section class="enterprise-invitation"><div class="container"><div><span class="eyebrow">LET’S START A CONVERSATION</span><h2 class="multiline">{$ui.newsletter_title}</h2><p>{$ui.newsletter_intro}</p></div><a class="cms-button-link" href="{$page.search_url}"><el-button tag="span" tabindex="-1" class="button" type="primary">{$ui.discover}<span aria-hidden="true">↗</span></el-button></a></div></section>
+</div>
+{cms:else /}<section class="container page-intro"><span class="eyebrow">OUR JOURNAL</span><h1>{$ui.all_content}</h1><p>{$ui.category_intro}</p></section>{cms:include file="partials/listing" /}{/cms:if}
+{cms:include file="partials/footer" /}

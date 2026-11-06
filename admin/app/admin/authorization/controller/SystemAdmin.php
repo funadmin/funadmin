@@ -6,10 +6,10 @@ namespace app\admin\authorization\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\middleware\CheckAdminApiRole;
-use app\admin\middleware\SystemLog;
+use app\common\controller\AdminController;
+use app\admin\middleware\CheckAdminApiCsrfMiddleware;
+use app\admin\middleware\CheckAdminApiRoleMiddleware;
+use app\admin\middleware\SystemLogMiddleware;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroup;
@@ -34,7 +34,7 @@ use app\admin\authentication\service\AdminSessionService;
  * 管理员接口。
  */
 #[RouteGroup('/admin/system/user')]
-class SystemAdmin extends AdminApiController
+class SystemAdmin extends AdminController
 {
 
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\common\plugin\sdk;
 
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\plugin\middleware\CheckPluginPermission;
-use app\common\middleware\MApi;
-use app\common\middleware\PluginApplicationGuard;
+use app\admin\middleware\CheckAdminApiCsrfMiddleware;
+use app\admin\plugin\middleware\PluginRoutePermissionMiddleware;
+use app\common\middleware\ApiMiddleware;
+use app\common\middleware\PluginApplicationGuardMiddleware;
 use Closure;
 use InvalidArgumentException;
 use RuntimeException;
@@ -39,19 +39,19 @@ final class PluginRoute
         }
 
         $route->group($registrar)->middleware([
-            static fn () => new PluginApplicationGuard(
+            static fn () => new PluginApplicationGuardMiddleware(
                 new PluginActivationReader(($projectRoot ?? base_path()) . '/runtime/plugins/activation'),
                 ($projectRoot ?? base_path()) . '/plugins',
                 $plugin
             ),
-            static fn () => new CheckPluginPermission(plugin: $plugin, permission: $permission),
-            CheckAdminApiCsrf::class,
+            static fn () => new PluginRoutePermissionMiddleware(plugin: $plugin, permission: $permission),
+            CheckAdminApiCsrfMiddleware::class,
         ]);
     }
 
     /** 会员端 API 路由组：Bearer 会员鉴权。 */
     public static function memberApiGroup(Route $route, Closure $registrar): void
     {
-        $route->group($registrar)->middleware(MApi::class);
+        $route->group($registrar)->middleware(ApiMiddleware::class);
     }
 }

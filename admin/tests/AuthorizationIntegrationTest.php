@@ -279,7 +279,7 @@ final class AuthorizationIntegrationTest extends TestCase
         $login = $auth->login($session['cookie'], $session['csrfToken'], 'root', $password, 'management-test');
         $body = json_encode(['name' => '拒绝写入', 'code' => 'csrf_denied']);
         $request = new Request("POST /admin/system/role HTTP/1.1\r\nCookie: " . $auth::COOKIE . '=' . $login['cookie'] . "\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
-        $response = (new \app\admin\middleware\CheckAdminApiCsrf())->process($request, static function (): \support\Response {
+        $response = (new \app\admin\middleware\CheckAdminApiCsrfMiddleware())->process($request, static function (): \support\Response {
             self::fail('缺少 CSRF 时不得执行写入');
         });
         self::assertSame(403, json_decode($response->rawBody(), true)['code']);

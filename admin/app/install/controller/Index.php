@@ -143,7 +143,7 @@ final class Index
             $this->environmentCheck('runtime', 'runtime 目录', '可写', $this->writableLabel($paths['runtime']), is_writable($paths['runtime']), true),
             $this->environmentCheck('public', 'public 目录', '可写', $this->writableLabel($paths['public']), is_writable($paths['public']), true),
             $this->environmentCheck('env', '.env 配置目录', '可原子写入', $this->writableLabel(base_path()), is_writable(base_path()) && (!is_file($paths['env']) || is_writable($paths['env'])), true),
-            $this->environmentCheck('migrations', '数据库迁移', '根目录核心 SQL 可读', $files ? count($files) . ' 个迁移文件' : '无迁移文件', $migrations, true),
+            $this->environmentCheck('migrations', '数据库迁移', '核心 SQL（admin/database/core）可读', $files ? count($files) . ' 个迁移文件' : '无迁移文件', $migrations, true),
         ];
     }
 

@@ -98,6 +98,233 @@ final class MemberIntegrationTest extends TestCase
         self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $tokens['refresh_token']])->getStatusCode());
     }
 
+    /** @return callable(string, string, array, string): \Webman\Http\Response */
+    private function v2Client(): callable
+    {
+        $this->createMarketAccountFixture();
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
+        \Webman\Limiter\Limiter::init(null);
+        new \Webman\App(Request::class, new \Psr\Log\NullLogger(), app_path(), public_path());
+        \Webman\Route::load([config_path()]);
+        return static function (string $method, string $path, array $data = [], string $token = ''): \Webman\Http\Response {
+            $body = json_encode($data, JSON_THROW_ON_ERROR);
+            $header = $token === '' ? '' : "Authorization: Bearer $token\r\n";
+            $request = new Request("$method $path HTTP/1.1\r\nHost: localhost\r\n" . $header . "Content-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+            Context::set(\Webman\Http\Request::class, $request);
+            $matched = \Webman\Route::dispatch($method, $path);
+            self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0], $path);
+            $request->controller = $matched[1]['callback'][0];
+            $request->action = $matched[1]['callback'][1];
+            $request->route = $matched[1]['route'];
+            return (\Webman\App::getCallback('', 'api', $matched[1]['callback'], $matched[2], false, $request->route))($request);
+        };
+    }
+
+    private function v2Login(callable $call): array
+    {
+        $response = $call('POST', '/api/v2/token', ['username' => 'market_member', 'password' => 'market-password-91']);
+        self::assertSame(200, $response->getStatusCode(), $response->rawBody());
+        return json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['data'];
+    }
+
+    public function test_v2_refresh_rotates_once_and_replay_revokes_the_whole_session(): void
+    {
+        $call = $this->v2Client();
+        $first = $this->v2Login($call);
+        $rotated = $call('POST', '/api/v2/token/refresh', ['refresh_token' => $first['refresh_token']]);
+        self::assertSame(200, $rotated->getStatusCode(), $rotated->rawBody());
+        $second = json_decode($rotated->rawBody(), true)['data'];
+        self::assertNotSame($first['refresh_token'], $second['refresh_token'] ?? null, '刷新必须返回新的 refresh token');
+        self::assertSame(200, $call('GET', '/api/v2/member', token: $second['access_token'])->getStatusCode());
+        // 旧 refresh 重放：拒绝，并吊销整个会话（包括刚轮换出的新令牌）
+        self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $first['refresh_token']])->getStatusCode());
+        self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $second['refresh_token']])->getStatusCode());
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $second['access_token'])->getStatusCode());
+    }
+
+    public function test_v2_logout_revokes_access_and_refresh_tokens_of_current_session_only(): void
+    {
+        $call = $this->v2Client();
+        $current = $this->v2Login($call);
+        $other = $this->v2Login($call);
+        self::assertSame(401, $call('POST', '/api/v2/logout')->getStatusCode());
+        self::assertSame(200, $call('POST', '/api/v2/logout', token: $current['access_token'])->getStatusCode());
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $current['access_token'])->getStatusCode());
+        self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $current['refresh_token']])->getStatusCode());
+        self::assertSame(200, $call('GET', '/api/v2/member', token: $other['access_token'])->getStatusCode(), '登出不能影响同一会员的其它设备');
+    }
+
+    public function test_v2_member_profile_exposes_only_whitelisted_fields(): void
+    {
+        $call = $this->v2Client();
+        Db::table('member')->where('id', 91)->update(['password' => password_hash('market-password-91', PASSWORD_DEFAULT)]);
+        $tokens = $this->v2Login($call);
+        $user = json_decode($call('GET', '/api/v2/member', token: $tokens['access_token'])->rawBody(), true)['data']['user'];
+        self::assertSame(['id', 'username', 'nickname'], array_keys($user));
+        self::assertSame(91, $user['id']);
+    }
+
+    public function test_v2_login_is_also_limited_per_account_across_ip_addresses(): void
+    {
+        $call = $this->v2Client();
+        for ($attempt = 1; $attempt <= 6; $attempt++) {
+            $request = new Request("POST /api/v2/token HTTP/1.1\r\n\r\n");
+            Context::set(\Webman\Http\Request::class, $request);
+            $response = (new \app\api\controller\v2\Token())->build(new class("POST /api/v2/token HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: 58\r\n\r\n" . '{"username":"market_member","password":"wrong-password-1"}', '10.0.0.' . $attempt) extends Request {
+                public function __construct(string $buffer, private readonly string $ip) { parent::__construct($buffer); }
+                public function getRemoteIp(): string { return $this->ip; }
+            });
+            self::assertSame($attempt <= 5 ? 401 : 429, $response->getStatusCode(), '#' . $attempt);
+        }
+    }
+
+    public function test_v2_member_api_messages_are_translated_consistently(): void
+    {
+        $call = $this->v2Client();
+        self::assertSame(__('Unauthorized'), json_decode($call('GET', '/api/v2/member')->rawBody(), true)['msg']);
+        self::assertNotSame('Unauthorized', __('Unauthorized'));
+        self::assertNotSame('Invalid token', __('Invalid token'));
+    }
+
+    public function test_every_member_api_controller_uses_one_middleware_and_declares_public_methods_by_attribute(): void
+    {
+        $base = new \ReflectionClass(\app\common\controller\ApiController::class);
+        $declared = array_merge(...array_map(static fn ($attribute): array => $attribute->getArguments(), $base->getAttributes(\support\annotation\Middleware::class)));
+        self::assertSame([\app\common\middleware\ApiMiddleware::class], $declared, '会员 API 基类统一挂载鉴权中间件');
+        foreach (['app\\common\\middleware\\MApi', 'app\\common\\controller\\PublicApiController'] as $legacy) {
+            self::assertFalse(class_exists($legacy), $legacy);
+        }
+        foreach ([\app\api\controller\v2\Token::class, \app\api\controller\v2\Member::class] as $controller) {
+            self::assertTrue(is_subclass_of($controller, \app\common\controller\ApiController::class), $controller);
+        }
+        $public = static fn (string $class, string $method): bool => (new \ReflectionMethod($class, $method))->getAttributes(\app\common\annotation\NoNeedLogin::class) !== [];
+        self::assertTrue($public(\app\api\controller\v2\Token::class, 'build'));
+        self::assertTrue($public(\app\api\controller\v2\Token::class, 'refresh'));
+        self::assertFalse($public(\app\api\controller\v2\Token::class, 'logout'));
+        self::assertFalse($public(\app\api\controller\v2\Member::class, 'show'));
+
+        \Webman\Route::load([config_path()]);
+        foreach ([['GET', '/api/v2/member'], ['POST', '/api/v2/logout'], ['POST', '/api/v2/token'], ['POST', '/api/v2/token/refresh']] as [$method, $path]) {
+            $matched = \Webman\Route::dispatch($method, $path);
+            self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0], $path);
+            $chain = array_map(static fn (array $item): string => is_array($item[0]) ? $item[0][0] : (string) $item[0],
+                \Webman\Middleware::getMiddleware('', 'api', $matched[1]['callback'], $matched[1]['route'], false));
+            self::assertSame(1, count(array_keys($chain, \app\common\middleware\ApiMiddleware::class)), $path . ' 恰好经过一次中间件');
+        }
+        self::assertDoesNotMatchRegularExpression('/->middleware\([^)]*(?:ApiMiddleware|MApi)/', (string) file_get_contents(config_path() . '/route.php'), '路由不再重复挂载');
+    }
+
+    public function test_api_middleware_enforces_login_by_default_and_skips_attributed_methods(): void
+    {
+        $this->createMarketAccountFixture();
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
+        $guarded = new class extends \app\common\controller\ApiController {
+            public function secret(): \support\Response { return $this->ok(data: ['member' => request()->member_id]); }
+            #[\app\common\annotation\NoNeedLogin]
+            public function open(): \support\Response { return $this->ok(data: ['member' => request()->member_id ?? null]); }
+        };
+        $publicClass = new #[\app\common\annotation\NoNeedLogin] class extends \app\common\controller\ApiController {
+            public function anything(): \support\Response { return $this->ok(); }
+        };
+        $middleware = \support\Container::get(\app\common\middleware\ApiMiddleware::class);
+        $run = function (object $controller, string $action, string $token = '') use ($middleware): \Webman\Http\Response {
+            $request = new Request("GET /api/v2/x HTTP/1.1\r\nHost: localhost\r\n" . ($token === '' ? '' : "Authorization: Bearer $token\r\n") . "\r\n");
+            $request->controller = get_class($controller);
+            $request->action = $action;
+            Context::set(\Webman\Http\Request::class, $request);
+            return $middleware->process($request, static fn () => $controller->$action());
+        };
+        $token = (new \app\common\service\member\MemberApiSessionService())->open(91, '127.0.0.1')['access_token'];
+
+        self::assertSame(401, $run($guarded, 'secret')->getStatusCode(), '默认必须登录');
+        self::assertSame(401, $run($guarded, 'secret', 'forged')->getStatusCode());
+        self::assertSame(91, json_decode($run($guarded, 'secret', $token)->rawBody(), true)['data']['member']);
+
+        self::assertSame(200, $run($guarded, 'open')->getStatusCode(), '#[NoNeedLogin] 方法未登录可访问');
+        self::assertNull(json_decode($run($guarded, 'open')->rawBody(), true)['data']['member']);
+        self::assertSame(91, json_decode($run($guarded, 'open', $token)->rawBody(), true)['data']['member'], '公开方法带有效令牌仍识别会员');
+        self::assertSame(200, $run($guarded, 'open', 'forged')->getStatusCode(), '公开方法的无效令牌按游客处理');
+
+        self::assertSame(200, $run($publicClass, 'anything')->getStatusCode(), '类级 #[NoNeedLogin] 作用于全部方法');
+    }
+
+    public function test_v2_dispatch_through_real_route_honours_no_need_login(): void
+    {
+        $call = $this->v2Client();
+        self::assertSame(401, $call('GET', '/api/v2/member')->getStatusCode(), '默认需要登录');
+        self::assertSame(401, $call('POST', '/api/v2/logout')->getStatusCode(), '登出默认需要登录');
+        self::assertSame(400, $call('POST', '/api/v2/token')->getStatusCode(), '登录公开：进入控制器做参数校验');
+        self::assertSame(400, $call('POST', '/api/v2/token/refresh')->getStatusCode(), '刷新公开：进入控制器做参数校验');
+        $tokens = $this->v2Login($call);
+        self::assertSame(200, $call('GET', '/api/v2/member', token: $tokens['access_token'])->getStatusCode());
+    }
+
+    public function test_v2_member_status_example_is_public_and_recognises_logged_in_members(): void
+    {
+        $call = $this->v2Client();
+        $guest = $call('GET', '/api/v2/member/status');
+        self::assertSame(200, $guest->getStatusCode(), $guest->rawBody());
+        self::assertSame(['loggedIn' => false, 'user' => null], json_decode($guest->rawBody(), true)['data']);
+
+        $tokens = $this->v2Login($call);
+        $member = json_decode($call('GET', '/api/v2/member/status', token: $tokens['access_token'])->rawBody(), true)['data'];
+        self::assertTrue($member['loggedIn']);
+        self::assertSame(['id' => 91, 'nickname' => '市场会员'], $member['user']);
+
+        self::assertSame(['loggedIn' => false, 'user' => null], json_decode($call('GET', '/api/v2/member/status', token: 'forged')->rawBody(), true)['data'], '无效令牌按游客处理');
+        self::assertSame(401, $call('GET', '/api/v2/member')->getStatusCode(), '同一控制器其它方法仍需登录');
+    }
+
+    public function test_api_middleware_authenticates_once_when_route_and_controller_both_attach_it(): void
+    {
+        $this->createMarketAccountFixture();
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
+        $token = (new \app\common\service\member\MemberApiSessionService())->open(91, '127.0.0.1')['access_token'];
+        $calls = 0;
+        $extractor = new class($calls) extends \app\common\service\authentication\BearerTokenExtractor {
+            public function __construct(private int &$calls) {}
+            public function extract(\Webman\Http\Request $request): ?string { $this->calls++; return parent::extract($request); }
+        };
+        $middleware = new \app\common\middleware\ApiMiddleware(new \app\common\service\member\MemberApiSessionService(), $extractor);
+        $controller = new class extends \app\common\controller\ApiController {
+            public function mine(): \support\Response { return $this->ok(data: ['member' => request()->member_id]); }
+        };
+        $request = new Request("GET /plugin/member HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer $token\r\n\r\n");
+        $request->controller = get_class($controller);
+        $request->action = 'mine';
+        Context::set(\Webman\Http\Request::class, $request);
+        // memberApiGroup() 路由层挂一次 + 控制器继承 ApiController 再挂一次。
+        $response = $middleware->process($request, static fn ($inner) => $middleware->process($inner, static fn () => $controller->mine()));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(91, json_decode($response->rawBody(), true)['data']['member']);
+        self::assertSame(1, $calls, '同一请求只校验一次令牌');
+    }
+
+    public function test_api_middleware_cannot_be_skipped_by_a_forged_context_flag(): void
+    {
+        $this->createMarketAccountFixture();
+        putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
+        \Webman\Config::load(config_path(), ['route']);
+        $controller = new class extends \app\common\controller\ApiController {
+            public function mine(): \support\Response { return $this->ok(); }
+        };
+        $request = new Request("GET /api/v2/mine HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $request->controller = get_class($controller);
+        $request->action = 'mine';
+        // 其它代码或调试插件可能写入同名字符串键；鉴权不得因此跳过。
+        $request->context['member_api_authenticated'] = true;
+        Context::set(\Webman\Http\Request::class, $request);
+        $response = \support\Container::get(\app\common\middleware\ApiMiddleware::class)->process($request, static fn () => $controller->mine());
+        self::assertSame(401, $response->getStatusCode());
+    }
+
     public function test_v2_token_endpoint_limits_attempts_before_credentials_are_checked(): void
     {
         \Webman\Limiter\Limiter::init(null);
@@ -109,6 +336,8 @@ final class MemberIntegrationTest extends TestCase
             $callback = \Webman\App::getCallback('', 'api', $matched[1]['callback'], $matched[2], false, $matched[1]['route']);
             for ($attempt = 1; $attempt <= 11; $attempt++) {
                 $request = new Request("POST $path HTTP/1.1\r\nHost: localhost\r\n\r\n");
+                // 与 Webman 分发一致：中间件依据目标控制器方法判断是否需要登录。
+                [$request->controller, $request->action] = $matched[1]['callback'];
                 Context::set(\Webman\Http\Request::class, $request);
                 $response = $callback($request);
                 self::assertSame($attempt <= 10 ? 400 : 429, $response->getStatusCode(), $path . ' #' . $attempt);

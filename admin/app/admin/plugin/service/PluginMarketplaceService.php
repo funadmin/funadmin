@@ -28,7 +28,8 @@ final class PluginMarketplaceService extends AbstractService
     public function __construct(
         private readonly PluginMarketplaceGateway $gateway,
         private readonly PluginPackagePipeline $pipeline,
-        private readonly PluginPackageDownloader $downloader
+        private readonly PluginPackageDownloader $downloader,
+        private readonly bool $marketplaceConfigured = true
     ) {
         parent::__construct();
     }
@@ -37,11 +38,15 @@ final class PluginMarketplaceService extends AbstractService
     {
         $client = new Client();
         $marketplace = (array) config('plugins.marketplace');
+        $url = trim((string) ($marketplace['url'] ?? ''));
+        if ($url === '') {
+            $url = trim((string) config('funadmin.api_domain', ''));
+        }
         $platformVersion = (string) config('funadmin.version');
         $gateway = new NativeMarketplaceAdapter(
             new NativeMarketplaceHttpTransport(
                 $client,
-                (string) (($marketplace['url'] ?? '') ?: config('funadmin.api_domain')),
+                $url,
                 (int) ($marketplace['request_timeout'] ?? 30),
                 (int) ($marketplace['connect_timeout'] ?? 10)
             ),
@@ -55,7 +60,7 @@ final class PluginMarketplaceService extends AbstractService
             trim((string) ($marketplace['public_key'] ?? '')) ?: null,
             (string) ($marketplace['unsigned_policy'] ?? 'reject_unsigned')
         );
-        return new self($gateway, PluginPackagePipeline::forPluginService($plugins), $downloader);
+        return new self($gateway, PluginPackagePipeline::forPluginService($plugins), $downloader, $url !== '');
     }
 
     public function login(string $account, string $password): CloudAccountDto
@@ -100,6 +105,10 @@ final class PluginMarketplaceService extends AbstractService
 
     public function checkUpdates(UpdateCheckRequestDto $request): array
     {
+        // Cloud updates are optional; local plugin installation must work without a marketplace.
+        if (!$this->marketplaceConfigured || $request->installed === []) {
+            return [];
+        }
         return $this->gateway->checkUpdates($request);
     }
 

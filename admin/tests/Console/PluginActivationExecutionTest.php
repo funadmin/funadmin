@@ -60,4 +60,41 @@ final class PluginActivationExecutionTest extends TestCase
             rmdir($root);
         }
     }
+
+    public function test_command_flags_manifests_with_retired_hook_fields_for_reinstall(): void
+    {
+        $root = sys_get_temp_dir() . '/funadmin-plugin-activation-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        Db::schema()->create('plugin', static function (Blueprint $table): void {
+            $table->id(); $table->string('code'); $table->string('version'); $table->string('lifecycle_state');
+            $table->boolean('status'); $table->boolean('needs_reinstall')->default(false);
+            $table->string('operation_token')->nullable(); $table->text('manifest'); $table->timestamps(); $table->softDeletes();
+        });
+        try {
+            foreach (['legacyfixture', 'currentfixture'] as $code) {
+                (new PluginScaffolder($root . '/plugins'))->scaffold($code);
+                $manifest = Manifest::fromDirectory($root . '/plugins/' . $code)->toArray();
+                if ($code === 'legacyfixture') {
+                    $manifest['backendHooks'] = [['id' => 'old', 'point' => 'demo.run', 'type' => 'action', 'file' => 'hooks/old.php', 'handler' => 'run']];
+                }
+                Plugin::query()->create(['code' => $code, 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1,
+                    'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
+            }
+            $command = new CommandTester(new PluginActivationCacheRebuild($root));
+            self::assertSame(0, $command->execute([]), $command->getDisplay());
+            $snapshot = (new PluginActivationReader($root . '/runtime/plugins/activation'))->read();
+            self::assertTrue($snapshot->isTrusted());
+            $plugins = $snapshot->plugins();
+            self::assertTrue($plugins['legacyfixture']['needs_reinstall']);
+            self::assertArrayNotHasKey('serverHooks', $plugins['legacyfixture']);
+            self::assertFalse($plugins['currentfixture']['needs_reinstall']);
+            self::assertSame(1, (int) Plugin::query()->where('code', 'legacyfixture')->value('needs_reinstall'));
+            self::assertSame(0, (int) Plugin::query()->where('code', 'currentfixture')->value('needs_reinstall'));
+        } finally {
+            Db::schema()->dropIfExists('plugin');
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            rmdir($root);
+        }
+    }
 }

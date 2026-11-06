@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "code": "oss",
+  "name": "OSS 云存储",
+  "description": "阿里云 OSS、腾讯云 COS、七牛云 Kodo，全局接管统一公开附件上传",
+  "author": "FunAdmin",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\oss\\Plugin",
+    "file": "Plugin.php"
+  },
+  "resources": {
+    "public": {
+      "source": "public/plugin-assets/oss/public",
+      "target": "plugin-assets/oss/public"
+    }
+  },
+  "migrations": {
+    "path": "database/migrations"
+  },
+  "storage": {
+    "path": "storage"
+  },
+  "purge": {
+    "supported": false
+  },
+  "serverHooks": [
+    {
+      "id": "storage-upload",
+      "point": "storage.upload.resolve",
+      "type": "filter",
+      "file": "hooks/storage.php",
+      "handler": "upload"
+    },
+    {
+      "id": "storage-resolve",
+      "point": "storage.driver.resolve",
+      "type": "filter",
+      "file": "hooks/storage.php",
+      "handler": "resolve"
+    },
+    {
+      "id": "storage-drivers",
+      "point": "storage.drivers",
+      "type": "filter",
+      "file": "hooks/storage.php",
+      "handler": "drivers"
+    }
+  ],
+  "adminWeb": {
+    "source": "web/src/admin/modules/oss",
+    "components": {
+      "Index": "pages/Index.vue"
+    },
+    "minFrontendVersion": "1.0.0",
+    "permissions": [
+      {
+        "code": "oss:storage:index",
+        "name": "查看云存储"
+      },
+      {
+        "code": "oss:storage:save",
+        "name": "保存云存储配置"
+      },
+      {
+        "code": "oss:storage:activate",
+        "name": "启用云存储配置"
+      },
+      {
+        "code": "oss:storage:test",
+        "name": "测试云存储连接"
+      }
+    ],
+    "menu": [
+      {
+        "name": "OSS 云存储",
+        "path": "/plugin/oss/storage",
+        "permission": "oss:storage:index"
+      }
+    ],
+    "routes": [
+      {
+        "path": "/plugin/oss/storage",
+        "name": "Plugin_oss_Storage",
+        "component": "Index",
+        "meta": {
+          "permission": "oss:storage:index"
+        }
+      }
+    ]
+  }
+}

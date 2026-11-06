@@ -40,7 +40,7 @@ try {
         $sql = "CREATE DATABASE `$database`;";
         if (coreTestProcess(['docker', 'exec', '-i', $name, 'sh', '-c', 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=TCP -h127.0.0.1 -uroot'], $sql) !== 0) throw new RuntimeException('创建隔离库失败');
         $status = coreTestProcess([
-            'docker', 'run', '--rm', '--network', 'funwebman-test', '-v', $root . ':/app', '-v', dirname($root) . '/database:/core-database:ro', '-w', '/app',
+            'docker', 'run', '--rm', '--network', 'funwebman-test', '-v', $root . ':/app', '-v', $root . '/database/core:/core-database:ro', '-w', '/app',
             '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $name, '-e', 'DB_DATABASE=' . $database,
             '-e', 'DB_USERNAME=root', '-e', 'DB_PASSWORD=' . $password, '-e', 'DB_PREFIX=' . $prefix,
             '-e', 'CORE_DATABASE_PATH=/core-database', ...$reportArguments, 'funwebman-console:8.5', 'php', '-d', 'memory_limit=512M', 'vendor/bin/phpunit',

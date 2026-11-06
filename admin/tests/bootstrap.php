@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
-require_once dirname(__DIR__) . '/app/common.php';
+require_once dirname(__DIR__) . '/app/functions.php';
 
 // 默认使用内存连接；MySQL 模式固定使用独立测试库，不加载宿主项目的 .env。
 putenv('DB_CONNECTION=' . (getenv('TEST_MYSQL') === '1' ? 'mysql' : 'sqlite'));

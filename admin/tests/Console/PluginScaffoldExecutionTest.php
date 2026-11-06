@@ -74,12 +74,12 @@ final class PluginScaffoldExecutionTest extends TestCase
         }
         $adminClass = 'app\\admin\\plugins\\' . $code . '\\controller\\Index';
         self::assertSame('/admin/plugin/' . $code, (new \ReflectionClass($adminClass))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
-        self::assertSame($code . ':item:list', (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\plugin\sdk\PluginPermission::class)[0]->newInstance()->code);
+        self::assertSame($code . ':item:list', (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\annotation\Permission::class)[0]->newInstance()->code);
         $adminMiddleware = \Webman\Middleware::getMiddleware('', 'admin', [$adminClass, 'index'], null, false);
         self::assertCount(3, $adminMiddleware);
-        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRole::class));
-        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiCsrf::class));
-        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\SystemLog::class));
+        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRoleMiddleware::class));
+        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiCsrfMiddleware::class));
+        self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\SystemLogMiddleware::class));
     }
 
     public function test_generated_entry_lifecycle_and_config_work_without_http_request_or_think_runtime(): void

@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\common\model\Blacklist;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -19,7 +19,7 @@ use support\Response;
  * Admin Web 黑名单管理。
  */
 #[RouteGroup('/admin/system/blacklist')]
-class SystemBlacklist extends AdminApiController
+class SystemBlacklist extends AdminController
 {
 
     /**

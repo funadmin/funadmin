@@ -1,0 +1,23 @@
+export default {
+    menuSearch: 'Menu search',
+    refresh: 'Refresh',
+    fullscreen: 'Fullscreen',
+    exitFullscreen: 'Exit fullscreen',
+    toggleTheme: 'Toggle theme',
+    language: 'Language',
+    layoutSetting: 'Layout',
+    notLoggedIn: 'Not logged in',
+    guest: 'Guest',
+    welcomeBack: 'Welcome back',
+    profile: 'Profile',
+    layoutSettings: 'Layout settings',
+    logout: 'Sign out',
+    logoutConfirm: 'Sign out now?',
+    tip: 'Notice',
+    localeSwitchedZh: 'Switched to Simplified Chinese',
+    localeSwitchedEn: 'Switched to English',
+    langZh: '简体中文',
+    langEn: 'English',
+    railExpandLabels: 'Show labels',
+    railCollapseLabels: 'Hide labels'
+  };

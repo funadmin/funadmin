@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { mapOAuthClient } from '@/api/identity/oauthClients';
 import { getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 
-const src = resolve(process.cwd(), 'src');
+const src = resolve(process.cwd(), 'src/admin');
 const read = (path: string) => readFileSync(resolve(src, path), 'utf8');
 
 describe('OAuth Client 管理', () => {

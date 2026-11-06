@@ -6,7 +6,7 @@ namespace app\admin\authorization\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroupDepartment;
@@ -24,7 +24,7 @@ use support\Response;
  * 部门接口。
  */
 #[RouteGroup('/admin/system/dept')]
-class SystemDepartment extends AdminApiController
+class SystemDepartment extends AdminController
 {
 
     /**

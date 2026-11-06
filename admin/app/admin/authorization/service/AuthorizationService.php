@@ -28,8 +28,30 @@ final class AuthorizationService
             'email' => (string) ($current->email ?? ''),
             'mobile' => (string) ($current->mobile ?? ''),
             'roles' => $isSuper ? ['super_admin'] : array_values(array_column($roles, 'code')),
-            'permissions' => $isSuper ? ['*'] : Permission::webPermissions($this->permissionCodes((int) $current->id), false),
+            'permissions' => $isSuper ? ['*'] : Permission::webPermissions($this->scopedPermissionCodes((int) $current->id, $this->permissionCodes((int) $current->id)), false),
         ];
+    }
+
+    /** Discovery extension: filters may only subtract from the host's authoritative grants. */
+    public function scopedPermissionCodes(int $adminId, array $codes): array
+    {
+        // A failing listener only closes discovery for its own plugin; later listeners keep running.
+        $onFailure = static function (mixed $value, string $pluginCode) use ($codes): mixed {
+            if (!is_array($value)) {
+                return $value; // already invalid; the final guard turns it into [].
+            }
+            $owned = Permission::where('source_type', 'plugin')->where('source_name', $pluginCode)
+                ->whereIn('code', $codes)->pluck('code')->all();
+            return array_values(array_diff(array_filter($value, 'is_string'), $owned));
+        };
+        try {
+            $filtered = \app\common\plugin\hook\Hook::filterIsolated('admin.permission_codes', $codes, $onFailure, ['admin_id' => $adminId]);
+            return is_array($filtered) ? array_values(array_intersect($codes, array_filter($filtered, 'is_string'))) : [];
+        } catch (\Throwable $error) {
+            // Activation snapshot unavailable: no listener can be trusted, so close all plugin discovery.
+            $pluginCodes = Permission::where('source_type', 'plugin')->whereIn('code', $codes)->pluck('code')->all();
+            return array_values(array_diff($codes, $pluginCodes));
+        }
     }
 
     public function requirePermission(int $adminId, string $permission, bool $superOnly = false): void

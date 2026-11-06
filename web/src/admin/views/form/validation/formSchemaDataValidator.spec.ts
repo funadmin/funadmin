@@ -22,7 +22,7 @@ interface ValidationFixture {
   unsafePatterns: string[];
 }
 
-const fixturePath = resolve(process.cwd(), '../tests/fixtures/form-schema-v2-validation.json');
+const fixturePath = resolve(process.cwd(), '../admin/tests/fixtures/form-schema-v2-validation.json');
 const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as ValidationFixture;
 
 describe('FormSchema v2 双端统一验证协议', () => {

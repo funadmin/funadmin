@@ -7,17 +7,17 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('统一表单发布引擎契约', () => {
   it('提供发布状态迁移与模型 JSON 配置', () => {
-    const migrationPath = resolve(root, 'database/migrations/archive/066_form_publish_engine.sql');
+    const migrationPath = resolve(root, 'admin/database/core/migrations/archive/066_form_publish_engine.sql');
     expect(existsSync(migrationPath)).toBe(true);
     const migration = readFileSync(migrationPath, 'utf8');
     for (const column of ['publish_config', 'publish_status', 'published_at', 'crud_generation_id', 'published_definition_hash']) {
       expect(migration).toContain(column);
     }
-    expect(read('app/admin/form/model/Form.php')).toContain("'publish_config'");
+    expect(read('admin/app/admin/form/model/Form.php')).toContain("'publish_config'");
   });
 
   it('通过独立工厂把表单元数据转换为 CRUD Definition', () => {
-    const factoryPath = resolve(root, 'app/admin/development/service/FormCrudDefinitionFactory.php');
+    const factoryPath = resolve(root, 'admin/app/admin/development/service/FormCrudDefinitionFactory.php');
     expect(existsSync(factoryPath)).toBe(true);
     const factory = readFileSync(factoryPath, 'utf8');
     expect(factory).toContain('final class FormCrudDefinitionFactory');
@@ -27,14 +27,15 @@ describe('统一表单发布引擎契约', () => {
     }
     expect(factory).toContain("managedField('id', 'bigint unsigned', true)");
     expect(factory).toContain("foreach (['created_at', 'updated_at', 'deleted_at'] as $managed)");
-    for (const target of ['model/generated', 'validate/generated', 'service/generated', 'controller/generated']) expect(factory).toContain(target);
+    for (const layer of ['model', 'validate', 'service', 'controller']) expect(factory).toContain(`/${layer}/{$class}`);
+    expect(factory).toContain('app/admin/generated/');
     expect(factory).toContain("'enabled' => (bool) $config['dataScopeEnabled']");
   });
 
   it('动态发布与正式生成统一由 Business API 暴露', () => {
-    const dynamic = read('app/admin/form/service/FormPublishService.php');
-    const business = read('app/admin/controller/development/Business.php');
-    const orchestration = read('app/admin/development/service/BusinessDevelopmentService.php');
+    const dynamic = read('admin/app/admin/form/service/FormPublishService.php');
+    const business = read('admin/app/admin/development/controller/Business.php');
+    const orchestration = read('admin/app/admin/development/service/BusinessDevelopmentService.php');
     expect(dynamic).toContain('public function previewDynamic(');
     expect(dynamic).toContain('public function publishDynamic(');
     expect(dynamic).toContain('applyDynamicDdl($payload)');
@@ -47,32 +48,32 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
-    const authorization = read('app/admin/authorization/service/AdminAuthorizationService.php');
+    const authorization = read('admin/app/admin/authorization/service/AdminAuthorizationService.php');
     expect(authorization).toContain("preg_match('/^[a-z][a-z0-9_.-]*$/', $object)");
-    const migration = read('database/migrations/archive/066_form_publish_engine.sql');
+    const migration = read('admin/database/core/migrations/archive/066_form_publish_engine.sql');
     for (const code of ['console/form.designer:previewpublish', 'console/form.designer:publish', 'console/form.designer:publishstatus', 'console/form.designer:retryresources', 'form:publish:overwrite', 'form:publish:apply-resources']) {
       expect(migration).toContain(code);
     }
     expect(migration).toContain('CONVERT(X\'');
     expect(migration).not.toMatch(/'[\u4e00-\u9fff]+(?:[\u4e00-\u9fff/ ]*)'/);
-    const fullMigration = read('database/migrations/archive/079_form_full_publish_permissions.sql');
+    const fullMigration = read('admin/database/core/migrations/archive/079_form_full_publish_permissions.sql');
     for (const action of ['preview', 'publish', 'status', 'generation', 'retryresources']) {
       expect(fullMigration).toContain(`console/form.full-publish:${action}`);
     }
   });
 
   it('CRUD Definition 接受完整筛选、格式化和布局元数据', () => {
-    const validator = read('app/common/crud/DefinitionValidator.php');
+    const validator = read('admin/app/common/crud/DefinitionValidator.php');
     for (const key of ['listFormatter', 'listWidth', 'placeholder', 'controlProps']) expect(validator).toContain(`'${key}'`);
     for (const operator of ['ne', 'not_like', 'starts_with', 'ends_with', 'gt', 'lt', 'not_in', 'is_null', 'not_null']) {
       expect(validator).toContain(`'${operator}'`);
     }
-    const definition = read('app/common/crud/CrudDefinition.php');
+    const definition = read('admin/app/common/crud/CrudDefinition.php');
     expect(definition).toContain("'layoutSchema'");
   });
 
   it('基本信息提供所属菜单选择，并将选择纳入发布配置', () => {
-    const designer = read('web/src/views/form/designer/index.vue');
+    const designer = read('web/src/admin/views/form/designer/index.vue');
     expect(designer).toContain("t('formDesigner.parentMenu', '所属菜单')");
     expect(designer).toContain(':model-value="publishConfig.parentSourceName"');
     expect(designer).toContain('menuApi.tree()');
@@ -80,7 +81,7 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('设计器隔离动态发布与正式生成，并对冲突 fail closed', () => {
-    const designer = read('web/src/views/form/designer/index.vue');
+    const designer = read('web/src/admin/views/form/designer/index.vue');
     for (const label of ['动态发布', '生成正式模块', '变更预览', '冲突确认', '发布结果', 'Base', 'Local', 'Remote']) expect(designer).toContain(label);
     expect(designer).toContain('businessDevelopmentApi.previewPublish');
     expect(designer).toContain('businessDevelopmentApi.previewFormalGeneration');
@@ -93,7 +94,7 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('表单设计器仅保留基础模式，移除高级模式专属入口和状态', () => {
-    const designer = read('web/src/views/form/designer/index.vue');
+    const designer = read('web/src/admin/views/form/designer/index.vue');
     expect(designer).not.toContain('designerMode');
     expect(designer).not.toContain('高级模式');
     expect(designer).not.toContain('SchemaJsonEditor');
@@ -104,7 +105,7 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('正式生成复用服务端 operation，并在响应不确定时按 generationId 收敛', () => {
-    const designer = read('web/src/views/form/designer/index.vue');
+    const designer = read('web/src/admin/views/form/designer/index.vue');
     expect(designer).toContain('const formalGenerationNonce = ref(crypto.randomUUID())');
     expect(designer).toContain('previewFormalGeneration(moduleId, formalGenerationNonce.value)');
     expect(designer).toContain('businessDevelopmentApi.generation(generationId)');
@@ -113,28 +114,28 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).toContain('查询生成结果');
     expect(designer).toContain('useBusinessMenuRefresh');
     expect(designer).toContain("t('formDesigner.menuRefreshFailed', '生成成功，菜单刷新失败')");
-    expect(read('app/admin/development/service/ManagedGenerationService.php')).toContain("'parentSourceName'");
-    expect(read('app/admin/development/service/GenerationResourceTransaction.php')).toContain("'parentSourceName'");
+    expect(read('admin/app/admin/development/service/ManagedGenerationService.php')).toContain("'parentSourceName'");
+    expect(read('admin/app/admin/development/service/GenerationResourceTransaction.php')).toContain("'parentSourceName'");
     expect(designer).not.toContain('permissionStore.fetchMenus()');
   });
 
   it('正式生成按钮维持 generate 与 apply-resources 权限边界', () => {
-    const designer = read('web/src/views/form/designer/index.vue');
-    expect(designer).toMatch(/v-perm="'development:business:generate'"[^>]*@click="openFormalGeneration"/);
-    expect(designer).toContain('v-perm="\'development:business:apply-resources\'"');
+    const designer = read('web/src/admin/views/form/designer/index.vue');
+    expect(designer).toMatch(/v-perm:all="\['development.business:previewformalgeneration', 'development:business:generate'\]"[^>]*@click="openFormalGeneration"/);
+    expect(designer).toContain(`v-perm:all="['development.business:formalgeneration', 'development:business:generate', 'development:business:apply-resources']"`);
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
-    const router = read('web/src/router/dynamic.ts');
+    const router = read('web/src/admin/router/dynamic.ts');
     expect(router).toContain("normalized.startsWith('generated/')");
     expect(router).toContain("import('@/views/form/published.vue')");
-    expect(router).toContain("import { resolveMenuPath } from '@/utils/route'");
-    expect(existsSync(resolve(root, 'web/src/views/form/published.vue'))).toBe(true);
+    expect(router).toContain("import { resolveMenuPath, adminRoutePath } from '@/utils/route'");
+    expect(existsSync(resolve(root, 'web/src/admin/views/form/published.vue'))).toBe(true);
   });
 
   it('动态发布 routePath 可命中发布宿主并传递 formKey 路径参数', () => {
-    const routes = read('web/src/router/routes.ts');
-    const published = read('web/src/views/form/published.vue');
+    const routes = read('web/src/admin/router/routes.ts');
+    const published = read('web/src/admin/views/form/published.vue');
     expect(routes).toContain("path: 'development/business/runtime/:formKey'");
     expect(routes).toContain("name: 'PublishedFormRuntime'");
     expect(routes).toContain("import('@/views/form/published.vue')");
@@ -142,8 +143,8 @@ describe('统一表单发布引擎契约', () => {
   });
 
   it('发布兜底宿主严格使用已发布 canonical FormSchema v2 运行态', () => {
-    const published = read('web/src/views/form/published.vue');
-    const api = read('web/src/api/formData.ts');
+    const published = read('web/src/admin/views/form/published.vue');
+    const api = read('web/src/admin/api/formData.ts');
     expect(published).toContain('SchemaRenderer');
     expect(published).not.toContain('SchemaForm');
     expect(published).toContain(':schema="meta.schema"');

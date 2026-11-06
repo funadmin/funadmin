@@ -1,0 +1,3 @@
+Vue 3.5.32 — vue.global.prod.js
+Element Plus 2.14.5 — element-plus.full.min.js, element-plus.css and element-plus-zh-cn.min.js
+Copied from the existing project node_modules; original MIT license files included.

@@ -10,13 +10,13 @@ export async function confirmAction(
 ): Promise<boolean> {
   try {
     await confirm();
+    await action();
   } catch (reason) {
     if (reason === 'cancel' || reason === 'close') {
       return false;
     }
     throw reason;
   }
-  await action();
   return true;
 }
 

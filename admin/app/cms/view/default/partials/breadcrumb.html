@@ -1,0 +1,5 @@
+<nav class="breadcrumb" aria-label="{$ui.home}"><el-breadcrumb separator="/">
+<el-breadcrumb-item><a href="{$home.url}">{$ui.home}</a></el-breadcrumb-item>
+{cms:breadcrumb as="crumb"}<el-breadcrumb-item><a href="{$crumb.url}">{$crumb.name}</a></el-breadcrumb-item>{/cms:breadcrumb}
+<el-breadcrumb-item>{$page.title}</el-breadcrumb-item>
+</el-breadcrumb></nav>

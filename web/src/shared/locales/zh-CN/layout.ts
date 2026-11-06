@@ -1,0 +1,23 @@
+export default {
+    menuSearch: '菜单搜索',
+    refresh: '刷新',
+    fullscreen: '全屏',
+    exitFullscreen: '退出全屏',
+    toggleTheme: '切换主题',
+    language: '语言',
+    layoutSetting: '布局设置',
+    notLoggedIn: '未登录',
+    guest: '游客',
+    welcomeBack: '欢迎回来',
+    profile: '个人中心',
+    layoutSettings: '布局设置',
+    logout: '退出登录',
+    logoutConfirm: '确定退出登录吗？',
+    tip: '提示',
+    localeSwitchedZh: '已切换为简体中文',
+    localeSwitchedEn: 'Switched to English',
+    langZh: '简体中文',
+    langEn: 'English',
+    railExpandLabels: '展开标签',
+    railCollapseLabels: '隐藏标签'
+  };

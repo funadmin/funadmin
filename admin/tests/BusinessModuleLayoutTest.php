@@ -54,7 +54,7 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertSame(realpath(__DIR__ . '/../app/admin/system/service/AdminLogService.php'), (new ReflectionClass($class))->getFileName());
         self::assertFileDoesNotExist(__DIR__ . '/../app/common/service/AdminLogService.php');
         self::assertFalse(class_exists('app\\common\\service\\AdminLogService'));
-        self::assertStringContainsString('use ' . $class . ';', file_get_contents(__DIR__ . '/../app/admin/middleware/SystemLog.php'));
+        self::assertStringContainsString('use ' . $class . ';', file_get_contents(__DIR__ . '/../app/admin/middleware/SystemLogMiddleware.php'));
     }
 
     public function test_webman_console_discovers_all_business_module_commands(): void
@@ -490,7 +490,7 @@ final class BusinessModuleLayoutTest extends TestCase
             self::assertFalse(trait_exists('app\\admin\\traits\\' . $name));
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/traits/' . $name . '.php');
         }
-        $traits = class_uses('app\\admin\\controller\\base\\AdminApiController');
+        $traits = class_uses('app\\common\\controller\\AdminController');
         foreach (['AdminCrudRequest', 'AdminPagination', 'AdminTree'] as $name) {
             self::assertContains('app\\admin\\common\\traits\\' . $name, $traits);
         }
@@ -509,7 +509,7 @@ final class BusinessModuleLayoutTest extends TestCase
             self::assertSame(realpath(__DIR__ . '/../app/admin/common/traits/' . $name . '.php'), (new ReflectionClass($class))->getFileName());
             self::assertFalse(trait_exists('app\\admin\\traits\\' . $name));
             self::assertFileDoesNotExist(__DIR__ . '/../app/admin/traits/' . $name . '.php');
-            self::assertContains($class, class_uses('app\\admin\\controller\\base\\AdminApiController'));
+            self::assertContains($class, class_uses('app\\common\\controller\\AdminController'));
         }
 
         $formatTrait = 'app\\common\\traits\\DataFormat';

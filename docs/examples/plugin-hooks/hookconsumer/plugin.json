@@ -20,7 +20,7 @@
     "menu": [],
     "routes": []
   },
-  "backendHooks": [
+  "serverHooks": [
     {
       "id": "relay",
       "point": "plugin.hookconsumer.decorate",
@@ -29,7 +29,7 @@
       "handler": "relay"
     }
   ],
-  "frontendHooks": [
+  "clientHooks": [
     {
       "id": "relay",
       "point": "plugin.hookconsumer.decorate",

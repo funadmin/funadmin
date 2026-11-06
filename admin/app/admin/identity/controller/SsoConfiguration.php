@@ -13,7 +13,7 @@ use app\common\model\identity\OAuthClient;
 use app\common\model\identity\OidcSigningKey;
 use app\common\model\identity\RedirectUri;
 use app\common\service\identity\AdminIdentityAdapter;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\identity\service\IssuerService;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
@@ -24,7 +24,7 @@ use support\Response;
  * 单点登录配置接口。
  */
 #[RouteGroup('/admin/identity/sso')]
-final class SsoConfiguration extends AdminApiController
+final class SsoConfiguration extends AdminController
 {
     /**
      * 获取当前租户的 SSO 配置，无记录时返回默认配置。

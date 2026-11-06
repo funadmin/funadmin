@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { getClampedTabScrollLeft, getTabScrollState } from './Tabs.vue';
 
 const source = readFileSync(resolve(import.meta.dirname, 'Tabs.vue'), 'utf8');
-const iconStyles = readFileSync(resolve(import.meta.dirname, '../../styles/ep-icons.css'), 'utf8');
+const iconStyles = readFileSync(resolve(import.meta.dirname, '../../../shared/styles/ep-icons.css'), 'utf8');
 
 describe('后台页签横向滚动按钮', () => {
   it('在滚动容器两侧提供左右按钮，并保留右侧下拉按钮', () => {

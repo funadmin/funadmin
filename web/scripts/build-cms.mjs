@@ -7,5 +7,5 @@ import path from 'node:path';
 import os from 'node:os';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const outDir=path.join(os.tmpdir(),`funadmin-cms-admin-build-${process.pid}`);
-await build({root,configFile:false,plugins:[vue(),Components({dts:false,resolvers:[ElementPlusResolver()]})],build:{outDir,emptyOutDir:true,lib:{entry:path.resolve(root,'../admin/plugins/cms/web/src/admin/modules/cms/pages/Index.vue'),name:'CmsAdmin',formats:['es'],fileName:'cms-admin'},rollupOptions:{external:id=>id==='vue'||/^element-plus(?:\/|$)/.test(id)||id.startsWith('@/')}},logLevel:'warn'});
+await build({root,configFile:false,plugins:[vue(),Components({dts:false,resolvers:[ElementPlusResolver()]})],build:{outDir,emptyOutDir:true,lib:{entry:Object.fromEntries([...['Index','Sites','Categories','Content','Menus','Tags','Models','Access','Contributions'].map(name=>[name,path.resolve(root,`../admin/plugins/cms/web/src/admin/modules/cms/pages/${name}.vue`)]),['QaModeration',path.resolve(root,'../admin/plugins/qa/web/src/admin/modules/qa/pages/Moderation.vue')]]),name:'CmsAdmin',formats:['es'],fileName:'cms-admin'},rollupOptions:{external:id=>(id==='vue'||id==='vue-router')||/^element-plus(?:\/|$)/.test(id)||id.startsWith('@/')}},logLevel:'warn'});
 process.stdout.write(`CMS admin production compilation passed: ${outDir}\n`);

@@ -46,11 +46,21 @@ final class PluginValidate extends Command
                 ];
             }
             (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
+            $host = new \app\common\plugin\sdk\HostPackageRepository(($this->projectRoot ?? base_path()) . '/vendor/composer/installed.php');
+            (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION, $host))->assertComposerSatisfied($manifest);
+            $others = [];
+            foreach ($records as $code => $record) {
+                if ($record['lifecycle_state'] === 'enabled' && !$record['needs_reinstall'] && $code !== $name) {
+                    $others[$code] = ($this->projectRoot ?? base_path()) . '/plugins/' . $code;
+                }
+            }
+            $conflicts = (new \app\common\plugin\sdk\ComposerConflictDetector($host))->detect($manifest->directory(), $others);
             $output->writeln(json_encode([
                 'valid' => true,
                 'code' => $manifest->code(),
                 'version' => $manifest->version(),
                 'message' => '插件校验通过',
+                'warnings' => $conflicts,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;
         } catch (Throwable $exception) {

@@ -17,7 +17,7 @@ class MigrationService extends AbstractService
         $configured = getenv('CORE_DATABASE_PATH');
         $database = $configured !== false && $configured !== ''
             ? $configured
-            : dirname($projectRoot ?? base_path()) . '/database';
+            : ($projectRoot ?? base_path()) . '/database/core';
         $directory = realpath(rtrim($database, DIRECTORY_SEPARATOR) . '/migrations');
         if ($directory === false || !is_dir($directory) || !is_readable($directory)
             || !is_file($directory . '/001_baseline.sql') || !is_readable($directory . '/001_baseline.sql')) {

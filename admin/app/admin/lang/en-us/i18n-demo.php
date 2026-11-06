@@ -7,6 +7,6 @@ return array (
   'i18n-demo' => 
   array (
     'referenceMetadataInvalid' => 'Reference metadata invalid',
-    'referenced' => 'Referenced',
+    'referenced' => 'This record is still referenced by {:target} and cannot be deleted',
   ),
 );

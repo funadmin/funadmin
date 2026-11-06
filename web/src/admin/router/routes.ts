@@ -39,6 +39,12 @@ export const staticRoutes: RouteRecordRaw[] = [
     meta: { title: '前台注册', hidden: true, public: true, member: true }
   },
   {
+    path: '/web/questions/:id?',
+    name: 'CommunityQuestions',
+    component: () => import('@/web/views/QuestionsPortal.vue'),
+    meta: { title: '问答社区', hidden: true, public: true, member: true }
+  },
+  {
     path: MEMBER_PROFILE_PATH,
     name: 'MemberProfile',
     component: () => import('@/web/views/MemberProfile.vue'),

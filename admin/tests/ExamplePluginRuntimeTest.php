@@ -15,7 +15,7 @@ final class ExamplePluginRuntimeTest extends TestCase
     {
         (new \app\common\service\database\MigrationService())->run();
         Route::load([config_path()]);
-        \Webman\Middleware::load(['' => [\app\common\middleware\PluginApplicationGuard::class]]);
+        \Webman\Middleware::load(['' => [\app\common\middleware\PluginApplicationGuardMiddleware::class]]);
         (new \ReflectionProperty(\Webman\App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
         \support\Db::table('admin')->insert(['id' => 99, 'username' => 'example_reader', 'password' => password_hash('reader-password', PASSWORD_DEFAULT), 'status' => 1]);
         \support\Db::table('auth_group')->insert(['id' => 99, 'name' => '示例读取', 'code' => 'example_reader', 'status' => 1]);

@@ -74,6 +74,12 @@ final class Manifest
         return $this->data['requires']['plugins'] ?? [];
     }
 
+    /** Host-provided Composer packages, not plugin-owned vendor. */
+    public function composerRequirements(): array
+    {
+        return $this->data['requires']['composer'] ?? [];
+    }
+
     public function requirement(string $name): ?string
     {
         $value = $this->data['requires'][$name] ?? null;
@@ -92,6 +98,11 @@ final class Manifest
 
     private static function validate(string $directory, array $data): void
     {
+        foreach (['backendHooks' => 'serverHooks', 'frontendHooks' => 'clientHooks'] as $retired => $current) {
+            if (array_key_exists($retired, $data)) {
+                throw new RuntimeException('plugin.json 字段 ' . $retired . ' 已移除，请改为 ' . $current);
+            }
+        }
         $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
         JsonSchemaValidator::fromFile($schema)->validate($data);
         self::assertNoSymlinks($directory);
@@ -185,9 +196,35 @@ final class Manifest
             }
             $declared[$code] = true;
         }
-        foreach ((array) ($adminWeb['menu'] ?? []) as $menu) {
-            self::validatePermissionReference((string) ($menu['permission'] ?? ''), $declared, 'adminWeb.menu.permission');
+        $routes = [];
+        foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
+            if (!str_starts_with($route['path'], '/plugin/' . $pluginCode . '/')) {
+                throw new RuntimeException('adminWeb.routes.path 必须使用插件命名空间');
+            }
+            if (isset($routes[$route['path']])) throw new RuntimeException('adminWeb.routes.path 重复');
+            $routes[$route['path']] = $route;
         }
+        $count = 0;
+        $paths = [];
+        $validateMenus = function (array $menus, int $depth = 1) use (&$validateMenus, &$count, &$paths, $declared, $routes, $pluginCode): void {
+            if ($depth > 8) throw new RuntimeException('adminWeb.menu 深度不能超过 8');
+            foreach ($menus as $menu) {
+                if (++$count > 200) throw new RuntimeException('adminWeb.menu 数量不能超过 200');
+                $path = (string) ($menu['path'] ?? '');
+                if (preg_match('~^/plugin/' . preg_quote($pluginCode, '~') . '(?:/[A-Za-z0-9_-]+)*$~D', $path) !== 1 || isset($paths[strtolower($path)])) {
+                    throw new RuntimeException('adminWeb.menu.path 命名空间无效或重复：' . $path);
+                }
+                $paths[strtolower($path)] = true;
+                $permission = (string) ($menu['permission'] ?? '');
+                self::validatePermissionReference($permission, $declared, 'adminWeb.menu.permission');
+                if (!empty($menu['menulist'])) {
+                    $validateMenus($menu['menulist'], $depth + 1);
+                } elseif ($permission === '' || !isset($routes[$path]) || ($routes[$path]['meta']['permission'] ?? '') !== $permission) {
+                    throw new RuntimeException('adminWeb.menu 叶子必须绑定同权限的已声明路由：' . $path);
+                }
+            }
+        };
+        $validateMenus((array) ($adminWeb['menu'] ?? []));
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
             self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'adminWeb.routes.meta.permission');
         }

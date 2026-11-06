@@ -233,6 +233,12 @@ class CasbinService extends AbstractService
         $this->reload();
     }
 
+    /** 构造与 syncRolePermissions 一致的策略行（含去重用的 rule_hash），供授权迁移复用。 */
+    public static function ruleRow(string $ptype, array $values): array
+    {
+        return (new \ReflectionMethod(self::class, 'makeRuleRow'))->invoke(self::instance(), $ptype, $values);
+    }
+
     private function makeRuleRow(string $ptype, array $values): array
     {
         $row = ['ptype' => $ptype];

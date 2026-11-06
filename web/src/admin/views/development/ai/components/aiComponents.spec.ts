@@ -66,7 +66,7 @@ describe('AI Development components', () => {
     const style = document.createElement('style');
     try {
       await wrapper.vm.$nextTick();
-      const source = readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
+      const source = readFileSync('src/admin/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
       const { descriptor } = parse(source);
       const scopeId = (ProviderSettingsDrawer as unknown as { __scopeId: string }).__scopeId;
       const compiled = compileStyle({ source: descriptor.styles[0]!.content, filename: 'ProviderSettingsDrawer.vue', id: scopeId, scoped: true });
@@ -108,7 +108,7 @@ describe('AI Development components', () => {
     expect(wrapper.get('[data-testid="profile-footer"]').find('[data-testid="profile-save"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="profile-content"]').find('[data-testid="profile-save"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="profile-advanced"]').attributes('open')).toBeUndefined();
-    const source = readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
+    const source = readFileSync('src/admin/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8');
     expect(source).toMatch(/max-width:\s*1000px/);
     expect(source).toMatch(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(source).toContain('overflow-y: auto');
@@ -132,7 +132,7 @@ describe('AI Development components', () => {
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true });
     const style = document.createElement('style');
     try {
-      const { descriptor } = parse(readFileSync('src/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8'));
+      const { descriptor } = parse(readFileSync('src/admin/views/development/ai/components/ProviderSettingsDrawer.vue', 'utf8'));
       const scopeId = (ProviderSettingsDrawer as unknown as { __scopeId: string }).__scopeId;
       const compiled = compileStyle({ source: descriptor.styles[0]!.content, filename: 'ProviderSettingsDrawer.vue', id: scopeId, scoped: true });
       expect(compiled.errors).toEqual([]);

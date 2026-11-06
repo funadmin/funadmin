@@ -31,7 +31,8 @@ final class PluginPackagePipeline
         private readonly mixed $logger = null,
         private readonly mixed $coordinator = null,
         private readonly mixed $restoreState = null,
-        private readonly mixed $deployGuard = null
+        private readonly mixed $deployGuard = null,
+        private readonly mixed $composerPreflight = null
     ) {
     }
 
@@ -51,7 +52,8 @@ final class PluginPackagePipeline
             static function (string $code, array $state) use ($plugins): void {
                 $plugins->restoreDeploymentState($code, $state);
             },
-            static fn (string $code, string $version, string $maxDbVersion): mixed => $plugins->assertPackageDeployable($code, $version, $maxDbVersion)
+            static fn (string $code, string $version, string $maxDbVersion): mixed => $plugins->assertPackageDeployable($code, $version, $maxDbVersion),
+            static fn (array $staged): array => $plugins->assertComposerDependencies(\app\common\plugin\sdk\Manifest::fromDirectory($staged['plugin_directory']))
         );
     }
 
@@ -151,6 +153,14 @@ final class PluginPackagePipeline
             'code_version' => $targetVersion,
             'manifest_data' => (array) ($basic['manifest'] ?? []),
         ];
+        // Preflight before coordinator: it creates records and begins lifecycle transitions.
+        $preflightStaged = null;
+        if (is_callable($this->composerPreflight)) {
+            $preflightStaged = $this->packages->stage($archive, $expectedCode, $expectedVersion, $source === 'local');
+            try { ($this->composerPreflight)($preflightStaged); }
+            catch (\Throwable $e) { $this->packages->discard($preflightStaged); throw $e; }
+        }
+        $executeStarted = false;
         $execute = function (string $fromVersion = '', ?callable $phase = null, array $operationContext = []) use (
             $archive,
             $expectedCode,
@@ -160,8 +170,11 @@ final class PluginPackagePipeline
             $source,
             $migrate,
             $packageHash,
-            $verification
+            $verification,
+            $preflightStaged,
+            &$executeStarted
         ): array {
+            $executeStarted = true;
             $staged = [];
             $targetVersion = '';
             $maxDbVersion = '';
@@ -169,7 +182,7 @@ final class PluginPackagePipeline
             $deployed = false;
             $deploymentState = (array) ($operationContext['pre_operation_state'] ?? []);
             try {
-                $staged = $this->packages->stage($archive, $expectedCode, $expectedVersion, $source === 'local');
+                $staged = $preflightStaged ?? $this->packages->stage($archive, $expectedCode, $expectedVersion, $source === 'local');
                 $phase && $phase('validate');
                 $targetVersion = (string) ($staged['version'] ?? '');
                 $maxDbVersion = $this->maxDatabaseVersion($staged);
@@ -182,6 +195,7 @@ final class PluginPackagePipeline
                 ($this->lifecycle)($operation, $code, $migrate);
             } catch (\Throwable $exception) {
                 $recoveryPath = $this->cleanupFailure($staged, $code, $backup, $deployed, $deploymentState, $exception);
+                if ($exception instanceof \app\common\plugin\sdk\ComposerConflictException) { throw $exception; }
                 $this->recordHistory([
                     'code' => $code,
                     'version' => $targetVersion,
@@ -232,9 +246,13 @@ final class PluginPackagePipeline
             return $result;
         };
 
-        return is_callable($this->coordinator)
-            ? ($this->coordinator)($operation, $code, $execute, $context)
-            : $execute('');
+        try {
+            return is_callable($this->coordinator)
+                ? ($this->coordinator)($operation, $code, $execute, $context)
+                : $execute('');
+        } finally {
+            if ($preflightStaged !== null && !$executeStarted) { $this->packages->discard($preflightStaged); }
+        }
     }
 
     private function assertPrivatePackagePath(string $path): void

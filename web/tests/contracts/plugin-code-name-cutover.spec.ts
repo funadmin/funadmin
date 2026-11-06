@@ -7,7 +7,7 @@ const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'u
 
 describe('插件 code/name 字段硬切契约', () => {
   it('前端插件业务类型只暴露 code/name', () => {
-    const api = read('web/src/api/system/plugin.ts');
+    const api = read('web/src/admin/api/system/plugin.ts');
 
     expect(api).toMatch(/interface PluginItem\s*\{[\s\S]*?code: string;[\s\S]*?name: string;/);
     expect(api).toMatch(/interface MarketplacePlugin\s*\{[\s\S]*?code: string;[\s\S]*?name: string;/);
@@ -19,7 +19,7 @@ describe('插件 code/name 字段硬切契约', () => {
   });
 
   it('API 标识参数与更新检查 payload 使用 code', () => {
-    const api = read('web/src/api/system/plugin.ts');
+    const api = read('web/src/admin/api/system/plugin.ts');
 
     expect(api).toContain("marketDetail: (code: string)");
     expect(api).toMatch(/interface UpdateCheckRequest\s*\{[\s\S]*?code: string;[\s\S]*?code_version: string;[\s\S]*?db_version: string;[\s\S]*?modified: boolean;/);
@@ -29,7 +29,7 @@ describe('插件 code/name 字段硬切契约', () => {
   });
 
   it('插件中心表格与操作统一使用 row.code', () => {
-    const page = read('web/src/views/system/plugin/index.vue');
+    const page = read('web/src/admin/views/system/plugin/index.vue');
 
     expect(page).toContain('prop="code" :label="t(\'plugin.colCode\', \'插件标识\')"');
     expect(page).toContain('prop="name" :label="t(\'plugin.colName\', \'名称\')"');
@@ -38,8 +38,8 @@ describe('插件 code/name 字段硬切契约', () => {
   });
 
   it('动态模块 descriptor 的插件标识使用 code，Vue route name 保持不变', () => {
-    const api = read('web/src/api/system/plugin.ts');
-    const modules = read('web/src/router/pluginModules.ts');
+    const api = read('web/src/admin/api/system/plugin.ts');
+    const modules = read('web/src/admin/router/pluginModules.ts');
 
     expect(api).toMatch(/interface PluginRouteDto\s*\{[\s\S]*?name: string;/);
     expect(modules).toContain('descriptor.code');

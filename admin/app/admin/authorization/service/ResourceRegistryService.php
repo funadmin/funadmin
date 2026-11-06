@@ -292,7 +292,12 @@ class ResourceRegistryService extends AbstractService
                 if (!$children && (int) ($item['status'] ?? 1) === 1 && (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || (int) $permission->status !== 1 || $permission->deleted_at !== null || (string) $permission->code === '')) {
                     throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . (string) ($item['name'] ?? $href));
                 }
-                $menuQuery = $this->queryWithPermission((string) ($item['query'] ?? ''), in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) ? (string) $permission->code : '');
+                $queryText = (string) ($item['query'] ?? '');
+                if ($sourceType === 'plugin' && $children !== []) {
+                    parse_str($queryText, $directoryMeta);
+                    $queryText = http_build_query(array_replace($directoryMeta, ['type' => 'M', 'component' => 'Layout']));
+                }
+                $menuQuery = $this->queryWithPermission($queryText, in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) ? (string) $permission->code : '');
                 $menu = AdminMenu::where('href', $href)->where('query', $menuQuery)->first();
                 $sameRouteMenu = AdminMenu::where('href', $href)->where('source_type', '<>', $sourceType)->where('source_name', '<>', $sourceName)->first();
                 if ($sameRouteMenu) {

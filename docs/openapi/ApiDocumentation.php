@@ -7,7 +7,7 @@ namespace FunAdmin\Documentation;
 use OpenApi\Annotations as OA;
 
 /**
- * 后台接口文档公共模型；仅供文档扫描，不参与业务运行。
+ * 后台与会员 API 接口文档公共模型；仅供文档扫描，不参与业务运行。
  *
  * @OA\Info(title="FunAdmin 后台接口", version="1.0.0", description="路由文档版本。普通后台、浏览器认证及令牌认证采用各自响应信封。")
  * @OA\Server(url="/", description="当前部署地址")
@@ -26,6 +26,7 @@ use OpenApi\Annotations as OA;
  *     description="由 /admin/auth/csrf 或响应头获取；与同一浏览器会话配套使用。"
  * )
  * @OA\SecurityScheme(securityScheme="AdminBearer", type="http", scheme="bearer", description="通过 /api/auth/login 获取的不透明管理员令牌，不是 JWT。")
+ * @OA\SecurityScheme(securityScheme="MemberBearer", type="http", scheme="bearer", bearerFormat="JWT", description="通过 /api/v2/token 获取的会员 access token（JWT，携带会话标识 sid）；会话被登出或因 refresh 重放被吊销后立即失效。")
  * @OA\Tag(name="表单运行数据")
  * @OA\Tag(name="OIDC 签名密钥")
  * @OA\Tag(name="身份审计日志")
@@ -70,6 +71,8 @@ use OpenApi\Annotations as OA;
  * @OA\Tag(name="管理员个人资料")
  * @OA\Tag(name="管理员令牌认证")
  * @OA\Tag(name="后台浏览器认证")
+ * @OA\Tag(name="会员 API 令牌", description="会员 API v2 令牌：登录签发、一次性轮换刷新、登出。")
+ * @OA\Tag(name="会员 API 资料", description="会员 API v2 当前会员资料。")
  *
  * @OA\Schema(schema="DynamicObject", type="object", description="业务字段随模型、插件或已发布 Schema 变化，以元数据和服务实际返回为准。", additionalProperties=true)
  *
@@ -1354,6 +1357,90 @@ use OpenApi\Annotations as OA;
  *         @OA\Schema(ref="#/components/schemas/BrowserAuthEnvelope"),
  *         @OA\Schema(type="object", @OA\Property(property="data", nullable=true, description="成功时 data 为 null。"))
  *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiEnvelope",
+ *     type="object",
+ *     required={"code", "msg", "time", "data"},
+ *     @OA\Property(property="code", type="integer", description="业务码，与 HTTP 状态一致：成功 200，失败为 400/401/429。", example=200),
+ *     @OA\Property(property="msg", type="string", description="提示信息，按当前语言翻译。", example="登录成功"),
+ *     @OA\Property(property="time", type="integer", description="Unix 时间戳，单位秒。", example=0),
+ *     @OA\Property(property="data", description="成功时为业务数据；失败时为 null。")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiLoginInput",
+ *     type="object",
+ *     required={"username", "password"},
+ *     @OA\Property(property="username", type="string", description="会员用户名、手机号或邮箱。", minLength=1, maxLength=100, example="member"),
+ *     @OA\Property(property="password", type="string", description="会员密码；不记录或返回明文。", format="password", minLength=6, maxLength=255, writeOnly=true)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiRefreshInput",
+ *     type="object",
+ *     required={"refresh_token"},
+ *     @OA\Property(property="refresh_token", type="string", description="上一次登录或刷新返回的 refresh token；只能使用一次。", pattern="^[a-f0-9]{64}$", writeOnly=true)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiTokenPair",
+ *     type="object",
+ *     required={"access_token", "refresh_token", "expires_in"},
+ *     @OA\Property(property="access_token", type="string", description="会员 access token（JWT），作为 Authorization: Bearer <token> 使用。"),
+ *     @OA\Property(property="refresh_token", type="string", description="新的 refresh token（64 位十六进制）。必须保存并替换旧值：旧值再次使用会被视为重放，整个会话立即吊销。", pattern="^[a-f0-9]{64}$"),
+ *     @OA\Property(property="expires_in", type="integer", description="access token 有效期，单位秒。", example=7200)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiProfile",
+ *     type="object",
+ *     required={"id", "username", "nickname"},
+ *     description="当前会员公开资料；只输出白名单字段。",
+ *     @OA\Property(property="id", type="integer", minimum=1, example=1),
+ *     @OA\Property(property="username", type="string", example="member"),
+ *     @OA\Property(property="nickname", type="string", example="会员昵称")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiTokenResult",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/MemberApiEnvelope"),
+ *         @OA\Schema(type="object", @OA\Property(property="data", ref="#/components/schemas/MemberApiTokenPair"))
+ *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiProfileResult",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/MemberApiEnvelope"),
+ *         @OA\Schema(
+ *             type="object",
+ *             @OA\Property(property="data", type="object", required={"user"}, @OA\Property(property="user", ref="#/components/schemas/MemberApiProfile"))
+ *         )
+ *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiLogoutResult",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/MemberApiEnvelope"),
+ *         @OA\Schema(type="object", @OA\Property(property="data", nullable=true, description="成功时 data 为 null。"))
+ *     }
+ * )
+ *
+ * @OA\Response(
+ *     response="MemberApiError",
+ *     description="错误响应；HTTP 状态与响应体 code 一致。",
+ *     @OA\JsonContent(ref="#/components/schemas/MemberApiEnvelope")
+ * )
+ *
+ * @OA\Response(
+ *     response="MemberApiTooManyRequests",
+ *     description="请求过于频繁：同一 IP 每分钟 10 次，登录另按账号每分钟 5 次。",
+ *     @OA\JsonContent(ref="#/components/schemas/MemberApiEnvelope"),
+ *     @OA\Header(header="Retry-After", description="建议重试等待秒数。", @OA\Schema(type="integer", example=60))
  * )
  *
  * @OA\Response(

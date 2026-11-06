@@ -5,7 +5,7 @@
 ## 已实现
 
 - PHP 全局 Hook facade、实例执行器与绑定调用链，动作/过滤/函数/类方法/可调用对象，深度 32、插件级启用与依赖检查、私有文件哈希校验。
-- Manifest v2 可选 backendHooks/frontendHooks；无应用/菜单/路由、仅前端函数的插件可正常使用。
+- Manifest v2 可选 serverHooks/clientHooks；无应用/菜单/路由、仅前端函数的插件可正常使用。
 - 前端共享 hooks、PluginSlot、动作/过滤异步执行、组件错误边界、会话与权限投影同步、取消信号与清理。
 - public/member/admin 精确匹配；后台描述入口 /admin/plugins/hooks/frontend 与既有 Cookie Path=/admin 一致；public/member 走 /plugins/hooks/frontend。
 - 任意扩展点与跨插件调用，不依赖应用目录；可选依赖无监听器时返回原值，必需依赖继续由 requires.plugins 管理。

@@ -16,6 +16,9 @@ final class PluginHookRuntimeTest extends TestCase
     }
     protected function tearDown(): void
     {
+        foreach (\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $path => $loader) {
+            if (str_starts_with($path, $this->dir . '/')) $loader->unregister();
+        }
         $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $f) {
             $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
@@ -27,7 +30,7 @@ final class PluginHookRuntimeTest extends TestCase
         mkdir($this->dir . '/plugins/' . $code . '/hooks', 0755, true);
         file_put_contents($this->dir . '/plugins/' . $code . '/hooks/main.php', '<?php ' . $source);
         $this->records[$code] = ['code' => $code, 'status' => 1, 'lifecycle_state' => 'enabled'];
-        $this->manifests[$code] = ['backendHooks' => $hooks, 'requires' => ['plugins' => $deps]];
+        $this->manifests[$code] = ['serverHooks' => $hooks, 'requires' => ['plugins' => $deps]];
     }
     private function hook(string $id, string $type = 'filter', int $priority = 100, string $point = 'test.run'): array
     {
@@ -39,6 +42,15 @@ final class PluginHookRuntimeTest extends TestCase
         return new HookRuntime(new PluginActivationReader($this->dir . '/runtime'), $this->dir . '/plugins', $reporter ?? static function () {
         });
     }
+    public function testHookLoadsBundledVendorWithoutEntryFactory(): void
+    {
+        $this->plugin('vendorhook', "return ['first'=>fn(\$v)=>\\HookVendorFixture\\Value::get()];", [$this->hook('first')]);
+        $path = $this->dir . '/plugins/vendorhook/vendor'; mkdir($path);
+        file_put_contents($path . '/Value.php', '<?php namespace HookVendorFixture; class Value { public static function get() { return "vendor-loaded"; } }');
+        file_put_contents($path . '/autoload.php', '<?php $l = new \\Composer\\Autoload\\ClassLoader(__DIR__); $l->addPsr4("HookVendorFixture\\\\", __DIR__); $l->register(true); return $l;');
+        self::assertSame('vendor-loaded', $this->runtime()->filter('test.run', 'original'));
+    }
+
     public function testCrossPluginOrderAndFalsyFilterValuesWithoutApplications(): void
     {
         $this->plugin('beta', "return ['second'=>fn(\$v)=>\$v === false ? null : 'wrong'];", [$this->hook('second', priority: 20)]);
@@ -157,7 +169,7 @@ final class PluginHookRuntimeTest extends TestCase
         $reader = new PluginActivationReader($this->dir . '/runtime');
         $file = $this->dir . '/runtime/generations/' . $reader->activeGeneration() . '/snapshot.json';
         $payload = json_decode(file_get_contents($file), true);
-        $payload['plugins']['alpha']['backendHookFiles']['hooks/main.php'] = [];
+        $payload['plugins']['alpha']['serverHookFiles']['hooks/main.php'] = [];
         $payload['activation_hash'] = PluginActivationCompiler::integrityHash(array_intersect_key($payload, array_flip(['schema_version', 'generation', 'plugins'])));
         file_put_contents($file, json_encode($payload));
         self::assertFalse($reader->read()->isTrusted());
@@ -196,6 +208,41 @@ final class PluginHookRuntimeTest extends TestCase
         self::assertArrayNotHasKey('late_hook', $GLOBALS);
     }
 
+    public function testIsolatedFilterAttributesFailureToPluginAndContinues(): void
+    {
+        $this->plugin('alpha', "return ['bad'=>function(){throw new \\RuntimeException('filter failed');}];", [$this->hook('bad', priority:1)]);
+        $this->plugin('beta', "return ['late'=>fn(\$v)=>\$v . '+beta'];", [$this->hook('late', priority:2)]);
+        $failures = [];
+        $result = $this->runtime()->filterIsolated('test.run', 'input', function ($value, $code, $error) use (&$failures) {
+            $failures[] = [$code, $error->getMessage()];
+            return $value . '+recovered';
+        });
+        self::assertSame('input+recovered+beta', $result);
+        self::assertSame([['alpha', 'filter failed']], $failures);
+    }
+
+    public function testIsolatedFilterStillThrowsWhenSnapshotUntrusted(): void
+    {
+        mkdir($this->dir . '/runtime', 0755, true);
+        file_put_contents($this->dir . '/runtime/active', "broken\n");
+        $runtime = new HookRuntime(new PluginActivationReader($this->dir . '/runtime'), $this->dir . '/plugins', static function () {});
+        $this->expectException(\app\common\plugin\sdk\ActivationUnavailableException::class);
+        $runtime->filterIsolated('test.run', 'input', static fn ($v) => $v);
+    }
+
+    public function testSnapshotWithPreviousSchemaVersionIsUntrusted(): void
+    {
+        $this->records=['alpha'=>['code'=>'alpha','status'=>1,'lifecycle_state'=>'enabled']];
+        $this->runtime();
+        $reader=new PluginActivationReader($this->dir.'/runtime');
+        $file=$this->dir.'/runtime/generations/'.$reader->activeGeneration().'/snapshot.json';
+        $payload=json_decode(file_get_contents($file),true);
+        $payload['schema_version']=1;
+        $payload['activation_hash']=PluginActivationCompiler::integrityHash(array_intersect_key($payload,array_flip(['schema_version','generation','plugins'])));
+        file_put_contents($file,json_encode($payload));
+        self::assertFalse($reader->read()->isTrusted());
+    }
+
     public function testNullHookSectionsAreRejected(): void
     {
         $this->records=['alpha'=>['code'=>'alpha','status'=>1,'lifecycle_state'=>'enabled']];
@@ -203,7 +250,7 @@ final class PluginHookRuntimeTest extends TestCase
         $reader=new PluginActivationReader($this->dir.'/runtime');
         $file=$this->dir.'/runtime/generations/'.$reader->activeGeneration().'/snapshot.json';
         $payload=json_decode(file_get_contents($file),true);
-        $payload['plugins']['alpha']['backendHooks']=null;
+        $payload['plugins']['alpha']['serverHooks']=null;
         $payload['activation_hash']=PluginActivationCompiler::integrityHash(array_intersect_key($payload,array_flip(['schema_version','generation','plugins'])));
         file_put_contents($file,json_encode($payload));
         self::assertFalse($reader->read()->isTrusted());

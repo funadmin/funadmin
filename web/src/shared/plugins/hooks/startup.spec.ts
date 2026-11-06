@@ -3,7 +3,7 @@ import { APP_CONFIG } from '@/config';
 import { HookSynchronizer, routeAudience, startPluginHooks } from './startup';
 import { HookRuntime, hooks } from './runtime';
 import { createRouter, createMemoryHistory } from 'vue-router';
-const descriptor = { code: 'a', version: '1', components: {}, frontendHooks: [] };
+const descriptor = { code: 'a', version: '1', components: {}, clientHooks: [] };
 it('classifies public before member and treats login as public', () => {
     expect(routeAudience({ path: '/admin/login', meta: {} })).toBe('public');
     expect(routeAudience({ path: '/web', meta: { public: true, member: true } })).toBe('public');

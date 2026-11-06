@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\service\storage\UploadService;
@@ -19,7 +19,7 @@ use support\Response;
  * Admin Web 通用上传适配器，复用现有上传服务并统一响应结构。
  */
 #[RouteGroup('/admin')]
-class AdminUpload extends AdminApiController
+class AdminUpload extends AdminController
 {
 
     /**
@@ -85,11 +85,8 @@ class AdminUpload extends AdminApiController
         }
 
         $fileSize = $file->getSize();
-        $driver = \support\Container::get(\app\common\storage\StorageDriverRegistry::class)
-            ->resolve((string) syscfg('upload', 'upload_driver'))->name();
-        $existingAttach = Attach::where('driver', $driver)->where('md5', hash_file('md5', $file->getPathname()))->first();
         try {
-            $result = UploadService::instance()->uploads(0, (int) (request()?->context['admin']['id'] ?? 0));
+            $result = (new UploadService())->uploads(0, (int) (request()?->context['admin']['id'] ?? 0));
         } catch (\Throwable $e) {
             return $this->fail(msg: $e->getMessage() ?: '上传失败', code: 422);
         }
@@ -101,13 +98,14 @@ class AdminUpload extends AdminApiController
         }
 
         $data = [
+            'id' => (string) $attach->id,
             'url' => (string) $attach->path,
             'name' => (string) $attach->original_name,
             'size' => $fileSize,
             'ext' => strtolower((string) $attach->ext),
             'groupId' => (int) $attach->group_id,
             'driver' => (string) $attach->driver,
-            'reused' => $existingAttach && (int) $existingAttach->id === (int) $attach->id,
+            'reused' => (bool) ($result['reused'] ?? false),
             'uploadedAt' => time() * 1000,
         ];
         try {

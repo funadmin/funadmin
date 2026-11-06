@@ -6,10 +6,7 @@ namespace app\admin\plugins\market\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\plugin\middleware\CheckPluginPermission;
-use app\admin\middleware\SystemLog;
+use app\common\controller\AdminController;
 use app\admin\plugins\market\service\MarketAdminService;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -22,13 +19,8 @@ use support\Response;
  * 插件市场授权接口。
  */
 #[RouteGroup('/admin/plugin/market/grant')]
-final class GrantController extends AdminApiController
+final class GrantController extends AdminController
 {
-    protected array $middleware = [
-        CheckPluginPermission::class,
-        CheckAdminApiCsrf::class,
-        SystemLog::class,
-    ];
     /**
      * 获取插件市场授权列表。
      *

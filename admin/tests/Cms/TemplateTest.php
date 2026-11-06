@@ -68,4 +68,20 @@ final class TemplateTest extends TestCase
         $engine->render(str_repeat('{$large}',5),['large'=>str_repeat('x',2_000_000)],new RenderContext('7','zh-cn'));
     }
 
+    public function test_large_literal_block_is_rendered_without_backtracking_loss(): void
+    {
+        $literal=str_repeat('a',1_100_000).' {$unchanged} {cms:unknown /} {{ vue }}';
+        $output=$this->engine()->render('before{cms:literal}'.$literal.'{/cms:literal}after',[],new RenderContext('7','zh-cn'));
+        self::assertSame(hash('sha256','before'.$literal.'after'),hash('sha256',$output));
+    }
+    public function test_tokenizer_failure_is_reported_instead_of_rendering_empty_output(): void
+    {
+        $engine=$this->engine();$limit=ini_get('pcre.backtrack_limit');
+        try {
+            ini_set('pcre.backtrack_limit','0');
+            $this->expectException(\RuntimeException::class);
+            $engine->render('{cms:greeting /}',[],new RenderContext('7','zh-cn'));
+        } finally { ini_set('pcre.backtrack_limit',$limit); }
+    }
+
 }

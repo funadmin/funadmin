@@ -56,7 +56,7 @@ final class InstallSupport
             'lock' => $root . '/public/install.lock',
             'env' => $root . '/.env',
             'env_template' => $root . '/.env.example',
-            'migrations' => rtrim(getenv('CORE_DATABASE_PATH') ?: dirname($root) . '/database', DIRECTORY_SEPARATOR) . '/migrations',
+            'migrations' => rtrim(getenv('CORE_DATABASE_PATH') ?: $root . '/database/core', DIRECTORY_SEPARATOR) . '/migrations',
             'php_fixtures' => $root . '/database/migrations',
             'runtime' => $root . '/runtime',
             'public' => $root . '/public',

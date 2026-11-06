@@ -1,3 +1,4 @@
+import { withComposerConflictConfirm } from './pluginComposerConflicts';
 import http from '@/utils/http';
 import { adminApiUrl } from '@/utils/apiUrl';
 
@@ -132,10 +133,11 @@ export interface EnabledPluginModule {
   components: Record<string, string>;
   routes: PluginRouteDto[];
   generation?: string;
-  frontendHooks?: import('@/shared/plugins/hooks/types').HookDescriptor[];
+  clientHooks?: import('@/shared/plugins/hooks/types').HookDescriptor[];
 }
 
 const success = { requestOptions: { showSuccessMsg: true } };
+const composerSuccess = { requestOptions: { showSuccessMsg: true, confirmComposerConflicts: true } };
 
 export const pluginApi = {
   accountLogin: (account: string, password: string) => http.post<PluginAccount>(`${PREFIX}/account/login`, { account, password }, success),
@@ -150,22 +152,24 @@ export const pluginApi = {
   discovered: () => http.get<PluginItem[]>(`${PREFIX}/local/discovered`),
   installed: () => http.get<PluginItem[]>(`${PREFIX}/local/installed`),
   detail: (code: string) => http.get<PluginItem>(`${PREFIX}/local/${code}`),
-  installLocal: (file: File) => {
+  installLocal: (file: File) => withComposerConflictConfirm((acceptComposerConflicts) => {
     const form = new FormData();
     form.append('file', file);
-    return http.upload<unknown>(`${PREFIX}/local/install`, form, success);
-  },
-  installDiscovered: (code: string) => http.post<unknown>(`${PREFIX}/local/${code}/install`, undefined, success),
-  updateLocal: (code: string, file: File, migrate = true) => {
+    form.append('acceptComposerConflicts', String(acceptComposerConflicts));
+    return http.upload<unknown>(`${PREFIX}/local/install`, form, composerSuccess);
+  }),
+  installDiscovered: (code: string) => withComposerConflictConfirm((acceptComposerConflicts) => http.post<unknown>(`${PREFIX}/local/${code}/install`, { acceptComposerConflicts }, composerSuccess)),
+  updateLocal: (code: string, file: File, migrate = true) => withComposerConflictConfirm((acceptComposerConflicts) => {
     const form = new FormData();
     form.append('file', file);
+    form.append('acceptComposerConflicts', String(acceptComposerConflicts));
     form.append('migrate', String(migrate));
-    return http.upload<unknown>(`${PREFIX}/local/${code}/update`, form, success);
-  },
-  installCloud: (code: string, version: string) => http.post<unknown>(`${PREFIX}/cloud/${code}/install`, { version }, success),
-  update: (code: string, version: string, migrate = true) => http.post<unknown>(`${PREFIX}/${code}/update`, { version, migrate }, success),
+    return http.upload<unknown>(`${PREFIX}/local/${code}/update`, form, composerSuccess);
+  }),
+  installCloud: (code: string, version: string) => withComposerConflictConfirm((acceptComposerConflicts) => http.post<unknown>(`${PREFIX}/cloud/${code}/install`, { version, acceptComposerConflicts }, composerSuccess)),
+  update: (code: string, version: string, migrate = true) => withComposerConflictConfirm((acceptComposerConflicts) => http.post<unknown>(`${PREFIX}/${code}/update`, { version, migrate, acceptComposerConflicts }, composerSuccess)),
   migrate: (code: string) => http.post<unknown>(`${PREFIX}/${code}/migrate`, undefined, success),
-  enable: (code: string) => http.post<unknown>(`${PREFIX}/${code}/enable`, undefined, success),
+  enable: (code: string) => withComposerConflictConfirm((acceptComposerConflicts) => http.post<unknown>(`${PREFIX}/${code}/enable`, { acceptComposerConflicts }, composerSuccess)),
   disable: (code: string) => http.post<unknown>(`${PREFIX}/${code}/disable`, undefined, success),
   config: (code: string) => http.get<Record<string, PluginConfigDefinition>>(`${PREFIX}/${code}/config`),
   saveConfig: (code: string, values: Record<string, unknown>) => http.put<unknown>(`${PREFIX}/${code}/config`, { values }, success),
@@ -174,7 +178,7 @@ export const pluginApi = {
   deletePackage: (code: string) => http.delete<unknown>(`${PREFIX}/${code}/package`, undefined, success),
   history: (code: string) => http.get<PluginVersionHistory[]>(`${PREFIX}/${code}/history`),
   historyDownloadUrl: (code: string, id: number) => adminApiUrl(`${PREFIX}/${encodeURIComponent(code)}/history/${id}/download`),
-  redeployHistory: (code: string, id: number, migrate = false) => http.post<unknown>(`${PREFIX}/${code}/history/${id}/redeploy`, { migrate }, success),
+  redeployHistory: (code: string, id: number, migrate = false) => withComposerConflictConfirm((acceptComposerConflicts) => http.post<unknown>(`${PREFIX}/${code}/history/${id}/redeploy`, { migrate, acceptComposerConflicts }, composerSuccess)),
   recoveryInfo: (code: string) => http.get<PluginRecoveryInfo>(`${PREFIX}/${code}/recovery`),
   operations: (code: string) => http.get<PluginOperation[]>(`${PREFIX}/${code}/operations`),
   enabledModules: () => http.get<EnabledPluginModule[]>(`${PREFIX}/modules/enabled`)

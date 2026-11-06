@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const styles = readFileSync(resolve(process.cwd(), 'src/styles/index.scss'), 'utf8');
+const styles = readFileSync(resolve(process.cwd(), 'src/shared/styles/index.scss'), 'utf8');
 const declarations = (selector: string) => styles.slice(styles.indexOf(`${selector} {`)).split('}')[0];
 const dialog = '.el-dialog:not(.is-fullscreen)';
 
@@ -34,11 +34,11 @@ describe('公共编辑弹窗视口约束', () => {
   });
 
   it('普通 CRUD、Schema 生成页与运行时继续复用原生公共弹窗', () => {
-    const generator = readFileSync(resolve(process.cwd(), '../app/common/crud/ProductionTemplateContext.php'), 'utf8');
-    const runtime = readFileSync(resolve(process.cwd(), 'src/views/form/data.vue'), 'utf8');
-    const memberDialog = readFileSync(resolve(process.cwd(), 'src/views/system/member/components/MemberFormDialog.vue'), 'utf8');
-    const sourceDialog = readFileSync(resolve(process.cwd(), 'src/views/form/components/ListSourceTree.vue'), 'utf8');
-    const buttonInteraction = readFileSync(resolve(process.cwd(), 'src/views/form/components/ListButtonInteraction.vue'), 'utf8');
+    const generator = readFileSync(resolve(process.cwd(), '../admin/app/common/crud/ProductionTemplateContext.php'), 'utf8');
+    const runtime = readFileSync(resolve(process.cwd(), 'src/admin/views/form/data.vue'), 'utf8');
+    const memberDialog = readFileSync(resolve(process.cwd(), 'src/admin/views/system/member/components/MemberFormDialog.vue'), 'utf8');
+    const sourceDialog = readFileSync(resolve(process.cwd(), 'src/admin/views/form/components/ListSourceTree.vue'), 'utf8');
+    const buttonInteraction = readFileSync(resolve(process.cwd(), 'src/admin/views/form/components/ListButtonInteraction.vue'), 'utf8');
     expect(generator).toContain("$tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog'");
     expect(generator).toContain('return "<template><{$tag} v-model=');
     expect(generator).toMatch(/<SchemaRenderer :key=\\"generation\\"/);

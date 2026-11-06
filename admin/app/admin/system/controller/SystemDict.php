@@ -4,7 +4,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\common\model\DictItem;
 use app\common\model\DictType;
 use support\annotation\route\Delete;
@@ -20,7 +20,7 @@ use support\Response;
  * 字典类型通过 code 对外暴露，字典项在数据库中只保存 type_id，避免重复数据。
  */
 #[RouteGroup('/admin/system/dict')]
-class SystemDict extends AdminApiController
+class SystemDict extends AdminController
 {
 
     /**

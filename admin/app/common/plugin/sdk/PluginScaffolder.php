@@ -227,17 +227,17 @@ declare(strict_types=1);
 
 namespace app\\admin\\plugins\\{$name}\\controller;
 
-use app\\admin\\controller\\base\\AdminApiController;
-use app\\common\\plugin\\sdk\\PluginPermission;
+use app\\common\\controller\\AdminController;
+use app\\common\\annotation\\Permission;
 use support\\annotation\\route\\Get;
 use support\\annotation\\route\\RouteGroup;
 use support\\Response;
 
 #[RouteGroup('/admin/plugin/{$name}')]
-final class Index extends AdminApiController
+final class Index extends AdminController
 {
 
-    #[PluginPermission('{$name}:item:list')]
+    #[Permission('{$name}:item:list')]
     #[Get('/index')]
     public function index(): Response
     {

@@ -6,7 +6,9 @@ namespace app\admin\plugin\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\annotation\NoNeedPermission;
+
+use app\common\controller\AdminController;
 use app\admin\plugin\service\PluginMarketplaceService;
 use app\admin\plugin\service\PluginCenterService;
 use app\admin\plugin\service\PluginPackagePipeline;
@@ -30,7 +32,7 @@ use support\Response;
  * Admin Web 插件中心 REST API。
  */
 #[RouteGroup('/admin/system/plugin')]
-final class SystemPlugin extends AdminApiController
+final class SystemPlugin extends AdminController
 {
 
     private readonly PluginService $plugins;
@@ -1048,6 +1050,7 @@ final class SystemPlugin extends AdminApiController
      * )
      */
     #[Get('/modules/enabled')]
+    #[NoNeedPermission] // 仅需登录；返回内容按当前用户的页面权限过滤。
     public function enabledModules(): Response
     {
         return $this->execute(fn () => $this->center->enabledModules((array) ($this->request->context['admin_permissions'] ?? [])));
@@ -1056,7 +1059,14 @@ final class SystemPlugin extends AdminApiController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         try {
-            return $this->ok($message, $operation());
+            return $this->ok($message, $this->plugins->withComposerConflictAcceptance(
+                $this->boolean('acceptComposerConflicts', false), $operation,
+                (string) ($this->request->context['admin']['id'] ?? '')
+            ));
+        } catch (\app\common\plugin\sdk\ComposerConflictException $exception) {
+            return $this->fail(msg: $exception->getMessage(), data: [
+                'reason'=>'composer_conflict', 'conflicts'=>$exception->conflicts,
+            ], code: 409);
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (RuntimeException $exception) {

@@ -26,6 +26,19 @@ final class PluginOperationAuditService
         $this->recorder()->fail($token, $exception, $stage, $recoveryPath);
     }
 
+    public function composerWarning(string $code, string $token, array $conflicts, string $actor): void
+    {
+        // Support the core status/metadata schema and the native lifecycle result schema.
+        $columns = array_flip(\support\Db::schema()->getColumnListing('plugin_operation'));
+        $metadata = json_encode(['actor'=>$actor, 'lifecycleToken'=>$token, 'conflicts'=>$conflicts], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        PluginOperation::create(array_intersect_key([
+            'plugin_code'=>$code, 'operation'=>'composer_conflict', 'operation_token'=>bin2hex(random_bytes(16)),
+            'stage'=>'complete', 'progress'=>100, 'result'=>'warning',
+            'status'=>isset($columns['result']) ? 1 : 'warning', 'metadata'=>$metadata, 'error_message'=>$metadata,
+            'from_version'=>'', 'to_version'=>'', 'source'=>'local', 'package_hash'=>str_repeat('0', 64),
+        ], $columns));
+    }
+
     private function start(string $code, string $operation, string $token, array $context): void
     {
         if (isset($this->startedTokens[$token])) {

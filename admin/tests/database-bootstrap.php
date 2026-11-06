@@ -10,6 +10,6 @@ if (getenv('TEST_DATABASE') !== '1'
     throw new RuntimeException('仅允许独立 MySQL 测试环境');
 }
 require dirname(__DIR__) . '/vendor/autoload.php';
-require_once dirname(__DIR__) . '/app/common.php';
+require_once dirname(__DIR__) . '/app/functions.php';
 Webman\Config::load(dirname(__DIR__) . '/config', ['route']);
 class_exists(support\Db::class);

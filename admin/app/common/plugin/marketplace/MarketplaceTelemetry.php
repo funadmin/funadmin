@@ -66,7 +66,8 @@ final class MarketplaceTelemetry
 
     public static function pluginRecord(string $code): ?array
     {
-        $record = Plugin::withTrashed()->where('code', $code)->field('code,version,source')->find();
-        return $record ? $record->toArray() : null;
+        // Eloquent builder: ThinkORM field()/find() would throw after lifecycle changes already committed.
+        $record = Plugin::withTrashed()->where('code', $code)->first(['code', 'version', 'source']);
+        return $record ? $record->only(['code', 'version', 'source']) : null;
     }
 }

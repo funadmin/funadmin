@@ -5,12 +5,15 @@ import { createPinia } from 'pinia';
 import designerSource from './index.vue?raw';
 import zhCN from '@/locales/zh-CN';
 import enUS from '@/locales/en-US';
+import { service } from '@/utils/http';
 
+const menuChoices = vi.hoisted(() => ({ tree: vi.fn() }));
 const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), savePublishConfig: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
 vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
 vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [] } }));
+vi.mock('@/api/system/menu', () => ({ menuApi: menuChoices }));
 // 冲突与生成测试使用明确授权的设计人员，仍由公共判断验证真实动作码。
 const actor = vi.hoisted(() => ({ permissions: [
   'development.business:module', 'development.business:saveschema',
@@ -68,11 +71,27 @@ beforeEach(() => {
   vi.clearAllMocks();
   const storage = new Map<string, string>();
   vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
+  menuChoices.tree.mockResolvedValue([{ id: 1, name: '系统管理', sourceType: 'system', sourceName: 'system', children: [] }]);
   api.module.mockResolvedValue(remote());
   api.saveSchema.mockImplementation(async (_id, document) => ({ document, schemaHash: hash('c') }));
   vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never);
 });
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+describe('设计器测试请求边界', () => {
+  it('初始化从菜单测试依赖填充所属菜单，不触发真实 HTTP transport', async () => {
+    const originalAdapter = service.defaults.adapter;
+    const unexpectedRequest = vi.fn(async () => { throw new Error('设计器测试不应访问真实 HTTP transport'); });
+    service.defaults.adapter = unexpectedRequest;
+    try {
+      await start();
+      expect(unexpectedRequest).not.toHaveBeenCalled();
+      expect(state.parentMenus).toEqual([{ id: 1, name: '系统管理', sourceType: 'system', sourceName: 'system', children: [] }]);
+    } finally {
+      service.defaults.adapter = originalAdapter;
+    }
+  });
+});
 
 describe('按需表单大纲', () => {
   const open = async () => {

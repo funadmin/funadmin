@@ -8,7 +8,7 @@ use OpenApi\Annotations as OA;
 
 use app\common\service\identity\AdminIdentityAdapter;
 use app\common\service\identity\SigningKeyService;
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
 use support\annotation\route\Post;
@@ -18,7 +18,7 @@ use support\Response;
  * OIDC 签名密钥接口。
  */
 #[RouteGroup('/admin/identity/signing-keys')]
-final class OidcSigningKey extends AdminApiController
+final class OidcSigningKey extends AdminController
 {
     private readonly SigningKeyService $keys;
 

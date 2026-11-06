@@ -6,10 +6,7 @@ namespace app\admin\plugins\market\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\admin\middleware\CheckAdminApiCsrf;
-use app\admin\plugin\middleware\CheckPluginPermission;
-use app\admin\middleware\SystemLog;
+use app\common\controller\AdminController;
 use app\admin\plugins\market\service\MarketAdminService;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
@@ -19,13 +16,8 @@ use support\Response;
  * 插件市场统计接口。
  */
 #[RouteGroup('/admin/plugin/market/stat')]
-final class StatController extends AdminApiController
+final class StatController extends AdminController
 {
-    protected array $middleware = [
-        CheckPluginPermission::class,
-        CheckAdminApiCsrf::class,
-        SystemLog::class,
-    ];
     /**
      * 按 days 指定的时间范围获取插件市场统计。
      *

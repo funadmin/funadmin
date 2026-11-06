@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 describe('统一页面入口', () => {
   it.each(['data', 'published'])('%s 列表只使用公共表格与按钮', name => {
-    const source = readFileSync(resolve(process.cwd(), `src/views/form/${name}.vue`), 'utf8');
+    const source = readFileSync(resolve(process.cwd(), `src/admin/views/form/${name}.vue`), 'utf8');
     expect(source).toContain('<SchemaTablePage');
     expect(source).not.toContain('<DataTableShell');
     expect(source).toContain('<ListButtonBar');
@@ -13,7 +13,7 @@ describe('统一页面入口', () => {
   });
 
   it('published 详情复用共享展示并保持敏感字段过滤', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/views/form/published.vue'), 'utf8');
+    const source = readFileSync(resolve(process.cwd(), 'src/admin/views/form/published.vue'), 'utf8');
     expect(source).toContain('presentField(field, detail?.row ?? {}, detailOptions)');
     expect(source).not.toContain('detail.row[field.field_name] ?? \'-\'');
     expect(source).toContain("!['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly");

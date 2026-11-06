@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberGroupRelation;
@@ -29,7 +29,7 @@ use support\Response;
  * Admin Web 会员管理。
  */
 #[RouteGroup('/admin/system/member')]
-class SystemMember extends AdminApiController
+class SystemMember extends AdminController
 {
 
     /**

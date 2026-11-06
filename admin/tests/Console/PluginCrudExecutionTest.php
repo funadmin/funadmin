@@ -71,20 +71,23 @@ final class PluginCrudExecutionTest extends TestCase
     {
         $definition = $this->definition();
         $context = \app\common\crud\PluginTemplateContext::build($definition, 'crudfixture', false);
-        self::assertStringContainsString('#[Middleware(MApi::class)]', $context['controllerContent']);
+        self::assertStringContainsString('extends ApiController', $context['controllerContent']);
+        self::assertStringNotContainsString('#[Middleware(ApiMiddleware::class)]', $context['controllerContent']);
         self::assertStringContainsString("#[Group('/crudfixture/console-item')]", $context['controllerContent']);
         $data = $definition->toArray();
         $data['memberApi'] = ['enabled' => true, 'ownerField' => 'member_id'];
         $data['fields'][] = ['name' => 'member_id', 'dbType' => 'bigint', 'nullable' => false, 'component' => 'input'];
         $context = \app\common\crud\PluginTemplateContext::build(CrudDefinition::fromArray($data), 'crudfixture', false);
         self::assertStringContainsString("#[Group('/crudfixture/console-item')]", $context['memberControllerContent']);
-        self::assertStringContainsString('#[Middleware(MApi::class)]', $context['memberControllerContent']);
+        self::assertStringContainsString('extends ApiController', $context['memberControllerContent']);
+        self::assertStringNotContainsString('#[Middleware(ApiMiddleware::class)]', $context['memberControllerContent']);
         foreach (['modelContent', 'serviceContent', 'validateContent', 'memberControllerContent'] as $artifact) {
             $file = $this->root . '/' . $artifact . '.php';
             file_put_contents($file, $context[$artifact]); require $file;
         }
         $class = new \ReflectionClass('app\\crudfixture\\controller\\ConsoleItemController');
-        self::assertCount(1, $class->getAttributes(\support\annotation\Middleware::class));
+        self::assertTrue($class->isSubclassOf(\app\common\controller\ApiController::class), '会员鉴权由 ApiController 统一提供');
+        self::assertSame([], $class->getAttributes(\support\annotation\Middleware::class));
         self::assertSame('/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
     }
 
@@ -103,7 +106,7 @@ final class PluginCrudExecutionTest extends TestCase
         $class = new \ReflectionClass('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController');
         self::assertSame('/admin/plugin/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
         foreach (['index' => 'list', 'create' => 'create', 'update' => 'update', 'remove' => 'delete', 'recycle' => 'batch-delete'] as $method => $suffix) {
-            $attributes = $class->getMethod($method)->getAttributes(\app\common\plugin\sdk\PluginPermission::class);
+            $attributes = $class->getMethod($method)->getAttributes(\app\common\annotation\Permission::class);
             self::assertCount(1, $attributes, $method);
             self::assertSame('crudfixture:console-item:' . $suffix, $attributes[0]->newInstance()->code);
         }

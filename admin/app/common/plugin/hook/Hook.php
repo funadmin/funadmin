@@ -19,6 +19,12 @@ final class Hook
         return self::runtime()->filter($point, $value, $context);
     }
 
+    /** @see HookRuntime::filterIsolated() */
+    public static function filterIsolated(string $point, mixed $value, callable $onFailure, array $context = []): mixed
+    {
+        return self::runtime()->filterIsolated($point, $value, $onFailure, $context);
+    }
+
     private static function runtime(): HookRuntime
     {
         $container = Container::instance();

@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\storage\StorageDriverRegistry;
@@ -20,7 +20,7 @@ use support\Container;
 
 /** Admin Web 附件库管理。 */
 #[RouteGroup('/admin/system/attachment')]
-class SystemAttachment extends AdminApiController
+class SystemAttachment extends AdminController
 {
 
     private readonly StorageDriverRegistry $storageDrivers;
@@ -206,19 +206,29 @@ class SystemAttachment extends AdminApiController
     {
         $ids = $this->ids(); if (!$ids) return $this->fail(msg: '请选择要删除的附件', code: 422);
         $attachments = Attach::whereIn('id', $ids)->get(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
-        $checkedPaths = [];
-        foreach ($attachments as $attach) {
-            $driverName = (string) ($attach->driver ?: 'local'); $path = (string) $attach->path; $storageKey = (string) ($attach->storage_key ?? '');
-            if ($storageKey === '' && $driverName === 'local' && str_starts_with($path, '/storage/')) $storageKey = ltrim(substr($path, strlen('/storage/')), '/');
-            $referenceKey = $driverName . ':' . $storageKey;
-            if ($storageKey !== '' && !isset($checkedPaths[$referenceKey])) {
-                $checkedPaths[$referenceKey] = true;
-                $referencedElsewhere = Attach::withTrashed()->where('driver', $driverName)->where('storage_key', $storageKey)->whereNotIn('id', $ids)->count() > 0;
-                if (!$referencedElsewhere) $this->storageDrivers->resolve($driverName)->delete($storageKey);
+        $groups = [];
+        try {
+            foreach ($attachments as $attach) {
+                $name=(string)($attach->driver ?: 'local');$key=(string)($attach->storage_key ?? '');
+                if($key===''&&$name==='local'&&str_starts_with((string)$attach->path,'/storage/'))$key=substr((string)$attach->path,strlen('/storage/'));
+                if($key===''&&$name!=='local')throw new \RuntimeException('历史云附件缺少对象标识，记录已保留');
+                $identity=$name.':'.$key;
+                if(!isset($groups[$identity]))$groups[$identity]=['name'=>$name,'key'=>$key,'driver'=>$key!==''?$this->storageDrivers->require($name):null,'rows'=>[]];
+                $groups[$identity]['rows'][]=$attach;
             }
-            $attach->forceDelete();
+        } catch (\Throwable) {
+            return $this->fail(msg:'原存储驱动或对象标识不可用，附件记录已保留，请检查对应插件及历史配置',data:['removed'=>[],'failed'=>$ids],code:422);
         }
-        return $this->ok('删除成功', ['removed' => count($attachments)]);
+        $removed=[];$failed=[];
+        foreach($groups as $group){
+            try{
+                $referenced=$group['key']!==''&&Attach::withTrashed()->where('driver',$group['name'])->where('storage_key',$group['key'])->whereNotIn('id',$ids)->exists();
+                if($group['key']!==''&&!$referenced&&!$group['driver']->delete($group['key']))throw new \RuntimeException('storage delete failed');
+                foreach($group['rows'] as $row){$row->forceDelete();$removed[]=$row->id;}
+            }catch(\Throwable){foreach($group['rows'] as $row)if(!in_array($row->id,$removed,true))$failed[]=$row->id;}
+        }
+        if($failed)return $this->fail(msg:'部分附件删除失败：已删除 '.count($removed).' 条，失败 '.count($failed).' 条已保留',data:['removed'=>$removed,'failed'=>$failed],code:422);
+        return $this->ok('删除成功', ['removed' => count($removed)]);
     }
 
     private function applyMimeFilter($query, string $mimeType): void

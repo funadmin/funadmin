@@ -11,11 +11,11 @@ describe('公共页面声明', () => {
     const value = { ...page(), primaryKey: 'record_id', search: [{ field: 'created_at', label: '日期', type: 'date' }, { field: 'price', label: '价格', type: 'range' }], columns: [{ key: 'price', prop: 'price', label: '价格', sortable: true }], pagination: { pageSize: 20, pageSizes: [20], enabled: false }, list: { tree: { enabled: true, parentField: 'parent_id' }, tools: { search: false, refresh: false } } };
     expect(parsePageSchema(value)).toEqual(value);
     const php = process.env.PHP_BINARY || 'php';
-    expect(execFileSync(php, ['-r', "require 'vendor/autoload.php'; \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1],true)); echo 'ok';", JSON.stringify(value)], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' })).toBe('ok');
+    expect(execFileSync(php, ['-r', "require 'vendor/autoload.php'; \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1],true)); echo 'ok';", JSON.stringify(value)], { cwd: resolve(process.cwd(), '../admin'), encoding: 'utf8' })).toBe('ok');
   });
   it('Builder 显式主键及分页开关编译后保真', () => {
     const php = process.env.PHP_BINARY || 'php';
-    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(\\app\\common\\form\\builder\\Page::make('demo')->primaryKey('record_id')->pagination(20, [20], false)->compile());"], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' });
+    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(\\app\\common\\form\\builder\\Page::make('demo')->primaryKey('record_id')->pagination(20, [20], false)->compile());"], { cwd: resolve(process.cwd(), '../admin'), encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output))).toMatchObject({ primaryKey: 'record_id', pagination: { enabled: false } });
   });
   it.each([
@@ -28,14 +28,14 @@ describe('公共页面声明', () => {
     const value = { ...page(), ...patch };
     expect(() => parsePageSchema(value)).toThrow('PAGE_SCHEMA_INVALID');
     const php = process.env.PHP_BINARY || 'php';
-    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; try { \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1], true)); echo 'accepted'; } catch (InvalidArgumentException $e) { echo $e->getMessage(); }", JSON.stringify(value)], { cwd: resolve(process.cwd(), '..'), encoding: 'utf8' });
+    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; try { \\app\\common\\form\\builder\\Page::validate(json_decode($argv[1], true)); echo 'accepted'; } catch (InvalidArgumentException $e) { echo $e->getMessage(); }", JSON.stringify(value)], { cwd: resolve(process.cwd(), '../admin'), encoding: 'utf8' });
     expect(output).toBe('PAGE_SCHEMA_INVALID');
   });
   it('接收 PHP 编译产物，空集合保持为空', () => {
     expect(parsePageSchema(page()).columns).toEqual([]);
-    const root = resolve(process.cwd(), '..');
+    const root = resolve(process.cwd(), '../admin');
     const php = process.env.PHP_BINARY || 'php';
-    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\admin\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
+    const output = execFileSync(php, ['-r', "require 'vendor/autoload.php'; echo json_encode(app\\admin\\system\\service\\MemberPageDefinition::build(['groups'=>[], 'levels'=>[], 'tags'=>[]]));"], { cwd: root, encoding: 'utf8' });
     expect(parsePageSchema(JSON.parse(output)).columns).toHaveLength(12);
   });
   it.each([null, {}, { ...page(), toolbar: null }, { ...page(), search: [{ field: '__proto__', label: '坏字段', type: 'input' }] }, { ...page(), toolbar: [{ ...action(), url: '/delete' }] }, { ...page(), toolbar: [{ ...action(), action: { type: 'external', key: 'edit' } }] }])('拒绝损坏及可执行声明 %j', (value) => {
@@ -95,7 +95,7 @@ describe('公共页面声明', () => {
     const json = JSON.stringify(cases);
     const phpResults = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', ['-r',
       "require 'vendor/autoload.php'; $results=[]; foreach(json_decode(stream_get_contents(STDIN),true) as $case) { try { \\app\\common\\form\\builder\\Page::validate($case['value']); $results[]=true; } catch (InvalidArgumentException $e) { $results[]=$e->getMessage(); } } echo json_encode($results);"
-    ], { cwd: resolve(process.cwd(), '..'), input: json, encoding: 'utf8' }));
+    ], { cwd: resolve(process.cwd(), '../admin'), input: json, encoding: 'utf8' }));
     JSON.parse(json).forEach((test: typeof cases[number], index: number) => {
       let result: true | string = true;
       try { parsePageSchema(test.value); } catch (error) { result = (error as Error).message; }

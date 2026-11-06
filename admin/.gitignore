@@ -6,4 +6,13 @@
 /public/assets/
 /public/plugin-assets/
 /public/favicon.svg
-/plugins/
+/plugins/*
+!/plugins/cms/
+!/plugins/document/
+!/plugins/oss/
+!/plugins/qa/
+/plugins/*/vendor/
+/plugins/*/storage/*
+!/plugins/*/storage/.gitkeep
+/plugins/*/.env
+/plugins/*/.DS_Store

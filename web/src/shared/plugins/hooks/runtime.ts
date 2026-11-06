@@ -39,13 +39,13 @@ export class HookRuntime implements HookCalls {
         for (const input of modules) {
             try {
                 const module = JSON.parse(JSON.stringify(input)) as HookModule;
-                if (!/^[a-z][a-z0-9]*$/.test(module.code) || codeCounts.get(module.code) !== 1 || typeof module.version !== 'string' || !Array.isArray(module.frontendHooks) || !module.components || Array.isArray(module.components))
+                if (!/^[a-z][a-z0-9]*$/.test(module.code) || codeCounts.get(module.code) !== 1 || typeof module.version !== 'string' || !Array.isArray(module.clientHooks) || !module.components || Array.isArray(module.components))
                     throw Error('Invalid hook module');
                 const ids = new Set<string>();
                 const contributions: Entry[] = [];
-                for (let index = 0; index < module.frontendHooks.length; index++) {
-                    const hook = module.frontendHooks[index];
-                    const original = input.frontendHooks[index];
+                for (let index = 0; index < module.clientHooks.length; index++) {
+                    const hook = module.clientHooks[index];
+                    const original = input.clientHooks[index];
                     if (typeof hook.id !== 'string' || !hook.id || ids.has(hook.id) || typeof hook.point !== 'string' || !/^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)*$/.test(hook.point) || !['action', 'filter', 'component'].includes(hook.type))
                         throw Error('Invalid hook descriptor');
                     ids.add(hook.id);
@@ -63,7 +63,7 @@ export class HookRuntime implements HookCalls {
                     contributions.push({ module, hook });
                 }
                 Object.freeze(module.components);
-                Object.freeze(module.frontendHooks);
+                Object.freeze(module.clientHooks);
                 Object.freeze(module);
                 entries.push(...contributions);
             }

@@ -7,4 +7,4 @@ spl_autoload_register(static function (string $class): void {
             if (is_file($path)) require_once $path;
         }
     }
-});
+}, true, true);

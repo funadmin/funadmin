@@ -1,0 +1,48 @@
+/* Shared structure for the three enterprise themes; loaded only by those themes. */
+.enterprise-theme{overflow-x:clip;--enterprise-header-height:88px}
+.enterprise-theme .container{width:min(1240px,calc(100% - 80px))}
+.enterprise-theme .site-header{position:sticky;top:0;z-index:30}
+.enterprise-theme .header-inner{height:var(--enterprise-header-height)}
+.enterprise-theme .mobile-navigation>nav{max-height:calc(100vh - var(--enterprise-header-height));max-height:calc(100dvh - var(--enterprise-header-height));overflow-y:auto;overscroll-behavior:contain}
+.enterprise-theme h1,.enterprise-theme h2,.enterprise-theme h3{overflow-wrap:anywhere}
+.enterprise-theme .brand{letter-spacing:-.035em}
+.enterprise-theme .enterprise-section{padding:90px 0}
+.enterprise-theme .enterprise-section-heading{display:flex;justify-content:space-between;gap:40px;align-items:flex-end;margin-bottom:38px}
+.enterprise-theme .enterprise-section-heading h2,.enterprise-theme .enterprise-overview h2{font-size:clamp(28px,3.2vw,46px);line-height:1.3;letter-spacing:-.04em;margin-top:14px;font-weight:600}
+.enterprise-theme .enterprise-section-heading>p{font-size:14px;line-height:1.9;color:var(--muted);max-width:360px}
+.enterprise-theme .enterprise-section .eyebrow{font-size:10px;letter-spacing:.14em}
+.enterprise-theme .enterprise-grid{gap:30px}
+.enterprise-theme .cases-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.enterprise-theme .insights-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.enterprise-theme .story-card{min-width:0}
+.enterprise-theme .card-info h3{font-size:20px;line-height:1.55;margin-block:13px 10px}
+.enterprise-theme .card-info>p{font-size:13px;line-height:1.9}
+.enterprise-theme .card-cover{aspect-ratio:1.55}
+.enterprise-theme .card-cover img{width:100%;height:100%;object-fit:cover}
+.enterprise-theme .card-info .text-link{margin-top:20px}
+.enterprise-theme .enterprise-overview{display:grid;grid-template-columns:.8fr 1.2fr;gap:88px}
+.enterprise-theme .overview-intro{font-size:19px;line-height:1.95;max-width:620px}
+.enterprise-theme .enterprise-principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:25px;margin-top:35px}
+.enterprise-theme .enterprise-principles article>span{font-size:11px;color:var(--muted)}
+.enterprise-theme .enterprise-principles h3{font-size:15px;margin:12px 0 9px;font-weight:600}
+.enterprise-theme .enterprise-principles p{color:var(--muted);font-size:12px;line-height:1.85}
+.enterprise-theme .enterprise-hero-copy h1{font-size:clamp(38px,4.15vw,66px);line-height:1.35;letter-spacing:-.05em;margin:25px 0 24px;font-weight:600}
+.enterprise-theme .enterprise-hero-copy h1>span{display:block}
+.enterprise-theme .enterprise-hero-copy>p{font-size:15px;line-height:2;max-width:440px;color:var(--muted)}
+.enterprise-theme .hero-kicker{font-size:9px;font-weight:600;letter-spacing:.15em;display:flex;align-items:center;gap:10px;line-height:1.8}
+.enterprise-theme .hero-kicker i{width:6px;height:6px;border-radius:50%;display:block;background:currentColor;flex:none}
+.enterprise-theme .enterprise-hero-actions{display:flex;align-items:center;gap:27px;margin-top:32px;flex-wrap:wrap}
+.enterprise-theme .enterprise-hero-actions .text-link{font-size:12px}
+.enterprise-theme .enterprise-invitation{padding:68px 0}
+.enterprise-theme .enterprise-invitation>.container{display:flex;align-items:center;justify-content:space-between;gap:35px}
+.enterprise-theme .enterprise-invitation h2{font-size:clamp(28px,3vw,43px);line-height:1.35;margin:15px 0 18px;letter-spacing:-.04em}
+.enterprise-theme .enterprise-invitation p{font-size:14px;line-height:1.9;color:var(--muted)}
+.enterprise-theme .site-footer{padding-top:65px}
+.enterprise-theme .article-body{overflow-wrap:anywhere}
+.enterprise-theme .article-body img{max-width:100%;height:auto}
+.enterprise-theme .article-body table{display:block;max-width:100%;overflow-x:auto}
+.enterprise-theme .module-section{margin-top:0;padding-top:60px;padding-bottom:60px}
+.enterprise-theme .placeholder-cover{filter:none}
+@media(max-width:1100px){.enterprise-theme .header-inner{gap:22px}.enterprise-theme .cms-menu{gap:18px}.enterprise-theme .header-cta{display:none}.enterprise-theme .enterprise-overview{gap:45px}.enterprise-theme .enterprise-principles{gap:16px}.enterprise-theme .insights-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){.enterprise-theme{--enterprise-header-height:76px}.enterprise-theme .container{width:calc(100% - 44px)}.enterprise-theme .header-inner{height:76px}.enterprise-theme .enterprise-section{padding:62px 0}.enterprise-theme .enterprise-section-heading{display:block;margin-bottom:28px}.enterprise-theme .enterprise-section-heading>p{margin-top:18px;max-width:none}.enterprise-theme .enterprise-overview{grid-template-columns:1fr;gap:28px}.enterprise-theme .enterprise-principles{gap:24px}.enterprise-theme .overview-intro{font-size:17px}.enterprise-theme .enterprise-hero-copy h1{font-size:clamp(36px,6vw,55px)}.enterprise-theme .enterprise-invitation>.container{align-items:flex-start}.enterprise-theme .enterprise-grid{gap:24px}.enterprise-theme .enterprise-invitation{padding:50px 0}.enterprise-theme .cms-menu .cms-menu{max-width:min(300px,80vw);white-space:normal}.enterprise-theme .cms-menu summary{min-height:40px}}
+@media(max-width:560px){.enterprise-theme .container{width:calc(100% - 36px)}.enterprise-theme .enterprise-grid,.enterprise-theme .cases-grid,.enterprise-theme .insights-grid{grid-template-columns:1fr}.enterprise-theme .enterprise-principles{grid-template-columns:1fr;gap:20px}.enterprise-theme .enterprise-principles article{display:grid;grid-template-columns:30px 1fr;gap:0 8px;border-top:1px solid var(--line);padding-top:15px}.enterprise-theme .enterprise-principles h3{margin:0 0 8px}.enterprise-theme .enterprise-principles p{grid-column:2}.enterprise-theme .enterprise-section-heading h2{font-size:30px}.enterprise-theme .enterprise-invitation>.container{display:block}.enterprise-theme .enterprise-invitation .button{margin-top:25px}.enterprise-theme .enterprise-hero-copy h1{font-size:38px}.enterprise-theme .enterprise-hero-copy>p{font-size:14px}.enterprise-theme .card-cover{aspect-ratio:1.55}}

@@ -17,6 +17,7 @@ use RuntimeException;
 class PluginService extends AbstractService
 {
     use PluginServiceSupport;
+    use \app\admin\plugin\service\concern\PluginComposerDependencies;
 
     public function __construct(private readonly ?string $projectRoot = null)
     {
@@ -67,6 +68,7 @@ class PluginService extends AbstractService
             $result = $operation($token);
             $this->refreshLifecycleCaches();
             $this->completeAppPublication($code);
+            $this->persistComposerAcknowledgement($code, $token);
             $success = true;
             return $result;
         } catch (\Throwable $exception) {
@@ -103,7 +105,8 @@ class PluginService extends AbstractService
                 $this->activeOperationTokens[$code],
                 $this->appPublicationTokens[$code],
                 $this->resourcePublicationSnapshots[$code],
-                $this->resourceStateSnapshots[$code]
+                $this->resourceStateSnapshots[$code],
+                $this->pendingComposerAcknowledgements[$code]
             );
             $this->suppressFailureRecording = false;
             try {
@@ -232,6 +235,7 @@ class PluginService extends AbstractService
         return $this->operate($code, function (string $token) use ($code): bool {
             $this->deploymentRollbackAllowed = true;
             $manifest = $this->validatedManifest($code);
+            $this->assertComposerDependencies($manifest);
             $this->infrastructure()->assertExternalTables($manifest);
             $pluginInfo = array_merge($this->manifestInfo($manifest), $this->packageContext($code));
             $record = $this->isInstall($code);
@@ -302,6 +306,7 @@ class PluginService extends AbstractService
                 $this->assertDisabled($record, $code);
             }
             $manifest = $this->validatedManifest($code);
+            $this->assertComposerDependencies($manifest);
             $this->infrastructure()->assertExternalTables($manifest);
             $fromVersion = (string) $record->version;
             $toVersion = $manifest->version();
@@ -427,6 +432,9 @@ class PluginService extends AbstractService
             $this->infrastructure()->removePermissions($code);
             $this->recordStage($code, 'uninstall', 'permissions');
             $this->transition($record, 'discovered');
+            if (in_array('composer_conflict_ack', $this->infrastructure()->pluginColumns(), true)) {
+                $record->fill(['composer_conflict_ack'=>''])->save();
+            }
             if (!$record->delete()) {
                 throw new RuntimeException('插件卸载失败');
             }
@@ -494,6 +502,7 @@ class PluginService extends AbstractService
                     throw new PluginPreconditionException('插件最近一次生命周期操作失败，请先修复或重新更新');
                 }
                 $manifest = $this->validatedManifest($code);
+            $this->assertComposerDependencies($manifest);
                 $this->infrastructure()->assertExternalTables($manifest, false);
             } else {
                 $this->assertNoEnabledDependents($code);

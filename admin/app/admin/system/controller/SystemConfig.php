@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\common\model\Config;
 use app\common\model\ConfigGroup;
 use app\common\model\FieldType;
@@ -23,7 +23,7 @@ use support\Response;
  * Admin Web 运行时配置定义、分组和值管理。
  */
 #[RouteGroup('/admin/system')]
-class SystemConfig extends AdminApiController
+class SystemConfig extends AdminController
 {
 
     /**

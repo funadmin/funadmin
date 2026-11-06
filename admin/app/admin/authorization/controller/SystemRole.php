@@ -6,7 +6,7 @@ namespace app\admin\authorization\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupDepartment;
 use app\admin\authorization\model\AuthGroupInherit;
@@ -29,7 +29,7 @@ use support\Response;
  * 角色接口。
  */
 #[RouteGroup('/admin/system/role')]
-class SystemRole extends AdminApiController
+class SystemRole extends AdminController
 {
 
     /**

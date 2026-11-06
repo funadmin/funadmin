@@ -41,9 +41,29 @@ final class RuntimeFoundationTest extends TestCase
         }
     }
 
+    public function test_real_webman_bootstrap_registers_the_application_storage_service(): void
+    {
+        $code = <<<'PHP'
+require 'vendor/autoload.php';
+require 'support/bootstrap.php';
+$container = \support\Container::instance();
+$registered = $container->has(\app\common\storage\StorageDriverRegistry::class);
+echo json_encode(['registered' => $registered, 'driver' => $registered ? $container->get(\app\common\storage\StorageDriverRegistry::class)->resolve('local')->name() : null]);
+PHP;
+        $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname(__DIR__, 2));
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $errors = stream_get_contents($pipes[2]);
+        fclose($pipes[1]); fclose($pipes[2]);
+        self::assertSame(0, proc_close($process), $errors);
+        self::assertSame(['registered' => true, 'driver' => 'local'], json_decode($output, true), $output . $errors);
+    }
+
     public function test_application_request_is_a_native_webman_request(): void
     {
-        $request = new \app\Request("GET /probe?key=value HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $class = (string) config('app.request_class');
+        $request = new $class("GET /probe?key=value HTTP/1.1\r\nHost: localhost\r\n\r\n");
         self::assertInstanceOf(\support\Request::class, $request);
         self::assertSame('value', $request->input('key'));
     }

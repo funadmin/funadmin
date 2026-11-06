@@ -170,6 +170,8 @@ final class NativeMarketplaceAdapter implements PluginMarketplaceGateway
     {
         try {
             $response = ($this->request)($endpoint, $params, $token);
+        } catch (MarketplaceException $exception) {
+            throw $exception;
         } catch (\Throwable $exception) {
             throw new MarketplaceException('插件市场请求失败：' . $exception->getMessage(), 502, $exception);
         }

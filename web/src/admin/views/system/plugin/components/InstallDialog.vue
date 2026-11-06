@@ -36,6 +36,8 @@ async function install() { if (!(hasPermission('system:plugin:install'))) return
     file.value = null;
     visible.value = false;
     emit('installed');
+  } catch (reason) {
+    if (reason !== 'cancel' && reason !== 'close') throw reason;
   } finally {
     loading.value = false;
   }

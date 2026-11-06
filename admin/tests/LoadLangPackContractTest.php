@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\middleware\LoadLangPack;
+use app\middleware\LoadLangPackMiddleware;
 use PHPUnit\Framework\TestCase;
 use support\Request;
 use support\Response;
@@ -28,7 +28,7 @@ final class LoadLangPackContractTest extends TestCase
 
     public function test_global_middleware_uses_webman_plugins_without_thinkphp_middleware_classes(): void
     {
-        $middleware = require dirname(__DIR__) . '/app/middleware.php';
+        $middleware = (require dirname(__DIR__) . '/config/middleware.php')[''];
         self::assertNotContains(\think\middleware\AllowCrossDomain::class, $middleware);
         self::assertNotContains(\think\middleware\SessionInit::class, $middleware);
         $adminMiddleware = file_get_contents(dirname(__DIR__) . '/app/admin/middleware.php');
@@ -68,7 +68,7 @@ final class LoadLangPackContractTest extends TestCase
 
     public function test_language_middleware_uses_the_native_webman_contract(): void
     {
-        $source = file_get_contents(dirname(__DIR__) . '/app/middleware/LoadLangPack.php');
+        $source = file_get_contents(dirname(__DIR__) . '/app/middleware/LoadLangPackMiddleware.php');
 
         self::assertIsString($source);
         self::assertStringContainsString('implements MiddlewareInterface', $source);
@@ -79,7 +79,7 @@ final class LoadLangPackContractTest extends TestCase
     public function test_middleware_loads_the_existing_application_language_pack(): void
     {
         $request = new Request("GET /health?locale=zh_CN HTTP/1.1\r\n\r\n");
-        (new LoadLangPack())->process($request, static fn (): Response => new Response(204));
+        (new LoadLangPackMiddleware())->process($request, static fn (): Response => new Response(204));
 
         self::assertSame('保持登录', trans('Keep Login'));
     }
@@ -87,7 +87,7 @@ final class LoadLangPackContractTest extends TestCase
     public function test_middleware_flattens_generated_group_language_packs(): void
     {
         $request = new Request("GET /health?locale=zh_CN HTTP/1.1\r\n\r\n");
-        (new LoadLangPack())->process($request, static fn (): Response => new Response(204));
+        (new LoadLangPackMiddleware())->process($request, static fn (): Response => new Response(204));
 
         self::assertSame('数据库引用元数据包含非法标识符', trans('i18n-demo.referenceMetadataInvalid'));
     }
@@ -95,9 +95,26 @@ final class LoadLangPackContractTest extends TestCase
     public function test_middleware_selects_locale_and_writes_a_javascript_readable_cookie(): void
     {
         $request = new Request("GET /health?locale=en_US HTTP/1.1\r\n\r\n");
-        $response = (new LoadLangPack())->process($request, static fn (): Response => new Response(204));
+        $response = (new LoadLangPackMiddleware())->process($request, static fn (): Response => new Response(204));
 
         self::assertSame(204, $response->getStatusCode());
         self::assertSame(['locale=en-us; Max-Age=31536000; Path=/; SameSite=Lax'], $response->getHeaders()['Set-Cookie']);
+    }
+    public function test_ui_header_locale_wins_over_data_locale_with_validated_fallbacks(): void
+    {
+        $cases = [
+            ["GET /cms?locale=zh_CN HTTP/1.1\r\nX-Locale: en_US\r\nCookie: locale=zh-cn\r\n\r\n", 'en-us', 'Home'],
+            ["GET /cms?locale=en_US HTTP/1.1\r\nX-Locale: zh_CN\r\n\r\n", 'zh-cn', '首页'],
+            ["GET /cms?locale=en_US HTTP/1.1\r\nCookie: locale=zh-cn\r\n\r\n", 'en-us', 'Home'],
+            ["GET /cms?locale=en_US HTTP/1.1\r\nX-Locale: invalid!\r\nCookie: locale=zh-cn\r\n\r\n", 'en-us', 'Home'],
+            ["GET /cms?locale=invalid! HTTP/1.1\r\nX-Locale: invalid!\r\nCookie: locale=en-us\r\n\r\n", 'en-us', 'Home'],
+            ["GET /cms?locale=invalid! HTTP/1.1\r\nX-Locale: invalid!\r\nCookie: locale=invalid!\r\n\r\n", 'zh-cn', '首页'],
+        ];
+        foreach ($cases as [$raw, $locale, $home]) {
+            $request = new Request($raw);
+            $response = (new LoadLangPackMiddleware())->process($request, static fn (): Response => new Response(200, [], trans('Home')));
+            self::assertSame($home, $response->rawBody());
+            self::assertSame(['locale='.$locale.'; Max-Age=31536000; Path=/; SameSite=Lax'], $response->getHeaders()['Set-Cookie']);
+        }
     }
 }

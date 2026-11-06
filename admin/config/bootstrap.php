@@ -14,5 +14,6 @@
 
 return [
     support\bootstrap\Session::class,
+    app\AppService::class,
     app\common\plugin\sdk\Service::class,
 ];

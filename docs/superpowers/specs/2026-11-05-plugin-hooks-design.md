@@ -35,16 +35,16 @@
 
 ## 声明与源码
 
-`plugin.json` 新增可选数组 `backendHooks`、`frontendHooks`。每条记录具有插件内唯一 `id`、`point`、`type`、整数 `priority`（默认 100）。相同类型与扩展点按 priority 升序、plugin code、id 的 ASCII 字符顺序排序，两端不依赖浏览器语言排序。point 使用点分标识；未被宿主调用的扩展点只是未触发，不自动产生事件。
+`plugin.json` 新增可选数组 `serverHooks`、`clientHooks`。每条记录具有插件内唯一 `id`、`point`、`type`、整数 `priority`（默认 100）。相同类型与扩展点按 priority 升序、plugin code、id 的 ASCII 字符顺序排序，两端不依赖浏览器语言排序。point 使用点分标识；未被宿主调用的扩展点只是未触发，不自动产生事件。
 
 后端条目：`type` 为 `action` 或 `filter`，`file` 为插件私有目录 `hooks/` 下 PHP 相对路径，`handler` 为该文件返回的映射中的键。例如：
 
 ```json
 {
-  "backendHooks": [
+  "serverHooks": [
     {"id":"upload-audit","point":"upload.completed","type":"action","file":"hooks/upload.php","handler":"afterUpload","priority":100}
   ],
-  "frontendHooks": [
+  "clientHooks": [
     {"id":"dashboard-widget","point":"dashboard.cards","type":"component","component":"HookStats","priority":100},
     {"id":"table-actions","point":"table.actions","type":"filter","file":"hooks.ts","export":"extendActions","priority":100}
   ]
@@ -83,7 +83,7 @@ context 为宿主明确提供的数据与插件归属信息，不隐式暴露整
 
 `<PluginSlot name="dashboard.cards" :context="{ user }" />` 按顺序异步加载已注册组件，将宿主 context 作为 prop 传入。每个插件组件独立错误边界；加载或渲染失败仅移除该贡献并记录错误。禁用、权限减少或登出同步移除对应组件，执行组件自身卸载和 runtime cleanup。插槽自身不分配卡片尺寸，组件负责自己的展示。
 
-前端管理页面模块清单沿用已登录会话下 enabled-modules 入口，增加 frontendHooks、generation 字段，纯函数插件也必须包含在响应中。新增只读描述接口：公共页/会员页使用 `/plugins/hooks/frontend`，后台使用 `/admin/plugins/hooks/frontend` 以适配既有 Cookie 的 Path=/admin；仅接受固定 audience 值。member 走现有会员认证，admin 走现有后台认证，匿名只获得显式 public 项。接口只返回描述，不触发处理器。会话切换先清理旧会话贡献，再同步当前 audience；同浏览器任一时刻以当前页面 audience 和会话身份确定贡献，页面组件可在自己的会话上下文调用任意 point。
+前端管理页面模块清单沿用已登录会话下 enabled-modules 入口，增加 clientHooks、generation 字段，纯函数插件也必须包含在响应中。新增只读描述接口：公共页/会员页使用 `/plugins/hooks/frontend`，后台使用 `/admin/plugins/hooks/frontend` 以适配既有 Cookie 的 Path=/admin；仅接受固定 audience 值。member 走现有会员认证，admin 走现有后台认证，匿名只获得显式 public 项。接口只返回描述，不触发处理器。会话切换先清理旧会话贡献，再同步当前 audience；同浏览器任一时刻以当前页面 audience 和会话身份确定贡献，页面组件可在自己的会话上下文调用任意 point。
 
 后端只返回允许该用户使用的贡献和必需引用，不下发后端处理器路径。只从 Vite 构建期 modules 白名单加载文件，不执行 URL import。后端响应损坏、请求失败或引用缺失时清理当前插件贡献，宿主页仍可使用；去重版本为 activation generation + 当前 audience/会话 + 规范化可见描述符哈希。相同 generation 但权限或描述符变化仍必须重新同步和卸载。
 

@@ -1,0 +1,34 @@
+/* 编辑器与预览共用的技术文档排版。只作用于 .doc-prose，不影响宿主样式。 */
+.doc-prose { color: var(--el-text-color-primary); font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.ProseMirror.doc-prose { min-height: 100%; padding: 20px 28px 48px; outline: none; }
+.doc-prose > :first-child { margin-top: 0; }
+.doc-prose h1, .doc-prose h2, .doc-prose h3, .doc-prose h4 { line-height: 1.35; font-weight: 600; margin: 1.6em 0 .6em; }
+.doc-prose h1 { font-size: 1.75em; }
+.doc-prose h2 { font-size: 1.4em; padding-bottom: .3em; border-bottom: 1px solid var(--el-border-color-lighter); }
+.doc-prose h3 { font-size: 1.18em; }
+.doc-prose p { margin: 0 0 .9em; }
+.doc-prose ul, .doc-prose ol { padding-left: 1.6em; margin: 0 0 .9em; list-style: revert; }
+.doc-prose a { color: var(--el-color-primary); text-decoration: underline; text-underline-offset: 2px; }
+.doc-prose blockquote { margin: 0 0 .9em; padding: .2em 1em; border-left: 3px solid var(--el-border-color); color: var(--el-text-color-secondary); }
+.doc-prose code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--el-fill-color); border-radius: 4px; padding: .12em .38em; }
+.doc-prose pre { background: #1f2430; color: #e6e9ef; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 0 0 1em; font-size: 13px; line-height: 1.6; }
+.doc-prose pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.doc-prose hr { border: 0; border-top: 1px solid var(--el-border-color-lighter); margin: 1.6em 0; }
+.doc-prose img { max-width: 100%; height: auto; border-radius: 6px; }
+.doc-prose table { border-collapse: collapse; width: 100%; margin: 0 0 1em; font-size: 13px; display: block; overflow-x: auto; }
+.doc-prose th, .doc-prose td { border: 1px solid var(--el-border-color); padding: 6px 10px; text-align: left; vertical-align: top; min-width: 60px; }
+.doc-prose th { background: var(--el-fill-color-light); font-weight: 600; }
+.doc-prose th p, .doc-prose td p { margin: 0; }
+.doc-prose ul[data-type="taskList"] { list-style: none; padding-left: .2em; }
+.doc-prose ul[data-type="taskList"] li { display: flex; gap: .5em; align-items: flex-start; }
+.doc-prose ul[data-type="taskList"] li > label { margin-top: .25em; }
+.doc-prose ul[data-type="taskList"] li > div { flex: 1; }
+.doc-prose .doc-callout { margin: 0 0 1em; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--el-color-info); background: var(--el-color-info-light-9); }
+.doc-prose .doc-callout[data-tone="tip"] { border-color: var(--el-color-success); background: var(--el-color-success-light-9); }
+.doc-prose .doc-callout[data-tone="warning"] { border-color: var(--el-color-warning); background: var(--el-color-warning-light-9); }
+.doc-prose .doc-callout[data-tone="danger"] { border-color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
+.doc-prose .doc-callout > :last-child { margin-bottom: 0; }
+.doc-prose .doc-mermaid { margin: 0 0 1em; padding: 12px; border: 1px dashed var(--el-border-color); border-radius: 8px; text-align: center; overflow-x: auto; }
+.doc-prose .doc-mermaid pre { text-align: left; margin: 0; }
+.doc-prose .doc-mermaid--error { border-color: var(--el-color-danger); }
+.doc-prose .doc-mermaid svg { max-width: 100%; height: auto; }

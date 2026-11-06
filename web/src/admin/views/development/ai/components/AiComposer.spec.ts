@@ -93,7 +93,7 @@ describe('独立 composer 边界', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
   it('页面应使用独立输入组件，不保留无锁的内联发送表单', () => {
-    const source = readFileSync('src/views/development/ai/index.vue', 'utf8');
+    const source = readFileSync('src/admin/views/development/ai/index.vue', 'utf8');
     expect(source).toContain('<AiComposer');
     expect(source).not.toContain('<form class="composer"');
   });

@@ -1,0 +1,3 @@
+-- QA schema; generated from app/qa/service/Schema.php. Prefix rewritten by host migration runner.
+create table `fun_qa_question` (`id` bigint unsigned not null, `site_id` bigint unsigned not null, `locale` varchar(20) not null, `accepted_answer_id` bigint unsigned null, `closed` tinyint(1) not null default '0', `lock_version` int unsigned not null default '0', `created_at` timestamp null, `updated_at` timestamp null, primary key (`id`)) default character set utf8mb4 collate 'utf8mb4_unicode_ci' engine = InnoDB;
+alter table `fun_qa_question` add index `qa_question_site_id_locale_id_index`(`site_id`, `locale`, `id`);

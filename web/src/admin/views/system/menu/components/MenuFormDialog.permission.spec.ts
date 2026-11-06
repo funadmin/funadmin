@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(resolve(process.cwd(), 'src/views/system/menu/components/MenuFormDialog.vue'), 'utf8');
+const source = readFileSync(resolve(process.cwd(), 'src/admin/views/system/menu/components/MenuFormDialog.vue'), 'utf8');
 
 describe('菜单权限资源绑定契约', () => {
   it('可从已启用路由或能力权限资源中选择并提交 permissionId', () => {

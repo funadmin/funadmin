@@ -1,0 +1,4 @@
+-- OSS plugin storage profiles. Credentials encrypted by application.
+create table `fun_oss_profile` (`id` varchar(16) not null, `name` varchar(100) not null, `provider` varchar(20) not null, `bucket` varchar(100) not null, `region` varchar(60) not null default '', `endpoint` varchar(255) not null default '', `domain` varchar(500) not null, `prefix` varchar(200) not null default '', `credentials` text not null, `created_at` timestamp null, `updated_at` timestamp null, primary key (`id`)) default character set utf8mb4 collate 'utf8mb4_unicode_ci' engine = InnoDB;
+create table `fun_oss_setting` (`id` tinyint unsigned not null, `current_profile_id` varchar(16) null, primary key (`id`)) default character set utf8mb4 collate 'utf8mb4_unicode_ci' engine = InnoDB;
+INSERT IGNORE INTO `fun_oss_setting` (`id`, `current_profile_id`) VALUES (1, NULL);

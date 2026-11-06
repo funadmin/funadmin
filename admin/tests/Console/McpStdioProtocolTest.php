@@ -37,7 +37,6 @@ final class McpStdioProtocolTest extends TestCase
             $this->copyTree($directory, $this->temporary . '/app/admin/' . basename(dirname($directory)) . '/command');
         }
         copy($root . '/app/functions.php', $this->temporary . '/app/functions.php');
-        copy($root . '/app/common.php', $this->temporary . '/app/common.php');
         mkdir($this->temporary . '/app/common/functions', 0700, true);
         copy($root . '/app/common/functions/plugin.php', $this->temporary . '/app/common/functions/plugin.php');
         $environment = array_replace(getenv(), ['DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:', 'AI_QUEUE_ENABLED' => 'false']);

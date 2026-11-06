@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { service } from '@/utils/http';
+import { local, session } from '@/utils/storage';
 import { aiDevelopmentApi as api, profileModelCapability, profileCapabilityError } from './ai';
 import { developmentAiMockHandlers } from '@/mock/modules/developmentAi';
 import type { MockMethod } from '@/mock/types';
@@ -13,6 +14,21 @@ function respond(data: unknown) {
 const conversation = { id: '2', admin_id: '1', group_id: null, title: '新 AI 会话', status: 'draft', model: '', context: [], is_archived: false, is_unread: false };
 
 describe('AI 真实 HTTP 响应边界', () => {
+  it('HTTP 依赖的浏览器存储使用 jsdom Storage 而非 Node 原生 localStorage', () => {
+    const key = 'ai-http-storage-regression';
+    try {
+      expect(window.localStorage).toBeInstanceOf(window.Storage);
+      expect(window.sessionStorage).toBeInstanceOf(window.Storage);
+      local.set(key, 'csrf-fixture');
+      session.set(key, 'route-fixture');
+      expect(local.get(key)).toBe('csrf-fixture');
+      expect(session.get(key)).toBe('route-fixture');
+      expect(JSON.parse(window.localStorage.getItem(key)!)).toEqual({ value: 'csrf-fixture' });
+    } finally {
+      window.localStorage?.removeItem(key);
+      window.sessionStorage?.removeItem(key);
+    }
+  });
   it('分页 API 保留游标元数据并归一化行 ID，透传筛选与方向', async () => {
     expect(api).toHaveProperty('conversationPage');
     expect(api).toHaveProperty('messagePage');

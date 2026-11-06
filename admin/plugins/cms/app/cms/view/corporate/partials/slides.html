@@ -1,0 +1,6 @@
+<section class="container home-slides cms-carousel-host" data-cms-slider aria-label="{$ui.slides}">
+<el-carousel class="cms-el-carousel slides-track" data-slides-track tabindex="0" aria-label="{$ui.slides}" autoplay="false" loop="false" height="clamp(240px, 36vw, 520px)" arrow="{cms:if test="$home.has_multiple_slides"}always{cms:else /}never{/cms:if}" indicator-position="{cms:if test="$home.has_multiple_slides"}{cms:else /}none{/cms:if}">
+{cms:theme name="slides" as="slide"}<el-carousel-item>{cms:include file="partials/slide" /}</el-carousel-item>{/cms:theme}
+</el-carousel>
+<div data-cms-fallback class="slider-controls" data-slider-controls hidden><button type="button" data-slide-direction="-1" aria-label="{$ui.previous_slide}">←</button><span data-slider-status aria-live="polite"></span><button type="button" data-slide-direction="1" aria-label="{$ui.next_slide}">→</button></div>
+</section>

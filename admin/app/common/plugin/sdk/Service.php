@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\plugin\sdk;
 
-/** 仅注册插件基础服务，不访问控制面或加载插件源码。 */
+/** 注册基础服务，并仅为可信快照中已启用的插件加载依赖。 */
 class Service implements \Webman\Bootstrap
 {
     protected string $plugins_path;
@@ -25,6 +25,7 @@ class Service implements \Webman\Bootstrap
             ),
         ]);
         $this->plugins_path = $this->getPluginsPath();
+        PluginVendorAutoloader::loadEnabled(new PluginActivationReader(base_path('runtime/plugins/activation')), $this->plugins_path);
     }
 
     public function getPluginsPath(): string

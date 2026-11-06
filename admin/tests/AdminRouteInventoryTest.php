@@ -39,7 +39,7 @@ final class AdminRouteInventoryTest extends TestCase
     {
         $expected = [
             'authentication' => '148f17ecc425885fbf59a0ac26260b090c1193d6a0514ace2e1d0714f1db2f07',
-            'authorization' => '3aa408838a2865e7bc9acc48ad817a6ee0574237a20729972e457e3065914623',
+            'authorization' => '6bd086eefe72706ac3593f24c3fadf8df1b778f6ebf5ae454452ab9227794b28',
             'system' => '7240ca8801e5114f79c53273ec121eed15c5c21939e103665c9bc618c3ae0ef6',
             'identity' => '45253c5993ec0d3055e90b1bb7c4ec3232ac7cbe847fd25241c1a20eae408139',
             'development' => 'a07a00758a601ee8ed506e5351b037a93adf85468905fb5f0930a3a767e80b80',

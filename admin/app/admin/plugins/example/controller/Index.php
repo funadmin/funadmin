@@ -6,15 +6,14 @@ namespace app\admin\plugins\example\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
-use app\common\plugin\sdk\PluginPermission;
+use app\common\controller\AdminController;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
 use support\Response;
 
 /** 示例插件管理后台入口。 */
 #[RouteGroup('/admin/plugin/example')]
-final class Index extends AdminApiController
+final class Index extends AdminController
 {
     /**
      * 返回示例插件后台入口响应。
@@ -34,7 +33,6 @@ final class Index extends AdminApiController
      *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
      * )
      */
-    #[PluginPermission('example:entry:index')]
     #[Get('/index')]
     public function index(): Response
     {

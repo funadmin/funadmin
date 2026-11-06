@@ -6,7 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
-use app\admin\controller\base\AdminApiController;
+use app\common\controller\AdminController;
 use app\common\model\Language;
 use app\common\model\LanguageLine;
 use support\annotation\route\Delete;
@@ -22,7 +22,7 @@ use support\Response;
  * Admin Web 多语言注册管理。
  */
 #[RouteGroup('/admin/system/language')]
-class SystemLanguage extends AdminApiController
+class SystemLanguage extends AdminController
 {
 
     /**

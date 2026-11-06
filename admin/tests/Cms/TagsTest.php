@@ -2,12 +2,135 @@
 declare(strict_types=1);
 namespace Tests\Cms;
 require_once __DIR__.'/CmsTestCase.php';
-use app\cms\service\{SiteService,ContentService,TemplateTagService,CategoryService,MenuService};
+use app\cms\service\{Input,SiteService,ContentService,TemplateTagService,CategoryService,MenuService};
 use app\cms\tags\BuiltinTags;
 use app\cms\template\{TemplateEngine,RenderContext};
 use support\Db;
 final class TagsTest extends CmsTestCase
 {
+    public function test_deleting_menu_group_removes_nested_items_but_preserves_other_groups_and_targets(): void
+    {
+        $site=$this->site();$service=new MenuService();
+        $category=(new CategoryService())->save($site['id'],'zh-cn',['name'=>'Keep category','desired_path'=>'/keep/']);
+        $menu=$service->save($site['id'],'zh-cn',['code'=>'removable','name'=>'Remove','items'=>[
+            ['title'=>'Keep target','target_type'=>'category','target_id'=>$category['locale_id'],'children'=>[
+                ['title'=>'Nested','external_url'=>'/nested/'],
+            ]],
+        ]]);
+        $other=$service->save($site['id'],'zh-cn',['code'=>'keep','name'=>'Keep','items'=>[['title'=>'Other','external_url'=>'/other/']]]);
+        $service->remove($site['id'],'zh-cn',$menu['id']);
+        self::assertFalse(Db::table('cms_menu')->where('id',$menu['id'])->exists());
+        self::assertSame(0,Db::table('cms_menu_item')->where('menu_id',$menu['id'])->count());
+        self::assertSame([],$service->items($site['id'],'zh-cn','removable'));
+        self::assertSame($other['id'],$service->listing($site['id'],'zh-cn')[0]['id']);
+        self::assertSame('Other',$service->items($site['id'],'zh-cn','keep')[0]['title']);
+        self::assertNotNull((new CategoryService())->detail($site['id'],$category['locale_id']));
+    }
+
+    public function test_menu_deletion_rejects_other_site_language_and_missing_ids(): void
+    {
+        $site=$this->site();$other=$this->site('other_delete','other-delete.test');$service=new MenuService();
+        (new SiteService())->saveLocale($site['id'],['locale'=>'en-us','url_prefix'=>'en']);
+        $menu=$service->save($site['id'],'zh-cn',['code'=>'header','name'=>'Keep','items'=>[['title'=>'Child','external_url'=>'/child/']]]);
+        foreach([[$other['id'],'zh-cn',$menu['id']],[$site['id'],'en-us',$menu['id']],[$site['id'],'zh-cn','999999']] as [$id,$locale,$target]){
+            try{$service->remove($id,$locale,$target);self::fail('Deletion must stay scoped');}
+            catch(\InvalidArgumentException $error){self::assertSame(404,$error->getCode());}
+        }
+        self::assertCount(1,$service->listing($site['id'],'zh-cn'));
+        self::assertCount(1,$service->items($site['id'],'zh-cn','header'));
+    }
+
+    public function test_navigation_parent_title_opens_submenu_and_parent_page_remains_linked(): void
+    {
+        $site=$this->site();
+        (new MenuService())->save($site['id'],'zh-cn',['code'=>'header','name'=>'Header','items'=>[
+            ['title'=>'Products & solutions','target_type'=>'external','external_url'=>'/products/','open_in_new_tab'=>1,'children'=>[
+                ['title'=>'Solutions','target_type'=>'external','external_url'=>'/solutions/'],
+            ]],
+        ]]);
+        $context=new RenderContext($site['id'],'zh-cn');
+        $html=(new TemplateEngine((new BuiltinTags())->registry($context),__DIR__))->render('{cms:navigation code="header" /}',[],$context);
+        $document=new \DOMDocument();$document->loadHTML('<html><head><meta charset="utf-8"></head><body>'.$html.'</body></html>',LIBXML_NOERROR|LIBXML_NOWARNING);
+        $xpath=new \DOMXPath($document);
+        self::assertSame(0,$xpath->query('//summary/a')->length,'点击父级标题应展开子菜单，不能被链接导航拦截');
+        self::assertSame('Products & solutions',$xpath->query('//summary')->item(0)->textContent);
+        self::assertSame('/products/',$xpath->query('//details/ul/li[1]/a')->item(0)->getAttribute('href'));
+        self::assertSame('_blank',$xpath->query('//details/ul/li[1]/a')->item(0)->getAttribute('target'));
+        self::assertSame('/solutions/',$xpath->query('//details/ul/li[2]/a')->item(0)->getAttribute('href'));
+    }
+
+    public function test_tag_editor_can_select_categories_beyond_the_first_hundred(): void
+    {
+        $site=$this->site();$categories=new CategoryService();$last=[];
+        for($i=1;$i<=105;$i++)$last=$categories->save($site['id'],'zh-cn',['name'=>'栏目 '.$i,'desired_path'=>'/category-'.$i.'/']);
+        $choices=(new TemplateTagService())->editorOptions($site['id'],'zh-cn')['categories'];
+        self::assertCount(105,$choices);
+        self::assertContains(['value'=>$last['id'],'label'=>'栏目 105','path'=>'/category-105/'],$choices);
+    }
+
+    public function test_tag_editor_choices_use_enabled_site_models_and_current_language_categories(): void
+    {
+        $site=$this->site();$other=$this->site('other','other.test');
+        $models=array_column(Input::rows(Db::table('cms_content_model')->get()),null,'code');
+        Db::table('cms_site_model')->where('site_id',$site['id'])->where('model_id',$models['product']['id'])->update(['status'=>0]);
+        Db::table('cms_content_model')->where('id',$models['download']['id'])->update(['status'=>0]);
+        $news=(new CategoryService())->save($site['id'],'zh-cn',['name'=>'新闻栏目','desired_path'=>'/news/']);
+        (new CategoryService())->save($site['id'],'zh-cn',['name'=>'停用栏目','desired_path'=>'/disabled/','status'=>0]);
+        (new CategoryService())->save($other['id'],'zh-cn',['name'=>'其他站点栏目','desired_path'=>'/other/']);
+        (new SiteService())->saveLocale($site['id'],['locale'=>'en-us','url_prefix'=>'en']);
+
+        $choices=(new TemplateTagService())->editorOptions($site['id'],'zh-cn');
+        self::assertContains(['value'=>'article','label'=>'文章'],$choices['models']);
+        self::assertNotContains('product',array_column($choices['models'],'value'));
+        self::assertNotContains('download',array_column($choices['models'],'value'));
+        self::assertSame([['value'=>$news['id'],'label'=>'新闻栏目','path'=>'/news/']],$choices['categories']);
+        self::assertSame([],(new TemplateTagService())->editorOptions($site['id'],'en-us')['categories']);
+    }
+
+    public function test_backend_listing_includes_read_only_system_tags_and_only_current_site_custom_tags(): void
+    {
+        $site=$this->site();$other=$this->site('other','other.test');$service=new TemplateTagService();
+        $custom=$service->save($site['id'],'',['name'=>'company_notice','provider'=>'text','parameters'=>['value'=>'Notice']],'1');
+        $service->save($other['id'],'',['name'=>'other_notice','provider'=>'text','parameters'=>['value'=>'Other']],'1');
+        $count=Db::table('cms_template_tag')->count();
+
+        $rows=$service->listing($site['id'],'zh-cn');$byName=array_column($rows,null,'name');
+        foreach(['text','content','category','menu','navigation','fields','site','languages','breadcrumb','pagination','config','theme'] as $name) {
+            self::assertArrayHasKey($name,$byName);
+            self::assertTrue($byName[$name]['builtin']);
+            self::assertSame('builtin:'.$name,$byName[$name]['id']);
+            self::assertIsArray($byName[$name]['parameters']);
+        }
+        self::assertSame($custom['id'],$byName['company_notice']['id']);
+        self::assertFalse($byName['company_notice']['builtin']);
+        self::assertArrayNotHasKey('other_notice',$byName);
+        self::assertSame($count,Db::table('cms_template_tag')->count(),'展示内置标签不创建数据库标签记录');
+    }
+
+    public function test_displaying_system_tags_does_not_make_non_configurable_handlers_available_as_custom_providers(): void
+    {
+        $site=$this->site();(new TemplateTagService())->listing($site['id'],'zh-cn');
+        $providers=(new BuiltinTags())->registry(new RenderContext($site['id'],'zh-cn'))->definitions();
+        $names=array_column($providers,'name');
+        self::assertContains('content',$names);
+        self::assertNotContains('site',$names);
+        self::assertNotContains('pagination',$names);
+    }
+
+    public function test_system_tag_names_cannot_be_overwritten_by_custom_tag_submission(): void
+    {
+        $site=$this->site();$service=new TemplateTagService();
+        foreach(['text','site','content','config'] as $name) {
+            try {
+                $service->save($site['id'],'',['name'=>$name,'provider'=>'text','parameters'=>['value'=>'overwrite']],'1');
+                self::fail('系统标签不可覆盖：'.$name);
+            } catch (\InvalidArgumentException $error) {
+                self::assertStringContainsString('标签名重复或保留',$error->getMessage());
+            }
+        }
+        self::assertSame(0,Db::table('cms_template_tag')->count());
+    }
+
     public function test_backend_alias_only_changes_public_render_after_publishing(): void
     {
         self::assertTrue(class_exists(TemplateTagService::class),'Backend template tags must exist');

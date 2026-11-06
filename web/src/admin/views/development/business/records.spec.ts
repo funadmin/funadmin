@@ -149,7 +149,7 @@ describe('BusinessRecords', () => {
     expect(wrapper.text()).toContain('订单管理');
     expect(wrapper.text()).toContain('orders');
     await wrapper.get('[data-action="back-to-mine"]').trigger('click');
-    expect(mocks.push).toHaveBeenCalledWith('/development/business/mine');
+    expect(mocks.push).toHaveBeenCalledWith('/admin/development/business/mine');
   });
 
   it('使用统一页面状态、状态标签和结构化详情 drawer，并显示失败摘要与更新时间', async () => {

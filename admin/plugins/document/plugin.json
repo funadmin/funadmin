@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "code": "document",
+  "name": "技术文档",
+  "description": "管理 FunAdmin 主框架、插件开发规范、官方插件和第三方插件技术文档",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.5",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "entry": {
+    "class": "plugins\\document\\Plugin",
+    "file": "Plugin.php"
+  },
+  "migrations": {
+    "path": "database/migrations"
+  },
+  "storage": {
+    "path": "storage"
+  },
+  "purge": {
+    "supported": false
+  },
+  "adminWeb": {
+    "source": "web/src/admin/modules/document",
+    "components": {
+      "Index": "Index.vue"
+    },
+    "minFrontendVersion": "1.0.0",
+    "permissions": [
+      {
+        "code": "document:document:index",
+        "name": "查看技术文档"
+      },
+      {
+        "code": "document:document:create",
+        "name": "新建技术文档"
+      },
+      {
+        "code": "document:document:save-draft",
+        "name": "编辑技术文档草稿"
+      },
+      {
+        "code": "document:document:publish",
+        "name": "发布技术文档"
+      },
+      {
+        "code": "document:document:delete",
+        "name": "删除技术文档"
+      },
+      {
+        "code": "document:category:tree",
+        "name": "查看文档目录"
+      }
+    ],
+    "menu": [
+      {
+        "name": "技术文档",
+        "path": "/plugin/document",
+        "menulist": [
+          {
+            "name": "文档中心",
+            "path": "/plugin/document/docs",
+            "permission": "document:document:index"
+          }
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "path": "/plugin/document/docs",
+        "name": "Plugin_document_Docs",
+        "component": "Index",
+        "meta": {
+          "title": "技术文档",
+          "permission": "document:document:index"
+        }
+      }
+    ]
+  }
+}

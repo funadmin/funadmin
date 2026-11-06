@@ -11,6 +11,7 @@ export interface StorageSettings {
   driver: string;
   fallback: boolean;
   drivers: StorageDriver[];
+  managed?: { source: string; label: string; driver: string } | null;
 }
 
 export const storageApi = {

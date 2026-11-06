@@ -19,6 +19,8 @@ interface RequestOptions {
   errorMessageMode?: 'message' | 'modal' | 'none';
   /** 401 时不弹「重新登录」，由调用方自行回退（如登录前也会触发的后台请求）。 */
   ignoreUnauthorized?: boolean;
+  /** Structured plugin conflicts are rendered by the caller, not as generic errors. */
+  confirmComposerConflicts?: boolean;
 }
 
 interface AdminRequestConfig<D = any> extends AxiosRequestConfig<D> {
@@ -34,7 +36,8 @@ const DEFAULT_REQUEST_OPTIONS: Required<RequestOptions> = {
   showErrorMsg: true,
   isReturnNativeResponse: false,
   errorMessageMode: 'message',
-  ignoreUnauthorized: false
+  ignoreUnauthorized: false,
+  confirmComposerConflicts: false
 };
 
 export const service: AxiosInstance = axios.create({
@@ -81,6 +84,7 @@ service.interceptors.response.use(
       }
       return handleUnauthorized(msg || tr('http.unauthorized', '登录已失效，请重新登录'));
     }
+    if (opt.confirmComposerConflicts && isComposerConflict(response.data)) return Promise.reject(response.data);
     if (opt.showErrorMsg) showError(msg || tr('http.requestFailed', '请求失败'), opt.errorMessageMode);
     return Promise.reject(response.data);
   },
@@ -111,10 +115,16 @@ service.interceptors.response.use(
     else if (status === 422) message = safeMessage || tr('http.validationFailed', '参数验证失败');
     else if (error?.code === 'ECONNABORTED') message = tr('http.timeout', '请求超时');
 
+    if (opt.confirmComposerConflicts && isComposerConflict(payload)) return Promise.reject(payload);
     if (opt.showErrorMsg) showError(message, opt.errorMessageMode);
     return Promise.reject(payload || error);
   }
 );
+
+function isComposerConflict(payload: unknown): boolean {
+  const body = payload as { code?: number; data?: { reason?: string; conflicts?: unknown[] } } | undefined;
+  return body?.code === 409 && body.data?.reason === 'composer_conflict' && Array.isArray(body.data.conflicts);
+}
 
 function businessMessage(payload: unknown): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;

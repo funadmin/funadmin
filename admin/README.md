@@ -4,11 +4,15 @@
 基于<a href="https://www.workerman.net" target="__blank">workerman</a>开发的超高性能PHP框架
 
 
+<h2>应用入口与配置</h2>
+
+<p><code>app/functions.php</code> 是公共函数入口，由 <code>config/autoload.php</code> 加载；<code>app/AppService.php</code> 实现 Webman Bootstrap，由 <code>config/bootstrap.php</code> 启动。全局中间件、事件和异常处理分别使用 <code>config/middleware.php</code>、<code>config/event.php</code> 和 <code>config/exception.php</code>；请求类为 <code>support/Request.php</code>。<code>app/BaseController.php</code> 与 <code>app/ExceptionHandle.php</code> 是仍在使用的 Webman 自定义基础类。旧的 <code>app/common.php</code>、<code>app/Request.php</code>、<code>app/event.php</code>、<code>app/provider.php</code>、<code>app/service.php</code>、<code>app/middleware.php</code> 不再作为入口保留。</p>
+
 <h1>数据库部署</h1>
 
 <p>生产数据库仅支持 MySQL，PHP 8.5 环境需要 pdo_mysql 扩展。复制 .env.example 后设置 DB_HOST、DB_PORT（默认 3306）、DB_DATABASE、DB_USERNAME、DB_PASSWORD 和 DB_PREFIX。SQLite 仅用于轻量测试。</p>
 <p>推荐通过 /#/admin/install 安装。CLI 可运行 php bin/console.php install，从标准输入读取 JSON 对象：db 包含 host、port、database、username、password、prefix（均为字符串）；admin 包含 username、password、repassword、email；debug 为可选布尔值。通过受保护的标准输入提供密码，不把密码写入命令行参数。安装不覆盖已有管理员。已存在的数据库不需要建库权限；数据库不存在时才尝试创建。</p>
-<p>运行 php bin/console.php migrate 应用根目录核心 SQL。插件继续使用 database/migrations/ 目录。CRUD_CONNECTIONS 可显式限制可用连接；未设置时跟随已安装连接。系统升级沿用 MySQL 一致性快照与 shadow schema 校验恢复，不跳过备份。</p>
+<p>运行 php bin/console.php migrate 应用核心 SQL（admin/database/core/migrations）。插件继续使用 database/migrations/ 目录。CRUD_CONNECTIONS 可显式限制可用连接；未设置时跟随已安装连接。系统升级沿用 MySQL 一致性快照与 shadow schema 校验恢复，不跳过备份。</p>
 
 <h2>前端部署</h2>
 
@@ -89,3 +93,13 @@ The webman is open-sourced software licensed under the MIT.
 </div>
 
 
+
+
+## 数据库迁移目录
+
+- 核心 SQL：`admin/database/core/migrations/`，包括基线与增量 SQL；历史归档位于其 `archive/` 子目录，归档不直接执行。
+- PHP 迁移：`admin/database/migrations/`，保留原有 PHP 迁移入口，不与核心 SQL 混用。
+- `CORE_DATABASE_PATH` 可覆盖核心 SQL 的父目录（其下必须有 `migrations/001_baseline.sql`）；未设置时默认 `admin/database/core/`。
+- 在 `admin/` 中执行 `php bin/console.php migrate`。MySQL 使用核心 SQL，其他受支持驱动沿用 PHP 迁移。
+- 系统升级包以 `admin/` 为应用根，核心 SQL 文件键改为 `database/core/migrations/<文件名>.sql`，并纳入 `coreMigrations` 校验。升级前需部署匹配的核心 SQL 源；Docker 使用 `./database/core:/core-database:ro` 挂载该目录。
+- 仓库根目录不再保留 `database/`，旧部署若设置了 `CORE_DATABASE_PATH` 或自定义挂载，应同步调整位置。

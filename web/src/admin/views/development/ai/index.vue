@@ -4,15 +4,15 @@
       <el-button size="small" data-testid="mobile-workspace" :aria-pressed="mobileTab === 'workspace'" @click="mobileTab = 'workspace'"><i class="i-ep-monitor" />{{ t('aiDevelopment.workspace') }}</el-button>
       <el-button size="small" data-testid="mobile-conversations" :aria-pressed="mobileTab === 'conversations'" @click="mobileTab = 'conversations'"><i class="i-ep-chat-line-round" />{{ t('aiDevelopment.conversations') }}</el-button>
       <el-badge :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
-        <el-button size="small" data-testid="mobile-context" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+        <el-button size="small" data-testid="mobile-context" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskDetails') }}</el-button>
       </el-badge>
     </nav>
 
     <div class="ai-layout">
       <section v-if="regionVisible('conversations')" ref="conversationPane" class="ai-conversations-pane" data-ai-region="conversations" @scroll="loadAtBottom">
         <ConversationList :conversations="store.conversations" :groups="store.conversationGroups" :selected-id="store.selectedConversationId" :archived="showArchived" :filters="conversationFilters" :has-more="store.conversationsHasMore" :loading="store.conversationsLoading" @filter="changeFilters" @load-more="store.loadMoreConversations()" @toggle-archived="showArchived = !showArchived" @action="conversationAction" @create="createConversation" @select="selectConversation" @create-group="createConversationGroup" @rename-group="renameConversationGroup" @delete-group="deleteConversationGroup">
-          <template #actions>
-            <el-button v-if="hasPermission('development:ai:configure')" size="small" :aria-label="t('aiDevelopment.profiles.title')" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.provider') }}</el-button>
+          <template #menu>
+            <el-dropdown-item v-if="hasPermission('development:ai:configure')" divided data-testid="open-provider-settings" @click="openProviderSettings"><i class="i-ep-setting" />{{ t('aiDevelopment.profiles.title') }}</el-dropdown-item>
           </template>
         </ConversationList>
       </section>
@@ -29,7 +29,7 @@
           </div>
           <div class="workspace-actions">
             <el-badge class="task-permissions-badge" data-testid="pending-approvals-badge" :value="pendingApprovals.length" :hidden="!pendingApprovals.length" :max="Infinity">
-              <el-button size="small" data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskAndPermissions') }}</el-button>
+              <el-button size="small" data-testid="toggle-inspector" :aria-expanded="inspectorOpen" aria-haspopup="dialog" @click="toggleInspector"><i class="i-ep-document" />{{ t('aiDevelopment.taskDetails') }}</el-button>
             </el-badge>
             <el-button v-if="store.activeTask && running && hasPermission('development.ai:taskcancel')" size="small" type="danger" plain @click="cancelTask"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
           </div>
@@ -48,14 +48,23 @@
             </ul>
             <el-button v-if="hasPermission('development.ai:conversationcreate')" type="primary" round @click="createConversation"><i class="i-ep-plus" />{{ t('aiDevelopment.welcome.action') }}</el-button>
           </section>
-          <MessageTimeline v-else :messages="store.messages" />
-          <section v-show="store.toolCalls.length" class="workspace-tools">
-            <h4><i class="i-ep-operation" />{{ t('aiDevelopment.toolCalls.title') }}<span>{{ store.toolCalls.length }}</span></h4>
-            <ToolCallTimeline :tool-calls="store.toolCalls" @open-log="openToolLog" />
-          </section>
+          <MessageTimeline v-else :messages="store.messages" :tool-calls="store.toolCalls" @open-log="openToolLog" />
         </div>
-        <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :running="running" :saving="modelSaving" @sent="messageSent" @stop="cancelTask">
-          <template #models>
+        <div class="workspace-bottom">
+          <section v-if="pendingApprovals.length && hasPermission('development.ai:approvaldecide')" class="approval-dock" data-testid="approval-dock" :aria-label="t('aiDevelopment.approval.required')">
+            <p v-if="pendingApprovals.length > 1" class="approval-dock__count">{{ t('aiDevelopment.pendingApprovalCount', { count: pendingApprovals.length }) }}</p>
+            <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => { if (hasPermission('development.ai:approvaldecide')) store.decideApproval(approval, action, scope, feedback); }" />
+          </section>
+          <AiComposer :conversation-id="store.selectedConversationId" :model="selectedConversation?.model || ''" :profile="selectedProfile" :reasoning="effectiveReasoning" :approval-mode="selectedConversation?.approval_mode || 'request_approval'" :running="running" :saving="modelSaving" @sent="messageSent" @stop="cancelTask" @open-settings="openSettings" />
+        </div>
+      </main>
+
+    </div>
+
+    <el-drawer v-model="settingsOpen" class="settings-drawer" :title="t('aiDevelopment.settings.title')" direction="rtl" size="min(440px, 100vw)" :destroy-on-close="false" @closed="restoreSettingsFocus">
+      <div class="settings-body">
+        <section class="settings-section" aria-labelledby="ai-settings-model">
+          <h3 id="ai-settings-model">{{ t('aiDevelopment.settings.model') }}</h3>
           <form class="model-form" data-testid="model-form" @submit.prevent="saveModel">
             <el-tooltip placement="top" :popper-style="{ maxWidth: 'calc(100vw - 32px)' }">
               <template #content><div id="ai-model-hint" class="model-help">{{ t('aiDevelopment.modelSelection.hint') }} {{ t('aiDevelopment.profiles.selectionHint') }} {{ t('aiDevelopment.modelSelection.taskSnapshot', '仅影响新建任务，运行任务保留快照。') }}
@@ -82,22 +91,22 @@
             <small data-testid="inherited-reasoning">{{ selectedProfile ? (effectiveReasoning || t('aiDevelopment.reasoning.default')) : t('aiDevelopment.reasoning.noProfile') }} · {{ t(selectedConversation?.reasoning_effort == null ? 'aiDevelopment.reasoning.inherit' : 'aiDevelopment.reasoning.override') }}</small>
             <p v-if="modelError !== null" data-testid="model-error" class="model-error" role="alert">{{ t('aiDevelopment.modelSelection.failed') }}{{ modelError ? `: ${modelError}` : '' }}</p>
           </form>
-          </template>
-          <template #approval><ApprovalModeSelector :model-value="selectedConversation?.approval_mode || 'request_approval'" :can-agent-approve="hasCapability('development:ai:approve')" :can-full-access="hasCapability('development:ai:full-access')" @update:model-value="updateApprovalMode" /></template>
-        </AiComposer>
-      </main>
-
-    </div>
-
-    <el-drawer v-model="inspectorOpen" class="task-permissions-drawer" :title="t('aiDevelopment.taskAndPermissions')" direction="rtl" size="min(520px, 100vw)" :destroy-on-close="false">
+        </section>
+        <section class="settings-section" aria-labelledby="ai-settings-approval">
+          <h3 id="ai-settings-approval">{{ t('aiDevelopment.settings.approval') }}</h3>
+          <ApprovalModeSelector :model-value="selectedConversation?.approval_mode || 'request_approval'" :can-agent-approve="hasCapability('development:ai:approve')" :can-full-access="hasCapability('development:ai:full-access')" @update:model-value="updateApprovalMode" />
+        </section>
+      </div>
+    </el-drawer>
+    <el-drawer v-model="inspectorOpen" class="task-permissions-drawer" :title="t('aiDevelopment.taskDetails')" direction="rtl" size="min(520px, 100vw)" :destroy-on-close="false">
       <div class="task-permissions-scroll">
         <el-config-provider size="small">
           <ContextPanel />
           <section class="task-permissions-section" aria-labelledby="ai-risk-heading">
-            <h3 id="ai-risk-heading">{{ t('aiDevelopment.riskAndApproval') }}</h3>
-            <p v-if="!pendingApprovals.length" class="empty-context">{{ t('aiDevelopment.noPendingRisk') }}</p>
+            <h3 id="ai-risk-heading">{{ t('aiDevelopment.toolCalls.title') }}</h3>
+            <p v-if="pendingApprovals.length" class="pending-hint">{{ t('aiDevelopment.pendingApprovalCount', { count: pendingApprovals.length }) }}</p>
             <ToolCallTimeline v-if="store.toolCalls.length" :tool-calls="store.toolCalls" @open-log="openToolLog" />
-            <ApprovalCard v-if="hasPermission('development.ai:approvaldecide')" v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" @decision="(action, scope, feedback) => { if (hasPermission('development.ai:approvaldecide')) store.decideApproval(approval, action, scope, feedback); }" />
+            <p v-else class="empty-context">{{ t('aiDevelopment.noPendingRisk') }}</p>
           </section>
         </el-config-provider>
       </div>
@@ -202,6 +211,20 @@ const isMobile = ref(mobileQuery?.matches ?? false);
 const changeSetOpen = ref(false);
 const inspectorOpen = ref(false);
 const providerOpen = ref(false);
+const settingsOpen = ref(false);
+let settingsReturnFocus: HTMLElement | null = null;
+function openSettings() {
+  const active = document.activeElement;
+  // 鼠标点击时焦点可能停在 body，此时回退到设置摘要按钮。
+  settingsReturnFocus = active instanceof HTMLElement && active !== document.body ? active : null;
+  settingsOpen.value = true;
+}
+// 抽屉关闭后把焦点还给打开它的摘要按钮，键盘用户不会丢失位置。
+function restoreSettingsFocus() {
+  const target = settingsReturnFocus?.isConnected ? settingsReturnFocus : document.querySelector<HTMLElement>('[data-testid="model-menu-trigger"]');
+  target?.focus();
+  settingsReturnFocus = null;
+}
 const logOpen = ref(false);
 const toolLog = ref('');
 const mobileTab = ref('workspace');
@@ -365,15 +388,7 @@ const updateViewport = (event: MediaQueryListEvent | MediaQueryList) => { isMobi
 const ContextPanel = defineComponent({
   name: 'AiContextPanel',
   setup() {
-    const mode = computed({
-      get: () => selectedConversation.value?.approval_mode || 'request_approval',
-      set: (value: AiApprovalMode) => updateApprovalMode(value)
-    });
     return () => h('div', { class: 'context-panel' }, [
-      h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-approval-heading' }, [
-        h('h3', { id: 'ai-approval-heading' }, t('aiComposer.approval')),
-        h(ApprovalModeSelector, { modelValue: mode.value, canAgentApprove: hasCapability('development:ai:approve'), canFullAccess: hasCapability('development:ai:full-access'), 'onUpdate:modelValue': (value: AiApprovalMode) => { mode.value = value; } })
-      ]),
       h('section', { class: 'task-permissions-section', 'aria-labelledby': 'ai-task-heading' }, [
         h('h3', { id: 'ai-task-heading' }, t('aiDevelopment.taskOverview')),
         store.activeTask ? h(ElDescriptions, { column: 1, border: true, size: 'small' }, () => [
@@ -615,9 +630,23 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
 .workspace-scroll { display: flex; flex-direction: column; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .workspace-older { display: flex; justify-content: center; padding: 16px 16px 0; }
 .workspace-alert { flex: none; width: auto; margin: 16px 16px 0; }
-.workspace-tools { display: grid; gap: 10px; margin: -6px 16px 24px 56px; padding: 14px 16px; border: 1px solid var(--el-border-color-lighter); border-radius: 14px; background: var(--el-bg-color); }
-.workspace-tools h4 { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--el-text-color-primary); font-size: 13px; font-weight: 600; }
-.workspace-tools h4 span { padding: 0 7px; border-radius: 10px; background: var(--el-fill-color); color: var(--el-text-color-secondary); font-size: 11px; font-weight: 500; line-height: 18px; }
+.workspace-bottom { display: grid; min-width: 0; border-top: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
+.workspace-bottom :deep(.ai-composer) { border-top: 0; }
+.approval-dock { display: grid; gap: 8px; max-height: 42vh; overflow: auto; padding: 12px 16px 0; }
+.approval-dock__count { margin: 0; color: var(--el-color-warning); font-size: 12px; font-weight: 600; }
+.approval-dock :deep(.approval-card .el-card__header) { padding: 8px 14px; }
+.approval-dock :deep(.approval-card .el-card__body) { gap: 8px; padding: 10px 14px 12px; }
+.approval-dock :deep(.approval-card .el-alert) { padding: 6px 10px; }
+.approval-dock :deep(.approval-card .el-textarea__inner) { min-height: 34px !important; height: 34px; resize: vertical; }
+.approval-dock :deep(.approval-card__actions .el-button) { height: 30px; }
+.pending-hint { margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color)); color: var(--el-color-warning); font-size: 12px; }
+.settings-drawer { max-width: 100vw; }
+.settings-drawer :deep(.el-drawer__header) { margin-bottom: 0; padding: 16px 20px; border-bottom: 1px solid var(--el-border-color-lighter); color: var(--el-text-color-primary); font-weight: 600; }
+.settings-drawer :deep(.el-drawer__body) { padding: 16px 20px; overflow: auto; }
+.settings-body { display: grid; align-content: start; gap: 20px; min-width: 0; overflow-wrap: anywhere; }
+.settings-section { display: grid; gap: 12px; min-width: 0; }
+.settings-section h3 { margin: 0; color: var(--el-text-color-secondary); font-size: 12px; font-weight: 600; letter-spacing: .06em; }
+.settings-section + .settings-section { padding-top: 20px; border-top: 1px solid var(--el-border-color-lighter); }
 
 .workspace-welcome { display: grid; justify-items: center; align-content: center; gap: 14px; flex: 1; padding: 48px 24px; text-align: center; }
 .workspace-welcome__icon { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 18px; background: linear-gradient(135deg, var(--el-color-primary), color-mix(in srgb, var(--el-color-primary) 55%, #13c2c2)); box-shadow: 0 10px 30px color-mix(in srgb, var(--el-color-primary) 30%, transparent); color: #fff; font-size: 28px; }
@@ -672,9 +701,9 @@ onBeforeUnmount(() => { store.closeEvents(); store.selectionGeneration += 1; });
   .ai-conversations-pane { height: 100%; border-right: 0; }
   .ai-workspace-pane { height: 100%; }
   .workspace-actions .task-permissions-badge { display: none; }
-  .workspace-tools { margin-left: 16px; }
 }
 @media (max-width: 680px) {
+  .approval-dock { max-height: 32vh; padding: 8px 12px 0; }
   .workspace-header { min-height: 52px; padding: 8px 12px; }
   .workspace-title__icon { display: none; }
   .workspace-welcome { padding: 32px 16px; }

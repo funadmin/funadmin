@@ -9,13 +9,13 @@ use PHPUnit\Framework\TestCase;
 
 final class CoreMigrationSourceTest extends TestCase
 {
-    public function test_default_source_is_repository_root_not_webman_php_migrations(): void
+    public function test_default_source_is_admin_core_sql_not_webman_php_migrations(): void
     {
         $previous = getenv('CORE_DATABASE_PATH');
         putenv('CORE_DATABASE_PATH');
         try {
             self::assertTrue(method_exists(MigrationService::class, 'coreDirectory'), '缺少权威 SQL 源解析入口');
-            self::assertSame(dirname(base_path()) . '/database/migrations', MigrationService::coreDirectory());
+            self::assertSame(base_path() . '/database/core/migrations', MigrationService::coreDirectory());
             self::assertSame(MigrationService::coreDirectory(), \app\common\service\install\InstallSupport::paths(base_path())['migrations']);
         } finally {
             $previous === false ? putenv('CORE_DATABASE_PATH') : putenv('CORE_DATABASE_PATH=' . $previous);
@@ -26,7 +26,7 @@ final class CoreMigrationSourceTest extends TestCase
     {
         $checksums = (new \app\common\service\database\CoreDatabaseAudit(MigrationService::coreDirectory()))->manifest()['checksums'];
         $files = [];
-        foreach ($checksums as $name => $hash) $files['database/migrations/' . $name] = $hash;
+        foreach ($checksums as $name => $hash) $files['database/core/migrations/' . $name] = $hash;
         $manifest = ['files' => $files, 'coreMigrations' => $checksums];
         $verifier = new \app\admin\system\service\UpgradePackageVerifier();
         self::assertSame($checksums, $verifier->coreMigrationManifest($manifest));
@@ -34,14 +34,14 @@ final class CoreMigrationSourceTest extends TestCase
             $changed = $manifest;
             if ($case === 'declaration') unset($changed['coreMigrations']);
             if ($case === 'baseline') {
-                unset($changed['coreMigrations']['001_baseline.sql'], $changed['files']['database/migrations/001_baseline.sql']);
+                unset($changed['coreMigrations']['001_baseline.sql'], $changed['files']['database/core/migrations/001_baseline.sql']);
             }
             if ($case === 'checksum') $changed['coreMigrations']['001_baseline.sql'] = str_repeat('0', 64);
             if ($case === 'historical') {
                 $changed['coreMigrations']['001_baseline.sql'] = str_repeat('0', 64);
-                $changed['files']['database/migrations/001_baseline.sql'] = str_repeat('0', 64);
+                $changed['files']['database/core/migrations/001_baseline.sql'] = str_repeat('0', 64);
             }
-            if ($case === 'php') $changed['files']['database/migrations/001_core.php'] = str_repeat('a', 64);
+            if ($case === 'php') $changed['files']['database/core/migrations/001_core.php'] = str_repeat('a', 64);
             try {
                 $verifier->coreMigrationManifest($changed);
                 self::fail('升级核心源异常未拒绝：' . $case);
@@ -59,7 +59,7 @@ final class CoreMigrationSourceTest extends TestCase
         $directory = MigrationService::coreDirectory();
         $checksums = (new \app\common\service\database\CoreDatabaseAudit($directory))->manifest()['checksums'];
         $files = [];
-        foreach ($checksums as $name => $hash) $files['database/migrations/' . $name] = $hash;
+        foreach ($checksums as $name => $hash) $files['database/core/migrations/' . $name] = $hash;
         $archive = tempnam(sys_get_temp_dir(), 'core-upgrade-');
         try {
             foreach ([false, true] as $withContract) {
@@ -68,7 +68,7 @@ final class CoreMigrationSourceTest extends TestCase
                 $manifest['signature'] = ['algorithm' => 'ed25519', 'value' => base64_encode(sodium_crypto_sign_detached($signer->canonicalPayload($manifest), sodium_crypto_sign_secretkey($keys)))];
                 $zip = new \ZipArchive();
                 self::assertTrue($zip->open($archive, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
-                foreach ($checksums as $name => $hash) $zip->addFile($directory . '/' . $name, 'database/migrations/' . $name);
+                foreach ($checksums as $name => $hash) $zip->addFile($directory . '/' . $name, 'database/core/migrations/' . $name);
                 $zip->addFromString('upgrade.json', json_encode($manifest, JSON_THROW_ON_ERROR));
                 $zip->close();
                 try {
@@ -78,7 +78,7 @@ final class CoreMigrationSourceTest extends TestCase
                     self::assertSame($directory, $verifier->mountedCoreDirectory($result['manifest']));
                     $future = $result['manifest'];
                     $future['coreMigrations']['999_future.sql'] = str_repeat('b', 64);
-                    $future['files']['database/migrations/999_future.sql'] = str_repeat('b', 64);
+                    $future['files']['database/core/migrations/999_future.sql'] = str_repeat('b', 64);
                     try {
                         $verifier->mountedCoreDirectory($future);
                         self::fail('只读根源未部署新 SQL 时禁止假升级成功');

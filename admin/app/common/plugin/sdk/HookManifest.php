@@ -11,10 +11,10 @@ final class HookManifest
 {
     public static function validate(string $directory, array $data): void
     {
-        foreach (['backendHooks', 'frontendHooks'] as $field) {
+        foreach (['serverHooks', 'clientHooks'] as $field) {
             $seen = [];
             foreach ($data[$field] ?? [] as $hook) {
-                if (!in_array($hook['type'], $field === 'backendHooks' ? ['action', 'filter'] : ['action', 'filter', 'component'], true)) {
+                if (!in_array($hook['type'], $field === 'serverHooks' ? ['action', 'filter'] : ['action', 'filter', 'component'], true)) {
                     throw new RuntimeException('Invalid hook type');
                 }
                 if (array_key_exists('priority', $hook) && !is_int($hook['priority'])) {
@@ -25,38 +25,38 @@ final class HookManifest
                     throw new RuntimeException($field . ' duplicate id: ' . $id);
                 }
                 $seen[$id] = true;
-                if ($field === 'backendHooks') {
+                if ($field === 'serverHooks') {
                     self::file($directory, $hook['file']);
                     continue;
                 }
                 if (!isset($data['adminWeb'])) {
-                    throw new RuntimeException('frontendHooks requires adminWeb');
+                    throw new RuntimeException('clientHooks requires adminWeb');
                 }
                 $web = $data['adminWeb'];
                 if ($hook['type'] === 'component') {
                     if (!isset($hook['component']) || isset($hook['file']) || isset($hook['export']) || !isset($web['components'][$hook['component']])) {
-                        throw new RuntimeException('frontendHooks component must reference adminWeb.components');
+                        throw new RuntimeException('clientHooks component must reference adminWeb.components');
                     }
                 } else {
                     if (!isset($hook['file'], $hook['export']) || isset($hook['component'])) {
-                        throw new RuntimeException('frontendHooks function requires file and export');
+                        throw new RuntimeException('clientHooks function requires file and export');
                     }
                     self::file($directory . '/' . $web['source'], $hook['file']);
                 }
                 $audiences = $hook['audiences'] ?? ['admin'];
                 if ($audiences === [] || array_diff($audiences, ['public', 'member', 'admin']) !== []) {
-                    throw new RuntimeException('Invalid frontendHooks audience');
+                    throw new RuntimeException('Invalid clientHooks audience');
                 }
                 if (count($audiences) !== count(array_unique($audiences))) {
-                    throw new RuntimeException('frontendHooks audiences must be unique');
+                    throw new RuntimeException('clientHooks audiences must be unique');
                 }
                 if (isset($hook['permission'])) {
                     if ($audiences !== ['admin']) {
-                        throw new RuntimeException('frontendHooks permission requires audiences=[admin]');
+                        throw new RuntimeException('clientHooks permission requires audiences=[admin]');
                     }
                     $declared = array_column($web['permissions'] ?? [], 'code');
                     if (!in_array($hook['permission'], [...$declared, 'system:plugin:list'], true)) {
-                        throw new RuntimeException('frontendHooks permission must be declared by plugin');
+                        throw new RuntimeException('clientHooks permission must be declared by plugin');
                     }
                 }
             }

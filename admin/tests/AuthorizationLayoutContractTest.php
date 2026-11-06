@@ -21,18 +21,18 @@ final class AuthorizationLayoutContractTest extends TestCase
 {
     public function test_plugin_permission_middleware_is_owned_by_the_plugin_module(): void
     {
-        $class = 'app\\admin\\plugin\\middleware\\CheckPluginPermission';
+        $class = 'app\\admin\\plugin\\middleware\\CheckPluginPermissionMiddleware';
         self::assertTrue(class_exists($class));
-        self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermission.php'), (new \ReflectionClass($class))->getFileName());
-        self::assertFalse(class_exists('app\\admin\\middleware\\CheckPluginPermission'));
-        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/middleware/CheckPluginPermission.php');
+        self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermissionMiddleware.php'), (new \ReflectionClass($class))->getFileName());
+        self::assertFalse(class_exists('app\\admin\\middleware\\CheckPluginPermissionMiddleware'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/middleware/CheckPluginPermissionMiddleware.php');
         foreach ([
             ...glob(__DIR__ . '/../app/admin/plugins/market/controller/*.php'),
             __DIR__ . '/../app/common/plugin/sdk/PluginRoute.php',
         ] as $file) {
             $source = file_get_contents($file);
             self::assertStringContainsString('use ' . $class . ';', $source);
-            self::assertStringNotContainsString('use app\\admin\\middleware\\CheckPluginPermission;', $source);
+            self::assertStringNotContainsString('use app\\admin\\middleware\\CheckPluginPermissionMiddleware;', $source);
         }
     }
 

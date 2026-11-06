@@ -9,7 +9,7 @@ use RuntimeException;
 /** 将数据库生命周期记录与已验证 Manifest v2 快照编译为可信激活清单。 */
 final class PluginActivationCompiler
 {
-    public const SCHEMA_VERSION = 1;
+    public const SCHEMA_VERSION = 2;
 
     public function __construct(
         private readonly string $runtimePath,
@@ -110,16 +110,16 @@ final class PluginActivationCompiler
                     'admin' => is_dir($base . DIRECTORY_SEPARATOR . 'admin'),
                 ],
             ];
-            if (!empty($manifest['backendHooks'])) {
-                $plugins[$code]['backendHooks'] = $manifest['backendHooks'];
+            if (!empty($manifest['serverHooks'])) {
+                $plugins[$code]['serverHooks'] = $manifest['serverHooks'];
                 $files = [];
-                foreach ($manifest['backendHooks'] as $hook) {
+                foreach ($manifest['serverHooks'] as $hook) {
                     $relative = $hook['file'];
                     $file = \app\common\plugin\hook\HookRuntime::ownedFile($this->pluginsPath, $code, $relative);
                     $files[$relative] = hash_file('sha256', $file);
                 }
                 ksort($files, SORT_STRING);
-                $plugins[$code]['backendHookFiles'] = $files;
+                $plugins[$code]['serverHookFiles'] = $files;
             }
         }
         return $plugins;

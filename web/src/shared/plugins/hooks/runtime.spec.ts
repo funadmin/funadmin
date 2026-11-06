@@ -13,7 +13,7 @@ it('uses the same ASCII id order as PHP independent of browser locale', async ()
     expect(await runtime.filter('test', '')).toBe('Aa');
 });
 
-const mod = (code: string, frontendHooks: HookModule['frontendHooks']): HookModule => ({ code, version: '1', components: {}, frontendHooks });
+const mod = (code: string, clientHooks: HookModule['clientHooks']): HookModule => ({ code, version: '1', components: {}, clientHooks });
 const hook = (id: string, type: 'filter' | 'action' = 'filter', point = 'test') => ({ id, type, point, file: 'hooks.ts', export: id });
 describe('shared hook runtime', () => {
     it('orders cross-plugin filters and preserves false/null', async () => {
@@ -66,7 +66,7 @@ describe('shared hook runtime', () => {
         expect(cleanup).toHaveBeenCalledTimes(2);
         r.sync([m], 'x');
         await r.action('test');
-        r.sync([{ ...m, frontendHooks: [] }], 'x');
+        r.sync([{ ...m, clientHooks: [] }], 'x');
         expect(ctx.signal.aborted).toBe(true);
     });
 });
@@ -75,7 +75,7 @@ it('isolates invalid plugins and snapshots caller-owned descriptors', async () =
     });
     const good = mod('a', [hook('x')]);
     r.sync([good, mod('BAD', [hook('x')]), mod('b', [{ ...hook('x'), priority: NaN }])], 'x');
-    good.frontendHooks[0].point = 'mutated';
+    good.clientHooks[0].point = 'mutated';
     expect(await r.filter('test', 0)).toBe(42);
 });
 it('contains reporter failures during actions and cleanup', async () => {

@@ -183,6 +183,10 @@ trait PluginServiceSupport
 
     private function rollbackAppPublication(string $code): void
     {
+        // Precondition rejection occurs before publication; do not acquire a global lock for a no-op.
+        if (!isset($this->appPublicationTokens[$code])) {
+            return;
+        }
         $this->infrastructure()->rollbackPublishedResources(
             $code,
             $this->appPublicationTokens[$code] ?? null
@@ -252,6 +256,15 @@ trait PluginServiceSupport
                 ? $storedManifest
                 : json_decode(is_string($storedManifest) ? $storedManifest : '', true);
             if (is_array($manifest) && ($manifest['schema_version'] ?? null) === 2 && ($manifest['code'] ?? null) === $code) {
+                if (self::hasRetiredHookFields($manifest)) {
+                    // backendHooks/frontendHooks 已更名为 serverHooks/clientHooks，不做兼容：
+                    // 旧清单不进入激活快照，并要求用新版 plugin.json 重新安装，避免钩子被静默丢弃。
+                    if ((int) ($record->needs_reinstall ?? 0) !== 1) {
+                        Plugin::withTrashed()->where('code', $code)->update(['needs_reinstall' => 1]);
+                    }
+                    $records[$code]['needs_reinstall'] = 1;
+                    continue;
+                }
                 $manifests[$code] = $manifest;
             }
         }
@@ -259,6 +272,11 @@ trait PluginServiceSupport
             $this->projectRoot === null ? runtime_path('plugins/activation') : $this->projectRoot . '/runtime/plugins/activation',
             ($this->projectRoot ?? base_path()) . '/plugins'
         ))->compile($records, $manifests);
+    }
+
+    private static function hasRetiredHookFields(array $manifest): bool
+    {
+        return array_key_exists('backendHooks', $manifest) || array_key_exists('frontendHooks', $manifest);
     }
 
     private function infrastructure(): PluginInfrastructureService

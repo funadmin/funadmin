@@ -62,7 +62,7 @@ return [
 PHP);
         (new PluginActivationCompiler($this->root . '/activation', $this->root . '/plugins'))->compile(
             ['uploadhooks' => ['code' => 'uploadhooks', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1]],
-            ['uploadhooks' => ['backendHooks' => [
+            ['uploadhooks' => ['serverHooks' => [
                 ['id' => 'completed', 'point' => 'upload.completed', 'type' => 'action', 'file' => 'hooks/upload.php', 'handler' => 'completed'],
                 ['id' => 'result', 'point' => 'upload.result', 'type' => 'filter', 'file' => 'hooks/upload.php', 'handler' => 'result'],
             ]]]
@@ -147,6 +147,7 @@ PHP);
 
         self::assertSame(200, $response->getStatusCode(), $response->rawBody());
         self::assertSame('http.txt', $data['name']);
+        self::assertSame((string) Attach::first()->id, $data['id']);
         self::assertSame(['uploadhooks' => ['label' => 'processed']], $data['extensions']);
         self::assertStringStartsWith('/storage/', $data['url']);
         self::assertCount(1, $GLOBALS['upload_hook_events']);
@@ -164,15 +165,35 @@ PHP);
         }
     }
 
-    private function uploadResponse(): \support\Response
+
+    public function test_cms_upload_uses_the_same_storage_hooks_and_can_be_saved_as_a_content_attachment(): void
+    {
+        require_once __DIR__.'/Cms/bootstrap.php';
+        \app\cms\service\Schema::install();\app\cms\service\SiteRoleSchema::install();\app\cms\service\ModelService::seed();
+        $site=(new \app\cms\service\SiteService())->save(['code'=>'upload','name'=>'Upload','host'=>'uploads.test'],'1');
+        $response=$this->uploadResponse($site['id']);$result=json_decode($response->rawBody(),true);
+        self::assertSame(200,$result['code'],$response->rawBody());$file=$result['data'];
+        self::assertSame((string)Attach::first()->id,$file['id']);self::assertFileExists(public_path('storage/'.Attach::first()->storage_key));
+        self::assertSame(['uploadhooks'=>['label'=>'processed']],$file['extensions']);self::assertCount(1,$GLOBALS['upload_hook_events']);
+        $content=(new \app\cms\service\ContentService())->save($site['id'],'zh-cn',[
+            'model_id'=>(string)Db::table('cms_content_model')->where('code','download')->value('id'),
+            'title'=>'Download','desired_path'=>'/download-test','template'=>'download',
+            'body_html'=>'<h2>Manual</h2><p><strong>Download</strong></p>','data'=>['file'=>$file['id']],
+        ],'1');
+        self::assertSame($file['id'],$content['revision']['data']['file']);
+        self::assertSame('<h2>Manual</h2><p><strong>Download</strong></p>',$content['revision']['body_html']);
+    }
+
+    private function uploadResponse(?string $siteId = null): \support\Response
     {
         new App(Request::class, new NullLogger(), app_path(), public_path());
         $boundary = 'hook-upload-boundary';
         $body = "--$boundary\r\nContent-Disposition: form-data; name=\"groupId\"\r\n\r\n1\r\n--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"http.txt\"\r\nContent-Type: text/plain\r\n\r\nhook HTTP upload\r\n--$boundary--\r\n";
+        if ($siteId !== null) $body = "--$boundary\r\nContent-Disposition: form-data; name=\"site_id\"\r\n\r\n$siteId\r\n" . $body;
         $request = new Request("POST /admin/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=$boundary\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
-        $request->context['admin'] = ['id' => 7];
+        $request->context['admin'] = ['id' => $siteId === null ? 7 : 1];
         Context::set(\Webman\Http\Request::class, $request);
-        return (new AdminUpload())->upload();
+        return $siteId === null ? (new AdminUpload())->upload() : (new \app\admin\plugins\cms\controller\Content())->upload();
     }
 
     private function request(): Request
