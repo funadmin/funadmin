@@ -166,10 +166,10 @@ final class MySqlCoreMigrationTest extends TestCase
             $difference = \app\common\service\database\CoreDatabaseAudit::compare($snapshot, $rebuilt);
             self::assertTrue($difference['aligned'], json_encode($difference, JSON_UNESCAPED_UNICODE));
             self::assertSame(0, $target->table('admin')->count(), '结构计划禁止偷偷复制管理员种子');
-            $target->statement('ALTER TABLE `rebuild_application_assignment` ALTER CHECK `ck_application_assignment_subject` NOT ENFORCED');
+            $target->statement('ALTER TABLE `rebuild_admin` ADD CONSTRAINT `ck_admin_fixture` CHECK (`status` >= 0)');
             $checkDrift = \app\common\service\database\CoreSchemaPlan::build($snapshot, $audit->inspect($target));
             self::assertSame(['CHECKS_REQUIRES_REVIEW'], array_column($checkDrift['blockers'], 'code'));
-            $target->statement('ALTER TABLE `rebuild_application_assignment` ALTER CHECK `ck_application_assignment_subject` ENFORCED');
+            $target->statement('ALTER TABLE `rebuild_admin` DROP CHECK `ck_admin_fixture`');
             self::assertTrue(\app\common\service\database\CoreDatabaseAudit::compare($snapshot, $audit->inspect($target))['aligned']);
             self::assertSame(0, $target->table('system_migration')->count(), '结构接管禁止伪造历史执行');
             $target->table('admin')->insert(['id' => 7, 'username' => 'preserved_account', 'password' => 'fixture-credential-do-not-replace', 'status' => 1]);
@@ -424,9 +424,8 @@ final class MySqlCoreMigrationTest extends TestCase
             $target->statement('ALTER TABLE `rebuild_admin_auth_tokens` DROP INDEX `idx_admin_auth_tokens_admin`');
             $target->statement('DROP TABLE `rebuild_core_database_adoption`');
             $target->statement('DROP TABLE `rebuild_login_attempts`');
-            $target->statement('ALTER TABLE `rebuild_oauth_token_scope` DROP FOREIGN KEY `fk_oauth_token_scope_token`');
-            $target->statement('ALTER TABLE `rebuild_oauth_token` DROP FOREIGN KEY `fk_oauth_token_parent`');
-            $target->statement('DROP TABLE `rebuild_oauth_token`');
+            $target->statement('ALTER TABLE `rebuild_member_tag_relation` DROP FOREIGN KEY `fk_member_tag_relation_tag`');
+            $target->statement('DROP TABLE `rebuild_member_tag`');
             $adoptionSnapshot = $audit->inspect($target);
             $adoptionPlan = \app\common\service\database\CoreAdoptionPlan::build($adoptionReference, $adoptionSnapshot, $menuAfter);
             self::assertSame('adopt', $adoptionPlan['mode']);

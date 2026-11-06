@@ -172,14 +172,22 @@ final class CoreMenuPlan
             parse_str((string) ($row['query'] ?? ''), $meta);
             $binding = $catalog[$meta['name'] ?? ''] ?? null;
             if ($binding === null || ($row['source_name'] ?? '') !== $binding['source'] || ($meta['component'] ?? '') !== $binding['component']) continue;
-            $matches = array_values(array_filter($seeds['permission'] ?? [], static fn (array $permission): bool =>
-                ($permission['app_name'] ?? '') === 'admin' && ($permission['code'] ?? '') === $binding['permission']['code']
-                && ($permission['resource_type'] ?? '') === 'route' && (int) ($permission['status'] ?? 1) === 1 && ($permission['deleted_at'] ?? null) === null
-                && ($permission['obj'] ?? '') === $binding['permission']['obj'] && ($permission['act'] ?? '') === $binding['permission']['act']));
+            // 与 diagnose() 一致：优先按方法推导码，其次旧推导码（基线升级前的绑定）。
+            $derivedCode = \app\admin\authorization\service\PermissionCode::derive($binding['class'], $binding['action']);
+            $accepted = $derivedCode !== null ? [['code' => $derivedCode] + \app\admin\authorization\service\PermissionCode::resource($derivedCode)] : [];
+            $accepted[] = $binding['permission'];
+            $matches = [];
+            foreach ($accepted as $expected) {
+                $matches = array_values(array_filter($seeds['permission'] ?? [], static fn (array $permission): bool =>
+                    ($permission['app_name'] ?? '') === 'admin' && ($permission['code'] ?? '') === $expected['code']
+                    && ($permission['resource_type'] ?? '') === 'route' && (int) ($permission['status'] ?? 1) === 1 && ($permission['deleted_at'] ?? null) === null
+                    && ($permission['obj'] ?? '') === $expected['obj'] && ($permission['act'] ?? '') === $expected['act']));
+                if ($matches !== []) break;
+            }
             if (count($matches) !== 1) throw new RuntimeException('核心菜单原生权限资源缺失或重复：' . $meta['name']);
             $row['href'] = $binding['path'];
             $row['permission_id'] = (int) $matches[0]['id'];
-            $meta['permission'] = $binding['permission']['code'];
+            $meta['permission'] = (string) $matches[0]['code'];
             $meta['type'] = 'C';
             $row['query'] = http_build_query($meta);
             $seeds['admin_menu'][$index] = $row;

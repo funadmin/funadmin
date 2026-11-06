@@ -192,7 +192,8 @@ const year = new Date().getFullYear();
 const formRef = ref<FormInstance>();
 const captchaRef = ref<InstanceType<typeof Captcha>>();
 const loading = ref(false);
-const captchaEnabled = ref(true);
+// 后端明确返回 captchaEnabled 后才显示验证码；请求失败时也不显示不存在的验证码地址。
+const captchaEnabled = ref(false);
 // 演示账号只存在于 Mock 数据；真实环境密码由安装向导设置（须含字母和数字），不可预填或提示。
 const mockMode = isMockModeEnabled();
 
@@ -210,7 +211,7 @@ const rules = computed<FormRules>(() => ({
 }));
 
 onMounted(async () => {
-  try { captchaEnabled.value = (await authApi.csrf()).captchaEnabled; } catch { captchaEnabled.value = true; }
+  try { captchaEnabled.value = (await authApi.csrf()).captchaEnabled; } catch { captchaEnabled.value = false; }
 });
 
 async function onSubmit() {

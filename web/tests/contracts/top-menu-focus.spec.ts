@@ -62,14 +62,14 @@ describe('布局主题背景契约', () => {
   });
 
   it('内容区和侧栏背景保持原有主题职责', () => {
-    expect(readVariable(root, '--app-content-bg')).toBe('#f5f7fa');
+    expect(readVariable(root, '--app-content-bg')).toBe('#fafbfc');
     expect(readVariable(root, '--app-sidebar-bg')).toBe('#ffffff');
   });
 
   it('dark 模式的顶部导航、页签栏和内容区保持深色', () => {
     const dark = readBlock('html.dark');
-    expect(readVariable(dark, '--app-header-bg')).toBe('#161b22');
-    expect(readVariable(dark, '--app-tabs-bg')).toBe('#161b22');
-    expect(readVariable(dark, '--app-content-bg')).toBe('#0d1117');
+    expect(readVariable(dark, '--app-header-bg')).toBe('#161618');
+    expect(readVariable(dark, '--app-tabs-bg')).toBe('#161618');
+    expect(readVariable(dark, '--app-content-bg')).toBe('#070707');
   });
 });
