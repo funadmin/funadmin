@@ -2,7 +2,7 @@
   <el-drawer class="provider-drawer" :model-value="modelValue" :title="t('aiDevelopment.profiles.title')" size="min(1120px, 100vw)" @update:model-value="$emit('update:modelValue', $event)">
     <div class="provider-layout">
       <aside class="profile-sidebar">
-        <el-button type="primary" class="profile-sidebar__create" v-if="hasPermission(['development:ai:configure', 'ai.profiles:create'], 'all')" data-testid="profile-create" :disabled="busy" @click="select()"><i class="i-ep-plus" />{{ t('aiDevelopment.profiles.create') }}</el-button>
+        <el-button type="primary" class="profile-sidebar__create" v-if="hasPermission(['development:ai:configure', 'ai:profiles:create'], 'all')" data-testid="profile-create" :disabled="busy" @click="select()"><i class="i-ep-plus" />{{ t('aiDevelopment.profiles.create') }}</el-button>
         <div class="profile-list">
           <button v-if="selectedId === null" type="button" class="profile-item active is-draft" aria-current="true">
             <span class="profile-item__top"><strong>{{ form.name || t('aiDevelopment.profiles.newProfile', '新建档案') }}</strong><el-tag size="small" type="warning" effect="light" round>{{ t('aiDevelopment.profiles.unsaved') }}</el-tag></span>
@@ -32,9 +32,9 @@
           <small>{{ form.provider || '—' }} · {{ form.model || '—' }}</small>
         </div>
         <div class="profile-actions">
-          <el-tooltip :content="t('aiDevelopment.profiles.copyHint')"><el-button :disabled="!selectedId" v-if="hasPermission(['development:ai:configure', 'ai.profiles:copy'], 'all')" @click="$emit('copy', selectedId!)"><i class="i-ep-copy-document" />{{ t('aiDevelopment.profiles.copy') }}</el-button></el-tooltip>
-          <el-button :disabled="!selectedId || currentProfile?.is_default" v-if="hasPermission(['development:ai:configure', 'ai.profiles:defaultset'], 'all')" @click="$emit('default', selectedId!)"><i class="i-ep-star" />{{ t('aiDevelopment.profiles.default') }}</el-button>
-          <el-button :disabled="!selectedId" type="danger" plain v-if="hasPermission(['development:ai:configure', 'ai.profiles:delete'], 'all')" @click="$emit('remove', selectedId!)"><i class="i-ep-delete" />{{ t('aiDevelopment.management.delete') }}</el-button>
+          <el-tooltip :content="t('aiDevelopment.profiles.copyHint')"><el-button :disabled="!selectedId" v-if="hasPermission(['development:ai:configure', 'ai:profiles:copy'], 'all')" @click="$emit('copy', selectedId!)"><i class="i-ep-copy-document" />{{ t('aiDevelopment.profiles.copy') }}</el-button></el-tooltip>
+          <el-button :disabled="!selectedId || currentProfile?.is_default" v-if="hasPermission(['development:ai:configure', 'ai:profiles:default-set'], 'all')" @click="$emit('default', selectedId!)"><i class="i-ep-star" />{{ t('aiDevelopment.profiles.default') }}</el-button>
+          <el-button :disabled="!selectedId" type="danger" plain v-if="hasPermission(['development:ai:configure', 'ai:profiles:delete'], 'all')" @click="$emit('remove', selectedId!)"><i class="i-ep-delete" />{{ t('aiDevelopment.management.delete') }}</el-button>
         </div>
       </div>
       <div class="profile-content" data-testid="profile-content">
@@ -62,7 +62,7 @@
           <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.defaultModel', '默认 Model')">
             <div class="model-control">
               <el-select v-model="form.model" data-testid="profile-model" filterable allow-create default-first-option :aria-label="t('aiDevelopment.fields.model')"><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select>
-              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" v-if="hasPermission(['development:ai:configure', 'ai.profiles:models'], 'all')" @click="$emit('models', selectedId!)">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
+              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" v-if="hasPermission(['development:ai:configure', 'ai:profiles:models'], 'all')" @click="$emit('models', selectedId!)">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
             </div>
           </el-form-item>
           <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
@@ -118,8 +118,8 @@
       <footer class="profile-footer" data-testid="profile-footer">
         <div class="profile-feedback"><p v-if="error || validationError" role="alert">{{ error || validationError }}</p><p v-if="notice" role="status">{{ notice }}</p></div>
         <div class="profile-actions">
-          <el-tooltip :content="t('aiDevelopment.profiles.testHint')"><el-button v-if="hasPermission('development.ai:settingstest')" data-testid="profile-test" :disabled="busy" @click="test"><i class="i-ep-connection" />{{ t('aiDevelopment.providerSettings.testConnection') }}</el-button></el-tooltip>
-          <el-button v-if="hasPermission('development:ai:configure') && hasPermission(selectedId === null ? 'ai.profiles:create' : 'ai.profiles:update')" data-testid="profile-save" type="primary" native-type="submit" :loading="busy">{{ t('aiDevelopment.profiles.save') }}</el-button>
+          <el-tooltip :content="t('aiDevelopment.profiles.testHint')"><el-button v-if="hasPermission('ai:ai:settings-test')" data-testid="profile-test" :disabled="busy" @click="test"><i class="i-ep-connection" />{{ t('aiDevelopment.providerSettings.testConnection') }}</el-button></el-tooltip>
+          <el-button v-if="hasPermission('development:ai:configure') && hasPermission(selectedId === null ? 'ai:profiles:create' : 'ai:profiles:update')" data-testid="profile-save" type="primary" native-type="submit" :loading="busy">{{ t('aiDevelopment.profiles.save') }}</el-button>
         </div>
       </footer>
     </el-form>
@@ -226,7 +226,7 @@ watch(() => props.modelValue, (visible) => {
   select(props.profiles.find((p) => p.id === selectedId.value) ?? props.profiles.find((p) => p.is_default) ?? sortedProfiles.value[0]);
 });
 function submit() {
-  if (!hasPermission('development:ai:configure') || !hasPermission(selectedId.value === null ? 'ai.profiles:create' : 'ai.profiles:update')) return;
+  if (!hasPermission('development:ai:configure') || !hasPermission(selectedId.value === null ? 'ai:profiles:create' : 'ai:profiles:update')) return;
   if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = t('aiDevelopment.profiles.targetChangedNeedKey', '连接目标已变更，请提供新密钥或明确清空旧密钥。'); return; }
   if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.reasoningProtocolUnsupported', 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'); return; }
   if (form.protocol === 'anthropic-messages' && !form.max_output_tokens) { validationError.value = t('aiDevelopment.profiles.messagesOutputRequired', 'Messages 必须设置输出 Token 预算。'); return; }

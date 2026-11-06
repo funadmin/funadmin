@@ -27,7 +27,7 @@ final class PermissionGrantMigration
             return;
         }
         $newCodes = array_unique(array_merge(...array_values($expansion)));
-        $rows = Permission::whereIn('code', array_merge(array_keys($expansion), $newCodes))->get(['code', 'obj', 'act'])->keyBy('code');
+        $rows = Permission::whereIn('code', array_merge(array_keys($expansion), $newCodes))->get(['code', 'obj', 'act', 'status'])->keyBy('code');
 
         Db::transaction(function () use ($expansion, $newCodes, $rows, $keep): void {
             foreach ($expansion as $old => $targets) {
@@ -42,6 +42,18 @@ final class PermissionGrantMigration
                         $this->grant((string) $grant->v0, (string) $grant->v1, PermissionCode::resource($target));
                     }
                 }
+            }
+            // 停用状态随之迁移：一个新码的全部来源旧码都已停用时（单独停用或插件被禁用），新码同样停用；
+            // 插件启用时会重新启用其全部权限，与升级前一致。
+            // 只看仍有授权的旧码：已被迁移退役（授权已撤销）的旧码不代表停用意图，保证两条迁移轨道先后执行都不受影响。
+            $sources = [];
+            foreach ($expansion as $old => $targets) {
+                $row = $rows[$old] ?? null;
+                if ($row === null || !Db::table('casbin_rule')->where('ptype', 'p')->where('v2', $row->obj)->where('v3', $row->act)->exists()) continue;
+                foreach ($targets as $target) $sources[$target][] = (int) $row->status;
+            }
+            foreach ($sources as $target => $statuses) {
+                if (max($statuses) === 0) Permission::where('code', $target)->update(['status' => 0]);
             }
             $retired = array_values(array_diff(array_keys($expansion), $newCodes, $keep));
             foreach ($retired as $old) {
@@ -78,14 +90,21 @@ final class PermissionGrantMigration
                     continue;
                 }
                 foreach (Db::table('admin_menu')->where('permission_id', $oldId)->get(['id', 'query']) as $menu) {
-                    parse_str((string) $menu->query, $parameters);
-                    if (isset($parameters['permission'])) {
-                        $parameters['permission'] = $new;
-                    }
-                    Db::table('admin_menu')->where('id', $menu->id)->update(['permission_id' => $newId, 'query' => http_build_query($parameters)]);
+                    Db::table('admin_menu')->where('id', $menu->id)->update(['permission_id' => $newId, 'query' => self::renameQueryPermission((string) $menu->query, $old, $new)]);
                 }
             }
         });
+    }
+
+    /**
+     * 只替换 query 中 permission 参数的值，其余参数原样保留；值按原写法（编码或未编码）写回，与 SQL 迁移一致。
+     */
+    public static function renameQueryPermission(string $query, string $old, string $new): string
+    {
+        foreach ([[rawurlencode($old), rawurlencode($new)], [$old, $new]] as [$from, $to]) {
+            $query = (string) preg_replace('/(^|&)permission=' . preg_quote($from, '/') . '(?=&|$)/', '$1permission=' . $to, $query);
+        }
+        return $query;
     }
 
     /** @param array{obj: string, act: string} $resource */

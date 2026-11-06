@@ -30,7 +30,7 @@ final class BusinessTargetService
         ?callable $owners = null,
         ?callable $tableExists = null
     ) {
-        $this->authorized = Closure::fromCallable($authorized ?? static fn (): bool => (new AdminAuthorizationService())->nodeAccess('admin/development.devplugin/options'));
+        $this->authorized = Closure::fromCallable($authorized ?? static fn (): bool => (new AdminAuthorizationService())->can('plugin:dev-plugin:options'));
         $this->states = Closure::fromCallable($states ?? static function (): array {
             $result = [];
             foreach (Plugin::whereNull('deleted_at')->get() as $record) $result[(string) $record->code] = $record->toArray();

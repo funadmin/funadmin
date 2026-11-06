@@ -18,14 +18,11 @@ final class CoreSeedPlan
         'department' => ['pid', 'name'], 'attach_group' => ['pid', 'name'],
         'member_group' => ['name'], 'member_level' => ['name'],
         'permission' => [], 'admin_menu' => [],
-        'identity_tenant' => ['code'],
         'provinces' => ['pid', 'name', 'areacode'], 'region' => ['pid', 'name', 'area_code'],
-        'scope' => ['tenant_id', 'name'],
     ];
 
     private const REFERENCES = [
         'dict_item' => ['type_id' => 'dict_type'],
-        'scope' => ['tenant_id' => 'identity_tenant'],
         'provinces' => ['pid' => 'provinces'], 'region' => ['pid' => 'region'],
         'department' => ['pid' => 'department'], 'attach_group' => ['pid' => 'attach_group'],
         'permission' => ['pid' => 'permission'],
@@ -132,14 +129,6 @@ final class CoreSeedPlan
                         }
                         $plan['id_map'][$table][$id] = (int) $matches[0]['id'];
                         continue;
-                    }
-                    if ($table === 'identity_tenant') {
-                        foreach ($actual[$table] ?? [] as $existing) {
-                            if (($existing['public_id'] ?? null) === ($values['public_id'] ?? null) && ($existing['code'] ?? '') !== ($values['code'] ?? '')) {
-                                $plan['blockers'][] = ['code' => 'TENANT_PUBLIC_ID_CONFLICT', 'table' => $table, 'id' => $id, 'target_id' => $existing['id']];
-                                continue 2;
-                            }
-                        }
                     }
                     if ($table === 'permission') $values['is_public'] = 0;
                     $mapped = ['table' => $table, 'reference_id' => $id];

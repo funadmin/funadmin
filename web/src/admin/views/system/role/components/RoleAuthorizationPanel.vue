@@ -6,7 +6,7 @@
         <el-select v-model="copySourceRoleId" :placeholder="t('systemRole.copySourcePlaceholder', '选择授权来源角色')" filterable clearable>
           <el-option v-for="role in flatRoles" :key="role.id" :label="role.name" :value="role.id" />
         </el-select>
-        <el-button :disabled="!copySourceRoleId" :loading="copying" v-perm="'system:role:perm-copy'" @click="copyAuthorization">{{ t('systemRole.copyAuth', '复制授权') }}</el-button>
+        <el-button :disabled="!copySourceRoleId" :loading="copying" v-perm="'authorization:role:copy-authorization'" @click="copyAuthorization">{{ t('systemRole.copyAuth', '复制授权') }}</el-button>
       </div>
     </div>
 
@@ -53,7 +53,7 @@
         </el-radio-group>
         <el-tree v-if="authorization.dataScope === 'custom'" ref="departmentTreeRef" :data="authorization.departmentTree" node-key="id" :props="{ label: 'name', children: 'children' }" show-checkbox default-expand-all check-strictly @check="syncDepartmentIds" />
     </div>
-    <div class="role-authorization-panel__footer"><el-button type="primary" :loading="saving" v-perm="'system:role:perm'" @click="save">{{ t('systemRole.saveAll', '保存整套授权') }}</el-button></div>
+    <div class="role-authorization-panel__footer"><el-button type="primary" :loading="saving" v-perm="'authorization:role:save-authorization'" @click="save">{{ t('systemRole.saveAll', '保存整套授权') }}</el-button></div>
   </div>
 </template>
 
@@ -94,7 +94,7 @@ function setFieldEdit(field: FieldPermission, checked: unknown) { Object.assign(
 function inheritanceText(sources: AuthorizationSource[]) { return sources.length ? t('systemRole.inheritedFrom', { names: sources.map((source) => source.roleName).join('、') }, '继承自：{names}') : ''; }
 function syncDepartmentIds(_data: AuthorizationTreeNode, checked: { checkedKeys: Array<number | string> }) { props.authorization.departmentIds = checked.checkedKeys.map(Number); }
 async function save() {
-  if (!hasPermission("system:role:perm")) return;
+  if (!hasPermission(["authorization:role:permissions", "authorization:role:authorization", "authorization:role:save-authorization"])) return;
   if (!props.roleId) return; saving.value = true;
   try {
     const permissionIds = permissionGroups.value.flatMap((group) => group.resources).flatMap((resource) => resource.actions).filter((action) => action.direct).map((action) => action.id);
@@ -104,10 +104,10 @@ async function save() {
   } finally { saving.value = false; }
 }
 async function copyAuthorization() {
-  if (!hasPermission("system:role:perm-copy")) return;
+  if (!hasPermission("authorization:role:copy-authorization")) return;
   if (!props.roleId || !copySourceRoleId.value) return;
   await ElMessageBox.confirm(t('systemRole.copyConfirm', '确认复制所选角色的整套授权吗？'), t('systemRole.copyAuth', '复制授权'), { type: 'warning' }); copying.value = true;
-  try {  if (!hasPermission("system:role:perm-copy")) return; await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); emit('reload'); } finally { copying.value = false; }
+  try {  if (!hasPermission("authorization:role:copy-authorization")) return; await roleApi.copyAuthorization(props.roleId, copySourceRoleId.value); emit('reload'); } finally { copying.value = false; }
 }
 </script>
 

@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   authorization: vi.fn(),
   saveAuthorization: vi.fn(),
   copyAuthorization: vi.fn(),
-  permissions: ['system:role:perm', 'system:role:perm-copy', 'system:dept:list']
+  permissions: ['authorization:role:permissions', 'authorization:role:authorization', 'authorization:role:save-authorization', 'authorization:role:copy-authorization', 'authorization:department:tree', 'authorization:department:detail']
 }));
 
 vi.mock('@/api/system/role', async (importOriginal) => {
@@ -210,7 +210,7 @@ function authorizationWithResource(roleId: number, name: string): RoleAuthorizat
 describe('角色授权工作区 mount 行为', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.permissions.splice(0, mocks.permissions.length, 'system:role:perm', 'system:role:perm-copy', 'system:dept:list');
+    mocks.permissions.splice(0, mocks.permissions.length, 'authorization:role:permissions', 'authorization:role:authorization', 'authorization:role:save-authorization', 'authorization:role:copy-authorization', 'authorization:department:tree', 'authorization:department:detail');
     mocks.all.mockResolvedValue([role]);
     mocks.authorization.mockImplementation(async () => createAuthorization());
     mocks.saveAuthorization.mockResolvedValue(undefined);
@@ -328,7 +328,7 @@ describe('角色授权工作区 mount 行为', () => {
   });
 
   it('无授权管理权限时不展示继承页签且不请求授权详情', async () => {
-    mocks.permissions.splice(0, mocks.permissions.length, 'system:role:list');
+    mocks.permissions.splice(0, mocks.permissions.length, 'authorization:role:index', 'authorization:role:detail');
     const wrapper = await mountWorkspace();
 
     expect(wrapper.find('[data-tab="permissions"]').exists()).toBe(false);

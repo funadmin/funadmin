@@ -243,7 +243,7 @@ final class Profiles extends AdminController
         try {
             $adminId = $this->authorize(
                 (int) (request()?->context['admin']['id'] ?? 0),
-                (new AdminAuthorizationService($this->request))->nodeAccess('development/ai/configure')
+                (new AdminAuthorizationService($this->request))->can('development:ai:configure')
             );
             $service = new AiConfigurationProfileService(new DatabaseAiProfileRepository(), new AiProfileSecret((string) config('oauth.encryption_key', '')));
             $response = $this->ok(data: $operation($service, $adminId));

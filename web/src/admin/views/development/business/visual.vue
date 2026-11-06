@@ -121,11 +121,12 @@ const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
 // 合并的 save/inspect 别名不能推导后台独立动作授权。
-const hasAction = (action: string) => hasPermission(`development.business:${action}`);
-const canInspect = computed(() => hasAction('inspectdatabase'));
-const canListTables = computed(() => hasAction('databasetables'));
-const canCreate = computed(() => hasAction('createvisual'));
-const canCreateFromDatabase = computed(() => hasAction('createfromdatabase'));
+// 每个按钮对应一个后台方法：development:business:{方法}。
+const hasAction = (action: string) => hasPermission(`development:business:${action}`);
+const canInspect = computed(() => hasAction('inspect-database'));
+const canListTables = computed(() => hasAction('database-tables'));
+const canCreate = computed(() => hasAction('create-visual'));
+const canCreateFromDatabase = computed(() => hasAction('create-from-database'));
 const canLoadTargets = computed(() => hasAction('modules') && (canCreate.value || canCreateFromDatabase.value));
 const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget(() => canLoadTargets.value);
 const submitting = ref(false);

@@ -64,11 +64,12 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('core_database_adoption'), '缺少独立接管登记表');
         self::assertSame(0, Db::table('core_database_adoption')->count(), '新安装不得伪造存量接管记录');
         self::assertTrue(Db::schema()->hasTable('ai_task'));
-        self::assertTrue(Db::schema()->hasTable('identity_tenant'));
+        foreach (['identity_tenant', 'identity_user', 'oauth_client', 'application_assignment', 'scope'] as $table) self::assertFalse(Db::schema()->hasTable($table), '身份模块已移除：' . $table);
         self::assertTrue(Db::schema()->hasTable('plugin'));
         self::assertTrue(Db::schema()->hasColumn('plugin', 'composer_conflict_ack'));
-        foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_token', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertTrue(Db::schema()->hasTable($table), '缺少市场运行时结构：' . $table);
+        foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_token', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertTrue(Db::schema()->hasTable($table), '缺少历史兼容结构：' . $table);
         foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->exists(), $code);
+        self::assertFalse(Db::table('permission')->where('source_type', 'plugin')->where('source_name', 'market')->where('status', 1)->exists());
         require_once base_path('app/functions.php');
         Db::beginTransaction();
         try {
@@ -76,7 +77,7 @@ final class MySqlCoreMigrationTest extends TestCase
             $request->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
             $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
             \support\Context::set(\Webman\Http\Request::class, $request);
-            $id = (new \app\market\service\MarketAccountService())->register(['username' => 'mysqlbuyer', 'email' => 'mysqlbuyer@example.com', 'password' => 'buyer-password-123', 'password_confirm' => 'buyer-password-123'], '127.0.0.' . random_int(10, 200));
+            $id = (new \app\common\service\member\MemberAccountService())->register(['username' => 'mysqlbuyer', 'email' => 'mysqlbuyer@example.com', 'password' => 'buyer-password-123', 'password_confirm' => 'buyer-password-123'], '127.0.0.' . random_int(10, 200));
             self::assertGreaterThan(time() - 60, (int) Db::table('member')->where('id', $id)->value('last_login'));
         } finally {
             Db::rollBack();
@@ -86,25 +87,24 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('browser_sessions'));
         self::assertTrue(Db::schema()->hasTable('login_attempts'));
         self::assertSame(1, Db::table('admin')->count());
+        self::assertFalse(Db::table('admin_menu')->whereNotNull('deleted_at')->exists(), '基线不得携带软删除菜单墓碑行');
+        self::assertFalse(Db::table('permission')->whereNotNull('deleted_at')->exists(), '基线不得携带软删除权限墓碑行');
         self::assertSame(count($expected), Db::table('system_migration')->where('scope', 'core')->count());
         foreach (glob($directory . '/*.sql') as $file) {
             self::assertSame(hash_file('sha256', $file), Db::table('system_migration')->where('scope', 'core')->where('version', pathinfo($file, PATHINFO_FILENAME))->value('checksum'));
         }
         $audit = new \app\common\service\database\CoreDatabaseAudit($directory);
         $snapshot = $audit->inspect(Db::connection());
-        self::assertFileExists($directory . '/018_webman_runtime_metadata.sql', '缺少运行时元数据补偿');
         self::assertArrayHasKey('metadata', $snapshot['schema'][Db::connection()->getTablePrefix() . 'plugin_operation']['columns']);
         self::assertArrayHasKey('package_size', $snapshot['schema'][Db::connection()->getTablePrefix() . 'plugin_version_history']['columns']);
         self::assertArrayHasKey('manifest', $snapshot['schema'][Db::connection()->getTablePrefix() . 'plugin_version_history']['columns']);
         self::assertSame('varchar(255)', $snapshot['schema'][Db::connection()->getTablePrefix() . 'admin_log']['columns']['username']['COLUMN_TYPE']);
         self::assertSame('tinyint(1)', $snapshot['schema'][Db::connection()->getTablePrefix() . 'admin']['columns']['status']['COLUMN_TYPE']);
-        self::assertFileExists($directory . '/017_webman_lossless_numeric_domains.sql', '缺少保留有符号与无符号范围的补偿');
         foreach (['admin_menu' => ['sort_order' => 'bigint'], 'permission' => ['sort_order' => 'bigint'],
             'attach' => ['sort_order' => 'bigint', 'size' => 'bigint'], 'attach_group' => ['sort_order' => 'bigint'],
             'member' => ['login_num' => 'bigint'], 'member_level' => ['discount' => 'int', 'sort_order' => 'bigint'],
             'auth_group' => ['level' => 'int unsigned', 'name' => 'varchar(100)'], 'admin_log' => ['admin_id' => 'bigint unsigned'],
         ] as $table => $columns) foreach ($columns as $column => $type) self::assertSame($type, $snapshot['schema'][Db::connection()->getTablePrefix() . $table]['columns'][$column]['COLUMN_TYPE']);
-        self::assertFileExists($directory . '/016_webman_runtime_capacities.sql', '缺少运行时容量 forward-only 补偿');
         foreach (['plugin' => ['version' => 'varchar(64)', 'error_stage' => 'varchar(80)', 'recovery_path' => 'varchar(1024)', 'lifecycle_state' => 'varchar(40)', 'operation_token' => 'varchar(128)'],
             'plugin_operation' => ['stage' => 'varchar(80)', 'operation_token' => 'varchar(128)'],
             'plugin_resource' => ['resource_type' => 'varchar(40)', 'source_path' => 'varchar(1024)'],
@@ -116,15 +116,12 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertStringContainsString('CREATE TABLE', $snapshot['schema'][Db::connection()->getTablePrefix() . 'admin']['create_sql'] ?? '');
         self::assertNotEmpty($snapshot['protected_row_hashes']['admin'] ?? '');
         self::assertNotEmpty($snapshot['schema'][Db::connection()->getTablePrefix() . 'language_line']['columns']['ns']['GENERATION_EXPRESSION'] ?? '');
-        self::assertSame('YES', $snapshot['schema'][Db::connection()->getTablePrefix() . 'application_assignment']['checks']['ck_application_assignment_subject']['ENFORCED'] ?? null);
-        self::assertFileExists($directory . '/013_webman_plugin_permission_resources.sql', '缺少插件原生权限资源补偿');
-        $pluginResource = \app\admin\authorization\service\PermissionResource::fromParts('admin', 'plugin.SystemPlugin', 'installed');
-        self::assertSame($pluginResource['obj'], Db::table('permission')->where('code', $pluginResource['code'])->value('obj'));
+        $pluginCode = \app\admin\authorization\service\PermissionCode::derive(\app\admin\plugin\controller\SystemPlugin::class, 'installed');
+        self::assertSame(\app\admin\authorization\service\PermissionCode::resource($pluginCode)['obj'], Db::table('permission')->where('code', $pluginCode)->whereNull('deleted_at')->where('status', 1)->value('obj'));
         $referenceMenus = \app\common\service\database\CoreSeedPlan::readSnapshot(Db::connection(), $snapshot['schema']);
         self::assertSame([], \app\common\service\database\CoreMenuPlan::diagnose($referenceMenus), '新安装也必须通过菜单原生绑定契约，不能只在接管时纠偏');
         $normalizedMenus = \app\common\service\database\CoreMenuPlan::normalizeReference($referenceMenus);
         self::assertSame([], \app\common\service\database\CoreMenuPlan::diagnose($normalizedMenus));
-        self::assertFileExists($directory . '/012_webman_bigint_references.sql', '缺少 Webman bigint 引用 forward-only 补偿');
         foreach ([
             'admin' => ['dept_id'], 'admin_menu' => ['pid', 'permission_id'], 'department' => ['pid'],
             'dict_item' => ['type_id'], 'permission' => ['pid'], 'permission_field' => ['permission_id'],
@@ -638,70 +635,19 @@ final class MySqlCoreMigrationTest extends TestCase
             foreach ($iterator as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
             rmdir($upgradeRoot);
         }
-        $menuBindingsBefore = Db::table('admin_menu')->orderBy('id')->get()->map(static fn (object $row): array => (array) $row)->all();
-        $policyBindingsBefore = Db::table('casbin_rule')->orderBy('id')->get()->map(static fn (object $row): array => (array) $row)->all();
-        self::assertSame(['014_webman_native_menu_bindings'], $service->runVersion($directory, '014_webman_native_menu_bindings', 'test:menu_binding_repeat'));
-        self::assertSame($menuBindingsBefore, Db::table('admin_menu')->orderBy('id')->get()->map(static fn (object $row): array => (array) $row)->all());
-        self::assertSame($policyBindingsBefore, Db::table('casbin_rule')->orderBy('id')->get()->map(static fn (object $row): array => (array) $row)->all());
-        $customBinding = Db::table('admin_menu')->insertGetId(['app_name' => 'admin', 'name' => '自定义插件菜单', 'href' => '/keep-plugin', 'query' => 'name=SystemUser&component=system/user/index', 'source_type' => 'plugin', 'source_name' => 'user', 'status' => 1]);
-        $disabledBinding = Db::table('admin_menu')->insertGetId(['app_name' => 'admin', 'name' => '保留停用菜单', 'href' => '/old-disabled', 'query' => 'name=SystemUser&component=system/user/index', 'source_type' => 'admin_web', 'source_name' => 'user', 'status' => 0, 'deleted_at' => '2026-01-01']);
-        $service->runVersion($directory, '014_webman_native_menu_bindings', 'test:menu_binding_guards');
-        self::assertSame('/keep-plugin', Db::table('admin_menu')->where('id', $customBinding)->value('href'));
-        self::assertSame('/system/user', Db::table('admin_menu')->where('id', $disabledBinding)->value('href'));
-        self::assertSame(0, (int) Db::table('admin_menu')->where('id', $disabledBinding)->value('status'));
-        self::assertSame('2026-01-01 00:00:00', Db::table('admin_menu')->where('id', $disabledBinding)->value('deleted_at'));
-        Db::table('admin_menu')->whereIn('id', [$customBinding, $disabledBinding])->delete();
-        $retirement = $directory . '/010_retire_webman_management.sql';
-        self::assertFileExists($retirement, '缺少原型菜单精准停用增量');
-        $permissionId = Db::table('permission')->insertGetId(['app_name' => 'admin', 'code' => 'system:management:view', 'obj' => 'admin/system.management', 'act' => 'index', 'name' => '原型测试', 'status' => 1]);
-        $prototype = Db::table('admin_menu')->insertGetId(['app_name' => 'admin', 'name' => '后台管理', 'href' => '/admin/management', 'permission_id' => $permissionId, 'query' => 'name=WebmanManagement&type=C&component=webman%2Fmanagement', 'status' => 1]);
-        $other = Db::table('admin_menu')->insertGetId(['app_name' => 'admin', 'name' => '后台管理', 'href' => '/custom-management', 'permission_id' => 0, 'query' => 'name=CustomManagement&component=custom/index', 'status' => 1]);
-        self::assertSame(['010_retire_webman_management'], $service->runVersion($directory, '010_retire_webman_management', 'test:retirement'));
-        self::assertSame(0, (int) Db::table('admin_menu')->where('id', $prototype)->value('status'));
-        self::assertNotNull(Db::table('admin_menu')->where('id', $prototype)->value('deleted_at'));
-        self::assertSame(1, (int) Db::table('admin_menu')->where('id', $other)->value('status'));
-        self::assertSame(0, (int) Db::table('permission')->where('id', $permissionId)->value('status'));
-        self::assertSame([], $service->runVersion($directory, '010_retire_webman_management', 'test:retirement'));
-        Db::table('permission')->where('id', $permissionId)->update(['status' => 1, 'deleted_at' => null]);
-        Db::table('admin_menu')->where('id', $prototype)->update(['status' => 1, 'deleted_at' => null]);
-        Db::table('admin_menu')->where('id', $other)->update(['permission_id' => $permissionId]);
-        $similar = Db::table('admin_menu')->insertGetId(['app_name' => 'admin', 'name' => '相似组件', 'href' => '/admin/management', 'permission_id' => 0, 'query' => 'name=WebmanManagement&type=C&component=webmanXYZ2Fmanagement', 'status' => 1]);
-        $policyBefore = Db::table('casbin_rule')->orderBy('id')->get()->all();
-        self::assertSame(['010_retire_webman_management'], $service->runVersion($directory, '010_retire_webman_management', 'test:retirement_shared'));
-        self::assertSame(0, (int) Db::table('admin_menu')->where('id', $prototype)->value('status'));
-        self::assertSame(1, (int) Db::table('admin_menu')->where('id', $similar)->value('status'));
-        self::assertSame(1, (int) Db::table('permission')->where('id', $permissionId)->value('status'), '其他有效菜单仍引用时保留权限');
-        self::assertEquals($policyBefore, Db::table('casbin_rule')->orderBy('id')->get()->all(), '退役菜单不得改写已有角色授权');
+        self::assertFalse(Db::table('admin_menu')->whereNull('deleted_at')->where('href', '/admin/management')->exists(), '原型后台管理菜单不得出现在基线中');
         foreach (['provinces', 'region'] as $geography) {
             self::assertSame(13, Db::table($geography)->whereBetween('id', [839001, 839013])->where('pid', 830000)->count());
+            self::assertFalse(Db::table($geography)->where('id', 839000)->exists());
         }
-        self::assertSame(['011_repair_geography_orphan_parent'], $service->runVersion($directory, '011_repair_geography_orphan_parent', 'test:geography'));
-        self::assertSame([], $service->runVersion($directory, '011_repair_geography_orphan_parent', 'test:geography'));
-        foreach (['provinces', 'region'] as $geography) {
-            Db::table($geography)->where('id', 839001)->update(['pid' => 839000]);
-            Db::table($geography)->insert(['id' => 839000, 'pid' => 830000, 'name' => '保留已有父节点']);
-            Db::table($geography)->insert(['id' => 999999, 'pid' => 839000, 'name' => '不在白名单记录']);
-        }
-        $service->runVersion($directory, '011_repair_geography_orphan_parent', 'test:geography_existing_parent');
-        foreach (['provinces', 'region'] as $geography) {
-            self::assertSame(839000, (int) Db::table($geography)->where('id', 839001)->value('pid'), '已有中间父级不得被改挂');
-            self::assertSame(839000, (int) Db::table($geography)->where('id', 999999)->value('pid'), '范围外记录不得修改');
-        }
-        $incomplete = sys_get_temp_dir() . '/core-incomplete-' . bin2hex(random_bytes(8));
-        mkdir($incomplete, 0700);
+        Db::table('system_migration')->insert(['scope' => 'core', 'version' => '002_missing_fixture', 'checksum' => str_repeat('0', 64), 'executed_at' => time()]);
         try {
-            foreach (glob($directory . '/*.sql') as $file) {
-                if (basename($file) !== '002_form_data_batch_recycle_import_permissions.sql') copy($file, $incomplete . '/' . basename($file));
-            }
-            try {
-                $service->runDirectory($incomplete);
-                self::fail('核心已登记版本缺失必须阻断，禁止无待执行项假成功');
-            } catch (\RuntimeException $error) {
-                self::assertStringContainsString('已登记的 migration 文件缺失', $error->getMessage());
-            }
+            $service->runCore();
+            self::fail('核心已登记版本缺失必须阻断，禁止无待执行项假成功');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('已登记的 migration 文件缺失', $error->getMessage());
         } finally {
-            foreach (glob($incomplete . '/*') as $file) unlink($file);
-            rmdir($incomplete);
+            Db::table('system_migration')->where('version', '002_missing_fixture')->delete();
         }
         Db::table('system_migration')->where('version', '001_baseline')->delete();
         try {

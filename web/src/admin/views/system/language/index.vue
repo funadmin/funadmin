@@ -9,7 +9,7 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:language:add'" @click="openAdd">
+        <el-button type="primary" plain v-perm="'system:language:create'" @click="openAdd">
           <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
         </el-button>
         <el-button
@@ -54,7 +54,7 @@
             <template #default="{ row }">
               <el-button type="primary" link @click="openLines(row as LanguageModel)">{{ t('systemLanguage.lines', '译文') }}</el-button>
               <template v-if="!isDefault(row as LanguageModel)">
-                <el-button type="primary" link v-perm="'system:language:edit'" @click="openEdit(row as LanguageModel)">{{ t('common.edit', '编辑') }}</el-button>
+                <el-button type="primary" link v-perm="'system:language:update'" @click="openEdit(row as LanguageModel)">{{ t('common.edit', '编辑') }}</el-button>
                 <el-button type="danger" link v-perm="'system:language:delete'" @click="removeOne(row as LanguageModel)">{{ t('common.remove', '删除') }}</el-button>
               </template>
               <span v-else class="text-xs text-[var(--el-text-color-secondary)]">{{ t('systemLanguage.systemProtected', '系统保护') }}</span>
@@ -132,13 +132,13 @@ function onReset() {
 }
 
 function openAdd() {
-  if (!hasPermission('system:language:add')) return;
+  if (!hasPermission('system:language:create')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: LanguageModel) {
-  if (!hasPermission('system:language:edit')) return;
+  if (!hasPermission('system:language:update')) return;
   current.value = row;
   dialogVisible.value = true;
 }

@@ -15,9 +15,9 @@
         <el-button size="small" round class="model-menu" data-testid="model-menu-trigger" :aria-label="t('aiDevelopment.settings.open', '打开会话设置')" @click="$emit('open-settings')"><i class="i-ep-cpu" /><span>{{ model || t('aiDevelopment.modelSelection.unset') }} · {{ profile?.name || t('aiDevelopment.profiles.title') }}<template v-if="reasoning"> · {{ t('aiDevelopment.settings.reasoningShort', { effort: reasoning }, { default: '思考 {effort}' }) }}</template></span></el-button>
         <el-button size="small" round data-testid="approval-mode-trigger" @click="$emit('open-settings')"><i class="i-ep-lock" />{{ approvalLabel }}</el-button>
         <input ref="fileInput" type="file" multiple hidden :accept="accept" @change="choose" />
-        <el-button size="small" circle :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId || !hasPermission('development.ai:attachmentcreate')" @click="fileInput?.click()" />
+        <el-button size="small" circle :aria-label="t('aiComposer.attach')" :icon="Paperclip" :disabled="locked || !conversationId || !hasPermission('ai:ai:attachment-create')" @click="fileInput?.click()" />
         <span class="send-hint">{{ t('aiComposer.sendHint') }}</span>
-        <el-button v-if="running && hasPermission('development.ai:taskcancel')" size="small" round class="send" type="danger" @click="$emit('stop')"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
+        <el-button v-if="running && hasPermission('ai:ai:task-cancel')" size="small" round class="send" type="danger" @click="$emit('stop')"><i class="i-ep-video-pause" />{{ t('aiDevelopment.stop') }}</el-button>
         <el-button v-else size="small" round class="send" type="primary" :disabled="!canSend" @click="send"><i class="i-ep-promotion" />{{ t('aiDevelopment.send') }}</el-button>
       </div>
     </div>
@@ -63,7 +63,7 @@ const imageError = computed(() => {
     return !cap.image_input || images.length > (cap.max_images || 4) || images.some(f => !cap.image_mime_types?.includes(f.attachment!.mime));
   }) ? t('aiComposer.incompatible') : '';
 });
-const canSend = computed(() => hasPermission(['development.ai:messagecreate', 'development.ai:taskexecute'], 'all') && !!props.conversationId && !props.running && !props.saving && !draft.value.busy && !imageError.value && (!!draft.value.text.trim() || draft.value.files.length > 0) && draft.value.files.every(f => f.state === 'ready'));
+const canSend = computed(() => hasPermission(['ai:ai:message-create', 'ai:ai:task-execute'], 'all') && !!props.conversationId && !props.running && !props.saving && !draft.value.busy && !imageError.value && (!!draft.value.text.trim() || draft.value.files.length > 0) && draft.value.files.every(f => f.state === 'ready'));
 function release(d: Draft) { for (const f of d.files) { if (f.preview) URL.revokeObjectURL(f.preview); f.preview = ''; } }
 watch(() => props.conversationId, (_, previous) => {
   if (previous && drafts.has(previous)) release(drafts.get(previous)!);
@@ -74,7 +74,7 @@ onBeforeUnmount(() => { alive = false; drafts.forEach(release); });
 async function addFiles(files: File[]) {
   const d = draft.value;
   const id = props.conversationId;
-  if (!id || locked.value || !hasPermission('development.ai:attachmentcreate')) return;
+  if (!id || locked.value || !hasPermission('ai:ai:attachment-create')) return;
   d.error = '';
   for (const file of files) {
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -86,7 +86,7 @@ async function addFiles(files: File[]) {
   }
 }
 async function upload(item: Entry, d = draft.value, id = props.conversationId) {
-  if (!id || d.busy || d.message || !hasPermission('development.ai:attachmentcreate')) return;
+  if (!id || d.busy || d.message || !hasPermission('ai:ai:attachment-create')) return;
   item.state = 'uploading';
   try {
     const ext = item.file.name.split('.').pop()?.toLowerCase() || '';
@@ -94,7 +94,7 @@ async function upload(item: Entry, d = draft.value, id = props.conversationId) {
       const text = new TextDecoder('utf-8', { fatal: true }).decode(await item.file.arrayBuffer());
       if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text) || /^(%PDF-|PK\x03\x04|MZ)/.test(text)) throw new Error('invalid');
     }
-    if (!hasPermission('development.ai:attachmentcreate')) { item.state = 'failed'; return; }
+    if (!hasPermission('ai:ai:attachment-create')) { item.state = 'failed'; return; }
     item.attachment = await api.uploadAttachment(id, item.file);
     item.state = 'ready';
     if (d.files.every(f => f.state === 'ready')) d.error = '';
@@ -103,7 +103,7 @@ async function upload(item: Entry, d = draft.value, id = props.conversationId) {
 }
 async function remove(item: Entry) {
   const d = draft.value; const id = props.conversationId;
-  if (!id || locked.value || item.state === 'uploading' || (item.attachment && !hasPermission('development.ai:attachmentdelete'))) return;
+  if (!id || locked.value || item.state === 'uploading' || (item.attachment && !hasPermission('ai:ai:attachment-delete'))) return;
   d.busy = true;
   try {
     if (item.attachment) await api.deleteAttachment(id, item.attachment.id);
@@ -126,7 +126,7 @@ async function send() {
   try {
     d.payload ??= { role: 'user', idempotency_key: d.taskKey, content: [...(d.text.trim() ? [{ type: 'text', text: d.text.trim() }] : []), ...d.files.map(f => ({ type: 'attachment', attachment_id: f.attachment!.id }))] };
     if (!d.message) d.message = await api.createMessage(id, d.payload);
-    if (!alive || props.conversationId !== id || !hasPermission('development.ai:taskexecute')) return;
+    if (!alive || props.conversationId !== id || !hasPermission('ai:ai:task-execute')) return;
     const task = await api.executeTask(id, { message_id: d.message.id, idempotency_key: d.taskKey, type: 'chat' });
     const message = d.message;
     release(d); drafts.set(id, empty());

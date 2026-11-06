@@ -105,7 +105,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'systemmenu:update' : 'systemmenu:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'authorization:menu:update' : 'authorization:menu:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -220,15 +220,15 @@ function initForm() {
 }
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
+  if (!hasPermission(props.row?.id ? 'authorization:menu:update' : 'authorization:menu:create')) return;
   await formRef.value?.validate();
   saving.value = true;
   try {
     if (isEdit.value && props.row) {
-      if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:menu:update' : 'authorization:menu:create')) return;
      await menuApi.update(props.row.id, { ...form });
     } else {
-      if (!hasPermission(props.row?.id ? 'systemmenu:update' : 'systemmenu:create')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:menu:update' : 'authorization:menu:create')) return;
      await menuApi.create({ ...form });
     }
     emit('success');

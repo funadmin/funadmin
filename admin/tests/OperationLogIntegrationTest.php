@@ -43,7 +43,7 @@ final class OperationLogIntegrationTest extends TestCase
     {
         self::assertTrue(Db::schema()->hasTable('admin_log'));
         self::assertTrue(Db::table('admin_menu')->where('href', '/admin/system/log/operation')->exists());
-        self::assertTrue(Db::table('permission')->where('code', 'systemoperationlog:index')->exists());
+        self::assertTrue(Db::table('permission')->where('code', 'system:operation-log:index')->exists());
     }
 
     public function test_real_audit_write_redacts_secrets_and_preserves_request_metadata(): void

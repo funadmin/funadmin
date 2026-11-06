@@ -6,8 +6,6 @@ namespace app\common\service\member;
 
 use app\common\service\AbstractService;
 use app\common\model\Member;
-use app\common\service\identity\MemberIdentityAdapter;
-use support\Db;
 
 /**
  * 会员 API 认证服务。
@@ -33,12 +31,6 @@ class MemberAuthService extends AbstractService
         if (!$member || !password_verify($password, (string) $member->password)) {
             return null;
         }
-
-        Db::transaction(static function () use ($member): void {
-            $adapter = new MemberIdentityAdapter();
-            $adapter->shadowRead($member);
-            $adapter->sync($member);
-        });
 
         return [
             'id' => (int) $member->id,

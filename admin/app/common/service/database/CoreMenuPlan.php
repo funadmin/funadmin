@@ -35,16 +35,6 @@ final class CoreMenuPlan
             ['BusinessDatabase', 'development/business/database', '/development/business/database', 'business_development', 'development', 'Business', 'inspectDatabase'],
             ['BusinessRecords', 'development/business/records', '/development/business/records', 'business_development', 'development', 'Business', 'generations'],
             ['AiDevelopment', 'development/ai/index', '/development/ai', 'ai_development', 'ai', 'Ai', 'conversationIndex'],
-            ['ApplicationList', 'applications/index', '/applications/center', 'enterprise_application_center', 'identity', 'EnterpriseApplication', 'index'],
-            ['OAuthClientManagement', 'applications/oauth/index', '/applications/oauth-client', 'oauth_client_console', 'identity', 'OAuthClient', 'index'],
-            ['DomainManagement', 'applications/identity-management', '/applications/domains', 'sso_phase8_application_center', 'identity', 'EnterpriseApplication', 'domains'],
-            ['SsoConfiguration', 'applications/sso/index', '/applications/sso', 'sso_phase8_application_center', 'identity', 'SsoConfiguration', 'config'],
-            ['ScopeClaimManagement', 'applications/identity-management', '/applications/scopes', 'sso_phase8_application_center', 'identity', 'ScopeClaim', 'index'],
-            ['IdentityUsers', 'applications/identity-management', '/applications/users', 'sso_phase8_application_center', 'identity', 'IdentityUser', 'index'],
-            ['IdentitySessions', 'applications/identity-management', '/applications/sessions', 'sso_phase8_application_center', 'identity', 'OidcSession', 'index'],
-            ['SigningKeys', 'applications/identity-management', '/applications/signing-keys', 'sso_phase8_application_center', 'identity', 'OidcSigningKey', 'index'],
-            ['IdentityAudit', 'applications/identity-management', '/applications/audit', 'sso_phase8_application_center', 'identity', 'IdentityAudit', 'index'],
-            ['ApplicationPortal', 'applications/portal', '/applications/portal', 'sso_phase8_application_center', 'identity', 'EnterpriseApplication', 'portal'],
         ];
         $catalog = [];
         foreach ($rows as [$name, $component, $path, $source, $module, $controller, $action]) {
@@ -148,9 +138,13 @@ final class CoreMenuPlan
                 $issues[] = ['code' => 'UNMAPPED_CORE_MENU', 'id' => $id];
                 continue;
             }
-            if ($permission === null || ($permission['code'] ?? '') !== $binding['permission']['code']
-                || ($permission['obj'] ?? '') !== $binding['permission']['obj'] || ($permission['act'] ?? '') !== $binding['permission']['act']
-                || ($meta['permission'] ?? '') !== $binding['permission']['code']) $issues[] = ['code' => 'MENU_PERMISSION_BINDING_MISMATCH', 'id' => $id];
+            // 基线（旧推导码）与按方法推导码改名后的绑定都合法：菜单绑定页面列表方法的权限。
+            $derivedCode = \app\admin\authorization\service\PermissionCode::derive($binding['class'], $binding['action']);
+            $accepted = [$binding['permission']];
+            if ($derivedCode !== null) $accepted[] = ['code' => $derivedCode] + \app\admin\authorization\service\PermissionCode::resource($derivedCode);
+            $matches = $permission !== null && array_filter($accepted, static fn (array $expected): bool => ($permission['code'] ?? '') === $expected['code']
+                && ($permission['obj'] ?? '') === $expected['obj'] && ($permission['act'] ?? '') === $expected['act'] && ($meta['permission'] ?? '') === $expected['code']) !== [];
+            if (!$matches) $issues[] = ['code' => 'MENU_PERMISSION_BINDING_MISMATCH', 'id' => $id];
             if (($row['href'] ?? '') !== $binding['path']) $issues[] = ['code' => 'MENU_PATH_MISMATCH', 'id' => $id];
         }
         return $issues;

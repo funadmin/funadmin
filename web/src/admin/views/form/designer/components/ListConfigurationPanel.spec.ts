@@ -18,7 +18,7 @@ describe('独立分类配置入口', () => {
   it('按实际入口加载权限目录并传给编辑器，失败不改写按钮', async () => {
     api.designActionCatalog.mockResolvedValue({ moduleId: 7, designOnly: true, executable: false, resources: { customer: { type: 'navigate', permission: 'view', capabilityVersion: 'v2', params: [], query: [] } }, actions: { row: { inspect: { permission: 'inspect', capabilityVersion: 'v3', parameters: [], parameterTypes: {}, locations: ['row'], targets: ['record'], effect: 'read', batch: false, requiresConfirmation: false, resultContract: 'json' } } } });
     const wrapper = render('buttons');
-    await wrapper.setProps({ moduleId: 7, permissions: ['development:business:save'] } as never);
+    await wrapper.setProps({ moduleId: 7, permissions: ['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save'] } as never);
     await flushPromises();
     expect(api.designActionCatalog).toHaveBeenCalledWith(7);
     expect(api.fieldCapabilities).not.toHaveBeenCalled();

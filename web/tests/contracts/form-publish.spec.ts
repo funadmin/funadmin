@@ -121,8 +121,8 @@ describe('统一表单发布引擎契约', () => {
 
   it('正式生成按钮维持 generate 与 apply-resources 权限边界', () => {
     const designer = read('web/src/admin/views/form/designer/index.vue');
-    expect(designer).toMatch(/v-perm:all="\['development.business:previewformalgeneration', 'development:business:generate'\]"[^>]*@click="openFormalGeneration"/);
-    expect(designer).toContain(`v-perm:all="['development.business:formalgeneration', 'development:business:generate', 'development:business:apply-resources']"`);
+    expect(designer).toMatch(/v-perm:all="\['development:business:preview-formal-generation', 'development:business:generate'\]"[^>]*@click="openFormalGeneration"/);
+    expect(designer).toContain(`v-perm:all="['development:business:formal-generation', 'development:business:generate', 'development:business:apply-resources']"`);
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {

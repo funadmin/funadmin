@@ -26,7 +26,7 @@
         <el-table-column prop="changelog" :label="t('plugin.changelog', '更新说明')" min-width="180" />
         <el-table-column :label="t('common.operation', '操作')" width="100">
           <template #default="{ row }">
-            <el-button type="primary" link :disabled="!row.compatible" :title="row.compatibleReason || ''" v-perm="'system:plugin:install'" @click="install(row.compatible, row.version)">{{ t('plugin.install', '安装') }}</el-button>
+            <el-button type="primary" link :disabled="!row.compatible" :title="row.compatibleReason || ''" v-perm="'plugin:plugin:install-cloud'" @click="install(row.compatible, row.version)">{{ t('plugin.install', '安装') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -52,16 +52,16 @@ function applicationCapabilities(applications: Record<string, boolean>) {
   return Object.entries(applications || {}).filter(([, enabled]) => enabled).map(([name]) => t(`plugin.application.${name}`, applicationLabel(name))).join('、') || t('plugin.none', '无');
 }
 
-function install(compatible: boolean, version: string) { if (!(hasPermission('system:plugin:install'))) return;
+function install(compatible: boolean, version: string) { if (!(hasPermission('plugin:plugin:install-cloud'))) return;
   if (compatible) emit('install', version);
 }
 
 watch(visible, async (open) => {
-  if (!open || !props.code || !hasPermission('system:plugin:list')) return;
+  if (!open || !props.code || !hasPermission(['plugin:plugin:installed', 'plugin:plugin:discovered', 'plugin:plugin:local-detail', 'plugin:plugin:market-categories', 'plugin:plugin:market-search', 'plugin:plugin:market-detail', 'plugin:plugin:market-versions', 'plugin:plugin:check-updates'])) return;
   loading.value = true;
   try {
     detail.value = await pluginApi.marketDetail(props.code);
-    if (!hasPermission('system:plugin:list')) return;
+    if (!hasPermission(['plugin:plugin:installed', 'plugin:plugin:discovered', 'plugin:plugin:local-detail', 'plugin:plugin:market-categories', 'plugin:plugin:market-search', 'plugin:plugin:market-detail', 'plugin:plugin:market-versions', 'plugin:plugin:check-updates'])) return;
     detail.value.versions = await pluginApi.marketVersions(props.code);
   } finally {
     loading.value = false;

@@ -1263,7 +1263,7 @@ final class Ai extends AdminController
         if ($taskId <= 0) throw new RuntimeException('审计事件缺少 task_id');
         (new DatabaseAiConversationStore())->appendEvent($taskId, $event, $payload);
     }
-    private function can(string $capability): bool { return (new AdminAuthorizationService($this->request))->nodeAccess(str_replace(':', '/', $capability)); }
+    private function can(string $capability): bool { return (new AdminAuthorizationService($this->request))->can($capability); }
     private function adminId(): int
     {
         $id = (int) (request()?->context['admin']['id'] ?? 0);

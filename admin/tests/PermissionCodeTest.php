@@ -20,6 +20,10 @@ final class PermissionCodeTest extends TestCase
             'host same-named resource' => ['app\\admin\\ai\\controller\\Ai', 'conversationGroupDelete', 'ai:ai:conversation-group-delete'],
             'host multi-word resource' => ['app\\admin\\identity\\controller\\EnterpriseApplication', 'delete', 'identity:enterprise-application:delete'],
             'acronym class' => ['app\\admin\\identity\\controller\\OAuthClient', 'revokeSecret', 'identity:o-auth-client:revoke-secret'],
+            'plugin controller in a sub-namespace' => ['app\\admin\\plugins\\shop\\controller\\admin\\OrderItemController', 'close', 'shop:admin-order-item:close'],
+            'host controller in a sub-namespace' => ['app\\admin\\system\\controller\\log\\SystemOperationLog', 'index', 'system:log-operation-log:index'],
+            'generated business module' => ['app\\admin\\generated\\shop\\controller\\OrderItemController', 'restoreMany', 'generated:order-item:restore-many'],
+            'legacy generated layout' => ['app\\admin\\controller\\generated\\LayoutExampleController', 'index', 'generated:layout-example:index'],
         ];
     }
 
@@ -56,6 +60,6 @@ final class PermissionCodeTest extends TestCase
         }
         $shared = array_filter($codes, static fn (array $methods): bool => count($methods) > 1);
         self::assertSame([], array_map('array_keys', $shared), '每个方法必须得到唯一权限码');
-        self::assertGreaterThan(400, count($codes));
+        self::assertGreaterThan(300, count($codes));
     }
 }

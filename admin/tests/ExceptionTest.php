@@ -61,13 +61,10 @@ final class ExceptionTest extends TestCase
         self::assertStringNotContainsString('private', $response->rawBody());
     }
 
-    public function test_identity_validation_error_is_safe_but_generic_argument_error_is_hidden(): void
+    public function test_admin_validation_error_is_safe_but_generic_argument_error_is_hidden(): void
     {
         $handler = new ExceptionHandle(new NullLogger(), false);
-        $request = new Request("PUT /admin/identity/applications/1 HTTP/1.1\r\n\r\n");
-        $response = $handler->render($request, new \app\common\service\identity\IdentityValidationException('数据模式无效'));
-        self::assertSame(422, json_decode($response->rawBody(), true)['code']);
-        self::assertSame(200, $response->getStatusCode());
+        $request = new Request("PUT /admin/system/role/1 HTTP/1.1\r\n\r\n");
         $response = $handler->render($request, new \InvalidArgumentException('private internal argument'));
         self::assertSame(500, $response->getStatusCode());
         self::assertStringNotContainsString('private', $response->rawBody());

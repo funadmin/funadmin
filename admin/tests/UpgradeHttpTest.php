@@ -31,7 +31,7 @@ final class UpgradeHttpTest extends TestCase
         Db::table('admin')->insert(['id' => 1, 'username' => 'upgrade_root', 'password' => password_hash('upgrade-root-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('admin')->insert(['id' => 2, 'username' => 'upgrade_reader', 'password' => password_hash('upgrade-reader-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '升级只读', 'code' => 'upgrade_reader', 'level' => 10, 'data_scope' => 'self', 'status' => 1]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['systemupgrade:status', 'systemupgrade:check'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['system:upgrade:status', 'system:upgrade:check'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService();

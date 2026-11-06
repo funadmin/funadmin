@@ -65,7 +65,6 @@ final class BusinessModuleLayoutTest extends TestCase
         foreach ([
             'ai:change-set-recover', 'ai:outbox-dispatch', 'ai:sandbox-cleanup',
             'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
-            'identity:cleanup', 'identity:health', 'identity:logout-deliveries:work', 'identity:signing-key',
             'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
             'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:package',
             'plugin:publication-recover', 'plugin:validate', 'upgrade:recover-stale',
@@ -73,8 +72,9 @@ final class BusinessModuleLayoutTest extends TestCase
             self::assertArrayHasKey($name, $commands, '业务命令未接入 webman/console：' . $name);
             self::assertNotSame('', $commands[$name]['description']);
         }
-        self::assertTrue($commands['identity:cleanup']['definition']['options']['dry-run']['accept_value'] === false);
-        self::assertSame('1000', $commands['identity:cleanup']['definition']['options']['limit']['default']);
+        foreach (['identity:cleanup', 'identity:health', 'identity:logout-deliveries:work', 'identity:signing-key'] as $removed) {
+            self::assertArrayNotHasKey($removed, $commands, '身份中心已移除：' . $removed);
+        }
         self::assertTrue($commands['crud:generate']['definition']['arguments']['definition']['is_required']);
         self::assertArrayHasKey('confirm-token-file', $commands['crud:generate']['definition']['options']);
         self::assertArrayHasKey('start', $commands);
@@ -168,29 +168,6 @@ final class BusinessModuleLayoutTest extends TestCase
         }
     }
 
-    public function test_identity_commands_live_inside_the_identity_module_without_changing_options(): void
-    {
-        foreach ([
-            'IdentityCleanup' => ['identity:cleanup', 'tenant', 'limit', 'audit-retention-days', 'dry-run'],
-            'IdentityHealth' => ['identity:health', 'tenant', 'secret-warning-days'],
-            'IdentityLogoutDeliveriesWork' => ['identity:logout-deliveries:work', 'once', 'tenant', 'limit', 'dry-run'],
-            'IdentitySigningKey' => ['identity:signing-key', 'tenant', 'action', 'limit', 'publish-window', 'dry-run'],
-        ] as $class => $contracts) {
-            $file = __DIR__ . '/../app/admin/identity/command/' . $class . '.php';
-            self::assertFileExists($file);
-            $source = file_get_contents($file);
-            $tokens = token_get_all($source, TOKEN_PARSE);
-            $namespaces = array_values(array_filter($tokens, static fn ($token): bool => is_array($token) && $token[0] === T_NAME_QUALIFIED));
-            self::assertSame('app\\admin\\identity\\command', $namespaces[0][1]);
-            $command = array_shift($contracts);
-            self::assertStringContainsString("->setName('" . $command . "')", $source);
-            foreach ($contracts as $option) {
-                self::assertStringContainsString("->addOption('" . $option . "'", $source);
-            }
-            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/command/' . $class . '.php');
-        }
-    }
-
     public function test_development_commands_and_their_shared_trait_have_one_module(): void
     {
         foreach ([
@@ -279,46 +256,6 @@ final class BusinessModuleLayoutTest extends TestCase
             self::assertStringContainsString($route, $source);
         }
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/authentication/AdminProfile.php');
-    }
-
-    public function test_identity_audit_and_oidc_controllers_keep_their_public_route_attributes(): void
-    {
-        foreach ([
-            'IdentityAudit' => ["#[RouteGroup('/admin/identity/audit')]", "#[Get('')]"],
-            'OidcSession' => ["#[RouteGroup('/admin/identity/oidc-sessions')]", "#[Post('/{id:\\d+}/revoke')]", "#[Get('/deliveries')]", "#[Post('/deliveries/{id:\\d+}/retry')]"],
-            'OidcSigningKey' => ["#[RouteGroup('/admin/identity/signing-keys')]", "#[Post('/rotate')]"],
-        ] as $class => $routes) {
-            $file = __DIR__ . '/../app/admin/identity/controller/' . $class . '.php';
-            self::assertFileExists($file);
-            $source = file_get_contents($file);
-            token_get_all($source, TOKEN_PARSE);
-            self::assertStringContainsString('namespace app\\admin\\identity\\controller;', $source);
-            foreach ($routes as $route) {
-                self::assertStringContainsString($route, $source);
-            }
-            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/identity/' . $class . '.php');
-        }
-    }
-
-    public function test_remaining_identity_controllers_preserve_the_copied_business_implementation(): void
-    {
-        foreach ([
-            'EnterpriseApplication' => 'identity/applications',
-            'IdentityUser' => 'identity/users',
-            'OAuthClient' => 'identity/oauth-clients',
-            'ScopeClaim' => 'identity/scopes',
-            'SsoConfiguration' => 'identity/sso',
-        ] as $class => $group) {
-            $file = __DIR__ . '/../app/admin/identity/controller/' . $class . '.php';
-            self::assertFileExists($file);
-            $source = file_get_contents($file);
-            token_get_all($source, TOKEN_PARSE);
-            self::assertStringContainsString('namespace app\\admin\\identity\\controller;', $source);
-            self::assertStringContainsString("#[RouteGroup('/admin/" . $group . "')]", $source);
-            $middleware = \Webman\Middleware::getMiddleware('', 'admin', ['app\\admin\\identity\\controller\\' . $class, $class === 'SsoConfiguration' ? 'config' : 'index'], null, false);
-            self::assertCount(3, $middleware);
-            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/identity/' . $class . '.php');
-        }
     }
 
     public function test_authorization_and_plugin_platform_controllers_have_explicit_module_ownership(): void
@@ -429,16 +366,6 @@ final class BusinessModuleLayoutTest extends TestCase
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/model/plugin/example/Test.php');
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/service/plugin/example/TestService.php');
         self::assertFileDoesNotExist(__DIR__ . '/../app/admin/validate/plugin/example/TestValidate.php');
-    }
-
-    public function test_plugin_market_controllers_live_under_business_code(): void
-    {
-        foreach (['CategoryController', 'GrantController', 'OrderController', 'PluginController', 'SettingController', 'StatController'] as $class) {
-            $fqcn = 'app\\admin\\plugins\\market\\controller\\' . $class;
-            self::assertTrue(class_exists($fqcn), '插件市场控制器应归入 plugins/：' . $fqcn);
-            self::assertSame(realpath(__DIR__ . '/../app/admin/plugins/market/controller/' . $class . '.php'), (new ReflectionClass($fqcn))->getFileName());
-            self::assertFileDoesNotExist(__DIR__ . '/../app/admin/controller/plugin/market/' . $class . '.php');
-        }
     }
 
     public function test_authorization_registry_and_system_upgrade_services_have_module_ownership(): void
@@ -823,7 +750,7 @@ final class BusinessModuleLayoutTest extends TestCase
         foreach (['unknown/42', 'users/0', 'users/-1', 'users/abc', 'users/01'] as $invalid) {
             self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('PUT', '/admin/management/' . $invalid)[0]);
         }
-        self::assertSame(\FastRoute\Dispatcher::FOUND, Route::dispatch('GET', '/admin/identity/scopes')[0]);
+        self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch('GET', '/admin/identity/scopes')[0], '身份中心已移除');
         $routes = file_get_contents(__DIR__ . '/../config/route.php');
         self::assertStringContainsString('Route::disableDefaultRoute()', $routes);
         self::assertStringContainsString('Route::fallback(', $routes);

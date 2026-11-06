@@ -42,7 +42,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:dict:edit' : 'system:dict:add'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:dict:update-item' : 'system:dict:create-item'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -111,7 +111,7 @@ watch(visible, (v) => {
 });
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:dict:update-item' : 'system:dict:create-item')) return;
   if (!form.typeCode) {
     form.typeCode = props.typeCode;
   }
@@ -119,10 +119,10 @@ async function onSubmit() {
   submitting.value = true;
   try {
     if (isEdit.value && props.row) {
-      if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
+      if (!hasPermission(props.row?.id ? 'system:dict:update-item' : 'system:dict:create-item')) return;
      await dictItemApi.update(props.row.id, form);
     } else {
-      if (!hasPermission(props.row?.id ? 'system:dict:edit' : 'system:dict:add')) return;
+      if (!hasPermission(props.row?.id ? 'system:dict:update-item' : 'system:dict:create-item')) return;
      await dictItemApi.create(form);
     }
     visible.value = false;

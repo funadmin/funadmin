@@ -46,7 +46,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:dept:edit' : 'system:dept:add'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'authorization:department:update' : 'authorization:department:create'" type="primary" :loading="submitting" @click="onSubmit">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -142,15 +142,15 @@ watch(visible, (v) => {
 });
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
+  if (!hasPermission(props.row?.id ? 'authorization:department:update' : 'authorization:department:create')) return;
   await formRef.value?.validate();
   submitting.value = true;
   try {
     if (isEdit.value && props.row) {
-      if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:department:update' : 'authorization:department:create')) return;
      await deptApi.update(props.row.id, form);
     } else {
-      if (!hasPermission(props.row?.id ? 'system:dept:edit' : 'system:dept:add')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:department:update' : 'authorization:department:create')) return;
      await deptApi.create(form);
     }
     visible.value = false;

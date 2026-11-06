@@ -63,7 +63,7 @@ afterEach(() => {
 
 describe('管理员状态操作权限', () => {
   it('只有查看或编辑权限时禁用开关，触发 change 也不发送状态请求', async () => {
-    const control = await render(['system:user:list', 'system:user:edit']);
+    const control = await render(['authorization:admin:index', 'authorization:admin:detail', 'authorization:admin:update']);
     expect(control.props('disabled')).toBe(true);
     control.vm.$emit('change', false);
     await flushPromises();
@@ -71,7 +71,7 @@ describe('管理员状态操作权限', () => {
     expect(control.props('modelValue')).toBe(true);
   });
 
-  it.each(['system:user:status', '*', '*:*:*'])('%s 允许切换普通管理员状态', async permission => {
+  it.each(['authorization:admin:status', '*', '*:*:*'])('%s 允许切换普通管理员状态', async permission => {
     const control = await render([permission]);
     expect(control.props('disabled')).toBe(false);
     control.vm.$emit('change', false);
@@ -89,9 +89,9 @@ describe('管理员状态操作权限', () => {
   });
 
   it('权限撤销后禁用已有开关，并停止发送状态请求', async () => {
-    const control = await render(['system:user:status']);
+    const control = await render(['authorization:admin:status']);
     expect(control.props('disabled')).toBe(false);
-    user.permissions = ['system:user:list'];
+    user.permissions = ['authorization:admin:index', 'authorization:admin:detail'];
     await nextTick();
     expect(control.props('disabled')).toBe(true);
     control.vm.$emit('change', false);

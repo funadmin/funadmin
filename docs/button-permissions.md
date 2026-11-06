@@ -8,10 +8,10 @@
 import { hasPermission } from '@/utils/permission';
 
 // 单个动作。
-hasPermission('system:user:edit');
+hasPermission('authorization:admin:update');
 
 // 默认满足任一权限。
-hasPermission(['system:user:add', 'system:user:edit']);
+hasPermission(['authorization:admin:create', 'authorization:admin:update']);
 
 // 必须同时满足全部权限。
 hasPermission(['development:business:generate', 'development:business:apply-resources'], 'all');
@@ -24,9 +24,9 @@ hasPermission(['development:business:generate', 'development:business:apply-reso
 ## 按钮与操作入口
 
 ```vue
-<el-button v-perm="'system:user:add'" @click="create">新增</el-button>
+<el-button v-perm="'authorization:admin:create'" @click="create">新增</el-button>
 <el-button v-perm:all="['action:execute', 'action:approve']" @click="execute">执行</el-button>
-<el-switch :disabled="!hasPermission('system:user:status')" />
+<el-switch :disabled="!hasPermission('authorization:admin:status')" />
 ```
 
 `v-perm` 随权限授予、撤销和账号权限替换更新显示；重新授权后能恢复显示，并在组件卸载时释放监听。
@@ -35,9 +35,9 @@ hasPermission(['development:business:generate', 'development:business:apply-reso
 
 ```ts
 async function remove() {
-  if (!hasPermission('system:user:delete')) return;
+  if (!hasPermission('authorization:admin:delete')) return;
   await confirmRemoval();
-  if (!hasPermission('system:user:delete')) return;
+  if (!hasPermission('authorization:admin:delete')) return;
   await removeRecord();
 }
 ```
@@ -51,20 +51,22 @@ useCrud({
   api,
   initialQuery,
   permissions: {
-    add: 'system:user:add',
-    edit: 'system:user:edit',
-    delete: 'system:user:delete'
+    add: 'authorization:admin:create',
+    edit: 'authorization:admin:update',
+    delete: 'authorization:admin:delete'
   }
 });
 ```
 
 `permissions` 是可选配置，兼容已有由动态动作宿主管理权限的页面。声明后，新增/编辑入口和删除确认前后均检查对应权限。自定义保存、启停、上传等动作仍在其实际处理器检查。
 
-## 权限码来源与范围
+## 权限码来源与范围（前后端同码）
 
-- 系统业务别名由 `admin/app/admin/authorization/model/Permission.php::webPermissions()` 下发；该方法保留原始动作码。
-- 多级控制器的原始动作码依据 `PermissionResource::fromRequest/fromParts()`，包含模块命名空间；不要从菜单标题或 URL 随意拼接。
-- 插件后台方法以 `#[Permission('code')]` 声明权限码，码须在插件清单注册；未声明的方法一律拒绝。市场插件已逐方法声明，不再依赖中间件内的动作映射。
+- **每个后台方法就是一个权限**，权限码由控制器与方法自动推导：`{模块}:{资源}:{方法}`，全部 kebab-case（`admin/app/admin/authorization/service/PermissionCode.php`）。例：`SystemConfig::index` → `system:config:index`，`SystemAdmin::resetPassword` → `authorization:admin:reset-password`，插件 `market` 的 `OrderController::close` → `market:order:close`。
+- 前端按钮使用它**实际调用的接口方法**的推导码，例如编辑页的"读取详情"用 `…:detail`、"保存"用 `…:update`，两者分别授权。登录后下发的 `permissions` 就是后端权限码本身，不再有 `webPermissions()` 对照表或别名。
+- 不对应单个接口的业务能力使用能力权限码（如 `development:business:generate`），后端用 `AdminAuthorizationService::can('模块:资源:操作')` 判断，前端同码判断。
+- 少数按钮一次操作涉及多个方法、或升级前由一个旧权限统一控制的，使用数组表示任一满足（如 AI 会话的 `['ai:ai:conversation-update', 'ai:ai:conversation-state-update', 'ai:ai:conversation-group-update']`），必要时用 `'all'` 要求全部。
+- 插件后台方法同样按推导码鉴权，方法上不写权限注解；见 `docs/plugins.md`。
 - 动态表单保留后端动作目录、注册能力、版本、可用动作和数据范围限制，公共判断只统一权限匹配。
 - 新生成的 CRUD 页面和表单也使用公共判断，后续代码生成不会重新复制局部实现。
 - 关闭、取消、返回、折叠等纯界面操作不新增业务权限；登录、安装、本人资料继续走其原有认证流程。

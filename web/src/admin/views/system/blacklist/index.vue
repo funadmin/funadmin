@@ -19,7 +19,7 @@
         <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)"><i class="i-ep-list" /> {{ t('systemBlacklist.normalList', '正常列表') }}</el-button>
         <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> {{ t('systemBlacklist.recycleBin', '回收站') }}</el-button>
         <template v-if="!recycled">
-          <el-button type="primary" plain v-perm="'system:blacklist:add'" @click="openAdd">
+          <el-button type="primary" plain v-perm="'system:blacklist:create'" @click="openAdd">
             <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
           </el-button>
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:blacklist:delete'" @click="moveToRecycle">
@@ -76,7 +76,7 @@
           <el-table-column v-if="recycled" prop="deletedAt" :label="t('systemBlacklist.deletedAt', '删除时间')" width="170" />
           <el-table-column v-if="!recycled" :label="t('common.operation', '操作')" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" link v-perm="'system:blacklist:edit'" @click="openEdit(row as BlacklistModel)">{{ t('common.edit', '编辑') }}</el-button>
+              <el-button type="primary" link v-perm="'system:blacklist:update'" @click="openEdit(row as BlacklistModel)">{{ t('common.edit', '编辑') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -157,13 +157,13 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
-  if (!hasPermission('system:blacklist:add')) return;
+  if (!hasPermission('system:blacklist:create')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: BlacklistModel) {
-  if (!hasPermission('system:blacklist:edit')) return;
+  if (!hasPermission('system:blacklist:update')) return;
   current.value = row;
   dialogVisible.value = true;
 }

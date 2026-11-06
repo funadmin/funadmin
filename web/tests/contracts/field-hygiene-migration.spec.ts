@@ -149,7 +149,7 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
         $table->id(); $table->string('username'); $table->string('email')->nullable(); $table->softDeletes();
       });
       \support\Db::table('member')->insert(['username'=>'retired', 'email'=>'used@example.com', 'deleted_at'=>'2026-01-01 00:00:00']);
-      $service = new \app\market\service\MarketAccountService();
+      $service = new \app\common\service\member\MemberAccountService();
       $errors = [];
       foreach (['used@example.com', str_repeat('a', 50).'@example.com'] as $index => $email) {
         try {

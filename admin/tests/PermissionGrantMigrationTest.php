@@ -50,21 +50,23 @@ final class PermissionGrantMigrationTest extends TestCase
 
     private static function before(): array
     {
-        return json_decode((string) file_get_contents(__DIR__ . '/fixtures/auth-requirements-before.json'), true, flags: JSON_THROW_ON_ERROR);
+        $before = json_decode((string) file_get_contents(__DIR__ . '/fixtures/auth-requirements-before.json'), true, flags: JSON_THROW_ON_ERROR);
+        // The historical fixture stays frozen; retired local market routes no longer participate in runtime equivalence.
+        return array_filter($before, static fn (string $route): bool => !str_contains($route, '=> app\\admin\\plugins\\market\\'), ARRAY_FILTER_USE_KEY);
     }
 
     public function test_plugin_grants_expand_so_every_role_keeps_exactly_the_same_routes(): void
     {
         $before = self::before();
         $plan = PermissionMigrationPlan::expansion($before, [PermissionMigrationPlan::class, 'isPluginRoute']);
-        foreach (["cms", "qa", "example", "market"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
+        foreach (["cms", "qa", "example"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
 
         // 每个旧权限一个角色，另加一个持有多个旧权限的角色，以及一个无授权角色。
         $oldCodes = array_keys($plan);
         $roles = [];
         $roleId = 500;
         foreach ($oldCodes as $old) $roles[++$roleId] = [$old];
-        $roles[++$roleId] = ['market:order:view', 'cms:site:list'];
+        $roles[++$roleId] = ['qa:moderation:list', 'cms:site:list'];
         $roles[++$roleId] = [];
         $casbin = new CasbinService();
         foreach ($roles as $id => $codes) {
@@ -90,9 +92,9 @@ final class PermissionGrantMigrationTest extends TestCase
     public function test_migration_is_idempotent(): void
     {
         $plan = PermissionMigrationPlan::expansion(self::before(), [PermissionMigrationPlan::class, 'isPluginRoute']);
-        foreach (["cms", "qa", "example", "market"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
+        foreach (["cms", "qa", "example"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
         Db::table('auth_group')->insert(['id' => 900, 'name' => 'r', 'code' => 'r900', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
-        $this->grantByCode(new CasbinService(), 900, ['market:plugin:manage']);
+        $this->grantByCode(new CasbinService(), 900, ['cms:category:save']);
         $migration = new PermissionGrantMigration();
         $migration->apply($plan);
         $first = Db::table('casbin_rule')->orderBy('v2')->orderBy('v3')->get(['v0', 'v2', 'v3'])->toArray();
@@ -100,10 +102,40 @@ final class PermissionGrantMigrationTest extends TestCase
         self::assertEquals($first, Db::table('casbin_rule')->orderBy('v2')->orderBy('v3')->get(['v0', 'v2', 'v3'])->toArray());
     }
 
+    public function test_disabled_old_plugin_codes_keep_their_methods_disabled(): void
+    {
+        $plan = PermissionMigrationPlan::expansion(self::before(), [PermissionMigrationPlan::class, 'isPluginRoute']);
+        Db::table('auth_group')->insert(['id' => 902, 'name' => 'r', 'code' => 'r902', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
+        $this->grantByCode(new CasbinService(), 902, ['cms:category:save', 'cms:content:save']);
+        Db::table('permission')->whereIn('code', ['cms:category:save', 'cms:content:save'])->update(['status' => 0]);
+        foreach (["cms", "qa", "example"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
+
+        (new PermissionGrantMigration())->apply($plan, self::keep());
+
+        foreach (['cms:categories:save', 'cms:categories:status', 'cms:content:attachments', 'cms:content:upload'] as $code) {
+            self::assertSame(0, (int) Db::table('permission')->where('code', $code)->value('status'), "停用的旧权限展开出的 $code 必须同样停用");
+        }
+        self::assertSame(0, (int) Db::table('permission')->where('code', 'cms:content:save')->value('status'), '复用的旧码保持停用');
+    }
+
+    public function test_rerunning_after_old_codes_were_retired_keeps_new_codes_enabled(): void
+    {
+        $plan = PermissionMigrationPlan::expansion(self::before(), [PermissionMigrationPlan::class, 'isPluginRoute']);
+        foreach (["cms", "qa", "example"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
+        Db::table('auth_group')->insert(['id' => 903, 'name' => 'r', 'code' => 'r903', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
+        $this->grantByCode(new CasbinService(), 903, ['cms:category:save']);
+        $migration = new PermissionGrantMigration();
+        $migration->apply($plan, self::keep());
+        // 另一条迁移轨道（MySQL 核心 SQL 与 PHP 迁移）再次执行：旧码已退役。
+        $migration->apply($plan, self::keep());
+        self::assertSame(1, (int) Db::table('permission')->where('code', 'cms:categories:save')->value('status'));
+        self::assertTrue($this->roleHas(903, 'cms:categories:save'));
+    }
+
     public function test_cms_site_operations_stay_registered_with_their_grants(): void
     {
         $plan = PermissionMigrationPlan::expansion(self::before(), [PermissionMigrationPlan::class, 'isPluginRoute']);
-        foreach (["cms", "qa", "example", "market"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
+        foreach (["cms", "qa", "example"] as $p) (new \app\admin\authorization\service\PermissionSyncService())->sync($p);
         Db::table('auth_group')->insert(['id' => 901, 'name' => 'r', 'code' => 'r901', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
         $this->grantByCode(new CasbinService(), 901, \app\cms\service\PermissionCatalog::operations());
 
@@ -116,7 +148,7 @@ final class PermissionGrantMigrationTest extends TestCase
             $row = Db::table('permission')->where('code', $operation)->first();
             self::assertTrue(Db::table('casbin_rule')->where('ptype', 'p')->where('v0', 'role:901')->where('v2', $row->obj)->where('v3', $row->act)->exists(), "$operation 的授权被撤销");
         }
-        foreach (['cms:site:list', 'cms:site:save', 'cms:site:grant', 'cms:category:save', 'qa:moderation:list', 'market:plugin:view'] as $retired) {
+        foreach (['cms:site:list', 'cms:site:save', 'cms:site:grant', 'cms:category:save', 'qa:moderation:list'] as $retired) {
             self::assertSame(0, (int) Db::table('permission')->where('code', $retired)->value('status'), "$retired 应停用");
         }
     }
@@ -131,7 +163,8 @@ final class PermissionGrantMigrationTest extends TestCase
             self::assertSame([$old], array_keys(array_filter($plan, static fn (array $targets): bool => in_array($new, $targets, true))), "$new 必须只由 $old 展开");
             $permissionId = (int) Db::table('permission')->where('code', $old)->value('id');
             $ids[$old] = Db::table('admin_menu')->insertGetId(['pid' => 0, 'app_name' => 'admin', 'name' => $old, 'href' => '/plugin/test/' . str_replace(':', '-', $old),
-                'query' => 'type=C&permission=' . rawurlencode($old), 'permission_id' => $permissionId, 'status' => 1, 'source_type' => 'plugin', 'source_name' => explode(':', $old)[0]]);
+                // 两种写法都会出现：http_build_query 编码后的值，以及手写的原始值；其余参数保持原样。
+                'query' => 'type=C&permission=' . (str_starts_with($old, 'cms:') ? rawurlencode($old) : $old) . '&title=a%20b+c', 'permission_id' => $permissionId, 'status' => 1, 'source_type' => 'plugin', 'source_name' => explode(':', $old)[0]]);
         }
 
         $migration = new PermissionGrantMigration();
@@ -141,7 +174,7 @@ final class PermissionGrantMigrationTest extends TestCase
         foreach ($menus as $old => $new) {
             $menu = Db::table('admin_menu')->where('id', $ids[$old])->first();
             self::assertSame($new, Db::table('permission')->where('id', $menu->permission_id)->value('code'), $old);
-            self::assertSame('type=C&permission=' . rawurlencode($new), $menu->query, $old);
+            self::assertSame('type=C&permission=' . (str_starts_with($old, 'cms:') ? rawurlencode($new) : $new) . '&title=a%20b+c', $menu->query, $old);
         }
     }
 

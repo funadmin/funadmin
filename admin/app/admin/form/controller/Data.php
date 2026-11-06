@@ -1013,12 +1013,14 @@ final class Data extends AdminController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         $action = (string) ($this->request->action(true) ?: '');
-        $permissionAction = match ($action) {
+        // 方法内的附加要求：异步校验需要"读取选项"，来源树操作需要"查看列表"（均为按方法推导的权限码）。
+        $method = match ($action) {
             'validateasync' => 'options',
             'lefttree', 'mutatelefttree', 'lefttreeform' => 'index',
-            default => $action,
+            default => (string) ($this->request->action ?? ''),
         };
-        if ($permissionAction !== '' && !$this->authorization->nodeAccess('admin/form.data/' . $permissionAction)) {
+        $code = $method === '' ? null : \app\admin\authorization\service\PermissionCode::derive(self::class, $method);
+        if ($code !== null && !$this->authorization->can($code)) {
             return $this->fail(msg: '没有访问权限', code: 403);
         }
         if (in_array(strtolower($action), ['listaction', 'listactions'], true)) {

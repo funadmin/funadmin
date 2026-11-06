@@ -16,7 +16,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:config-group:edit' : 'system:config-group:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:config:update-group' : 'system:config:create-group'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -46,11 +46,11 @@ watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
 }, { immediate: true });
 function resetForm() { formRef.value?.resetFields(); Object.assign(form, initialForm()); }
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:config-group:edit' : 'system:config-group:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:config:update-group' : 'system:config:create-group')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    if (!hasPermission(props.row?.id ? 'system:config-group:edit' : 'system:config-group:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:config:update-group' : 'system:config:create-group')) return;
     if (props.row?.id) await configApi.updateGroup(props.row.id, form);
     else await configApi.createGroup(form);
     visible.value = false;

@@ -47,13 +47,13 @@ let realStore: ReturnType<typeof import('@/store/modules/aiDevelopment').useAiDe
 vi.mock('@/store/modules/aiDevelopment', () => ({ useAiDevelopmentStore: () => realStore ?? aiStore }));
 // 这些交互用例使用明确授予动作的账号；保留真实 hasPermission，避免绕过新增的 RBAC 门禁。
 const interactionPermissions = [
-  'development.ai:conversationcreate', 'development.ai:conversationupdate', 'development.ai:conversationdelete',
-  'development.ai:messagecreate', 'development.ai:taskexecute', 'development.ai:taskcancel',
-  'development.ai:approvaldecide', 'development.ai:changesetpreview', 'development.ai:changesetapply',
-  'development.ai:toolcalllog', 'development.ai:settingstest',
+  'ai:ai:conversation-create', 'ai:ai:conversation-group-create', 'ai:ai:conversation-update', 'ai:ai:conversation-state-update', 'ai:ai:conversation-group-update', 'ai:ai:conversation-delete', 'ai:ai:conversation-group-delete',
+  'ai:ai:message-create', 'ai:ai:task-execute', 'ai:ai:task-cancel',
+  'ai:ai:approval-decide', 'ai:ai:change-set-preview', 'ai:ai:change-set-apply',
+  'ai:ai:tool-call-log', 'ai:ai:settings-test',
   'development:ai:configure', 'development:ai:changesetpreview', 'development:ai:changesetapply',
-  'ai.profiles:index', 'ai.profiles:create', 'ai.profiles:update', 'ai.profiles:copy',
-  'ai.profiles:delete', 'ai.profiles:defaultread', 'ai.profiles:defaultset', 'ai.profiles:models'
+  'ai:profiles:index', 'ai:profiles:create', 'ai:profiles:update', 'ai:profiles:copy',
+  'ai:profiles:delete', 'ai:profiles:default-read', 'ai:profiles:default-set', 'ai:profiles:models'
 ];
 const userStore = reactive({ permissions: [...interactionPermissions] });
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => userStore }));

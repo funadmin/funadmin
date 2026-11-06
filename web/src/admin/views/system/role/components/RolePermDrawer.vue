@@ -29,7 +29,7 @@
                 :value="role.id"
               />
             </el-select>
-            <el-button v-perm="'system:role:perm-copy'" :disabled="!copySourceRoleId" :loading="copying" @click="copyAuthorization">
+            <el-button v-perm="'authorization:role:copy-authorization'" :disabled="!copySourceRoleId" :loading="copying" @click="copyAuthorization">
               {{ t('systemRole.copyAuth', '复制授权') }}
             </el-button>
           </div>
@@ -128,7 +128,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="'system:role:perm'" type="primary" :loading="saving" :disabled="!activeRoleId" @click="save">
+      <el-button v-perm="'authorization:role:save-authorization'" type="primary" :loading="saving" :disabled="!activeRoleId" @click="save">
         {{ t('systemRole.saveAll', '保存整套授权') }}
       </el-button>
     </template>
@@ -244,7 +244,7 @@ const inheritanceText = (sources: AuthorizationSource[]) => sources.length
   : '';
 
 const save = async () => {
-  if (!hasPermission("system:role:perm")) return;
+  if (!hasPermission(["authorization:role:permissions", "authorization:role:authorization", "authorization:role:save-authorization"])) return;
   if (!activeRoleId.value) return;
   saving.value = true;
   try {
@@ -271,7 +271,7 @@ const save = async () => {
 };
 
 const copyAuthorization = async () => {
-  if (!hasPermission("system:role:perm-copy")) return;
+  if (!hasPermission("authorization:role:copy-authorization")) return;
   if (!activeRoleId.value || !copySourceRoleId.value) return;
   copying.value = true;
   try {

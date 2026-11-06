@@ -145,9 +145,8 @@ final class CrudDefinition implements JsonSerializable
             }
         }
         $actions = [];
-        $plugin = (($data['target']['type'] ?? 'core') === 'plugin');
         foreach (self::resourceActions($data) as [$action, $suffix, $defaultLabel]) {
-            $actions[] = ['action' => $action, 'codeSuffix' => self::codeSuffix($suffix, $plugin), 'label' => $labels[$action] ?? $defaultLabel];
+            $actions[] = ['action' => $action, 'codeSuffix' => self::codeSuffix($suffix), 'label' => $labels[$action] ?? $defaultLabel];
         }
         return [
             'enabled' => (bool) ($permission['enabled'] ?? true),
@@ -157,12 +156,11 @@ final class CrudDefinition implements JsonSerializable
     }
 
     /**
-     * 插件后台权限码由控制器方法推导（{插件}:{资源}:{方法 kebab}），生成的权限码必须与之一致；
-     * 宿主生成仍沿用旧后缀，待宿主切换到推导码后统一。
+     * 后台权限码由控制器方法推导（{模块}:{资源}:{方法 kebab}），生成的权限码后缀即方法名的 kebab 形式。
+     * 这里把历史上的后缀名称换算为对应方法的推导后缀。
      */
-    public static function codeSuffix(string $legacy, bool $plugin): string
+    public static function codeSuffix(string $legacy): string
     {
-        if (!$plugin) return $legacy;
         return [
             'list' => 'index', 'delete' => 'remove', 'batch-delete' => 'recycle',
             'batch-restore' => 'restore-many', 'batch-destroy' => 'destroy-many', 'left-tree-mutate' => 'mutate-left-tree',

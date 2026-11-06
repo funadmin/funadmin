@@ -13,7 +13,7 @@ vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 vi.mock('./components/AttachmentGroupDialog.vue', () => ({ default: { render: () => null } }));
 beforeEach(() => {
   vi.clearAllMocks();
-  user.permissions = ['system:attachment:upload'];
+  user.permissions = ['system:admin-upload:upload'];
   api.list.mockResolvedValue({ list: [], total: 0 });
   api.tree.mockResolvedValue([]);
   api.settings.mockResolvedValue({ driver: 'local', drivers: [], fallback: false });

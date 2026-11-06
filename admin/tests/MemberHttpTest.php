@@ -31,7 +31,7 @@ final class MemberHttpTest extends TestCase
         Db::table('admin')->insert(['id' => 1, 'username' => 'member_root', 'password' => password_hash('member-root-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('admin')->insert(['id' => 2, 'username' => 'member_reader', 'password' => password_hash('member-reader-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '会员只读', 'code' => 'member_reader', 'level' => 10, 'data_scope' => 'self', 'status' => 1]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['systemmember:index', 'systemmember:options'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['system:member:index', 'system:member:options'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService();

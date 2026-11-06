@@ -40,8 +40,8 @@ import BusinessMine from './mine.vue';
 
 it.each([
   [['*'], '/admin/development/business/visual'],
-  [['development.business:createvisual'], '/admin/development/business/visual'],
-  [['development.business:inspectdatabase'], '/admin/development/business/database'],
+  [['development:business:create-visual'], '/admin/development/business/visual'],
+  [['development:business:inspect-database'], '/admin/development/business/database'],
   [['development:business:save'], null],
   [[], null]
 ] as [string[], string | null][])('统一入口按独立动作选择现有路由并保留 query：%j', async (permissions, path) => {
@@ -299,7 +299,7 @@ describe('BusinessMine', () => {
 });
 
 it('有设计权限但无删除权限仍可打开设计器', async () => {
-  mocks.permissions = ['development.business:saveschema'];
+  mocks.permissions = ['development:business:save-schema'];
   const wrapper = render(true); await flushPromises();
   expect(wrapper.get('[data-design="1"]').isVisible()).toBe(true);
   await wrapper.get('[data-design="1"]').trigger('click');

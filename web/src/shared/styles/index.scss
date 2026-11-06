@@ -69,7 +69,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .el-card {
-  border-color: var(--app-border) !important;
+  border-color: var(--app-card-border, var(--app-border)) !important;
   box-shadow: var(--app-shadow-sm) !important;
 }
 

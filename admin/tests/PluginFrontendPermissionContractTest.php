@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class PluginFrontendPermissionContractTest extends TestCase
 {
-    private const PLUGINS = ['cms', 'qa', 'market', 'example', 'document', 'oss'];
+    private const PLUGINS = ['cms', 'qa', 'example', 'document', 'oss'];
 
     public function test_every_plugin_permission_code_used_by_the_frontend_exists(): void
     {
@@ -33,7 +33,7 @@ final class PluginFrontendPermissionContractTest extends TestCase
                 }
             }
         }
-        self::assertGreaterThan(150, $checked);
+        self::assertGreaterThan(100, $checked);
     }
 
     public function test_plugin_menus_and_routes_bind_derived_endpoint_codes(): void

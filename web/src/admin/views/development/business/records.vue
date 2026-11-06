@@ -151,7 +151,7 @@ const selectedModule = computed(() => modules.value.find((module) => module.id =
 const pageSubtitle = computed(() => selectedModule.value
   ? t('business.records.subtitleScoped', { name: selectedModule.value.name, code: selectedModule.value.code }, '{name}（{code}）的 managed 生成、冲突与恢复状态')
   : t('business.records.subtitleAll', '查看全部业务模块的 managed 生成、冲突与恢复状态'));
-const canRecover = computed(() => hasPermission('development.business:recovergeneration') && hasPermission('development:business:recover') && detail.value?.availableActions?.includes('recover') === true);
+const canRecover = computed(() => hasPermission('development:business:recover-generation') && hasPermission('development:business:recover-generation') && detail.value?.availableActions?.includes('recover') === true);
 // 页面统一承担恢复确认，drawer 继续负责结构化展示，避免未确认即调用恢复接口。
 const drawerGeneration = computed(() => detail.value ? { ...detail.value, availableActions: detail.value.availableActions?.filter((action) => action !== 'recover') } : null);
 

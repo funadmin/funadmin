@@ -51,7 +51,6 @@ final class PluginHttpActivationTest extends TestCase
             self::assertSame(503, $callback(new Request("GET /admin/plugin/httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(503, $callback(new Request("GET /httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(200, $callback(new Request("GET /admin/system/plugin/local/installed HTTP/1.1\r\n\r\n"))->getStatusCode());
-            self::assertSame(200, $callback(new Request("GET /admin/plugin/market/category/ HTTP/1.1\r\n\r\n"))->getStatusCode());
         } finally {
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
             foreach ($iterator as $file) $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());

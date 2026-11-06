@@ -18,10 +18,10 @@
         <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)"><i class="i-ep-list" /> {{ t('systemMemberGroup.normalList', '正常列表') }}</el-button>
         <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> {{ t('systemMemberGroup.recycleBin', '回收站') }}</el-button>
         <template v-if="!recycled">
-          <el-button type="primary" plain v-perm="'system:member-group:add'" @click="openAdd">
+          <el-button type="primary" plain v-perm="'system:member-group:create'" @click="openAdd">
             <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
           </el-button>
-          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member-group:delete'" @click="recycleSelected">
+          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member-group:recycle'" @click="recycleSelected">
             <i class="i-ep-delete" /> {{ t('systemMemberGroup.moveToRecycle', '移入回收站') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
@@ -81,7 +81,7 @@
           <el-table-column v-if="recycled" prop="deletedAt" :label="t('systemMemberGroup.deletedAt', '删除时间')" width="170" />
           <el-table-column v-if="!recycled" :label="t('common.operation', '操作')" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" link v-perm="'system:member-group:edit'" @click="openEdit(row as MemberGroupModel)">{{ t('common.edit', '编辑') }}</el-button>
+              <el-button type="primary" link v-perm="'system:member-group:update'" @click="openEdit(row as MemberGroupModel)">{{ t('common.edit', '编辑') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -160,13 +160,13 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
-  if (!hasPermission('system:member-group:add')) return;
+  if (!hasPermission('system:member-group:create')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberGroupModel) {
-  if (!hasPermission('system:member-group:edit')) return;
+  if (!hasPermission('system:member-group:update')) return;
   current.value = row;
   dialogVisible.value = true;
 }
@@ -184,9 +184,9 @@ async function toggleStatus(row: MemberGroupModel, enabled: boolean) {
 }
 
 async function recycleSelected() {
-  if (!hasPermission("system:member-group:delete")) return;
+  if (!hasPermission("system:member-group:recycle")) return;
   await ElMessageBox.confirm(t('systemMemberGroup.recycleConfirm', { n: selection.value.length }, { default: '确认将选中的 {n} 个会员组移入回收站吗？' }), t('systemMemberGroup.operateConfirmTitle', '操作确认'), { type: 'warning' });
-  if (!hasPermission("system:member-group:delete")) return;
+  if (!hasPermission("system:member-group:recycle")) return;
  await memberGroupApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }

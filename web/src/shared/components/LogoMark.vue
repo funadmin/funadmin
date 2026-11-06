@@ -65,12 +65,12 @@ const maskId = useId();
 <style scoped>
 /*
  * 扁平化规范：
- * - 纯实色（blue-600 #1677FF，Ant Design Pro 风格主色）
+ * - 纯实色，默认跟随后台主题色（--el-color-primary），未注入主题时回落到默认主色 #5D87FF
  * - 零阴影、零渐变、零滤镜
- * - color 跟随主题：外层包一层 .logo-mark { color: var(--brand) } 即可换色
+ * - 外层仍可通过 .logo-mark { color: ... } 覆盖（前台官网使用固定品牌色）
  */
 .logo-mark {
-  color: #1677ff;
+  color: var(--el-color-primary, #5D87FF);
   display: block;
 }
 </style>

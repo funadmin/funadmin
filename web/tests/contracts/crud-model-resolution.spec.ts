@@ -71,10 +71,7 @@ describe('CRUD 模型类公共解析契约', () => {
     expect(groupApi).toContain('importRows: (rows:');
     expect(levelApi).toContain('importRows: (rows:');
     expect(authController).toContain('AuthorizationService');
-    expect(runBackendTests('AuthorizationIntegrationTest.php', 'test_login_permissions_include_frontend_aliases_without_granting_other_actions')).toContain('OK (1 test');
-    const permissionModel = readFileSync(resolve(process.cwd(), '../admin/app/admin/authorization/model/Permission.php'), 'utf8');
-    expect(permissionModel).toContain("'systemmembergroup:import' => 'system:member-group:import'");
-    expect(permissionModel).toContain("'systemmemberlevel:import' => 'system:member-level:import'");
+    expect(runBackendTests('AuthorizationIntegrationTest.php', 'test_login_permissions_are_exactly_the_granted_codes')).toContain('OK (1 test');
     expect(permissionMigration).toContain('backend/systemmembergroup:import');
     expect(permissionMigration).toContain('backend/systemmemberlevel:import');
     expect(groupPage).toContain("v-perm=\"'system:member-group:import'\"");

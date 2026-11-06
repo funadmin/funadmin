@@ -36,14 +36,30 @@ class AdminAuthorizationService
         if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return true;
         }
-        $resource = PermissionResource::fromRequest($request, $this->app);
-        $resource = $this->aliasResource(strtolower($this->normalizeRequestUrl($request->path())), $resource);
-        if (!CasbinService::instance()->enforceAdmin($adminId, $resource['obj'], $resource['act'])) {
+        $code = PermissionCode::derive((string) ($request->controller ?? ''), (string) ($request->action ?: 'index'));
+        if ($code === null || !$this->allowed($adminId, $code)) {
             throw new DomainException('没有访问权限', 403);
         }
         return true;
     }
 
+    /** 当前管理员是否拥有某个权限码（接口推导码或能力权限码）。 */
+    public function can(string $code): bool
+    {
+        $adminId = (int) ($this->currentRequest()->context['admin']['id'] ?? 0);
+        if ($adminId <= 0) {
+            return false;
+        }
+        if ($adminId === (int) config('auth.super_admin_id', 1)) {
+            return true;
+        }
+        return $this->allowed($adminId, $code);
+    }
+
+    /**
+     * 按资源路径判断（"模块/资源/操作" 或旧的 "admin/控制器/操作"）。
+     * 仍存在的资源（能力权限等）直接按 obj/act 判断；已改名为推导码的旧接口资源按冻结映射换算为新权限码，须全部满足。
+     */
     public function nodeAccess(string $url): bool
     {
         $adminId = (int) ($this->currentRequest()->context['admin']['id'] ?? 0);
@@ -54,7 +70,35 @@ class AdminAuthorizationService
             return true;
         }
         $resource = $this->nodeResource($url);
-        return $resource !== null && CasbinService::instance()->enforceAdmin($adminId, $resource['obj'], $resource['act']);
+        if ($resource === null) {
+            return false;
+        }
+        $exists = \app\admin\authorization\model\Permission::where('obj', strtolower($resource['obj']))->where('act', strtolower($resource['act']))
+            ->where('status', 1)->whereNull('deleted_at')->exists();
+        if ($exists) {
+            return CasbinService::instance()->enforceAdmin($adminId, $resource['obj'], $resource['act']);
+        }
+        // 旧资源原先是一个权限：换算后要求它拆分出的全部推导码都已授予（升级迁移会一并授予），只授予其中一个不放行。
+        $codes = self::legacyMap()[strtolower($resource['obj'] . '|' . $resource['act'])] ?? [];
+        foreach ($codes as $code) {
+            if (!$this->allowed($adminId, $code)) {
+                return false;
+            }
+        }
+        return $codes !== [];
+    }
+
+    private function allowed(int $adminId, string $code): bool
+    {
+        $permission = \app\admin\authorization\model\Permission::where('code', $code)->where('status', 1)->whereNull('deleted_at')->first(['obj', 'act']);
+        return $permission !== null && CasbinService::instance()->enforceAdmin($adminId, (string) $permission->obj, (string) $permission->act);
+    }
+
+    /** @return array<string, list<string>> 旧接口资源 obj|act → 推导码（升级时冻结） */
+    private static function legacyMap(): array
+    {
+        static $map = null;
+        return $map ??= require base_path() . '/database/permission-maps/host-per-method.php';
     }
 
     private function nodeResource(string $url): ?array
@@ -73,46 +117,5 @@ class AdminAuthorizationService
         }
         $obj = $scope . '/' . $object;
         return ['obj' => $obj, 'act' => $action, 'code' => $obj . ':' . $action];
-    }
-
-    private function normalizeRequestUrl(string $requestUrl): string
-    {
-        $suffix = trim((string) config('view.view_suffix'));
-        if ($suffix !== '' && str_ends_with(strtolower($requestUrl), '.' . strtolower($suffix))) {
-            $requestUrl = substr($requestUrl, 0, -strlen($suffix) - 1);
-        }
-        return trim($requestUrl, '/');
-    }
-
-    private function aliasResource(string $requestUrl, array $resource): array
-    {
-        $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
-        $target = $this->routeAliasTarget($requestUrl, $aliases, strtolower((string) ($resource['act'] ?? '')))
-            ?? $aliases[strtolower((string) ($resource['code'] ?? ''))]
-            ?? null;
-        if ($target === null) {
-            return $resource;
-        }
-        return PermissionResource::fromRoute($this->app, (string) $target) ?: $resource;
-    }
-
-    private function routeAliasTarget(string $requestUrl, array $aliases, string $action): ?string
-    {
-        if (isset($aliases[$requestUrl])) {
-            return (string) $aliases[$requestUrl];
-        }
-        if ($action !== 'deletebyid') {
-            return null;
-        }
-        foreach ($aliases as $pattern => $target) {
-            if (!str_contains($pattern, ':')) {
-                continue;
-            }
-            $regex = preg_replace('/\\\\:([A-Za-z_][A-Za-z0-9_]*)/', '[^/]+', preg_quote($pattern, '#'));
-            if ($regex !== null && preg_match('#^' . $regex . '$#', $requestUrl) === 1) {
-                return (string) $target;
-            }
-        }
-        return null;
     }
 }

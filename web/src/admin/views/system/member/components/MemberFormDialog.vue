@@ -13,7 +13,7 @@
     </template>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:member:edit' : 'system:member:add'" type="primary" :loading="saving" :disabled="loading || !!loadError || !definition" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:member:update' : 'system:member:create'" type="primary" :loading="saving" :disabled="loading || !!loadError || !definition" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -92,7 +92,7 @@ watch(() => [props.modelValue, props.row] as const, ([opened]) => {
 onBeforeUnmount(() => { generation.value++; });
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:member:edit' : 'system:member:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:member:update' : 'system:member:create')) return;
   const acquiredLock = props.lock;
   if (acquiredLock?.busy || saving.value || loading.value || loadError.value || !definition.value || unavailable.value) return;
   saving.value = true;
@@ -100,11 +100,11 @@ async function onSubmit() {
   const token = generation.value;
   const id = props.row?.id;
   try {
-    if (!(await formRef.value?.validate().catch(() => false)) || token !== generation.value || !props.modelValue || !hasPermission(id ? 'system:member:edit' : 'system:member:add')) return;
+    if (!(await formRef.value?.validate().catch(() => false)) || token !== generation.value || !props.modelValue || !hasPermission(id ? 'system:member:update' : 'system:member:create')) return;
     const value = values.value;
     const payload: MemberPayload = { username: value.username, mobile: value.mobile, email: value.email, sex: value.sex,
       groupIds: [...value.group_ids], tagIds: [...value.tag_ids], levelId: value.level_id, avatar: value.avatar, status: value.status };
-    if (!hasPermission(props.row?.id ? 'system:member:edit' : 'system:member:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:member:update' : 'system:member:create')) return;
     if (id) await memberApi.update(id, payload);
     else await memberApi.create(payload);
     if (token === generation.value && props.modelValue) { emit('success'); visible.value = false; }

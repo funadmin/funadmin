@@ -5,7 +5,7 @@
         <template #header>
           <div class="flex items-center justify-between">
             <span class="font-medium">{{ t('systemAttachment.groups', '附件分组') }}</span>
-            <el-button type="primary" link v-perm="'system:attachment-group:add'" @click="openGroupAdd(0)">{{ t('common.add', '新增') }}</el-button>
+            <el-button type="primary" link v-perm="'system:attachment-group:create'" @click="openGroupAdd(0)">{{ t('common.add', '新增') }}</el-button>
           </div>
         </template>
         <div class="mb-3 grid grid-cols-2 gap-2">
@@ -27,8 +27,8 @@
                 <el-button link @click.stop><i class="i-ep-more-filled" /></el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="add" v-perm="'system:attachment-group:add'">{{ t('systemAttachment.addChildGroup', '新增下级') }}</el-dropdown-item>
-                    <el-dropdown-item command="edit" v-perm="'system:attachment-group:edit'">{{ t('common.edit', '编辑') }}</el-dropdown-item>
+                    <el-dropdown-item command="add" v-perm="'system:attachment-group:create'">{{ t('systemAttachment.addChildGroup', '新增下级') }}</el-dropdown-item>
+                    <el-dropdown-item command="edit" v-perm="'system:attachment-group:update'">{{ t('common.edit', '编辑') }}</el-dropdown-item>
                     <el-dropdown-item v-if="data.id !== 1" command="delete" divided v-perm="'system:attachment-group:delete'">{{ t('common.remove', '删除') }}</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -56,7 +56,7 @@
           </SearchForm>
         </template>
         <template #toolbar-left>
-          <el-button type="primary" plain v-perm="'system:attachment:upload'" @click="uploadInput?.click()">
+          <el-button type="primary" plain v-perm="'system:admin-upload:upload'" @click="uploadInput?.click()">
             <i class="i-ep-upload" /> {{ t('systemAttachment.uploadTo', { name: selectedGroupTitle }, { default: '上传到{name}' }) }}
           </el-button>
           <el-button type="info" plain :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
@@ -65,7 +65,7 @@
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:attachment:delete'" @click="removeSelected">
             <i class="i-ep-delete" /> {{ t('common.remove', '删除') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
-          <div class="flex items-center gap-2" v-perm="'system:attachment:storage'">
+          <div class="flex items-center gap-2" v-perm="'system:storage:update'">
             <span class="text-sm text-[var(--el-text-color-secondary)]">{{ t('systemAttachment.storageDriver', '存储驱动') }}</span>
             <el-select v-model="storageDriver" class="!w-36" :loading="storageLoading" :disabled="!!storageManaged" @change="changeStorageDriver">
               <el-option v-for="driver in storageDrivers" :key="driver.name" :label="driver.label" :value="driver.name" :disabled="!driver.available" />
@@ -90,7 +90,7 @@
             <el-table-column prop="createdAt" :label="t('systemAttachment.uploadedAt', '上传时间')" width="170" />
             <el-table-column :label="t('common.operation', '操作')" width="150" align="center" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" link v-perm="'system:attachment:edit'" @click="renameOne(row as AttachmentModel)">{{ t('systemAttachment.rename', '重命名') }}</el-button>
+                <el-button type="primary" link v-perm="'system:attachment:rename'" @click="renameOne(row as AttachmentModel)">{{ t('systemAttachment.rename', '重命名') }}</el-button>
                 <el-button type="primary" link @click="openFile(row.path)">{{ t('systemAttachment.view', '查看') }}</el-button>
               </template>
             </el-table-column>
@@ -149,7 +149,7 @@ async function loadStorageSettings() {
     if (settings.fallback) ElMessage.warning(t('systemAttachment.storageFallback', '原存储驱动不可用，已回退到本地存储'));
   } finally { storageLoading.value = false; }
 }
-async function changeStorageDriver(driver: string) { if (storageManaged.value || !hasPermission("system:attachment:storage")) return; await storageApi.update(driver); storageDriver.value = driver; }
+async function changeStorageDriver(driver: string) { if (storageManaged.value || !hasPermission("system:storage:update")) return; await storageApi.update(driver); storageDriver.value = driver; }
 async function reloadGroups() { await loadGroups(); await loadData(); }
 async function loadData() {
   loading.value = true;
@@ -160,10 +160,10 @@ function onSearch() { query.page = 1; loadData(); }
 function onReset() { Object.assign(query, { page: 1, pageSize: 20, keyword: '', groupId: undefined, mimeType: '' }); loadData(); }
 function selectGroupFilter(groupId: number | undefined) { query.groupId = groupId; query.page = 1; loadData(); }
 function selectGroup(data: AttachmentGroupModel) { selectGroupFilter(data.id); }
-function openGroupAdd(parentId: number) { if (!hasPermission('system:attachment-group:add')) return;  currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, name: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
+function openGroupAdd(parentId: number) { if (!hasPermission('system:attachment-group:create')) return;  currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, name: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
 function openGroupEdit(group: AttachmentGroupModel) { currentGroup.value = group; groupDialogVisible.value = true; }
 async function onGroupCommand(command: string, group: AttachmentGroupModel) {
-  const permission = command === 'add' ? 'system:attachment-group:add' : command === 'edit' ? 'system:attachment-group:edit' : 'system:attachment-group:delete';
+  const permission = command === 'add' ? 'system:attachment-group:create' : command === 'edit' ? 'system:attachment-group:update' : 'system:attachment-group:delete';
   if (!hasPermission(permission)) return;
   if (command === 'add') return openGroupAdd(group.id);
   if (command === 'edit') return openGroupEdit(group);
@@ -174,7 +174,7 @@ async function onGroupCommand(command: string, group: AttachmentGroupModel) {
   await reloadGroups();
 }
 async function uploadFiles(event: Event) {
-  if (!hasPermission("system:attachment:upload")) return;
+  if (!hasPermission("system:admin-upload:upload")) return;
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files || []); input.value = '';
   if (!files.length) return;
@@ -183,7 +183,7 @@ async function uploadFiles(event: Event) {
   let uploaded = 0;
   const failed: string[] = [];
   for (const file of files) {
-    if (!hasPermission('system:attachment:upload')) return;
+    if (!hasPermission('system:admin-upload:upload')) return;
     try {
       const result = await uploadApi.upload(file, file.type.startsWith('image/') ? 'image' : 'file', uploadGroupId);
       uploaded++;
@@ -196,9 +196,9 @@ async function uploadFiles(event: Event) {
   await loadData();
 }
 async function renameOne(row: AttachmentModel) {
-  if (!hasPermission("system:attachment:edit")) return;
+  if (!hasPermission("system:attachment:rename")) return;
   const result = await ElMessageBox.prompt(t('systemAttachment.renamePrompt', '请输入新的文件名称'), t('systemAttachment.rename', '重命名'), { inputValue: row.originalName, inputPattern: /^.{1,255}$/, inputErrorMessage: t('systemAttachment.renameRule', '名称长度必须为 1 至 255 个字符') });
-  if (!hasPermission("system:attachment:edit")) return;
+  if (!hasPermission("system:attachment:rename")) return;
  await attachmentApi.rename(row.id, result.value.trim()); await loadData();
 }
 async function moveSelected() {

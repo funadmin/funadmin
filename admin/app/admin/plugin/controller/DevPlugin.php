@@ -13,6 +13,7 @@ use RuntimeException;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;
+use support\Log;
 use support\Response;
 use Throwable;
 
@@ -250,7 +251,7 @@ final class DevPlugin extends AdminController
             $conflict = str_contains($exception->getMessage(), '已存在');
             return $this->fail(msg: $exception->getMessage(), code: $conflict ? 409 : 422);
         } catch (Throwable $exception) {
-            trace('插件开发操作失败：' . $exception->getMessage(), 'error');
+            Log::error('插件开发操作失败：' . $exception->getMessage());
             return $this->fail(msg: '插件开发操作失败', code: 500);
         }
     }

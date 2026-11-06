@@ -16,11 +16,11 @@ vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [
 vi.mock('@/api/system/menu', () => ({ menuApi: menuChoices }));
 // 冲突与生成测试使用明确授权的设计人员，仍由公共判断验证真实动作码。
 const actor = vi.hoisted(() => ({ permissions: [
-  'development.business:module', 'development.business:saveschema',
-  'development.business:savepublishconfig', 'development.business:previewpublish',
-  'development.business:publish', 'development.business:previewformalgeneration',
-  'development.business:formalgeneration', 'development.business:generation',
-  'development:business:generate', 'development:business:apply-resources'
+  'development:business:module', 'development:business:save-schema',
+  'development:business:save-publish-config', 'development:business:preview-publish',
+  'development:business:publish', 'development:business:preview-formal-generation',
+  'development:business:formal-generation', 'development:business:generation',
+  'development:business:preview-formal-generation', 'development:business:formal-generation', 'development:business:generate', 'development:business:retry-resources', 'development:business:apply-resources'
 ] }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => actor }));
 vi.mock('../schema/pluginComponentLoader', () => ({ loadPluginFormComponents: async () => {} }));

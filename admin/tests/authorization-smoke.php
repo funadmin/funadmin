@@ -58,8 +58,8 @@ $fieldId = support\Db::table('permission_field')->insertGetId(['permission_id' =
 [$status, $department] = azCall('/admin/system/dept', 'POST', ['name' => '验收部门' . $suffix, 'parentId' => 0, 'status' => 1]);
 azAssert($department['code'] === 200, '创建部门');
 $deptId = $department['data']['id'];
-$listPermission = support\Db::table('permission')->where('code', 'systemrole:index')->value('id');
-$allPermission = support\Db::table('permission')->where('code', 'systemrole:all')->value('id');
+$listPermission = support\Db::table('permission')->where('code', 'authorization:role:index')->value('id');
+$allPermission = support\Db::table('permission')->where('code', 'authorization:role:all')->value('id');
 $grant = ['permissionIds' => [$permissionId, $listPermission, $allPermission], 'fieldPermissions' => [['fieldId' => $fieldId, 'view' => true, 'edit' => false]], 'dataScope' => 'custom', 'departmentIds' => [$deptId]];
 azAssert(azCall("/admin/system/role/$roleId/authorization", 'PUT', $grant)[1]['code'] === 200, '保存功能、字段和数据范围');
 [$status, $detail] = azCall("/admin/system/role/$roleId/authorization");

@@ -140,7 +140,8 @@ class ResourceRegistryService extends AbstractService
                 }
                 $segments = explode(':', $code);
                 $namespace = (string) array_shift($segments);
-                $act = strtolower(trim((string) ($item['act'] ?? (count($segments) > 1 ? array_pop($segments) : ''))));
+                $derivedAct = count($segments) > 1 ? (string) array_pop($segments) : '';
+                $act = strtolower(trim((string) ($item['act'] ?? $derivedAct)));
                 $derivedObj = implode('/', array_merge([$namespace], $segments));
                 $obj = strtolower(trim((string) ($item['obj'] ?? $derivedObj)));
                 $permissionType = strtolower(trim((string) ($item['permissionType'] ?? Permission::TYPE_CAPABILITY)));
@@ -153,6 +154,10 @@ class ResourceRegistryService extends AbstractService
                 }
                 if ($sourceType === 'plugin' && $namespace !== strtolower($sourceName)) {
                     throw new RuntimeException('插件权限 code 必须属于插件命名空间：' . $code);
+                }
+                // 授权按 obj/act 判定：插件权限的资源必须就是它自己的权限码，不能指向宿主或其它插件的接口资源。
+                if ($sourceType === 'plugin' && ($obj !== $derivedObj || $act !== $derivedAct)) {
+                    throw new RuntimeException('插件权限不能指定其它资源：' . $code);
                 }
                 $permission ??= new Permission();
                 $permission->forceFill([

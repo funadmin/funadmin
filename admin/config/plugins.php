@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'bundled' => ['market', 'example'],
+    'bundled' => ['example'],
     'admin_web_path' => getenv('PLUGIN_ADMIN_WEB_PATH') ?: dirname(base_path()) . '/web',
     'marketplace' => [
         'url' => getenv('PLUGIN_MARKETPLACE_URL') ?: '',

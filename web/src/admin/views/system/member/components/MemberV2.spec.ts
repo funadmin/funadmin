@@ -10,7 +10,7 @@ import { flattenSchemaNodes } from '@/views/form/schema/types';
 import { validateFormSchemaValues } from '@/views/form/validation/formSchemaDataValidator';
 
 const mocks = vi.hoisted(() => ({ plugins: vi.fn(async () => {}), options: vi.fn() }));
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:add'] }) }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:create'] }) }));
 vi.mock('@/views/form/schema/pluginComponentLoader', () => ({ loadPluginFormComponents: mocks.plugins }));
 vi.mock('@/api/formData', () => ({ formDataApi: { options: mocks.options } }));
 const php = process.env.PHP81_BINARY || process.env.PHP_BINARY || 'php';

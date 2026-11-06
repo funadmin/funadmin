@@ -7,7 +7,7 @@ const user = reactive({ permissions: [] as string[] });
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 const wrappers: ReturnType<typeof mount>[] = [];
 
-function render(required: string | string[] = 'system:user:edit', mode = '') {
+function render(required: string | string[] = 'authorization:admin:update', mode = '') {
   const component = defineComponent({
     data: () => ({ required, mode }),
     template: '<div><button v-perm:[mode]="required" style="display: inline-flex">修改</button></div>'
@@ -24,14 +24,14 @@ describe('公共按钮权限指令', () => {
   it('无权限时隐藏按钮，后续授予时恢复按钮及其原有显示方式', async () => {
     const wrapper = render();
     expect(wrapper.find('button').exists() && wrapper.get('button').isVisible()).toBe(false);
-    user.permissions = ['system:user:edit'];
+    user.permissions = ['authorization:admin:update'];
     await nextTick();
     expect(wrapper.get('button').isVisible()).toBe(true);
     expect(wrapper.get('button').element.style.display).toBe('inline-flex');
   });
 
   it('撤销权限时不依赖父组件重新渲染即可隐藏按钮', async () => {
-    user.permissions = ['system:user:edit'];
+    user.permissions = ['authorization:admin:update'];
     const wrapper = render();
     expect(wrapper.get('button').isVisible()).toBe(true);
     user.permissions = [];
@@ -53,7 +53,7 @@ describe('公共按钮权限指令', () => {
   });
 
   it('卸载后释放监听，不再更新已卸载元素', async () => {
-    user.permissions = ['system:user:edit'];
+    user.permissions = ['authorization:admin:update'];
     const wrapper = render();
     const button = wrapper.get('button').element;
     wrapper.unmount();

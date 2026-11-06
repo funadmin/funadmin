@@ -548,7 +548,7 @@ final class PluginInfrastructureService
         foreach ($named as $permission) {
             $names[(string) $permission['code']] = (string) ($permission['name'] ?? $permission['code']);
         }
-        (new \app\admin\authorization\service\PermissionSyncService())->sync($code, $names, $this->appPath());
+        (new \app\admin\authorization\service\PermissionSyncService())->sync($code, $names, $this->appPath(), true);
     }
 
     private function appPath(): ?string

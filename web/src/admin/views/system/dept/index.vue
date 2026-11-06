@@ -16,14 +16,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:dept:add'" @click="onAdd()">
+        <el-button type="primary" plain v-perm="'authorization:department:create'" @click="onAdd()">
           <i class="i-ep-plus" /> {{ t('systemDept.add') }}
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'system:dept:delete'"
+          v-perm="'authorization:department:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete mr-1" />
@@ -76,13 +76,13 @@
           <el-table-column :label="t('systemDept.colActions')" width="280" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button size="small" type="primary" link v-perm="'system:dept:add'" @click="onAdd(row as DeptModel)">
+                <el-button size="small" type="primary" link v-perm="'authorization:department:create'" @click="onAdd(row as DeptModel)">
                   <i class="i-ep-plus" /> {{ t('systemDept.addChild') }}
                 </el-button>
-                <el-button size="small" type="primary" link v-perm="'system:dept:edit'" @click="onEdit(row as DeptModel)">
+                <el-button size="small" type="primary" link v-perm="'authorization:department:update'" @click="onEdit(row as DeptModel)">
                   <i class="i-ep-edit" /> {{ t('systemDept.edit') }}
                 </el-button>
-                <el-button size="small" type="danger" link v-perm="'system:dept:delete'" @click="onDelete(row as DeptModel)">
+                <el-button size="small" type="danger" link v-perm="'authorization:department:delete'" @click="onDelete(row as DeptModel)">
                   <i class="i-ep-delete" /> {{ t('systemDept.delete') }}
                 </el-button>
               </div>
@@ -165,21 +165,21 @@ async function loadData() {
 }
 
 function onAdd(parent?: DeptModel) {
-  if (!hasPermission('system:dept:add')) return;
+  if (!hasPermission('authorization:department:create')) return;
   current.value = null;
   defaultParentId.value = parent?.id || 0;
   dialogVisible.value = true;
 }
 
 function onEdit(row: DeptModel) {
-  if (!hasPermission('system:dept:edit')) return;
+  if (!hasPermission('authorization:department:update')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: DeptModel) {
-  if (!hasPermission("system:dept:delete")) return;
+  if (!hasPermission("authorization:department:delete")) return;
   if (row.children?.length) {
     ElMessage.warning(t('systemDept.hasChildrenWarn'));
     return;
@@ -187,7 +187,7 @@ async function onDelete(row: DeptModel) {
   await ElMessageBox.confirm(t('systemDept.deleteConfirm', { name: row.name }), t('layout.tip'), {
     type: 'warning'
   });
-  if (!hasPermission("system:dept:delete")) return;
+  if (!hasPermission("authorization:department:delete")) return;
  await deptApi.remove(row.id);
   loadData();
 }
@@ -200,7 +200,7 @@ function onSelectionChange(rows: DeptModel[]) {
  * 树形批量删除：去除「已被选中父节点的子节点」，避免后端级联+前端重复删
  */
 async function onBatchDelete() {
-  if (!hasPermission("system:dept:delete")) return;
+  if (!hasPermission("authorization:department:delete")) return;
   if (!selection.value.length) {
     ElMessage.warning(t('systemDept.selectAtLeastOne'));
     return;
@@ -225,7 +225,7 @@ async function onBatchDelete() {
     t('layout.tip'),
     { type: 'warning' }
   );
-  if (!hasPermission("system:dept:delete")) return;
+  if (!hasPermission("authorization:department:delete")) return;
  await deptApi.removeMany(topIds);
   loadData();
 }

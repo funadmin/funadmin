@@ -14,31 +14,12 @@ describe('会员注册默认分组契约', () => {
     const result = backendJson(String.raw`
       (new \app\common\service\database\MigrationService())->run();
       \support\Cache::$instances[config('cache.default')] = new \Symfony\Component\Cache\Psr16Cache(new \Symfony\Component\Cache\Adapter\ArrayAdapter());
-      // The SQLite admin fixture is intentionally minimal; add the market account/identity columns
+      // The SQLite admin fixture is intentionally minimal; add the member account columns
       // used by the real registration path, matching admin/tests/MemberIntegrationTest.php.
       \support\Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void {
           foreach (['nickname', 'motto', 'real_name'] as $field) $table->string($field)->default('');
           $table->integer('birthday')->default(0); $table->integer('scores')->default(0);
       });
-      foreach (['identity_user', 'identity_member_link', 'identity_credential', 'identity_audit_log'] as $name) {
-          \support\Db::schema()->create($name, static function (\Illuminate\Database\Schema\Blueprint $table) use ($name): void {
-              $table->id(); $table->integer('tenant_id'); $table->timestamps();
-              if ($name === 'identity_user') {
-                  foreach (['public_id', 'realm', 'username', 'display_name', 'email', 'mobile', 'avatar', 'locale', 'last_login_at'] as $field) $table->string($field)->nullable();
-                  $table->integer('source_id'); $table->integer('status')->default(1);
-                  $table->integer('password_version')->default(1); $table->integer('session_version')->default(1);
-              }
-              if ($name === 'identity_member_link') { $table->integer('user_id'); $table->integer('member_id'); }
-              if ($name === 'identity_credential') {
-                  $table->integer('user_id'); $table->string('type'); $table->string('secret_hash');
-                  $table->integer('status'); $table->softDeletes();
-              }
-              if ($name === 'identity_audit_log') {
-                  $table->integer('user_id')->nullable(); $table->integer('client_id')->nullable();
-                  foreach (['event_type', 'outcome', 'subject_hash', 'ip_hash', 'context'] as $field) $table->text($field)->nullable();
-              }
-          });
-      }
       \support\Db::table('member_group')->update(['status' => 0]);
       foreach ([
           [9001, 'disabled', 0, null], [9002, 'deleted', 1, date('Y-m-d H:i:s')],
@@ -47,11 +28,11 @@ describe('会员注册默认分组契约', () => {
           \support\Db::table('member_group')->insert(['id' => $id, 'name' => $name, 'status' => $status, 'deleted_at' => $deletedAt]);
       }
       $level = (int) \support\Db::table('member_level')->where('status', 1)->whereNull('deleted_at')->orderBy('id')->value('id');
-      $request = new \support\Request("POST /market/api/v3/auth/register HTTP/1.1\r\n\r\n");
+      $request = new \support\Request("POST /api/v3/auth/register HTTP/1.1\r\n\r\n");
       $request->connection = (new ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
       $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
       \support\Context::set(\Webman\Http\Request::class, $request);
-      $service = new \app\market\service\MarketAccountService();
+      $service = new \app\common\service\member\MemberAccountService();
       $id = $service->register([
           'username' => 'contractbuyer', 'email' => 'contract-buyer@example.com',
           'password' => 'contract-password-123', 'password_confirm' => 'contract-password-123',
@@ -63,14 +44,14 @@ describe('会员注册默认分组契约', () => {
           'groupIds' => \support\Db::table('member_group_relation')->where('member_id', $id)->pluck('group_id')->map('intval')->all(),
           'levelId' => (int) $member->level_id, 'defaultLevelId' => $level,
           'status' => (int) $member->status, 'scores' => (int) $member->scores,
-          'identityLinks' => \support\Db::table('identity_member_link')->where('member_id', $id)->count(),
+          'identityTable' => \support\Db::schema()->hasTable('identity_member_link'),
           'authenticated' => $service::currentId() === $id,
       ], JSON_THROW_ON_ERROR);
       $service->logout();
     `);
     expect(result).toMatchObject({
       retiredModelRegistration: false, groupIds: [9003], status: 1, scores: 0,
-      identityLinks: 1, authenticated: true
+      identityTable: false, authenticated: true
     });
     const levels = result as { levelId: number; defaultLevelId: number };
     expect(levels.defaultLevelId).toBeGreaterThan(0);

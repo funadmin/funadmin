@@ -24,8 +24,11 @@ use support\Response;
 
 final class AdminAuthAnnotationProbe extends AdminController
 {
-    #[Permission('systemadmin:index')]
+    #[Permission('authorization:admin:index')]
     public function guarded(): Response { return $this->ok(); }
+
+    #[Permission('borrowfix:item:view')]
+    public function borrowed(): Response { return $this->ok(); }
 
     #[NoNeedLogin]
     public function open(): Response { return $this->ok(data: ['admin' => $this->request->context['admin'] ?? null]); }
@@ -54,8 +57,8 @@ final class AdminAuthAnnotationTest extends TestCase
             ['id' => 3, 'username' => 'annotation_nobody', 'password' => password_hash('annotation-nobody-pass', PASSWORD_DEFAULT), 'status' => 1],
         ]);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '管理员只读', 'code' => 'annotation_reader', 'level' => 10, 'data_scope' => 'self', 'status' => 1]);
-        $permissionIds = Db::table('permission')->where('code', 'systemadmin:index')->pluck('id')->all();
-        self::assertNotEmpty($permissionIds, '基线必须含 systemadmin:index');
+        $permissionIds = Db::table('permission')->where('code', 'authorization:admin:index')->pluck('id')->all();
+        self::assertNotEmpty($permissionIds, '基线必须含 authorization:admin:index');
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $this->root = $this->login('annotation_root', 'annotation-root-pass');
@@ -104,6 +107,15 @@ final class AdminAuthAnnotationTest extends TestCase
         self::assertSame(200, $this->dispatch('guarded', $this->reader)->getStatusCode(), '持有注解权限码放行');
         self::assertSame(403, $this->dispatch('guarded', $nobody)->getStatusCode(), '无权限 403');
         self::assertSame(200, $this->dispatch('guarded', $this->root)->getStatusCode(), '超级管理员放行');
+    }
+
+    public function test_host_annotation_cannot_borrow_a_plugin_permission_code(): void
+    {
+        $id = Db::table('permission')->insertGetId(['app_name' => 'admin', 'code' => 'borrowfix:item:view', 'obj' => 'borrowfix/item', 'act' => 'view', 'name' => '插件权限',
+            'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'plugin', 'source_name' => 'borrowfix']);
+        (new CasbinService())->syncRolePermissions(2, array_merge(Db::table('permission')->where('code', 'authorization:admin:index')->pluck('id')->all(), [$id]));
+        $reader = $this->login('annotation_reader', 'annotation-reader-pass');
+        self::assertSame(403, $this->dispatch('borrowed', $reader)->getStatusCode(), '宿主方法不能用注解借用插件的权限码');
     }
 
     public function test_no_need_permission_only_requires_login(): void

@@ -181,17 +181,17 @@ final class AuthorizationIntegrationTest extends TestCase
         self::assertFalse($detail['fields'][0]['edit']);
     }
 
-    public function test_login_permissions_include_frontend_aliases_without_granting_other_actions(): void
+    public function test_login_permissions_are_exactly_the_granted_codes(): void
     {
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
         Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => 'hidden', 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '角色列表', 'code' => 'systemrole:index', 'obj' => 'admin/systemrole', 'act' => 'index', 'resource_type' => 'route', 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '角色列表', 'code' => 'authorization:role:index', 'obj' => 'authorization/role', 'act' => 'index', 'resource_type' => 'route', 'status' => 1]);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$role->id]);
         $casbin->syncRolePermissions($role->id, [10]);
         $info = (new AuthorizationService())->userInfo(['id' => 2]);
-        self::assertContains('system:role:list', $info['permissions']);
-        self::assertNotContains('system:role:edit', $info['permissions']);
+        // 前后端同码：只返回被授予的推导码，不再派生前端别名，也不隐含其它方法。
+        self::assertSame(['authorization:role:index'], $info['permissions']);
     }
 
     public function test_menu_validation_rejects_reserved_routes_and_names(): void
@@ -462,7 +462,7 @@ final class AuthorizationIntegrationTest extends TestCase
     public function test_request_authorization_uses_matched_resource_and_live_identity(): void
     {
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '查看角色', 'code' => 'systemrole:index', 'obj' => 'admin/systemrole', 'act' => 'index', 'resource_type' => 'route']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '查看角色', 'code' => 'authorization:role:index', 'obj' => 'authorization/role', 'act' => 'index', 'resource_type' => 'route']);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$role->id]);
         $casbin->syncRolePermissions($role->id, [10]);

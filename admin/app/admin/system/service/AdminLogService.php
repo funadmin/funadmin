@@ -37,7 +37,9 @@ class AdminLogService extends AbstractService
         $controller = substr($resource['obj'], strlen($appName) + 1);
         $action = $resource['act'];
         $url = $request->path();
-        $title = (string) (Permission::where('code', $resource['code'])->value('name') ?: '');
+        // 日志标题取该方法权限的名称（权限码按控制器方法推导）。
+        $derived = \app\admin\authorization\service\PermissionCode::derive((string) ($request->controller ?? ''), (string) ($request->action ?? ''));
+        $title = (string) (($derived === null ? null : Permission::where('code', $derived)->value('name')) ?: '');
         if ($title === '') {
             $title = $controller . '/' . $action;
         }

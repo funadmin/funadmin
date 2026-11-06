@@ -215,7 +215,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const loading = ref(false);
-const canUpload = computed(() => !props.disabled && hasPermission('system:attachment:upload'));
+const canUpload = computed(() => !props.disabled && hasPermission('system:admin-upload:upload'));
 
 /* ---------- 单图 ---------- */
 const previewUrl = computed(() =>

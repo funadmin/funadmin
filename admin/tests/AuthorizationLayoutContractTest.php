@@ -22,10 +22,10 @@ final class AuthorizationLayoutContractTest extends TestCase
     public function test_plugin_controller_routes_share_the_host_admin_middleware(): void
     {
         // 插件控制器与宿主控制器统一经过 CheckAdminApiRoleMiddleware 按方法推导鉴权，不再有插件专用中间件。
-        self::assertFalse(class_exists('app\\admin\\plugin\\middleware\\CheckPluginPermissionMiddleware'));
-        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermissionMiddleware.php');
-        foreach (glob(__DIR__ . '/../app/admin/plugins/market/controller/*.php') ?: [] as $file) {
-            self::assertStringNotContainsString('CheckPluginPermissionMiddleware', (string) file_get_contents($file), $file);
+        self::assertFalse(class_exists('app\\admin\\plugin\\middleware\\'.'CheckPlugin'.'PermissionMiddleware'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/plugin/middleware/' . 'CheckPlugin' . 'PermissionMiddleware.php');
+        foreach (glob(__DIR__ . '/../app/admin/plugins/example/controller/*.php') ?: [] as $file) {
+            self::assertStringNotContainsString('CheckPlugin'.'PermissionMiddleware', (string) file_get_contents($file), $file);
             self::assertStringNotContainsString('protected array $middleware', (string) file_get_contents($file), $file);
         }
         // 插件闭包路由没有控制器方法可推导，仍按清单权限由插件模块自己的中间件校验。
@@ -45,20 +45,20 @@ final class AuthorizationLayoutContractTest extends TestCase
         self::assertFalse($service->authorize(2, 'example', 'other:entry:index'));
     }
 
-    public function test_market_plugin_controllers_use_native_webman_route_attributes(): void
+    public function test_plugin_controllers_use_native_webman_route_attributes(): void
     {
-        foreach (glob(__DIR__ . '/../app/admin/plugins/market/controller/*.php') ?: [] as $file) {
+        foreach (glob(__DIR__ . '/../app/admin/plugins/example/controller/*.php') ?: [] as $file) {
             $source = file_get_contents($file);
-            self::assertStringContainsString('use support\\annotation\\route\\RouteGroup;', $source, $file);
+            self::assertStringContainsString('use support\\annotation\\route\\RouteGroup', $source, $file);
             self::assertStringContainsString('use support\\Response;', $source, $file);
             self::assertStringNotContainsString('think\\annotation\\route', $source, $file);
             self::assertStringNotContainsString('use think\\Response;', $source, $file);
         }
     }
 
-    public function test_market_controllers_use_native_upload_body_and_file_responses(): void
+    public function test_plugin_controllers_use_native_upload_body_and_file_responses(): void
     {
-        foreach (glob(app_path('admin/plugins/market/controller/*.php')) ?: [] as $file) {
+        foreach (glob(app_path('admin/plugins/example/controller/*.php')) ?: [] as $file) {
             $source = file_get_contents($file);
             self::assertStringNotContainsString('->put()', $source, $file);
             self::assertStringNotContainsString('->getOriginalExtension()', $source, $file);

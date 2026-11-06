@@ -65,20 +65,23 @@ final class CoreSeedPlanTest extends TestCase
         self::assertNotEmpty(CoreSeedPlan::build(['dict_item' => [['id' => 1, 'type_id' => 99, 'value' => 'x']]], [])['blockers']);
     }
 
-    public function test_tenant_scope_and_geography_parent_ids_remap_without_using_seed_primary_keys(): void
+    public function test_geography_parent_ids_remap_without_using_seed_primary_keys(): void
     {
-        $reference = [
-            'identity_tenant' => [['id' => 1, 'code' => 'default', 'public_id' => 'fixture-public', 'name' => '默认租户']],
-            'scope' => [['id' => 2, 'tenant_id' => 1, 'name' => 'openid']],
-            'region' => [['id' => 1, 'pid' => 0, 'name' => '甲', 'area_code' => '100'], ['id' => 2, 'pid' => 1, 'name' => '乙', 'area_code' => '101']],
-        ];
-        $actual = ['identity_tenant' => [['id' => 50, 'code' => 'default', 'public_id' => 'existing-public']], 'region' => [['id' => 80, 'pid' => 0, 'name' => '甲', 'area_code' => '100']]];
+        $reference = ['region' => [['id' => 1, 'pid' => 0, 'name' => '甲', 'area_code' => '100'], ['id' => 2, 'pid' => 1, 'name' => '乙', 'area_code' => '101']]];
+        $actual = ['region' => [['id' => 80, 'pid' => 0, 'name' => '甲', 'area_code' => '100']]];
         $plan = CoreSeedPlan::build($reference, $actual);
         self::assertSame([], $plan['blockers']);
         $inserts = array_column($plan['inserts'], 'values', 'table');
-        self::assertSame(50, $inserts['scope']['tenant_id']);
         self::assertSame(80, $inserts['region']['pid']);
         self::assertArrayNotHasKey('id', $inserts['region']);
+    }
+
+    public function test_retired_identity_tables_are_never_seed_import_targets(): void
+    {
+        $reference = ['identity_tenant' => [['id' => 1, 'code' => 'default', 'public_id' => 'fixture-public']], 'scope' => [['id' => 2, 'tenant_id' => 1, 'name' => 'openid']]];
+        $plan = CoreSeedPlan::build($reference, []);
+        self::assertSame([], $plan['inserts']);
+        self::assertSame([], $plan['blockers']);
     }
 
     public function test_matching_deleted_record_is_not_revived_and_permission_code_conflict_is_blocked(): void
@@ -99,13 +102,6 @@ final class CoreSeedPlanTest extends TestCase
         $plan = CoreSeedPlan::build($reference, []);
         self::assertSame(0, $plan['inserts'][0]['values']['is_public'], '导入资源不代表授予匿名或所有角色权限');
         self::assertSame([], $plan['updates']);
-    }
-
-    public function test_existing_scope_public_id_collision_is_not_silently_accepted(): void
-    {
-        $reference = ['identity_tenant' => [['id' => 1, 'code' => 'default', 'public_id' => 'same-public']]];
-        $actual = ['identity_tenant' => [['id' => 8, 'code' => 'customer', 'public_id' => 'same-public']]];
-        self::assertNotEmpty(CoreSeedPlan::build($reference, $actual)['blockers']);
     }
 
     public function test_same_core_component_matches_renamed_menu_without_creating_duplicate_or_touching_plugin(): void

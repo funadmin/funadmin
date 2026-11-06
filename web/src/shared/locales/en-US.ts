@@ -14,14 +14,12 @@ import table from './en-US/table';
 import formDesigner from './en-US/formDesigner';
 import formData from './en-US/formData';
 import systemDept from './en-US/systemDept';
-import enterpriseApplications from './en-US/enterpriseApplications';
 import business from './en-US/business';
 import login from './en-US/login';
 import systemRole from './en-US/systemRole';
 import install from './en-US/install';
 import profile from './en-US/profile';
 import dashboard from './en-US/dashboard';
-import applications from './en-US/applications';
 import errorPage from './en-US/errorPage';
 import systemBlacklist from './en-US/systemBlacklist';
 import systemConfig from './en-US/systemConfig';
@@ -55,14 +53,12 @@ export default {
   formDesigner: formDesigner,
   formData: formData,
   systemDept: systemDept,
-  enterpriseApplications: enterpriseApplications,
   business: business,
   login: login,
   systemRole: systemRole,
   install: install,
   profile: profile,
   dashboard: dashboard,
-  applications: applications,
   errorPage: errorPage,
   systemBlacklist: systemBlacklist,
   systemConfig: systemConfig,

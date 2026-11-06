@@ -227,7 +227,8 @@ final class ManifestMerger
                 return (string) $definition->get('permissionPrefix') . ':' . $action['codeSuffix'];
             }
         }
-        return (string) $definition->get('permissionPrefix') . ':list';
+        // 列表方法为 index，其推导码即菜单权限（插件 CRUD 的权限码由控制器方法推导）。
+        return (string) $definition->get('permissionPrefix') . ':index';
     }
 
     private function encode(array $data): string

@@ -51,7 +51,7 @@ final class ConfigHttpTest extends TestCase
             'data_scope' => 'self',
             'status' => 1,
         ]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['systemconfig:index', 'systemconfig:options'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['system:config:index', 'system:config:options'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService();

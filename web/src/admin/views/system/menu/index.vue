@@ -22,14 +22,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'systemmenu:create'" @click="onAdd()">
+        <el-button type="primary" plain v-perm="'authorization:menu:create'" @click="onAdd()">
           <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'systemmenu:delete'"
+          v-perm="'authorization:menu:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
@@ -90,7 +90,7 @@
           <el-table-column prop="sort" :label="t('systemMenu.sort', '排序')" width="100" align="center">
             <template #default="{ row }">
               <InlineEdit
-                v-if="!row.readOnly && hasPermission('systemmenu:update')"
+                v-if="!row.readOnly && hasPermission('authorization:menu:update')"
                 :model-value="row.sort"
                 type="number"
                 :min="0"
@@ -104,16 +104,16 @@
           <el-table-column :label="t('common.operation', '操作')" width="320" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:create'" @click="onAdd(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'authorization:menu:create'" @click="onAdd(row as API.MenuItem)">
                   {{ t('systemMenu.addChild', '新增子项') }}
                 </el-button>
-                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'systemmenu:update'" @click="onEdit(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="primary" link v-perm="'authorization:menu:update'" @click="onEdit(row as API.MenuItem)">
                   {{ t('common.edit', '编辑') }}
                 </el-button>
-                <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
+                <el-button v-if="!row.readOnly" size="small" type="danger" link v-perm="'authorization:menu:delete'" @click="onDelete(row as API.MenuItem)">
                   {{ t('common.remove', '删除') }}
                 </el-button>
-                <el-button v-else-if="row.orphaned && row.removable" size="small" type="danger" link v-perm="'systemmenu:delete'" @click="onDelete(row as API.MenuItem)">
+                <el-button v-else-if="row.orphaned && row.removable" size="small" type="danger" link v-perm="'authorization:menu:delete'" @click="onDelete(row as API.MenuItem)">
                   {{ t('systemMenu.cleanOrphan', '清理孤儿资源') }}
                 </el-button>
               </div>
@@ -183,7 +183,7 @@ const displayTree = computed(() =>
 /** 筛选或折叠时 DOM 与整树不一致，禁用拖拽避免错乱 */
 const dragEnabled = computed(
   () =>
-    hasPermission('systemmenu:update') &&
+    hasPermission('authorization:menu:update') &&
     !query.name?.trim() &&
     !query.path?.trim() &&
     query.hidden === undefined &&
@@ -214,12 +214,12 @@ function destroyMenuRowSortable() {
 }
 
 async function saveSort(row: API.MenuItem, sort: number) {
-  if (!hasPermission('systemmenu:update')) throw new Error(t('common.noPermission', '没有操作权限'));
+  if (!hasPermission('authorization:menu:update')) throw new Error(t('common.noPermission', '没有操作权限'));
   return menuApi.update(row.id, { sort });
 }
 
 async function onMenuRowSortEnd() {
-  if (!hasPermission("systemmenu:update")) return;
+  if (!hasPermission("authorization:menu:update")) return;
   if (!dragEnabled.value) return;
   const map = menuNodeMap();
   const tbody = getMenuTbody();
@@ -329,7 +329,7 @@ function typeText(type: API.MenuItem['type']) {
 }
 
 function onAdd(parent?: API.MenuItem) {
-  if (!hasPermission('systemmenu:create')) return;
+  if (!hasPermission('authorization:menu:create')) return;
   if (parent?.readOnly) return;
   current.value = null;
   defaultParentId.value = parent?.id || 0;
@@ -337,20 +337,20 @@ function onAdd(parent?: API.MenuItem) {
 }
 
 function onEdit(row: API.MenuItem) {
-  if (!hasPermission('systemmenu:update')) return;
+  if (!hasPermission('authorization:menu:update')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: API.MenuItem) {
-  if (!hasPermission("systemmenu:delete")) return;
+  if (!hasPermission("authorization:menu:delete")) return;
   const orphaned = row.orphaned && row.sourceType === 'generated';
   const message = orphaned
     ? t('systemMenu.deleteOrphanConfirm', { name: row.name }, { default: '确认清理孤儿资源 {name}？同一生成来源的菜单、权限与授权规则将一并删除。' })
     : t('systemMenu.deleteConfirm', { name: row.name }, { default: '确认删除 {name} ?' });
   await ElMessageBox.confirm(message, orphaned ? t('systemMenu.cleanOrphan', '清理孤儿资源') : t('common.tip', '提示'), { type: 'warning' });
-  if (!hasPermission("systemmenu:delete")) return;
+  if (!hasPermission("authorization:menu:delete")) return;
  await menuApi.remove(row.id);
   await loadData();
 }
@@ -365,7 +365,7 @@ function onSelectionChange(rows: API.MenuItem[]) {
  *      如果祖先链上任一节点已在 set 中，说明此节点是「冗余子节点」，跳过。
  */
 async function onBatchDelete() {
-  if (!hasPermission("systemmenu:delete")) return;
+  if (!hasPermission("authorization:menu:delete")) return;
   if (!selection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -392,7 +392,7 @@ async function onBatchDelete() {
     { type: 'warning' }
   );
 
-  if (!hasPermission("systemmenu:delete")) return;
+  if (!hasPermission("authorization:menu:delete")) return;
  await menuApi.removeMany(topIds);
   loadData();
 }

@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Tests\Console;
 
 use app\admin\ai\model\AiTask;
-use app\common\model\identity\IdentityTenant;
-use app\common\model\identity\OAuthToken;
 use app\common\service\AbstractService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;
@@ -127,7 +124,7 @@ PHP;
         foreach (['login', 'reg', 'sendEmail'] as $method) {
             self::assertFalse(method_exists(\app\common\model\Member::class, $method));
         }
-        self::assertTrue(method_exists(\app\market\service\MarketAccountService::class, 'register'));
+        self::assertTrue(method_exists(\app\common\service\member\MemberAccountService::class, 'register'));
         self::assertTrue(method_exists(\app\common\service\member\MemberAuthService::class, 'authenticate'));
     }
 
@@ -136,16 +133,6 @@ PHP;
         $service = ConsoleFoundationService::instance(label: 'console');
         self::assertInstanceOf(ConsoleFoundationService::class, $service);
         self::assertSame('console', $service->label);
-    }
-
-    public function test_tenant_queries_use_eloquent_and_reject_invalid_tenants(): void
-    {
-        self::assertInstanceOf(Builder::class, IdentityTenant::forTenant(7));
-        self::assertInstanceOf(Builder::class, OAuthToken::forTenant(7));
-        self::assertSame([7], OAuthToken::forTenant(7)->getBindings());
-        self::assertStringContainsString('tenant_id', OAuthToken::forTenant(7)->toSql());
-        $this->expectException(\InvalidArgumentException::class);
-        OAuthToken::forTenant(0);
     }
 
     public function test_models_use_connection_prefix_without_changing_logical_tables(): void
@@ -157,7 +144,7 @@ PHP;
         try {
             foreach (['fun_', 'custom_', ''] as $prefix) {
                 $connection->setTablePrefix($prefix);
-                foreach ([AiTask::class => 'ai_task', OAuthToken::class => 'oauth_token', IdentityTenant::class => 'identity_tenant'] as $class => $table) {
+                foreach ([AiTask::class => 'ai_task', \app\common\model\Member::class => 'member', \app\admin\authorization\model\Permission::class => 'permission'] as $class => $table) {
                     $model = new $class();
                     self::assertSame($table, $model->getTable());
                     self::assertStringContainsString('"' . $prefix . $table . '"', $model->newQuery()->toSql());

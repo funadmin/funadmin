@@ -116,9 +116,9 @@ describe('BusinessVisual', () => {
   });
 
   it.each([
-    ['仅检查', ['development.business:inspectdatabase'], true, false, false],
-    ['仅创建', ['development.business:createvisual'], false, true, false],
-    ['仅采纳', ['development.business:createfromdatabase'], false, false, true],
+    ['仅检查', ['development:business:inspect-database'], true, false, false],
+    ['仅创建', ['development:business:create-visual'], false, true, false],
+    ['仅采纳', ['development:business:create-from-database'], false, false, true],
     ['只有合并别名', ['development:business:save', 'development:business:inspect'], false, false, false],
     ['无权限', [], false, false, false]
   ] as const)('%s 不从合并别名扩大独立动作权限', async (_label, permissions, inspect, create, adopt) => {

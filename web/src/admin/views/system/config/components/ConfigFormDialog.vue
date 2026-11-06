@@ -66,7 +66,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:config:edit' : 'system:config:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:config:update' : 'system:config:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -157,11 +157,11 @@ function onTypeChange() {
   if (form.type === 'switch' && !['0', '1'].includes(form.value)) form.value = '0';
 }
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:config:edit' : 'system:config:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:config:update' : 'system:config:create')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    if (!hasPermission(props.row?.id ? 'system:config:edit' : 'system:config:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:config:update' : 'system:config:create')) return;
     if (props.row?.id) await configApi.update(props.row.id, form);
     else await configApi.create(form);
     visible.value = false;

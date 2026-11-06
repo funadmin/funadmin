@@ -95,9 +95,11 @@ final class DepartmentHttpTest extends TestCase
         Db::table('admin')->where('id', 2)->update(['dept_id' => $root]);
         Db::table('auth_group')->insert(['id' => 2, 'code' => 'dept_reader', 'name' => '部门管理', 'data_scope' => 'dept']);
         $this->rule('g', ['admin:2', 'role:2', 'default']);
-        foreach (['tree', 'detail', 'create', 'update', 'delete', 'deletebyid'] as $action) {
-            Db::table('permission')->insert(['code' => 'systemdepartment:' . $action, 'obj' => 'admin/systemdepartment', 'act' => $action, 'name' => '部门']);
-            $this->rule('p', ['role:2', 'default', 'admin/systemdepartment', $action]);
+        foreach (['tree', 'detail', 'create', 'update', 'delete', 'deleteById'] as $action) {
+            $code = \app\admin\authorization\service\PermissionCode::derive(\app\admin\authorization\controller\SystemDepartment::class, $action);
+            ['obj' => $obj, 'act' => $act] = \app\admin\authorization\service\PermissionCode::resource($code);
+            Db::table('permission')->insert(['code' => $code, 'obj' => $obj, 'act' => $act, 'name' => '部门']);
+            $this->rule('p', ['role:2', 'default', $obj, $act]);
         }
         $auth = new BrowserAuthService();
         $anonymous = $auth->bootstrap('');

@@ -27,14 +27,14 @@
           </template>
 
           <template #toolbar-left>
-            <el-button type="primary" plain v-perm="'system:dict:add'" @click="onAddType">
+            <el-button type="primary" plain v-perm="'system:dict:create-type'" @click="onAddType">
               <i class="i-ep-plus" /> {{ t('systemDict.addType', '新增分类') }}
             </el-button>
             <el-button
               type="danger"
               plain
               :disabled="!typeSelection.length"
-              v-perm="'system:dict:delete'"
+              v-perm="'system:dict:delete-types'"
               @click="onBatchDeleteType"
             >
               <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ typeSelection.length ? `(${typeSelection.length})` : '' }}
@@ -68,10 +68,10 @@
               <el-table-column :label="t('common.operation', '操作')" width="120" align="center" fixed="right">
                 <template #default="{ row }">
                   <div class="app-table-actions app-table-actions--link">
-                    <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click.stop="onEditType(row as DictType)">
+                    <el-button size="small" type="primary" link v-perm="'system:dict:update-type'" @click.stop="onEditType(row as DictType)">
                       {{ t('common.edit', '编辑') }}
                     </el-button>
-                    <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click.stop="onDeleteType(row as DictType)">
+                    <el-button size="small" type="danger" link v-perm="'system:dict:delete-type'" @click.stop="onDeleteType(row as DictType)">
                       {{ t('common.remove', '删除') }}
                     </el-button>
                   </div>
@@ -126,14 +126,14 @@
                 {{ t('systemDict.currentType', '当前分类：') }}<b>{{ currentType.name }}</b>
                 <code class="dict-current__code">{{ currentType.code }}</code>
               </span>
-              <el-button type="primary" plain v-perm="'system:dict:add'" @click="onAddItem">
+              <el-button type="primary" plain v-perm="'system:dict:create-item'" @click="onAddItem">
                 <i class="i-ep-plus" /> {{ t('systemDict.addItem', '新增字典项') }}
               </el-button>
               <el-button
                 type="danger"
                 plain
                 :disabled="!itemSelection.length"
-                v-perm="'system:dict:delete'"
+                v-perm="'system:dict:delete-items'"
                 @click="onBatchDeleteItem"
               >
                 <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ itemSelection.length ? `(${itemSelection.length})` : '' }}
@@ -175,10 +175,10 @@
                 <el-table-column :label="t('common.operation', '操作')" width="180" align="center" fixed="right">
                   <template #default="{ row }">
                     <div class="app-table-actions app-table-actions--link">
-                      <el-button size="small" type="primary" link v-perm="'system:dict:edit'" @click="onEditItem(row as DictItemModel)">
+                      <el-button size="small" type="primary" link v-perm="'system:dict:update-item'" @click="onEditItem(row as DictItemModel)">
                         {{ t('common.edit', '编辑') }}
                       </el-button>
-                      <el-button size="small" type="danger" link v-perm="'system:dict:delete'" @click="onDeleteItem(row as DictItemModel)">
+                      <el-button size="small" type="danger" link v-perm="'system:dict:delete-item'" @click="onDeleteItem(row as DictItemModel)">
                         {{ t('common.remove', '删除') }}
                       </el-button>
                     </div>
@@ -274,30 +274,30 @@ function onResetType() {
 }
 
 function onAddType() {
-  if (!hasPermission('system:dict:add')) return;
+  if (!hasPermission('system:dict:create-type')) return;
   currentEditType.value = null;
   typeDialogVisible.value = true;
 }
 
 function onEditType(row: DictType) {
-  if (!hasPermission('system:dict:edit')) return;
+  if (!hasPermission('system:dict:update-type')) return;
   currentEditType.value = row;
   typeDialogVisible.value = true;
 }
 
 async function onDeleteType(row: DictType) {
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-type')) return;
   await ElMessageBox.confirm(t('systemDict.deleteTypeConfirm', { name: row.name }, { default: '确认删除分类「{name}」？请先清空分类下的字典项' }), t('common.tip', '提示'), {
     type: 'warning'
   });
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-type')) return;
  await dictTypeApi.remove(row.id);
   if (currentType.value?.id === row.id) currentType.value = null;
   reloadTypes();
 }
 
 async function onBatchDeleteType() {
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-types')) return;
   if (!typeSelection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -308,7 +308,7 @@ async function onBatchDeleteType() {
     { type: 'warning' }
   );
   const ids = typeSelection.value.map((r) => r.id);
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-types')) return;
  await dictTypeApi.removeMany(ids);
   if (currentType.value && ids.includes(currentType.value.id)) currentType.value = null;
   typeSelection.value = [];
@@ -377,7 +377,7 @@ function onResetItem() {
 }
 
 function onAddItem() {
-  if (!hasPermission('system:dict:add')) return;
+  if (!hasPermission('system:dict:create-item')) return;
   if (!currentType.value) {
     ElMessage.warning(t('systemDict.selectTypeFirst', '请先在左侧选择一个分类'));
     return;
@@ -387,21 +387,21 @@ function onAddItem() {
 }
 
 function onEditItem(row: DictItemModel) {
-  if (!hasPermission('system:dict:edit')) return;
+  if (!hasPermission('system:dict:update-item')) return;
   currentEditItem.value = row;
   itemDialogVisible.value = true;
 }
 
 async function onDeleteItem(row: DictItemModel) {
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-item')) return;
   await ElMessageBox.confirm(t('systemDict.deleteItemConfirm', { name: row.label }, { default: '确认删除字典项「{name}」?' }), t('common.tip', '提示'), { type: 'warning' });
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-item')) return;
  await dictItemApi.remove(row.id);
   reloadItems();
 }
 
 async function onBatchDeleteItem() {
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-items')) return;
   if (!itemSelection.value.length) {
     ElMessage.warning(t('common.selectAtLeastOne', '请至少选择一项'));
     return;
@@ -409,7 +409,7 @@ async function onBatchDeleteItem() {
   await ElMessageBox.confirm(t('systemDict.batchDeleteItemConfirm', { n: itemSelection.value.length }, { default: '确认删除选中的 {n} 个字典项？此操作不可恢复' }), t('common.tip', '提示'), {
     type: 'warning'
   });
-  if (!hasPermission("system:dict:delete")) return;
+  if (!hasPermission('system:dict:delete-items')) return;
  await dictItemApi.removeMany(itemSelection.value.map((r) => r.id));
   itemSelection.value = [];
   reloadItems();

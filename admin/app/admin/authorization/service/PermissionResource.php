@@ -15,7 +15,8 @@ namespace app\admin\authorization\service;
 use InvalidArgumentException;
 
 /**
- * 将 ThinkPHP 的应用/多级控制器/操作规范化为 Casbin 资源。
+ * 旧推导规则（升级前的 obj/act/code）：只供历史迁移文件和"旧资源路径 → 推导码"换算使用。
+ * 运行时鉴权统一使用 PermissionCode（每个方法一个权限码），不要在新代码中调用本类的推导方法。
  */
 class PermissionResource
 {

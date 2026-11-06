@@ -5,7 +5,6 @@ namespace app\admin\middleware;
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\service\PermissionCode;
-use app\admin\authorization\service\PermissionResource;
 use app\admin\authorization\model\Permission;
 use app\admin\common\http\AdminResponse;
 use app\common\auth\AuthRequirementResolver;
@@ -61,16 +60,15 @@ class CheckAdminApiRoleMiddleware implements MiddlewareInterface
      */
     private function granted(string $controller, string $action, ?string $plugin, string|array|null $code, array $granted): bool
     {
-        if ($plugin === null && $code === null) {
-            // 宿主在切换到按方法推导的权限码之前，仍按旧资源 obj/act 查找权限行，保持授权不变。
-            $permission = $this->legacyPermission($controller, $action);
-            return $permission !== null && ((bool) $permission->is_public || in_array((string) $permission->code, $granted, true));
-        }
-        $codes = $plugin !== null ? array_filter([PermissionCode::derive($controller, $action)]) : (array) $code;
+        // 代码即权限：宿主与插件同一推导规则；宿主方法若以注解声明了权限码则以注解为准（任一满足）。
+        $codes = $plugin === null && $code !== null ? (array) $code : array_filter([PermissionCode::derive($controller, $action)]);
         foreach ($codes as $candidate) {
             $query = Permission::where('code', (string) $candidate)->where('status', 1)->whereNull('deleted_at');
             if ($plugin !== null) {
                 $query->where('source_type', 'plugin')->where('source_name', $plugin);
+            } else {
+                // 宿主方法（含注解声明的码）只能使用宿主自己的权限，不能借用插件的权限码。
+                $query->where('source_type', '<>', 'plugin');
             }
             $permission = $query->first();
             if ($permission !== null && ((bool) $permission->is_public || in_array((string) $permission->code, $granted, true))) {
@@ -78,15 +76,5 @@ class CheckAdminApiRoleMiddleware implements MiddlewareInterface
             }
         }
         return false;
-    }
-
-    /** 宿主方法切换到推导码之前的旧资源权限行（宿主切换时删除）。 */
-    private function legacyPermission(string $controller, string $action): ?Permission
-    {
-        $request = new \stdClass();
-        $request->controller = $controller;
-        $request->action = $action;
-        $resource = PermissionResource::fromRequest($request);
-        return Permission::where('obj', $resource['obj'])->where('act', $resource['act'])->where('status', 1)->whereNull('deleted_at')->first();
     }
 }

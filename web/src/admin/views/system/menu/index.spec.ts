@@ -8,7 +8,7 @@ import Sortable from 'sortablejs';
 import MenuPage from './index.vue';
 
 const api = vi.hoisted(() => ({ tree: vi.fn(), update: vi.fn() }));
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['systemmenu:list', 'systemmenu:update', 'systemmenu:delete', 'systemmenu:create'] }) }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['systemmenu:list', 'authorization:menu:update', 'authorization:menu:delete', 'authorization:menu:create'] }) }));
 vi.mock('@/api/system/menu', () => ({ menuApi: api }));
 vi.mock('./components/MenuFormDialog.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('@/components/InlineEdit/index.vue', () => ({ default: { template: '<span />' } }));

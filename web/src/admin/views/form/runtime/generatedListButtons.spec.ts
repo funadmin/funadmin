@@ -203,7 +203,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     await approve!.trigger('click'); await flushPromises();
     expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], schemaHash: declaration.schemaHash, location: 'row' }), expect.anything());
     expect(http.get.mock.calls.some(([url]) => url.includes('/form/data'))).toBe(false);
-    permission.permissions = ['business:approve', 'form.data:listactions', 'form.data:listaction']; await flushPromises();
+    permission.permissions = ['business:approve', 'form:data:list-actions', 'form:data:list-action']; await flushPromises();
     const revoked = wrapper.findAll('button').find(button => button.text() === '批准');
     expect(!revoked || revoked.attributes('disabled') !== undefined).toBe(true);
     http.post.mockClear(); http.get.mockClear();
@@ -246,7 +246,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
   });
   it('批量回收站按钮使用独立批量权限而非单条权限', async () => {
     const { wrapper, http } = render('defaults');
-    permission.permissions = ['generated:host-demo:list', 'generated:host-demo:batch-restore', 'generated:host-demo:batch-destroy']; await flushPromises();
+    permission.permissions = ['generated:host-demo:index', 'generated:host-demo:restore-many', 'generated:host-demo:destroy-many']; await flushPromises();
     await wrapper.findAll('button').find(button => button.text() === '回收站')!.trigger('click'); await flushPromises();
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const restore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
@@ -261,7 +261,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const confirmation = [...document.querySelectorAll('.el-dialog button')].find(button => button.textContent?.trim() === '确定') as HTMLButtonElement;
     expect(confirmation).toBeDefined(); confirmation.click(); await flushPromises();
     expect(http.delete).toHaveBeenCalledWith('/generated/host-demo/destroy', { ids: ['order-42'] });
-    permission.permissions = ['generated:host-demo:list', 'generated:host-demo:restore', 'generated:host-demo:destroy'];
+    permission.permissions = ['generated:host-demo:index', 'generated:host-demo:restore', 'generated:host-demo:destroy'];
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     for (const label of ['批量恢复', '批量永久删除']) {
       const button = wrapper.findAll('button').find(item => item.text() === label);

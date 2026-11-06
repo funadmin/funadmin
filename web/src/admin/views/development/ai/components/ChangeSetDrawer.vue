@@ -20,7 +20,7 @@
     </div>
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">{{ t('aiDevelopment.changeSet.close') }}</el-button>
-      <el-button v-if="hasPermission(['development.ai:changesetpreview', 'development:ai:changesetpreview'], 'all')" type="primary" plain :disabled="selection.length === 0" @click="$emit('preview', selection)">{{ t('aiDevelopment.changeSet.preview') }}</el-button>
+      <el-button v-if="hasPermission(['ai:ai:change-set-preview', 'development:ai:changesetpreview'], 'all')" type="primary" plain :disabled="selection.length === 0" @click="$emit('preview', selection)">{{ t('aiDevelopment.changeSet.preview') }}</el-button>
       <el-button type="danger" :disabled="!canApply" @click="$emit('apply', preview!.confirmToken!, selection)">{{ t('aiDevelopment.changeSet.confirmApply') }}</el-button>
     </template>
   </el-drawer>
@@ -41,7 +41,7 @@ const selection = ref<string[]>([]);
 const activePath = ref('');
 watch(() => props.files, (files) => { selection.value = files.filter((file) => !file.status.includes('conflict')).map((file) => file.path); activePath.value = files[0]?.path || ''; }, { immediate: true });
 const activeFile = computed(() => props.files.find((file) => file.path === activePath.value) || props.files[0]);
-const canApply = computed(() => hasPermission(['development.ai:changesetapply', 'development:ai:changesetapply'], 'all') && Boolean(props.preview?.confirmToken) && !props.preview?.blocked && selection.value.length > 0);
+const canApply = computed(() => hasPermission(['ai:ai:change-set-apply', 'development:ai:changesetapply'], 'all') && Boolean(props.preview?.confirmToken) && !props.preview?.blocked && selection.value.length > 0);
 const statusLabel = (status: string) => aiEnumLabel(t, 'statuses', status);
 const checkType = (status: string): TagProps['type'] => (['passed', 'succeeded'].includes(status) ? 'success' : ['failed', 'rejected'].includes(status) ? 'danger' : 'info');
 const fileType = (status: AiChangeFileStatus): TagProps['type'] => (status.includes('conflict') || status === 'delete' ? 'danger' : status === 'create' ? 'success' : status === 'keep-local' ? 'info' : 'primary');

@@ -21,14 +21,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:user:add'" @click="onAdd">
+        <el-button type="primary" plain v-perm="'authorization:admin:create'" @click="onAdd">
           <i class="i-ep-plus" /> {{ t('systemUser.add', '新增') }}
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'system:user:delete'"
+          v-perm="'authorization:admin:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> {{ t('systemUser.batchDelete', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
@@ -113,13 +113,13 @@
           >
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button v-if="rowAccess(row as UserModel).editable" size="small" type="primary" link v-perm="'system:user:edit'" @click="onEdit(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).editable" size="small" type="primary" link v-perm="'authorization:admin:update'" @click="onEdit(row as UserModel)">
                   {{ t('systemUser.edit', '编辑') }}
                 </el-button>
-                <el-button v-if="rowAccess(row as UserModel).resettable" size="small" type="warning" link v-perm="'system:user:reset'" @click="onResetPwd(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).resettable" size="small" type="warning" link v-perm="'authorization:admin:reset-password'" @click="onResetPwd(row as UserModel)">
                   {{ t('systemUser.resetPwd', '重置密码') }}
                 </el-button>
-                <el-button v-if="rowAccess(row as UserModel).deletable" size="small" type="danger" link v-perm="'system:user:delete'" @click="onDelete(row as UserModel)">
+                <el-button v-if="rowAccess(row as UserModel).deletable" size="small" type="danger" link v-perm="'authorization:admin:delete'" @click="onDelete(row as UserModel)">
                   {{ t('systemUser.delete', '删除') }}
                 </el-button>
               </div>
@@ -163,7 +163,7 @@ defineOptions({ name: 'SystemUser' });
 const { t } = useI18n();
 const userStore = useUserStore();
 const rowAccess = (row: UserModel) => userRowAccess(row, userStore.userInfo?.id);
-const hasStatusPermission = computed(() => hasPermission('system:user:status'));
+const hasStatusPermission = computed(() => hasPermission('authorization:admin:status'));
 const canToggleStatus = (row: UserModel) => hasStatusPermission.value && rowAccess(row).statusToggle;
 
 /** 与表格列一一对应，供工具栏「列设置」勾选显隐；操作列不可取消 */
@@ -195,7 +195,7 @@ const {
   onBatchDelete,
   onSelectionChange
 } = useCrud<UserModel, { page: number; pageSize: number; username: string; status?: number }>({
-  permissions: { add: 'system:user:add', edit: 'system:user:edit', delete: 'system:user:delete' },
+  permissions: { add: 'authorization:admin:create', edit: 'authorization:admin:update', delete: 'authorization:admin:delete' },
   api: {
     list: (params) => userApi.list(params),
     // userApi.remove 同时支持单 id 与 ids[]，所以两条都接到同一个方法
@@ -211,7 +211,7 @@ const {
 });
 
 async function onToggleStatus(row: UserModel, v: boolean) {
-  if (!hasPermission("system:user:status")) return;
+  if (!hasPermission("authorization:admin:status")) return;
   if (!canToggleStatus(row)) return;
   const target = (v ? 1 : 0) as 0 | 1;
    await userApi.toggleStatus(row.id, target);
@@ -220,7 +220,7 @@ async function onToggleStatus(row: UserModel, v: boolean) {
 }
 
 async function onResetPwd(row: UserModel) {
-  if (!hasPermission("system:user:reset")) return;
+  if (!hasPermission("authorization:admin:reset-password")) return;
   const { value } = await ElMessageBox.prompt(t('systemUser.resetPwdPrompt', { name: row.username }, { default: '重置 {name} 的密码' }), t('systemUser.resetPwdTitle', '提示'), {
     inputType: 'password',
     inputPlaceholder: isWebmanBackend() ? t('profile.passwordBytes', '新密码需为 12～72 字节') : t('systemUser.resetPwdPlaceholder', '至少 8 位新密码'),
@@ -230,7 +230,7 @@ async function onResetPwd(row: UserModel) {
       return bytes < 12 || bytes > 72 || value.includes('\0') ? t('profile.passwordBytes', '新密码需为 12～72 字节') : true;
     }
   });
-  if (!hasPermission("system:user:reset")) return;
+  if (!hasPermission("authorization:admin:reset-password")) return;
  await userApi.resetPassword(row.id, value);
 }
 

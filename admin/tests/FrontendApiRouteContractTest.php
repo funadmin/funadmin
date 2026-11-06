@@ -50,8 +50,8 @@ final class FrontendApiRouteContractTest extends TestCase
         self::assertDirectoryExists($root);
         $failures = [];
         $count = 0;
-        // 生成插件的 API 只有插件启用后才注册；这里覆盖核心后台及内置市场。
-        foreach (['api', 'modules/market'] as $directory) {
+        // 生成插件的 API 只有插件启用后才注册；这里覆盖核心后台（本地市场运营前端模块已移除）。
+        foreach (['api'] as $directory) {
             $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/' . $directory, \FilesystemIterator::SKIP_DOTS));
             foreach ($files as $file) {
                 if ($file->getExtension() !== 'ts' || str_ends_with($file->getFilename(), '.spec.ts')) continue;

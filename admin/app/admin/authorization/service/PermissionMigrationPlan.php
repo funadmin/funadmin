@@ -53,6 +53,49 @@ final class PermissionMigrationPlan
         }, $map);
     }
 
+    /**
+     * 仓库外已安装的插件（第三方、插件 CRUD 生成物）升级前在方法上用 #[Permission] / #[NoNeedPermission] 声明权限。
+     * 按它们自己的注解展开授权：持有旧码的角色获得旧码守卫的每个方法的推导码；登录即可访问的方法登记为公开。
+     * 旧码保留（可能仍是清单中的能力权限），重复执行结果不变。
+     */
+    public static function migrateAnnotatedPlugin(string $plugin, ?string $appPath = null): void
+    {
+        $sync = new PermissionSyncService();
+        $sync->sync($plugin, [], $appPath);
+        $root = ($appPath ?? app_path()) . '/admin/plugins/' . $plugin . '/controller';
+        if (!is_dir($root)) {
+            return;
+        }
+        $resolver = new \app\common\auth\AuthRequirementResolver();
+        $expansion = $public = [];
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') continue;
+            $class = 'app\\admin\\plugins\\' . $plugin . '\\controller\\' . str_replace('/', '\\', substr($file->getPathname(), strlen($root) + 1, -4));
+            $methods = PermissionSyncService::routedMethods((string) file_get_contents($file->getPathname()));
+            if ($methods === []) continue;
+            if (!class_exists($class)) require_once $file->getPathname();
+            if (!class_exists($class)) continue;
+            foreach (array_keys($methods) as $method) {
+                $code = PermissionCode::derive($class, $method);
+                if ($code === null || !method_exists($class, $method)) continue;
+                $requirement = $resolver->for($class, $method);
+                if (!$requirement->permission || !$requirement->login) {
+                    $public[] = $code;
+                    continue;
+                }
+                foreach ((array) $requirement->code as $old) {
+                    $expansion[(string) $old][] = $code;
+                }
+            }
+        }
+        $present = \support\Db::table('permission')->whereIn('code', array_keys($expansion) ?: [''])->pluck('code')->all();
+        $expansion = array_intersect_key($expansion, array_flip($present));
+        (new PermissionGrantMigration())->apply($expansion, array_keys($expansion));
+        if ($public !== []) {
+            \support\Db::table('permission')->whereIn('code', $public)->where('source_type', 'plugin')->where('source_name', $plugin)->update(['is_public' => 1]);
+        }
+    }
+
     public static function isPluginRoute(string $routeKey): bool
     {
         return str_contains($routeKey, '=> app\\admin\\plugins\\');

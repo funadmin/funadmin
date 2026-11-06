@@ -30,7 +30,7 @@ const render = (row: any = null) => mount(MemberFormDialog, {
   } }
 });
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>((r) => { resolve = r; }); return { promise, resolve }; };
-beforeEach(() => { user.permissions = ['system:member:add', 'system:member:edit']; vi.clearAllMocks(); api.options.mockResolvedValue(definition()); api.create.mockResolvedValue({}); api.update.mockResolvedValue({}); });
+beforeEach(() => { user.permissions = ['system:member:create', 'system:member:update']; vi.clearAllMocks(); api.options.mockResolvedValue(definition()); api.create.mockResolvedValue({}); api.update.mockResolvedValue({}); });
 describe('会员 Builder 弹窗', () => {
   it.each(['add', 'edit'])('校验期间撤销 %s 权限不得保存，也不借用另一动作权限', async action => {
     const row = action === 'edit' ? { id: 8, username: '会员', groupIds: [7], groupNames: ['组'], tagIds: [], tagNames: [], levelId: 3, levelName: '等级' } : null;
@@ -39,7 +39,7 @@ describe('会员 Builder 弹窗', () => {
     const state = (wrapper.vm as any).$.setupState;
     const saving = state.onSubmit();
     expect(api.validate).toHaveBeenCalledTimes(1);
-    user.permissions = [action === 'add' ? 'system:member:edit' : 'system:member:add'];
+    user.permissions = [action === 'add' ? 'system:member:update' : 'system:member:create'];
     validation.resolve(true); await saving;
     expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
     expect(state.saving).toBe(false); wrapper.unmount();

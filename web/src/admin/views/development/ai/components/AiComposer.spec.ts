@@ -17,12 +17,12 @@ describe('独立 composer 边界', () => {
     vi.mocked(api.createMessage).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
     const wrapper = setup(); await wrapper.get('textarea').setValue('hello');
     await wrapper.get('.send').trigger('click');
-    access.denied = ['development.ai:taskexecute'];
+    access.denied = ['ai:ai:task-execute'];
     finish({ id: 7 }); await flushPromises();
     expect(api.executeTask).not.toHaveBeenCalled(); wrapper.unmount();
   });
   it('仅查看权限不能发送消息', async () => {
-    access.denied = ['development.ai:messagecreate'];
+    access.denied = ['ai:ai:message-create'];
     const wrapper = setup(); await wrapper.get('textarea').setValue('hello');
     await wrapper.get('textarea').trigger('keydown', { key: 'Enter' });
     expect(api.createMessage).not.toHaveBeenCalled(); wrapper.unmount();

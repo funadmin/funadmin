@@ -48,6 +48,7 @@ pnpm-debug.log*
 !/tests/utils/
 /tests/utils/*
 !/tests/utils/consoleHttp.spec.ts
+!/tests/utils/errorMessage.spec.ts
 # Vitest discovers these source tests; keep them reproducible in clean checkouts.
 !/tests/contracts/
 /tests/contracts/*

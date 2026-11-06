@@ -16,7 +16,7 @@ describe('附件存储驱动契约', () => {
     const source = readProjectFile('web/src/admin/views/system/attachment/index.vue');
     expect(source).toContain('storageApi');
     expect(source).toContain('存储驱动');
-    expect(source).toContain('system:attachment:storage');
+    expect(source).toContain('system:storage:update');
   });
 
   it('上传结果返回实际存储驱动', () => {

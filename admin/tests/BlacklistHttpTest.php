@@ -50,7 +50,7 @@ final class BlacklistHttpTest extends TestCase
             'data_scope' => 'self',
             'status' => 1,
         ]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['systemblacklist:index', 'systemblacklist:detail'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['system:blacklist:index', 'system:blacklist:detail'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService();

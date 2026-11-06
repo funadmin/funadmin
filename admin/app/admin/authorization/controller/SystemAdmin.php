@@ -18,7 +18,6 @@ use app\admin\authorization\service\RoleScopeService;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleGuardService;
-use app\common\service\identity\AdminIdentityAdapter;
 use InvalidArgumentException;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -178,7 +177,6 @@ class SystemAdmin extends AdminController
                 ]);
                 $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
                 $this->syncDepartments((int) $admin->id, $departmentIds);
-                $this->syncIdentity($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
                 return $admin;
             });
@@ -242,7 +240,6 @@ class SystemAdmin extends AdminController
                 ]);
                 $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
                 $this->syncDepartments((int) $admin->id, $departmentIds);
-                $this->syncIdentity($admin, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
             Cache::clear();
@@ -399,7 +396,6 @@ class SystemAdmin extends AdminController
             Db::transaction(function () use ($admin, $password): void {
                 $admin->update(['password' => password_hash($password, PASSWORD_DEFAULT), 'token' => '']);
                 (new AdminSessionService())->revokeAll((int) $admin->id);
-                $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
             });
             return $this->ok('密码已重置');
         } catch (InvalidArgumentException $e) {
@@ -449,7 +445,6 @@ class SystemAdmin extends AdminController
             Db::transaction(function () use ($admin): void {
                 $admin->update(['status' => $this->binaryStatus($this->request->post('status', 0))]);
                 if (!$admin->status) (new AdminSessionService())->revokeAll((int) $admin->id);
-                $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
             });
             return $this->ok('状态已更新');
         } catch (InvalidArgumentException $e) {
@@ -510,7 +505,6 @@ class SystemAdmin extends AdminController
         $this->assertSuperAdminSelf();
         Db::transaction(function () use ($admin, $data): void {
             $admin->update(['real_name' => $data['nickname'], 'email' => $data['email'], 'mobile' => $data['mobile']]);
-            $this->syncIdentity($admin, $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id));
         });
         Cache::clear();
         return $this->ok('保存成功', $this->adminData($admin));
@@ -593,11 +587,6 @@ class SystemAdmin extends AdminController
             [$primaryDepartmentId],
             array_map('intval', AdminDepartment::where('admin_id', $adminId)->pluck('dept_id')->all())
         ))));
-    }
-
-    private function syncIdentity(Admin $admin, array $departmentIds): void
-    {
-        if (Db::schema()->hasTable('identity_admin_link')) (new AdminIdentityAdapter())->sync($admin, $departmentIds);
     }
 
     private function adminData(Admin $admin): array

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use app\admin\authorization\model\Permission;
-use app\admin\authorization\service\PermissionResource;
 use app\common\auth\AuthRequirementResolver;
 use app\common\middleware\ApiMiddleware;
 use app\admin\middleware\CheckAdminApiRoleMiddleware;
@@ -65,7 +64,7 @@ final class AuthRequirementSnapshot
         return ['guard' => 'self', 'login' => false, 'permission' => null];
     }
 
-    /** 与 CheckAdminApiRoleMiddleware 一致：注解优先，未标注按资源推导查库。 */
+    /** 与 CheckAdminApiRoleMiddleware 一致：注解优先，未标注按方法推导的权限码查库。 */
     private static function adminRequirement(string $controller, string $action): array
     {
         $requirement = (new AuthRequirementResolver())->for($controller, $action);
@@ -78,16 +77,12 @@ final class AuthRequirementSnapshot
         if ($requirement->code !== null) {
             return ['login' => true, 'permission' => $requirement->code];
         }
-        $request = new \stdClass();
-        $request->controller = $controller;
-        $request->action = $action;
-        $resource = PermissionResource::fromRequest($request);
-        $permission = Permission::where('obj', $resource['obj'])->where('act', $resource['act'])
-            ->where('status', 1)->whereNull('deleted_at')->first();
+        $code = PermissionCode::derive($controller, $action);
+        $permission = $code === null ? null : Permission::where('code', $code)->where('status', 1)->whereNull('deleted_at')->where('source_type', '<>', 'plugin')->first();
         if ($permission !== null && (bool) $permission->is_public) {
             return ['login' => true, 'permission' => null];
         }
-        return ['login' => true, 'permission' => $permission === null ? '!unregistered:' . $resource['obj'] . ':' . $resource['act'] : (string) $permission->code];
+        return ['login' => true, 'permission' => $permission === null ? '!unregistered:' . ($code ?? $controller . '::' . $action) : (string) $permission->code];
     }
 
     /** 与 CheckAdminApiRoleMiddleware 一致：插件方法总是要求按方法推导、且归属该插件的已登记权限码。 */

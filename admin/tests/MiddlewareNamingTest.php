@@ -21,7 +21,7 @@ final class MiddlewareNamingTest extends TestCase
             self::assertSame($match[1].'.php',$file->getFilename());
             $classes[]=$class;
         }
-        self::assertGreaterThanOrEqual(12,count($classes));
+        self::assertGreaterThanOrEqual(9,count($classes));
     }
 
     public function test_global_and_application_pipelines_resolve_to_real_middleware_classes(): void

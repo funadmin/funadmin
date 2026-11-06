@@ -105,8 +105,9 @@ final class DictionaryIntegrationTest extends TestCase
     public function test_dictionary_menu_and_route_permissions_are_seeded(): void
     {
         self::assertTrue(Db::table('admin_menu')->where('href', '/admin/system/dict')->exists());
-        foreach (['types', 'items', 'options', 'batch', 'createtype', 'updatetype', 'deletetype', 'deletetypes', 'createitem', 'updateitem', 'deleteitem', 'deleteitems'] as $action) {
-            self::assertTrue(Db::table('permission')->where('code', 'systemdict:' . $action)->exists(), $action);
+        // 每个字典接口方法一个按方法推导的权限码。
+        foreach (['types', 'items', 'options', 'batch', 'create-type', 'update-type', 'delete-type', 'delete-types', 'create-item', 'update-item', 'delete-item', 'delete-items'] as $action) {
+            self::assertTrue(Db::table('permission')->where('code', 'system:dict:' . $action)->where('status', 1)->exists(), $action);
         }
     }
 
@@ -144,7 +145,7 @@ final class DictionaryIntegrationTest extends TestCase
         Db::table('auth_group')->insert(['id' => 2, 'name' => '字典读者', 'code' => 'dict_reader']);
         $casbin = new \app\admin\authorization\service\CasbinService();
         $casbin->syncAdminRoles(2, [2]);
-        $casbin->syncRolePermissions(2, [Db::table('permission')->where('code', 'systemdict:types')->value('id')]);
+        $casbin->syncRolePermissions(2, [Db::table('permission')->where('code', 'system:dict:types')->value('id')]);
         $anonymous = $auth->bootstrap('');
         $session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'dictreader', 'dictionary-safe-password', 'dictionary-reader');
         self::assertSame(200, $call('GET', '/admin/system/dict/types', [], $session)->getStatusCode());

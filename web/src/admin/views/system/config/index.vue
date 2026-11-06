@@ -22,8 +22,8 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:config:add'" @click="openAdd"><i class="i-ep-plus" /> {{ t('systemConfig.addConfig', '新增配置') }}</el-button>
-        <el-button type="info" plain v-perm="'system:config-group:list'" @click="groupDrawer = true"><i class="i-ep-folder" /> {{ t('systemConfig.configGroups', '配置分组') }}</el-button>
+        <el-button type="primary" plain v-perm="'system:config:create'" @click="openAdd"><i class="i-ep-plus" /> {{ t('systemConfig.addConfig', '新增配置') }}</el-button>
+        <el-button type="info" plain v-perm="'system:config:groups'" @click="groupDrawer = true"><i class="i-ep-folder" /> {{ t('systemConfig.configGroups', '配置分组') }}</el-button>
         <el-button type="danger" plain :disabled="!deletableSelection.length" v-perm="'system:config:delete'" @click="removeSelected"><i class="i-ep-delete" /> {{ t('common.remove', '删除') }}{{ deletableSelection.length ? `(${deletableSelection.length})` : '' }}</el-button>
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">
@@ -42,7 +42,7 @@
           <el-table-column :label="t('common.operation', '操作')" width="210" align="center" fixed="right">
             <template #default="{ row }">
               <el-button type="success" link v-perm="'system:config:value'" @click="openValue(row as ConfigModel)">{{ t('systemConfig.setValue', '设置值') }}</el-button>
-              <el-button type="primary" link v-perm="'system:config:edit'" @click="openEdit(row as ConfigModel)">{{ t('common.edit', '编辑') }}</el-button>
+              <el-button type="primary" link v-perm="'system:config:update'" @click="openEdit(row as ConfigModel)">{{ t('common.edit', '编辑') }}</el-button>
               <el-button v-if="row.isSystem !== 1" type="danger" link v-perm="'system:config:delete'" @click="removeOne(row as ConfigModel)">{{ t('common.remove', '删除') }}</el-button>
             </template>
           </el-table-column>
@@ -55,11 +55,11 @@
     <ConfigValueDialog v-model="valueVisible" :row="current" @success="loadData" />
     <ConfigGroupDialog v-model="groupVisible" :row="currentGroup" @success="reloadOptions" />
     <el-drawer v-model="groupDrawer" :title="t('systemConfig.configGroups', '配置分组')" size="620px">
-      <div class="mb-3"><el-button type="primary" plain v-perm="'system:config-group:add'" @click="openGroupAdd"><i class="i-ep-plus" /> {{ t('systemConfig.addGroup', '新增分组') }}</el-button></div>
+      <div class="mb-3"><el-button type="primary" plain v-perm="'system:config:create-group'" @click="openGroupAdd"><i class="i-ep-plus" /> {{ t('systemConfig.addGroup', '新增分组') }}</el-button></div>
       <el-table :data="options.groups" border>
         <el-table-column prop="name" :label="t('systemConfig.groupCode', '分组编码')" min-width="140" /><el-table-column prop="title" :label="t('systemConfig.groupTitle', '分组标题')" min-width="140" />
         <el-table-column :label="t('common.status', '状态')" width="80" align="center"><template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? t('common.enable', '启用') : t('systemConfig.stopped', '停用') }}</el-tag></template></el-table-column>
-        <el-table-column :label="t('common.operation', '操作')" width="150" align="center"><template #default="{ row }"><el-button type="primary" link v-perm="'system:config-group:edit'" @click="openGroupEdit(row as ConfigGroupModel)">{{ t('common.edit', '编辑') }}</el-button><el-button type="danger" link v-perm="'system:config-group:delete'" @click="removeGroup(row as ConfigGroupModel)">{{ t('common.remove', '删除') }}</el-button></template></el-table-column>
+        <el-table-column :label="t('common.operation', '操作')" width="150" align="center"><template #default="{ row }"><el-button type="primary" link v-perm="'system:config:update-group'" @click="openGroupEdit(row as ConfigGroupModel)">{{ t('common.edit', '编辑') }}</el-button><el-button type="danger" link v-perm="'system:config:delete-group'" @click="removeGroup(row as ConfigGroupModel)">{{ t('common.remove', '删除') }}</el-button></template></el-table-column>
       </el-table>
     </el-drawer>
   </PageWrapper>
@@ -98,14 +98,14 @@ async function reloadOptions() { await loadOptions(); await loadData(); }
 async function onConfigChanged() { await reloadOptions(); }
 function onSearch() { query.page = 1; loadData(); }
 function onReset() { Object.assign(query, { page: 1, pageSize: 20, keyword: '', group: '', type: '', status: undefined }); loadData(); }
-function openAdd() { if (!hasPermission('system:config:add')) return;  current.value = null; formVisible.value = true; }
-function openEdit(row: ConfigModel) { if (!hasPermission('system:config:edit')) return;  current.value = row; formVisible.value = true; }
+function openAdd() { if (!hasPermission('system:config:create')) return;  current.value = null; formVisible.value = true; }
+function openEdit(row: ConfigModel) { if (!hasPermission('system:config:update')) return;  current.value = row; formVisible.value = true; }
 function openValue(row: ConfigModel) { if (!hasPermission('system:config:value')) return;  current.value = row; valueVisible.value = true; }
-function openGroupAdd() { if (!hasPermission('system:config-group:add')) return;  currentGroup.value = null; groupVisible.value = true; }
-function openGroupEdit(row: ConfigGroupModel) { if (!hasPermission('system:config-group:edit')) return;  currentGroup.value = row; groupVisible.value = true; }
+function openGroupAdd() { if (!hasPermission('system:config:create-group')) return;  currentGroup.value = null; groupVisible.value = true; }
+function openGroupEdit(row: ConfigGroupModel) { if (!hasPermission('system:config:update-group')) return;  currentGroup.value = row; groupVisible.value = true; }
 async function toggleStatus(row: ConfigModel, enabled: boolean) { if (!hasPermission("system:config:status")) return; await configApi.updateStatus(row.id, enabled ? 1 : 0); await loadData(); }
 async function removeOne(row: ConfigModel) { if (!hasPermission("system:config:delete")) return;  await ElMessageBox.confirm(t('systemConfig.deleteOneConfirm', { code: row.code }, { default: '确认删除配置“{code}”吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config:delete")) return; await configApi.remove([row.id]); await reloadOptions(); }
 async function removeSelected() { if (!hasPermission("system:config:delete")) return;  const ids = deletableSelection.value.map((item) => item.id); if (!ids.length) return; await ElMessageBox.confirm(t('systemConfig.deleteManyConfirm', { n: ids.length }, { default: '确认删除选中的 {n} 个配置吗？' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config:delete")) return; await configApi.remove(ids); await reloadOptions(); }
-async function removeGroup(row: ConfigGroupModel) { if (!hasPermission("system:config-group:delete")) return;  await ElMessageBox.confirm(t('systemConfig.deleteGroupConfirm', { title: row.title }, { default: '确认删除配置分组“{title}”吗？仅空分组可删除。' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config-group:delete")) return; await configApi.removeGroup(row.id); await reloadOptions(); }
+async function removeGroup(row: ConfigGroupModel) { if (!hasPermission("system:config:delete-group")) return;  await ElMessageBox.confirm(t('systemConfig.deleteGroupConfirm', { title: row.title }, { default: '确认删除配置分组“{title}”吗？仅空分组可删除。' }), t('systemConfig.deleteConfirmTitle', '删除确认'), { type: 'warning' });  if (!hasPermission("system:config:delete-group")) return; await configApi.removeGroup(row.id); await reloadOptions(); }
 onMounted(async () => { await loadOptions(); await loadData(); });
 </script>

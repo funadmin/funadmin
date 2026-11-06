@@ -7,7 +7,7 @@
       :title="recovery.message"
       :description="recovery.stage ? t('plugin.failedStage', { stage: recovery.stage }, { default: '失败阶段：{stage}' }) : ''"
       :closable="false"
-      v-perm="'system:plugin:recovery'"
+      v-perm="'plugin:plugin:recovery-info'"
     />
     <h3 class="mb-2 font-semibold">{{ t('plugin.versionHistory', '版本包历史') }}</h3>
     <el-table v-loading="loading" :data="versions">
@@ -21,7 +21,7 @@
             v-if="row.downloadable"
             class="mr-3 text-primary"
             :href="pluginApi.historyDownloadUrl(code, row.id)"
-            v-perm="'system:plugin:history-download'"
+            v-perm="'plugin:plugin:download-history'"
           >{{ t('common.download', '下载') }}</a>
           <el-button
             type="primary"
@@ -29,7 +29,7 @@
             :loading="redeploying === row.id"
             :disabled="Boolean(redeployDisabledReason)"
             :title="redeployDisabledReason"
-            v-perm="'system:plugin:history-redeploy'"
+            v-perm="'plugin:plugin:redeploy-history'"
             @click="redeploy(row as PluginVersionHistory)"
           >{{ t('plugin.redeploy', '重部署') }}</el-button>
         </template>
@@ -67,20 +67,20 @@ const loading = ref(false);
 const redeploying = ref<number | null>(null);
 
 async function load() {
-  if (!props.code || !hasPermission('system:plugin:history')) return;
+  if (!props.code || !hasPermission(['plugin:plugin:history', 'plugin:plugin:operations'])) return;
   loading.value = true;
   try {
     [operations.value, versions.value, recovery.value] = await Promise.all([
       pluginApi.operations(props.code),
       pluginApi.history(props.code),
-      hasPermission('system:plugin:recovery') ? pluginApi.recoveryInfo(props.code) : Promise.resolve(null)
+      hasPermission('plugin:plugin:recovery-info') ? pluginApi.recoveryInfo(props.code) : Promise.resolve(null)
     ]);
   } finally {
     loading.value = false;
   }
 }
 
-async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('system:plugin:history-redeploy'))) return;
+async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('plugin:plugin:redeploy-history'))) return;
   if (props.redeployDisabledReason) return;
   try {
     await ElMessageBox.confirm(t('plugin.redeployConfirm', { code: props.code, version: row.version }, { default: '确认将插件 {code} 重部署为历史版本 {version} 吗？数据库不会自动降级。' }), t('plugin.redeployTitle', '历史版本重部署'));
@@ -90,7 +90,7 @@ async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('system
   }
   redeploying.value = row.id;
   try {
-    if (!hasPermission('system:plugin:history-redeploy')) return;
+    if (!hasPermission('plugin:plugin:redeploy-history')) return;
     await pluginApi.redeployHistory(props.code, row.id, false);
     await load();
   } catch (reason) {

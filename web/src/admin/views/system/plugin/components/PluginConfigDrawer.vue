@@ -17,7 +17,7 @@
         <el-input v-else :model-value="inputValue(key)" :type="definition.type === 'password' ? 'password' : 'text'" :show-password="definition.type === 'password'" @update:model-value="values[key] = $event" />
         <div v-if="definition.tip" class="text-xs text-gray-400">{{ definition.tip }}</div>
       </el-form-item>
-      <el-button type="primary" :loading="saving" v-perm="'system:plugin:config'" @click="save">{{ t('plugin.saveConfig', '保存配置') }}</el-button>
+      <el-button type="primary" :loading="saving" v-perm="'plugin:plugin:save-config'" @click="save">{{ t('plugin.saveConfig', '保存配置') }}</el-button>
     </el-form>
   </el-drawer>
 </template>
@@ -41,7 +41,7 @@ const values = reactive<Record<string, ConfigValue>>({});
 const loading = ref(false);
 const saving = ref(false);
 
-async function load() { if (!(hasPermission('system:plugin:config'))) return;
+async function load() { if (!(hasPermission(['plugin:plugin:get-config', 'plugin:plugin:save-config']))) return;
   loading.value = true;
   try {
     schema.value = await pluginApi.config(props.code);
@@ -72,7 +72,7 @@ function arrayValue(key: string): Array<string | number> { const value = values[
 function scalarValue(key: string): string | number | boolean | null { const value = values[key]; return Array.isArray(value) ? value[0] || '' : value ?? null; }
 function inputValue(key: string): string | number | null { const value = values[key]; return Array.isArray(value) ? value.join(',') : typeof value === 'boolean' ? String(value) : value ?? null; }
 
-async function save() { if (!(hasPermission('system:plugin:config'))) return;
+async function save() { if (!(hasPermission(['plugin:plugin:get-config', 'plugin:plugin:save-config']))) return;
   saving.value = true;
   try {
     await pluginApi.saveConfig(props.code, { ...values });

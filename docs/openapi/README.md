@@ -31,10 +31,10 @@
 - `/api/auth/me` 和 `/api/auth/logout` 使用登录接口签发的 `AdminBearer` 不透明令牌。
 - `/api/v2/member` 和 `/api/v2/logout` 使用 `MemberBearer`：由 `/api/v2/token` 签发的会员 access token（JWT，携带会话标识）。
 - **鉴权注解（后台与会员通用，`app\common\annotation`）**：控制器统一经过各自的鉴权中间件（后台 `AdminController`，会员 `ApiController`），方法上用注解声明要求，**默认需要登录**：
-  - 不标注：需要登录；后台还需要权限，权限码按控制器/方法推导后到权限表查询（含 `is_public`）。
+  - 不标注：需要登录；后台还需要权限，权限码按控制器/方法推导（`{模块}:{资源}:{方法}`，每个方法一个权限）后到权限表查询（含 `is_public`）。
   - `#[NoNeedLogin]`：无需登录。会员接口若仍带有效令牌会注入当前会员；后台不注入管理员上下文，CSRF 与操作日志照常执行。
   - `#[NoNeedPermission]`：后台登录即可，不校验权限码（如插件页面目录）。
-  - `#[Permission('code')]`：后台可选，显式指定权限码，数组表示任一满足；插件后台控制器必须声明。会员端暂无权限码体系。
+  - `#[Permission('code')]`：宿主后台可选，显式指定权限码，数组表示任一满足（一般不需要，推导码即可）；插件后台控制器不使用，固定按推导码鉴权。会员端暂无权限码体系。
   - 方法注解优先于类注解（方法上的 `NoNeedPermission` 可覆盖类上的 `Permission`）；方法声明了权限码时，类上的 `NoNeedLogin` / `NoNeedPermission` 都不会放宽它。目标无法解析时按最严格要求处理。
   - 插件后台控制器总是要求登录并必须声明 `#[Permission]`，`NoNeedLogin` / `NoNeedPermission` 对其不生效。
 - `/api/v2/token/refresh` 的 refresh token 只能使用一次，调用方必须保存响应中的新值；旧值再次提交会吊销整个会话。

@@ -12,18 +12,18 @@ describe('公共操作权限判断', () => {
     expect(checkPermission([], undefined)).toBe(true);
     expect(checkPermission([], null)).toBe(true);
     expect(checkPermission([], '')).toBe(true);
-    expect(checkPermission([], 'system:user:edit')).toBe(false);
+    expect(checkPermission([], 'authorization:admin:update')).toBe(false);
   });
 
   it('仅精确授权对应动作，查看权限不会扩展为修改权限', () => {
-    expect(checkPermission(['system:user:list'], 'system:user:list')).toBe(true);
-    expect(checkPermission(['system:user:list'], 'system:user:edit')).toBe(false);
-    expect(checkPermission(['system:user:*'], 'system:user:edit')).toBe(false);
+    expect(checkPermission(['authorization:admin:index', 'authorization:admin:detail'], ['authorization:admin:index', 'authorization:admin:detail'])).toBe(true);
+    expect(checkPermission(['authorization:admin:index', 'authorization:admin:detail'], 'authorization:admin:update')).toBe(false);
+    expect(checkPermission(['system:user:*'], 'authorization:admin:update')).toBe(false);
   });
 
   it.each(['*', '*:*:*'])('%s 允许所有已声明的操作', wildcard => {
-    expect(checkPermission([wildcard], 'system:user:edit')).toBe(true);
-    expect(checkPermission([wildcard], ['system:user:edit', 'system:user:delete'], 'all')).toBe(true);
+    expect(checkPermission([wildcard], 'authorization:admin:update')).toBe(true);
+    expect(checkPermission([wildcard], ['authorization:admin:update', 'authorization:admin:delete'], 'all')).toBe(true);
   });
 
   it('数组支持任一和全部权限判断', () => {
@@ -34,11 +34,11 @@ describe('公共操作权限判断', () => {
   });
 
   it('公共入口响应权限授予、撤销和账号权限替换', () => {
-    const allowed = computed(() => hasPermission('system:user:edit'));
+    const allowed = computed(() => hasPermission('authorization:admin:update'));
     expect(allowed.value).toBe(false);
-    user.permissions.push('system:user:edit');
+    user.permissions.push('authorization:admin:update');
     expect(allowed.value).toBe(true);
-    user.permissions = ['system:user:list'];
+    user.permissions = ['authorization:admin:index', 'authorization:admin:detail'];
     expect(allowed.value).toBe(false);
     user.permissions = ['*'];
     expect(allowed.value).toBe(true);

@@ -80,8 +80,8 @@ final class LanguageIntegrationTest extends TestCase
     public function test_language_menu_and_login_only_pack_permission_are_seeded(): void
     {
         self::assertTrue(Db::table('admin_menu')->where('href', '/admin/system/language')->exists());
-        self::assertSame(1, (int) Db::table('permission')->where('code', 'systemlanguage:pack')->value('is_public'));
-        self::assertSame(0, (int) Db::table('permission')->where('code', 'systemlanguage:saveline')->value('is_public'));
+        self::assertSame(1, (int) Db::table('permission')->where('code', 'system:language:pack')->value('is_public'));
+        self::assertSame(0, (int) Db::table('permission')->where('code', 'system:language:save-line')->value('is_public'));
     }
 
     public function test_pack_negotiation_returns_unchanged_for_identical_content(): void
@@ -126,7 +126,7 @@ final class LanguageIntegrationTest extends TestCase
         $role = Db::table('auth_group')->insertGetId(['name' => '语言维护', 'code' => 'language_maintainer']);
         $casbin = new \app\admin\authorization\service\CasbinService();
         $casbin->syncAdminRoles(22, [$role]);
-        $casbin->syncRolePermissions($role, [Db::table('permission')->where('code', 'systemlanguage:saveline')->value('id')]);
+        $casbin->syncRolePermissions($role, [Db::table('permission')->where('code', 'system:language:save-line')->value('id')]);
         self::assertSame(403, $call('POST', '/admin/system/language/lines', csrf: false)->getStatusCode());
     }
 

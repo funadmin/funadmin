@@ -112,6 +112,13 @@ final class DefinitionValidator
             }
         } else {
             $this->paths($data['generationTargets'] ?? null, $projectRoot);
+            // 宿主生成控制器的权限码同样按方法推导（generated:{资源}:{方法}）。
+            $class = implode('', array_map('ucfirst', preg_split('/[-_]/', (string) $data['entity']) ?: [])) . 'Controller';
+            $derived = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\controller\\generated\\' . $class, 'index');
+            $expected = $derived === null ? '' : substr($derived, 0, -strlen(':index'));
+            if ((string) $data['permissionPrefix'] !== $expected) {
+                throw new InvalidArgumentException('权限前缀必须为 ' . $expected . '（与控制器方法推导的权限码一致）');
+            }
         }
         $this->templates($data['templates'] ?? null, $target['type']);
         $fieldNames = $this->fields($data['fields'] ?? null);

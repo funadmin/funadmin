@@ -43,7 +43,7 @@
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'system:log:operation:delete'"
+          v-perm="'system:operation-log:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
@@ -51,7 +51,7 @@
         <el-button
           type="danger"
           plain
-          v-perm="'system:log:operation:delete'"
+          v-perm="'system:operation-log:clear'"
           @click="onClear"
         >
           <i class="i-ep-delete-filled" /> {{ t('systemLog.clearAll', '清空') }}
@@ -98,7 +98,7 @@
           <el-table-column v-if="columnKeys.includes('actions')" :label="t('common.operation', '操作')" width="150" fixed="right" align="center">
             <template #default="{ row }">
               <el-button link type="primary" @click="showDetail(row as OperationLog)">{{ t('common.detail', '详情') }}</el-button>
-              <el-button link type="danger" v-perm="'system:log:operation:delete'" @click="onDelete(row as OperationLog)">{{ t('common.remove', '删除') }}</el-button>
+              <el-button link type="danger" v-perm="'system:operation-log:delete'" @click="onDelete(row as OperationLog)">{{ t('common.remove', '删除') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -174,7 +174,7 @@ const {
   loading, list, total, query, selection, loadData, onSearch, onReset,
   onDelete, onBatchDelete, onSelectionChange
 } = useCrud<OperationLog, OperationLogQuery>({
-  permissions: { delete: 'system:log:operation:delete' },
+  permissions: { delete: 'system:operation-log:delete' },
   api: {
     list: (params) => operationLogApi.list(params),
     remove: (id) => operationLogApi.remove(id),
@@ -193,13 +193,13 @@ function methodTag(method: string): TagProps['type'] {
   return ({ GET: 'info', POST: 'success', PUT: 'warning', DELETE: 'danger' } as Record<string, TagProps['type']>)[method] || 'info';
 }
 async function onClear() {
-  if (!hasPermission("system:log:operation:delete")) return;
+  if (!hasPermission("system:operation-log:clear")) return;
   await ElMessageBox.confirm(
     t('systemLog.clearAllConfirm', '确认清空全部操作日志？该操作不可恢复。'),
     t('systemLog.clearAllTitle', '清空日志'),
     { type: 'warning', confirmButtonText: t('systemLog.clearAll', '清空') }
   );
-  if (!hasPermission("system:log:operation:delete")) return;
+  if (!hasPermission("system:operation-log:clear")) return;
  await operationLogApi.clear();
   await loadData();
 }

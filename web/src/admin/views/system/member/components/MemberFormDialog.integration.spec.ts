@@ -9,7 +9,7 @@ import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
 const api = vi.hoisted(() => ({ options: vi.fn(), create: vi.fn(async () => ({})), update: vi.fn() }));
 const remote = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/api/system/member', () => ({ memberApi: api }));
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:add', 'system:member:edit'] }) }));
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['system:member:create', 'system:member:update'] }) }));
 vi.mock('@/utils/http', () => ({ default: remote }));
 
 const definition = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', ['-r', `require 'vendor/autoload.php'; echo json_encode(\\app\\admin\\system\\service\\MemberFormDefinition::build(['groups'=>[['id'=>7,'name'=>'会员组']], 'levels'=>[['id'=>3,'name'=>'会员等级']], 'tags'=>[['id'=>5,'name'=>'标签']]]));`], { cwd: resolve(process.cwd(), '../admin'), encoding: 'utf8' }));

@@ -31,7 +31,7 @@ final class PluginCenterHttpTest extends TestCase
         Db::table('admin')->insert(['id' => 1, 'username' => 'plugin_root', 'password' => password_hash('plugin-root-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('admin')->insert(['id' => 2, 'username' => 'plugin_reader', 'password' => password_hash('plugin-reader-password', PASSWORD_DEFAULT), 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '插件只读', 'code' => 'plugin_reader', 'level' => 10, 'data_scope' => 'self', 'status' => 1]);
-        $permissionIds = Db::table('permission')->whereIn('code', ['plugin.systemplugin:installed', 'plugin.systemplugin:discovered'])->pluck('id')->all();
+        $permissionIds = Db::table('permission')->whereIn('code', ['plugin:plugin:installed', 'plugin:plugin:discovered'])->pluck('id')->all();
         (new CasbinService())->syncAdminRoles(2, [2]);
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $auth = new BrowserAuthService(); $anonymous = $auth->bootstrap('');
@@ -46,44 +46,41 @@ final class PluginCenterHttpTest extends TestCase
     {
         self::assertSame(401, $this->call('GET', '/admin/system/plugin/local/installed', authenticated: false)->getStatusCode());
         $info = (new \app\admin\authorization\service\AuthorizationService())->userInfo(['id' => 2]);
-        self::assertContains('plugin.systemplugin:installed', $info['permissions']);
+        self::assertContains('plugin:plugin:installed', $info['permissions']);
         $installed = $this->call('GET', '/admin/system/plugin/local/installed');
         self::assertSame(200, $installed->getStatusCode(), $installed->rawBody());
         self::assertSame(200, $this->call('GET', '/admin/system/plugin/local/discovered')->getStatusCode());
         self::assertSame(403, $this->call('POST', '/admin/system/plugin/local/install', [], csrf: true)->getStatusCode());
     }
 
-    public function test_market_plugin_routes_reject_anonymous_and_undeclared_permissions_before_services(): void
+    public function test_plugin_routes_reject_anonymous_and_undeclared_permissions_before_services(): void
     {
         new App(Request::class, new NullLogger(), app_path(), public_path());
-        self::assertSame(401, $this->call('GET', '/admin/plugin/market/category/', authenticated: false)->getStatusCode());
-        self::assertSame(403, $this->call('GET', '/admin/plugin/market/category/')->getStatusCode());
-        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '拒绝'])->getStatusCode());
+        self::assertSame(401, $this->call('GET', '/admin/plugin/qa/moderation', authenticated: false)->getStatusCode());
+        self::assertSame(403, $this->call('GET', '/admin/plugin/qa/moderation')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review', ['id' => '1'])->getStatusCode());
     }
 
-    public function test_market_plugin_authorized_request_reaches_category_service_and_keeps_csrf(): void
+    public function test_authorized_plugin_request_reaches_validation_and_keeps_csrf(): void
     {
         new App(Request::class, new NullLogger(), app_path(), public_path());
-        Db::schema()->create('market_category', static function (\Illuminate\Database\Schema\Blueprint $table): void {
-            $table->id(); $table->string('name'); $table->integer('sort')->default(0); $table->integer('status')->default(1); $table->timestamps();
-        });
-        Db::schema()->create('market_plugin', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->id(); $table->integer('category_id')->default(0); });
         $auth = new BrowserAuthService(); $anonymous = $auth->bootstrap('');
         $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_root', 'plugin-root-password', '127.0.0.3');
-        $response = $this->call('GET', '/admin/plugin/market/category/');
-        self::assertSame(200, $response->getStatusCode(), $response->rawBody() . ' ' . (string) $response->exception());
-        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '分类'], csrf: false)->getStatusCode());
-        self::assertSame(200, $this->call('POST', '/admin/plugin/market/category/', ['name' => '分类'])->getStatusCode());
-        self::assertSame('分类', Db::table('market_category')->value('name'));
-        $categoryId = (int) Db::table('market_category')->value('id');
-        self::assertSame(200, $this->call('PUT', '/admin/plugin/market/category/' . $categoryId, ['name' => '修改分类'])->getStatusCode());
-        self::assertSame('修改分类', Db::table('market_category')->value('name'));
-        $permissionIds = Db::table('permission')->where('code', 'market:category:index')->pluck('id')->all();
+        $response = $this->call('GET', '/admin/plugin/qa/moderation');
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
+        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review', [], csrf: false)->getStatusCode());
+        $response = $this->call('POST', '/admin/plugin/qa/moderation/review');
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
+        $permissionIds = Db::table('permission')->where('code', 'qa:moderation:index')->pluck('id')->all();
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $anonymous = $auth->bootstrap('');
         $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_reader', 'plugin-reader-password', '127.0.0.4');
-        self::assertSame(200, $this->call('GET', '/admin/plugin/market/category/')->getStatusCode());
-        self::assertSame(403, $this->call('POST', '/admin/plugin/market/category/', ['name' => '禁止新增'])->getStatusCode());
+        $response = $this->call('GET', '/admin/plugin/qa/moderation');
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
+        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review')->getStatusCode());
     }
 
     public function test_plugin_install_write_requires_csrf_before_package_processing(): void
@@ -108,7 +105,7 @@ final class PluginCenterHttpTest extends TestCase
             Db::table('plugin')->insert(['code' => $code, 'name' => '目录测试', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1, 'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
             (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','needs_reinstall'=>false,'version'=>'1.0.0']], [$code=>$manifest]);
             \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions($manifest['adminWeb']['permissions'], 'plugin', $code);
-            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin.systemplugin:installed', 'plugin.systemplugin:discovered', $code . ':index:index'])->pluck('id')->all());
+            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin:plugin:installed', 'plugin:plugin:discovered', $code . ':index:index'])->pluck('id')->all());
             self::assertSame(401, $this->call('GET', '/admin/system/plugin/modules/enabled', authenticated: false)->getStatusCode());
             $response = $this->call('GET', '/admin/system/plugin/modules/enabled');
             self::assertSame(200, $response->getStatusCode(), $response->rawBody());

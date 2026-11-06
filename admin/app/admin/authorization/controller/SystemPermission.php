@@ -363,12 +363,8 @@ class SystemPermission extends AdminController
         $obj = '';
         $act = '';
         $code = null;
-        if ($resourceType === Permission::TYPE_ROUTE && $objInput !== '' && $actionInput !== '') {
-            $resource = PermissionResource::fromParts($appName, $objInput, $actionInput);
-            $obj = $resource['obj'];
-            $act = $resource['act'];
-            $code = $resource['code'];
-        } elseif ($resourceType === Permission::TYPE_CAPABILITY && $objInput !== '' && $actionInput !== '') {
+        // 接口权限与能力权限使用同一格式：obj = {模块}/{资源}，act = {操作}，code = {模块}:{资源}:{操作}（与按方法推导一致）。
+        if (in_array($resourceType, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) && $objInput !== '' && $actionInput !== '') {
             $obj = strtolower($objInput);
             $act = strtolower($actionInput);
             $code = PermissionResource::canonicalCode(str_replace('/', ':', $obj) . ':' . $act);

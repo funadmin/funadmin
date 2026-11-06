@@ -2,47 +2,27 @@
     "DELETE /admin/development/ai/conversation-groups/{id:\\d+} => app\\admin\\ai\\controller\\Ai::conversationGroupDelete": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationdelete"
+        "permission": "ai:ai:conversation-group-delete"
     },
     "DELETE /admin/development/ai/conversations/{id:\\d+} => app\\admin\\ai\\controller\\Ai::conversationDelete": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationdelete"
+        "permission": "ai:ai:conversation-delete"
     },
     "DELETE /admin/development/ai/conversations/{id:\\d+}/attachments/{attachmentId:\\d+} => app\\admin\\ai\\controller\\Ai::attachmentDelete": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:attachmentdelete"
+        "permission": "ai:ai:attachment-delete"
     },
     "DELETE /admin/development/ai/profiles/{id:\\d+} => app\\admin\\ai\\controller\\Profiles::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:delete"
+        "permission": "ai:profiles:delete"
     },
     "DELETE /admin/development/business/modules/{id:\\d+} => app\\admin\\development\\controller\\Business::deleteModule": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:deletemodule"
-    },
-    "DELETE /admin/identity/applications/{id:\\d+} => app\\admin\\identity\\controller\\EnterpriseApplication::delete": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:delete"
-    },
-    "DELETE /admin/identity/oauth-clients/{id:\\d+} => app\\admin\\identity\\controller\\OAuthClient::delete": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:delete"
-    },
-    "DELETE /admin/identity/oauth-clients/{id:\\d+}/secrets/{secretId:\\d+} => app\\admin\\identity\\controller\\OAuthClient::revokeSecret": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:revokesecret"
-    },
-    "DELETE /admin/identity/scopes/{id:\\d+} => app\\admin\\identity\\controller\\ScopeClaim::delete": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.scopeclaim:delete"
+        "permission": "development:business:delete-module"
     },
     "DELETE /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
         "guard": "plugin",
@@ -64,200 +44,180 @@
         "login": true,
         "permission": "example:test:destroy"
     },
-    "DELETE /admin/plugin/market/category/{id:\\d+} => app\\admin\\plugins\\market\\controller\\CategoryController::delete": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:category:delete"
-    },
-    "DELETE /admin/plugin/market/grant/{id:\\d+} => app\\admin\\plugins\\market\\controller\\GrantController::delete": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:grant:delete"
-    },
-    "DELETE /admin/plugin/market/plugin/version/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::deleteVersion": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:delete-version"
-    },
-    "DELETE /admin/plugin/market/plugin/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::delete": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:delete"
-    },
     "DELETE /admin/system/attachment => app\\admin\\system\\controller\\SystemAttachment::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachment:delete"
+        "permission": "system:attachment:delete"
     },
     "DELETE /admin/system/attachment-group/{id:\\d+} => app\\admin\\system\\controller\\SystemAttachmentGroup::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemattachmentgroup:delete"
+        "permission": "system:attachment-group:delete"
     },
     "DELETE /admin/system/blacklist => app\\admin\\system\\controller\\SystemBlacklist::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:delete"
+        "permission": "system:blacklist:delete"
     },
     "DELETE /admin/system/blacklist/destroy => app\\admin\\system\\controller\\SystemBlacklist::destroy": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:destroy"
+        "permission": "system:blacklist:destroy"
     },
     "DELETE /admin/system/config => app\\admin\\system\\controller\\SystemConfig::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:delete"
+        "permission": "system:config:delete"
     },
     "DELETE /admin/system/config-group/{id:\\d+} => app\\admin\\system\\controller\\SystemConfig::deleteGroup": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:deletegroup"
+        "permission": "system:config:delete-group"
     },
     "DELETE /admin/system/dept => app\\admin\\authorization\\controller\\SystemDepartment::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:delete"
+        "permission": "authorization:department:delete"
     },
     "DELETE /admin/system/dept/{id:\\d+} => app\\admin\\authorization\\controller\\SystemDepartment::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:deletebyid"
+        "permission": "authorization:department:delete-by-id"
     },
     "DELETE /admin/system/dict/items => app\\admin\\system\\controller\\SystemDict::deleteItems": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:deleteitems"
+        "permission": "system:dict:delete-items"
     },
     "DELETE /admin/system/dict/items/{id:\\d+} => app\\admin\\system\\controller\\SystemDict::deleteItem": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:deleteitem"
+        "permission": "system:dict:delete-item"
     },
     "DELETE /admin/system/dict/types => app\\admin\\system\\controller\\SystemDict::deleteTypes": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:deletetypes"
+        "permission": "system:dict:delete-types"
     },
     "DELETE /admin/system/dict/types/{id:\\d+} => app\\admin\\system\\controller\\SystemDict::deleteType": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:deletetype"
+        "permission": "system:dict:delete-type"
     },
     "DELETE /admin/system/language => app\\admin\\system\\controller\\SystemLanguage::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:delete"
+        "permission": "system:language:delete"
     },
     "DELETE /admin/system/language/lines => app\\admin\\system\\controller\\SystemLanguage::removeLine": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:removeline"
+        "permission": "system:language:remove-line"
     },
     "DELETE /admin/system/language/{id:\\d+} => app\\admin\\system\\controller\\SystemLanguage::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:deletebyid"
+        "permission": "system:language:delete-by-id"
     },
     "DELETE /admin/system/log/operation => app\\admin\\system\\controller\\SystemOperationLog::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemoperationlog:delete"
+        "permission": "system:operation-log:delete"
     },
     "DELETE /admin/system/log/operation/clear => app\\admin\\system\\controller\\SystemOperationLog::clear": {
         "guard": "admin",
         "login": true,
-        "permission": "systemoperationlog:delete"
+        "permission": "system:operation-log:clear"
     },
     "DELETE /admin/system/log/operation/{id:\\d+} => app\\admin\\system\\controller\\SystemOperationLog::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemoperationlog:deletebyid"
+        "permission": "system:operation-log:delete-by-id"
     },
     "DELETE /admin/system/member => app\\admin\\system\\controller\\SystemMember::recycle": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemmember:recycle"
+        "permission": "system:member:recycle"
     },
     "DELETE /admin/system/member-group => app\\admin\\system\\controller\\SystemMemberGroup::recycle": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemmembergroup:recycle"
+        "permission": "system:member-group:recycle"
     },
     "DELETE /admin/system/member-group/destroy => app\\admin\\system\\controller\\SystemMemberGroup::destroy": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:destroy"
+        "permission": "system:member-group:destroy"
     },
     "DELETE /admin/system/member-level => app\\admin\\system\\controller\\SystemMemberLevel::recycle": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemmemberlevel:recycle"
+        "permission": "system:member-level:recycle"
     },
     "DELETE /admin/system/member-level/destroy => app\\admin\\system\\controller\\SystemMemberLevel::destroy": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:destroy"
+        "permission": "system:member-level:destroy"
     },
     "DELETE /admin/system/member/destroy => app\\admin\\system\\controller\\SystemMember::destroy": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:destroy"
+        "permission": "system:member:destroy"
     },
     "DELETE /admin/system/menu => app\\admin\\authorization\\controller\\SystemMenu::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:delete"
+        "permission": "authorization:menu:delete"
     },
     "DELETE /admin/system/menu/{id:\\d+} => app\\admin\\authorization\\controller\\SystemMenu::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:deletebyid"
+        "permission": "authorization:menu:delete-by-id"
     },
     "DELETE /admin/system/permission => app\\admin\\authorization\\controller\\SystemPermission::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:delete"
+        "permission": "authorization:permission:delete"
     },
     "DELETE /admin/system/permission/{id:\\d+} => app\\admin\\authorization\\controller\\SystemPermission::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:deletebyid"
+        "permission": "authorization:permission:delete-by-id"
     },
     "DELETE /admin/system/plugin/{code:[a-z][a-z0-9]*}/package => app\\admin\\plugin\\controller\\SystemPlugin::deletePackage": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:deletepackage"
+        "permission": "plugin:plugin:delete-package"
     },
     "DELETE /admin/system/plugin/{code:[a-z][a-z0-9]*}/purge => app\\admin\\plugin\\controller\\SystemPlugin::purge": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:purge"
+        "permission": "plugin:plugin:purge"
     },
     "DELETE /admin/system/plugin/{code:[a-z][a-z0-9]*}/uninstall => app\\admin\\plugin\\controller\\SystemPlugin::uninstall": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:uninstall"
+        "permission": "plugin:plugin:uninstall"
     },
     "DELETE /admin/system/role => app\\admin\\authorization\\controller\\SystemRole::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:delete"
+        "permission": "authorization:role:delete"
     },
     "DELETE /admin/system/role/{id:\\d+} => app\\admin\\authorization\\controller\\SystemRole::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:deletebyid"
+        "permission": "authorization:role:delete-by-id"
     },
     "DELETE /admin/system/user => app\\admin\\authorization\\controller\\SystemAdmin::delete": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:delete"
+        "permission": "authorization:admin:delete"
     },
     "DELETE /admin/system/user/{id:\\d+} => app\\admin\\authorization\\controller\\SystemAdmin::deleteById": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:deletebyid"
+        "permission": "authorization:admin:delete-by-id"
     },
     "GET /admin/auth/csrf => app\\admin\\authentication\\controller\\AdminAuth::csrf": {
         "guard": "self",
@@ -277,312 +237,202 @@
     "GET /admin/development/ai/approvals => app\\admin\\ai\\controller\\Ai::approvalIndex": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:approvalindex"
+        "permission": "ai:ai:approval-index"
     },
     "GET /admin/development/ai/change-sets/{id:\\d+} => app\\admin\\ai\\controller\\Ai::changeSetDetail": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:changesetdetail"
+        "permission": "ai:ai:change-set-detail"
     },
     "GET /admin/development/ai/conversation-groups => app\\admin\\ai\\controller\\Ai::conversationGroupIndex": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationindex"
+        "permission": "ai:ai:conversation-group-index"
     },
     "GET /admin/development/ai/conversations => app\\admin\\ai\\controller\\Ai::conversationIndex": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationindex"
+        "permission": "ai:ai:conversation-index"
     },
     "GET /admin/development/ai/conversations/{id:\\d+} => app\\admin\\ai\\controller\\Ai::conversationRead": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationread"
+        "permission": "ai:ai:conversation-read"
     },
     "GET /admin/development/ai/conversations/{id:\\d+}/attachments/{attachmentId:\\d+}/content => app\\admin\\ai\\controller\\Ai::attachmentContent": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:attachmentcontent"
+        "permission": "ai:ai:attachment-content"
     },
     "GET /admin/development/ai/conversations/{id:\\d+}/messages => app\\admin\\ai\\controller\\Ai::messageIndex": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:messageindex"
+        "permission": "ai:ai:message-index"
     },
     "GET /admin/development/ai/profiles => app\\admin\\ai\\controller\\Profiles::index": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:index"
+        "permission": "ai:profiles:index"
     },
     "GET /admin/development/ai/profiles/default => app\\admin\\ai\\controller\\Profiles::defaultRead": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:defaultread"
+        "permission": "ai:profiles:default-read"
     },
     "GET /admin/development/ai/profiles/{id:\\d+} => app\\admin\\ai\\controller\\Profiles::read": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:read"
+        "permission": "ai:profiles:read"
     },
     "GET /admin/development/ai/sandbox/status => app\\admin\\ai\\controller\\Ai::sandboxStatus": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:sandboxstatus"
+        "permission": "ai:ai:sandbox-status"
     },
     "GET /admin/development/ai/settings => app\\admin\\ai\\controller\\Ai::settingsRead": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:settingsread"
+        "permission": "ai:ai:settings-read"
     },
     "GET /admin/development/ai/tasks/{id:\\d+} => app\\admin\\ai\\controller\\Ai::taskRead": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:taskread"
+        "permission": "ai:ai:task-read"
     },
     "GET /admin/development/ai/tasks/{id:\\d+}/events => app\\admin\\ai\\controller\\Ai::eventStream": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:eventstream"
+        "permission": "ai:ai:event-stream"
     },
     "GET /admin/development/ai/tasks/{id:\\d+}/tool-calls => app\\admin\\ai\\controller\\Ai::taskToolCalls": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:tasktoolcalls"
+        "permission": "ai:ai:task-tool-calls"
     },
     "GET /admin/development/ai/tool-calls/{id:\\d+}/logs/{stream:stdout|stderr} => app\\admin\\ai\\controller\\Ai::toolCallLog": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:toolcalllog"
+        "permission": "ai:ai:tool-call-log"
     },
     "GET /admin/development/business/database/tables => app\\admin\\development\\controller\\Business::databaseTables": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:databasetables"
+        "permission": "development:business:database-tables"
     },
     "GET /admin/development/business/database/tables/{table:[a-z_][a-z0-9_]*}/schema => app\\admin\\development\\controller\\Business::databaseTableSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:databasetableschema"
+        "permission": "development:business:database-table-schema"
     },
     "GET /admin/development/business/field-capabilities => app\\admin\\development\\controller\\Business::fieldCapabilities": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:fieldcapabilities"
+        "permission": "development:business:field-capabilities"
     },
     "GET /admin/development/business/generations => app\\admin\\development\\controller\\Business::generations": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:generations"
+        "permission": "development:business:generations"
     },
     "GET /admin/development/business/generations/{id:\\d+} => app\\admin\\development\\controller\\Business::generation": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:generation"
+        "permission": "development:business:generation"
     },
     "GET /admin/development/business/modules => app\\admin\\development\\controller\\Business::modules": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:modules"
+        "permission": "development:business:modules"
     },
     "GET /admin/development/business/modules/{id:\\d+} => app\\admin\\development\\controller\\Business::module": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:module"
+        "permission": "development:business:module"
     },
     "GET /admin/development/business/modules/{id:\\d+}/runtime-meta => app\\admin\\development\\controller\\Business::runtimeMeta": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:runtimemeta"
+        "permission": "development:business:runtime-meta"
     },
     "GET /admin/development/business/modules/{id:\\d+}/schema/design-action-catalog => app\\admin\\development\\controller\\Business::designActionCatalog": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:designactioncatalog"
+        "permission": "development:business:design-action-catalog"
     },
     "GET /admin/development/business/modules/{id:\\d+}/schema/diff => app\\admin\\development\\controller\\Business::schemaDiff": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:schemadiff"
+        "permission": "development:business:schema-diff"
     },
     "GET /admin/development/business/modules/{id:\\d+}/schema/versions => app\\admin\\development\\controller\\Business::schemaVersions": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:schemaversions"
+        "permission": "development:business:schema-versions"
     },
     "GET /admin/development/business/modules/{id:\\d+}/schema/versions/{version:\\d+} => app\\admin\\development\\controller\\Business::schemaVersion": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:schemaversion"
+        "permission": "development:business:schema-version"
     },
     "GET /admin/development/business/targets => app\\admin\\development\\controller\\Business::targets": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:modules"
+        "permission": "development:business:targets"
     },
     "GET /admin/development/plugin/options => app\\admin\\plugin\\controller\\DevPlugin::options": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:options"
+        "permission": "plugin:dev-plugin:options"
     },
     "GET /admin/development/plugin/package/{code:[a-z][a-z0-9]*}/download => app\\admin\\plugin\\controller\\DevPlugin::packageDownload": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:packagedownload"
+        "permission": "plugin:dev-plugin:package-download"
     },
     "GET /admin/form/data/detail/{key:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+} => app\\admin\\form\\controller\\Data::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:detail"
+        "permission": "form:data:detail"
     },
     "GET /admin/form/data/export/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::export": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:export"
+        "permission": "form:data:export"
     },
     "GET /admin/form/data/index/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::index": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:index"
+        "permission": "form:data:index"
     },
     "GET /admin/form/data/left-tree-form/{key:[a-z][a-z0-9_]*}/{operation:create|addChild|edit} => app\\admin\\form\\controller\\Data::leftTreeForm": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:index"
+        "permission": "form:data:left-tree-form"
     },
     "GET /admin/form/data/left-tree/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::leftTree": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:index"
+        "permission": "form:data:left-tree"
     },
     "GET /admin/form/data/list-actions/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::listActions": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:listactions"
+        "permission": "form:data:list-actions"
     },
     "GET /admin/form/data/meta/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::meta": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:meta"
+        "permission": "form:data:meta"
     },
     "GET /admin/form/data/options/{key:[a-z][a-z0-9_]*}/{field:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::options": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:options"
+        "permission": "form:data:options"
     },
     "GET /admin/form/data/sub/{key:[a-z][a-z0-9_]*}/{relation:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+} => app\\admin\\form\\controller\\Data::sub": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:sub"
-    },
-    "GET /admin/identity/applications => app\\admin\\identity\\controller\\EnterpriseApplication::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:index"
-    },
-    "GET /admin/identity/applications/portal => app\\admin\\identity\\controller\\EnterpriseApplication::portal": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:portal"
-    },
-    "GET /admin/identity/applications/{id:\\d+} => app\\admin\\identity\\controller\\EnterpriseApplication::detail": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:detail"
-    },
-    "GET /admin/identity/applications/{id:\\d+}/assignments => app\\admin\\identity\\controller\\EnterpriseApplication::assignments": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:assignments"
-    },
-    "GET /admin/identity/applications/{id:\\d+}/database => app\\admin\\identity\\controller\\EnterpriseApplication::database": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:database"
-    },
-    "GET /admin/identity/applications/{id:\\d+}/domains => app\\admin\\identity\\controller\\EnterpriseApplication::domains": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:domains"
-    },
-    "GET /admin/identity/applications/{id:\\d+}/launch => app\\admin\\identity\\controller\\EnterpriseApplication::launch": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:launch"
-    },
-    "GET /admin/identity/audit => app\\admin\\identity\\controller\\IdentityAudit::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityaudit:index"
-    },
-    "GET /admin/identity/oauth-clients => app\\admin\\identity\\controller\\OAuthClient::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:index"
-    },
-    "GET /admin/identity/oauth-clients/{id:\\d+} => app\\admin\\identity\\controller\\OAuthClient::detail": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:detail"
-    },
-    "GET /admin/identity/oauth-clients/{id:\\d+}/secrets => app\\admin\\identity\\controller\\OAuthClient::secrets": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:secrets"
-    },
-    "GET /admin/identity/oidc-sessions => app\\admin\\identity\\controller\\OidcSession::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsession:index"
-    },
-    "GET /admin/identity/oidc-sessions/deliveries => app\\admin\\identity\\controller\\OidcSession::deliveries": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsession:deliveries"
-    },
-    "GET /admin/identity/scopes => app\\admin\\identity\\controller\\ScopeClaim::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.scopeclaim:index"
-    },
-    "GET /admin/identity/signing-keys => app\\admin\\identity\\controller\\OidcSigningKey::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsigningkey:index"
-    },
-    "GET /admin/identity/sso/check => app\\admin\\identity\\controller\\SsoConfiguration::check": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.ssoconfiguration:check"
-    },
-    "GET /admin/identity/sso/config => app\\admin\\identity\\controller\\SsoConfiguration::config": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.ssoconfiguration:config"
-    },
-    "GET /admin/identity/users => app\\admin\\identity\\controller\\IdentityUser::index": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:index"
-    },
-    "GET /admin/identity/users/{id:\\d+} => app\\admin\\identity\\controller\\IdentityUser::detail": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:detail"
-    },
-    "GET /admin/identity/users/{id:\\d+}/authorizations => app\\admin\\identity\\controller\\IdentityUser::authorizations": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:authorizations"
-    },
-    "GET /admin/identity/users/{id:\\d+}/links => app\\admin\\identity\\controller\\IdentityUser::links": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:links"
-    },
-    "GET /admin/identity/users/{id:\\d+}/sessions => app\\admin\\identity\\controller\\IdentityUser::sessions": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:sessions"
+        "permission": "form:data:sub"
     },
     "GET /admin/plugin/cms/access => app\\admin\\plugins\\cms\\controller\\Access::index": {
         "guard": "plugin",
@@ -729,70 +579,10 @@
         "login": true,
         "permission": "example:test:detail"
     },
-    "GET /admin/plugin/market/category/ => app\\admin\\plugins\\market\\controller\\CategoryController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:category:index"
-    },
-    "GET /admin/plugin/market/grant/ => app\\admin\\plugins\\market\\controller\\GrantController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:grant:index"
-    },
-    "GET /admin/plugin/market/order/ => app\\admin\\plugins\\market\\controller\\OrderController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:order:index"
-    },
-    "GET /admin/plugin/market/order/{no:\\d{20,32}} => app\\admin\\plugins\\market\\controller\\OrderController::detail": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:order:detail"
-    },
-    "GET /admin/plugin/market/plugin/ => app\\admin\\plugins\\market\\controller\\PluginController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:index"
-    },
-    "GET /admin/plugin/market/plugin/overview => app\\admin\\plugins\\market\\controller\\PluginController::overview": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:overview"
-    },
-    "GET /admin/plugin/market/plugin/version/{id:\\d+}/package => app\\admin\\plugins\\market\\controller\\PluginController::package": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:package"
-    },
-    "GET /admin/plugin/market/plugin/{id:\\d+}/versions => app\\admin\\plugins\\market\\controller\\PluginController::versions": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:versions"
-    },
-    "GET /admin/plugin/market/setting/ => app\\admin\\plugins\\market\\controller\\SettingController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:setting:index"
-    },
-    "GET /admin/plugin/market/setting/payment => app\\admin\\plugins\\market\\controller\\SettingController::payment": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:setting:payment"
-    },
-    "GET /admin/plugin/market/stat => app\\admin\\plugins\\market\\controller\\StatController::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:stat:index"
-    },
     "GET /admin/plugin/qa/moderation => app\\admin\\plugins\\qa\\controller\\Moderation::index": {
         "guard": "plugin",
         "login": true,
         "permission": "qa:moderation:index"
-    },
-    "GET /admin/plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
-        "guard": "self",
-        "login": false,
-        "permission": null
     },
     "GET /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::index": {
         "guard": "self",
@@ -802,97 +592,97 @@
     "GET /admin/system/attachment => app\\admin\\system\\controller\\SystemAttachment::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachment:index"
+        "permission": "system:attachment:index"
     },
     "GET /admin/system/attachment-group/tree => app\\admin\\system\\controller\\SystemAttachmentGroup::tree": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachmentgroup:tree"
+        "permission": "system:attachment-group:tree"
     },
     "GET /admin/system/attachment-group/{id:\\d+} => app\\admin\\system\\controller\\SystemAttachmentGroup::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemattachmentgroup:detail"
+        "permission": "system:attachment-group:detail"
     },
     "GET /admin/system/attachment/{id:\\d+} => app\\admin\\system\\controller\\SystemAttachment::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachment:detail"
+        "permission": "system:attachment:detail"
     },
     "GET /admin/system/blacklist => app\\admin\\system\\controller\\SystemBlacklist::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:index"
+        "permission": "system:blacklist:index"
     },
     "GET /admin/system/blacklist/export => app\\admin\\system\\controller\\SystemBlacklist::export": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:export"
+        "permission": "system:blacklist:export"
     },
     "GET /admin/system/blacklist/{id:\\d+} => app\\admin\\system\\controller\\SystemBlacklist::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:detail"
+        "permission": "system:blacklist:detail"
     },
     "GET /admin/system/config => app\\admin\\system\\controller\\SystemConfig::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:index"
+        "permission": "system:config:index"
     },
     "GET /admin/system/config-group => app\\admin\\system\\controller\\SystemConfig::groups": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:groups"
+        "permission": "system:config:groups"
     },
     "GET /admin/system/config/options => app\\admin\\system\\controller\\SystemConfig::options": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:options"
+        "permission": "system:config:options"
     },
     "GET /admin/system/config/{id:\\d+} => app\\admin\\system\\controller\\SystemConfig::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:detail"
+        "permission": "system:config:detail"
     },
     "GET /admin/system/dept/tree => app\\admin\\authorization\\controller\\SystemDepartment::tree": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:tree"
+        "permission": "authorization:department:tree"
     },
     "GET /admin/system/dept/{id:\\d+} => app\\admin\\authorization\\controller\\SystemDepartment::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:detail"
+        "permission": "authorization:department:detail"
     },
     "GET /admin/system/dict/items => app\\admin\\system\\controller\\SystemDict::items": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:items"
+        "permission": "system:dict:items"
     },
     "GET /admin/system/dict/types => app\\admin\\system\\controller\\SystemDict::types": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:types"
+        "permission": "system:dict:types"
     },
     "GET /admin/system/dict/{code:[A-Za-z][A-Za-z0-9_]{0,59}}/options => app\\admin\\system\\controller\\SystemDict::options": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:options"
+        "permission": "system:dict:options"
     },
     "GET /admin/system/language => app\\admin\\system\\controller\\SystemLanguage::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:index"
+        "permission": "system:language:index"
     },
     "GET /admin/system/language/lines => app\\admin\\system\\controller\\SystemLanguage::lines": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:lines"
+        "permission": "system:language:lines"
     },
     "GET /admin/system/language/ns => app\\admin\\system\\controller\\SystemLanguage::namespaces": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:namespaces"
+        "permission": "system:language:namespaces"
     },
     "GET /admin/system/language/pack => app\\admin\\system\\controller\\SystemLanguage::pack": {
         "guard": "admin",
@@ -902,132 +692,132 @@
     "GET /admin/system/language/{id:\\d+} => app\\admin\\system\\controller\\SystemLanguage::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:detail"
+        "permission": "system:language:detail"
     },
     "GET /admin/system/log/operation => app\\admin\\system\\controller\\SystemOperationLog::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemoperationlog:index"
+        "permission": "system:operation-log:index"
     },
     "GET /admin/system/log/operation/{id:\\d+} => app\\admin\\system\\controller\\SystemOperationLog::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemoperationlog:detail"
+        "permission": "system:operation-log:detail"
     },
     "GET /admin/system/member => app\\admin\\system\\controller\\SystemMember::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:index"
+        "permission": "system:member:index"
     },
     "GET /admin/system/member-group => app\\admin\\system\\controller\\SystemMemberGroup::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:index"
+        "permission": "system:member-group:index"
     },
     "GET /admin/system/member-group/export => app\\admin\\system\\controller\\SystemMemberGroup::export": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:export"
+        "permission": "system:member-group:export"
     },
     "GET /admin/system/member-group/{id:\\d+} => app\\admin\\system\\controller\\SystemMemberGroup::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:detail"
+        "permission": "system:member-group:detail"
     },
     "GET /admin/system/member-level => app\\admin\\system\\controller\\SystemMemberLevel::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:index"
+        "permission": "system:member-level:index"
     },
     "GET /admin/system/member-level/export => app\\admin\\system\\controller\\SystemMemberLevel::export": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:export"
+        "permission": "system:member-level:export"
     },
     "GET /admin/system/member-level/{id:\\d+} => app\\admin\\system\\controller\\SystemMemberLevel::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:detail"
+        "permission": "system:member-level:detail"
     },
     "GET /admin/system/member/export => app\\admin\\system\\controller\\SystemMember::export": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:export"
+        "permission": "system:member:export"
     },
     "GET /admin/system/member/options => app\\admin\\system\\controller\\SystemMember::options": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:options"
+        "permission": "system:member:options"
     },
     "GET /admin/system/member/{id:\\d+} => app\\admin\\system\\controller\\SystemMember::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:detail"
+        "permission": "system:member:detail"
     },
     "GET /admin/system/menu/permission-options => app\\admin\\authorization\\controller\\SystemMenu::permissionOptions": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:permissionoptions"
+        "permission": "authorization:menu:permission-options"
     },
     "GET /admin/system/menu/tree => app\\admin\\authorization\\controller\\SystemMenu::tree": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:tree"
+        "permission": "authorization:menu:tree"
     },
     "GET /admin/system/menu/{id:\\d+} => app\\admin\\authorization\\controller\\SystemMenu::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:detail"
+        "permission": "authorization:menu:detail"
     },
     "GET /admin/system/permission/tree => app\\admin\\authorization\\controller\\SystemPermission::tree": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:tree"
+        "permission": "authorization:permission:tree"
     },
     "GET /admin/system/permission/{id:\\d+} => app\\admin\\authorization\\controller\\SystemPermission::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:detail"
+        "permission": "authorization:permission:detail"
     },
     "GET /admin/system/plugin/account/current => app\\admin\\plugin\\controller\\SystemPlugin::currentAccount": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:currentaccount"
+        "permission": "plugin:plugin:current-account"
     },
     "GET /admin/system/plugin/local/discovered => app\\admin\\plugin\\controller\\SystemPlugin::discovered": {
         "guard": "admin",
         "login": true,
-        "permission": "plugin.systemplugin:discovered"
+        "permission": "plugin:plugin:discovered"
     },
     "GET /admin/system/plugin/local/installed => app\\admin\\plugin\\controller\\SystemPlugin::installed": {
         "guard": "admin",
         "login": true,
-        "permission": "plugin.systemplugin:installed"
+        "permission": "plugin:plugin:installed"
     },
     "GET /admin/system/plugin/local/{code:[a-z][a-z0-9]*} => app\\admin\\plugin\\controller\\SystemPlugin::localDetail": {
         "guard": "admin",
         "login": true,
-        "permission": "plugin.systemplugin:localdetail"
+        "permission": "plugin:plugin:local-detail"
     },
     "GET /admin/system/plugin/market/categories => app\\admin\\plugin\\controller\\SystemPlugin::marketCategories": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:marketcategories"
+        "permission": "plugin:plugin:market-categories"
     },
     "GET /admin/system/plugin/market/search => app\\admin\\plugin\\controller\\SystemPlugin::marketSearch": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:marketsearch"
+        "permission": "plugin:plugin:market-search"
     },
     "GET /admin/system/plugin/market/{code:[a-z][a-z0-9]*} => app\\admin\\plugin\\controller\\SystemPlugin::marketDetail": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:marketdetail"
+        "permission": "plugin:plugin:market-detail"
     },
     "GET /admin/system/plugin/market/{code:[a-z][a-z0-9]*}/versions => app\\admin\\plugin\\controller\\SystemPlugin::marketVersions": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:marketversions"
+        "permission": "plugin:plugin:market-versions"
     },
     "GET /admin/system/plugin/modules/enabled => app\\admin\\plugin\\controller\\SystemPlugin::enabledModules": {
         "guard": "admin",
@@ -1037,119 +827,84 @@
     "GET /admin/system/plugin/{code:[a-z][a-z0-9]*}/config => app\\admin\\plugin\\controller\\SystemPlugin::getConfig": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:getconfig"
+        "permission": "plugin:plugin:get-config"
     },
     "GET /admin/system/plugin/{code:[a-z][a-z0-9]*}/history => app\\admin\\plugin\\controller\\SystemPlugin::history": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:history"
+        "permission": "plugin:plugin:history"
     },
     "GET /admin/system/plugin/{code:[a-z][a-z0-9]*}/history/{id:\\d+}/download => app\\admin\\plugin\\controller\\SystemPlugin::downloadHistory": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:downloadhistory"
+        "permission": "plugin:plugin:download-history"
     },
     "GET /admin/system/plugin/{code:[a-z][a-z0-9]*}/operations => app\\admin\\plugin\\controller\\SystemPlugin::operations": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:operations"
+        "permission": "plugin:plugin:operations"
     },
     "GET /admin/system/plugin/{code:[a-z][a-z0-9]*}/recovery => app\\admin\\plugin\\controller\\SystemPlugin::recoveryInfo": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:recoveryinfo"
+        "permission": "plugin:plugin:recovery-info"
     },
     "GET /admin/system/role => app\\admin\\authorization\\controller\\SystemRole::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:index"
+        "permission": "authorization:role:index"
     },
     "GET /admin/system/role/all => app\\admin\\authorization\\controller\\SystemRole::all": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:all"
+        "permission": "authorization:role:all"
     },
     "GET /admin/system/role/parent-options => app\\admin\\authorization\\controller\\SystemRole::parentOptions": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:parentoptions"
+        "permission": "authorization:role:parent-options"
     },
     "GET /admin/system/role/permission-tree => app\\admin\\authorization\\controller\\SystemRole::permissionTree": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:permissiontree"
+        "permission": "authorization:role:permission-tree"
     },
     "GET /admin/system/role/{id:\\d+} => app\\admin\\authorization\\controller\\SystemRole::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:detail"
+        "permission": "authorization:role:detail"
     },
     "GET /admin/system/role/{id:\\d+}/authorization => app\\admin\\authorization\\controller\\SystemRole::authorization": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:authorization"
+        "permission": "authorization:role:authorization"
     },
     "GET /admin/system/storage => app\\admin\\system\\controller\\SystemStorage::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemstorage:index"
+        "permission": "system:storage:index"
     },
     "GET /admin/system/upgrade/check => app\\admin\\system\\controller\\SystemUpgrade::check": {
         "guard": "admin",
         "login": true,
-        "permission": "systemupgrade:check"
+        "permission": "system:upgrade:check"
     },
     "GET /admin/system/upgrade/status => app\\admin\\system\\controller\\SystemUpgrade::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemupgrade:status"
+        "permission": "system:upgrade:status"
     },
     "GET /admin/system/user => app\\admin\\authorization\\controller\\SystemAdmin::index": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:index"
+        "permission": "authorization:admin:index"
     },
     "GET /admin/system/user/{id:\\d+} => app\\admin\\authorization\\controller\\SystemAdmin::detail": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:detail"
+        "permission": "authorization:admin:detail"
     },
     "GET /api/auth/me => app\\admin\\authentication\\controller\\ApiAuth::me": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v2/member => app\\api\\controller\\v2\\Member::show": {
-        "guard": "member",
-        "login": true,
-        "permission": null
-    },
-    "GET /api/v2/member/status => app\\api\\controller\\v2\\Member::status": {
-        "guard": "member",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v3/packages/{version:\\d+}/{member:\\d+}/{expires:\\d+}/{signature:[a-f0-9]{64}} => app\\market\\controller\\Packages::download": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v3/plugins => app\\market\\controller\\Plugins::search": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v3/plugins/categories => app\\market\\controller\\Plugins::categories": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v3/plugins/{code:[a-z][a-z0-9]*} => app\\market\\controller\\Plugins::detail": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /api/v3/plugins/{code:[a-z][a-z0-9]*}/versions => app\\market\\controller\\Plugins::versions": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1184,147 +939,12 @@
         "login": false,
         "permission": null
     },
-    "GET /identity/.well-known/jwks.json => app\\identity\\controller\\Metadata::jwks": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/.well-known/oauth-authorization-server => app\\identity\\controller\\Metadata::oauth": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/.well-known/openid-configuration => app\\identity\\controller\\Metadata::discovery": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/authorize => app\\identity\\controller\\OAuth::authorize": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/captcha => app\\identity\\controller\\Identity::captcha": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/csrf => app\\identity\\controller\\Identity::csrf": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/interaction => app\\identity\\controller\\Identity::page": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/interaction/consent => app\\identity\\controller\\Identity::page": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/interaction/login => app\\identity\\controller\\Identity::page": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/logout => app\\identity\\controller\\Logout::end": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/status => app\\identity\\controller\\Status::index": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /identity/userinfo => app\\identity\\controller\\OAuth::userinfo": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
     "GET /install/index => app\\install\\controller\\Index::index": {
         "guard": "self",
         "login": false,
         "permission": null
     },
     "GET /install/index/step2 => app\\install\\controller\\Index::step2": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market => app\\market\\controller\\Store::home": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/api/v3/packages/{version:\\d+}/{member:\\d+}/{expires:\\d+}/{signature:[a-f0-9]{64}} => app\\market\\controller\\Packages::download": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/api/v3/plugins => app\\market\\controller\\Plugins::search": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/api/v3/plugins/categories => app\\market\\controller\\Plugins::categories": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/api/v3/plugins/{code:[a-z][a-z0-9]*} => app\\market\\controller\\Plugins::detail": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/api/v3/plugins/{code:[a-z][a-z0-9]*}/versions => app\\market\\controller\\Plugins::versions": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/captcha => app\\market\\controller\\Account::captcha": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/login => app\\market\\controller\\Account::loginForm": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/order/{no:\\d{20,32}} => app\\market\\controller\\Order::show": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/order/{no:\\d{20,32}}/pay => app\\market\\controller\\Order::pay": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/order/{no:\\d{20,32}}/status => app\\market\\controller\\Order::status": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/plugin/{code:[a-z][a-z0-9]*} => app\\market\\controller\\Store::plugin": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/register => app\\market\\controller\\Account::registerForm": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /market/user => app\\market\\controller\\User::index": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "GET /plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1362,12 +982,12 @@
     "PATCH /admin/development/ai/conversations/{id:\\d+}/state => app\\admin\\ai\\controller\\Ai::conversationStateUpdate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationupdate"
+        "permission": "ai:ai:conversation-state-update"
     },
     "PATCH /admin/development/ai/profiles/{id:\\d+} => app\\admin\\ai\\controller\\Profiles::update": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:update"
+        "permission": "ai:profiles:update"
     },
     "POST /admin/auth/login => app\\admin\\authentication\\controller\\AdminAuth::login": {
         "guard": "self",
@@ -1382,322 +1002,252 @@
     "POST /admin/development/ai/approvals/{id:\\d+}/decision => app\\admin\\ai\\controller\\Ai::approvalDecide": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:approvaldecide"
+        "permission": "ai:ai:approval-decide"
     },
     "POST /admin/development/ai/change-sets/{id:\\d+}/apply => app\\admin\\ai\\controller\\Ai::changeSetApply": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:changesetapply"
+        "permission": "ai:ai:change-set-apply"
     },
     "POST /admin/development/ai/change-sets/{id:\\d+}/preview => app\\admin\\ai\\controller\\Ai::changeSetPreview": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:changesetpreview"
+        "permission": "ai:ai:change-set-preview"
     },
     "POST /admin/development/ai/change-sets/{id:\\d+}/recover => app\\admin\\ai\\controller\\Ai::changeSetRecover": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:changesetrecover"
+        "permission": "ai:ai:change-set-recover"
     },
     "POST /admin/development/ai/conversation-groups => app\\admin\\ai\\controller\\Ai::conversationGroupCreate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationcreate"
+        "permission": "ai:ai:conversation-group-create"
     },
     "POST /admin/development/ai/conversations => app\\admin\\ai\\controller\\Ai::conversationCreate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationcreate"
+        "permission": "ai:ai:conversation-create"
     },
     "POST /admin/development/ai/conversations/{id:\\d+}/attachments => app\\admin\\ai\\controller\\Ai::attachmentCreate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:attachmentcreate"
+        "permission": "ai:ai:attachment-create"
     },
     "POST /admin/development/ai/conversations/{id:\\d+}/messages => app\\admin\\ai\\controller\\Ai::messageCreate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:messagecreate"
+        "permission": "ai:ai:message-create"
     },
     "POST /admin/development/ai/conversations/{id:\\d+}/tasks => app\\admin\\ai\\controller\\Ai::taskExecute": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:taskexecute"
+        "permission": "ai:ai:task-execute"
     },
     "POST /admin/development/ai/crud-proposals/apply => app\\admin\\ai\\controller\\Ai::crudProposalApply": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:crudproposalapply"
+        "permission": "ai:ai:crud-proposal-apply"
     },
     "POST /admin/development/ai/crud-proposals/preview => app\\admin\\ai\\controller\\Ai::crudProposalPreview": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:crudproposalpreview"
+        "permission": "ai:ai:crud-proposal-preview"
     },
     "POST /admin/development/ai/profiles => app\\admin\\ai\\controller\\Profiles::create": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:create"
+        "permission": "ai:profiles:create"
     },
     "POST /admin/development/ai/profiles/{id:\\d+}/copy => app\\admin\\ai\\controller\\Profiles::copy": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:copy"
+        "permission": "ai:profiles:copy"
     },
     "POST /admin/development/ai/profiles/{id:\\d+}/default => app\\admin\\ai\\controller\\Profiles::defaultSet": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:defaultset"
+        "permission": "ai:profiles:default-set"
     },
     "POST /admin/development/ai/profiles/{id:\\d+}/models => app\\admin\\ai\\controller\\Profiles::models": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/ai.profiles:models"
+        "permission": "ai:profiles:models"
     },
     "POST /admin/development/ai/sandbox/cleanup => app\\admin\\ai\\controller\\Ai::sandboxCleanup": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:sandboxcleanup"
+        "permission": "ai:ai:sandbox-cleanup"
     },
     "POST /admin/development/ai/settings/test => app\\admin\\ai\\controller\\Ai::settingsTest": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:settingstest"
+        "permission": "ai:ai:settings-test"
     },
     "POST /admin/development/ai/tasks/{id:\\d+}/cancel => app\\admin\\ai\\controller\\Ai::taskCancel": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:taskcancel"
+        "permission": "ai:ai:task-cancel"
     },
     "POST /admin/development/ai/tasks/{id:\\d+}/events/ticket => app\\admin\\ai\\controller\\Ai::eventTicket": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:eventticket"
+        "permission": "ai:ai:event-ticket"
     },
     "POST /admin/development/business/generations/{id:\\d+}/recover => app\\admin\\development\\controller\\Business::recoverGeneration": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:recovergeneration"
+        "permission": "development:business:recover-generation"
     },
     "POST /admin/development/business/generations/{id:\\d+}/retry-resources => app\\admin\\development\\controller\\Business::retryResources": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:retryresources"
+        "permission": "development:business:retry-resources"
     },
     "POST /admin/development/business/modules/from-database => app\\admin\\development\\controller\\Business::createFromDatabase": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:createfromdatabase"
+        "permission": "development:business:create-from-database"
     },
     "POST /admin/development/business/modules/from-database/inspect => app\\admin\\development\\controller\\Business::inspectDatabase": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:inspectdatabase"
+        "permission": "development:business:inspect-database"
     },
     "POST /admin/development/business/modules/visual => app\\admin\\development\\controller\\Business::createVisual": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:createvisual"
+        "permission": "development:business:create-visual"
     },
     "POST /admin/development/business/modules/{id:\\d+}/baselines/adopt-resolved => app\\admin\\development\\controller\\Business::adoptResolvedBaseline": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:adoptresolvedbaseline"
+        "permission": "development:business:adopt-resolved-baseline"
     },
     "POST /admin/development/business/modules/{id:\\d+}/formal-generation => app\\admin\\development\\controller\\Business::formalGeneration": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:formalgeneration"
+        "permission": "development:business:formal-generation"
     },
     "POST /admin/development/business/modules/{id:\\d+}/formal-generation/preview => app\\admin\\development\\controller\\Business::previewFormalGeneration": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:previewformalgeneration"
+        "permission": "development:business:preview-formal-generation"
     },
     "POST /admin/development/business/modules/{id:\\d+}/publish => app\\admin\\development\\controller\\Business::publish": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:publish"
+        "permission": "development:business:publish"
     },
     "POST /admin/development/business/modules/{id:\\d+}/publish-config => app\\admin\\development\\controller\\Business::savePublishConfig": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:savepublishconfig"
+        "permission": "development:business:save-publish-config"
     },
     "POST /admin/development/business/modules/{id:\\d+}/publish/preview => app\\admin\\development\\controller\\Business::previewPublish": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:previewpublish"
+        "permission": "development:business:preview-publish"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/compile => app\\admin\\development\\controller\\Business::compileSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:compileschema"
+        "permission": "development:business:compile-schema"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/export => app\\admin\\development\\controller\\Business::exportSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:exportschema"
+        "permission": "development:business:export-schema"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/save => app\\admin\\development\\controller\\Business::saveSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:saveschema"
+        "permission": "development:business:save-schema"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/validate => app\\admin\\development\\controller\\Business::validateSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:validateschema"
+        "permission": "development:business:validate-schema"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/versions/{version:\\d+}/rollback => app\\admin\\development\\controller\\Business::rollbackSchema": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.business:rollbackschema"
+        "permission": "development:business:rollback-schema"
     },
     "POST /admin/development/plugin/create => app\\admin\\plugin\\controller\\DevPlugin::create": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:create"
+        "permission": "plugin:dev-plugin:create"
     },
     "POST /admin/development/plugin/create/preview => app\\admin\\plugin\\controller\\DevPlugin::previewCreate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:previewcreate"
+        "permission": "plugin:dev-plugin:preview-create"
     },
     "POST /admin/development/plugin/package => app\\admin\\plugin\\controller\\DevPlugin::package": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:package"
+        "permission": "plugin:dev-plugin:package"
     },
     "POST /admin/development/plugin/validate => app\\admin\\plugin\\controller\\DevPlugin::validate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.devplugin:validate"
+        "permission": "plugin:dev-plugin:validate"
     },
     "POST /admin/form/data/action/{key:[a-z][a-z0-9_]*}/{action:[a-z][a-z0-9._-]*} => app\\admin\\form\\controller\\Data::action": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:action"
+        "permission": "form:data:action"
     },
     "POST /admin/form/data/batch-remove/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::batchRemove": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:batchremove"
+        "permission": "form:data:batch-remove"
     },
     "POST /admin/form/data/create/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::create": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:create"
+        "permission": "form:data:create"
     },
     "POST /admin/form/data/destroy/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::destroy": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:destroy"
+        "permission": "form:data:destroy"
     },
     "POST /admin/form/data/import/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::import": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:import"
+        "permission": "form:data:import"
     },
     "POST /admin/form/data/left-tree/{key:[a-z][a-z0-9_]*}/{operation:create|addChild|edit|delete} => app\\admin\\form\\controller\\Data::mutateLeftTree": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:index"
+        "permission": "form:data:mutate-left-tree"
     },
     "POST /admin/form/data/list-action/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::listAction": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:listaction"
+        "permission": "form:data:list-action"
     },
     "POST /admin/form/data/remove/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::remove": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:remove"
+        "permission": "form:data:remove"
     },
     "POST /admin/form/data/restore/{key:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:restore"
+        "permission": "form:data:restore"
     },
     "POST /admin/form/data/update/{key:[a-z][a-z0-9_]*}/{id:[A-Za-z0-9_-]+} => app\\admin\\form\\controller\\Data::update": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:update"
+        "permission": "form:data:update"
     },
     "POST /admin/form/data/validate/{key:[a-z][a-z0-9_]*}/{field:[a-z][a-z0-9_]*} => app\\admin\\form\\controller\\Data::validateAsync": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/form.data:validateasync"
-    },
-    "POST /admin/identity/applications => app\\admin\\identity\\controller\\EnterpriseApplication::save": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:save"
-    },
-    "POST /admin/identity/applications/{id:\\d+}/disable => app\\admin\\identity\\controller\\EnterpriseApplication::disable": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:disable"
-    },
-    "POST /admin/identity/applications/{id:\\d+}/health => app\\admin\\identity\\controller\\EnterpriseApplication::health": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:health"
-    },
-    "POST /admin/identity/applications/{id:\\d+}/publish => app\\admin\\identity\\controller\\EnterpriseApplication::publish": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:publish"
-    },
-    "POST /admin/identity/oauth-clients => app\\admin\\identity\\controller\\OAuthClient::save": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:save"
-    },
-    "POST /admin/identity/oauth-clients/{id:\\d+}/disable => app\\admin\\identity\\controller\\OAuthClient::disable": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:disable"
-    },
-    "POST /admin/identity/oauth-clients/{id:\\d+}/revoke-tokens => app\\admin\\identity\\controller\\OAuthClient::revokeTokens": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:revoketokens"
-    },
-    "POST /admin/identity/oauth-clients/{id:\\d+}/secrets => app\\admin\\identity\\controller\\OAuthClient::createSecret": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:createsecret"
-    },
-    "POST /admin/identity/oidc-sessions/deliveries/{id:\\d+}/retry => app\\admin\\identity\\controller\\OidcSession::retryDelivery": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsession:retrydelivery"
-    },
-    "POST /admin/identity/oidc-sessions/{id:\\d+}/revoke => app\\admin\\identity\\controller\\OidcSession::revoke": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsession:revoke"
-    },
-    "POST /admin/identity/scopes => app\\admin\\identity\\controller\\ScopeClaim::save": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.scopeclaim:save"
-    },
-    "POST /admin/identity/signing-keys/rotate => app\\admin\\identity\\controller\\OidcSigningKey::rotate": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oidcsigningkey:rotate"
-    },
-    "POST /admin/identity/users/{id:\\d+}/authorizations/revoke => app\\admin\\identity\\controller\\IdentityUser::revokeAuthorizations": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:revokeauthorizations"
-    },
-    "POST /admin/identity/users/{id:\\d+}/sessions/revoke => app\\admin\\identity\\controller\\IdentityUser::revokeSessions": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.identityuser:revokesessions"
+        "permission": "form:data:validate-async"
     },
     "POST /admin/plugin/cms/access/members/remove => app\\admin\\plugins\\cms\\controller\\Access::remove": {
         "guard": "plugin",
@@ -1834,51 +1384,6 @@
         "login": true,
         "permission": "example:test:restore"
     },
-    "POST /admin/plugin/market/category/ => app\\admin\\plugins\\market\\controller\\CategoryController::create": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:category:create"
-    },
-    "POST /admin/plugin/market/grant/ => app\\admin\\plugins\\market\\controller\\GrantController::create": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:grant:create"
-    },
-    "POST /admin/plugin/market/order/{no:\\d{20,32}}/close => app\\admin\\plugins\\market\\controller\\OrderController::close": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:order:close"
-    },
-    "POST /admin/plugin/market/order/{no:\\d{20,32}}/confirm => app\\admin\\plugins\\market\\controller\\OrderController::confirm": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:order:confirm"
-    },
-    "POST /admin/plugin/market/plugin/upload => app\\admin\\plugins\\market\\controller\\PluginController::upload": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:upload"
-    },
-    "POST /admin/plugin/market/plugin/version/{id:\\d+}/publish => app\\admin\\plugins\\market\\controller\\PluginController::publish": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:publish"
-    },
-    "POST /admin/plugin/market/plugin/version/{id:\\d+}/republish => app\\admin\\plugins\\market\\controller\\PluginController::republish": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:republish"
-    },
-    "POST /admin/plugin/market/plugin/version/{id:\\d+}/withdraw => app\\admin\\plugins\\market\\controller\\PluginController::withdraw": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:withdraw"
-    },
-    "POST /admin/plugin/market/setting/key => app\\admin\\plugins\\market\\controller\\SettingController::generateKey": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:setting:generate-key"
-    },
     "POST /admin/plugin/qa/moderation/review => app\\admin\\plugins\\qa\\controller\\Moderation::review": {
         "guard": "plugin",
         "login": true,
@@ -1892,267 +1397,267 @@
     "POST /admin/system/attachment-group => app\\admin\\system\\controller\\SystemAttachmentGroup::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachmentgroup:create"
+        "permission": "system:attachment-group:create"
     },
     "POST /admin/system/attachment/move => app\\admin\\system\\controller\\SystemAttachment::move": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachment:move"
+        "permission": "system:attachment:move"
     },
     "POST /admin/system/blacklist => app\\admin\\system\\controller\\SystemBlacklist::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:create"
+        "permission": "system:blacklist:create"
     },
     "POST /admin/system/blacklist/import => app\\admin\\system\\controller\\SystemBlacklist::import": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:import"
+        "permission": "system:blacklist:import"
     },
     "POST /admin/system/blacklist/restore => app\\admin\\system\\controller\\SystemBlacklist::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:restore"
+        "permission": "system:blacklist:restore"
     },
     "POST /admin/system/blacklist/{id:\\d+}/status => app\\admin\\system\\controller\\SystemBlacklist::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:status"
+        "permission": "system:blacklist:status"
     },
     "POST /admin/system/config => app\\admin\\system\\controller\\SystemConfig::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:create"
+        "permission": "system:config:create"
     },
     "POST /admin/system/config-group => app\\admin\\system\\controller\\SystemConfig::createGroup": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:creategroup"
+        "permission": "system:config:create-group"
     },
     "POST /admin/system/config/{id:\\d+}/status => app\\admin\\system\\controller\\SystemConfig::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:status"
+        "permission": "system:config:status"
     },
     "POST /admin/system/dept => app\\admin\\authorization\\controller\\SystemDepartment::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:create"
+        "permission": "authorization:department:create"
     },
     "POST /admin/system/dict/batch => app\\admin\\system\\controller\\SystemDict::batch": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:batch"
+        "permission": "system:dict:batch"
     },
     "POST /admin/system/dict/items => app\\admin\\system\\controller\\SystemDict::createItem": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:createitem"
+        "permission": "system:dict:create-item"
     },
     "POST /admin/system/dict/types => app\\admin\\system\\controller\\SystemDict::createType": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:createtype"
+        "permission": "system:dict:create-type"
     },
     "POST /admin/system/language => app\\admin\\system\\controller\\SystemLanguage::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:create"
+        "permission": "system:language:create"
     },
     "POST /admin/system/language/lines => app\\admin\\system\\controller\\SystemLanguage::saveLine": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:saveline"
+        "permission": "system:language:save-line"
     },
     "POST /admin/system/member => app\\admin\\system\\controller\\SystemMember::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:create"
+        "permission": "system:member:create"
     },
     "POST /admin/system/member-group => app\\admin\\system\\controller\\SystemMemberGroup::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:create"
+        "permission": "system:member-group:create"
     },
     "POST /admin/system/member-group/import => app\\admin\\system\\controller\\SystemMemberGroup::import": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:import"
+        "permission": "system:member-group:import"
     },
     "POST /admin/system/member-group/restore => app\\admin\\system\\controller\\SystemMemberGroup::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:restore"
+        "permission": "system:member-group:restore"
     },
     "POST /admin/system/member-group/{id:\\d+}/status => app\\admin\\system\\controller\\SystemMemberGroup::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:status"
+        "permission": "system:member-group:status"
     },
     "POST /admin/system/member-level => app\\admin\\system\\controller\\SystemMemberLevel::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:create"
+        "permission": "system:member-level:create"
     },
     "POST /admin/system/member-level/import => app\\admin\\system\\controller\\SystemMemberLevel::import": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:import"
+        "permission": "system:member-level:import"
     },
     "POST /admin/system/member-level/restore => app\\admin\\system\\controller\\SystemMemberLevel::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:restore"
+        "permission": "system:member-level:restore"
     },
     "POST /admin/system/member-level/{id:\\d+}/status => app\\admin\\system\\controller\\SystemMemberLevel::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:status"
+        "permission": "system:member-level:status"
     },
     "POST /admin/system/member/import => app\\admin\\system\\controller\\SystemMember::import": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:import"
+        "permission": "system:member:import"
     },
     "POST /admin/system/member/restore => app\\admin\\system\\controller\\SystemMember::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:restore"
+        "permission": "system:member:restore"
     },
     "POST /admin/system/member/{id:\\d+}/status => app\\admin\\system\\controller\\SystemMember::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:status"
+        "permission": "system:member:status"
     },
     "POST /admin/system/menu => app\\admin\\authorization\\controller\\SystemMenu::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:create"
+        "permission": "authorization:menu:create"
     },
     "POST /admin/system/permission => app\\admin\\authorization\\controller\\SystemPermission::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:create"
+        "permission": "authorization:permission:create"
     },
     "POST /admin/system/plugin/account/login => app\\admin\\plugin\\controller\\SystemPlugin::accountLogin": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:accountlogin"
+        "permission": "plugin:plugin:account-login"
     },
     "POST /admin/system/plugin/account/logout => app\\admin\\plugin\\controller\\SystemPlugin::accountLogout": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:accountlogout"
+        "permission": "plugin:plugin:account-logout"
     },
     "POST /admin/system/plugin/account/refresh => app\\admin\\plugin\\controller\\SystemPlugin::accountRefresh": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:accountrefresh"
+        "permission": "plugin:plugin:account-refresh"
     },
     "POST /admin/system/plugin/cloud/{code:[a-z][a-z0-9]*}/install => app\\admin\\plugin\\controller\\SystemPlugin::installCloud": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:installcloud"
+        "permission": "plugin:plugin:install-cloud"
     },
     "POST /admin/system/plugin/local/install => app\\admin\\plugin\\controller\\SystemPlugin::installLocal": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:installlocal"
+        "permission": "plugin:plugin:install-local"
     },
     "POST /admin/system/plugin/local/{code:[a-z][a-z0-9]*}/install => app\\admin\\plugin\\controller\\SystemPlugin::installDiscovered": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:installdiscovered"
+        "permission": "plugin:plugin:install-discovered"
     },
     "POST /admin/system/plugin/local/{code:[a-z][a-z0-9]*}/update => app\\admin\\plugin\\controller\\SystemPlugin::updateLocal": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:updatelocal"
+        "permission": "plugin:plugin:update-local"
     },
     "POST /admin/system/plugin/market/check-updates => app\\admin\\plugin\\controller\\SystemPlugin::checkUpdates": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:checkupdates"
+        "permission": "plugin:plugin:check-updates"
     },
     "POST /admin/system/plugin/{code:[a-z][a-z0-9]*}/disable => app\\admin\\plugin\\controller\\SystemPlugin::disable": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:disable"
+        "permission": "plugin:plugin:disable"
     },
     "POST /admin/system/plugin/{code:[a-z][a-z0-9]*}/enable => app\\admin\\plugin\\controller\\SystemPlugin::enable": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:enable"
+        "permission": "plugin:plugin:enable"
     },
     "POST /admin/system/plugin/{code:[a-z][a-z0-9]*}/history/{id:\\d+}/redeploy => app\\admin\\plugin\\controller\\SystemPlugin::redeployHistory": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:redeployhistory"
+        "permission": "plugin:plugin:redeploy-history"
     },
     "POST /admin/system/plugin/{code:[a-z][a-z0-9]*}/migrate => app\\admin\\plugin\\controller\\SystemPlugin::migrate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:migrate"
+        "permission": "plugin:plugin:migrate"
     },
     "POST /admin/system/plugin/{code:[a-z][a-z0-9]*}/update => app\\admin\\plugin\\controller\\SystemPlugin::update": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:update"
+        "permission": "plugin:plugin:update"
     },
     "POST /admin/system/role => app\\admin\\authorization\\controller\\SystemRole::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:create"
+        "permission": "authorization:role:create"
     },
     "POST /admin/system/role/{id:\\d+}/authorization/copy => app\\admin\\authorization\\controller\\SystemRole::copyAuthorization": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:copyauthorization"
+        "permission": "authorization:role:copy-authorization"
     },
     "POST /admin/system/role/{id:\\d+}/permissions => app\\admin\\authorization\\controller\\SystemRole::permissions": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:permissions"
+        "permission": "authorization:role:permissions"
     },
     "POST /admin/system/upgrade/execute => app\\admin\\system\\controller\\SystemUpgrade::executeUpgrade": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/systemupgrade:executeupgrade"
+        "permission": "system:upgrade:execute-upgrade"
     },
     "POST /admin/system/upgrade/recover-stale => app\\admin\\system\\controller\\SystemUpgrade::recoverStale": {
         "guard": "admin",
         "login": true,
-        "permission": "systemupgrade:recoverstale"
+        "permission": "system:upgrade:recover-stale"
     },
     "POST /admin/system/upgrade/upload => app\\admin\\system\\controller\\SystemUpgrade::upload": {
         "guard": "admin",
         "login": true,
-        "permission": "systemupgrade:upload"
+        "permission": "system:upgrade:upload"
     },
     "POST /admin/system/upgrade/{id:\\d+}/restore => app\\admin\\system\\controller\\SystemUpgrade::restore": {
         "guard": "admin",
         "login": true,
-        "permission": "systemupgrade:restore"
+        "permission": "system:upgrade:restore"
     },
     "POST /admin/system/user => app\\admin\\authorization\\controller\\SystemAdmin::create": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:create"
+        "permission": "authorization:admin:create"
     },
     "POST /admin/system/user/{id:\\d+}/reset-password => app\\admin\\authorization\\controller\\SystemAdmin::resetPassword": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:resetpassword"
+        "permission": "authorization:admin:reset-password"
     },
     "POST /admin/system/user/{id:\\d+}/status => app\\admin\\authorization\\controller\\SystemAdmin::status": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:status"
+        "permission": "authorization:admin:status"
     },
     "POST /admin/upload => app\\admin\\system\\controller\\AdminUpload::upload": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/adminupload:upload"
+        "permission": "system:admin-upload:upload"
     },
     "POST /api/auth/login => app\\admin\\authentication\\controller\\ApiAuth::login": {
         "guard": "self",
@@ -2164,87 +1669,32 @@
         "login": false,
         "permission": null
     },
-    "POST /api/v2/logout => app\\api\\controller\\v2\\Token::logout": {
-        "guard": "member",
-        "login": true,
-        "permission": null
-    },
-    "POST /api/v2/token => app\\api\\controller\\v2\\Token::build": {
-        "guard": "member",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v2/token/refresh => app\\api\\controller\\v2\\Token::refresh": {
-        "guard": "member",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/login => app\\market\\controller\\Auth::login": {
+    "POST /api/v3/auth/login => app\\api\\controller\\v3\\Auth::login": {
         "guard": "self",
         "login": false,
         "permission": null
     },
-    "POST /api/v3/auth/logout => app\\market\\controller\\Auth::logout": {
+    "POST /api/v3/auth/logout => app\\api\\controller\\v3\\Auth::logout": {
         "guard": "self",
         "login": false,
         "permission": null
     },
-    "POST /api/v3/auth/me => app\\market\\controller\\Auth::me": {
+    "POST /api/v3/auth/me => app\\api\\controller\\v3\\Auth::me": {
         "guard": "self",
         "login": false,
         "permission": null
     },
-    "POST /api/v3/auth/password => app\\market\\controller\\Auth::password": {
+    "POST /api/v3/auth/password => app\\api\\controller\\v3\\Auth::password": {
         "guard": "self",
         "login": false,
         "permission": null
     },
-    "POST /api/v3/auth/refresh => app\\market\\controller\\Auth::refresh": {
+    "POST /api/v3/auth/refresh => app\\api\\controller\\v3\\Auth::refresh": {
         "guard": "self",
         "login": false,
         "permission": null
     },
-    "POST /api/v3/auth/register => app\\market\\controller\\Auth::register": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins => app\\market\\controller\\Plugins::search": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/categories => app\\market\\controller\\Plugins::categories": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/check-updates => app\\market\\controller\\Plugins::checkUpdates": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/{code:[a-z][a-z0-9]*} => app\\market\\controller\\Plugins::detail": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/{code:[a-z][a-z0-9]*}/authorize => app\\market\\controller\\Plugins::authorize": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/{code:[a-z][a-z0-9]*}/download => app\\market\\controller\\Plugins::download": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/plugins/{code:[a-z][a-z0-9]*}/versions => app\\market\\controller\\Plugins::versions": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/telemetry/installs => app\\market\\controller\\Telemetry::installs": {
+    "POST /api/v3/auth/register => app\\api\\controller\\v3\\Auth::register": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -2259,162 +1709,12 @@
         "login": false,
         "permission": null
     },
-    "POST /identity/decision => app\\identity\\controller\\OAuth::decision": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/interaction/consent => app\\identity\\controller\\Identity::decision": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/interaction/login => app\\identity\\controller\\Identity::login": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/introspect => app\\identity\\controller\\OAuth::introspect": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/logout => app\\identity\\controller\\Logout::end": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/revoke => app\\identity\\controller\\OAuth::revoke": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /identity/token => app\\identity\\controller\\OAuth::token": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
     "POST /install/index/step3 => app\\install\\controller\\Index::step3": {
         "guard": "self",
         "login": false,
         "permission": null
     },
     "POST /install/index/step4 => app\\install\\controller\\Index::step4": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/login => app\\market\\controller\\Auth::login": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/logout => app\\market\\controller\\Auth::logout": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/me => app\\market\\controller\\Auth::me": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/password => app\\market\\controller\\Auth::password": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/refresh => app\\market\\controller\\Auth::refresh": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/auth/register => app\\market\\controller\\Auth::register": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins => app\\market\\controller\\Plugins::search": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/categories => app\\market\\controller\\Plugins::categories": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/check-updates => app\\market\\controller\\Plugins::checkUpdates": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/{code:[a-z][a-z0-9]*} => app\\market\\controller\\Plugins::detail": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/{code:[a-z][a-z0-9]*}/authorize => app\\market\\controller\\Plugins::authorize": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/{code:[a-z][a-z0-9]*}/download => app\\market\\controller\\Plugins::download": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/plugins/{code:[a-z][a-z0-9]*}/versions => app\\market\\controller\\Plugins::versions": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/api/v3/telemetry/installs => app\\market\\controller\\Telemetry::installs": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/login => app\\market\\controller\\Account::login": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/logout => app\\market\\controller\\Account::logout": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/order => app\\market\\controller\\Order::create": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/order/{no:\\d{20,32}}/cancel => app\\market\\controller\\Order::cancel": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/order/{no:\\d{20,32}}/mock => app\\market\\controller\\Order::mock": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/pay/notify/{channel:alipay|wechat} => app\\market\\controller\\Notify::handle": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/register => app\\market\\controller\\Account::register": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/user/password => app\\market\\controller\\User::password": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /market/user/profile => app\\market\\controller\\User::profile": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -2437,102 +1737,17 @@
     "PUT /admin/development/ai/conversation-groups/{id:\\d+} => app\\admin\\ai\\controller\\Ai::conversationGroupUpdate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationupdate"
+        "permission": "ai:ai:conversation-group-update"
     },
     "PUT /admin/development/ai/conversations/{id:\\d+} => app\\admin\\ai\\controller\\Ai::conversationUpdate": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/development.ai:conversationupdate"
-    },
-    "PUT /admin/identity/applications/{id:\\d+} => app\\admin\\identity\\controller\\EnterpriseApplication::update": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:update"
-    },
-    "PUT /admin/identity/applications/{id:\\d+}/assignments => app\\admin\\identity\\controller\\EnterpriseApplication::saveAssignments": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:saveassignments"
-    },
-    "PUT /admin/identity/applications/{id:\\d+}/claim-policy => app\\admin\\identity\\controller\\EnterpriseApplication::saveClaimPolicy": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:saveclaimpolicy"
-    },
-    "PUT /admin/identity/applications/{id:\\d+}/database => app\\admin\\identity\\controller\\EnterpriseApplication::saveDatabase": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:savedatabase"
-    },
-    "PUT /admin/identity/applications/{id:\\d+}/domains => app\\admin\\identity\\controller\\EnterpriseApplication::saveDomains": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:savedomains"
-    },
-    "PUT /admin/identity/applications/{id:\\d+}/oauth-clients/{clientId:\\d+}/claim-policy => app\\admin\\identity\\controller\\EnterpriseApplication::saveClientClaimPolicy": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.enterpriseapplication:saveclientclaimpolicy"
-    },
-    "PUT /admin/identity/oauth-clients/{id:\\d+} => app\\admin\\identity\\controller\\OAuthClient::update": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:update"
-    },
-    "PUT /admin/identity/oauth-clients/{id:\\d+}/grants => app\\admin\\identity\\controller\\OAuthClient::replaceGrants": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:replacegrants"
-    },
-    "PUT /admin/identity/oauth-clients/{id:\\d+}/redirect-uris => app\\admin\\identity\\controller\\OAuthClient::replaceRedirectUris": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:replaceredirecturis"
-    },
-    "PUT /admin/identity/oauth-clients/{id:\\d+}/scopes => app\\admin\\identity\\controller\\OAuthClient::replaceScopes": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.oauthclient:replacescopes"
-    },
-    "PUT /admin/identity/scopes/{id:\\d+} => app\\admin\\identity\\controller\\ScopeClaim::update": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.scopeclaim:update"
-    },
-    "PUT /admin/identity/sso/config => app\\admin\\identity\\controller\\SsoConfiguration::save": {
-        "guard": "admin",
-        "login": true,
-        "permission": "!unregistered:admin/identity.ssoconfiguration:save"
+        "permission": "ai:ai:conversation-update"
     },
     "PUT /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::update": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:update"
-    },
-    "PUT /admin/plugin/market/category/{id:\\d+} => app\\admin\\plugins\\market\\controller\\CategoryController::update": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:category:update"
-    },
-    "PUT /admin/plugin/market/grant/{id:\\d+} => app\\admin\\plugins\\market\\controller\\GrantController::update": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:grant:update"
-    },
-    "PUT /admin/plugin/market/plugin/version/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::updateVersion": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:update-version"
-    },
-    "PUT /admin/plugin/market/plugin/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::update": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:plugin:update"
-    },
-    "PUT /admin/plugin/market/setting/payment => app\\admin\\plugins\\market\\controller\\SettingController::savePayment": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "market:setting:save-payment"
     },
     "PUT /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::update": {
         "guard": "self",
@@ -2542,109 +1757,104 @@
     "PUT /admin/system/attachment-group/{id:\\d+} => app\\admin\\system\\controller\\SystemAttachmentGroup::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachmentgroup:update"
+        "permission": "system:attachment-group:update"
     },
     "PUT /admin/system/attachment/{id:\\d+}/name => app\\admin\\system\\controller\\SystemAttachment::rename": {
         "guard": "admin",
         "login": true,
-        "permission": "systemattachment:rename"
+        "permission": "system:attachment:rename"
     },
     "PUT /admin/system/blacklist/{id:\\d+} => app\\admin\\system\\controller\\SystemBlacklist::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemblacklist:update"
+        "permission": "system:blacklist:update"
     },
     "PUT /admin/system/config-group/{id:\\d+} => app\\admin\\system\\controller\\SystemConfig::updateGroup": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:updategroup"
+        "permission": "system:config:update-group"
     },
     "PUT /admin/system/config/{id:\\d+} => app\\admin\\system\\controller\\SystemConfig::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:update"
+        "permission": "system:config:update"
     },
     "PUT /admin/system/config/{id:\\d+}/value => app\\admin\\system\\controller\\SystemConfig::value": {
         "guard": "admin",
         "login": true,
-        "permission": "systemconfig:value"
+        "permission": "system:config:value"
     },
     "PUT /admin/system/dept/{id:\\d+} => app\\admin\\authorization\\controller\\SystemDepartment::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdepartment:update"
+        "permission": "authorization:department:update"
     },
     "PUT /admin/system/dict/items/{id:\\d+} => app\\admin\\system\\controller\\SystemDict::updateItem": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:updateitem"
+        "permission": "system:dict:update-item"
     },
     "PUT /admin/system/dict/types/{id:\\d+} => app\\admin\\system\\controller\\SystemDict::updateType": {
         "guard": "admin",
         "login": true,
-        "permission": "systemdict:updatetype"
+        "permission": "system:dict:update-type"
     },
     "PUT /admin/system/language/{id:\\d+} => app\\admin\\system\\controller\\SystemLanguage::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemlanguage:update"
+        "permission": "system:language:update"
     },
     "PUT /admin/system/member-group/{id:\\d+} => app\\admin\\system\\controller\\SystemMemberGroup::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmembergroup:update"
+        "permission": "system:member-group:update"
     },
     "PUT /admin/system/member-level/{id:\\d+} => app\\admin\\system\\controller\\SystemMemberLevel::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmemberlevel:update"
+        "permission": "system:member-level:update"
     },
     "PUT /admin/system/member/{id:\\d+} => app\\admin\\system\\controller\\SystemMember::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmember:update"
+        "permission": "system:member:update"
     },
     "PUT /admin/system/menu/{id:\\d+} => app\\admin\\authorization\\controller\\SystemMenu::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemmenu:update"
+        "permission": "authorization:menu:update"
     },
     "PUT /admin/system/permission/{id:\\d+} => app\\admin\\authorization\\controller\\SystemPermission::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systempermission:update"
+        "permission": "authorization:permission:update"
     },
     "PUT /admin/system/plugin/{code:[a-z][a-z0-9]*}/config => app\\admin\\plugin\\controller\\SystemPlugin::saveConfig": {
         "guard": "admin",
         "login": true,
-        "permission": "!unregistered:admin/plugin.systemplugin:saveconfig"
+        "permission": "plugin:plugin:save-config"
     },
     "PUT /admin/system/role/{id:\\d+} => app\\admin\\authorization\\controller\\SystemRole::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:update"
+        "permission": "authorization:role:update"
     },
     "PUT /admin/system/role/{id:\\d+}/authorization => app\\admin\\authorization\\controller\\SystemRole::saveAuthorization": {
         "guard": "admin",
         "login": true,
-        "permission": "systemrole:saveauthorization"
+        "permission": "authorization:role:save-authorization"
     },
     "PUT /admin/system/storage => app\\admin\\system\\controller\\SystemStorage::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemstorage:update"
+        "permission": "system:storage:update"
     },
     "PUT /admin/system/user/{id:\\d+} => app\\admin\\authorization\\controller\\SystemAdmin::update": {
         "guard": "admin",
         "login": true,
-        "permission": "systemadmin:update"
+        "permission": "authorization:admin:update"
     },
-    "PUT /api/v3/auth/profile => app\\market\\controller\\Auth::profile": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "PUT /market/api/v3/auth/profile => app\\market\\controller\\Auth::profile": {
+    "PUT /api/v3/auth/profile => app\\api\\controller\\v3\\Auth::profile": {
         "guard": "self",
         "login": false,
         "permission": null

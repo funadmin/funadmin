@@ -23,7 +23,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:member-group:edit' : 'system:member-group:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:member-group:update' : 'system:member-group:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -71,11 +71,11 @@ function resetForm() {
 }
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:member-group:edit' : 'system:member-group:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:member-group:update' : 'system:member-group:create')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    if (!hasPermission(props.row?.id ? 'system:member-group:edit' : 'system:member-group:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:member-group:update' : 'system:member-group:create')) return;
     if (props.row?.id) await memberGroupApi.update(props.row.id, form);
     else await memberGroupApi.create(form);
     visible.value = false;

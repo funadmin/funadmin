@@ -78,10 +78,10 @@
             type="primary"
             plain
             :loading="refreshing"
-            v-perm="'system:plugin:account-refresh'"
+            v-perm="'plugin:plugin:account-refresh'"
             @click="refreshToken"
           >{{ t('plugin.refreshToken', '刷新令牌') }}</el-button>
-          <el-button v-perm="'system:plugin:account'" type="danger" plain :loading="loggingOut" @click="logout">{{ t('plugin.logoutButton', '退出市场账号') }}</el-button>
+          <el-button v-perm="['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']" type="danger" plain :loading="loggingOut" @click="logout">{{ t('plugin.logoutButton', '退出市场账号') }}</el-button>
         </div>
       </template>
 
@@ -126,7 +126,7 @@
             data-testid="account-submit"
             class="login-button"
             type="primary"
-            v-perm="'system:plugin:account'" native-type="submit"
+            v-perm="['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']" native-type="submit"
             :loading="loggingIn"
             :disabled="!canLogin"
           >{{ t('plugin.loginSubmit', '登录并连接') }}</el-button>
@@ -184,7 +184,7 @@ function validateLogin() {
   return !validation.account && !validation.password;
 }
 
-async function load() { if (!(hasPermission('system:plugin:account'))) return;
+async function load() { if (!(hasPermission(['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']))) return;
   initialLoading.value = true;
   loadFailed.value = false;
   error.value = '';
@@ -199,7 +199,7 @@ async function load() { if (!(hasPermission('system:plugin:account'))) return;
   }
 }
 
-async function login() { if (!(hasPermission('system:plugin:account'))) return;
+async function login() { if (!(hasPermission(['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']))) return;
   if (!validateLogin()) return;
   loggingIn.value = true;
   error.value = '';
@@ -217,7 +217,7 @@ async function login() { if (!(hasPermission('system:plugin:account'))) return;
   }
 }
 
-async function refreshToken() { if (!(hasPermission('system:plugin:account-refresh'))) return;
+async function refreshToken() { if (!(hasPermission('plugin:plugin:account-refresh'))) return;
   refreshing.value = true;
   error.value = '';
   try {
@@ -231,7 +231,7 @@ async function refreshToken() { if (!(hasPermission('system:plugin:account-refre
   }
 }
 
-async function logout() { if (!(hasPermission('system:plugin:account'))) return;
+async function logout() { if (!(hasPermission(['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']))) return;
   try {
     await ElMessageBox.confirm(t('plugin.logoutConfirm', '退出后将无法同步授权、版本信息和下载插件，确认退出吗？'), t('plugin.logoutTitle', '退出云市场账号'), {
       type: 'warning',
@@ -247,7 +247,7 @@ async function logout() { if (!(hasPermission('system:plugin:account'))) return;
   loggingOut.value = true;
   error.value = '';
   try {
-    if (!hasPermission('system:plugin:account')) return;
+    if (!hasPermission(['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account'])) return;
     await pluginApi.accountLogout();
     account.value = null;
     form.password = '';

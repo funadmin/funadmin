@@ -59,7 +59,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean]; recovered: [re
 const { t } = useI18n();
 const recovering = ref(false);
 const hashes = computed(() => [props.generation?.planDigest, props.generation?.definitionHash, props.generation?.schemaHash].filter((value): value is string => Boolean(value)));
-const canRecover = computed(() => hasPermission('development.business:recovergeneration') && hasPermission('development:business:recover') && props.generation?.availableActions?.includes('recover') === true);
+const canRecover = computed(() => hasPermission('development:business:recover-generation') && hasPermission('development:business:recover-generation') && props.generation?.availableActions?.includes('recover') === true);
 
 const CopyValue = defineComponent({
   props: { value: { type: String, required: true } },

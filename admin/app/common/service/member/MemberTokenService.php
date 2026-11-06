@@ -1,0 +1,138 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\common\service\member;
+
+use app\common\model\Member;
+use app\common\service\member\MemberAuthService;
+use support\Db;
+
+/** 公开会员 opaque 令牌：只存哈希并轮换 refresh；保留 market_token 兼容表及现有会话。 */
+final class MemberTokenService
+{
+    public function login(string $account, string $password): ?array
+    {
+        $member = (new MemberAuthService())->authenticate($account, $password);
+        if ($member === null) {
+            return null;
+        }
+        return $this->issue((int) $member['id']) + ['account' => $this->account((int) $member['id'])];
+    }
+
+    public function refresh(string $refreshToken): ?array
+    {
+        if (!$this->wellFormed($refreshToken)) {
+            return null;
+        }
+        return Db::transaction(function () use ($refreshToken): ?array {
+            $row = Db::table('market_token')
+                ->where('refresh_hash', hash('sha256', $refreshToken))
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->first();
+            if (!$row || (int) $row->refresh_expires_at <= time()) {
+                return null;
+            }
+            $row = (array) $row;
+            $memberId = (int) $row['member_id'];
+            if ((new MemberAuthService())->activeMember($memberId) === null) {
+                return null;
+            }
+            Db::table('market_token')->where('id', $row['id'])->update(['revoked_at' => date('Y-m-d H:i:s')]);
+            return $this->issue($memberId);
+        });
+    }
+
+    public function memberId(string $accessToken): ?int
+    {
+        if (!$this->wellFormed($accessToken)) {
+            return null;
+        }
+        $row = Db::table('market_token')
+            ->where('access_hash', hash('sha256', $accessToken))
+            ->whereNull('revoked_at')
+            ->first();
+        if (!$row || (int) $row->access_expires_at <= time()) {
+            return null;
+        }
+        $memberId = (int) $row->member_id;
+        return (new MemberAuthService())->activeMember($memberId) === null ? null : $memberId;
+    }
+
+    public function revoke(string $accessToken): void
+    {
+        if (!$this->wellFormed($accessToken)) {
+            return;
+        }
+        Db::table('market_token')
+            ->where('access_hash', hash('sha256', $accessToken))
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => date('Y-m-d H:i:s')]);
+    }
+    /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
+    public function authenticate(string $accessToken): ?array
+    {
+        if (!$this->wellFormed($accessToken)) {
+            return null;
+        }
+        $row = Db::table('market_token')
+            ->where('access_hash', hash('sha256', $accessToken))
+            ->whereNull('revoked_at')
+            ->first();
+        if (!$row || (int) $row->access_expires_at <= time()) {
+            return null;
+        }
+        return $this->account((int) $row->member_id);
+    }
+
+    /** @return array{id:int, username:string, nickname:string, avatar:string}|null */
+    public function account(int $memberId): ?array
+    {
+        $member = Member::where('id', $memberId)->where('status', 1)->select(['id', 'username', 'nickname', 'avatar'])->first();
+        if (!$member) {
+            return null;
+        }
+        return [
+            'id' => (int) $member['id'],
+            'username' => (string) $member['username'],
+            'nickname' => (string) ($member['nickname'] ?: $member['username']),
+            'avatar' => (string) ($member['avatar'] ?? ''),
+        ];
+    }
+
+    private function issue(int $memberId): array
+    {
+        $accessTtl = $this->ttl('opaque_access_token_ttl', 7200, 300, 86400);
+        $refreshTtl = $this->ttl('opaque_refresh_token_ttl', 2592000, 3600, 31536000);
+        $access = bin2hex(random_bytes(32));
+        $refresh = bin2hex(random_bytes(32));
+        $now = time();
+        Db::table('market_token')->insert([
+            'member_id' => $memberId,
+            'access_hash' => hash('sha256', $access),
+            'refresh_hash' => hash('sha256', $refresh),
+            'access_expires_at' => $now + $accessTtl,
+            'refresh_expires_at' => $now + $refreshTtl,
+            'ip' => substr((string) request()->getRemoteIp(), 0, 45),
+            'created_at' => date('Y-m-d H:i:s', $now),
+        ]);
+        return [
+            'access_token' => $access,
+            'refresh_token' => $refresh,
+            'expires_in' => $accessTtl,
+            'expires_at' => $now + $accessTtl,
+        ];
+    }
+
+    private function ttl(string $key, int $default, int $min, int $max): int
+    {
+        $value = (int) config('api.' . $key, $default);
+        return $value < $min || $value > $max ? $default : $value;
+    }
+
+    private function wellFormed(string $token): bool
+    {
+        return preg_match('/^[a-f0-9]{64}$/', $token) === 1;
+    }
+}

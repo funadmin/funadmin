@@ -12,14 +12,12 @@ import table from './zh-CN/table';
 import formDesigner from './zh-CN/formDesigner';
 import formData from './zh-CN/formData';
 import systemDept from './zh-CN/systemDept';
-import enterpriseApplications from './zh-CN/enterpriseApplications';
 import business from './zh-CN/business';
 import login from './zh-CN/login';
 import systemRole from './zh-CN/systemRole';
 import install from './zh-CN/install';
 import profile from './zh-CN/profile';
 import dashboard from './zh-CN/dashboard';
-import applications from './zh-CN/applications';
 import errorPage from './zh-CN/errorPage';
 import plugin from './zh-CN/plugin';
 import systemBlacklist from './zh-CN/systemBlacklist';
@@ -53,14 +51,12 @@ export default {
   formDesigner: formDesigner,
   formData: formData,
   systemDept: systemDept,
-  enterpriseApplications: enterpriseApplications,
   business: business,
   login: login,
   systemRole: systemRole,
   install: install,
   profile: profile,
   dashboard: dashboard,
-  applications: applications,
   errorPage: errorPage,
   plugin: plugin,
   systemBlacklist: systemBlacklist,

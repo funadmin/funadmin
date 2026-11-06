@@ -12,6 +12,7 @@ use app\common\plugin\sdk\PluginArchiveService;
 use app\common\plugin\sdk\PluginScaffolder;
 use InvalidArgumentException;
 use RuntimeException;
+use support\Log;
 use Throwable;
 
 /** 插件开发工具应用服务，统一编排骨架、Manifest 校验、归档与无密钥审计。 */
@@ -46,7 +47,7 @@ final class DevPluginService
         });
         $this->auditWriter = Closure::fromCallable($auditWriter ?? static function (array $audit): string {
             $auditId = bin2hex(random_bytes(12));
-            trace('插件开发操作：' . json_encode(['auditId' => $auditId] + $audit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'info');
+            Log::info('插件开发操作：' . json_encode(['auditId' => $auditId] + $audit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             return $auditId;
         });
         $pluginsDirectory = $this->pluginsDirectory();
@@ -55,7 +56,7 @@ final class DevPluginService
         });
         $this->installedRecords = Closure::fromCallable($installedRecords ?? static function (): array {
             $records = [];
-            foreach (Plugin::whereNull('deleted_at')->select() as $record) {
+            foreach (Plugin::whereNull('deleted_at')->get() as $record) {
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,

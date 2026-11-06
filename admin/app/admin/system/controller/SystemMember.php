@@ -14,7 +14,6 @@ use app\admin\system\model\MemberLevel;
 use app\admin\system\model\MemberTag;
 use app\admin\system\model\MemberTagRelation;
 use app\admin\system\service\MemberFormDefinition;
-use app\common\service\identity\MemberIdentityAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use support\annotation\route\Delete;
@@ -195,7 +194,6 @@ class SystemMember extends AdminController
         try {
             $member = Db::transaction(function () use ($data, $groupIds, $tagIds): Member {
                 $member = Member::create($data);
-                (new MemberIdentityAdapter())->sync($member);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 return $member;
@@ -253,7 +251,6 @@ class SystemMember extends AdminController
         try {
             Db::transaction(function () use ($member, $data, $groupIds, $tagIds): void {
                 $member->forceFill($data)->save();
-                (new MemberIdentityAdapter())->sync($member);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
             });
@@ -303,7 +300,6 @@ class SystemMember extends AdminController
         }
         Db::transaction(function () use ($member): void {
             $member->forceFill(['status' => $this->binaryStatus($this->request->post('status', 0))])->save();
-            (new MemberIdentityAdapter())->sync($member);
         });
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
         return $this->ok('状态更新成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
@@ -482,7 +478,6 @@ class SystemMember extends AdminController
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds, $tagIds): void {
                     $member = Member::create($data);
-                    (new MemberIdentityAdapter())->sync($member);
                     $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                     $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 });

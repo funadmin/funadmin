@@ -5,7 +5,7 @@ namespace app\cms\controller;
 
 use app\BaseController;
 use app\common\service\authentication\BearerTokenExtractor;
-use app\market\service\MarketTokenService;
+use app\common\service\member\MemberTokenService;
 use InvalidArgumentException;
 use support\Response;
 /** Common opaque member authentication and private API envelope for CMS extensions. */
@@ -14,7 +14,7 @@ abstract class MemberEndpoint extends BaseController
     protected function member(): string
     {
         $token = (new BearerTokenExtractor())->extract($this->request) ?? '';
-        $id = $token === '' ? null : (new MarketTokenService())->memberId($token);
+        $id = $token === '' ? null : (new MemberTokenService())->memberId($token);
         if ($id === null) {
             throw new InvalidArgumentException('会员未登录或令牌已失效', 401);
         }

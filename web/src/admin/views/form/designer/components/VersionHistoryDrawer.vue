@@ -20,8 +20,8 @@
       <el-table-column prop="created_at" :label="t('common.createdAt', '创建时间')" width="170" />
       <el-table-column :label="t('common.operation', '操作')" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="hasPermission('development.business:schemaversion')" link type="primary" @click="viewVersion(row.version)">{{ t('common.view', '查看') }}</el-button>
-          <el-button v-if="hasPermission('development.business:rollbackschema')" link type="danger" :loading="rollingBack === row.version" @click="rollbackVersion(row.version)">{{ t('formDesigner.rollback', '回滚') }}</el-button>
+          <el-button v-if="hasPermission('development:business:schema-version')" link type="primary" @click="viewVersion(row.version)">{{ t('common.view', '查看') }}</el-button>
+          <el-button v-if="hasPermission('development:business:rollback-schema')" link type="danger" :loading="rollingBack === row.version" @click="rollbackVersion(row.version)">{{ t('formDesigner.rollback', '回滚') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -52,11 +52,11 @@ const diff = ref<FormSchemaDiff>();
 const loading = ref(false);
 const comparing = ref(false);
 const rollingBack = ref<number>();
-const canCompare = computed(() => hasPermission('development.business:schemadiff') && Boolean(props.moduleId && fromVersion.value && toVersion.value && fromVersion.value !== toVersion.value));
+const canCompare = computed(() => hasPermission('development:business:schema-diff') && Boolean(props.moduleId && fromVersion.value && toVersion.value && fromVersion.value !== toVersion.value));
 const detailText = computed(() => JSON.stringify(diff.value ?? selectedVersion.value?.schema_document ?? {}, null, 2));
 
 async function loadVersions() {
-  if (!hasPermission('development.business:schemaversions')) return;
+  if (!hasPermission('development:business:schema-versions')) return;
   if (!props.moduleId) return;
   loading.value = true;
   try {
@@ -69,14 +69,14 @@ async function loadVersions() {
 }
 
 async function viewVersion(version: number) {
-  if (!hasPermission('development.business:schemaversion')) return;
+  if (!hasPermission('development:business:schema-version')) return;
   if (!props.moduleId) return;
   diff.value = undefined;
   selectedVersion.value = await businessDevelopmentApi.schemaVersion(props.moduleId, version);
 }
 
 async function compareVersions() {
-  if (!hasPermission('development.business:schemadiff')) return;
+  if (!hasPermission('development:business:schema-diff')) return;
   if (!props.moduleId || !fromVersion.value || !toVersion.value) return;
   comparing.value = true;
   try {
@@ -88,9 +88,9 @@ async function compareVersions() {
 }
 
 async function rollbackVersion(version: number) {
-  if (!props.moduleId || !hasPermission('development.business:rollbackschema')) return;
+  if (!props.moduleId || !hasPermission('development:business:rollback-schema')) return;
   await ElMessageBox.confirm(t('formDesigner.rollbackConfirm', { version }, '确认回滚到 v{version}？系统会创建一个新的不可变版本。'), t('formDesigner.rollbackTitle', '回滚确认'), { type: 'warning' });
-  if (!hasPermission('development.business:rollbackschema')) return;
+  if (!hasPermission('development:business:rollback-schema')) return;
   rollingBack.value = version;
   try {
     const result = await businessDevelopmentApi.rollbackSchema(props.moduleId, version, props.schemaHash);

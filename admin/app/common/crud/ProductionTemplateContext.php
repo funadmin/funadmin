@@ -631,13 +631,17 @@ final class ProductionTemplateContext
                 . "SET @permission_group_id = (SELECT `id` FROM `fun_permission` WHERE `source_type` = 'generated' AND `source_name` = {$sourceName} AND `resource_type` = 'group' ORDER BY `id` LIMIT 1);\n"
                 . "UPDATE `fun_permission` SET `pid`=0,`app_name`='admin',`code`=NULL,`obj`='',`act`='',`name`={$groupName},`resource_type`='group',`status`=1,`is_public`=0,`sort_order`=0,`updated_at`=NOW(),`deleted_at`=NULL WHERE `id`=@permission_group_id AND `source_type`='generated' AND `source_name`={$sourceName} AND `resource_type`='group';\n";
             $groupId = '@permission_group_id';
-            $controller = self::sqlLiteral('admin/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
+
             $codes = [];
             foreach ($permission['actions'] as $index => $action) {
-                $code = self::sqlLiteral($data['permissionPrefix'] . ':' . $action['codeSuffix']);
+                $rawCode = $data['permissionPrefix'] . ':' . $action['codeSuffix'];
+                $code = self::sqlLiteral($rawCode);
                 $codes[] = $code;
+                // 权限行 obj/act 与按方法推导的权限码一致：{模块}/{资源}、{操作}。
+                $resource = \app\admin\authorization\service\PermissionCode::resource($rawCode);
+                $controller = self::sqlLiteral($resource['obj']);
                 $label = self::sqlLiteral($action['label']);
-                $act = self::sqlLiteral($action['action']);
+                $act = self::sqlLiteral($resource['act']);
                 $sort = ($index + 1) * 10;
                 $sql .= "INSERT INTO `fun_permission` (pid, app_name, code, obj, act, name, resource_type, status, is_public, source_type, source_name, created_at, updated_at, sort_order, deleted_at)\n"
                     . "SELECT @permission_group_id, 'admin', {$code}, {$controller}, {$act}, {$label}, 'route', 1, 0, 'generated', {$sourceName}, NOW(), NOW(), {$sort}, NULL\n"
@@ -845,7 +849,7 @@ final class ProductionTemplateContext
             $listSetup .= 'const leftTreeConfig = ' . self::json($data['list']['leftTree']) . " as const;\n";
             $listSetup .= "const leftSelection = ref<Array<string | number>>([]);\nfunction onLeftTree(values: Array<string | number>) { leftSelection.value = values; query.__leftTree = JSON.stringify(values); query.page = 1; void loadData(); }\n";
             $permissionPrefix = htmlspecialchars($data['permissionPrefix'], ENT_QUOTES);
-            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':' . CrudDefinition::codeSuffix('left-tree-mutate', $data['_pluginCode'] !== '') . '\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
+            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':' . CrudDefinition::codeSuffix('left-tree-mutate') . '\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
         }
         // 生成层只声明宿主适配；交互、锁定及类型分派由共享组件处理。
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
@@ -957,10 +961,8 @@ final class ProductionTemplateContext
         $prefix = self::json($data['permissionPrefix']);
         $recycledValue = $enabled['softDelete'] ? 'recycled.value' : 'recycled';
         $batchRestoreGuard = $enabled['batchSoftDelete'] ? '' : "if (toolbar && ['restore', 'destroy'].includes(key)) return false;";
-        $suffixMap = $data['_pluginCode'] !== ''
-            ? "{ edit: 'update', refresh: 'index', recycle: 'index', normal: 'index', batchDelete: 'recycle', delete: 'remove', destroy: 'destroy' }"
-            : "{ edit: 'update', refresh: 'list', recycle: 'list', normal: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }";
-        $manySuffix = $data['_pluginCode'] !== '' ? "key + '-many'" : "'batch-' + key";
+        $suffixMap = "{ edit: 'update', refresh: 'index', recycle: 'index', normal: 'index', batchDelete: 'recycle', delete: 'remove', destroy: 'destroy' }";
+        $manySuffix = "key + '-many'";
         $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = {$suffixMap}; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? {$manySuffix} : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
         foreach ($defaults as $location => $buttons) {
             $presentation = $location === 'toolbar'

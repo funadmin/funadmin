@@ -10,7 +10,7 @@ import { ADMIN_ROUTE_PREFIX } from '@/config';
 import { getFirstLeafRouteFullPath, getMenuActiveRootPath, getVisibleMenuChildren, resolveMenuPath } from '@/utils/route';
 
 const guardStores = vi.hoisted(() => ({
-  user: { isLoggedIn: true, userInfo: {}, permissions: ['development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
+  user: { isLoggedIn: true, userInfo: {}, permissions: ['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save'], fetchUserInfo: vi.fn(), resetState: vi.fn() },
   permission: { mounted: false, fetchMenus: vi.fn(), setMounted: vi.fn(), reset: vi.fn() }
 }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => guardStores.user }));
@@ -60,8 +60,7 @@ const visibleLeafPaths = (routes: RouteRecordRaw[], parentPath = ''): string[] =
 describe('混合布局菜单全树路由', () => {
   it.each([
     ['Plugins', '/plugins', '/plugin', 'SystemPlugin'],
-    ['UserManagement', '/users', '/system/member', 'SystemMember'],
-    ['IdentityManagement', '/identity', '/applications', 'EnterpriseApplicationCenter']
+    ['UserManagement', '/users', '/system/member', 'SystemMember']
   ])('跨 URL 模块 %s 根据路由归属保留二级菜单', (name, path, childPath, childName) => {
     const routes = generateRoutes([{
       id: 900, parentId: 0, routeName: name, path, type: 'M', component: 'Layout', name, sort: 1,
@@ -125,7 +124,12 @@ describe('混合布局菜单全树路由', () => {
     await router.push(`${ADMIN_ROUTE_PREFIX}/development/business/designer?moduleId=42`);
 
     expect(router.currentRoute.value.name).toBe('Forbidden');
-    guardStores.user.permissions = ['development:business:save'];
+    // 设计器对任一业务设计相关方法开放：只有"保存 Schema"或"按数据库创建"的角色也能进入。
+    for (const permission of ['development:business:save-schema', 'development:business:create-from-database']) {
+      guardStores.user.permissions = [permission];
+      await router.push(`${ADMIN_ROUTE_PREFIX}/development/business/designer?moduleId=${permission.length}`);
+      expect(router.currentRoute.value.name).toBe('BusinessDesigner');
+    }
   });
 
   it('首次深链启动前由 bootstrap catch-all 消除未匹配，并在动态路由加载后落到正式路由', async () => {
@@ -151,7 +155,7 @@ describe('混合布局菜单全树路由', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
     const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
-    expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'development:business:view' });
+    expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'development:business:modules' });
     expect(business?.redirect).toBeUndefined();
     expect(business?.children?.every((item) => item.hidden)).toBe(true);
     expect(business?.children?.map((item) => item.routeName)).toEqual(['BusinessMine', 'BusinessVisual', 'BusinessDatabase', 'BusinessRecords']);
@@ -182,10 +186,10 @@ describe('混合布局菜单全树路由', () => {
     const paths = router.getRoutes().map((route) => route.path);
     expect(new Set(paths).size).toBe(paths.length);
     for (const [path, name, permission] of [
-      ['visual', 'BusinessVisual', 'save'],
-      ['database', 'BusinessDatabase', 'inspect'],
-      ['records', 'BusinessRecords', 'records'],
-      ['designer', 'BusinessDesigner', 'save']
+      ['visual', 'BusinessVisual', 'create-visual'],
+      ['database', 'BusinessDatabase', 'inspect-database'],
+      ['records', 'BusinessRecords', 'generations'],
+      ['designer', 'BusinessDesigner', 'save-schema']
     ]) {
       const resolved = router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/${path}`);
       expect(resolved.name).toBe(name);
@@ -195,7 +199,7 @@ describe('混合布局菜单全树路由', () => {
       expect(resolved.matched.at(-1)?.components?.default).toBeTypeOf('function');
     }
     expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/mine`).name).toBe('BusinessDevelopment');
-    expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/mine`).meta.permission).toBe('development:business:view');
+    expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/mine`).meta.permission).toBe('development:business:modules');
   });
 
   it('业务列表菜单与兼容入口中英文标题统一', () => {

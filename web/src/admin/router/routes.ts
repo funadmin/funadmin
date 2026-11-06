@@ -116,7 +116,7 @@ export const staticRoutes: RouteRecordRaw[] = [
         path: 'development/business/designer',
         name: 'BusinessDesigner',
         component: () => import('@/views/form/designer/index.vue'),
-        meta: { title: '业务设计器', hidden: true, activeMenu: `${ADMIN_ROUTE_PREFIX}/development/business/mine`, permission: 'development:business:save' }
+        meta: { title: '业务设计器', hidden: true, activeMenu: `${ADMIN_ROUTE_PREFIX}/development/business/mine`, permission: ['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save'] }
       },
       {
         path: 'development/business/runtime/:formKey',

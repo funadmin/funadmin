@@ -15,7 +15,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:language:edit' : 'system:language:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:language:update' : 'system:language:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -61,11 +61,11 @@ function resetForm() {
 }
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:language:edit' : 'system:language:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:language:update' : 'system:language:create')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    if (!hasPermission(props.row?.id ? 'system:language:edit' : 'system:language:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:language:update' : 'system:language:create')) return;
     if (props.row?.id) await languageApi.update(props.row.id, form);
     else await languageApi.create(form);
     visible.value = false;

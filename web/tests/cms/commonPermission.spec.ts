@@ -19,7 +19,7 @@ describe('CMS源插件公共权限保持站点上下文', () => {
     wrapper.unmount();
   });
   it('超级管理员保存模型服从传入权限上下文，不被旧全局save码误拒绝', async () => {
-    const wrapper = shallowMount(ModelPanel, { props: { scope, settings: { models: [] }, isSuper: true, can: (code: string) => code === 'cms:model:save' }, global }); await flushPromises();
+    const wrapper = shallowMount(ModelPanel, { props: { scope, settings: { models: [] }, isSuper: true, can: (code: string) => code === 'cms:models:save' }, global }); await flushPromises();
     await (wrapper.vm as any).$.setupState.save(); expect(mocks.saveModel).toHaveBeenCalledOnce(); wrapper.unmount();
   });
   it('仅站点create权限即可查询附件，不要求全局旧save码', async () => {
@@ -37,7 +37,7 @@ describe('CMS源插件公共权限保持站点上下文', () => {
     await (wrapper.vm as any).$.setupState.search('image'); expect(mocks.attachments).toHaveBeenCalledOnce(); wrapper.unmount();
   });
   it('模型定义写入保留超级管理员限制', async () => {
-    const wrapper = shallowMount(ModelPanel, { props: { scope, settings: { models: [] }, isSuper: false, can: (code: string) => code === 'cms:model:save' }, global }); await flushPromises();
+    const wrapper = shallowMount(ModelPanel, { props: { scope, settings: { models: [] }, isSuper: false, can: (code: string) => code === 'cms:models:save' }, global }); await flushPromises();
     await (wrapper.vm as any).$.setupState.save(); expect(mocks.saveModel).not.toHaveBeenCalled(); wrapper.unmount();
   });
 

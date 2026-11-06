@@ -6,7 +6,7 @@
     </el-upload>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button type="primary" :loading="loading" :disabled="!file" v-perm="'system:plugin:install'" @click="install">{{ t('plugin.install', '安装') }}</el-button>
+      <el-button type="primary" :loading="loading" :disabled="!file" v-perm="'plugin:plugin:install-local'" @click="install">{{ t('plugin.install', '安装') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -28,7 +28,7 @@ function selectFile(upload: UploadFile) {
   file.value = upload.raw ?? null;
 }
 
-async function install() { if (!(hasPermission('system:plugin:install'))) return;
+async function install() { if (!(hasPermission('plugin:plugin:install-local'))) return;
   if (!file.value) return;
   loading.value = true;
   try {

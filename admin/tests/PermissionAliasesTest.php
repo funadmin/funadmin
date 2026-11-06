@@ -5,30 +5,16 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\authorization\model\Permission;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/** 前后端同码：用户信息直接返回后端权限码，不再有任何别名或对照映射。 */
 final class PermissionAliasesTest extends TestCase
 {
-    public static function pluginDevelopmentActions(): array
+    public function test_web_permissions_are_the_backend_codes_without_aliases(): void
     {
-        return [
-            ['previewcreate', 'create-preview'],
-            ['create', 'create'],
-            ['validate', 'validate'],
-            ['package', 'package'],
-            ['packagedownload', 'download'],
-            ['options', 'options'],
-        ];
-    }
-
-    #[DataProvider('pluginDevelopmentActions')]
-    public function test_plugin_development_route_grants_only_its_corresponding_frontend_action(string $route, string $action): void
-    {
-        $code = 'development.devplugin:' . $route;
-        self::assertEqualsCanonicalizing(
-            [$code, 'development:plugin:' . $action],
-            Permission::webPermissions([$code], false)
-        );
+        $codes = ['plugin:dev-plugin:create-preview', 'authorization:role:index', 'development:business:generate'];
+        self::assertSame($codes, Permission::webPermissions($codes, false));
+        self::assertSame(['*'], Permission::webPermissions($codes, true));
+        self::assertSame(['authorization:role:index'], Permission::webPermissions(['Authorization:Role:Index', 'authorization:role:index', ''], false));
     }
 }

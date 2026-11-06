@@ -18,10 +18,10 @@
         <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)"><i class="i-ep-list" /> {{ t('systemMemberLevel.normalList', '正常列表') }}</el-button>
         <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> {{ t('systemMemberLevel.recycleBin', '回收站') }}</el-button>
         <template v-if="!recycled">
-          <el-button type="primary" plain v-perm="'system:member-level:add'" @click="openAdd">
+          <el-button type="primary" plain v-perm="'system:member-level:create'" @click="openAdd">
             <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
           </el-button>
-          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member-level:delete'" @click="recycleSelected">
+          <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member-level:recycle'" @click="recycleSelected">
             <i class="i-ep-delete" /> {{ t('systemMemberLevel.moveToRecycle', '移入回收站') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
@@ -83,7 +83,7 @@
           <el-table-column v-if="recycled" prop="deletedAt" :label="t('systemMemberLevel.deletedAt', '删除时间')" width="170" />
           <el-table-column v-if="!recycled" :label="t('common.operation', '操作')" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" link v-perm="'system:member-level:edit'" @click="openEdit(row as MemberLevelModel)">{{ t('common.edit', '编辑') }}</el-button>
+              <el-button type="primary" link v-perm="'system:member-level:update'" @click="openEdit(row as MemberLevelModel)">{{ t('common.edit', '编辑') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -166,13 +166,13 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
-  if (!hasPermission('system:member-level:add')) return;
+  if (!hasPermission('system:member-level:create')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberLevelModel) {
-  if (!hasPermission('system:member-level:edit')) return;
+  if (!hasPermission('system:member-level:update')) return;
   current.value = row;
   dialogVisible.value = true;
 }
@@ -190,9 +190,9 @@ async function toggleStatus(row: MemberLevelModel, enabled: boolean) {
 }
 
 async function recycleSelected() {
-  if (!hasPermission("system:member-level:delete")) return;
+  if (!hasPermission("system:member-level:recycle")) return;
   await ElMessageBox.confirm(t('systemMemberLevel.recycleConfirm', { n: selection.value.length }, { default: '确认将选中的 {n} 个会员等级移入回收站吗？' }), t('systemMemberLevel.operateConfirmTitle', '操作确认'), { type: 'warning' });
-  if (!hasPermission("system:member-level:delete")) return;
+  if (!hasPermission("system:member-level:recycle")) return;
  await memberLevelApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }

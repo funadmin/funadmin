@@ -13,7 +13,7 @@
       </template>
       <template #member="{ row }">
         <div class="flex items-center gap-2">
-          <el-avatar :size="34" :src="row.avatar">{{ row.username.slice(0, 1).toUpperCase() }}</el-avatar>
+          <el-avatar :size="34" :src="row.avatar">{{ memberInitial(row) }}</el-avatar>
           <div class="min-w-0">
             <div class="truncate font-medium">{{ row.username }}</div>
             <div class="truncate text-xs text-[var(--el-text-color-secondary)]">{{ row.mobile }}</div>
@@ -102,13 +102,18 @@ function sexText(sex: MemberModel['sex']) {
   return sex === '1' ? t('systemMember.sexMale', '男') : sex === '2' ? t('systemMember.sexFemale', '女') : t('systemMember.sexSecret', '保密');
 }
 
+// 表格可能在数据就绪前渲染占位行，或会员只登记了手机号，不能假设用户名一定存在。
+function memberInitial(row: { username?: string | null; mobile?: string | null }): string {
+  const source = String(row.username || row.mobile || '').trim();
+  return source ? source.charAt(0).toUpperCase() : '?';
+}
 const formatters = { emptyText: (value: unknown) => value || '-', sexText };
 const handlers: Record<string, PageHandler> = {
   normal: { version: '1', run: () => switchMode(false) },
   recycled: { version: '1', run: () => switchMode(true) },
-  add: { version: '1', permission: 'system:member:add', available: () => !recycled.value, run: openAdd },
-  edit: { version: '1', permission: 'system:member:edit', available: (row) => !recycled.value && !!row, run: openEdit },
-  recycle: { version: '1', interaction: { type: 'confirm', message: t('systemMember.recycleConfirm', '确认将选中的会员移入回收站吗？') }, permission: 'system:member:delete', available: () => !recycled.value && !!selection.value.length, run: recycleSelected },
+  add: { version: '1', permission: 'system:member:create', available: () => !recycled.value, run: openAdd },
+  edit: { version: '1', permission: 'system:member:update', available: (row) => !recycled.value && !!row, run: openEdit },
+  recycle: { version: '1', interaction: { type: 'confirm', message: t('systemMember.recycleConfirm', '确认将选中的会员移入回收站吗？') }, permission: 'system:member:recycle', available: () => !recycled.value && !!selection.value.length, run: recycleSelected },
   restore: { version: '1', permission: 'system:member:restore', available: () => recycled.value && !!selection.value.length, run: restoreSelected },
   destroy: { version: '1', interaction: { type: 'confirm', message: t('systemMember.destroyConfirm', '确认永久删除选中的会员吗？此操作不可恢复。') }, permission: 'system:member:destroy', available: () => recycled.value && !!selection.value.length, run: destroySelected },
   import: { version: '1', permission: 'system:member:import', available: () => !recycled.value, run: () => fileInput.value?.click() },
@@ -185,13 +190,13 @@ function switchMode(value: boolean) {
 }
 
 function openAdd() {
-  if (!hasPermission('system:member:add')) return;
+  if (!hasPermission('system:member:create')) return;
   current.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: MemberModel) {
-  if (!hasPermission('system:member:edit')) return;
+  if (!hasPermission('system:member:update')) return;
   current.value = row;
   dialogVisible.value = true;
 }
@@ -210,7 +215,7 @@ async function toggleStatus(row: MemberModel, enabled: boolean) {
   } finally { buttonLock.busy = false; }
 }
 
-async function recycleSelected() { if (!hasPermission("system:member:delete")) return; await memberApi.recycle(selection.value.map((item) => item.id));
+async function recycleSelected() { if (!hasPermission("system:member:recycle")) return; await memberApi.recycle(selection.value.map((item) => item.id));
   await loadData();
 }
 

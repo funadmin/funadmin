@@ -1,13 +1,13 @@
 <template>
   <PageWrapper :title="t('plugin.title', '插件中心')" :subtitle="t('plugin.subtitle', '管理已安装插件、本地插件包和云市场版本')">
     <div class="mb-4 flex flex-wrap gap-2">
-      <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">{{ t('plugin.account', '市场账号') }}</el-button>
-      <el-button type="success" plain v-perm="'system:plugin:install'" @click="installVisible = true">{{ t('plugin.uploadZip', '上传本地 ZIP') }}</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:create'" @click="openDevelopment('create')">{{ t('plugin.create', '创建插件') }}</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:validate'" @click="openDevelopment('maintain')">{{ t('plugin.validate', '校验插件') }}</el-button>
-      <el-button type="info" plain v-perm="'development:plugin:package'" @click="openDevelopment('maintain')">{{ t('plugin.package', '打包插件') }}</el-button>
+      <el-button style="background-color:#eaf2ff" type="primary" plain v-perm="['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']" @click="accountVisible = true">{{ t('plugin.account', '市场账号') }}</el-button>
+      <el-button style="background-color:#e8f7ed" type="success" plain v-perm="'plugin:plugin:install-local'" @click="installVisible = true">{{ t('plugin.uploadZip', '上传本地 ZIP') }}</el-button>
+      <el-button style="background-color:#f4e8ff" type="info" plain v-perm="'plugin:dev-plugin:create'" @click="openDevelopment('create')">{{ t('plugin.create', '创建插件') }}</el-button>
+      <el-button style="background-color:#fff3df" type="info" plain v-perm="'plugin:dev-plugin:validate'" @click="openDevelopment('maintain')">{{ t('plugin.validate', '校验插件') }}</el-button>
+      <el-button style="background-color:#e6f7fb" type="info" plain v-perm="'plugin:dev-plugin:package'" @click="openDevelopment('maintain')">{{ t('plugin.package', '打包插件') }}</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
-      <el-button type="info" plain @click="load">{{ t('plugin.refresh', '刷新') }}</el-button>
+      <el-button style="background-color:#f0f1ff" type="info" plain @click="load">{{ t('plugin.refresh', '刷新') }}</el-button>
     </div>
     <el-alert v-if="pageError" class="mb-3" type="error" :title="pageError" :closable="false" role="alert" />
     <el-tabs v-model="activeTab" @tab-change="load">
@@ -42,18 +42,18 @@
       <el-table-column prop="lastError" :label="t('plugin.colLastError', '最近错误')" min-width="180" show-overflow-tooltip />
       <el-table-column :label="t('plugin.colActions', '操作')" min-width="430" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:discovered-install'" :disabled="Boolean(actionReason(row as PluginItem, 'install'))" :title="actionReason(row as PluginItem, 'install')" @click="installDiscovered(row as PluginItem)">{{ t('plugin.install', '安装') }}</el-button>
-          <el-button v-if="activeTab === 'installed'" type="primary" link v-perm="'system:plugin:local-update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="selectLocalUpdate(row as PluginItem)">{{ t('plugin.localUpdate', '本地 ZIP 更新') }}</el-button>
-          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="updatePlugin(row as PluginItem)">{{ t('plugin.update', '更新') }}</el-button>
-          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">{{ t('plugin.migrate', '迁移') }}</el-button>
-          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">{{ t('plugin.enable', '启用') }}</el-button>
-          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">{{ t('plugin.disable', '禁用') }}</el-button>
-          <el-button type="primary" link v-perm="'development:business:save'" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || t('plugin.businessTip', '进入统一业务设计器，目标可用性由服务端再次校验')" @click="developBusiness(row as PluginItem)">{{ t('plugin.developBusiness', '开发业务') }}</el-button>
-          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row as PluginItem)">{{ t('plugin.config', '配置') }}</el-button>
-          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row as PluginItem)">{{ t('plugin.history', '历史') }}</el-button>
-          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">{{ t('plugin.uninstall', '卸载') }}</el-button>
-          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:purge'" :disabled="Boolean(actionReason(row as PluginItem, 'purge'))" :title="actionReason(row as PluginItem, 'purge')" @click="purge(row as PluginItem)">{{ t('plugin.purge', '清除数据') }}</el-button>
-          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row as PluginItem)">{{ t('plugin.deletePackage', '删除包') }}</el-button>
+          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'plugin:plugin:install-discovered'" :disabled="Boolean(actionReason(row as PluginItem, 'install'))" :title="actionReason(row as PluginItem, 'install')" @click="installDiscovered(row as PluginItem)">{{ t('plugin.install', '安装') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="primary" link v-perm="'plugin:plugin:update-local'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="selectLocalUpdate(row as PluginItem)">{{ t('plugin.localUpdate', '本地 ZIP 更新') }}</el-button>
+          <el-button v-if="row.latestVersion" type="primary" link v-perm="'plugin:plugin:update'" :disabled="Boolean(actionReason(row as PluginItem, 'update'))" :title="actionReason(row as PluginItem, 'update')" @click="updatePlugin(row as PluginItem)">{{ t('plugin.update', '更新') }}</el-button>
+          <el-button v-if="row.migrationPending" type="warning" link v-perm="'plugin:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">{{ t('plugin.migrate', '迁移') }}</el-button>
+          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'plugin:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">{{ t('plugin.enable', '启用') }}</el-button>
+          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'plugin:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">{{ t('plugin.disable', '禁用') }}</el-button>
+          <el-button type="primary" link v-perm="['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save']" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || t('plugin.businessTip', '进入统一业务设计器，目标可用性由服务端再次校验')" @click="developBusiness(row as PluginItem)">{{ t('plugin.developBusiness', '开发业务') }}</el-button>
+          <el-button type="primary" link v-perm="'plugin:plugin:get-config'" @click="openConfig(row as PluginItem)">{{ t('plugin.config', '配置') }}</el-button>
+          <el-button type="info" link v-perm="['plugin:plugin:history', 'plugin:plugin:operations']" @click="openHistory(row as PluginItem)">{{ t('plugin.history', '历史') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'plugin:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">{{ t('plugin.uninstall', '卸载') }}</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'plugin:plugin:purge'" :disabled="Boolean(actionReason(row as PluginItem, 'purge'))" :title="actionReason(row as PluginItem, 'purge')" @click="purge(row as PluginItem)">{{ t('plugin.purge', '清除数据') }}</el-button>
+          <el-button v-else type="danger" link v-perm="'plugin:plugin:delete-package'" @click="deletePackage(row as PluginItem)">{{ t('plugin.deletePackage', '删除包') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -66,7 +66,7 @@
         <el-table-column :label="t('plugin.colPrice', '价格')" width="150"><template #default="{ row }">{{ row.priceText || '-' }}</template></el-table-column>
         <el-table-column :label="t('plugin.colLatest', '最新版本')" width="110"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
         <el-table-column :label="t('plugin.colCapabilities', '能力')" min-width="220"><template #default="{ row }">{{ marketCapabilities(row as MarketplacePlugin) }}</template></el-table-column>
-        <el-table-column :label="t('plugin.colActions', '操作')" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">{{ t('plugin.detail', '详情') }}</el-button><el-button type="success" link v-perm="'system:plugin:install'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">{{ t('plugin.install', '安装') }}</el-button><el-link v-if="purchasable(row as MarketplacePlugin)" class="ml-2" type="warning" :href="row.storeUrl" target="_blank" rel="noopener">{{ t('plugin.buy', '购买') }}</el-link></template></el-table-column>
+        <el-table-column :label="t('plugin.colActions', '操作')" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">{{ t('plugin.detail', '详情') }}</el-button><el-button type="success" link v-perm="'plugin:plugin:install-cloud'" :disabled="row.versions[0]?.compatible === false" :title="row.versions[0]?.compatibleReason || ''" @click="installMarket(row as MarketplacePlugin)">{{ t('plugin.install', '安装') }}</el-button><el-link v-if="purchasable(row as MarketplacePlugin)" class="ml-2" type="warning" :href="row.storeUrl" target="_blank" rel="noopener">{{ t('plugin.buy', '购买') }}</el-link></template></el-table-column>
       </el-table>
     </template>
 
@@ -95,6 +95,7 @@ import InstallDialog from './components/InstallDialog.vue';
 import LifecycleDrawer from './components/LifecycleDrawer.vue';
 import Market from './components/Market.vue';
 import PluginDevelopmentDialog from './components/PluginDevelopmentDialog.vue';
+import { formatErrorMessage } from '@/utils/errorMessage';
 
 defineOptions({ name: 'SystemPlugin' });
 const { t } = useI18n();
@@ -122,11 +123,11 @@ function businessReason(row: PluginItem) {
   if (row.operation || !['discovered', 'enabled', 'disabled'].includes(row.state)) return row.disabledReason || t('plugin.businessReason', '插件正在发布、恢复或当前状态不可开发');
   return '';
 }
-function developBusiness(row: PluginItem) { if (!(hasPermission('development:business:save'))) return;
+function developBusiness(row: PluginItem) { if (!(hasPermission(['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save']))) return;
   if (businessReason(row)) return;
   void router.push({ path: '/admin/development/business/visual', query: { plugin: row.code } });
 }
-function openDevelopment(mode: 'create' | 'maintain') { if (!(hasPermission(mode === 'create' ? 'development:plugin:create' : ['development:plugin:validate', 'development:plugin:package']))) return;
+function openDevelopment(mode: 'create' | 'maintain') { if (!(hasPermission(mode === 'create' ? 'plugin:dev-plugin:create' : ['plugin:dev-plugin:validate', 'plugin:dev-plugin:package']))) return;
   developmentMode.value = mode;
   developmentVisible.value = true;
 }
@@ -142,9 +143,7 @@ function marketCapabilities(item: MarketplacePlugin) {
   return `${t('plugin.capManifest', { v: version.manifestSchema }, { default: '清单协议 v{v}' })} · ${version.packageFormat === 'funadmin-native-app-v1' ? t('plugin.capNative', '原生应用包') : t('plugin.capOther', '其他格式包')} · ${apps || t('plugin.capNone', '无应用能力')} · ${signature} · ${database}${compatibility}`;
 }
 function errorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === 'object' && 'msg' in error && typeof error.msg === 'string') return error.msg;
-  return String(error);
+  return formatErrorMessage(error, t('http.requestFailed', '请求失败'));
 }
 function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' | 'enable' | 'disable' | 'uninstall' | 'purge') {
   if (row.operation) return row.disabledReason || t('plugin.running', { label: opLabel(row.operation), progress: row.progress }, { default: '插件正在执行{label}（{progress}%）' });
@@ -158,7 +157,7 @@ function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' 
   if (action === 'install' && row.state !== 'discovered') return t('plugin.stateNotInstall', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许安装' });
   return '';
 }
-async function load() { if (!(hasPermission('system:plugin:list'))) return;
+async function load() { if (!(hasPermission(['plugin:plugin:installed', 'plugin:plugin:discovered', 'plugin:plugin:local-detail', 'plugin:plugin:market-categories', 'plugin:plugin:market-search', 'plugin:plugin:market-detail', 'plugin:plugin:market-versions', 'plugin:plugin:check-updates']))) return;
   pageError.value = '';
   if (activeTab.value === 'market') return loadMarket();
   loading.value = true;
@@ -195,21 +194,30 @@ async function load() { if (!(hasPermission('system:plugin:list'))) return;
     loading.value = false;
   }
 }
-async function loadMarket() { if (!(hasPermission('system:plugin:list'))) return; pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
+async function loadMarket() { if (!(hasPermission(['plugin:plugin:installed', 'plugin:plugin:discovered', 'plugin:plugin:local-detail', 'plugin:plugin:market-categories', 'plugin:plugin:market-search', 'plugin:plugin:market-detail', 'plugin:plugin:market-versions', 'plugin:plugin:check-updates']))) return; pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
 async function installedFromZip() { activeTab.value = 'installed'; await load(); }
-function selectLocalUpdate(row: PluginItem) { if (!(hasPermission('system:plugin:local-update'))) return; selectedCode.value = row.code; updateInput.value?.click(); }
-async function updateLocalZip(event: Event) { if (!(hasPermission('system:plugin:local-update'))) return; const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(t('plugin.localUpdateConfirm', { file: file.name, code: selectedCode.value }, { default: '确认使用 {file} 更新插件 {code} 吗？' }), t('plugin.localUpdateTitle', '本地更新确认')), async () => { if (!hasPermission('system:plugin:local-update')) return; await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
+function selectLocalUpdate(row: PluginItem) { if (!(hasPermission('plugin:plugin:update-local'))) return; selectedCode.value = row.code; updateInput.value?.click(); }
+async function updateLocalZip(event: Event) { if (!(hasPermission('plugin:plugin:update-local'))) return; const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file || !selectedCode.value) return; try { await confirmAction(() => ElMessageBox.confirm(t('plugin.localUpdateConfirm', { file: file.name, code: selectedCode.value }, { default: '确认使用 {file} 更新插件 {code} 吗？' }), t('plugin.localUpdateTitle', '本地更新确认')), async () => { if (!hasPermission('plugin:plugin:update-local')) return; await pluginApi.updateLocal(selectedCode.value, file, true); await syncPluginRoutes(); await load(); }); } finally { input.value = ''; } }
 async function syncPluginRoutes() { await loadPluginModulesSafely(router); }
-async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { if (!(hasPermission('system:plugin:' + action))) return; const messages = { migrate: t('plugin.confirmMigrate', '确认迁移插件'), enable: t('plugin.confirmEnable', '确认启用插件'), disable: t('plugin.confirmDisable', '确认禁用插件') } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} ${t('plugin.confirmSuffix', '吗？')}`, t('plugin.operateTitle', '操作确认')), async () => { if (!hasPermission('system:plugin:' + action)) return; await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
-async function updatePlugin(row: PluginItem) { if (!(hasPermission('system:plugin:update'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.updateConfirm', { code: row.code, version: row.latestVersion }, { default: '确认将 {code} 更新到 {version} 吗？' }), t('plugin.updateTitle', '更新确认')), async () => { if (!hasPermission('system:plugin:update')) return; await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
-async function installDiscovered(row: PluginItem) { if (!(hasPermission('system:plugin:discovered-install'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.installConfirm', { code: row.code }, { default: '确认安装发现目录中的插件 {code} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:discovered-install')) return; await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
-async function uninstall(row: PluginItem) { if (!(hasPermission('system:plugin:uninstall'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.uninstallConfirm', { code: row.code }, { default: '确认卸载插件 {code} 吗？业务数据与配置将保留。' }), t('plugin.uninstallTitle', '卸载确认')), async () => { if (!hasPermission('system:plugin:uninstall')) return; await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
-async function purge(row: PluginItem) { if (!(hasPermission('system:plugin:purge'))) return; pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(t('plugin.purgePrompt', { code: row.code }, { default: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认' }), t('plugin.purgeTitle', '危险操作')).then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); if (!hasPermission('system:plugin:purge')) return; await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
-async function deletePackage(row: PluginItem) { if (!(hasPermission('system:plugin:package-delete'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.deleteConfirm', { code: row.code }, { default: '确认删除本地插件包 {code} 吗？' }), t('plugin.deleteTitle', '删除确认')), async () => { if (!hasPermission('system:plugin:package-delete')) return; await pluginApi.deletePackage(row.code); await load(); }); }
-function openConfig(row: PluginItem) { if (!(hasPermission('system:plugin:config'))) return; selectedCode.value = row.code; configVisible.value = true; }
-function openHistory(row: PluginItem) { if (!(hasPermission('system:plugin:history'))) return; selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
-function openMarket(row: MarketplacePlugin) { if (!(hasPermission('system:plugin:list'))) return; selectedCode.value = row.code; marketVisible.value = true; }
-async function installMarket(row: MarketplacePlugin) { if (!(hasPermission('system:plugin:install'))) return; const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: row.code, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:install')) return; await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
-async function installSelectedVersion(version: string) { if (!(hasPermission('system:plugin:install'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: selectedCode.value, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('system:plugin:install')) return; await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { if (!(hasPermission('plugin:plugin:' + action))) return; const messages = { migrate: t('plugin.confirmMigrate', '确认迁移插件'), enable: t('plugin.confirmEnable', '确认启用插件'), disable: t('plugin.confirmDisable', '确认禁用插件') } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.code} ${t('plugin.confirmSuffix', '吗？')}`, t('plugin.operateTitle', '操作确认')), async () => { if (!hasPermission('plugin:plugin:' + action)) return; await pluginApi[action](row.code); await syncPluginRoutes(); await load(); }); }
+async function updatePlugin(row: PluginItem) { if (!(hasPermission('plugin:plugin:update'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.updateConfirm', { code: row.code, version: row.latestVersion }, { default: '确认将 {code} 更新到 {version} 吗？' }), t('plugin.updateTitle', '更新确认')), async () => { if (!hasPermission('plugin:plugin:update')) return; await pluginApi.update(row.code, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
+async function installDiscovered(row: PluginItem) { if (!(hasPermission('plugin:plugin:install-discovered'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.installConfirm', { code: row.code }, { default: '确认安装发现目录中的插件 {code} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('plugin:plugin:install-discovered')) return; await pluginApi.installDiscovered(row.code); activeTab.value = 'installed'; await syncPluginRoutes(); await load(); }); }
+async function uninstall(row: PluginItem) { if (!(hasPermission('plugin:plugin:uninstall'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.uninstallConfirm', { code: row.code }, { default: '确认卸载插件 {code} 吗？业务数据与配置将保留。' }), t('plugin.uninstallTitle', '卸载确认')), async () => { if (!hasPermission('plugin:plugin:uninstall')) return; await pluginApi.uninstall(row.code); await syncPluginRoutes(); await load(); }); }
+async function purge(row: PluginItem) { if (!(hasPermission('plugin:plugin:purge'))) return; pageError.value = ''; let confirmation = ''; try { const completed = await confirmAction(() => ElMessageBox.prompt(t('plugin.purgePrompt', { code: row.code }, { default: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认' }), t('plugin.purgeTitle', '危险操作')).then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.code, confirmation); if (!hasPermission('plugin:plugin:purge')) return; await pluginApi.purge(row.code, payload.purgeConfirm); await load(); }); if (!completed) return; } catch (error) { pageError.value = errorMessage(error); } }
+async function deletePackage(row: PluginItem) { if (!(hasPermission('plugin:plugin:delete-package'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.deleteConfirm', { code: row.code }, { default: '确认删除本地插件包 {code} 吗？' }), t('plugin.deleteTitle', '删除确认')), async () => { if (!hasPermission('plugin:plugin:delete-package')) return; await pluginApi.deletePackage(row.code); await load(); }); }
+function openConfig(row: PluginItem) { if (!(hasPermission(['plugin:plugin:get-config', 'plugin:plugin:save-config']))) return; selectedCode.value = row.code; configVisible.value = true; }
+function openHistory(row: PluginItem) { if (!(hasPermission(['plugin:plugin:history', 'plugin:plugin:operations']))) return; selectedCode.value = row.code; historyRedeployReason.value = actionReason(row, 'update'); historyVisible.value = true; }
+function openMarket(row: MarketplacePlugin) { if (!(hasPermission(['plugin:plugin:installed', 'plugin:plugin:discovered', 'plugin:plugin:local-detail', 'plugin:plugin:market-categories', 'plugin:plugin:market-search', 'plugin:plugin:market-detail', 'plugin:plugin:market-versions', 'plugin:plugin:check-updates']))) return; selectedCode.value = row.code; marketVisible.value = true; }
+async function installMarket(row: MarketplacePlugin) { if (!(hasPermission('plugin:plugin:install-cloud'))) return; const item = row.versions[0]; const version = item?.version; if (!version || item.compatible === false) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: row.code, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('plugin:plugin:install-cloud')) return; await pluginApi.installCloud(row.code, version); activeTab.value = 'installed'; await load(); }); }
+async function installSelectedVersion(version: string) { if (!(hasPermission('plugin:plugin:install-cloud'))) return; await confirmAction(() => ElMessageBox.confirm(t('plugin.marketInstallConfirm', { code: selectedCode.value, version }, { default: '确认安装插件 {code} {version} 吗？' }), t('plugin.installTitle', '安装确认')), async () => { if (!hasPermission('plugin:plugin:install-cloud')) return; await pluginApi.installCloud(selectedCode.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }); }
 onMounted(load);
 </script>
+
+<style>
+.plugin-toolbar__account.el-button { background-color: #eaf2ff !important; }
+.plugin-toolbar__upload.el-button { background-color: #e8f7ed !important; }
+.plugin-toolbar__create.el-button { background-color: #f4e8ff !important; }
+.plugin-toolbar__validate.el-button { background-color: #fff3df !important; }
+.plugin-toolbar__package.el-button { background-color: #e6f7fb !important; }
+.plugin-toolbar__refresh.el-button { background-color: #f0f1ff !important; }
+</style>

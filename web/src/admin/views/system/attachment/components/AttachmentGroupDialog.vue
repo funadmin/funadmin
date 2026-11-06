@@ -22,7 +22,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:attachment-group:edit' : 'system:attachment-group:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'system:attachment-group:update' : 'system:attachment-group:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -56,11 +56,11 @@ watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
 }, { immediate: true });
 function resetForm() { formRef.value?.resetFields(); Object.assign(form, initialForm()); }
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:attachment-group:edit' : 'system:attachment-group:add')) return;
+  if (!hasPermission(props.row?.id ? 'system:attachment-group:update' : 'system:attachment-group:create')) return;
   if (!(await formRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    if (!hasPermission(props.row?.id ? 'system:attachment-group:edit' : 'system:attachment-group:add')) return;
+    if (!hasPermission(props.row?.id ? 'system:attachment-group:update' : 'system:attachment-group:create')) return;
     if (props.row?.id) await attachmentGroupApi.update(props.row.id, form);
     else await attachmentGroupApi.create(form);
     visible.value = false;

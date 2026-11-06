@@ -1,7 +1,7 @@
 <template>
   <PageWrapper :title="meta?.form.name ? t('formData.pageTitle', { name: meta.form.name }, '{name} 数据') : t('formData.title', '表单数据')" :subtitle="t('formData.subtitle', '元数据驱动通用列表；新增/编辑为弹窗，详情为抽屉')">
     <div class="flex flex-col gap-4 md:flex-row">
-    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('form.data:index')" :can-mutate="hasPermission('form.data:index')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
+    <ListSourceTree v-if="meta?.schema.list?.leftTree?.enabled" :lock="buttonLock" :form-key="formKey" :schema-hash="meta.schemaHash" :config="meta.schema.list.leftTree" :list="meta.schema.list" :permission-check="hasPermission" :can-read-form="hasPermission('form:data:left-tree-form')" :can-mutate="hasPermission('form:data:mutate-left-tree')" :model-value="leftSelection" @change="onLeftTree" @mutated="loadData" />
     <ListCategoryPanel v-if="meta?.schema.list?.category?.enabled && !meta?.schema.list?.leftTree?.enabled" :options="meta.categoryOptions ?? []" :model-value="filters.__category" @change="onCategory" />
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`form-data-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template v-if="meta?.schema.list?.tools?.search !== false" #search>
@@ -92,7 +92,7 @@
       <SchemaRenderer v-if="meta" ref="schemaRendererRef" :form-key="formKey" :schema="meta.schema" :values="dialogValues" />
       <template #footer>
         <el-button @click="requestDialogClose">{{ t('common.cancel', '取消') }}</el-button>
-        <el-button v-if="hasPermission(editingId === null ? 'form.data:create' : 'form.data:update')" type="primary" :loading="saving" @click="onSave">{{ t('common.save', '保存') }}</el-button>
+        <el-button v-if="hasPermission(editingId === null ? 'form:data:create' : 'form:data:update')" type="primary" :loading="saving" @click="onSave">{{ t('common.save', '保存') }}</el-button>
       </template>
     </el-dialog>
 
@@ -145,7 +145,7 @@ import {
   stableRuntimeValues
 } from './runtime/submissionPolicy';
 
-provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form.data:listactions', executePermission: 'form.data:listaction' } });
+provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form:data:list-actions', executePermission: 'form:data:list-action' } });
 const { t } = useI18n();
 const user = useUserStore();
 const buttonLock = reactive({ busy: false });
@@ -165,8 +165,8 @@ const rowButtons = computed(() => resolveListButtons(meta.value?.schema.list, 'r
 const readableButtonFields = computed(() => [primaryKeyName.value, ...formFields.value.filter(field => field.form_show !== 0 && !['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly).map(field => field.field_name)]);
 const buttonAllowed = (button: FormListButton) => {
   const key = listActionKey(button);
-  const route: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index', batchDelete: 'batchremove', import: 'import', recycle: 'index', normal: 'index', restore: 'restore', destroy: 'destroy' };
-  return (!button.permission || hasPermission(button.permission)) && (!route[key] || hasPermission(`form.data:${route[key]}`)) && (key !== 'edit' || hasPermission('form.data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
+  const route: Record<string, string> = { create: 'create', edit: 'update', detail: 'detail', delete: 'remove', export: 'export', refresh: 'index', batchDelete: 'batch-remove', import: 'import', recycle: 'index', normal: 'index', restore: 'restore', destroy: 'destroy' };
+  return (!button.permission || hasPermission(button.permission)) && (!route[key] || hasPermission(`form:data:${route[key]}`)) && (key !== 'edit' || hasPermission('form:data:detail')) && (!['create', 'edit', 'delete'].includes(key) || meta.value?.schema.form?.readOnly !== true);
 };
 const buttonHandlers: ListButtonHandlers = {
   create: () => openDialog(), edit: row => openDialog(row), detail: row => openDetail(row!), delete: row => onDelete(row!), export: () => onExport(), refresh: () => loadData(),
@@ -176,16 +176,16 @@ const buttonHandlers: ListButtonHandlers = {
     const ids = selectedRows.value.map(record => record[primaryKeyName.value] as FormRecordId);
     if (!ids.length) { ElMessage.warning(t('formData.selectRecordsToDelete', '请先勾选需要删除的记录')); return; }
     await ElMessageBox.confirm(t('formData.batchDeleteConfirm', { n: ids.length }, '确认删除选中的 {n} 条记录吗？'), t('common.batchRemove', '批量删除'), { type: 'warning' });
-    if (!hasPermission('form.data:batchremove')) return;
+    if (!hasPermission('form:data:batch-remove')) return;
     await formDataApi.batchRemove(formKey.value, ids, meta.value?.schemaHash ?? '');
     clearSelection();
     await loadData();
   },
-  restore: async (row) => { if (!hasPermission('form.data:restore')) return;
+  restore: async (row) => { if (!hasPermission('form:data:restore')) return;
     await formDataApi.restore(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? ''); await loadData(); },
   destroy: async (row) => {
     await ElMessageBox.confirm(t('formData.destroyConfirm', '永久删除后不可恢复，确认继续吗？'), t('formData.destroyTitle', '永久删除'), { type: 'warning' });
-    if (!hasPermission('form.data:destroy')) return;
+    if (!hasPermission('form:data:destroy')) return;
     await formDataApi.destroy(formKey.value, [row![primaryKeyName.value] as FormRecordId], meta.value?.schemaHash ?? '');
     await loadData();
   },
@@ -320,7 +320,7 @@ const onSearch = () => {
   loadData();
 };
 const onImportRows = async (importRows: Array<Record<string, unknown>>) => {
-  if (!hasPermission('form.data:import')) return;
+  if (!hasPermission('form:data:import')) return;
   await formDataApi.importRows(formKey.value, importRows, meta.value?.schemaHash ?? '');
   importVisible.value = false;
   await loadData();
@@ -394,7 +394,7 @@ async function onSave() {
   const identity = JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]);
   try {
     await schemaRendererRef.value?.submit();
-    if (saveSequenceValue !== saveSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'form.data:create' : 'form.data:update')) return;
+    if (saveSequenceValue !== saveSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'form:data:create' : 'form:data:update')) return;
     const include = resolveSubmissionInclude(meta.value ? { schema_document: meta.value.schema } : null);
     const payload = buildSubmissionPayload(formFields.value, dialogValues, include, hasPermission);
     const schemaHash = meta.value?.schemaHash ?? '';
@@ -427,13 +427,13 @@ async function onDelete(row: Record<string, unknown>) {
   const context = JSON.stringify(buttonContext('row', row));
   const version = buttonContextVersion.value;
   await ElMessageBox.confirm(t('formData.deleteConfirm', '确认删除该条数据？'), t('formData.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  if (context !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('form.data:remove') || !rows.value.some(record => record[primaryKeyName.value] === row[primaryKeyName.value])) return;
+  if (context !== JSON.stringify(buttonContext('row', row)) || version !== buttonContextVersion.value || !hasPermission('form:data:remove') || !rows.value.some(record => record[primaryKeyName.value] === row[primaryKeyName.value])) return;
   await formDataApi.remove(formKey.value, row[primaryKeyName.value] as FormRecordId, meta.value?.schemaHash ?? '');
   ElMessage.success(t('common.deleteSuccess', '删除成功'));
   await refreshAfterWrite();
 }
 async function onExport() {
-  if (!hasPermission('form.data:export')) return;
+  if (!hasPermission('form:data:export')) return;
   const data = await formDataApi.export(formKey.value, { filters: { ...filters, __leftTree: leftSelection.value } });
   const columns = [primaryKeyName.value, ...listFields.value.map((f) => f.field_name), 'created_at'];
   const lines = [columns.join(',')];

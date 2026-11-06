@@ -32,7 +32,7 @@ export interface PresetThemeConfig {
 
 /** 预设主题方案：一键切换氛围 */
 export const PRESET_THEMES: PresetThemeConfig[] = [
-  { value: 'elegant',  label: i18n.global.t('setting.preset.elegant.label', '雅致'),  desc: i18n.global.t('setting.preset.elegant.desc', '浅色 + 清新蓝'),  themeMode: 'light', primaryColor: '#1677ff', menuTheme: 'light' },
+  { value: 'elegant',  label: i18n.global.t('setting.preset.elegant.label', '雅致'),  desc: i18n.global.t('setting.preset.elegant.desc', '浅色 + 柔和蓝'),  themeMode: 'light', primaryColor: '#5D87FF', menuTheme: 'light' },
   { value: 'fresh',    label: i18n.global.t('setting.preset.fresh.label', '清新'),    desc: i18n.global.t('setting.preset.fresh.desc', '浅色 + 青蓝'),    themeMode: 'light', primaryColor: '#13c2c2', menuTheme: 'light' },
   { value: 'classic',  label: i18n.global.t('setting.preset.classic.label', '经典'),  desc: i18n.global.t('setting.preset.classic.desc', '深色侧栏 + 蓝'),  themeMode: 'light', primaryColor: '#1677ff', menuTheme: 'dark'  },
   { value: 'minimal',  label: i18n.global.t('setting.preset.minimal.label', '极简'),  desc: i18n.global.t('setting.preset.minimal.desc', '浅色 + 石墨'),    themeMode: 'light', primaryColor: '#0f172a', menuTheme: 'light' },
@@ -125,9 +125,9 @@ export const useAppStore = defineStore('app', {
     isMobile: false,
     mobileDrawerOpen: false,
     _savedLayoutMode: null,
-    // 默认：雅致风格
+    // 默认：雅致风格（配色对齐 SaiAdmin）
     themeMode: 'light',
-    primaryColor: '#1677ff',
+    primaryColor: '#5D87FF',
     locale: 'zh-CN',
     layoutMode: 'vertical',
     menuTheme: 'light',
@@ -282,8 +282,9 @@ export const useAppStore = defineStore('app', {
       const s = this.radiusScale;
       root.style.setProperty('--app-radius-sm', `${4 * s}px`);
       root.style.setProperty('--app-radius', `${8 * s}px`);
-      root.style.setProperty('--app-radius-lg', `${12 * s}px`);
-      root.style.setProperty('--app-radius-xl', `${16 * s}px`);
+      // 卡片大圆角对齐 SaiAdmin（0.75rem + 4px = 16px）。
+      root.style.setProperty('--app-radius-lg', `${16 * s}px`);
+      root.style.setProperty('--app-radius-xl', `${20 * s}px`);
     },
 
     /** 把主色派生成 ElementPlus 全套 CSS 变量 */
@@ -335,10 +336,12 @@ export const useAppStore = defineStore('app', {
      * 仅当用户当前主色 == 某个历史默认值时才替换，自定义过的颜色不受影响。
      */
     migrateLegacyPrimary() {
-      const LEGACY_DEFAULT_PRIMARIES = [0x2c7be5, 0x165dff, 0x5d87ff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
+      const LEGACY_DEFAULT_PRIMARIES = [0x2c7be5, 0x165dff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
       const current = parseInt((this.primaryColor || '').replace('#', ''), 16);
-      if (LEGACY_DEFAULT_PRIMARIES.includes(current)) {
-        this.primaryColor = PRESET_THEMES.find((item) => item.value === this.preset)?.primaryColor || '#1677ff';
+      // #1677ff 是雅致预设的上一代默认色；经典、暗夜预设仍以它为主色，只迁移雅致预设。
+      const previousElegantDefault = this.preset === 'elegant' && current === 0x1677ff;
+      if (LEGACY_DEFAULT_PRIMARIES.includes(current) || previousElegantDefault) {
+        this.primaryColor = PRESET_THEMES.find((item) => item.value === this.preset)?.primaryColor || '#5D87FF';
       }
     },
 
@@ -346,7 +349,7 @@ export const useAppStore = defineStore('app', {
     resetSettings() {
       this.preset = 'elegant';
       this.themeMode = 'light';
-      this.primaryColor = '#1677ff';
+      this.primaryColor = '#5D87FF';
       this.layoutMode = 'vertical';
       this.menuTheme = 'light';
       this.showTabs = true;

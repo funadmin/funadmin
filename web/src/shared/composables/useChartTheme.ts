@@ -89,7 +89,7 @@ export function useChartTheme(): {
   const tokens = computed<ChartTokens>(() => {
     void tick.value;
 
-    const primary = readVar('--el-color-primary', '#1677ff');
+    const primary = readVar('--el-color-primary', '#5D87FF');
     const success = readVar('--el-color-success', '#22c55e');
     const warning = readVar('--el-color-warning', '#f59e0b');
     const danger = readVar('--el-color-danger', '#ef4444');

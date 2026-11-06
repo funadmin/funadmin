@@ -35,7 +35,7 @@ describe('M6 系统升级契约', () => {
     const pagePath = resolve(projectRoot, 'web/src/admin/views/system/upgrade/index.vue');
     expect(existsSync(pagePath)).toBe(true);
     const page = readFileSync(pagePath, 'utf8');
-    for (const text of ['SystemUpgrade', 'system:upgrade:check', 'system:upgrade:execute', 'system:upgrade:restore', 'operationToken', 'manifestId', '备份', '校验', '恢复']) {
+    for (const text of ['SystemUpgrade', 'system:upgrade:check', 'system:upgrade:execute-upgrade', 'system:upgrade:restore', 'system:upgrade:recover-stale', 'operationToken', 'manifestId', '备份', '校验', '恢复']) {
       expect(page).toContain(text);
     }
     const menuSeed = readFileSync(resolve(projectRoot, 'web/src/admin/mock/data/adminSeed.ts'), 'utf8');
@@ -62,17 +62,12 @@ describe('M6 系统升级契约', () => {
     expect(migration).not.toMatch(/\b(?:DROP|TRUNCATE|DELETE)\b/i);
   });
 
-  it('将后端升级 action 映射为前端业务权限', () => {
+  it('升级页面直接使用按方法推导的后端权限码（无对照表）', () => {
     const auth = readFileSync(resolve(projectRoot, 'admin/app/admin/authorization/model/Permission.php'), 'utf8');
-    const mappings = {
-      status: 'system:upgrade:list',
-      check: 'system:upgrade:check',
-      executeupgrade: 'system:upgrade:execute',
-      upload: 'system:upgrade:upload',
-      restore: 'system:upgrade:restore'
-    };
-    for (const [action, permission] of Object.entries(mappings)) {
-      expect(auth).toContain(`'systemupgrade:${action}' => '${permission}'`);
+    expect(auth).not.toContain("'systemupgrade:");
+    const page = readFileSync(resolve(projectRoot, 'web/src/admin/views/system/upgrade/index.vue'), 'utf8');
+    for (const code of ['system:upgrade:check', 'system:upgrade:execute-upgrade', 'system:upgrade:upload', 'system:upgrade:restore']) {
+      expect(page).toContain(code);
     }
   });
 

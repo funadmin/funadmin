@@ -1,6 +1,6 @@
 const actor = vi.hoisted(() => ({ permissions: [
-  'development.business:schemaversions', 'development.business:schemaversion',
-  'development.business:schemadiff', 'development.business:rollbackschema'
+  'development:business:schema-versions', 'development:business:schema-version',
+  'development:business:schema-diff', 'development:business:rollback-schema'
 ] }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => actor }));
 import { flushPromises, mount } from '@vue/test-utils';

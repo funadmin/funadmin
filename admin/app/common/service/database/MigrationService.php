@@ -542,6 +542,48 @@ class MigrationService extends AbstractService
         return '`' . $identifier . '`';
     }
 
+    /**
+     * 已被移除模块的核心表（身份中心，见 028/037 迁移）。
+     * 只有这些表允许在核心 SQL 迁移中被 DROP TABLE IF EXISTS，其余表仍一律禁止删除。
+     */
+    public const RETIRED_CORE_TABLES = [
+        'application_assignment',
+        'application_database',
+        'application_domain',
+        'application_permission',
+        'application_role',
+        'application_role_permission',
+        'application_user_permission',
+        'application_user_role',
+        'backchannel_logout_delivery',
+        'client_grant',
+        'client_scope',
+        'client_secret',
+        'enterprise_application',
+        'identity_admin_link',
+        'identity_audit_log',
+        'identity_consent',
+        'identity_credential',
+        'identity_login_attempt',
+        'identity_member_link',
+        'identity_migration_audit',
+        'identity_sso_config',
+        'identity_tenant',
+        'identity_user',
+        'identity_user_department',
+        'oauth_authorization',
+        'oauth_authorization_code',
+        'oauth_authorization_scope',
+        'oauth_client',
+        'oauth_token',
+        'oauth_token_scope',
+        'oidc_client_session',
+        'oidc_session',
+        'oidc_signing_key',
+        'redirect_uri',
+        'scope',
+    ];
+
     private function assertForwardOnly(string $sql, string $file): void
     {
         $withoutComments = preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
@@ -552,6 +594,13 @@ class MigrationService extends AbstractService
             '/\bDROP\s+(?:TRIGGER|TABLE)\s+IF\s+EXISTS\s+`?(?:fun_)?schema_integrity_guard_[A-Za-z0-9_]+`?/i',
             '',
             (string) $withoutStrings
+        );
+        // 仅放行退役模块表的 DROP TABLE IF EXISTS（逐张精确匹配表名，不接受通配或其它表）。
+        $retired = implode('|', array_map(static fn (string $table): string => preg_quote($table, '/'), self::RETIRED_CORE_TABLES));
+        $withoutGuardCleanup = preg_replace(
+            '/\bDROP\s+TABLE\s+IF\s+EXISTS\s+`?(?:fun_)?(?:' . $retired . ')`?(?=\s*;|\s*$)/im',
+            '',
+            (string) $withoutGuardCleanup
         );
         if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutGuardCleanup)) {
             throw new RuntimeException('Migration 包含破坏性语句：' . $file);

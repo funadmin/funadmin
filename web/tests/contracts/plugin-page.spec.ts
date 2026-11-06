@@ -30,11 +30,13 @@ describe('插件中心页面契约', () => {
   });
 
   it('关键操作均声明 v-perm 权限', () => {
-    for (const permission of ['install', 'update', 'migrate', 'enable', 'disable', 'config', 'uninstall', 'purge', 'package-delete', 'history']) {
-      expect(page).toContain(`system:plugin:${permission}`);
+    // 每个按钮使用它调用的后台方法的推导码：plugin:plugin:{方法}。
+    for (const permission of ['install-local', 'update', 'enable', 'disable', 'get-config', 'uninstall', 'purge', 'delete-package', 'history']) {
+      expect(page).toContain(`plugin:plugin:${permission}`);
     }
-    expect(configDrawer).toContain("v-perm=\"'system:plugin:config'\"");
-    expect(marketDrawer).toContain("v-perm=\"'system:plugin:install'\"");
+    expect(page).toContain("'plugin:plugin:' + action");
+    expect(configDrawer).toContain("v-perm=\"'plugin:plugin:save-config'\"");
+    expect(marketDrawer).toContain("v-perm=\"'plugin:plugin:install-cloud'\"");
   });
 
   it('启用、禁用和迁移均要求操作确认', () => {

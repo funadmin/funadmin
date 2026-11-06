@@ -69,6 +69,6 @@ final class AuthRequirementSnapshotTest extends TestCase
             }
         }
         self::assertSame([], $changes, "接口登录/权限要求发生变化：\n" . implode("\n", $changes));
-        self::assertGreaterThan(400, count($actual));
+        self::assertGreaterThan(350, count($actual));
     }
 }

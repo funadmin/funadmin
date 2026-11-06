@@ -4,8 +4,8 @@ import { hasPermission, type PermissionMode, type PermissionRequirement } from '
 
 /**
  * 按钮级权限指令：
- *   v-perm="'system:user:add'"
- *   v-perm="['system:user:add', 'system:user:edit']" 任意一个匹配即可
+ *   v-perm="'authorization:admin:create'"
+ *   v-perm="['authorization:admin:create', 'authorization:admin:update']" 任意一个匹配即可
  *   v-perm:all="['a', 'b']" 必须全部匹配
  */
 interface PermissionState {

@@ -103,7 +103,7 @@
 
     <template #footer>
       <el-button @click="visible = false">{{ t('common.cancel', '取消') }}</el-button>
-      <el-button v-perm="props.row?.id ? 'system:user:edit' : 'system:user:add'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
+      <el-button v-perm="props.row?.id ? 'authorization:admin:update' : 'authorization:admin:create'" type="primary" :loading="saving" @click="onSubmit">{{ t('common.confirm', '确定') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -224,7 +224,7 @@ async function loadOptions() {
 }
 
 async function onSubmit() {
-  if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
+  if (!hasPermission(props.row?.id ? 'authorization:admin:update' : 'authorization:admin:create')) return;
   await formRef.value?.validate();
   saving.value = true;
   try {
@@ -237,10 +237,10 @@ async function onSubmit() {
     if (isEdit.value && props.row) {
       const { password, ...rest } = payload;
       void password;
-      if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:admin:update' : 'authorization:admin:create')) return;
      await userApi.update(props.row.id, rest);
     } else {
-      if (!hasPermission(props.row?.id ? 'system:user:edit' : 'system:user:add')) return;
+      if (!hasPermission(props.row?.id ? 'authorization:admin:update' : 'authorization:admin:create')) return;
      await userApi.create(payload);
     }
     emit('success');

@@ -26,10 +26,6 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'plugin:package' => ['plugin', 'PluginPackage', PluginPackageExecutionTest::class, 'test_package_cli_round_trips_stage_and_is_reproducible', 'test_signed_archive_verifies_and_tampering_is_rejected_before_extraction'],
             'plugin:publication-recover' => ['plugin', 'PluginPublicationRecover', PluginPublicationExecutionTest::class, 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently', 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently'],
             'plugin:validate' => ['plugin', 'PluginValidate', PluginScaffoldExecutionTest::class, 'test_validate_reads_logical_plugin_registry_and_rejects_missing_dependency', 'test_validate_reads_logical_plugin_registry_and_rejects_missing_dependency'],
-            'identity:cleanup' => ['identity', 'IdentityCleanup', MySqlIdentityCommandTest::class, 'test_all_four_identity_commands_execute_against_real_mysql', 'test_all_four_identity_commands_execute_against_real_mysql'],
-            'identity:health' => ['identity', 'IdentityHealth', MySqlIdentityCommandTest::class, 'test_all_four_identity_commands_execute_against_real_mysql', 'test_all_four_identity_commands_execute_against_real_mysql'],
-            'identity:logout-deliveries:work' => ['identity', 'IdentityLogoutDeliveriesWork', MySqlIdentityCommandTest::class, 'test_all_four_identity_commands_execute_against_real_mysql', 'test_all_four_identity_commands_execute_against_real_mysql'],
-            'identity:signing-key' => ['identity', 'IdentitySigningKey', MySqlIdentityCommandTest::class, 'test_all_four_identity_commands_execute_against_real_mysql', 'test_all_four_identity_commands_execute_against_real_mysql'],
             'ai:change-set-recover' => ['ai', 'AiChangeSetRecover', AiChangeSetRecoveryTest::class, 'test_recovery_command_rolls_back_proven_changes_and_is_idempotent', 'test_recovery_command_refuses_unknown_external_writes'],
             'ai:outbox-dispatch' => ['ai', 'AiOutboxDispatch', MySqlAiQueueTest::class, 'test_real_outbox_redis_transport_consumer_and_retry', [AiOutboxExecutionTest::class, 'test_command_returns_nonzero_when_outbox_storage_is_unavailable']],
             'ai:sandbox-cleanup' => ['ai', 'AiSandboxCleanup', AiSandboxCleanupTest::class, 'test_cleanup_command_only_claims_expired_terminal_sandboxes', 'test_cleanup_failure_returns_nonzero_and_preserves_foreign_container'],
@@ -56,13 +52,6 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'paths' => ['plugins', 'runtime/plugins', 'public/plugin-assets', 'app/admin/controller/plugin'],
                 'external' => ['mysql', 'sodium', 'zip'],
             ],
-            'identity' => [
-                'services' => ['app/common/service/identity/IdentityOperationsService.php', 'app/common/service/identity/SigningKeyService.php', 'app/identity/service/BackchannelLogoutWorker.php', 'app/identity/service/BackchannelLogoutDispatcher.php', 'app/identity/service/LogoutTokenService.php'],
-                'configuration' => ['identity.issuer', 'database.connections'],
-                'storage' => ['identity_tenant', 'oauth_authorization_code', 'oauth_token', 'oidc_session', 'identity_audit_log', 'oidc_signing_key', 'backchannel_logout_delivery', 'identity_sso_config', 'client_secret'],
-                'paths' => ['runtime/secret/oidc'],
-                'external' => ['mysql', 'openssl', 'curl', 'controlled TLS receiver'],
-            ],
             'ai' => [
                 'services' => ['app/admin/ai/job/AiAgentJob.php', 'app/admin/ai/controller/Ai.php', 'app/admin/ai/service/AiConversationService.php', 'app/admin/ai/service/AiProviderSettingsService.php', 'app/admin/ai/queue/AiAgentConsumer.php', 'app/admin/ai/service/AiOutboxDispatcher.php', 'app/admin/ai/service/AgentSandboxManager.php', 'app/admin/ai/service/AiChangeSetTransactionService.php', 'app/admin/ai/service/AiConfigurationProfileService.php', 'app/admin/ai/service/AiAttachmentService.php', 'app/admin/ai/infrastructure/ContainerAiToolExecutor.php', 'app/common/crud/LangPackTranslator.php'],
                 'configuration' => ['ai.provider', 'ai.encryption_key', 'ai.storage', 'ai.sandbox', 'ai.tools.allowlist', 'plugin.webman.redis-queue.redis.ai-agent'],
@@ -85,7 +74,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(23, self::matrix());
+        self::assertCount(19, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

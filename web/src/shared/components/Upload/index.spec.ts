@@ -6,7 +6,7 @@ import Upload from './index.vue';
 import { uploadApi, type UploadResult } from '@/api/common/upload';
 
 vi.mock('@/api/common/upload', () => ({ uploadApi: { upload: vi.fn() } }));
-const user = reactive({ permissions: ['system:attachment:upload'] as string[] });
+const user = reactive({ permissions: ['system:admin-upload:upload'] as string[] });
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 
 const file = (overrides: Partial<UploadResult> = {}): UploadResult => ({
@@ -15,7 +15,7 @@ const file = (overrides: Partial<UploadResult> = {}): UploadResult => ({
 });
 const wrappers: ReturnType<typeof mount>[] = [];
 beforeEach(() => {
-  user.permissions = ['system:attachment:upload'];
+  user.permissions = ['system:admin-upload:upload'];
   vi.clearAllMocks();
 });
 function render(files: UploadResult[], disabled = false) {
@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe('公共上传文件列表', () => {
   it('无上传权限时禁用上传入口，直接请求也不发送文件', async () => {
-    user.permissions = ['system:attachment:list'];
+    user.permissions = ['system:attachment:index', 'system:attachment:detail', 'system:storage:index'];
     const wrapper = render([]);
     const upload = wrapper.getComponent(ElUpload);
     expect(upload.props('disabled')).toBe(true);

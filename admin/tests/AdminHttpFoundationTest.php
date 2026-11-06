@@ -88,9 +88,9 @@ final class AdminHttpFoundationTest extends TestCase
         $model = new \app\admin\authorization\model\Permission();
         $model->forceFill(['name' => '权限名称不是表名']);
         self::assertSame('permission', $model->getTable());
-        $scope = new \app\common\model\identity\OAuthScope();
-        $scope->forceFill(['name' => 'openid']);
-        self::assertSame('scope', $scope->getTable());
+        $member = new \app\common\model\Member();
+        $member->forceFill(['name' => '会员名称不是表名']);
+        self::assertSame('member', $member->getTable());
     }
 
     public function test_validator_uses_webman_rules_and_rejects_invalid_input(): void
@@ -242,14 +242,13 @@ final class AdminHttpFoundationTest extends TestCase
         self::assertSame(403, $middleware->process($request, $handler)->getStatusCode());
         self::assertArrayNotHasKey('admin', $request->context);
         Db::table('auth_group')->insert(['id' => 2, 'name' => '查看者', 'code' => 'reader']);
-        self::assertTrue(Db::table('permission')->where('code', 'systemrole:index')->exists());
-        foreach ([['g', 'admin:2', 'role:2', 'default', ''], ['p', 'role:2', 'default', 'admin/systemrole', 'index']] as [$type, $v0, $v1, $v2, $v3]) {
+        // 代码即权限：SystemRole::index 的权限码由控制器方法推导。
+        self::assertTrue(Db::table('permission')->where('code', 'authorization:role:index')->exists());
+        foreach ([['g', 'admin:2', 'role:2', 'default', ''], ['p', 'role:2', 'default', 'authorization/role', 'index']] as [$type, $v0, $v1, $v2, $v3]) {
             Db::table('casbin_rule')->insert(['ptype' => $type, 'v0' => $v0, 'v1' => $v1, 'v2' => $v2, 'v3' => $v3, 'rule_hash' => hash('sha256', "$type|$v0|$v1|$v2|$v3")]);
         }
         self::assertSame(204, $middleware->process($request, $handler)->getStatusCode());
-        Db::table('permission')->where('code', 'systemrole:index')->update(['code' => 'system:role:list']);
-        self::assertSame(204, $middleware->process($request, $handler)->getStatusCode());
-        Db::table('permission')->where('code', 'system:role:list')->update(['status' => 0]);
+        Db::table('permission')->where('code', 'authorization:role:index')->update(['status' => 0]);
         self::assertSame(403, $middleware->process($request, $handler)->getStatusCode());
         self::assertArrayNotHasKey('admin', $request->context);
         Db::table('auth_group')->where('id', 2)->update(['code' => 'super_admin']);

@@ -107,7 +107,7 @@ final class Business extends AdminController
         return $this->execute(function (): array {
             if ($this->request->get('source/b', false)) {
                 $authorization = new AdminAuthorizationService();
-                if (!$authorization->nodeAccess('admin/form.data/meta')) {
+                if (!$authorization->can('form:data:meta')) {
                     throw new InvalidArgumentException('没有来源元数据读取权限');
                 }
                 return (new \app\admin\form\service\FormDataService(
@@ -172,7 +172,7 @@ final class Business extends AdminController
     #[Delete('/modules/{id:\d+}')]
     public function deleteModule(int $id): Response
     {
-        if (!(new AdminAuthorizationService())->nodeAccess('admin/development.business/saveschema')) {
+        if (!(new AdminAuthorizationService())->can('development:business:save-schema')) {
             return $this->fail(msg: '缺少业务模块管理权限', code: 403);
         }
         return $this->execute(fn (): array => $this->business->deleteModule($id), '业务模块已删除');
@@ -821,7 +821,7 @@ final class Business extends AdminController
     #[Post('/modules/{id:\d+}/formal-generation/preview')]
     public function previewFormalGeneration(int $id): Response
     {
-        $canGenerate = (new AdminAuthorizationService())->nodeAccess('development/business/generate');
+        $canGenerate = (new AdminAuthorizationService())->can('development:business:generate');
         return $this->execute(fn (): array => $this->business->previewFormalGeneration($id, $canGenerate, ($nonce = trim((string) $this->request->post('nonce', ''))) === '' ? null : $nonce, $this->input()));
     }
 
@@ -862,10 +862,10 @@ final class Business extends AdminController
     public function formalGeneration(int $id): Response
     {
         $authorization = new AdminAuthorizationService();
-        if (!$authorization->nodeAccess('development/business/generate')) {
+        if (!$authorization->can('development:business:generate')) {
             return $this->fail(msg: '缺少正式生成权限', code: 403);
         }
-        if (!$authorization->nodeAccess('development/business/apply-resources')) {
+        if (!$authorization->can('development:business:apply-resources')) {
             return $this->fail(msg: '缺少 resource apply 专用权限', code: 403);
         }
         return $this->execute(fn (): array => $this->business->formalGeneration($id, (int) $this->request->post('generationId', 0), trim((string) $this->request->post('confirmToken', '')), $this->input()), '正式生成完成');
@@ -976,7 +976,7 @@ final class Business extends AdminController
     #[Post('/generations/{id:\d+}/recover')]
     public function recoverGeneration(int $id): Response
     {
-        if (!(new AdminAuthorizationService())->nodeAccess('development/business/recover')) {
+        if (!(new AdminAuthorizationService())->can('development:business:recover')) {
             return $this->fail(msg: '缺少 generation recover 专用权限', code: 403);
         }
         return $this->execute(fn (): array => $this->business->recoverGeneration(
@@ -1011,7 +1011,7 @@ final class Business extends AdminController
     #[Post('/generations/{id:\d+}/retry-resources')]
     public function retryResources(int $id): Response
     {
-        if (!(new AdminAuthorizationService())->nodeAccess('development/business/apply-resources')) {
+        if (!(new AdminAuthorizationService())->can('development:business:apply-resources')) {
             return $this->fail(msg: '缺少 resource apply 专用权限', code: 403);
         }
         return $this->execute(fn (): array => $this->business->retryResources($id));

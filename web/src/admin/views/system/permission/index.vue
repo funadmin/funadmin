@@ -19,14 +19,14 @@
       </template>
 
       <template #toolbar-left>
-        <el-button type="primary" plain v-perm="'system:permission:add'" @click="onAdd()">
+        <el-button type="primary" plain v-perm="'authorization:permission:create'" @click="onAdd()">
           <i class="i-ep-plus" /> {{ t('common.add', '新增') }}
         </el-button>
         <el-button
           type="danger"
           plain
           :disabled="!selection.length"
-          v-perm="'system:permission:delete'"
+          v-perm="'authorization:permission:delete'"
           @click="onBatchDelete"
         >
           <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
@@ -81,13 +81,13 @@
           <el-table-column :label="t('common.operation', '操作')" width="290" align="center" fixed="right">
             <template #default="{ row }">
               <div class="app-table-actions app-table-actions--link">
-                <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:add'" @click="onAdd(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="primary" link v-perm="'authorization:permission:create'" @click="onAdd(asPermission(row))">
                   {{ t('systemPermission.addChild', '新增子项') }}
                 </el-button>
-                <el-button v-if="!row.readOnly" type="primary" link v-perm="'system:permission:edit'" @click="onEdit(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="primary" link v-perm="'authorization:permission:update'" @click="onEdit(asPermission(row))">
                   {{ t('common.edit', '编辑') }}
                 </el-button>
-                <el-button v-if="!row.readOnly" type="danger" link v-perm="'system:permission:delete'" @click="onDelete(asPermission(row))">
+                <el-button v-if="!row.readOnly" type="danger" link v-perm="'authorization:permission:delete'" @click="onDelete(asPermission(row))">
                   {{ t('common.remove', '删除') }}
                 </el-button>
               </div>
@@ -181,33 +181,33 @@ function typeText(resourceType: PermissionModel['resourceType']) {
 }
 
 function onAdd(parent?: PermissionModel) {
-  if (!hasPermission('system:permission:add')) return;
+  if (!hasPermission('authorization:permission:create')) return;
   current.value = null;
   defaultParentId.value = parent?.id ?? 0;
   dialogVisible.value = true;
 }
 
 function onEdit(row: PermissionModel) {
-  if (!hasPermission('system:permission:edit')) return;
+  if (!hasPermission('authorization:permission:update')) return;
   current.value = row;
   defaultParentId.value = row.parentId;
   dialogVisible.value = true;
 }
 
 async function onDelete(row: PermissionModel) {
-  if (!hasPermission("system:permission:delete")) return;
+  if (!hasPermission("authorization:permission:delete")) return;
   await ElMessageBox.confirm(t('systemPermission.deleteOneConfirm', { name: row.name }, { default: '确认删除权限资源“{name}”吗？' }), t('systemPermission.deleteConfirmTitle', '删除确认'), { type: 'warning' });
-  if (!hasPermission("system:permission:delete")) return;
+  if (!hasPermission("authorization:permission:delete")) return;
  await permissionApi.remove(row.id);
   await loadData();
 }
 
 async function onBatchDelete() {
-  if (!hasPermission("system:permission:delete")) return;
+  if (!hasPermission("authorization:permission:delete")) return;
   await ElMessageBox.confirm(t('systemPermission.batchDeleteConfirm', { n: selection.value.length }, { default: '确认删除已选中的 {n} 个权限资源吗？' }), t('systemPermission.batchDeleteTitle', '批量删除'), {
     type: 'warning'
   });
-  if (!hasPermission("system:permission:delete")) return;
+  if (!hasPermission("authorization:permission:delete")) return;
  await permissionApi.removeMany(selection.value.map((item) => item.id));
   ElMessage.success(t('systemPermission.batchDeleteSuccess', '批量删除成功'));
   await loadData();
