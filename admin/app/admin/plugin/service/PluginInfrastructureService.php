@@ -490,7 +490,7 @@ final class PluginInfrastructureService
     {
         Db::transaction(function () use ($permissions, $menus, $code): void {
             // 代码即权限：清单中与控制器方法推导码相同的条目只为该接口权限命名，其余条目是能力权限。
-            $derived = (new \app\admin\authorization\service\PermissionSyncService())->pluginCodes($code);
+            $derived = (new \app\admin\authorization\service\PermissionSyncService())->pluginCodes($code, $this->appPath());
             $named = $capabilities = [];
             foreach ($permissions as $permission) {
                 if (in_array((string) ($permission['code'] ?? ''), $derived, true)) $named[] = $permission; else $capabilities[] = $permission;
@@ -548,7 +548,12 @@ final class PluginInfrastructureService
         foreach ($named as $permission) {
             $names[(string) $permission['code']] = (string) ($permission['name'] ?? $permission['code']);
         }
-        (new \app\admin\authorization\service\PermissionSyncService())->sync($code, $names);
+        (new \app\admin\authorization\service\PermissionSyncService())->sync($code, $names, $this->appPath());
+    }
+
+    private function appPath(): ?string
+    {
+        return $this->projectRoot === null ? null : rtrim($this->projectRoot, '/\\') . '/app';
     }
 
     private function disableUndeclaredPermissions(array $permissions, string $code, array $derived = []): void

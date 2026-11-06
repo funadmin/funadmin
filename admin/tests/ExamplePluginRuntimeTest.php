@@ -21,7 +21,7 @@ final class ExamplePluginRuntimeTest extends TestCase
         \support\Db::table('auth_group')->insert(['id' => 99, 'name' => '示例读取', 'code' => 'example_reader', 'status' => 1]);
         $casbin = new \app\admin\authorization\service\CasbinService();
         $casbin->syncAdminRoles(99, [99]);
-        $casbin->syncRolePermissions(99, \support\Db::table('permission')->where('code', 'example:entry:index')->pluck('id')->all());
+        $casbin->syncRolePermissions(99, \support\Db::table('permission')->where('code', 'example:index:index')->pluck('id')->all());
         $auth = new \app\admin\authentication\service\BrowserAuthService();
         $anonymous = $auth->bootstrap('');
         $login = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'example_reader', 'reader-password', '127.0.0.1');

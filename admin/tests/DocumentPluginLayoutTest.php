@@ -15,14 +15,14 @@ final class DocumentPluginLayoutTest extends TestCase
         $this->root = dirname(__DIR__) . '/plugins/document';
     }
 
-    public function test_document_plugin_manifest_declares_the_admin_entry_and_five_permissions(): void
+    public function test_document_plugin_manifest_declares_the_admin_entry_and_names_its_derived_permissions(): void
     {
         self::assertFileExists($this->root . '/plugin.json');
         $manifest = json_decode((string) file_get_contents($this->root . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('document', $manifest['code']);
         self::assertSame('web/src/admin/modules/document', $manifest['adminWeb']['source']);
         self::assertSame('database/migrations', $manifest['migrations']['path']);
-        self::assertSame(['document:doc:view', 'document:doc:edit', 'document:doc:publish', 'document:doc:delete', 'document:category:manage'], array_column($manifest['adminWeb']['permissions'], 'code'));
+        self::assertSame(['document:document:index', 'document:document:create', 'document:document:save-draft', 'document:document:publish', 'document:document:delete', 'document:category:tree'], array_column($manifest['adminWeb']['permissions'], 'code'));
         self::assertNotEmpty($manifest['adminWeb']['menu']);
         self::assertNotEmpty($manifest['adminWeb']['routes']);
     }

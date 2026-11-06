@@ -105,11 +105,14 @@ final class PluginCrudExecutionTest extends TestCase
         self::assertTrue(class_exists('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController'), '插件 CRUD 必须使用模块命名空间');
         $class = new \ReflectionClass('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController');
         self::assertSame('/admin/plugin/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
-        foreach (['index' => 'list', 'create' => 'create', 'update' => 'update', 'remove' => 'delete', 'recycle' => 'batch-delete'] as $method => $suffix) {
-            $attributes = $class->getMethod($method)->getAttributes(\app\common\annotation\Permission::class);
-            self::assertCount(1, $attributes, $method);
-            self::assertSame('crudfixture:console-item:' . $suffix, $attributes[0]->newInstance()->code);
+        // 代码即权限：生成的插件方法不再声明权限注解；清单与前端使用的权限码等于控制器方法推导码。
+        $declared = array_map(static fn (array $action): string => 'crudfixture:console-item:' . $action['codeSuffix'], $definition->toArray()['permission']['actions']);
+        foreach (['index', 'create', 'update', 'remove', 'recycle', 'restoreMany', 'destroyMany'] as $method) {
+            self::assertSame([], $class->getMethod($method)->getAttributes(\app\common\annotation\Permission::class), $method);
+            $code = \app\admin\authorization\service\PermissionCode::derive($class->getName(), $method);
+            self::assertContains($code, $declared, $method);
         }
+        self::assertStringNotContainsString('annotation\\Permission', $context['controllerContent']);
         $definitions = (new \ReflectionMethod(\Webman\Route::class, 'buildAnnotationRouteDefinitions'))->invoke(null, [new \Webman\Finder\FileInfo($this->root . '/controllerContent.php', ['class' => $class->getName()])]);
         self::assertContains('/admin/plugin/crudfixture/console-item/restore', array_column($definitions, 'path'));
         $dispatcher = \FastRoute\simpleDispatcher(static function (\FastRoute\RouteCollector $collector) use ($definitions): void {

@@ -74,7 +74,7 @@ async function save() { if(!allowed(dialog.value,!!form.value.id))return;
 }
 </script>
 <template>
-  <div><el-alert v-if="error" :title="error" type="error" :closable="false" /><div class="actions"><el-button v-if="isSuper && can('cms:site:save')" type="primary" @click="open('site')">{{ t('cms.labels.newSite') }}</el-button><el-button v-if="settings && can('cms:site:edit')" @click="open('site', settings.site)">{{ t('cms.labels.editSite') }}</el-button></div>
+  <div><el-alert v-if="error" :title="error" type="error" :closable="false" /><div class="actions"><el-button v-if="isSuper && can('cms:sites:save')" type="primary" @click="open('site')">{{ t('cms.labels.newSite') }}</el-button><el-button v-if="settings && can('cms:site:edit')" @click="open('site', settings.site)">{{ t('cms.labels.editSite') }}</el-button></div>
     <el-tabs v-if="settings" v-model="activeTab" class="site-tabs">
       <el-tab-pane :label="t('cms.labels.basicInformation')" name="site"><el-descriptions :column="2" border><el-descriptions-item :label="t('cms.labels.siteName')">{{ settings.site.name }}</el-descriptions-item><el-descriptions-item :label="t('cms.labels.defaultLanguage')">{{ languageLabel(settings.site.default_locale) }}</el-descriptions-item><el-descriptions-item :label="t('cms.labels.theme')">{{ themeLabel(settings.site.theme) }}</el-descriptions-item><el-descriptions-item :label="t('cms.labels.status')">{{ settings.site.status ? t('cms.labels.enabled') : t('cms.labels.disabled2') }}</el-descriptions-item></el-descriptions></el-tab-pane>
       <el-tab-pane :label="t('cms.labels.websiteSettings2')" name="configuration">

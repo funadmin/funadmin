@@ -24,13 +24,14 @@ final class PermissionSyncService
     /**
      * @param string|null $plugin 只同步指定插件；null 同步全部宿主与插件路由
      * @param array<string, string> $names 推导码 → 中文名称（来自插件清单或宿主基线）
+     * @param string|null $appPath 插件所在的 app 目录（默认当前项目 app/）
      * @return array{added: list<string>, updated: list<string>, stale: list<string>}
      */
-    public function sync(?string $plugin = null, array $names = []): array
+    public function sync(?string $plugin = null, array $names = [], ?string $appPath = null): array
     {
         // 插件按控制器文件推导（安装/升级时新路由尚未载入路由表）；全量同步按已载入的路由表推导。
         $derived = $plugin !== null
-            ? array_fill_keys($this->pluginCodes($plugin), ['type' => 'plugin', 'name' => $plugin])
+            ? array_fill_keys($this->pluginCodes($plugin, $appPath), ['type' => 'plugin', 'name' => $plugin])
             : $this->derivedCodes();
         foreach (array_keys($names) as $code) {
             if (!isset($derived[$code])) {
@@ -109,10 +110,10 @@ final class PermissionSyncService
      *
      * @return list<string>
      */
-    public function pluginCodes(string $plugin): array
+    public function pluginCodes(string $plugin, ?string $appPath = null): array
     {
         if (preg_match('/^[a-z][a-z0-9]*$/D', $plugin) !== 1) return [];
-        $root = app_path() . '/admin/plugins/' . $plugin . '/controller';
+        $root = ($appPath ?? app_path()) . '/admin/plugins/' . $plugin . '/controller';
         if (!is_dir($root)) return [];
         $codes = [];
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
@@ -120,6 +121,8 @@ final class PermissionSyncService
             if (!$file->isFile() || $file->getExtension() !== 'php') continue;
             $relative = substr($file->getPathname(), strlen($root) + 1, -4);
             $class = 'app\\admin\\plugins\\' . $plugin . '\\controller\\' . str_replace('/', '\\', $relative);
+            // 与 Webman 注解路由收集一致：类尚未被自动加载时直接载入控制器文件（安装/升级时插件刚发布）。
+            if (!class_exists($class)) require_once $file->getPathname();
             if (!class_exists($class)) continue;
             $reflection = new \ReflectionClass($class);
             if ($reflection->isAbstract() || $reflection->isInterface()) continue;

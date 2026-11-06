@@ -29,15 +29,15 @@ final class PluginRouteExecutionTest extends TestCase
         (new PluginScaffolder($this->root . '/plugins'))->scaffold('routefixture');
         (new \app\common\plugin\sdk\PluginActivationCompiler($this->root . '/runtime/plugins/activation', $this->root . '/plugins'))->compile(['routefixture' => ['code' => 'routefixture', 'status' => 1, 'lifecycle_state' => 'enabled']], []);
         Db::table('admin')->insert(['id' => 99, 'username' => 'plugin_route', 'password' => password_hash('isolated-route-password', PASSWORD_DEFAULT), 'status' => 1]);
-        \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions([['code' => 'routefixture:item:list', 'name' => '插件读取']], 'plugin', 'routefixture');
+        \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions([['code' => 'routefixture:index:index', 'name' => '插件读取'], ['code' => 'routefixture:permission-fixture:read', 'name' => '控制器读取']], 'plugin', 'routefixture');
         Db::table('auth_group')->insert(['id' => 99, 'name' => '插件测试', 'code' => 'plugin_route', 'status' => 1]);
         $casbin = new \app\admin\authorization\service\CasbinService();
         $casbin->syncAdminRoles(99, [99]);
-        $casbin->syncRolePermissions(99, Db::table('permission')->where('code', 'routefixture:item:list')->pluck('id')->all());
+        $casbin->syncRolePermissions(99, Db::table('permission')->whereIn('code', ['routefixture:index:index', 'routefixture:permission-fixture:read'])->pluck('id')->all());
         $auth = new BrowserAuthService();
         $anonymous = $auth->bootstrap('');
         $this->login = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_route', 'isolated-route-password', '127.0.0.1');
-        file_put_contents($this->root . '/route.php', '<?php \\app\\common\\plugin\\sdk\\PluginRoute::adminGroup(new \\Webman\\Route(), "routefixture", "routefixture:item:list", static function (): void { \\Webman\\Route::post("/plugin-fixture", static fn () => json(["code" => 200])); }, ' . var_export($this->root, true) . ');');
+        file_put_contents($this->root . '/route.php', '<?php \\app\\common\\plugin\\sdk\\PluginRoute::adminGroup(new \\Webman\\Route(), "routefixture", "routefixture:index:index", static function (): void { \\Webman\\Route::post("/plugin-fixture", static fn () => json(["code" => 200])); }, ' . var_export($this->root, true) . ');');
     }
 
     protected function tearDown(): void
@@ -54,7 +54,7 @@ final class PluginRouteExecutionTest extends TestCase
         self::assertSame(401, $this->call(false, false));
         self::assertSame(403, $this->call(true, false));
         self::assertSame(200, $this->call(true, true));
-        Db::table('permission')->where('code', 'routefixture:item:list')->update(['status' => 0]);
+        Db::table('permission')->where('code', 'routefixture:index:index')->update(['status' => 0]);
         self::assertSame(403, $this->call(true, true));
     }
 
@@ -72,7 +72,7 @@ final class PluginRouteExecutionTest extends TestCase
         self::assertSame(404, $this->call(true, true));
     }
 
-    public function test_annotated_plugin_controller_uses_declared_permissions_for_ordinary_admins(): void
+    public function test_plugin_controller_requires_the_derived_per_method_code_owned_by_the_plugin(): void
     {
         (new \ReflectionProperty(App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
         $controller = \app\admin\plugins\routefixture\controller\PermissionFixture::class;
@@ -88,9 +88,15 @@ final class PluginRouteExecutionTest extends TestCase
         self::assertSame(401, $call('read', false));
         self::assertSame(200, $call('read'));
         self::assertSame(403, $call('read', csrf: false));
+        // 未登记推导码的方法拒绝；方法上的权限注解对插件无效，不能借用其它权限码。
         self::assertSame(403, $call('undeclared'));
         self::assertSame(403, $call('foreign'));
-        Db::table('permission')->where('code', 'routefixture:item:list')->update(['status' => 0]);
+        // 同名权限码若不归属本插件（例如宿主登记），也不能放行。
+        Db::table('permission')->insert(['app_name' => 'admin', 'code' => 'routefixture:permission-fixture:undeclared', 'obj' => 'routefixture/permission-fixture', 'act' => 'undeclared',
+            'name' => 'x', 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'system', 'source_name' => '']);
+        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(99, Db::table('permission')->whereIn('code', ['routefixture:permission-fixture:read', 'routefixture:permission-fixture:undeclared'])->pluck('id')->all());
+        self::assertSame(403, $call('undeclared'));
+        Db::table('permission')->where('code', 'routefixture:permission-fixture:read')->update(['status' => 0]);
         self::assertSame(403, $call('read'));
     }
 
@@ -111,7 +117,7 @@ namespace app\admin\plugins\routefixture\controller;
 
 final class PermissionFixture extends \app\common\controller\AdminController
 {
-    #[\app\common\annotation\Permission('routefixture:item:list')]
+    #[\app\common\annotation\Permission('routefixture:index:index')]
     public function read(): \support\Response { return $this->ok(); }
     public function undeclared(): \support\Response { return $this->ok(); }
     // 声明其它插件命名空间的权限码：必须拒绝。

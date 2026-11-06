@@ -103,6 +103,13 @@ final class DefinitionValidator
             if (!str_starts_with((string) $data['permissionPrefix'], $target['plugin'] . ':')) {
                 throw new InvalidArgumentException('插件权限前缀必须属于插件命名空间');
             }
+            // 插件后台权限码由控制器方法推导，生成的权限前缀必须与推导结果一致，否则按钮与接口权限对不上。
+            $class = implode('', array_map('ucfirst', preg_split('/[-_]/', (string) $data['entity']) ?: [])) . 'Controller';
+            $derived = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\plugins\\' . $target['plugin'] . '\\controller\\' . $class, 'index');
+            $expected = $derived === null ? '' : substr($derived, 0, -strlen(':index'));
+            if ((string) $data['permissionPrefix'] !== $expected) {
+                throw new InvalidArgumentException('插件权限前缀必须为 ' . $expected . '（与控制器方法推导的权限码一致）');
+            }
         } else {
             $this->paths($data['generationTargets'] ?? null, $projectRoot);
         }

@@ -150,7 +150,7 @@ class PluginLifecycleExecutionTest extends TestCase
         $controllerFile = $this->root . '/app/admin/plugins/lifecyclefixture/controller/Index.php';
         self::assertFileExists($controllerFile);
         self::assertFileExists($this->root . '/web/src/admin/modules/lifecyclefixture/pages/Index.vue');
-        require $controllerFile;
+        require_once $controllerFile; // 安装时宿主已按控制器推导权限码并载入该文件
         $controller = 'app\\admin\\plugins\\lifecyclefixture\\controller\\Index';
         $reader = new \app\common\plugin\sdk\PluginActivationReader($this->root . '/runtime/plugins/activation');
         \support\Container::instance()->addDefinitions([\app\common\middleware\PluginApplicationGuardMiddleware::class => static fn () => new \app\common\middleware\PluginApplicationGuardMiddleware($reader)]);
@@ -160,7 +160,7 @@ class PluginLifecycleExecutionTest extends TestCase
         Db::table('auth_group')->insert(['id' => 99, 'name' => '插件用户', 'code' => 'lifecycle_reader', 'status' => 1]);
         $casbin = new \app\admin\authorization\service\CasbinService();
         $casbin->syncAdminRoles(99, [99]);
-        $casbin->syncRolePermissions(99, Db::table('permission')->where('code', 'lifecyclefixture:item:list')->pluck('id')->all());
+        $casbin->syncRolePermissions(99, Db::table('permission')->where('code', 'lifecyclefixture:index:index')->pluck('id')->all());
         $auth = new \app\admin\authentication\service\BrowserAuthService();
         $anonymous = $auth->bootstrap('');
         $login = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'lifecycle_reader', 'test-password', '127.0.0.1');

@@ -47,17 +47,17 @@
     "DELETE /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:test:batch-delete"
+        "permission": "example:test:recycle"
     },
     "DELETE /admin/plugin/example/test/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroyMany": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:test:batch-destroy"
+        "permission": "example:test:destroy-many"
     },
     "DELETE /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::remove": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:test:delete"
+        "permission": "example:test:remove"
     },
     "DELETE /admin/plugin/example/test/{id:\\d+}/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroy": {
         "guard": "plugin",
@@ -67,22 +67,22 @@
     "DELETE /admin/plugin/market/category/{id:\\d+} => app\\admin\\plugins\\market\\controller\\CategoryController::delete": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:category:manage"
+        "permission": "market:category:delete"
     },
     "DELETE /admin/plugin/market/grant/{id:\\d+} => app\\admin\\plugins\\market\\controller\\GrantController::delete": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:grant:manage"
+        "permission": "market:grant:delete"
     },
     "DELETE /admin/plugin/market/plugin/version/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::deleteVersion": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:delete-version"
     },
     "DELETE /admin/plugin/market/plugin/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::delete": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:delete"
     },
     "DELETE /admin/system/attachment => app\\admin\\system\\controller\\SystemAttachment::delete": {
         "guard": "admin",
@@ -587,42 +587,42 @@
     "GET /admin/plugin/cms/access => app\\admin\\plugins\\cms\\controller\\Access::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:access:index"
     },
     "GET /admin/plugin/cms/access/candidates => app\\admin\\plugins\\cms\\controller\\Access::candidates": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:access:candidates"
     },
     "GET /admin/plugin/cms/categories => app\\admin\\plugins\\cms\\controller\\Categories::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:category:list"
+        "permission": "cms:categories:index"
     },
     "GET /admin/plugin/cms/configuration => app\\admin\\plugins\\cms\\controller\\Sites::configuration": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:list"
+        "permission": "cms:sites:configuration"
     },
     "GET /admin/plugin/cms/content => app\\admin\\plugins\\cms\\controller\\Content::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:list"
+        "permission": "cms:content:index"
     },
     "GET /admin/plugin/cms/content/attachments => app\\admin\\plugins\\cms\\controller\\Content::attachments": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:save"
+        "permission": "cms:content:attachments"
     },
     "GET /admin/plugin/cms/content/detail => app\\admin\\plugins\\cms\\controller\\Content::detail": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:list"
+        "permission": "cms:content:detail"
     },
     "GET /admin/plugin/cms/content/lookups => app\\admin\\plugins\\cms\\controller\\Content::lookups": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:list"
+        "permission": "cms:content:lookups"
     },
     "GET /admin/plugin/cms/content/preview => app\\admin\\plugins\\cms\\controller\\Content::preview": {
         "guard": "plugin",
@@ -632,101 +632,92 @@
     "GET /admin/plugin/cms/content/revisions => app\\admin\\plugins\\cms\\controller\\Content::revisions": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:list"
+        "permission": "cms:content:revisions"
     },
     "GET /admin/plugin/cms/content/translation => app\\admin\\plugins\\cms\\controller\\Content::translation": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:list"
+        "permission": "cms:content:translation"
     },
     "GET /admin/plugin/cms/context => app\\admin\\plugins\\cms\\controller\\Sites::context": {
         "guard": "plugin",
         "login": true,
-        "permission": [
-            "cms:site:list",
-            "cms:category:list",
-            "cms:content:list",
-            "cms:menu:list",
-            "cms:tag:list",
-            "cms:model:list",
-            "cms:site:grant",
-            "cms:submission:list"
-        ]
+        "permission": "cms:sites:context"
     },
     "GET /admin/plugin/cms/contributions => app\\admin\\plugins\\cms\\controller\\Contributions::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:submission:list"
+        "permission": "cms:contributions:index"
     },
     "GET /admin/plugin/cms/contributions/settings => app\\admin\\plugins\\cms\\controller\\Contributions::settings": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:detail"
+        "permission": "cms:contributions:settings"
     },
     "GET /admin/plugin/cms/menus => app\\admin\\plugins\\cms\\controller\\Menus::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:menu:list"
+        "permission": "cms:menus:index"
     },
     "GET /admin/plugin/cms/menus/targets => app\\admin\\plugins\\cms\\controller\\Menus::targets": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:menu:list"
+        "permission": "cms:menus:targets"
     },
     "GET /admin/plugin/cms/models => app\\admin\\plugins\\cms\\controller\\Models::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:model:list"
+        "permission": "cms:models:index"
     },
     "GET /admin/plugin/cms/models/bindings => app\\admin\\plugins\\cms\\controller\\Models::bindings": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:model:list"
+        "permission": "cms:models:bindings"
     },
     "GET /admin/plugin/cms/settings => app\\admin\\plugins\\cms\\controller\\Sites::settings": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:list"
+        "permission": "cms:sites:settings"
     },
     "GET /admin/plugin/cms/sites => app\\admin\\plugins\\cms\\controller\\Sites::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:list"
+        "permission": "cms:sites:index"
     },
     "GET /admin/plugin/cms/sites/options => app\\admin\\plugins\\cms\\controller\\Sites::options": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:options"
     },
     "GET /admin/plugin/cms/tags => app\\admin\\plugins\\cms\\controller\\Tags::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:list"
+        "permission": "cms:tags:index"
     },
     "GET /admin/plugin/cms/tags/options => app\\admin\\plugins\\cms\\controller\\Tags::options": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:list"
+        "permission": "cms:tags:options"
     },
     "GET /admin/plugin/cms/tags/preview => app\\admin\\plugins\\cms\\controller\\Tags::preview": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:preview"
+        "permission": "cms:tags:preview"
     },
     "GET /admin/plugin/cms/tags/providers => app\\admin\\plugins\\cms\\controller\\Tags::providers": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:list"
+        "permission": "cms:tags:providers"
     },
     "GET /admin/plugin/example/index => app\\admin\\plugins\\example\\controller\\Index::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:entry:index"
+        "permission": "example:index:index"
     },
     "GET /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:test:list"
+        "permission": "example:test:index"
     },
     "GET /admin/plugin/example/test/export => app\\admin\\plugins\\example\\controller\\TestController::export": {
         "guard": "plugin",
@@ -741,62 +732,62 @@
     "GET /admin/plugin/market/category/ => app\\admin\\plugins\\market\\controller\\CategoryController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:view"
+        "permission": "market:category:index"
     },
     "GET /admin/plugin/market/grant/ => app\\admin\\plugins\\market\\controller\\GrantController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:grant:manage"
+        "permission": "market:grant:index"
     },
     "GET /admin/plugin/market/order/ => app\\admin\\plugins\\market\\controller\\OrderController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:order:view"
+        "permission": "market:order:index"
     },
     "GET /admin/plugin/market/order/{no:\\d{20,32}} => app\\admin\\plugins\\market\\controller\\OrderController::detail": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:order:view"
+        "permission": "market:order:detail"
     },
     "GET /admin/plugin/market/plugin/ => app\\admin\\plugins\\market\\controller\\PluginController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:view"
+        "permission": "market:plugin:index"
     },
     "GET /admin/plugin/market/plugin/overview => app\\admin\\plugins\\market\\controller\\PluginController::overview": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:view"
+        "permission": "market:plugin:overview"
     },
     "GET /admin/plugin/market/plugin/version/{id:\\d+}/package => app\\admin\\plugins\\market\\controller\\PluginController::package": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:package"
     },
     "GET /admin/plugin/market/plugin/{id:\\d+}/versions => app\\admin\\plugins\\market\\controller\\PluginController::versions": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:view"
+        "permission": "market:plugin:versions"
     },
     "GET /admin/plugin/market/setting/ => app\\admin\\plugins\\market\\controller\\SettingController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:setting:manage"
+        "permission": "market:setting:index"
     },
     "GET /admin/plugin/market/setting/payment => app\\admin\\plugins\\market\\controller\\SettingController::payment": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:setting:manage"
+        "permission": "market:setting:payment"
     },
     "GET /admin/plugin/market/stat => app\\admin\\plugins\\market\\controller\\StatController::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:stat:view"
+        "permission": "market:stat:index"
     },
     "GET /admin/plugin/qa/moderation => app\\admin\\plugins\\qa\\controller\\Moderation::index": {
         "guard": "plugin",
         "login": true,
-        "permission": "qa:moderation:list"
+        "permission": "qa:moderation:index"
     },
     "GET /admin/plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
         "guard": "self",
@@ -1711,32 +1702,32 @@
     "POST /admin/plugin/cms/access/members/remove => app\\admin\\plugins\\cms\\controller\\Access::remove": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:access:remove"
     },
     "POST /admin/plugin/cms/access/members/save => app\\admin\\plugins\\cms\\controller\\Access::assign": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:access:assign"
     },
     "POST /admin/plugin/cms/access/roles/save => app\\admin\\plugins\\cms\\controller\\Access::saveRole": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:access:save-role"
     },
     "POST /admin/plugin/cms/categories/save => app\\admin\\plugins\\cms\\controller\\Categories::save": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:category:save"
+        "permission": "cms:categories:save"
     },
     "POST /admin/plugin/cms/categories/status => app\\admin\\plugins\\cms\\controller\\Categories::status": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:category:save"
+        "permission": "cms:categories:status"
     },
     "POST /admin/plugin/cms/configuration/save => app\\admin\\plugins\\cms\\controller\\Sites::configurationSave": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:configuration-save"
     },
     "POST /admin/plugin/cms/content/offline => app\\admin\\plugins\\cms\\controller\\Content::offline": {
         "guard": "plugin",
@@ -1756,72 +1747,72 @@
     "POST /admin/plugin/cms/content/upload => app\\admin\\plugins\\cms\\controller\\Content::upload": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:content:save"
+        "permission": "cms:content:upload"
     },
     "POST /admin/plugin/cms/contributions/review => app\\admin\\plugins\\cms\\controller\\Contributions::review": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:submission:review"
+        "permission": "cms:contributions:review"
     },
     "POST /admin/plugin/cms/contributions/settings/save => app\\admin\\plugins\\cms\\controller\\Contributions::saveSettings": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:edit"
+        "permission": "cms:contributions:save-settings"
     },
     "POST /admin/plugin/cms/domains/save => app\\admin\\plugins\\cms\\controller\\Sites::domainSave": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:domain-save"
     },
     "POST /admin/plugin/cms/locales/save => app\\admin\\plugins\\cms\\controller\\Sites::localeSave": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:locale-save"
     },
     "POST /admin/plugin/cms/menus/remove => app\\admin\\plugins\\cms\\controller\\Menus::remove": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:menu:delete"
+        "permission": "cms:menus:remove"
     },
     "POST /admin/plugin/cms/menus/save => app\\admin\\plugins\\cms\\controller\\Menus::save": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:menu:save"
+        "permission": "cms:menus:save"
     },
     "POST /admin/plugin/cms/menus/status => app\\admin\\plugins\\cms\\controller\\Menus::status": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:menu:save"
+        "permission": "cms:menus:status"
     },
     "POST /admin/plugin/cms/models/save => app\\admin\\plugins\\cms\\controller\\Models::save": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:model:save"
+        "permission": "cms:models:save"
     },
     "POST /admin/plugin/cms/site-models/save => app\\admin\\plugins\\cms\\controller\\Sites::modelSave": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:model-save"
     },
     "POST /admin/plugin/cms/sites/grant => app\\admin\\plugins\\cms\\controller\\Sites::grant": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:grant"
+        "permission": "cms:sites:grant"
     },
     "POST /admin/plugin/cms/sites/save => app\\admin\\plugins\\cms\\controller\\Sites::save": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:site:save"
+        "permission": "cms:sites:save"
     },
     "POST /admin/plugin/cms/tags/publish => app\\admin\\plugins\\cms\\controller\\Tags::publish": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:publish"
+        "permission": "cms:tags:publish"
     },
     "POST /admin/plugin/cms/tags/save => app\\admin\\plugins\\cms\\controller\\Tags::save": {
         "guard": "plugin",
         "login": true,
-        "permission": "cms:tag:save"
+        "permission": "cms:tags:save"
     },
     "POST /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::create": {
         "guard": "plugin",
@@ -1836,7 +1827,7 @@
     "POST /admin/plugin/example/test/restore => app\\admin\\plugins\\example\\controller\\TestController::restoreMany": {
         "guard": "plugin",
         "login": true,
-        "permission": "example:test:batch-restore"
+        "permission": "example:test:restore-many"
     },
     "POST /admin/plugin/example/test/{id:\\d+}/restore => app\\admin\\plugins\\example\\controller\\TestController::restore": {
         "guard": "plugin",
@@ -1846,47 +1837,47 @@
     "POST /admin/plugin/market/category/ => app\\admin\\plugins\\market\\controller\\CategoryController::create": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:category:manage"
+        "permission": "market:category:create"
     },
     "POST /admin/plugin/market/grant/ => app\\admin\\plugins\\market\\controller\\GrantController::create": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:grant:manage"
+        "permission": "market:grant:create"
     },
     "POST /admin/plugin/market/order/{no:\\d{20,32}}/close => app\\admin\\plugins\\market\\controller\\OrderController::close": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:order:manage"
+        "permission": "market:order:close"
     },
     "POST /admin/plugin/market/order/{no:\\d{20,32}}/confirm => app\\admin\\plugins\\market\\controller\\OrderController::confirm": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:order:manage"
+        "permission": "market:order:confirm"
     },
     "POST /admin/plugin/market/plugin/upload => app\\admin\\plugins\\market\\controller\\PluginController::upload": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:upload"
     },
     "POST /admin/plugin/market/plugin/version/{id:\\d+}/publish => app\\admin\\plugins\\market\\controller\\PluginController::publish": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:publish"
     },
     "POST /admin/plugin/market/plugin/version/{id:\\d+}/republish => app\\admin\\plugins\\market\\controller\\PluginController::republish": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:republish"
     },
     "POST /admin/plugin/market/plugin/version/{id:\\d+}/withdraw => app\\admin\\plugins\\market\\controller\\PluginController::withdraw": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:withdraw"
     },
     "POST /admin/plugin/market/setting/key => app\\admin\\plugins\\market\\controller\\SettingController::generateKey": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:setting:manage"
+        "permission": "market:setting:generate-key"
     },
     "POST /admin/plugin/qa/moderation/review => app\\admin\\plugins\\qa\\controller\\Moderation::review": {
         "guard": "plugin",
@@ -2521,27 +2512,27 @@
     "PUT /admin/plugin/market/category/{id:\\d+} => app\\admin\\plugins\\market\\controller\\CategoryController::update": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:category:manage"
+        "permission": "market:category:update"
     },
     "PUT /admin/plugin/market/grant/{id:\\d+} => app\\admin\\plugins\\market\\controller\\GrantController::update": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:grant:manage"
+        "permission": "market:grant:update"
     },
     "PUT /admin/plugin/market/plugin/version/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::updateVersion": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:update-version"
     },
     "PUT /admin/plugin/market/plugin/{id:\\d+} => app\\admin\\plugins\\market\\controller\\PluginController::update": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:plugin:manage"
+        "permission": "market:plugin:update"
     },
     "PUT /admin/plugin/market/setting/payment => app\\admin\\plugins\\market\\controller\\SettingController::savePayment": {
         "guard": "plugin",
         "login": true,
-        "permission": "market:setting:manage"
+        "permission": "market:setting:save-payment"
     },
     "PUT /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::update": {
         "guard": "self",

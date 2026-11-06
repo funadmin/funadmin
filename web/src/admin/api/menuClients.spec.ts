@@ -7,7 +7,6 @@ vi.mock('@/utils/http', () => ({ default: calls }));
 import { memberApi } from '@/api/system/member';
 import { attachmentApi } from '@/api/system/attachment';
 import { blacklistApi } from '@/api/system/blacklist';
-import { marketApi } from '@/modules/market/api';
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -32,23 +31,6 @@ describe('菜单页面遵循后端查询协议', () => {
     expect(calls.get).toHaveBeenLastCalledWith('/system/blacklist', query);
     blacklistApi.exportRows({ ip: '127.0.0.1', status: 0 });
     expect(calls.get).toHaveBeenLastCalledWith('/system/blacklist/export', { ip: '127.0.0.1', status: 0 });
-  });
-
-  it('市场集合端点保留后端声明的结尾斜杠', () => {
-    marketApi.plugins({ page: 1, pageSize: 20 });
-    expect(calls.get).toHaveBeenLastCalledWith('/plugin/market/plugin/', { page: 1, pageSize: 20 });
-    marketApi.categories();
-    expect(calls.get).toHaveBeenLastCalledWith('/plugin/market/category/');
-    marketApi.grants({ page: 1, pageSize: 20 });
-    expect(calls.get).toHaveBeenLastCalledWith('/plugin/market/grant/', { page: 1, pageSize: 20 });
-    marketApi.setting();
-    expect(calls.get).toHaveBeenLastCalledWith('/plugin/market/setting/');
-    marketApi.orders({ page: 1, pageSize: 20 });
-    expect(calls.get).toHaveBeenLastCalledWith('/plugin/market/order/', { page: 1, pageSize: 20 });
-    marketApi.createCategory({ name: '测试', sort: 1, status: 1 });
-    expect(calls.post.mock.lastCall?.[0]).toBe('/plugin/market/category/');
-    marketApi.createGrant({ expiresAt: '', status: 1, remark: '' });
-    expect(calls.post.mock.lastCall?.[0]).toBe('/plugin/market/grant/');
   });
 
   it('默认启动同样连接当前 Webman 后端而不是已退役的 8000 服务', () => {

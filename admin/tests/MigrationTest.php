@@ -23,8 +23,12 @@ final class MigrationTest extends TestCase
         self::assertTrue(Db::schema()->hasTable('admin'));
         self::assertTrue(Db::schema()->hasTable('login_attempts'));
         self::assertTrue(Db::schema()->hasTable('browser_sessions'));
-        foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) {
+        // 插件市场的后台接口权限按控制器方法推导并登记；迁移前的粗粒度权限码已停用。
+        foreach (['market:plugin:index', 'market:plugin:publish', 'market:category:create', 'market:grant:index', 'market:order:index', 'market:order:confirm', 'market:setting:save-payment', 'market:stat:index'] as $code) {
             self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->where('status', 1)->exists(), $code);
+        }
+        foreach (['market:plugin:view', 'market:plugin:manage', 'market:order:view', 'market:stat:view'] as $code) {
+            self::assertSame(0, (int) Db::table('permission')->where('code', $code)->value('status'), $code);
         }
         self::assertSame(count(glob(base_path() . '/database/migrations/*.php')), Db::table('migrations')->count());
         Db::table('login_attempts')->delete();

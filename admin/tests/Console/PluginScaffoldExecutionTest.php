@@ -74,7 +74,8 @@ final class PluginScaffoldExecutionTest extends TestCase
         }
         $adminClass = 'app\\admin\\plugins\\' . $code . '\\controller\\Index';
         self::assertSame('/admin/plugin/' . $code, (new \ReflectionClass($adminClass))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
-        self::assertSame($code . ':item:list', (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\annotation\Permission::class)[0]->newInstance()->code);
+        self::assertSame([], (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\annotation\Permission::class));
+        self::assertSame($code . ':index:index', \app\admin\authorization\service\PermissionCode::derive($adminClass, 'index'));
         $adminMiddleware = \Webman\Middleware::getMiddleware('', 'admin', [$adminClass, 'index'], null, false);
         self::assertCount(3, $adminMiddleware);
         self::assertCount(1, array_filter($adminMiddleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRoleMiddleware::class));

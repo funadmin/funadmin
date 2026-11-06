@@ -61,9 +61,12 @@ class CheckAdminApiRoleMiddleware implements MiddlewareInterface
      */
     private function granted(string $controller, string $action, ?string $plugin, string|array|null $code, array $granted): bool
     {
-        // 插件已迁移到按方法推导的权限码；宿主在第 3 期迁移前仍使用旧推导码，保持授权不变。
-        $derived = $plugin !== null ? PermissionCode::derive($controller, $action) : $this->legacyCode($controller, $action);
-        $codes = $code !== null ? (array) $code : array_filter([$derived]);
+        if ($plugin === null && $code === null) {
+            // 宿主在切换到按方法推导的权限码之前，仍按旧资源 obj/act 查找权限行，保持授权不变。
+            $permission = $this->legacyPermission($controller, $action);
+            return $permission !== null && ((bool) $permission->is_public || in_array((string) $permission->code, $granted, true));
+        }
+        $codes = $plugin !== null ? array_filter([PermissionCode::derive($controller, $action)]) : (array) $code;
         foreach ($codes as $candidate) {
             $query = Permission::where('code', (string) $candidate)->where('status', 1)->whereNull('deleted_at');
             if ($plugin !== null) {
@@ -77,12 +80,13 @@ class CheckAdminApiRoleMiddleware implements MiddlewareInterface
         return false;
     }
 
-    /** 宿主方法迁移完成前的旧推导码（第 3 期删除）。 */
-    private function legacyCode(string $controller, string $action): ?string
+    /** 宿主方法切换到推导码之前的旧资源权限行（宿主切换时删除）。 */
+    private function legacyPermission(string $controller, string $action): ?Permission
     {
         $request = new \stdClass();
         $request->controller = $controller;
         $request->action = $action;
-        return PermissionResource::fromRequest($request)['code'] ?? null;
+        $resource = PermissionResource::fromRequest($request);
+        return Permission::where('obj', $resource['obj'])->where('act', $resource['act'])->where('status', 1)->whereNull('deleted_at')->first();
     }
 }

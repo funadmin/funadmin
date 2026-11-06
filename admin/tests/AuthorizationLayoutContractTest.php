@@ -19,21 +19,19 @@ use support\Db;
 
 final class AuthorizationLayoutContractTest extends TestCase
 {
-    public function test_plugin_permission_middleware_is_owned_by_the_plugin_module(): void
+    public function test_plugin_controller_routes_share_the_host_admin_middleware(): void
     {
-        $class = 'app\\admin\\plugin\\middleware\\CheckPluginPermissionMiddleware';
-        self::assertTrue(class_exists($class));
-        self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermissionMiddleware.php'), (new \ReflectionClass($class))->getFileName());
-        self::assertFalse(class_exists('app\\admin\\middleware\\CheckPluginPermissionMiddleware'));
-        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/middleware/CheckPluginPermissionMiddleware.php');
-        foreach ([
-            ...glob(__DIR__ . '/../app/admin/plugins/market/controller/*.php'),
-            __DIR__ . '/../app/common/plugin/sdk/PluginRoute.php',
-        ] as $file) {
-            $source = file_get_contents($file);
-            self::assertStringContainsString('use ' . $class . ';', $source);
-            self::assertStringNotContainsString('use app\\admin\\middleware\\CheckPluginPermissionMiddleware;', $source);
+        // 插件控制器与宿主控制器统一经过 CheckAdminApiRoleMiddleware 按方法推导鉴权，不再有插件专用中间件。
+        self::assertFalse(class_exists('app\\admin\\plugin\\middleware\\CheckPluginPermissionMiddleware'));
+        self::assertFileDoesNotExist(__DIR__ . '/../app/admin/plugin/middleware/CheckPluginPermissionMiddleware.php');
+        foreach (glob(__DIR__ . '/../app/admin/plugins/market/controller/*.php') ?: [] as $file) {
+            self::assertStringNotContainsString('CheckPluginPermissionMiddleware', (string) file_get_contents($file), $file);
+            self::assertStringNotContainsString('protected array $middleware', (string) file_get_contents($file), $file);
         }
+        // 插件闭包路由没有控制器方法可推导，仍按清单权限由插件模块自己的中间件校验。
+        $closure = 'app\\admin\\plugin\\middleware\\PluginRoutePermissionMiddleware';
+        self::assertSame(realpath(__DIR__ . '/../app/admin/plugin/middleware/PluginRoutePermissionMiddleware.php'), (new \ReflectionClass($closure))->getFileName());
+        self::assertStringContainsString('use ' . $closure . ';', (string) file_get_contents(__DIR__ . '/../app/common/plugin/sdk/PluginRoute.php'));
     }
 
     public function test_plugin_authorization_injects_the_authorization_module_service(): void
@@ -55,15 +53,6 @@ final class AuthorizationLayoutContractTest extends TestCase
             self::assertStringContainsString('use support\\Response;', $source, $file);
             self::assertStringNotContainsString('think\\annotation\\route', $source, $file);
             self::assertStringNotContainsString('use think\\Response;', $source, $file);
-        }
-    }
-
-    public function test_market_controller_middleware_entries_are_native_webman_classes(): void
-    {
-        foreach (['Category', 'Plugin', 'Order', 'Grant', 'Setting', 'Stat'] as $name) {
-            $class = 'app\\admin\\plugins\\market\\controller\\' . $name . 'Controller';
-            $entries = (new \ReflectionClass($class))->getDefaultProperties()['middleware'];
-            foreach ($entries as $entry) self::assertTrue(is_string($entry) && is_subclass_of($entry, \Webman\MiddlewareInterface::class), $class . ' 中间件必须遵循 Webman 契约');
         }
     }
 

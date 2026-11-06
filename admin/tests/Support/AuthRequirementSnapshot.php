@@ -9,7 +9,7 @@ use app\admin\authorization\service\PermissionResource;
 use app\common\auth\AuthRequirementResolver;
 use app\common\middleware\ApiMiddleware;
 use app\admin\middleware\CheckAdminApiRoleMiddleware;
-use app\admin\plugin\middleware\CheckPluginPermissionMiddleware;
+use app\admin\authorization\service\PermissionCode;
 use Webman\Middleware;
 use Webman\Route;
 
@@ -48,8 +48,7 @@ final class AuthRequirementSnapshot
     private static function requirement(array $chain, string $controller, string $action): array
     {
         $admin = in_array(CheckAdminApiRoleMiddleware::class, $chain, true);
-        $plugin = in_array(CheckPluginPermissionMiddleware::class, $chain, true)
-            || ($admin && preg_match('/^app\\\\admin\\\\plugins\\\\[a-z][a-z0-9]*\\\\controller\\\\/', $controller) === 1);
+        $plugin = $admin && preg_match('/^app\\\\admin\\\\plugins\\\\[a-z][a-z0-9]*\\\\controller\\\\/', $controller) === 1;
         $member = in_array(ApiMiddleware::class, $chain, true);
 
         if ($plugin) {
@@ -91,9 +90,14 @@ final class AuthRequirementSnapshot
         return ['login' => true, 'permission' => $permission === null ? '!unregistered:' . $resource['obj'] . ':' . $resource['act'] : (string) $permission->code];
     }
 
-    private static function pluginPermission(string $controller, string $action): string|array
+    /** 与 CheckAdminApiRoleMiddleware 一致：插件方法总是要求按方法推导、且归属该插件的已登记权限码。 */
+    private static function pluginPermission(string $controller, string $action): string
     {
-        $code = (new AuthRequirementResolver())->for($controller, $action)->code;
-        return $code ?? '!none';
+        $code = PermissionCode::derive($controller, $action);
+        if ($code === null) return '!none';
+        preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\/', $controller, $owner);
+        $registered = Permission::where('code', $code)->where('status', 1)->whereNull('deleted_at')
+            ->where('source_type', 'plugin')->where('source_name', $owner[1])->exists();
+        return $registered ? $code : '!unregistered:' . $code;
     }
 }

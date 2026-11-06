@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\admin\plugin\middleware\CheckPluginPermissionMiddleware;
+use app\admin\authorization\service\PermissionCode;
 use app\common\annotation\Permission;
 use app\common\auth\AuthRequirementResolver;
 use PHPUnit\Framework\TestCase;
 
 final class PluginAuthAnnotationTest extends TestCase
 {
-    /** 市场控制器的权限码，逐条取自改造前中间件的 action 映射。 */
+    /** 改造前市场控制器方法的粗粒度权限码（冻结）：用于证明旧授权展开后覆盖每个方法自己的推导码。 */
     private const MARKET = [
         'Category' => ['index' => 'market:plugin:view', 'create' => 'market:category:manage', 'update' => 'market:category:manage', 'delete' => 'market:category:manage'],
         'Plugin' => [
@@ -26,36 +26,38 @@ final class PluginAuthAnnotationTest extends TestCase
         'Stat' => ['index' => 'market:stat:view'],
     ];
 
-    public function test_every_market_route_method_declares_its_permission_by_annotation(): void
+    public function test_every_market_route_method_derives_its_own_code_and_old_grants_expand_to_it(): void
     {
+        $expansion = require dirname(__DIR__) . '/database/permission-maps/plugin-per-method.php';
         foreach (self::MARKET as $controller => $methods) {
             $class = 'app\\admin\\plugins\\market\\controller\\' . $controller . 'Controller';
             $routed = array_values(array_filter((new \ReflectionClass($class))->getMethods(\ReflectionMethod::IS_PUBLIC),
                 static fn (\ReflectionMethod $method): bool => $method->getDeclaringClass()->getName() === $class && !$method->isConstructor()));
             self::assertEqualsCanonicalizing(array_keys($methods), array_map(static fn ($m) => $m->getName(), $routed), $class);
-            foreach ($methods as $method => $code) {
-                $attributes = (new \ReflectionMethod($class, $method))->getAttributes(Permission::class);
-                self::assertCount(1, $attributes, "$class::$method");
-                self::assertSame($code, $attributes[0]->newInstance()->code, "$class::$method");
+            foreach ($methods as $method => $old) {
+                self::assertSame([], (new \ReflectionMethod($class, $method))->getAttributes(Permission::class), "$class::$method");
+                $code = PermissionCode::derive($class, $method);
+                self::assertSame('market:' . strtolower($controller) . ':' . strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $method)), $code);
+                self::assertContains($code, $expansion[$old], "持有 $old 的角色升级后必须获得 $code");
             }
         }
     }
 
-    public function test_plugin_middleware_has_no_hardcoded_action_map_or_private_reflection(): void
+    public function test_admin_middleware_derives_plugin_codes_without_hardcoded_maps(): void
     {
-        $source = (string) file_get_contents((new \ReflectionClass(CheckPluginPermissionMiddleware::class))->getFileName());
+        $source = (string) file_get_contents(dirname(__DIR__) . '/app/admin/middleware/CheckAdminApiRoleMiddleware.php');
+        self::assertStringContainsString('PermissionCode::derive($controller, $action)', $source);
         self::assertStringNotContainsString('match ($matches[1])', $source);
-        self::assertStringNotContainsString('ReflectionMethod', $source);
-        self::assertStringContainsString('AuthRequirementResolver', $source);
     }
 
-    public function test_plugin_permission_attribute_is_removed_in_favour_of_permission(): void
+    public function test_plugin_permission_attribute_is_removed_and_the_guide_describes_derived_codes(): void
     {
-        self::assertFalse(class_exists('app\\common\\plugin\\sdk\\PluginPermission'), '统一使用 #[Permission]');
+        self::assertFalse(class_exists('app\\common\\plugin\\sdk\\PluginPermission'));
         self::assertFileDoesNotExist(dirname(__DIR__) . '/app/common/plugin/sdk/PluginPermission.php');
         $guide = (string) file_get_contents(dirname(__DIR__, 2) . '/docs/plugins.md');
-        self::assertStringContainsString("#[Permission(", $guide, '插件开发文档以 #[Permission] 为准');
+        self::assertStringContainsString('{插件}:{资源}:{方法}', $guide, '插件开发文档说明权限码由控制器方法推导');
         self::assertStringNotContainsString('#[PluginPermission', $guide);
+        self::assertStringNotContainsString("#[Permission('demo:", $guide, '插件方法不再手写权限码');
     }
 
     public function test_plugin_routes_require_their_derived_per_method_code_and_one_middleware(): void

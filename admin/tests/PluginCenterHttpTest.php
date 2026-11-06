@@ -78,7 +78,7 @@ final class PluginCenterHttpTest extends TestCase
         $categoryId = (int) Db::table('market_category')->value('id');
         self::assertSame(200, $this->call('PUT', '/admin/plugin/market/category/' . $categoryId, ['name' => '修改分类'])->getStatusCode());
         self::assertSame('修改分类', Db::table('market_category')->value('name'));
-        $permissionIds = Db::table('permission')->where('code', 'market:plugin:view')->pluck('id')->all();
+        $permissionIds = Db::table('permission')->where('code', 'market:category:index')->pluck('id')->all();
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $anonymous = $auth->bootstrap('');
         $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_reader', 'plugin-reader-password', '127.0.0.4');
@@ -108,7 +108,7 @@ final class PluginCenterHttpTest extends TestCase
             Db::table('plugin')->insert(['code' => $code, 'name' => '目录测试', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1, 'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
             (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','needs_reinstall'=>false,'version'=>'1.0.0']], [$code=>$manifest]);
             \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions($manifest['adminWeb']['permissions'], 'plugin', $code);
-            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin.systemplugin:installed', 'plugin.systemplugin:discovered', $code . ':item:list'])->pluck('id')->all());
+            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin.systemplugin:installed', 'plugin.systemplugin:discovered', $code . ':index:index'])->pluck('id')->all());
             self::assertSame(401, $this->call('GET', '/admin/system/plugin/modules/enabled', authenticated: false)->getStatusCode());
             $response = $this->call('GET', '/admin/system/plugin/modules/enabled');
             self::assertSame(200, $response->getStatusCode(), $response->rawBody());

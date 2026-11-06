@@ -257,24 +257,32 @@ composer install --no-dev --optimize-autoloader
 
 部署此功能先在 `admin/` 执行 `php bin/console.php migrate`：MySQL 使用核心 SQL 增量 **`023_plugin_composer_conflict_ack.sql`**，其他受支持驱动使用 PHP 迁移 **`032_plugin_composer_conflict_ack.php`**。勿直接修改已执行迁移文件。之后重载 worker。
 
-## 接口权限注解
+## 接口权限（代码即权限）
 
-插件后台控制器继承 `app\common\controller\AdminController`，用方法注解声明权限码，权限码必须在 `plugin.json` 的 `adminWeb.permissions` 中注册：
+插件后台控制器继承 `app\common\controller\AdminController`，**每个后台方法就是一个独立权限**，权限码由控制器与方法自动推导，不需要也不支持手写：
 
-```php
-use app\common\annotation\Permission;
-
-#[Permission('demo:item:list')]
-public function index(): Response { ... }
-
-#[Permission(['demo:item:edit', 'demo:item:manage'])] // 任一满足即可
-public function update(int $id): Response { ... }
+```
+{插件}:{资源}:{方法}      全部 kebab-case；资源 = 类名去掉 Controller 后缀
+app\admin\plugins\market\controller\OrderController::close   → market:order:close
+app\admin\plugins\cms\controller\Content::saveDraft           → cms:content:save-draft
 ```
 
-未声明权限码的插件后台方法一律拒绝访问。注解也可加在类上，方法注解优先。插件后台方法总是要求登录且必须声明权限码，`#[NoNeedLogin]`、`#[NoNeedPermission]` 在插件后台控制器上不生效。
+- 宿主与插件使用同一套推导规则（`app\admin\authorization\service\PermissionCode`），统一由 `CheckAdminApiRoleMiddleware` 校验，插件没有专用权限中间件。
+- 插件后台方法总是要求登录，并且要求**归属本插件**（`source_type=plugin`、`source_name=插件名`）的已启用权限码；方法上的 `#[Permission]`、`#[NoNeedLogin]`、`#[NoNeedPermission]` 对插件后台控制器不生效，不能借用宿主或其它插件的权限。
+- 安装、启用、升级插件时，宿主扫描 `app/admin/plugins/{插件}/controller` 中带路由注解的方法，自动登记推导出的权限码（名称默认取方法 OpenAPI 的 `summary`）；方法删除或改名后，旧权限码在下次启用时停用。
+- 读取与保存是两个方法，因此是两个权限：例如编辑页的"读取详情"和"保存"分别授权。
 
-CRUD 生成器与插件脚手架输出的就是 `#[Permission]`。`admin/tests/PluginAuthAnnotationTest.php` 会检查仓库内插件控制器的写法。
+`plugin.json` 的 `adminWeb.permissions` 现在有两种用途：
+
+1. **给推导码命名**：`code` 与某个方法的推导码相同时，只设置它在角色授权树里显示的名称；
+2. **能力权限**：`code` 不对应任何方法时登记为能力权限（`capability`），用于接口以外的业务判断，例如 CMS 的站点操作 `cms:content:publish`。
+
+菜单 `menu[].permission` 与前端路由 `routes[].meta.permission` 应绑定该页面列表接口的推导码（例如 `qa:moderation:index`），前端按钮用 `v-perm` / `hasPermission` 检查对应方法的推导码。`admin/tests/PluginFrontendPermissionContractTest.php` 会检查前端与清单里使用的插件权限码都真实存在。
+
+插件闭包路由（`PluginRoute::adminGroup`）没有控制器方法可推导，仍使用清单中声明的权限码。
+
+CRUD 生成器与插件脚手架生成的插件控制器不带权限注解，生成的清单与前端使用推导码；插件 CRUD 的 `permissionPrefix` 必须等于 `{插件}:{资源}`。
 
 ## 中间件命名
 
-项目自有 PHP 中间件类统一以 `Middleware` 结尾，文件名与类名一致，例如 `CheckAdminApiRoleMiddleware.php`、`CheckPluginPermissionMiddleware.php`。引用和代码生成模板使用完整的新类名；`middleware.php` 等框架约定配置文件保留原名。第三方依赖遵循其自身命名。命名清单与管线可加载性由 `admin/tests/MiddlewareNamingTest.php` 检查。
+项目自有 PHP 中间件类统一以 `Middleware` 结尾，文件名与类名一致，例如 `CheckAdminApiRoleMiddleware.php`、`PluginRoutePermissionMiddleware.php`。引用和代码生成模板使用完整的新类名；`middleware.php` 等框架约定配置文件保留原名。第三方依赖遵循其自身命名。命名清单与管线可加载性由 `admin/tests/MiddlewareNamingTest.php` 检查。

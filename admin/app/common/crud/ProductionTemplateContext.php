@@ -489,15 +489,7 @@ final class ProductionTemplateContext
         usort($methods, static fn (string $left, string $right): int =>
             (int) preg_match('/#\[(?:Get|Post|Put|Delete)\(\x27[^\x27]*\{/', $left)
             <=> (int) preg_match('/#\[(?:Get|Post|Put|Delete)\(\x27[^\x27]*\{/', $right));
-        if ($data['_pluginCode'] !== '') {
-            foreach ($data['permission']['actions'] as $action) {
-                $code = var_export($data['permissionPrefix'] . ':' . $action['codeSuffix'], true);
-                foreach ($methods as &$method) {
-                    $method = preg_replace('/(    )public function (' . preg_quote($action['action'], '/') . ')\(/i', '$1#[Permission(' . $code . ")]\n" . '$1public function $2(', $method);
-                }
-                unset($method);
-            }
-        }
+        // 插件方法的权限码由控制器方法推导，不再在方法上声明权限注解。
         $controllerImports = $data['_consoleController']
             ? "use app\\common\\controller\\AdminController;\n"
             : "use app\\common\\controller\\ApiController;\nuse app\\admin\\common\\traits\\AdminCrudRequest;\nuse app\\admin\\common\\traits\\AdminPagination;\n";
@@ -512,7 +504,7 @@ final class ProductionTemplateContext
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
-            . ($data['_pluginCode'] !== '' ? "use app\\common\\annotation\\Permission;\n" : '')
+
             . "use {$data['_modelNamespace']}\\{$class};\nuse app\\admin\\authorization\\service\\DataScopeService;\nuse {$data['_serviceNamespace']}\\{$class}Service;\n"
             . "use {$data['_validateNamespace']}\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use support\\annotation\\route\\Delete;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup as Group;\n"
@@ -853,7 +845,7 @@ final class ProductionTemplateContext
             $listSetup .= 'const leftTreeConfig = ' . self::json($data['list']['leftTree']) . " as const;\n";
             $listSetup .= "const leftSelection = ref<Array<string | number>>([]);\nfunction onLeftTree(values: Array<string | number>) { leftSelection.value = values; query.__leftTree = JSON.stringify(values); query.page = 1; void loadData(); }\n";
             $permissionPrefix = htmlspecialchars($data['permissionPrefix'], ENT_QUOTES);
-            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':left-tree-mutate\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
+            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':' . CrudDefinition::codeSuffix('left-tree-mutate', $data['_pluginCode'] !== '') . '\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
         }
         // 生成层只声明宿主适配；交互、锁定及类型分派由共享组件处理。
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
@@ -965,7 +957,11 @@ final class ProductionTemplateContext
         $prefix = self::json($data['permissionPrefix']);
         $recycledValue = $enabled['softDelete'] ? 'recycled.value' : 'recycled';
         $batchRestoreGuard = $enabled['batchSoftDelete'] ? '' : "if (toolbar && ['restore', 'destroy'].includes(key)) return false;";
-        $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = { edit: 'update', refresh: 'list', recycle: 'list', normal: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? 'batch-' + key : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
+        $suffixMap = $data['_pluginCode'] !== ''
+            ? "{ edit: 'update', refresh: 'index', recycle: 'index', normal: 'index', batchDelete: 'recycle', delete: 'remove', destroy: 'destroy' }"
+            : "{ edit: 'update', refresh: 'list', recycle: 'list', normal: 'list', batchDelete: 'batch-delete', destroy: 'destroy' }";
+        $manySuffix = $data['_pluginCode'] !== '' ? "key + '-many'" : "'batch-' + key";
+        $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = {$suffixMap}; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? {$manySuffix} : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
         foreach ($defaults as $location => $buttons) {
             $presentation = $location === 'toolbar'
                 ? ".map(button => { const key = listActionKey(button); if (key === 'batchDelete') return { ...button, selection: { ...button.selection, min: Math.max(1, button.selection?.min ?? 0) } }; if (['normal', 'recycle'].includes(key)) return { ...button, color: (key === 'normal' ? (!{$recycledValue} ? 'primary' : 'info') : ({$recycledValue} ? 'warning' : 'info')) as FormListButton['color'] }; return button; })"

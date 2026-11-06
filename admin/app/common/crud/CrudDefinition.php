@@ -145,14 +145,28 @@ final class CrudDefinition implements JsonSerializable
             }
         }
         $actions = [];
+        $plugin = (($data['target']['type'] ?? 'core') === 'plugin');
         foreach (self::resourceActions($data) as [$action, $suffix, $defaultLabel]) {
-            $actions[] = ['action' => $action, 'codeSuffix' => $suffix, 'label' => $labels[$action] ?? $defaultLabel];
+            $actions[] = ['action' => $action, 'codeSuffix' => self::codeSuffix($suffix, $plugin), 'label' => $labels[$action] ?? $defaultLabel];
         }
         return [
             'enabled' => (bool) ($permission['enabled'] ?? true),
             'groupName' => (string) ($permission['groupName'] ?? $data['title'] ?? ''),
             'actions' => $actions,
         ];
+    }
+
+    /**
+     * 插件后台权限码由控制器方法推导（{插件}:{资源}:{方法 kebab}），生成的权限码必须与之一致；
+     * 宿主生成仍沿用旧后缀，待宿主切换到推导码后统一。
+     */
+    public static function codeSuffix(string $legacy, bool $plugin): string
+    {
+        if (!$plugin) return $legacy;
+        return [
+            'list' => 'index', 'delete' => 'remove', 'batch-delete' => 'recycle',
+            'batch-restore' => 'restore-many', 'batch-destroy' => 'destroy-many', 'left-tree-mutate' => 'mutate-left-tree',
+        ][$legacy] ?? $legacy;
     }
 
     private static function resourceActions(array $data): array

@@ -115,19 +115,19 @@ final class PluginScaffolder
                 'components' => ['Index' => 'pages/Index.vue'],
                 'minFrontendVersion' => '1.0.0',
                 'permissions' => [[
-                    'code' => $name . ':item:list',
+                    'code' => $name . ':index:index',
                     'name' => '查看' . $title,
                 ]],
                 'menu' => [[
                     'name' => $title,
                     'path' => '/plugin/' . $name . '/items',
-                    'permission' => $name . ':item:list',
+                    'permission' => $name . ':index:index',
                 ]],
                 'routes' => [[
                     'path' => '/plugin/' . $name . '/items',
                     'name' => 'Plugin_' . $name . '_Index',
                     'component' => 'Index',
-                    'meta' => ['permission' => $name . ':item:list'],
+                    'meta' => ['permission' => $name . ':index:index'],
                 ]],
             ];
         }
@@ -228,7 +228,6 @@ declare(strict_types=1);
 namespace app\\admin\\plugins\\{$name}\\controller;
 
 use app\\common\\controller\\AdminController;
-use app\\common\\annotation\\Permission;
 use support\\annotation\\route\\Get;
 use support\\annotation\\route\\RouteGroup;
 use support\\Response;
@@ -237,7 +236,7 @@ use support\\Response;
 final class Index extends AdminController
 {
 
-    #[Permission('{$name}:item:list')]
+    // 权限码由控制器方法推导：{$name}:index:index（插件:资源:方法），无需在方法上声明。
     #[Get('/index')]
     public function index(): Response
     {
@@ -307,7 +306,7 @@ PHP;
 <template>
   <section>
     <h1>{$escaped}</h1>
-    <el-button v-perm="'{$name}:item:list'" @click="load">刷新</el-button>
+    <el-button v-perm="'{$name}:index:index'" @click="load">刷新</el-button>
   </section>
 </template>
 

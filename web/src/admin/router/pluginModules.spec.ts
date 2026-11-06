@@ -72,6 +72,18 @@ describe('Webman plugin module routing', () => {
     expect(activeRouter.getRoutes()).toHaveLength(0);
   });
 
+  it('does not load the removed local market operations module from build assets', async () => {
+    activeRouter = router();
+    const result = await syncPluginModules(activeRouter, [{
+      code: 'market', version: '1.0.0', components: { Index: 'Index.vue' },
+      routes: [{ path: '/plugin/market/index', name: 'Plugin_market_Index', component: 'Index', meta: { title: '市场运营' } }]
+    }]);
+    expect(result.loaded).toEqual([]);
+    expect(result.errors).toEqual([expect.objectContaining({ code: 'market', stage: 'component' })]);
+    expect(activeRouter.hasRoute('Plugin_market_Index')).toBe(false);
+    expect(activeRouter.getRoutes().map(route => route.name)).toEqual(['Plugin_market_Error']);
+  });
+
   it('rejects route names belonging to another plugin', async () => {
     activeRouter = router();
     const value = descriptor();
