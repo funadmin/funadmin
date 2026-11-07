@@ -143,6 +143,8 @@ async function send() {
 .ai-composer__box.is-disabled { background: var(--el-fill-color-lighter); box-shadow: none; }
 .ai-composer :deep(.el-textarea__inner) { min-height: 72px !important; max-height: 220px; padding: 2px 2px; border: 0; background: transparent; box-shadow: none; font-size: 14px; line-height: 1.7; }
 .ai-composer :deep(.el-textarea.is-disabled .el-textarea__inner) { background: transparent; }
+/* 外层 __box 负责描边与聚焦环；全局 index.scss 给 textarea 的 hover/focus 内描边带 !important（暗色还多一层 html.dark），这里须更高优先级压掉。 */
+.ai-composer .ai-composer__box :deep(.el-textarea .el-textarea__inner) { box-shadow: none !important; }
 .toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .toolbar :deep(.el-button) { margin-left: 0; min-height: 28px; }
 .toolbar :deep(.el-button:not(.is-circle)) { padding: 5px 12px; }
