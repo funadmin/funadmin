@@ -3,4 +3,14 @@
     <testsuites>
         <testsuite name="admin"><directory>tests</directory></testsuite>
     </testsuites>
+    <!-- 第一方代码范围：第三方 SDK（含插件自带 vendor）内部触发的弃用不计入。 -->
+    <source ignoreIndirectDeprecations="true">
+        <include>
+            <directory>app</directory>
+            <directory>plugins</directory>
+        </include>
+        <exclude>
+            <directory>plugins/oss/vendor</directory>
+        </exclude>
+    </source>
 </phpunit>

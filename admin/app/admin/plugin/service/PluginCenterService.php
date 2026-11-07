@@ -396,7 +396,7 @@ final class PluginCenterService extends AbstractService
     private function assertConfigColumn(): void
     {
         if (!Db::schema()->hasColumn('plugin', 'config')) {
-            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/001_baseline.sql');
+            throw new RuntimeException('插件生命周期表结构未升级，请先在 admin 目录执行 php bin/console.php migrate');
         }
     }
 

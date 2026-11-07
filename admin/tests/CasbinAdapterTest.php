@@ -62,8 +62,10 @@ final class CasbinAdapterTest extends TestCase
 
     public function test_fresh_database_resources_authorize_through_the_real_engine(): void
     {
-        (require base_path() . '/database/migrations/007_authorization_resources.php')();
-        $permission = Db::table('permission')->where('code', 'systemrole:index')->first();
+        Db::table('permission')->delete();
+        (require base_path() . '/database/migrations/001_baseline.php')();
+        $code = \app\admin\authorization\service\PermissionCode::derive(\app\admin\authorization\controller\SystemRole::class, 'index');
+        $permission = Db::table('permission')->where('code', $code)->first();
         self::assertNotNull($permission);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [2]);

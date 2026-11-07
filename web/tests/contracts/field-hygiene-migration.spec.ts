@@ -6,7 +6,6 @@ import { backendJson } from './backend-runtime';
 
 const migrationPath = resolve(process.cwd(), '../admin/database/core/migrations/archive/013_field_hygiene.sql');
 const sql = readFileSync(migrationPath, 'utf8');
-const migrationService = readFileSync(resolve(process.cwd(), '../admin/app/common/service/database/MigrationService.php'), 'utf8');
 const fieldVerifyModel = readFileSync(resolve(process.cwd(), '../admin/app/common/model/FieldVerify.php'), 'utf8');
 const projectRoot = resolve(process.cwd(), '..');
 const migrationDir = resolve(projectRoot, 'admin/database/core/migrations/archive');
@@ -59,11 +58,6 @@ describe('013 字段规范化迁移契约', () => {
   it('保持 forward-only 与表前缀可替换', () => {
     expect(sql).not.toMatch(/\b(DROP|TRUNCATE|RENAME)\b/i);
     expect(sql).not.toMatch(/CONCAT\(\s*'fun_'/i);
-  });
-
-  it('MigrationService 仅白名单放行 guard 临时对象清理', () => {
-    expect(migrationService).toContain('schema_integrity_guard_');
-    expect(migrationService).toContain('DROP\\s+(?:TRIGGER|TABLE)\\s+IF\\s+EXISTS');
   });
 });
 

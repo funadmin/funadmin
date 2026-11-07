@@ -7,7 +7,6 @@ namespace app\admin\authorization\service;
 use app\admin\authorization\model\Permission;
 use RuntimeException;
 use support\Db;
-use Webman\Route;
 
 /**
  * 代码即权限：扫描后台路由，按 PermissionCode 推导的权限码登记到权限表。
@@ -30,7 +29,7 @@ final class PermissionSyncService
      */
     public function sync(?string $plugin = null, array $names = [], ?string $appPath = null, bool $enable = false): array
     {
-        // 插件按控制器文件推导（安装/升级时新路由尚未载入路由表）；全量同步按已载入的路由表推导。
+        // 宿主与插件都按控制器源文件推导：安装/升级时新路由尚未载入路由表，且不得重载进程内的路由表。
         $derived = $plugin !== null
             ? array_fill_keys($this->pluginCodes($plugin, $appPath), ['type' => 'plugin', 'name' => $plugin])
             : $this->derivedCodes();
@@ -84,23 +83,32 @@ final class PermissionSyncService
         return ['added' => $added, 'updated' => $updated, 'stale' => $stale];
     }
 
-    /** @return array<string, array{type: string, name: string}> 推导码 → 归属 */
+    /**
+     * 按后台控制器源文件推导（与 pluginCodes() 相同的注解规则）。
+     * 不读写路由表：Webman 的 Route::load() 以 require_once 加载 config/route.php，同一进程重载会丢掉其中直接声明的路由。
+     *
+     * @return array<string, array{type: string, name: string}> 推导码 → 归属
+     */
     public function derivedCodes(?string $plugin = null): array
     {
-        Route::load([config_path()]);
+        $root = app_path() . '/admin';
         $codes = [];
-        foreach (Route::getRoutes() as $route) {
-            $callback = $route->getCallback();
-            if (!is_array($callback) || !is_string($callback[0])) continue;
-            $code = PermissionCode::derive($callback[0], (string) $callback[1]);
-            if ($code === null) continue;
-            $owner = preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\/', $callback[0], $match) === 1
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php' || !str_contains($file->getPathname(), '/controller/')) continue;
+            $source = (string) file_get_contents($file->getPathname());
+            if (preg_match('/^namespace\s+([^;\s]+)\s*;/m', $source, $namespace) !== 1
+                || preg_match('/^\s*(?:(?:final|readonly)\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)/m', $source, $class) !== 1) continue;
+            $className = $namespace[1] . '\\' . $class[1];
+            $owner = preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\/', $className, $match) === 1
                 ? ['type' => 'plugin', 'name' => $match[1]]
                 : ['type' => 'system', 'name' => ''];
             if ($plugin !== null && $owner['name'] !== $plugin) continue;
-            $codes[$code] = $owner;
-            if (method_exists($callback[0], (string) $callback[1])) {
-                $this->remember($code, new \ReflectionMethod($callback[0], (string) $callback[1]));
+            foreach (self::routedMethods($source) as $method => $doc) {
+                $code = PermissionCode::derive($className, $method);
+                if ($code === null) continue;
+                $codes[$code] = $owner;
+                $this->rememberDoc($code, $doc);
             }
         }
         ksort($codes);
@@ -216,11 +224,6 @@ final class PermissionSyncService
     public function summary(string $code): ?string
     {
         return $this->summaries[$code] ?? null;
-    }
-
-    private function remember(string $code, \ReflectionMethod $method): void
-    {
-        $this->rememberDoc($code, (string) $method->getDocComment());
     }
 
     private function rememberDoc(string $code, string $doc): void

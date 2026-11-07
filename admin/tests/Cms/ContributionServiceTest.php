@@ -30,7 +30,7 @@ final class ContributionServiceTest extends CmsTestCase
     public function test_schema_migration_and_permission_ceiling_are_exact(): void
     {
         self::assertSame(['cms_member_submission'],ContributionSchema::tables());
-        self::assertSame(ContributionSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/003_member_contributions.sql'));
+        self::assertStringEndsWith(ContributionSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/001_cms.sql'));
         self::assertSame(['cms:contributions:review'],PermissionCatalog::ceilings('cms:submission:review'));
         self::assertStringContainsString('`fun_cms_member_submission`',ContributionSchema::mysql());
     }

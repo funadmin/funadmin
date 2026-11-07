@@ -255,7 +255,7 @@ composer install --no-dev --optimize-autoloader
 
 成功执行后会保存冲突清单指纹到 `plugin.composer_conflict_ack`，并记录警告及操作人。同一清单之后不再重复提示；冲突版本/来源变化会再次提示。仅有确认并不代表依赖兼容。`plugin:validate` 对宿主依赖不满足返回失败，对自带包冲突只在 JSON 输出的 `warnings` 字段中提示，不改变成功退出码。
 
-部署此功能先在 `admin/` 执行 `php bin/console.php migrate`：MySQL 的该字段已并入核心基线 `001_baseline.sql`（原增量 `023_plugin_composer_conflict_ack.sql` 见归档），其他受支持驱动使用 PHP 迁移 **`032_plugin_composer_conflict_ack.php`**。勿直接修改已执行迁移文件。之后重载 worker。
+部署此功能先在 `admin/` 执行 `php bin/console.php migrate`：MySQL 的该字段已并入核心基线 `001_baseline.sql`（原增量 `023_plugin_composer_conflict_ack.sql` 见归档），其他受支持驱动的该字段已并入 PHP 基线 `001_baseline.php`（原 `032_plugin_composer_conflict_ack.php` 见归档）。勿直接修改已执行迁移文件。之后重载 worker。
 
 ## 接口权限（代码即权限）
 

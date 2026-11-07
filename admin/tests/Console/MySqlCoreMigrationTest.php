@@ -67,9 +67,10 @@ final class MySqlCoreMigrationTest extends TestCase
         foreach (['identity_tenant', 'identity_user', 'oauth_client', 'application_assignment', 'scope'] as $table) self::assertFalse(Db::schema()->hasTable($table), '身份模块已移除：' . $table);
         self::assertTrue(Db::schema()->hasTable('plugin'));
         self::assertTrue(Db::schema()->hasColumn('plugin', 'composer_conflict_ack'));
-        foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_token', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertTrue(Db::schema()->hasTable($table), '缺少历史兼容结构：' . $table);
-        foreach (['market:plugin:view', 'market:plugin:manage', 'market:category:manage', 'market:grant:manage', 'market:order:view', 'market:order:manage', 'market:setting:manage', 'market:stat:view'] as $code) self::assertTrue(Db::table('permission')->where('code', $code)->where('source_type', 'plugin')->where('source_name', 'market')->exists(), $code);
-        self::assertFalse(Db::table('permission')->where('source_type', 'plugin')->where('source_name', 'market')->where('status', 1)->exists());
+        self::assertTrue(Db::schema()->hasTable('market_token'), '会员令牌仍沿用 market_token');
+        foreach (['market_category', 'market_plugin', 'market_version', 'market_grant', 'market_order', 'market_payment_log', 'market_site', 'market_site_plugin', 'market_install_event', 'market_download'] as $table) self::assertFalse(Db::schema()->hasTable($table), '本地市场已移除：' . $table);
+        self::assertFalse(Db::table('permission')->where('source_name', 'market')->exists(), '基线不得携带已移除市场的权限');
+        self::assertFalse(Db::table('permission')->where('status', 0)->exists(), '基线不得携带停用权限墓碑行');
         require_once base_path('app/functions.php');
         Db::beginTransaction();
         try {

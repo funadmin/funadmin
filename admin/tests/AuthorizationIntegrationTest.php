@@ -27,7 +27,8 @@ final class AuthorizationIntegrationTest extends TestCase
             Db::table($table)->delete();
         }
         if ($this->name() === 'test_fresh_install_exposes_the_existing_authorization_pages') {
-            (require dirname(__DIR__) . '/database/migrations/007_authorization_resources.php')();
+            // 表已清空：重放基线种子，模拟全新安装。
+            (require dirname(__DIR__) . '/database/migrations/001_baseline.php')();
         }
         Db::table('auth_group')->insert(['id' => 1, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1, 'status' => 1]);
         Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => 'hidden', 'status' => 1]);

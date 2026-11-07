@@ -38,8 +38,14 @@ final class LegacyAuthCompatibilityTest extends TestCase
             $table->unsignedInteger('attempts')->default(0);
             $table->unsignedBigInteger('window_start');
         });
-        $migration = require base_path() . '/database/migrations/005_admin_auth_tokens.php';
-        $migration();
+        if (!Db::schema()->hasTable('admin_auth_tokens')) Db::schema()->create('admin_auth_tokens', static function (Blueprint $table): void {
+            $table->string('token_hash', 64)->primary();
+            $table->unsignedBigInteger('admin_id')->index();
+            $table->string('purpose', 16);
+            $table->string('credential_version', 64);
+            $table->dateTime('expires_at')->index();
+            $table->dateTime('created_at');
+        });
     }
 
     protected function tearDown(): void

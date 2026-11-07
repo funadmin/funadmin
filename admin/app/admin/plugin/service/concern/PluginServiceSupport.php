@@ -303,7 +303,7 @@ trait PluginServiceSupport
     {
         $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at', 'manifest', 'lifecycle_state', 'state_changed_at', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'recovery_path', 'needs_reinstall'];
         if (array_diff($required, $this->infrastructure()->pluginColumns())) {
-            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/001_baseline.sql');
+            throw new RuntimeException('插件生命周期表结构未升级，请先在 admin 目录执行 php bin/console.php migrate');
         }
     }
 }

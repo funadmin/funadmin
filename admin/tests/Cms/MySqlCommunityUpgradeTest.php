@@ -8,7 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use support\Db;
 final class MySqlCommunityUpgradeTest extends \PHPUnit\Framework\TestCase
 {
-    public function test_append_only_upgrade_preserves_sites_and_grants_and_repeats_with_a_custom_prefix(): void
+    public function test_fresh_install_runs_cms_then_qa_and_repeats_with_a_custom_prefix(): void
     {
         $database=getenv('CMS_MYSQL_DATABASE')?:'';
         if(!preg_match('/^funadmin_cms_test_[a-f0-9]+$/D',$database))self::markTestSkipped('Needs task-owned MySQL database');
@@ -22,16 +22,15 @@ final class MySqlCommunityUpgradeTest extends \PHPUnit\Framework\TestCase
             self::assertSame($database,Db::connection()->getDatabaseName());
             Db::schema()->create('system_migration',static function(Blueprint $t):void{$t->id();$t->string('scope');$t->string('version');$t->string('checksum');$t->unsignedBigInteger('executed_at');});
             $runner=new MigrationService();$cms=dirname(__DIR__,2).'/plugins/cms/database/migrations';$qa=dirname(__DIR__,2).'/plugins/qa/database/migrations';
-            $runner->runVersion($cms,'001_cms','plugin:cms');$runner->runVersion($cms,'002_site_roles','plugin:cms');
+            self::assertSame(['001_cms'],$runner->runDirectory($cms,'plugin:cms'));
             Db::table('cms_site')->insert(['id'=>7,'code'=>'original','name'=>'Existing site','default_locale'=>'zh-cn','settings'=>'{}']);
             Db::table('cms_site_role_permission')->insert(['site_id'=>7,'role_id'=>1,'permission_code'=>'cms:content:list']);
-            self::assertSame(['003_member_contributions'],$runner->runDirectory($cms,'plugin:cms'));
             self::assertSame(['001_qa'],$runner->runDirectory($qa,'plugin:qa'));
             self::assertSame('Existing site',Db::table('cms_site')->where('id',7)->value('name'));
             self::assertSame([],json_decode(Db::table('cms_site')->where('id',7)->value('settings'),true));
             self::assertSame(['cms:content:list'],Db::table('cms_site_role_permission')->pluck('permission_code')->all());
             self::assertSame([],$runner->runDirectory($cms,'plugin:cms'));self::assertSame([],$runner->runDirectory($qa,'plugin:qa'));
-            self::assertSame(file_get_contents($cms.'/003_member_contributions.sql'),\app\cms\service\ContributionSchema::mysql());
+            self::assertStringEndsWith(\app\cms\service\ContributionSchema::mysql(),file_get_contents($cms.'/001_cms.sql'));
             self::assertSame(file_get_contents($qa.'/001_qa.sql'),\app\qa\service\Schema::mysql());
             $row=['site_id'=>7,'locale'=>'zh-cn','member_id'=>1,'kind'=>'question','title'=>'Q','body_html'=>'<p>Q</p>','data'=>'{}','result'=>'{}','payload_hash'=>str_repeat('a',64),'request_key'=>'Key_0001'];
             $id=Db::table('cms_member_submission')->insertGetId($row);Db::table('cms_member_submission')->insert(array_replace($row,['request_key'=>'key_0001']));

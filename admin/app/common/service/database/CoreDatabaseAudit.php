@@ -49,8 +49,6 @@ final class CoreDatabaseAudit
             $tables[$match[1]] = compact('columns', 'indexes', 'constraints');
         }
         if ($tables === [] || count($tables) !== preg_match_all('/^CREATE TABLE /m', $sql)) throw new RuntimeException('基线表结构提取不完整');
-        // 基线冻结不可改：已被后续迁移删除的表不再属于期望结构，避免审计把它们报为缺失。
-        foreach (MigrationService::RETIRED_CORE_TABLES as $retired) unset($tables[$retired]);
         return ['checksums' => $checksums, 'tables' => $tables];
     }
 

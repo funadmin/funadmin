@@ -46,19 +46,14 @@ final class LocalMarketplaceRemovalTest extends TestCase
         self::assertTrue(class_exists(\app\common\service\member\MemberTokenService::class));
     }
 
-    public function test_retirement_only_disables_local_permissions_and_preserves_client_resources(): void
+    public function test_baseline_carries_no_local_market_permissions_and_keeps_client_resources(): void
     {
         (new MigrationService())->run();
-        $local=Db::table('permission')->where('source_type','plugin')->where('source_name','market');
-        self::assertGreaterThan(0,(clone $local)->count());
-        $local->update(['status'=>1]);
+        self::assertFalse(Db::table('permission')->where(static function ($query): void {
+            $query->where(static fn ($source) => $source->where('source_type', 'plugin')->where('source_name', 'market'))->orWhere('code', 'like', 'market:%');
+        })->exists());
+        self::assertFalse(Db::table('admin_menu')->where('href', 'like', '%/plugin/market%')->exists());
         $clientCode=\app\admin\authorization\service\PermissionCode::derive(\app\admin\plugin\controller\SystemPlugin::class,'installed');
-        $client=Db::table('permission')->where('code',$clientCode)->first();
-        self::assertNotNull($client);
-        $before=Db::table('permission')->where('id',$client->id)->value('status');
-        $migration=require base_path('database/migrations/035_remove_local_market.php');
-        $migration();$migration();
-        self::assertSame(0,(clone $local)->where('status',1)->count());
-        self::assertSame($before,Db::table('permission')->where('id',$client->id)->value('status'));
+        self::assertSame(1,(int) Db::table('permission')->where('code',$clientCode)->value('status'));
     }
 }

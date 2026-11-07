@@ -14,7 +14,7 @@ CMS 导航管理配置的是网站前台菜单。可以添加外部链接指向�
 
 ## 安装及升级
 
-1. 核心系统需已完成安装，使用现有插件中心的本地升级流程将 CMS 升级到 1.3.0。按宿主要求先停用；升级会执行追加迁移 `003_member_contributions.sql`，随后重新启用 CMS。已有 `001_cms.sql` 和 `002_site_roles.sql` 保持不变，勿修改已执行文件。
+1. 核心系统需已完成安装，再安装 CMS 1.3.0。CMS 只有一个迁移 `001_cms.sql`（2026-11-07 由原 001–003 合并，包含站点角色与会员投稿表），只支持全新安装，不再提供从旧版 CMS 追加迁移的升级路径。
 2. 在本地插件列表安装并启用 `qa` 1.0.0。它要求 CMS >=1.3.0，执行自己的 `001_qa.sql`。使用正式插件生命周期，让宿主同时发布 PHP、管理端源码、权限菜单和可信激活快照。
 3. 在 `web/` 执行 `npm run build:webman`，产物直接写入 `admin/public/`。按部署方式重载 Webman worker，再刷新后台菜单。
 4. 为审核员分配宿主能力及对应站点角色的 `cms:submission:list`、`cms:submission:review`；发布文章还需 `cms:content:create` 与 `cms:content:publish`。问答审核额外需要宿主的 `qa:moderation:list`、`qa:moderation:review`。现有角色不会自动获得新增权限。

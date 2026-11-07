@@ -584,6 +584,11 @@
         "login": true,
         "permission": "qa:moderation:index"
     },
+    "GET /admin/plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
     "GET /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::index": {
         "guard": "self",
         "login": false,
@@ -909,6 +914,16 @@
         "login": false,
         "permission": null
     },
+    "GET /api/v2/member => app\\api\\controller\\v2\\Member::show": {
+        "guard": "member",
+        "login": true,
+        "permission": null
+    },
+    "GET /api/v2/member/status => app\\api\\controller\\v2\\Member::status": {
+        "guard": "member",
+        "login": false,
+        "permission": null
+    },
     "GET /cms => app\\cms\\controller\\Index::index": {
         "guard": "self",
         "login": false,
@@ -945,6 +960,11 @@
         "permission": null
     },
     "GET /install/index/step2 => app\\install\\controller\\Index::step2": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1666,6 +1686,21 @@
     },
     "POST /api/auth/logout => app\\admin\\authentication\\controller\\ApiAuth::logout": {
         "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "POST /api/v2/logout => app\\api\\controller\\v2\\Token::logout": {
+        "guard": "member",
+        "login": true,
+        "permission": null
+    },
+    "POST /api/v2/token => app\\api\\controller\\v2\\Token::build": {
+        "guard": "member",
+        "login": false,
+        "permission": null
+    },
+    "POST /api/v2/token/refresh => app\\api\\controller\\v2\\Token::refresh": {
+        "guard": "member",
         "login": false,
         "permission": null
     },

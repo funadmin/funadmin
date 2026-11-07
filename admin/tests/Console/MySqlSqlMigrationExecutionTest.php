@@ -29,7 +29,7 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
     protected function tearDown(): void
     {
         if (!$this->ready) return;
-        foreach (['sql_fixture', 'ai_change_set', 'permission', 'admin_menu', 'form', 'member', 'system_migration'] as $table) Db::schema()->dropIfExists($table);
+        foreach (['sql_fixture', 'system_migration'] as $table) Db::schema()->dropIfExists($table);
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
         rmdir($this->root);
@@ -100,18 +100,6 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
         self::assertStringContainsString('PLUGIN_TABLE_STRUCTURE_CONFLICT', $error->getMessage());
     }
 
-    public function test_comment_compensation_preserves_definition_and_registers_original_checksum(): void
-    {
-        Db::statement("CREATE TABLE console_sql_fixture (id BIGINT PRIMARY KEY COMMENT '旧注释', title VARCHAR(100) NULL) ENGINE=InnoDB");
-        $sql = "SELECT 'console_sql_fixture' t, 'id' c, '" . strtoupper(bin2hex('旧注释')) . "' old_hex, '" . strtoupper(bin2hex('新注释')) . "' target_hex;";
-        $file = $this->root . '/126_comment_encoding_compensation.sql';
-        file_put_contents($file, $sql);
-        self::assertSame(['126_comment_encoding_compensation'], (new MigrationService())->runDirectory($this->root, 'core'));
-        self::assertSame('新注释', Db::selectOne("SELECT COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='console_sql_fixture' AND COLUMN_NAME='id'")->COLUMN_COMMENT);
-        self::assertSame(hash('sha256', $sql), Db::table('system_migration')->value('checksum'));
-        self::assertSame([], (new MigrationService())->runDirectory($this->root, 'core'));
-    }
-
     public function test_later_unsafe_migration_blocks_batch_before_any_ddl(): void
     {
         file_put_contents($this->root . '/001_create_fixture.sql', 'CREATE TABLE console_sql_fixture (id INT PRIMARY KEY) ENGINE=InnoDB;');
@@ -167,103 +155,6 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
             self::assertTrue($rejected);
             self::assertFalse(Db::schema()->hasTable('sql_fixture'));
         } finally { $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lock) . ')'); }
-    }
-
-    public function test_historical_member_preflight_normalizes_blanks_without_rewriting_checksum(): void
-    {
-        Db::schema()->create('member', static function (Blueprint $table): void { $table->id(); $table->string('mobile', 20)->default(''); });
-        Db::table('member')->insert([['mobile' => ''], ['mobile' => '  '], ['mobile' => '13800000000']]);
-        $file = $this->root . '/006_schema_integrity.sql';
-        file_put_contents($file, 'SELECT 1;');
-        $checksum = hash_file('sha256', $file);
-        $service = new MigrationService();
-        self::assertSame(['006_schema_integrity'], $service->runDirectory($this->root, 'core'));
-        self::assertSame(2, Db::table('member')->whereNull('mobile')->count());
-        self::assertSame('13800000000', Db::table('member')->whereNotNull('mobile')->value('mobile'));
-        self::assertSame($checksum, Db::table('system_migration')->value('checksum'));
-        self::assertSame([], $service->runDirectory($this->root, 'core'));
-        $this->expectException(\Illuminate\Database\QueryException::class);
-        Db::table('member')->insert(['mobile' => '13800000000']);
-    }
-
-    public function test_business_snapshot_preflight_adds_only_required_forward_column(): void
-    {
-        Db::schema()->create('form', static function (Blueprint $table): void { $table->id(); $table->string('published_definition_hash')->nullable(); });
-        $file = $this->root . '/077_business_development_center.sql';
-        file_put_contents($file, 'SELECT 1;');
-        $service = new MigrationService();
-        self::assertSame(['077_business_development_center'], $service->runDirectory($this->root, 'core'));
-        self::assertTrue(Db::schema()->hasColumn('form', 'published_schema_hash'));
-        self::assertSame(hash_file('sha256', $file), Db::table('system_migration')->value('checksum'));
-        self::assertSame([], $service->runDirectory($this->root, 'core'));
-    }
-
-    public function test_ai_phase4_preflight_rejects_missing_group_and_wrong_index_before_registering(): void
-    {
-        Db::schema()->create('ai_change_set', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('created_by'); $table->unsignedBigInteger('conversation_id'); $table->string('status');
-            $table->index(['status'], 'idx_ai_change_set_owner_status');
-        });
-        Db::schema()->create('permission', static function (Blueprint $table): void {
-            $table->id(); $table->string('source_type'); $table->string('source_name'); $table->string('resource_type');
-        });
-        file_put_contents($this->root . '/109_ai_phase4_change_sets.sql', 'SELECT 1;');
-        $service = new MigrationService();
-        $error = null;
-        try { $service->runDirectory($this->root, 'core'); } catch (\RuntimeException $exception) { $error = $exception; }
-        self::assertNotNull($error);
-        self::assertStringContainsString('唯一', $error->getMessage());
-        Db::table('permission')->insert(['source_type' => 'admin_web', 'source_name' => 'ai_development', 'resource_type' => 'group']);
-        $error = null;
-        try { $service->runDirectory($this->root, 'core'); } catch (\RuntimeException $exception) { $error = $exception; }
-        self::assertNotNull($error);
-        self::assertStringContainsString('同名错误索引', $error->getMessage());
-        self::assertSame(0, Db::table('system_migration')->count());
-        Db::schema()->table('ai_change_set', static function (Blueprint $table): void {
-            $table->dropIndex('idx_ai_change_set_owner_status');
-            $table->index(['created_by', 'conversation_id', 'status', 'id'], 'idx_ai_change_set_owner_status');
-        });
-        self::assertSame(['109_ai_phase4_change_sets'], $service->runDirectory($this->root, 'core'));
-    }
-
-    public function test_ai_runtime_sql_compensation_keeps_original_source_hashes(): void
-    {
-        $sql = 'CREATE TABLE fun_sql_fixture (`id` bigint unsigned PRIMARY KEY, `admin_id` int NOT NULL, `title` varchar(100)) ENGINE=InnoDB;';
-        file_put_contents($this->root . '/090_ai_development_assistant.sql', $sql);
-        $hex = "INSERT INTO fun_sql_fixture VALUES (1, 9, X'E585A8E9809AE8AEFE5968E');";
-        file_put_contents($this->root . '/101_ai_phase3_access_and_permission_compensation.sql', $hex);
-        self::assertCount(2, (new MigrationService())->runDirectory($this->root, 'core'));
-        self::assertSame('全通权限', Db::table('sql_fixture')->value('title'));
-        $column = Db::selectOne('SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?', ['console_sql_fixture', 'admin_id']);
-        self::assertSame('bigint unsigned', $column->COLUMN_TYPE);
-        self::assertSame(hash('sha256', $sql), Db::table('system_migration')->where('version', '090_ai_development_assistant')->value('checksum'));
-        self::assertSame(hash('sha256', $hex), Db::table('system_migration')->where('version', '101_ai_phase3_access_and_permission_compensation')->value('checksum'));
-    }
-
-    public function test_permission_cutover_and_out_of_order_backfill_preserve_historical_sql(): void
-    {
-        foreach (['permission', 'admin_menu'] as $name) Db::schema()->create($name, static function (Blueprint $table) use ($name): void {
-            $table->id(); $table->string('module');
-            if ($name === 'admin_menu') { $table->string('href'); $table->string('query'); $table->unique(['module', 'href', 'query'], 'uk_menu_location'); }
-        });
-        Db::table('permission')->insert(['module' => 'admin']);
-        Db::table('admin_menu')->insert(['module' => 'admin', 'href' => '/fixture', 'query' => '']);
-        $file = $this->root . '/054_permission_app_name.sql';
-        file_put_contents($file, 'SELECT 1;');
-        $service = new MigrationService();
-        self::assertSame(['054_permission_app_name'], $service->runDirectory($this->root, 'core'));
-        foreach (['permission', 'admin_menu'] as $name) {
-            self::assertTrue(Db::schema()->hasColumn($name, 'app_name'));
-            self::assertFalse(Db::schema()->hasColumn($name, 'module'));
-            self::assertSame('admin', Db::table($name)->value('app_name'));
-        }
-        $backfill = 'INSERT INTO fun_permission (`module`) VALUES (\'api\');';
-        file_put_contents($this->root . '/052_crud_schema_preview_permissions.sql', $backfill);
-        self::assertSame(['052_crud_schema_preview_permissions'], $service->runDirectory($this->root, 'core'));
-        self::assertSame(['admin', 'api'], Db::table('permission')->orderBy('id')->pluck('app_name')->all());
-        self::assertSame($backfill, file_get_contents($this->root . '/052_crud_schema_preview_permissions.sql'));
-        self::assertSame(hash('sha256', $backfill), Db::table('system_migration')->where('version', '052_crud_schema_preview_permissions')->value('checksum'));
-        self::assertSame([], $service->runDirectory($this->root, 'core'));
     }
 
     public function test_destructive_sql_fails_before_execution_and_no_registration_occurs(): void

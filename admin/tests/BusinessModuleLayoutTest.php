@@ -21,7 +21,7 @@ final class BusinessModuleLayoutTest extends TestCase
         $groups = [
             'authentication' => ['BearerTokenExtractor', 'TokenService'],
             'cache' => ['DbCacheService', 'PredisService'],
-            'database' => ['MigrationService', 'DdlEncodingGuard', 'CommentEncodingRepair'],
+            'database' => ['MigrationService', 'DdlEncodingGuard'],
             'install' => ['InstallSupport'],
             'member' => ['MemberAuthService', 'MemberInput'],
             'storage' => ['UploadService', 'OssService'],
