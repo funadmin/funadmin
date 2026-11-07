@@ -180,7 +180,7 @@ web/
 pnpm install
 
 # 2. 启动开发
-pnpm dev          # 默认 http://localhost:5173/
+pnpm dev          # 默认加载 Webman 模式，地址以终端输出为准
 
 # 3. 单元测试
 pnpm test         # 一次性跑完
@@ -195,6 +195,8 @@ pnpm preview
 pnpm gen:crud     # 按 scripts/crud.example.json 生成 CRUD 模板
 pnpm scan:i18n    # 扫描硬编码中文，写入 docs/i18n-gap.md
 ```
+
+`pnpm dev` / `npm run dev` 与 `dev:webman` 都会加载 `.env.webman`，自动将 `/admin/...` 等接口代理到 Webman。端口和后端地址可以在未提交的 `.env.webman.local` 中覆盖，例如 `VITE_APP_PORT=5175`、`VITE_APP_PROXY_TARGET=http://127.0.0.1:8787`。不要直接运行不带模式的 `vite`：没有其它环境配置时，接口请求会落到前端 HTML 回退页，导致登录提示“请求失败”。
 
 ### Windows 终端编码（重要）
 **Windows 中文系统终端默认是 GBK，向源码文件重定向输出（`>` / `>>`）会把中文转成 `?`，造成永久数据丢失。**

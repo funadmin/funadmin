@@ -16,8 +16,8 @@
       </template>
 
       <template #toolbar-left>
-        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)"><i class="i-ep-list" /> {{ t('systemBlacklist.normalList', '正常列表') }}</el-button>
-        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> {{ t('systemBlacklist.recycleBin', '回收站') }}</el-button>
+        <el-button type="primary" plain @click="switchMode(false)"><i class="i-ep-list" /> {{ t('systemBlacklist.normalList', '正常列表') }}</el-button>
+        <el-button :type="recycled ? 'warning' : 'primary'" plain @click="switchMode(true)"><i class="i-ep-folder-remove" /> {{ t('systemBlacklist.recycleBin', '回收站') }}</el-button>
         <template v-if="!recycled">
           <el-button type="primary" plain v-perm="'system:blacklist:create'" @click="openAdd">
             <i class="i-ep-plus" /> {{ t('common.add', '新增') }}

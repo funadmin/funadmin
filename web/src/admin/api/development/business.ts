@@ -3,6 +3,7 @@ import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormPublis
 
 import type { FormListActionMetadata, FormListButtonLocation } from '@/views/form/schema/types';
 import type { ListResource } from '@/views/form/runtime/listResourceHost';
+import type { DatabaseSyncDiff } from '@/views/development/business/codegen/syncMerge';
 
 export interface BusinessDesignActionCatalog {
   moduleId: number;
@@ -222,6 +223,7 @@ export const businessDevelopmentApi = {
     http.get<FormSchemaDiff>(`${PREFIX}/modules/${id}/schema/diff`, { fromVersion, toVersion }),
   rollbackSchema: (id: number, version: number, expectedSchemaHash: string, summary = '') =>
     http.post<FormSchemaVersion>(`${PREFIX}/modules/${id}/schema/versions/${version}/rollback`, { expectedSchemaHash, summary }),
+  databaseSync: (id: number) => http.post<DatabaseSyncDiff>(`${PREFIX}/modules/${id}/schema/database-sync`),
   databaseTables: (connection: string, signal?: AbortSignal) => signal
     ? http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }, { signal })
     : http.get<BusinessDatabaseTable[]>(`${PREFIX}/database/tables`, { connection }),
@@ -237,6 +239,7 @@ export const businessDevelopmentApi = {
     http.post<BusinessFormalGenerationPreview>(`${PREFIX}/modules/${id}/formal-generation/preview`, { nonce }),
   formalGeneration: (id: number, generationId: number, confirmToken: string) =>
     http.post<BusinessFormalGenerationResult>(`${PREFIX}/modules/${id}/formal-generation`, { generationId, confirmToken }),
+  formalGenerationArchive: (id: number) => http.download(`${PREFIX}/modules/${id}/formal-generation/archive`),
   generations: (params: { page?: number; pageSize?: number; moduleId?: number; status?: string } = {}) =>
     http.get<BusinessPageResult<BusinessGeneration>>(`${PREFIX}/generations`, params),
   generation: (id: number) => http.get<BusinessGeneration>(`${PREFIX}/generations/${id}`),

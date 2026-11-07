@@ -75,6 +75,7 @@ final class ProductionTemplateContext
             'fieldsJson' => self::json($data['fields']),
             'migrationContent' => self::migration($data, $primary),
             'modelContent' => self::model($data, $class, $primary),
+            'relationModels' => self::relationModels($data),
             'validateContent' => self::validator($data, $class, $primary),
             'serviceContent' => self::service($data, $class, $primary),
             'controllerContent' => self::controller($data, $class, $primary),
@@ -178,14 +179,19 @@ final class ProductionTemplateContext
                     . '    protected $table = ' . var_export($logicalTable($relation['pivotTable']), true) . ";\n"
                     . '    protected $connection = ' . var_export($connectionName, true) . ";\n}\n";
             }
-            $target = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'] . '::class';
+            $target = self::relationModelClass($data, $relation) . '::class';
+            // Eloquent：belongsTo(related, foreignKey, ownerKey)；hasOne/hasMany(related, foreignKey, localKey)。
             $arguments = match ($relation['type']) {
-                'belongsTo', 'hasOne', 'hasMany' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
+                'belongsTo' => "$target, '{$relation['field']}', '{$relation['targetField']}'",
+                'hasOne', 'hasMany' => "$target, '{$relation['targetField']}', '{$relation['field']}'",
                 default => "$target, '" . $logicalTable($relation['pivotTable']) . "', '"
                     . $relation['pivotLocalKey'] . "', '" . $relation['pivotTargetKey'] . "', '" . $relation['field'] . "', '" . $relation['targetField'] . "'",
             };
+            // 带 modelClass 的 belongsTo 在关系查询上限定列，懒加载与预加载都不读取敏感列。
+            $columns = $relation['type'] === 'belongsTo' && isset($relation['modelClass'])
+                ? '->select([' . implode(', ', array_map(static fn (string $column): string => var_export($column, true), self::relationColumns($data, $relation))) . '])' : '';
             $methods[] = "    public function {$relation['name']}()\n    {\n"
-                . "        return \$this->{$relation['type']}({$arguments})" . ($relation['type'] === 'belongsToMany' ? "->using({$pivotClass}::class)" : '') . ";\n    }";
+                . "        return \$this->{$relation['type']}({$arguments})" . ($relation['type'] === 'belongsToMany' ? "->using({$pivotClass}::class)" : '') . "{$columns};\n    }";
         }
         if (self::primaryKeyType($primary) === 'uuid') {
             $methods[] = "    protected static function booted(): void\n    {\n        static::creating(static function (self \$model): void {\n            if (\$model->getKey() === null || \$model->getKey() === '') \$model->setAttribute(\$model->getKeyName(), \\Ramsey\\Uuid\\Uuid::uuid4()->toString());\n        });\n    }";
@@ -215,6 +221,84 @@ final class ProductionTemplateContext
             . '    protected $fillable = ' . self::phpArray(array_column(array_filter($data['fields'], static fn (array $field): bool => ($field['writable'] ?? true) && !($field['primary'] ?? false)), 'name')) . ";\n"
             . '    protected $casts = ' . self::phpArray(array_map(static fn (string $cast): string => $cast === 'json' ? 'array' : $cast, $casts)) . ";\n\n"
             . implode("\n\n", $methods) . "\n}\n" . implode('', $pivotModels);
+    }
+
+    /** 关联目标类：显式 modelClass 优先，缺省沿用本模块模型命名空间。 */
+    private static function relationModelClass(array $data, array $relation): string
+    {
+        return '\\' . (isset($relation['modelClass']) ? $relation['modelClass'] : $data['_modelNamespace'] . '\\' . $relation['target']);
+    }
+
+    /** 每个带 targetTable 的关联目标渲染一个轻量模型，按类名去重。 */
+    private static function relationModels(array $data): array
+    {
+        $connectionName = (string) ($data['connection'] ?? 'mysql');
+        $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connectionName)['prefix'] ?? '');
+        $models = [];
+        $tables = [];
+        $visible = [];
+        foreach ($data['relations'] as $relation) {
+            if (!isset($relation['targetTable'], $relation['modelClass'])) continue;
+            $position = strrpos($relation['modelClass'], '\\');
+            $name = substr($relation['modelClass'], $position + 1);
+            $table = $prefix !== '' && str_starts_with($relation['targetTable'], $prefix) ? substr($relation['targetTable'], strlen($prefix)) : $relation['targetTable'];
+            if (isset($tables[$name]) && $tables[$name] !== $table) {
+                throw new InvalidArgumentException('关联模型类名冲突：' . $name);
+            }
+            $tables[$name] = $table;
+            $visible[$name] = array_merge($visible[$name] ?? [], self::relationColumns($data, $relation));
+            $models[$name] = substr($relation['modelClass'], 0, $position);
+        }
+        foreach ($models as $name => $namespace) {
+            // 显式白名单：只序列化生成代码实际读取的列，避免系统表敏感列随关联输出。
+            $columns = array_values(array_unique($visible[$name]));
+            sort($columns, SORT_STRING);
+            $table = $tables[$name];
+            $models[$name] = "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$namespace};\n\n"
+                . ($data['_modelBaseImport'] === '' ? '' : $data['_modelBaseImport'] . "\n\n")
+                . "/** 关联目标表的轻量模型，仅供关联方法与选项查询使用。 */\n"
+                . "final class {$name} extends {$data['_modelBaseClass']}\n{\n"
+                . '    protected $table = ' . var_export($table, true) . ";\n"
+                . '    protected $connection = ' . var_export($connectionName, true) . ";\n"
+                . "    protected \$primaryKey = 'id';\n"
+                . "    public \$timestamps = false;\n"
+                . '    protected $visible = ' . self::phpArray($columns) . ";\n}\n";
+        }
+        ksort($models, SORT_STRING);
+        return $models;
+    }
+
+    /**
+     * 生成代码会从关联目标读取或序列化的列。
+     * 纯模型关联不被序列化，只保留连接键：Eloquent 的空 $visible 表示不过滤，不能用 []。
+     */
+    private static function relationColumns(array $data, array $relation): array
+    {
+        if (($relation['modelOnly'] ?? false) === true) return [$relation['targetField']];
+        if ($relation['type'] === 'belongsTo') {
+            $sources = array_column($data['optionsSource'], null, 'name');
+            $label = $sources[$relation['optionsSource'] ?? '']['labelField'] ?? null;
+            return array_values(array_unique(array_filter([$relation['targetField'], $label], 'is_string')));
+        }
+        if (in_array($relation['type'], ['hasOne', 'hasMany'], true)) {
+            return array_values(array_unique(['id', $relation['targetField'], ...self::subformFields((array) ($data['formSchema']['nodes'] ?? []), $relation['name'])]));
+        }
+        return [$relation['targetField']];
+    }
+
+    /** 子表单关联序列化子表行：取 Schema 中该容器声明的子字段。 */
+    private static function subformFields(array $nodes, string $name, bool $inside = false): array
+    {
+        $fields = [];
+        foreach ($nodes as $node) {
+            if (!is_array($node)) continue;
+            $container = in_array($node['type'] ?? '', ['repeatable', 'subform'], true);
+            if ($inside && ($node['kind'] ?? '') === 'field' && !$container && is_string($node['field'] ?? null)) $fields[] = $node['field'];
+            $enter = $inside || ($container && ($node['field'] ?? null) === $name);
+            if ($inside && $container) continue;
+            array_push($fields, ...self::subformFields((array) ($node['children'] ?? []), $name, $enter));
+        }
+        return $fields;
     }
 
     private static function validator(array $data, string $class, array $primary): string
@@ -293,7 +377,7 @@ final class ProductionTemplateContext
         ));
         $with = array_values(array_map(
             static fn (array $relation): string => $relation['name'],
-            array_filter($data['relations'], static fn (array $relation): bool => ($relation['with'] ?? false) === true)
+            array_filter($data['relations'], static fn (array $relation): bool => ($relation['with'] ?? false) === true && ($relation['modelOnly'] ?? false) !== true)
         ));
         $scope = $data['dataScope']['enabled']
             ? "        if (\$departmentIds !== null) \$query->whereIn('{$data['dataScope']['field']}', \$departmentIds ?: [0]);\n" : '';
@@ -322,7 +406,7 @@ final class ProductionTemplateContext
                         $data['fields'],
                         static fn (array $field): bool => $field['name'] === $relation['field']
                     ))[0] ?? [];
-                    $relationModel = '\\' . $data['_modelNamespace'] . '\\' . $relation['target'];
+                    $relationModel = self::relationModelClass($data, $relation);
                     $value = preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', strtolower((string) ($localField['dbType'] ?? '')))
                         ? "(int) \$row['{$source['valueField']}']"
                         : "\$row['{$source['valueField']}']";
@@ -404,6 +488,8 @@ final class ProductionTemplateContext
         foreach ($data['relations'] as $relation) {
             // 同名字段优先由 ORM 返回标量，不能作为关联对象序列化。
             if (in_array($relation['name'], array_column($data['fields'], 'name'), true)) continue;
+            // 纯模型关联（Schema relations）只生成模型方法，不进入输出。
+            if (($relation['modelOnly'] ?? false) === true) continue;
             $dto[] = "            '{$relation['name']}' => \$model->{$relation['name']}?->toArray(),";
         }
         return [$search, $exact, $range, $operators, $sort, $dto];
@@ -966,7 +1052,7 @@ final class ProductionTemplateContext
         $listSetup .= "const buttonAllowed = (button: FormListButton, toolbar = false) => { const key = listActionKey(button); const suffix: Record<string, string> = {$suffixMap}; if (button.permission && !buttonPermission(button.permission)) return false; if (['registered', 'navigate', 'external', 'copy', 'download'].includes(button.action.type)) return !{$recycledValue} && listButtonAdapterAllowed(buttonAdapter, buttonPermission, buttonContext('toolbar')); {$batchRestoreGuard} const permissionSuffix = toolbar && ['restore', 'destroy'].includes(key) ? {$manySuffix} : (suffix[key] ?? key); if (!buttonPermission({$prefix} + ':' + permissionSuffix)) return false; if (['restore', 'destroy'].includes(key)) return {$recycledValue}; if (['create', 'edit', 'detail', 'delete', 'batchDelete'].includes(key)) return !{$recycledValue}; return true; };\n";
         foreach ($defaults as $location => $buttons) {
             $presentation = $location === 'toolbar'
-                ? ".map(button => { const key = listActionKey(button); if (key === 'batchDelete') return { ...button, selection: { ...button.selection, min: Math.max(1, button.selection?.min ?? 0) } }; if (['normal', 'recycle'].includes(key)) return { ...button, color: (key === 'normal' ? (!{$recycledValue} ? 'primary' : 'info') : ({$recycledValue} ? 'warning' : 'info')) as FormListButton['color'] }; return button; })"
+                ? ".map(button => { const key = listActionKey(button); if (key === 'batchDelete') return { ...button, selection: { ...button.selection, min: Math.max(1, button.selection?.min ?? 0) } }; if (['normal', 'recycle'].includes(key)) return { ...button, color: (key === 'normal' ? 'primary' : ({$recycledValue} ? 'warning' : 'primary')) as FormListButton['color'] }; return button; })"
                 : '';
             $listSetup .= "const {$location}Buttons = computed(() => localizeButtons(resolveListButtons(listConfig, '{$location}', " . self::json($buttons) . " as FormListButton[]){$presentation}));\n";
         }
@@ -1050,12 +1136,28 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         return self::schemaForm($data, $class);
     }
 
+    /**
+     * 表单容器尺寸属性。未配置 formWidth/formFullscreen 时保持历史输出 width="720px"（哈希稳定）；
+     * dialog 用 width 与 :fullscreen，drawer 用 size，全屏即 size="100%"。
+     */
+    private static function formSizeAttributes(array $features): string
+    {
+        $width = $features['formWidth'] ?? null;
+        $fullscreen = ($features['formFullscreen'] ?? false) === true;
+        if ($features['formMode'] === 'drawer') {
+            if ($fullscreen) return 'size="100%"';
+            return $width === null ? 'width="720px"' : 'size="' . (int) $width . 'px"';
+        }
+        return 'width="' . ($width === null ? 720 : (int) $width) . 'px"' . ($fullscreen ? ' :fullscreen="true"' : '');
+    }
+
     private static function schemaForm(array $data, string $class): string
     {
         $camel = self::camel($class);
         $type = self::tsTypeName($class);
         $enabled = self::enabledCapabilities($data);
         $tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog';
+        $sizeAttrs = self::formSizeAttributes($data['features']);
         $nodes = $data['layoutSchema'] ?? [];
         $formFields = ($data['capabilities']['form'] ?? true) ? array_values(array_filter($data['fields'], static fn (array $field): bool => ($field['form'] ?? false) && !($field['primary'] ?? false) && !($field['managed'] ?? false))) : [];
         $writable = array_values(array_filter($formFields, static fn (array $field): bool => ($field['writable'] ?? true) && ($field['component'] ?? '') !== 'readonly'));
@@ -1167,7 +1269,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $createTitleExpr = self::tCall(self::collectFrontend($data, 'form.createTitle', '新增'), '新增');
         $cancelExpr = self::tCall(self::collectFrontend($data, 'form.cancel', '取消'), '取消');
         $saveExpr = self::tCall(self::collectFrontend($data, 'form.save', '保存'), '保存');
-        return "<template><{$tag} v-model=\"visible\" :title=\"(row ? {$editTitleExpr} : {$createTitleExpr})\" width=\"720px\"><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">{{ {$cancelExpr} }}</el-button><el-button type=\"primary\" :loading=\"saving\" :disabled=\"saving || !permitted(!!row)\" @click=\"submit\">{{ {$saveExpr} }}</el-button></template></{$tag}></template>\n"
+        return "<template><{$tag} v-model=\"visible\" :title=\"(row ? {$editTitleExpr} : {$createTitleExpr})\" {$sizeAttrs}><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">{{ {$cancelExpr} }}</el-button><el-button type=\"primary\" :loading=\"saving\" :disabled=\"saving || !permitted(!!row)\" @click=\"submit\">{{ {$saveExpr} }}</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport { useI18n } from 'vue-i18n';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { hasPermission } from '@/utils/permission';\n"
             . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { mapFieldErrors } from '@/views/form/validation/asyncValidatorRegistry';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const { t } = useI18n();\nconst props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"

@@ -65,13 +65,13 @@ describe('Element Plus 按钮主题契约', () => {
     });
   });
 
-  it('回收站入口使用 warning plain', () => {
+  it('回收站入口当前时用 warning plain，非当前时跟随主题色而非灰色', () => {
     const definition = readFileSync(resolve(process.cwd(), '../admin/app/admin/system/service/MemberPageDefinition.php'), 'utf8');
     expect(definition).toContain("$action('recycled', $t('回收站', 'Recycle Bin'), 'warning'");
-    expect(definition).toContain("'inactiveColor' => 'info'");
-    expect(definition).toContain("'activeWhen' => $recycled");
+    expect(definition).toContain("'activeWhen' => $recycled, 'inactiveColor' => 'primary'");
+    expect(definition).not.toContain("'inactiveColor' => 'info'");
     const actions = readFileSync(resolve(process.cwd(), 'src/shared/components/DataTable/PageActions.vue'), 'utf8');
-    expect(actions).toContain("action.activeWhen && !matchesPageCondition(action.activeWhen, props.context.values) ? action.inactiveColor : action.color");
+    expect(actions).toContain("? inactive(action.inactiveColor) : action.color");
   });
 
   it('CRUD 运行时语义色按钮默认 plain 浅色描边', () => {

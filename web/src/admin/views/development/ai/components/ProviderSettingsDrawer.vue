@@ -62,7 +62,7 @@
           <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.defaultModel', '默认 Model')">
             <div class="model-control">
               <el-select v-model="form.model" data-testid="profile-model" filterable allow-create default-first-option :aria-label="t('aiDevelopment.fields.model')"><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select>
-              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!selectedId || targetChanged" v-if="hasPermission(['development:ai:configure', 'ai:profiles:models'], 'all')" @click="$emit('models', selectedId!)">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
+              <el-tooltip :content="t('aiDevelopment.profiles.modelsHint')"><el-button :disabled="!form.base_url || !form.provider || busy" v-if="hasPermission(['development:ai:configure', 'ai:profiles:models'], 'all')" @click="$emit('models', selectedId, discoveryPayload())">{{ t('aiDevelopment.profiles.fetchModelsShort', '获取模型') }}</el-button></el-tooltip>
             </div>
           </el-form-item>
           <el-form-item class="profile-wide" :label="t('aiDevelopment.profiles.favorites')"><el-select v-model="form.favorite_models" multiple filterable allow-create default-first-option><el-option v-for="id in modelOptions" :key="id" :value="id" :label="id" /></el-select></el-form-item>
@@ -135,7 +135,7 @@ import { Plus } from '@element-plus/icons-vue';
 import { AI_REASONING_EFFORTS, profileCapabilityError, profileModelCapability, type AiCatalogModel, type AiReasoningEffort, type AiProfile, type AiProfileInput, type AiProviderSettings } from '@/api/development/ai';
 const props = withDefaults(defineProps<{ modelValue: boolean; settings?: AiProviderSettings; profiles?: AiProfile[]; busy?: boolean; models?: AiCatalogModel[]; error?: string; notice?: string; savedProfile?: AiProfile | null }>(), { profiles: () => [], models: () => [] });
 const { t } = useI18n();
-const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [payload: AiProfileInput, id: number | null]; test: [payload: Record<string, unknown>]; copy: [id: number]; remove: [id: number]; default: [id: number]; models: [id: number]; select: [] }>();
+const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [payload: AiProfileInput, id: number | null]; test: [payload: Record<string, unknown>]; copy: [id: number]; remove: [id: number]; default: [id: number]; models: [id: number | null, payload: Partial<AiProfileInput>]; select: [] }>();
 const selectedId = ref<number | null>(null);
 const currentProfile = computed(() => props.profiles.find((item) => item.id === selectedId.value));
 const sortedProfiles = computed(() => [...props.profiles].sort((left, right) => Number(right.is_default) - Number(left.is_default) || Number(right.enabled) - Number(left.enabled) || left.name.localeCompare(right.name)));
@@ -244,6 +244,9 @@ function submit() {
   validationError.value = '';
   emit('save', payload, selectedId.value);
   apiKey.value = '';
+}
+function discoveryPayload(): Partial<AiProfileInput> {
+  return { ...form, api_key: clearKey.value ? '' : apiKey.value };
 }
 function test() {
   if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.protocolReasoningUnsupported', '当前协议不支持显式推理模式。'); return; }

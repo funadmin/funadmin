@@ -38,8 +38,8 @@ final class MemberPageDefinition
             ['key' => 'deletedAt', 'label' => $t('删除时间', 'Deleted At'), 'prop' => 'deletedAt', 'width' => 170, 'visibleWhen' => $recycled],
             ['key' => 'actions', 'label' => $t('操作', 'Actions'), 'slot' => 'actions', 'width' => 120, 'align' => 'center', 'fixed' => 'right', 'visibleWhen' => $active],
         ])->toolbar([
-            $action('normal', $t('正常列表', 'Normal List'), 'primary', ['icon' => 'i-ep-list', 'activeWhen' => $active, 'inactiveColor' => 'info']),
-            $action('recycled', $t('回收站', 'Recycle Bin'), 'warning', ['icon' => 'i-ep-folder-remove', 'activeWhen' => $recycled, 'inactiveColor' => 'info']),
+            $action('normal', $t('正常列表', 'Normal List'), 'primary', ['icon' => 'i-ep-list', 'activeWhen' => $active, 'inactiveColor' => 'primary']),
+            $action('recycled', $t('回收站', 'Recycle Bin'), 'warning', ['icon' => 'i-ep-folder-remove', 'activeWhen' => $recycled, 'inactiveColor' => 'primary']),
             $action('add', $t('新增', 'Add'), 'primary', ['icon' => 'i-ep-plus', 'permission' => 'system:member:add', 'visibleWhen' => $active]),
             $action('recycle', $t('移入回收站', 'Move to Recycle Bin'), 'danger', ['icon' => 'i-ep-delete', 'permission' => 'system:member:delete', 'visibleWhen' => $active, 'disabledWhen' => $empty, 'selectionCount' => true]),
             $action('import', $t('CSV 导入', 'CSV Import'), 'info', ['icon' => 'i-ep-upload', 'permission' => 'system:member:import', 'visibleWhen' => $active]),

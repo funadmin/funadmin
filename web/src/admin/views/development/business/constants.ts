@@ -60,3 +60,17 @@ export type GenerationFileStatus = keyof typeof FILE_STATUS_META;
 export function normalizeGenerationStatus(status?: string | null): string {
   return status === 'generated' ? 'completed' : (status || 'idle');
 }
+
+/** 业务标识规范化：去空白、转小写，非法字符替换为下划线（与创建向导失焦时一致）。 */
+export function normalizeBusinessCode(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+}
+
+/**
+ * 采纳已有数据表时的业务默认值：标识 = 去掉 fun_ 前缀后的表名；名称 = 表描述，缺省时同标识。
+ * 创建向导（visual.vue）与装载数据表弹窗共用。
+ */
+export function deriveAdoptedBusiness(table: string, comment = ''): { code: string; name: string } {
+  const code = normalizeBusinessCode(table.replace(/^fun_/, ''));
+  return { code, name: comment.trim() || code };
+}

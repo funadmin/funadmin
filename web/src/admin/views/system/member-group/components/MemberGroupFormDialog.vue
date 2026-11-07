@@ -8,7 +8,7 @@
     @closed="resetForm"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-      <el-form-item :label="t('systemMemberGroup.groupName', '会员组名称')" prop="name">
+      <el-form-item :label="t('systemMemberGroup.formName', '名称')" prop="name">
         <el-input v-model="form.name" maxlength="50" show-word-limit :placeholder="t('systemMemberGroup.namePlaceholder', '请输入会员组名称')" />
       </el-form-item>
       <el-form-item :label="t('systemMemberGroup.icon', '图标')" prop="icon">

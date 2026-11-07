@@ -222,6 +222,9 @@ final class Profiles extends AdminController
     #[Post('/{id:\d+}/models')]
     public function models(int $id): Response { return $this->run(fn ($service, $admin) => $service->models($admin, $id)); }
 
+    #[Post('/models-preview')]
+    public function modelsPreview(): Response { return $this->run(fn ($service) => $service->modelsPreview($this->input())); }
+
     private function input(): array
     {
         // 直接解析 JSON，避免框架过滤把 boolean/int 隐式转换；不接受表单或查询注入。

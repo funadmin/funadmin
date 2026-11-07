@@ -32,6 +32,7 @@ final class PluginCrudTarget
         if (in_array($scope, ['admin', 'both'], true)) {
             $context = PluginTemplateContext::build($definition, $plugin, true);
             $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/admin/plugins/{$plugin}", $class);
+            $this->renderRelationModels($files, $definition, $renderer, $templates, $context, $plugin);
             $base = "plugins/{$plugin}/web/src/admin/modules/{$plugin}/{$entity}";
             foreach (['api' => 'api.ts', 'view' => 'index.vue', 'form' => "components/{$class}Form.vue", 'detail' => "components/{$class}Detail.vue"] as $type => $path) {
                 $files["{$base}/{$path}"] = $this->render($renderer, $templates, $type, $context);
@@ -54,6 +55,20 @@ final class PluginCrudTarget
     {
         foreach (['model' => "model/{$class}.php", 'validate' => "validate/{$class}Validate.php", 'service' => "service/{$class}Service.php", $controllerTemplate => "controller/{$class}Controller.php"] as $type => $path) {
             $files["{$base}/{$path}"] = $this->render($renderer, $templates, $type, $context);
+        }
+    }
+
+    /** 关联模型只允许位于插件 admin 模型命名空间，路径由 modelClass 派生。 */
+    private function renderRelationModels(array &$files, CrudDefinition $definition, TemplateRenderer $renderer, array $templates, array $context, string $plugin): void
+    {
+        $namespace = "app\\admin\\plugins\\{$plugin}\\model\\relation\\";
+        foreach ((array) $definition->get('relations', []) as $relation) {
+            if (!isset($relation['targetTable'], $relation['modelClass'])) continue;
+            $name = substr((string) $relation['modelClass'], strlen($namespace));
+            if (!str_starts_with((string) $relation['modelClass'], $namespace) || preg_match('/^[A-Z][A-Za-z0-9]*$/D', $name) !== 1) {
+                throw new InvalidArgumentException('插件关联模型必须位于插件模型命名空间：' . $relation['modelClass']);
+            }
+            $files["plugins/{$plugin}/app/admin/plugins/{$plugin}/model/relation/{$name}.php"] = CrudGenerator::renderRelationModel($renderer, $templates, $context, $name);
         }
     }
 

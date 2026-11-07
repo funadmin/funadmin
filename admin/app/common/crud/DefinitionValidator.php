@@ -43,12 +43,13 @@ final class DefinitionValidator
     ];
     private const RELATION_KEYS = [
         'name', 'type', 'field', 'target', 'targetField', 'pivotTable', 'pivotLocalKey',
-        'pivotTargetKey', 'optionsSource', 'with',
+        'pivotTargetKey', 'optionsSource', 'with', 'targetTable', 'modelClass', 'modelOnly',
     ];
+    private const RELATION_MODEL_ARTIFACT = '/^relationModel:([A-Z][A-Za-z0-9]*)$/D';
     private const OPTION_SOURCE_KEYS = ['name', 'type', 'endpoint', 'dictionary', 'labelField', 'valueField'];
     private const FEATURE_KEYS = [
         'batchDelete', 'status', 'detail', 'import', 'export', 'upload', 'dictionary',
-        'referenceProtection', 'formMode', 'importLimit', 'exportLimit',
+        'referenceProtection', 'formMode', 'importLimit', 'exportLimit', 'formWidth', 'formFullscreen',
     ];
 
     public function validate(CrudDefinition $definition, string $projectRoot): void
@@ -224,7 +225,9 @@ final class DefinitionValidator
             throw new InvalidArgumentException('generationTargets 必须为非空对象');
         }
         foreach ($paths as $type => $path) {
-            if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true) || !is_string($path)) {
+            $relationModel = preg_match(self::RELATION_MODEL_ARTIFACT, (string) $type, $relationMatch) === 1;
+            if ((!$relationModel && !in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true)) || !is_string($path)
+                || ($relationModel && !str_ends_with($path, '/model/relation/' . $relationMatch[1] . '.php'))) {
                 throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
             ArtifactPaths::resolve($projectRoot, $path, '项目目录');
@@ -248,7 +251,7 @@ final class DefinitionValidator
             throw new InvalidArgumentException('templates 必须为非空对象');
         }
         foreach ($templates as $type => $path) {
-            if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS], true) || !is_string($path)
+            if (!in_array($type, [...self::ARTIFACT_KEYS, ...self::OPTIONAL_ARTIFACT_KEYS, 'relationModel'], true) || !is_string($path)
                 || !preg_match('#^(admin|frontend|database|tests)/[a-zA-Z0-9._/-]+\.tpl$#D', $path)
                 || str_contains($path, '..') || str_starts_with($path, '/')) {
                 throw new InvalidArgumentException('模板路径不合法');
@@ -394,6 +397,18 @@ final class DefinitionValidator
             if (!preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$/D', $relation['target'])) {
                 throw new InvalidArgumentException('关系目标不合法');
             }
+            if (isset($relation['modelClass']) && (!is_string($relation['modelClass'])
+                || !preg_match('/^app\\\\[a-z][a-z0-9_\\\\]*\\\\[A-Z][A-Za-z0-9]*$/D', $relation['modelClass']))) {
+                throw new InvalidArgumentException('关系 modelClass 不合法');
+            }
+            if (isset($relation['modelOnly']) && ($relation['modelOnly'] !== true
+                || ($relation['with'] ?? false) === true || isset($relation['optionsSource']))) {
+                throw new InvalidArgumentException('modelOnly 关系只能为 true，且不可预加载或作为选项源');
+            }
+            if (isset($relation['targetTable'])) {
+                if (!isset($relation['modelClass'])) throw new InvalidArgumentException('关系 targetTable 必须与 modelClass 同时配置');
+                $this->identifier((string) $relation['targetTable'], '关系目标表', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            }
             if (isset($relation['optionsSource'])) {
                 $this->identifier($relation['optionsSource'], '关系 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             }
@@ -501,6 +516,14 @@ final class DefinitionValidator
             if (!isset($features[$limit]) || !is_int($features[$limit]) || $features[$limit] < 1 || $features[$limit] > 10000) {
                 throw new InvalidArgumentException('features.' . $limit . ' 必须在 1..10000');
             }
+        }
+        // 可选表单尺寸：未配置时不出现；出现时必须为合法值。
+        if (array_key_exists('formWidth', $features)
+            && (!is_int($features['formWidth']) || $features['formWidth'] < 360 || $features['formWidth'] > 1600)) {
+            throw new InvalidArgumentException('features.formWidth 必须是 360..1600 的整数像素');
+        }
+        if (array_key_exists('formFullscreen', $features) && !is_bool($features['formFullscreen'])) {
+            throw new InvalidArgumentException('features.formFullscreen 必须是布尔值');
         }
     }
 

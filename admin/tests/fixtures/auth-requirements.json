@@ -349,6 +349,11 @@
         "login": true,
         "permission": "development:business:module"
     },
+    "GET /admin/development/business/modules/{id:\\d+}/formal-generation/archive => app\\admin\\development\\controller\\Business::formalGenerationArchive": {
+        "guard": "admin",
+        "login": true,
+        "permission": "development:business:formal-generation-archive"
+    },
     "GET /admin/development/business/modules/{id:\\d+}/runtime-meta => app\\admin\\development\\controller\\Business::runtimeMeta": {
         "guard": "admin",
         "login": true,
@@ -1173,6 +1178,11 @@
         "guard": "admin",
         "login": true,
         "permission": "development:business:compile-schema"
+    },
+    "POST /admin/development/business/modules/{id:\\d+}/schema/database-sync => app\\admin\\development\\controller\\Business::databaseSync": {
+        "guard": "admin",
+        "login": true,
+        "permission": "development:business:database-sync"
     },
     "POST /admin/development/business/modules/{id:\\d+}/schema/export => app\\admin\\development\\controller\\Business::exportSchema": {
         "guard": "admin",

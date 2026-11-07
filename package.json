@@ -1,0 +1,10 @@
+{
+  "name": "funadmin",
+  "private": true,
+  "type": "module",
+  "description": "FunAdmin 本地开发入口：一条命令同时启动 webman 后端与 Vite 前端",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test:dev-script": "node --test scripts/dev.test.mjs"
+  }
+}

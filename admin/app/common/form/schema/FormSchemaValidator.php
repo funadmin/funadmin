@@ -20,8 +20,11 @@ final class FormSchemaValidator
 
     private const TOP_LEVEL_KEYS = [
         'schemaVersion', 'key', 'title', 'model', 'layout', 'nodes', 'dataSources', 'actions', 'form', 'submit',
-        'list', 'database', 'extensions',
+        'list', 'database', 'extensions', 'relations',
     ];
+    private const RELATION_TYPES = ['hasOne', 'hasMany', 'belongsToMany'];
+    private const RELATION_KEYS = ['type', 'name', 'table', 'localField', 'foreignField', 'pivot'];
+    private const RELATION_PIVOT_KEYS = ['table', 'localKey', 'foreignKey'];
     private const ACTIONS = [
         'setValue', 'copyValue', 'clearValue', 'show', 'hide', 'enable', 'disable', 'setRequired',
         'validate', 'request', 'notify', 'openDialog', 'navigate', 'submit', 'reset',
@@ -141,6 +144,73 @@ final class FormSchemaValidator
         $this->validateGlobalActionReferences((array) ($schema['actions'] ?? []), '/actions', $fields);
         $this->validateConditionCycles($edges);
         $this->validateListConfiguration((array) ($schema['list'] ?? []), $schema['nodes']);
+        if (array_key_exists('relations', $schema)) $this->validateRelations($schema['relations'], $fields);
+    }
+
+    /**
+     * 顶层 relations 只描述模型级关联（hasOne / hasMany / belongsToMany）。
+     * localField 必须是本表字段（主键 id 恒视为存在），foreignField 属于对方表不在此校验。
+     *
+     * @param array<string, true> $fields 本表字段（不含子表单内部字段）
+     */
+    private function validateRelations(mixed $relations, array $fields): void
+    {
+        if (!is_array($relations) || !array_is_list($relations)) {
+            throw new FormSchemaException('relations 必须为数组', '/relations');
+        }
+        $identifier = '/^[a-z][a-z0-9_]{0,60}$/';
+        $names = [];
+        foreach ($relations as $index => $relation) {
+            $path = '/relations/' . $index;
+            if (!is_array($relation) || array_is_list($relation)) {
+                throw new FormSchemaException('关联必须为对象', $path);
+            }
+            foreach (array_keys($relation) as $key) {
+                if (!in_array($key, self::RELATION_KEYS, true)) {
+                    throw new FormSchemaException('未知关联属性：' . $key, $path . '/' . $this->escapePointer((string) $key));
+                }
+            }
+            $type = $relation['type'] ?? null;
+            if (!in_array($type, self::RELATION_TYPES, true)) {
+                throw new FormSchemaException('关联类型仅支持 hasOne、hasMany 或 belongsToMany', $path . '/type');
+            }
+            foreach (['name', 'table', 'localField', 'foreignField'] as $key) {
+                if (!is_string($relation[$key] ?? null) || !preg_match($identifier, $relation[$key])) {
+                    throw new FormSchemaException('关联 ' . $key . ' 为空或不合法', $path . '/' . $key);
+                }
+            }
+            $name = $relation['name'];
+            if (isset($names[$name])) {
+                throw new FormSchemaException('关联名称重复：' . $name, $path . '/name');
+            }
+            if (isset($fields[$name])) {
+                throw new FormSchemaException('关联名称与字段名冲突：' . $name, $path . '/name');
+            }
+            $names[$name] = true;
+            if ($relation['localField'] !== 'id' && !isset($fields[$relation['localField']])) {
+                throw new FormSchemaException('关联本表字段不存在：' . $relation['localField'], $path . '/localField');
+            }
+            if ($type !== 'belongsToMany') {
+                if (array_key_exists('pivot', $relation)) {
+                    throw new FormSchemaException('仅 belongsToMany 关联可以配置 pivot', $path . '/pivot');
+                }
+                continue;
+            }
+            $pivot = $relation['pivot'] ?? null;
+            if (!is_array($pivot) || array_is_list($pivot)) {
+                throw new FormSchemaException('belongsToMany 关联必须配置 pivot', $path . '/pivot');
+            }
+            foreach (array_keys($pivot) as $key) {
+                if (!in_array($key, self::RELATION_PIVOT_KEYS, true)) {
+                    throw new FormSchemaException('未知中间表属性：' . $key, $path . '/pivot/' . $this->escapePointer((string) $key));
+                }
+            }
+            foreach (self::RELATION_PIVOT_KEYS as $key) {
+                if (!is_string($pivot[$key] ?? null) || !preg_match($identifier, $pivot[$key])) {
+                    throw new FormSchemaException('中间表 ' . $key . ' 为空或不合法', $path . '/pivot/' . $key);
+                }
+            }
+        }
     }
 
     /** 列表只能引用本表可读标量字段，分类源限定静态选项或字典。 */

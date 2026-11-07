@@ -73,11 +73,16 @@ final class FormCrudDefinitionFactory
                     'name' => (string) ($field['field_name'] ?? ''), 'type' => 'hasMany',
                     'field' => $primaryKey, 'target' => $this->relationClass((string) ($field['relation_table'] ?? ''), $prefix),
                     'targetField' => (string) ($field['relation_value_field'] ?? ''), 'with' => true,
+                    'targetTable' => (string) ($field['relation_table'] ?? ''),
                 ];
                 continue;
             }
             $fields[] = $this->field($field, $type, $relations, $optionSources, $prefix);
         }
+        foreach ((array) ($formSchema->document()['relations'] ?? []) as $relation) {
+            $relations[] = $this->schemaRelation((array) $relation, $prefix);
+        }
+        [$relations, $relationModels] = $this->relationModels(array_values($relations), $table, $entity, $class, $prefix);
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
             if (in_array($managed, array_column($fields, 'name'), true)) continue;
             if ($adopted) {
@@ -103,12 +108,12 @@ final class FormCrudDefinitionFactory
             'primaryKey' => $primaryKey,
             'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
             'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
-            'generationTargets' => $this->targets($entity, $class, $memberApi),
+            'generationTargets' => $this->targets($entity, $class, $memberApi, $relationModels),
             'permissionPrefix' => 'generated:' . $entity,
             'fields' => $fields,
-            'relations' => array_values($relations),
+            'relations' => $relations,
             'optionsSource' => array_values($optionSources),
-            'templates' => $this->templates($memberApi),
+            'templates' => $this->templates($memberApi, $relationModels !== []),
             'capabilities' => [
                 'list' => true, 'search' => true, 'form' => true, 'detail' => true,
                 'create' => true, 'update' => true, 'delete' => true,
@@ -119,7 +124,7 @@ final class FormCrudDefinitionFactory
                 'detail' => true, 'import' => (bool) $config['import'], 'export' => (bool) $config['export'],
                 'upload' => true, 'dictionary' => true, 'referenceProtection' => true,
                 'formMode' => (string) $config['formMode'], 'importLimit' => 10000, 'exportLimit' => 10000,
-            ],
+            ] + $this->formSize($config),
             'dataScope' => [
                 'enabled' => (bool) $config['dataScopeEnabled'],
                 'field' => (string) $config['dataScopeField'],
@@ -152,6 +157,14 @@ final class FormCrudDefinitionFactory
         $data['apiPrefix'] = '/' . $entity;
         $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
         $data['permissionPrefix'] = $plugin . ':' . $entity;
+        // 关联模型随模型层迁入插件命名空间。
+        $coreModels = 'app\\admin\\generated\\' . str_replace('-', '_', $entity) . '\\model\\';
+        foreach ($data['relations'] as &$relation) {
+            if (str_starts_with((string) ($relation['modelClass'] ?? ''), $coreModels)) {
+                $relation['modelClass'] = 'app\\admin\\plugins\\' . $plugin . '\\model\\' . substr($relation['modelClass'], strlen($coreModels));
+            }
+        }
+        unset($relation);
         unset($data['generationTargets'], $data['templates']['permissionMigration'], $data['templates']['phpTest'], $data['templates']['vitestTest'], $data['templates']['langMigration'], $data['templates']['langZh'], $data['templates']['langEn']);
         return CrudDefinition::fromArray($data);
     }
@@ -235,12 +248,54 @@ final class FormCrudDefinitionFactory
         $relations[$relationName] = [
             'name' => $relationName, 'type' => 'belongsTo', 'field' => $name,
             'target' => $target, 'targetField' => $targetField, 'optionsSource' => $sourceName, 'with' => true,
+            'targetTable' => $table,
         ];
         $sources[$sourceName] = [
             'name' => $sourceName, 'type' => 'relation',
             'labelField' => $this->identifier((string) ($field['relation_label_field'] ?? 'name'), '关联显示字段'),
             'valueField' => $targetField,
         ];
+    }
+
+    /** Schema 顶层 relations 只生成模型关联方法，不产生选项源。 */
+    private function schemaRelation(array $relation, string $prefix): array
+    {
+        $table = $this->identifier((string) ($relation['table'] ?? ''), '关联表');
+        $row = [
+            'name' => (string) ($relation['name'] ?? ''), 'type' => (string) ($relation['type'] ?? ''),
+            'field' => (string) ($relation['localField'] ?? ''), 'target' => $this->relationClass($table, $prefix),
+            'targetField' => (string) ($relation['foreignField'] ?? ''),
+        ];
+        if (is_array($relation['pivot'] ?? null)) {
+            $row += [
+                'pivotTable' => (string) ($relation['pivot']['table'] ?? ''),
+                'pivotLocalKey' => (string) ($relation['pivot']['localKey'] ?? ''),
+                'pivotTargetKey' => (string) ($relation['pivot']['foreignKey'] ?? ''),
+            ];
+        }
+        return $row + ['modelOnly' => true, 'targetTable' => $table];
+    }
+
+    /**
+     * 每个非自关联目标在本模块 model/relation 下生成轻量模型；自关联直接引用本模块模型。
+     *
+     * @return array{0: list<array>, 1: list<string>}
+     */
+    private function relationModels(array $relations, string $table, string $entity, string $class, string $prefix): array
+    {
+        $namespace = 'app\\admin\\generated\\' . str_replace('-', '_', $entity) . '\\model';
+        $models = [];
+        foreach ($relations as &$relation) {
+            if ($this->logicalTable((string) $relation['targetTable'], $prefix) === $this->logicalTable($table, $prefix)) {
+                unset($relation['targetTable']);
+                $relation['modelClass'] = $namespace . '\\' . $class;
+                continue;
+            }
+            $relation['modelClass'] = $namespace . '\\relation\\' . $relation['target'];
+            $models[$relation['target']] = $relation['target'];
+        }
+        unset($relation);
+        return [$relations, array_values($models)];
     }
 
     private function config(array $form, array $config, string $entity): array
@@ -261,8 +316,28 @@ final class FormCrudDefinitionFactory
         return $resolved;
     }
 
-    private function targets(string $entity, string $class, bool $memberApi = false): array
+    /**
+     * 表单宽度与全屏为可选特性：未配置（null、空串、false）时不写入 features，保持定义哈希与生成文件不变。
+     * 取值范围由 DefinitionValidator 校验，这里仅把数字字符串规整为整数。
+     */
+    private function formSize(array $config): array
     {
+        $size = [];
+        $width = $config['formWidth'] ?? null;
+        if ($width !== null && $width !== '') {
+            $size['formWidth'] = is_string($width) && preg_match('/^[0-9]+$/D', $width) === 1 ? (int) $width : $width;
+        }
+        $fullscreen = $config['formFullscreen'] ?? null;
+        if ($fullscreen !== null && $fullscreen !== false) $size['formFullscreen'] = $fullscreen;
+        return $size;
+    }
+
+    private function targets(string $entity, string $class, bool $memberApi = false, array $relationModels = []): array
+    {
+        $relationTargets = [];
+        foreach ($relationModels as $model) {
+            $relationTargets['relationModel:' . $model] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/relation/{$model}.php";
+        }
         return ($memberApi ? ['memberApiController' => "app/api/controller/generated/{$class}Controller.php"] : []) + [
             'migration' => "database/generated/{$entity}.sql",
             'model' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/{$class}.php",
@@ -279,10 +354,10 @@ final class FormCrudDefinitionFactory
             'langMigration' => "database/generated/{$entity}_lang.sql",
             'langZh' => "app/admin/lang/zh-cn/{$entity}.php",
             'langEn' => "app/admin/lang/en-us/{$entity}.php",
-        ];
+        ] + $relationTargets;
     }
 
-    private function templates(bool $memberApi = false): array
+    private function templates(bool $memberApi = false, bool $relationModels = false): array
     {
         return ($memberApi ? ['memberApiController' => 'admin/member-controller.php.tpl'] : []) + [
             'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
@@ -292,7 +367,7 @@ final class FormCrudDefinitionFactory
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
             'phpTest' => 'tests/php-test.php.tpl', 'vitestTest' => 'tests/vitest-test.ts.tpl',
             'langMigration' => 'database/lang.sql.tpl', 'langZh' => 'admin/lang-zh.php.tpl', 'langEn' => 'admin/lang-en.php.tpl',
-        ];
+        ] + ($relationModels ? ['relationModel' => 'admin/relation-model.php.tpl'] : []);
     }
 
     private function adoptedPrimaryKey(array $schema): string
@@ -369,7 +444,12 @@ final class FormCrudDefinitionFactory
 
     private function relationClass(string $table, string $prefix): string
     {
-        return $this->studly($prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table);
+        return $this->studly($this->logicalTable($table, $prefix));
+    }
+
+    private function logicalTable(string $table, string $prefix): string
+    {
+        return $prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table;
     }
 
     private function studly(string $value): string

@@ -17,6 +17,8 @@ final class FormSchemaCompiler
         $schema = $this->normalizeOrigin($this->validator->normalize($schema));
         $this->validator->validate($schema);
         $schema = $this->applyTreeControl($schema);
+        // 空 relations 不进入 canonical 文档，保证未配置关联的 schemaHash 不变。
+        if (($schema['relations'] ?? null) === []) unset($schema['relations']);
         $canonical = $this->canonicalize($schema);
         try {
             $json = json_encode($canonical, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

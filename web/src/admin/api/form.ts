@@ -56,6 +56,7 @@ export interface FormSchemaDocument {
   form?: Record<string, unknown>;
   actions?: unknown[];
   submit?: Record<string, unknown>;
+  relations?: import('@/views/form/schema/types').FormSchemaRelation[];
 }
 
 /** 表单字段定义（列/表单/列表/关联全量参数） */
@@ -131,6 +132,10 @@ export interface FormPublishConfig {
   memberApiEnabled?: boolean;
   /** 会员归属字段（整数列）；前台接口只能操作归属等于当前会员的记录。 */
   memberApiOwnerField?: string;
+  /** 生成列表页新增/编辑弹窗或抽屉的宽度（px，360–1600）；未设置时沿用生成模板默认值。 */
+  formWidth?: number;
+  /** 生成列表页的新增/编辑弹窗是否全屏打开。 */
+  formFullscreen?: boolean;
 }
 
 export interface FormDefinition {

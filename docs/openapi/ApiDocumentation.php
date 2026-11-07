@@ -349,7 +349,30 @@ use OpenApi\Annotations as OA;
  *     @OA\Property(property="schemaVersion", type="integer", description="表单协议版本。"),
  *     @OA\Property(property="key", type="string"),
  *     @OA\Property(property="title", type="string"),
- *     @OA\Property(property="nodes", type="array", @OA\Items(ref="#/components/schemas/DynamicObject"))
+ *     @OA\Property(property="nodes", type="array", @OA\Items(ref="#/components/schemas/DynamicObject")),
+ *     @OA\Property(property="relations", type="array", description="模型级关联；只影响正式生成的模型代码，动态发布与运行时忽略。为空时不出现在规范文档中。", @OA\Items(ref="#/components/schemas/FormSchemaRelation"))
+ * )
+ *
+ * @OA\Schema(
+ *     schema="FormSchemaRelation",
+ *     type="object",
+ *     required={"type", "name", "table", "localField", "foreignField"},
+ *     additionalProperties=false,
+ *     @OA\Property(property="type", type="string", enum={"hasOne", "hasMany", "belongsToMany"}),
+ *     @OA\Property(property="name", type="string", description="关联方法名，不得与字段名重复。"),
+ *     @OA\Property(property="table", type="string", description="对方表名。"),
+ *     @OA\Property(property="localField", type="string", description="本表字段（id 或已声明字段）。"),
+ *     @OA\Property(property="foreignField", type="string", description="对方表字段。"),
+ *     @OA\Property(
+ *         property="pivot",
+ *         type="object",
+ *         description="仅 belongsToMany 必填，其他类型不得出现。",
+ *         required={"table", "localKey", "foreignKey"},
+ *         additionalProperties=false,
+ *         @OA\Property(property="table", type="string"),
+ *         @OA\Property(property="localKey", type="string"),
+ *         @OA\Property(property="foreignKey", type="string")
+ *     )
  * )
  *
  * @OA\Schema(

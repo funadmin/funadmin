@@ -6,6 +6,8 @@ import {
   GENERATION_STATUS_META,
   LIFECYCLE_STATUS_META,
   RECOVERY_STATUS_META,
+  deriveAdoptedBusiness,
+  normalizeBusinessCode,
   normalizeGenerationStatus,
   type BusinessStatusMeta
 } from './constants';
@@ -52,5 +54,17 @@ describe('业务开发状态元数据', () => {
         expect(translated[status]?.description, `${locale} ${item.descriptionKey}`).toBeTruthy();
       });
     });
+  });
+});
+
+describe('数据库采纳的业务默认值', () => {
+  it('业务标识去掉 fun_ 前缀并规范为小写标识；名称优先取表描述，否则取标识', () => {
+    expect(deriveAdoptedBusiness('fun_Shop_Order', '订单')).toEqual({ code: 'shop_order', name: '订单' });
+    expect(deriveAdoptedBusiness('fun_shop-goods')).toEqual({ code: 'shop_goods', name: 'shop_goods' });
+    expect(deriveAdoptedBusiness('crm_contact', '  ')).toEqual({ code: 'crm_contact', name: 'crm_contact' });
+  });
+
+  it('normalizeBusinessCode 去空白、转小写、非法字符替换为下划线', () => {
+    expect(normalizeBusinessCode('  Customer Order ')).toBe('customer_order');
   });
 });

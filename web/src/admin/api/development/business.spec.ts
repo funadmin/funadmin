@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), download: vi.fn() }));
 vi.mock('@/utils/http', () => ({ default: httpMocks }));
 
 import { businessDevelopmentApi, isBusinessApiError } from './business';
@@ -37,6 +37,21 @@ describe('businessDevelopmentApi', () => {
       expectedSchemaHash: 'current-hash',
       summary: '恢复稳定版本'
     });
+  });
+
+  it('databaseSync 按模块 ID POST 数据库同步差异', async () => {
+    const diff = { inspectionHash: 'h1', added: [], removed: [], changed: [] };
+    httpMocks.post.mockResolvedValue(diff);
+    expect(await businessDevelopmentApi.databaseSync(12)).toBe(diff);
+    expect(httpMocks.post).toHaveBeenCalledWith('/development/business/modules/12/schema/database-sync');
+  });
+
+  it('formalGenerationArchive 以 GET 下载 zip Blob', async () => {
+    const blob = new Blob(['zip'], { type: 'application/zip' });
+    httpMocks.download.mockResolvedValue(blob);
+    expect(await businessDevelopmentApi.formalGenerationArchive(12)).toBe(blob);
+    expect(httpMocks.download).toHaveBeenCalledWith('/development/business/modules/12/formal-generation/archive');
+    expect(httpMocks.post).not.toHaveBeenCalled();
   });
 
   it('识别统一响应中的结构化安全错误', () => {

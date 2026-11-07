@@ -149,6 +149,16 @@ export interface FormListConfiguration {
   [key: string]: unknown;
 }
 
+/** 仅生成模型关联方法的顶层关联（hasOne / 模型级 hasMany / belongsToMany）。 */
+export interface FormSchemaRelation {
+  type: 'hasOne' | 'hasMany' | 'belongsToMany';
+  name: string;
+  table: string;
+  localField: string;
+  foreignField: string;
+  pivot?: { table: string; localKey: string; foreignKey: string };
+}
+
 export interface FormSchemaDocument {
   list?: FormListConfiguration;
   schemaVersion: 2;
@@ -166,6 +176,7 @@ export interface FormSchemaDocument {
   };
   actions?: unknown[];
   submit?: Record<string, unknown>;
+  relations?: FormSchemaRelation[];
 }
 
 export const flattenSchemaNodes = (

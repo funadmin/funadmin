@@ -427,8 +427,12 @@ final class OpenAiCompatibleGateway
     {
         $parts = parse_url($this->baseUrl);
         $host = strtolower((string) ($parts['host'] ?? ''));
-        if (($parts['scheme'] ?? '') !== 'https' || $host === '' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
-            throw new InvalidArgumentException('AI Provider base URL 必须是无凭据、查询参数和片段的 HTTPS URL');
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if (!in_array($scheme, ['https', 'http'], true) || $host === '' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new InvalidArgumentException('AI Provider base URL 必须是不含凭据、查询参数和片段的 HTTP(S) 地址');
+        }
+        if ($scheme === 'http' && !$this->isPrivateIpv4($host)) {
+            throw new InvalidArgumentException('公网 Provider 必须使用 HTTPS；HTTP 仅允许配置的内网 IPv4 地址');
         }
         if ($this->isUnsafeHost($host)) {
             throw new InvalidArgumentException('AI Provider base URL 禁止访问本机、私网或元数据地址');
@@ -442,15 +446,27 @@ final class OpenAiCompatibleGateway
     {
         $host = strtolower((string) parse_url($this->baseUrl, PHP_URL_HOST));
         $addresses = ($this->resolver)($host);
-        if ($addresses === [] || array_filter($addresses, fn (string $address): bool => !$this->isPublicIp($address))) {
-            throw new InvalidArgumentException('AI Provider DNS 必须仅解析到公网地址');
+        $private = $this->isPrivateIpv4($host);
+        if ($addresses === [] || array_filter($addresses, fn (string $address): bool => $private ? !$this->isPrivateIpv4($address) : !$this->isPublicIp($address))) {
+            throw new InvalidArgumentException($private ? 'AI Provider 内网地址解析结果必须保持在私有 IPv4 网段' : 'AI Provider DNS 必须仅解析到公网地址');
         }
         return array_values(array_unique($addresses));
     }
 
     private function isUnsafeHost(string $host): bool
     {
-        return $host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local') || str_contains($host, 'metadata') || (filter_var($host, FILTER_VALIDATE_IP) !== false && !$this->isPublicIp($host));
+        return $host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local') || str_contains($host, 'metadata') || (filter_var($host, FILTER_VALIDATE_IP) !== false && !$this->isPublicIp($host) && !$this->isPrivateIpv4($host));
+    }
+
+    private function isPrivateIpv4(string $address): bool
+    {
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) return false;
+        $number = ip2long($address);
+        if ($number === false) return false;
+        $number = (int) sprintf('%u', $number);
+        return ($number >= 167772160 && $number <= 184549375)
+            || ($number >= 2886729728 && $number <= 2886797567)
+            || ($number >= 3232235520 && $number <= 3232301055);
     }
 
     private function isPublicIp(string $address): bool

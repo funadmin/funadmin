@@ -67,6 +67,16 @@ final class AiConfigurationProfileService
         return array_map(static fn ($model) => $model + ['capabilities'=>self::capabilities($config, $model['id'])], $gateway->models());
     }
 
+    /** 使用当前未保存表单临时查询模型目录，不写入档案。 */
+    public function modelsPreview(array $input): array
+    {
+        $config = self::validate(array_replace($input, ['model' => trim((string) ($input['model'] ?? '')) ?: '__model_discovery__']));
+        $gateway = $this->gatewayFactory !== null
+            ? ($this->gatewayFactory)($config)
+            : new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), $config);
+        return array_map(static fn ($model) => $model + ['capabilities'=>self::capabilities($config, $model['id'])], $gateway->models());
+    }
+
     private function publicRecord(\app\admin\ai\model\AiConfigurationProfile $row): array
     {
         return array_merge($row->configuration, [

@@ -170,7 +170,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     expect(remove.classes()).toContain('is-plain');
     expect(remove.find('svg').exists()).toBe(true);
     expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain('el-button--primary');
-    expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain('el-button--info');
+    expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain('el-button--primary');
     await remove.trigger('click'); await flushPromises();
     expect(http.delete).not.toHaveBeenCalled();
     const table = wrapper.findComponent({ name: 'ElTable' });
@@ -181,8 +181,8 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     for (const label of ['回收站', '回收站', '正常列表', '正常列表']) {
       await bar.findAll('button').find(item => item.text() === label)!.trigger('click'); await flushPromises();
       expect(http.get).toHaveBeenLastCalledWith('/generated/host-demo', expect.objectContaining({ recycled: label === '回收站' ? 1 : 0 }));
-      expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain(label === '正常列表' ? 'el-button--primary' : 'el-button--info');
-      expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain(label === '回收站' ? 'el-button--warning' : 'el-button--info');
+      expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain('el-button--primary');
+      expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain(label === '回收站' ? 'el-button--warning' : 'el-button--primary');
     }
     wrapper.unmount();
   });

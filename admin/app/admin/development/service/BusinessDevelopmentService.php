@@ -104,10 +104,12 @@ final class BusinessDevelopmentService
         self::assertIdentifier($table, 'table');
         $inspection = $this->crud->infer($connection, $table);
         $schema = (array) ($inspection['schema'] ?? []);
+        $comments = array_column((array) ($schema['columns'] ?? []), 'comment', 'name');
+        $fields = array_map(static fn (array $field): array => $field + ['comment' => (string) ($comments[$field['name']] ?? '')], (array) ($inspection['fields'] ?? []));
         $canonical = [
             'connection' => $connection,
             'table' => $table,
-            'fields' => (array) ($inspection['fields'] ?? []),
+            'fields' => $fields,
             'primaryKey' => (array) ($schema['primaryKey'] ?? []),
             'indexes' => (array) ($schema['indexes'] ?? []),
         ];
@@ -137,6 +139,49 @@ final class BusinessDevelopmentService
         return $this->modules->createWithForm($payload, 'database', $actor, $this->forms);
     }
 
+    public function databaseSync(int $moduleId): array
+    {
+        $detail = $this->module($moduleId);
+        $module = $detail['module'];
+        if ((string) ($module['origin'] ?? '') !== 'database') throw new InvalidArgumentException('仅数据库装载的模块可同步');
+        $inspection = $this->inspectDatabase((string) $module['connection_name'], (string) $module['table_name']);
+        $current = [];
+        $occupied = [];
+        $collect = static function (array $nodes) use (&$collect, &$current, &$occupied): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) continue;
+                if (($node['kind'] ?? 'field') === 'layout') {
+                    $collect((array) ($node['children'] ?? []));
+                    continue;
+                }
+                $field = (string) ($node['field'] ?? '');
+                if ($field === '') continue;
+                $occupied[$field] = true;
+                if (!in_array((string) ($node['type'] ?? ''), ['repeatable', 'subform'], true)) $current[$field] = $node;
+            }
+        };
+        $collect((array) (($detail['form']['schema_document'] ?? [])['nodes'] ?? []));
+        $columns = array_flip(array_map(static fn (array $field): string => (string) $field['name'], $inspection['fields']));
+        $added = [];
+        $changed = [];
+        foreach ($this->adoptedNodes($module, $inspection['fields']) as $node) {
+            $field = (string) $node['field'];
+            if (!isset($occupied[$field])) {
+                $added[] = $node;
+                continue;
+            }
+            if (!isset($current[$field])) continue;
+            $from = self::physicalColumn((array) ($current[$field]['database'] ?? []));
+            $to = self::physicalColumn((array) ($node['database'] ?? []));
+            $keys = array_keys(array_filter($to, static fn (mixed $value, string $key): bool => $value !== $from[$key], ARRAY_FILTER_USE_BOTH));
+            if ($keys !== []) {
+                $changed[] = ['field' => $field, 'from' => array_intersect_key($from, array_flip($keys)), 'to' => array_intersect_key($to, array_flip($keys))];
+            }
+        }
+        $removed = array_values(array_filter(array_keys($current), static fn (string $field): bool => !isset($columns[$field])));
+        return ['inspectionHash' => $inspection['snapshotHash'], 'added' => $added, 'removed' => $removed, 'changed' => $changed];
+    }
+
     public function validateSchema(int $moduleId, array $schema): array
     {
         $module = $this->module($moduleId);
@@ -164,7 +209,7 @@ final class BusinessDevelopmentService
     private const PUBLISH_CONFIG_KEYS = [
         'module', 'apiPrefix', 'routePath', 'menuEnabled', 'parentId', 'parentSourceName', 'menuName', 'icon', 'sortOrder',
         'softDeletes', 'batchDelete', 'import', 'export', 'formMode', 'dataScopeEnabled', 'dataScopeField',
-        'memberApiEnabled', 'memberApiOwnerField',
+        'memberApiEnabled', 'memberApiOwnerField', 'formWidth', 'formFullscreen',
     ];
 
     /**
@@ -287,6 +332,66 @@ final class BusinessDevelopmentService
         return $this->managed->preview($moduleId, $includeSensitive, $nonce);
     }
 
+    /**
+     * 把正式生成预览的「将要生成版本」（remoteContent）打包为 zip，不含 delete 状态文件。
+     * 预览会创建或复用生成记录，除此之外不写任何状态。
+     *
+     * @return array{filename: string, content: string, entries: list<string>, skipped: list<string>}
+     */
+    public function formalGenerationArchive(int $moduleId, ?string $nonce = null): array
+    {
+        $preview = $this->previewFormalGeneration($moduleId, true, $nonce);
+        $code = (string) ($this->module($moduleId)['module']['code'] ?? '');
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $code) !== 1) throw new InvalidArgumentException('业务标识不合法');
+        return ['filename' => $code . '-' . date('YmdHis') . '.zip']
+            + self::buildGenerationArchive((array) ($preview['plan']['files'] ?? []));
+    }
+
+    /**
+     * 用 ZipArchive 在临时文件中打包，读回内存后立即删除临时文件。
+     * 没有文本内容（二进制或超过预览上限）以及路径不是项目相对路径的文件跳过并列入 skipped。
+     *
+     * @param list<array<string, mixed>> $files
+     * @return array{content: string, entries: list<string>, skipped: list<string>}
+     */
+    public static function buildGenerationArchive(array $files): array
+    {
+        $entries = [];
+        $skipped = [];
+        foreach ($files as $file) {
+            if (!is_array($file) || (string) ($file['status'] ?? '') === 'delete') continue;
+            $path = (string) ($file['path'] ?? '');
+            $content = $file['remoteContent'] ?? null;
+            // 项目相对路径：不允许绝对路径、盘符、反斜杠、空段与 . / .. 段
+            $relative = $path !== '' && !str_contains($path, '\\') && !str_contains($path, "\0") && preg_match('/^[A-Za-z]:/', $path) !== 1
+                && array_intersect(explode('/', $path), ['', '.', '..']) === [];
+            if (!$relative || !is_string($content)) {
+                $skipped[] = $path;
+                continue;
+            }
+            $entries[$path] = $content;
+        }
+        if ($entries === []) throw new InvalidArgumentException('没有可打包的生成文件');
+        if (!class_exists(\ZipArchive::class)) throw new \RuntimeException('服务器未安装 ZipArchive 扩展');
+        $temporary = sys_get_temp_dir() . '/funadmin-codegen-' . bin2hex(random_bytes(8)) . '.zip';
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($temporary, \ZipArchive::CREATE | \ZipArchive::EXCL) !== true) throw new \RuntimeException('无法创建临时压缩包');
+            foreach ($entries as $path => $content) {
+                if (!$zip->addFromString($path, $content)) {
+                    $zip->close();
+                    throw new \RuntimeException('写入压缩包失败：' . $path);
+                }
+            }
+            if (!$zip->close()) throw new \RuntimeException('压缩包写入失败');
+            $archive = file_get_contents($temporary);
+            if (!is_string($archive)) throw new \RuntimeException('读取临时压缩包失败');
+        } finally {
+            if (is_file($temporary)) @unlink($temporary);
+        }
+        return ['content' => $archive, 'entries' => array_keys($entries), 'skipped' => $skipped];
+    }
+
     public function previewStructuredProposal(
         int $moduleId,
         array $document,
@@ -398,25 +503,51 @@ final class BusinessDevelopmentService
         if (!is_array($listConfig) || !is_array($formConfig)) throw new InvalidArgumentException('配置必须为对象或数组');
         $remark = (string) ($allowed['remark'] ?? '');
         if (mb_strlen($remark) > 1000) throw new InvalidArgumentException('remark 过长');
-        if ($source === 'adopted') {
-            $fields = array_values(array_map(static function (array $field): array {
-                $component = (string) ($field['component'] ?? 'input');
-                return [
-                    'field_name' => (string) $field['name'],
-                    'label' => (string) ($field['label'] ?? $field['name']),
-                    'type' => $component === 'inputNumber' ? 'number' : $component,
-                    'column_type' => (string) $field['dbType'],
-                    'nullable' => (int) $field['nullable'],
-                    'list_show' => (int) ($field['list'] ?? true),
-                    'form_show' => (int) ($field['form'] ?? true),
-                    'form_readonly' => (int) !($field['writable'] ?? true),
-                    'list_sort' => (int) ($field['sortable'] ?? false),
-                    'validate_rules' => (array) ($field['rules'] ?? []),
-                    'options_source' => isset($field['options']) ? ['mode' => 'static', 'options' => $field['options']] : null,
-                ];
-            }, array_filter($fields, static fn (array $field): bool => !($field['primary'] ?? false) && !($field['managed'] ?? false))));
-        }
+        if ($source === 'adopted') $fields = self::adoptedFieldRows($fields);
         return ['business_target' => $target, 'form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection, 'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark, 'fields' => $fields];
+    }
+
+    /** 「从数据库创建」与同步表结构共用的字段映射，保证同一列生成相同的节点。 */
+    private static function adoptedFieldRows(array $fields): array
+    {
+        return array_values(array_map(static function (array $field): array {
+            $component = (string) ($field['component'] ?? 'input');
+            return [
+                'field_name' => (string) $field['name'],
+                'label' => (string) ($field['label'] ?? $field['name']),
+                'type' => $component === 'inputNumber' ? 'number' : $component,
+                'column_type' => (string) $field['dbType'],
+                'nullable' => (int) $field['nullable'],
+                'comment' => (string) ($field['comment'] ?? ''),
+                'list_show' => (int) ($field['list'] ?? true),
+                'form_show' => (int) ($field['form'] ?? true),
+                'form_readonly' => (int) !($field['writable'] ?? true),
+                'list_sort' => (int) ($field['sortable'] ?? false),
+                'validate_rules' => (array) ($field['rules'] ?? []),
+                'options_source' => isset($field['options']) ? ['mode' => 'static', 'options' => $field['options']] : null,
+            ];
+        }, array_filter($fields, static fn (array $field): bool => !($field['primary'] ?? false) && !($field['managed'] ?? false))));
+    }
+
+    private function adoptedNodes(array $module, array $fields): array
+    {
+        return $this->schemas->compile([
+            'form_key' => (string) $module['code'],
+            'name' => (string) $module['name'],
+            'table_name' => (string) $module['table_name'],
+            'connection' => (string) $module['connection_name'],
+            'source_type' => 'adopted',
+            'fields' => self::adoptedFieldRows($fields),
+        ])->document()['nodes'];
+    }
+
+    private static function physicalColumn(array $database): array
+    {
+        return [
+            'columnType' => (string) ($database['columnType'] ?? ''),
+            'nullable' => (bool) ($database['nullable'] ?? true),
+            'comment' => (string) ($database['comment'] ?? ''),
+        ];
     }
 
     private function modulePayload(int $moduleId, array $payload): array

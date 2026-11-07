@@ -114,6 +114,7 @@ import BusinessPageState from './components/BusinessPageState.vue';
 import { useLatestRequest } from './composables/useLatestRequest';
 import { useDirtyGuard } from './composables/useDirtyGuard';
 import { useBusinessTarget } from './composables/useBusinessTarget';
+import { deriveAdoptedBusiness, normalizeBusinessCode } from './constants';
 
 defineOptions({ name: 'BusinessVisual' });
 const props = defineProps<{ initialMode?: 'created' | 'adopted' }>();
@@ -192,7 +193,7 @@ async function inspect() {
     if (epoch !== inspectionEpoch || !canInspect.value) return;
     const result = await inspectionRequest.execute(form.connection.trim(), form.existingTable);
     if (epoch !== inspectionEpoch || !result || inspection.value !== result) return;
-    if (!form.code.trim()) form.code = result.table.replace(/^fun_/, '').toLowerCase();
+    if (!form.code.trim()) form.code = deriveAdoptedBusiness(result.table).code;
     if (!form.name.trim()) form.name = form.code;
   } catch { /* 校验和检查错误由对应控件展示。 */ }
   finally { inspectPending.value = false; }
@@ -223,7 +224,7 @@ useDirtyGuard(dirty);
 watch(form, () => { dirty.value = true; }, { deep: true, flush: 'sync' });
 
 function normalize() {
-  form.code = form.code.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  form.code = normalizeBusinessCode(form.code);
   if (mode.value === 'created' && !form.table && form.code) form.table = `${selected.value ? `${selected.value}_` : ''}${form.code}`;
 }
 

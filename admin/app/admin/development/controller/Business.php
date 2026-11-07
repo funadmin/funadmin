@@ -298,6 +298,34 @@ final class Business extends AdminController
     }
 
     /**
+     * 重新检查数据库装载模块的绑定表，返回与当前 Schema 的差异（不写库）。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Post(
+     *     path="/admin/development/business/modules/{id}/schema/database-sync",
+     *     operationId="admin_development_controller_Business_databaseSync_post",
+     *     tags={"业务开发模块"},
+     *     summary="重新检查数据库装载模块的绑定表，返回与当前 Schema 的差异（不写库）。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。仅数据库装载的模块可调用；data 含 inspectionHash、added（字段节点）、removed（字段名）、changed（field/from/to，仅 columnType、nullable、comment）。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="X-Request-ID", in="header", required=false, description="X-Request-ID 参数。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
+    #[Post('/modules/{id:\d+}/schema/database-sync')]
+    public function databaseSync(int $id): Response
+    {
+        return $this->execute(fn (): array => $this->business->databaseSync($id));
+    }
+
+    /**
      * 校验提交的表单 Schema，返回校验结果。
      *
      * @param int $id 路由中的目标记录 ID。
@@ -872,6 +900,52 @@ final class Business extends AdminController
     }
 
     /**
+     * 把正式生成预览中将要生成的文件（不含 delete 状态）打包为 zip 下载。
+     *
+     * @param int $id 路由中的目标记录 ID。
+     * @return Response 成功时为 zip 下载响应，失败时为 JSON 错误响应。
+     *
+     * @OA\Get(
+     *     path="/admin/development/business/modules/{id}/formal-generation/archive",
+     *     operationId="admin_development_controller_Business_formalGenerationArchive_get",
+     *     tags={"业务开发模块"},
+     *     summary="把正式生成预览中将要生成的文件（不含 delete 状态）打包为 zip 下载。",
+     *     description="需要 development:business:generate 权限。zip 条目为项目相对路径，内容为预览的 remoteContent；无文本内容（二进制或超过 512KB）的文件跳过，跳过数量见响应头 X-Archive-Skipped。失败时返回 JSON 错误响应。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Parameter(name="X-Request-ID", in="header", required=false, description="X-Request-ID 参数。", @OA\Schema(type="string")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="zip 文件；文件名为 {业务标识}-{yyyymmddHHMMSS}.zip。",
+     *         @OA\MediaType(mediaType="application/zip", @OA\Schema(type="string", format="binary"))
+     *     ),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
+    #[Get('/modules/{id:\d+}/formal-generation/archive')]
+    public function formalGenerationArchive(int $id): Response
+    {
+        if (!(new AdminAuthorizationService())->can('development:business:generate')) {
+            return $this->fail(msg: '缺少正式生成权限', code: 403);
+        }
+        try {
+            $archive = $this->business->formalGenerationArchive($id);
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+        // 压缩包已读入内存，临时文件在服务层返回前删除
+        return new Response(200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="' . $archive['filename'] . '"',
+            'Cache-Control' => 'no-store',
+            'X-Archive-Skipped' => (string) count($archive['skipped']),
+        ], $archive['content']);
+    }
+
+    /**
      * 按模块和状态分页查询代码生成记录。
      *
      * 查询参数：page、pageSize、moduleId、status。
@@ -1115,12 +1189,17 @@ final class Business extends AdminController
         try {
             return $this->ok($message, $operation());
         } catch (Throwable $exception) {
-            $mapped = BusinessApiErrorMapper::map($exception, (string) $this->request->header('X-Request-ID', ''));
-            Log::error('business.development.error', [
-                'requestId' => $mapped['error']['requestId'],
-                'exception' => $exception,
-            ]);
-            return $this->fail($mapped['message'], ['error' => $mapped['error']], $mapped['httpStatus']);
+            return $this->failure($exception);
         }
+    }
+
+    private function failure(Throwable $exception): Response
+    {
+        $mapped = BusinessApiErrorMapper::map($exception, (string) $this->request->header('X-Request-ID', ''));
+        Log::error('business.development.error', [
+            'requestId' => $mapped['error']['requestId'],
+            'exception' => $exception,
+        ]);
+        return $this->fail($mapped['message'], ['error' => $mapped['error']], $mapped['httpStatus']);
     }
 }

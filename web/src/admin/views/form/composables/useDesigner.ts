@@ -58,7 +58,7 @@ const validationFromField = (field: FormFieldDef): FormSchemaNode['validation'] 
   return rules;
 };
 
-const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
+export const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
   id: nodeId,
   kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
   type: field.type,
@@ -143,7 +143,7 @@ const nodeToField = (node: FormSchemaNode, index: number, current?: FormFieldDef
   };
 };
 
-const projectFields = (nodes: FormSchemaNode[], current: FormFieldDef[]): FormFieldDef[] => flattenNodes(nodes)
+export const projectFields = (nodes: FormSchemaNode[], current: FormFieldDef[]): FormFieldDef[] => flattenNodes(nodes)
   .map(({ node }) => node.field ? node : null)
   .filter((node): node is FormSchemaNode => node !== null)
   .map((node, index) => nodeToField(node, index, current.find((field) => field.field_name === node.field)));

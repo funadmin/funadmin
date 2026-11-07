@@ -176,8 +176,15 @@ final class CrudGenerator
         $manifest = 'plugins/' . $target['plugin'] . '/plugin.json';
         $inputs = [];
         $byPath = [];
+        // 关联模型随关联配置增减：已不再生成的 relation 模型按三方合并规划删除，本地改动则冲突。
+        $orphan = '#^plugins/' . preg_quote((string) $target['plugin'], '#') . '/app/admin/plugins/' . preg_quote((string) $target['plugin'], '#') . '/model/relation/[A-Z][A-Za-z0-9]*\\.php$#D';
+        $orphans = [];
         foreach ($baselines as $baseline) {
             $path = (string) ($baseline['path'] ?? '');
+            if (!array_key_exists($path, $remote) && preg_match($orphan, $path) === 1) {
+                $orphans[] = ['artifactType' => 'source'] + $baseline + ['remoteContent' => null];
+                continue;
+            }
             if (!array_key_exists($path, $remote) || str_ends_with($path, '.sql')) {
                 throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
             }
@@ -201,7 +208,7 @@ final class CrudGenerator
             $input['remoteContent'] = $content;
             $inputs[] = $input;
         }
-        $plan = (new ThreeWayMergePlanner($this->projectRoot))->plan($inputs);
+        $plan = (new ThreeWayMergePlanner($this->projectRoot))->plan([...$inputs, ...$orphans]);
         $manifestPlan = (new ManifestMerger($this->projectRoot))->plan($definition, $this->manifestBase($definition, $baselines));
         foreach ($plan['files'] as &$file) {
             if ($file['artifactType'] === 'immutableMigration') $file['artifactType'] = 'migration';
@@ -214,7 +221,7 @@ final class CrudGenerator
         unset($file);
         $plan['definitionHash'] = $definition->hash();
         $plan['preconditions'] = [$precondition];
-        $plan['allowedPaths'] = array_keys($remote);
+        $plan['allowedPaths'] = [...array_keys($remote), ...array_column($orphans, 'path')];
         $plan['planDigest'] = hash('sha256', CrudDefinition::canonicalJson($plan));
         return $plan;
     }
@@ -253,12 +260,28 @@ final class CrudGenerator
         $files = [];
         foreach ($paths as $type => $path) {
             if ($type === 'migration' && $definition->isAdopted()) continue;
+            if (str_starts_with((string) $type, 'relationModel:')) {
+                $files[$path] = self::renderRelationModel($this->renderer, $templates, $context, substr((string) $type, strlen('relationModel:')));
+                continue;
+            }
             if (!isset($templates[$type])) {
                 throw new InvalidArgumentException('目标缺少模板：' . $type);
             }
             $files[$path] = $this->renderer->render($templates[$type], $context);
         }
         return $files;
+    }
+
+    /** 每个关联目标共用 relationModel 模板，按目标类名注入内容。 */
+    public static function renderRelationModel(TemplateRenderer $renderer, array $templates, array $context, string $name): string
+    {
+        if (!isset($templates['relationModel']) || !is_string($templates['relationModel'])) {
+            throw new InvalidArgumentException('目标缺少模板：relationModel');
+        }
+        if (!is_string($context['relationModels'][$name] ?? null)) {
+            throw new InvalidArgumentException('关联模型未定义：' . $name);
+        }
+        return $renderer->render($templates['relationModel'], ['relationModelContent' => $context['relationModels'][$name]] + $context);
     }
 
     private function context(CrudDefinition $definition): array

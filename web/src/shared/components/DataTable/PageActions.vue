@@ -8,11 +8,13 @@ import type { FormListButton } from '@/views/form/schema/types';
 import { actionState, matchesPageCondition, type PageAction, type PageContext } from './pageSchema';
 const props = defineProps<{ actions: PageAction[]; context: PageContext; row?: boolean; lock?: { busy: boolean } }>();
 const emit = defineEmits<{ error: [error: unknown] }>();
+// 模式切换（正常列表 / 回收站）的非当前项曾用灰色 info；统一改为主题色浅色按钮，避免一排按钮里出现突兀的灰块。
+const inactive = (color: PageAction['inactiveColor']) => (color === 'info' ? 'primary' : color);
 const original = (button: FormListButton) => props.actions.find(action => action.id === button.id);
 const buttons = computed<FormListButton[]>(() => props.actions.map(action => ({
   id: action.id, label: action.label + (action.selectionCount && props.context.values.selectionCount ? `(${props.context.values.selectionCount})` : ''),
   action: action.action, icon: action.icon, hidden: action.hidden, disabled: action.disabled,
-  color: action.activeWhen && !matchesPageCondition(action.activeWhen, props.context.values) ? action.inactiveColor : action.color,
+  color: action.activeWhen && !matchesPageCondition(action.activeWhen, props.context.values) ? inactive(action.inactiveColor) : action.color,
   interaction: props.context.handlers[action.action.key]?.interaction
 })));
 const host = {

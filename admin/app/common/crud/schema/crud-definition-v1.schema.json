@@ -43,7 +43,8 @@
         "batchDelete": { "type": "boolean" }, "status": { "type": "boolean" }, "detail": { "type": "boolean" },
         "import": { "type": "boolean" }, "export": { "type": "boolean" }, "upload": { "type": "boolean" }, "dictionary": { "type": "boolean" },
         "referenceProtection": { "type": "boolean" }, "formMode": { "enum": ["dialog", "drawer"] },
-        "importLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }, "exportLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }
+        "importLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }, "exportLimit": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "formWidth": { "type": "integer", "minimum": 360, "maximum": 1600 }, "formFullscreen": { "type": "boolean" }
       }
     },
     "dataScope": { "type": "object", "required": ["enabled", "field"], "additionalProperties": false, "properties": {
@@ -74,9 +75,9 @@
     "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
     "templatePath": { "type": "string", "pattern": "^(admin|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
-    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
-    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
-    "pluginTemplates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "api", "view", "form", "detail"] },
+    "artifacts": { "type": "object", "propertyNames": { "anyOf": [{ "$ref": "#/$defs/artifactNames" }, { "pattern": "^relationModel:[A-Z][A-Za-z0-9]*$" }] }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
+    "templates": { "type": "object", "propertyNames": { "anyOf": [{ "$ref": "#/$defs/artifactNames" }, { "const": "relationModel" }] }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
+    "pluginTemplates": { "type": "object", "propertyNames": { "anyOf": [{ "$ref": "#/$defs/artifactNames" }, { "const": "relationModel" }] }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "required": ["migration", "model", "validate", "service", "controller", "api", "view", "form", "detail"] },
     "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "label": { "type": "string" }, "dbType": { "type": "string", "minLength": 1 },
       "nullable": { "type": "boolean" }, "primary": { "type": "boolean" }, "comment": { "type": "string" }, "default": {}, "extra": { "type": "string" },
@@ -91,8 +92,9 @@
     }},
     "relation": { "type": "object", "additionalProperties": false, "required": ["name", "type", "field", "target", "targetField"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "type": { "enum": ["belongsTo", "hasOne", "hasMany", "belongsToMany"] }, "field": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "target": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$" },
-      "targetField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTable": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotLocalKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTargetKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "optionsSource": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "with": { "type": "boolean" }
-    }, "allOf": [{ "if": { "properties": { "type": { "const": "belongsToMany" } }, "required": ["type"] }, "then": { "required": ["pivotTable", "pivotLocalKey", "pivotTargetKey"] } }]},
+      "targetField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTable": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotLocalKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTargetKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "optionsSource": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "with": { "type": "boolean" },
+      "targetTable": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "modelOnly": { "const": true }, "modelClass": { "type": "string", "pattern": "^app\\\\[a-z][a-z0-9_\\\\]*\\\\[A-Z][A-Za-z0-9]*$" }
+    }, "allOf": [{ "if": { "required": ["targetTable"] }, "then": { "required": ["modelClass"] } }, { "if": { "properties": { "type": { "const": "belongsToMany" } }, "required": ["type"] }, "then": { "required": ["pivotTable", "pivotLocalKey", "pivotTargetKey"] } }]},
     "optionsSource": { "type": "object", "additionalProperties": false, "required": ["name", "type", "labelField", "valueField"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "type": { "enum": ["relation", "dictionary", "endpoint"] }, "endpoint": { "type": "string" }, "dictionary": { "type": "string" }, "labelField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "valueField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }
     }},

@@ -1,13 +1,13 @@
 <template>
   <PageWrapper :title="t('plugin.title', '插件中心')" :subtitle="t('plugin.subtitle', '管理已安装插件、本地插件包和云市场版本')">
     <div class="mb-4 flex flex-wrap gap-2">
-      <el-button style="background-color:#eaf2ff" type="primary" plain v-perm="['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']" @click="accountVisible = true">{{ t('plugin.account', '市场账号') }}</el-button>
-      <el-button style="background-color:#e8f7ed" type="success" plain v-perm="'plugin:plugin:install-local'" @click="installVisible = true">{{ t('plugin.uploadZip', '上传本地 ZIP') }}</el-button>
-      <el-button style="background-color:#f4e8ff" type="info" plain v-perm="'plugin:dev-plugin:create'" @click="openDevelopment('create')">{{ t('plugin.create', '创建插件') }}</el-button>
-      <el-button style="background-color:#fff3df" type="info" plain v-perm="'plugin:dev-plugin:validate'" @click="openDevelopment('maintain')">{{ t('plugin.validate', '校验插件') }}</el-button>
-      <el-button style="background-color:#e6f7fb" type="info" plain v-perm="'plugin:dev-plugin:package'" @click="openDevelopment('maintain')">{{ t('plugin.package', '打包插件') }}</el-button>
+      <el-button type="primary" plain v-perm="['plugin:plugin:account-login', 'plugin:plugin:account-logout', 'plugin:plugin:current-account']" @click="accountVisible = true">{{ t('plugin.account', '市场账号') }}</el-button>
+      <el-button type="success" plain v-perm="'plugin:plugin:install-local'" @click="installVisible = true">{{ t('plugin.uploadZip', '上传本地 ZIP') }}</el-button>
+      <el-button class="plugin-btn--violet" plain v-perm="'plugin:dev-plugin:create'" @click="openDevelopment('create')">{{ t('plugin.create', '创建插件') }}</el-button>
+      <el-button type="warning" plain v-perm="'plugin:dev-plugin:validate'" @click="openDevelopment('maintain')">{{ t('plugin.validate', '校验插件') }}</el-button>
+      <el-button class="plugin-btn--cyan" plain v-perm="'plugin:dev-plugin:package'" @click="openDevelopment('maintain')">{{ t('plugin.package', '打包插件') }}</el-button>
       <input ref="updateInput" class="hidden" type="file" accept=".zip" @change="updateLocalZip" />
-      <el-button style="background-color:#f0f1ff" type="info" plain @click="load">{{ t('plugin.refresh', '刷新') }}</el-button>
+      <el-button type="primary" plain @click="load"><i class="i-ep-refresh mr-1" />{{ t('plugin.refresh', '刷新') }}</el-button>
     </div>
     <el-alert v-if="pageError" class="mb-3" type="error" :title="pageError" :closable="false" role="alert" />
     <el-tabs v-model="activeTab" @tab-change="load">
@@ -213,11 +213,30 @@ async function installSelectedVersion(version: string) { if (!(hasPermission('pl
 onMounted(load);
 </script>
 
+<style scoped>
+/* 工具栏自定义色调：与全局语义 plain 按钮同一配方（10% 底 / 32% 边 / 实色字），只换基色。 */
+.plugin-btn--violet { --app-btn-base: #8b5cf6; }
+.plugin-btn--cyan { --app-btn-base: #0ea5c4; }
+:is(.plugin-btn--violet, .plugin-btn--cyan).el-button.is-plain {
+  background-color: color-mix(in srgb, var(--app-btn-base) 10%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 32%, var(--app-card-bg)) !important;
+  color: var(--app-btn-base) !important;
+}
+:is(.plugin-btn--violet, .plugin-btn--cyan).el-button.is-plain:hover,
+:is(.plugin-btn--violet, .plugin-btn--cyan).el-button.is-plain:focus-visible {
+  background-color: color-mix(in srgb, var(--app-btn-base) 18%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 50%, var(--app-card-bg)) !important;
+}
+:is(.plugin-btn--violet, .plugin-btn--cyan).el-button.is-plain:active {
+  background-color: color-mix(in srgb, var(--app-btn-base) 26%, var(--app-card-bg)) !important;
+  border-color: var(--app-btn-base) !important;
+}
+</style>
+
 <style>
-.plugin-toolbar__account.el-button { background-color: #eaf2ff !important; }
-.plugin-toolbar__upload.el-button { background-color: #e8f7ed !important; }
-.plugin-toolbar__create.el-button { background-color: #f4e8ff !important; }
-.plugin-toolbar__validate.el-button { background-color: #fff3df !important; }
-.plugin-toolbar__package.el-button { background-color: #e6f7fb !important; }
-.plugin-toolbar__refresh.el-button { background-color: #f0f1ff !important; }
+/* 深色模式与全局语义按钮一致：文字向白色提亮，保证在深底上的对比度（需匹配 html.dark，故不用 scoped）。 */
+html.dark :is(.plugin-btn--violet, .plugin-btn--cyan).el-button.is-plain {
+  color: color-mix(in srgb, var(--app-btn-base) 70%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 42%, var(--app-card-bg)) !important;
+}
 </style>
