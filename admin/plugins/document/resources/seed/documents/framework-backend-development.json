@@ -1,0 +1,213 @@
+{
+    "slug": "framework-backend-development",
+    "title": "后端开发规范",
+    "summary": "掌握 Webman 路由、控制器、服务、模型、事务、异常和测试的推荐写法。",
+    "scope": "framework",
+    "type": "guide",
+    "category": "framework-backend",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "路由与控制器"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台控制器使用原生 route attributes 和 RouteGroup。控制器负责读取输入、调用服务和返回响应，不应承载复杂查询、迁移或外部 SDK 逻辑。"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "php"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "#[RouteGroup('/admin/example')]\nfinal class ExampleController extends AdminController\n{\n    #[Get('/')]\n    public function index(): Response\n    {\n        return $this->ok(data: (new ExampleService())->list());\n    }\n}"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "输入与响应"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "字符串、ID、分页和数组都必须在进入服务前校验。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "后台写请求必须携带 CSRF Token。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "成功响应使用 code=200；未登录、无权限、校验失败和冲突分别使用 401、403、422、409。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "异常消息返回面向用户的文案，日志中记录 requestId 和必要上下文，不泄露 SQL、密码或 Token。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "事务与并发"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "跨表写入使用数据库事务；编辑器、插件配置和生成计划使用乐观锁或 compare-and-set。发生 409 时前端应提示用户刷新或合并，而不是静默覆盖。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "模型与查询"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "模型负责表名、连接、fillable、casts 和软删除。查询必须明确字段和数据范围；不要在后台列表中无条件 select *，敏感字段应从 DTO 中排除。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "测试"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cd admin\nvendor/bin/phpunit tests/Document\nvendor/bin/phpunit tests/Console/CrudHttpPayloadContractTest.php\nphp tests/lint.php"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "新增接口至少覆盖成功、未登录、无权限、校验失败和数据库冲突路径。"
+                    }
+                ]
+            },
+            {
+                "type": "callout",
+                "attrs": {
+                    "tone": "danger"
+                },
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "如果 Webman 报告“Union/intersection types are not supported for controller parameter”，说明路由参数使用了 int|string 等联合类型；控制器参数应使用 mixed 或单一类型，再由服务校验。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

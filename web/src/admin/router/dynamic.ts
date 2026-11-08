@@ -17,8 +17,8 @@ const Blank: RouteComponent = () => import('@/layout/blank.vue');
  * - 完整路径 "/views/system/user/index.vue" 也兼容
  */
 function resolveComponent(component?: string): RouteComponent {
-  if (!component || component === 'Layout') return Layout;
-  if (component === 'Blank') return Blank;
+  // 主布局只在顶层挂载；目录或待加载插件的子节点使用空白 router-view。
+  if (!component || component === 'Layout' || component === 'Blank') return Blank;
 
   const normalized = component
     .replace(/^\/+/, '')
@@ -148,6 +148,8 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
       permission: menu.permission,
       rank: menu.sort,
       formKey: menu.formKey,
+      ...(!hasChildren && fullPath.startsWith('/admin/plugin/') && (!menu.component || menu.component === 'Layout')
+        ? { pluginPlaceholder: true } : {}),
       ...(menu.routeName === 'BusinessDesigner' ? { activeMenu: adminRoutePath('/development/business/mine') } : {})
     }
   } as RouteRecordRaw;

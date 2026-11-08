@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 
 export type DocumentScope = 'framework' | 'plugin_dev' | 'official_plugin' | 'third_party';
+export type DocumentVisibility = 'public' | 'admin';
 export type DocumentStatus = 'draft' | 'published' | 'archived';
 export type DocumentType = 'guide' | 'reference' | 'api' | 'architecture' | 'deployment' | 'adr' | 'changelog';
 export type EditorMode = 'edit' | 'split' | 'preview';
@@ -27,6 +28,7 @@ export interface DocumentSummary {
   pluginCode: string;
   type: DocumentType;
   status: DocumentStatus;
+  visibility?: DocumentVisibility;
   appliesTo: string;
   lockVersion: number;
   currentRevisionNo: number;
@@ -62,6 +64,7 @@ export interface DocumentQuery {
 }
 
 export interface DocumentMetaInput {
+  visibility?: DocumentVisibility;
   title: string;
   slug: string;
   summary?: string;

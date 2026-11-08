@@ -1,0 +1,244 @@
+{
+    "slug": "official-document-plugin",
+    "title": "文档插件使用与公开阅读",
+    "summary": "介绍文档后台编辑、发布、公开可见性和 /docs 阅读站。",
+    "scope": "official_plugin",
+    "type": "guide",
+    "category": "official-plugins",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台入口"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台地址为 /#/admin/plugin/document/docs。可以创建文档、选择范围和目录、使用 Tiptap 编辑器、保存草稿、查看版本和发布。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "公开阅读"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "公开入口为 /docs，详情为 /docs/{slug}。只有 status=published 且 visibility=public 的文档会对外显示。后台保存草稿不会改变访客看到的发布修订。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "章节组织"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "FunAdmin 主框架：架构、安装、后端、前端和认证。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "插件开发：Manifest、生命周期、权限、路由和迁移。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "官方插件：CMS、文档、OSS 等官方扩展的使用方式。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "第三方插件：外部存储、支付或行业插件的接入边界。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "正文安全"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "服务端会清理不支持的节点、危险 URL 和脚本。代码块、表格、图片和链接可以安全展示；Mermaid 当前以源码形式展示，便于复制。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "发布流程"
+                    }
+                ]
+            },
+            {
+                "type": "orderedList",
+                "attrs": {
+                    "start": 1
+                },
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "填写文档信息并将可见性设为公开或仅后台。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "编辑正文并保存草稿。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "确认标题、摘要、链接和代码示例。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "点击发布，再打开 /docs 检查公开版本。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "callout",
+                "attrs": {
+                    "tone": "warning"
+                },
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "旧文档默认为仅后台，升级不会自动公开；只有明确选择公开并发布后才可分享。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

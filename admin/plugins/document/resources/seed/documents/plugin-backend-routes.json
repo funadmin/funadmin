@@ -1,0 +1,181 @@
+{
+    "slug": "plugin-backend-routes",
+    "title": "插件后端接口与前端路由",
+    "summary": "讲解插件控制器、权限推导、Admin Web 路由和前端组件挂载。",
+    "scope": "plugin_dev",
+    "type": "guide",
+    "category": "plugin-dev-structure",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台控制器"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "php"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "#[RouteGroup('/admin/plugin/demo')]\nfinal class Index extends AdminController\n{\n    #[Get('/items')]\n    public function index(): Response\n    {\n        return $this->ok(data: (new ItemService())->list());\n    }\n}"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "权限码"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件后台方法的权限码由插件 code、控制器和方法推导。Manifest 中可以为推导码提供展示名称，但不能通过前端 meta.permission 代替服务端校验。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "前端模块"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "json"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "\"adminWeb\": {\n  \"source\": \"web/src/admin/modules/demo\",\n  \"components\": { \"Index\": \"Index.vue\" },\n  \"routes\": [{\n    \"path\": \"/plugin/demo/items\",\n    \"name\": \"Plugin_demo_Items\",\n    \"component\": \"Index\",\n    \"meta\": { \"title\": \"示例列表\", \"permission\": \"demo:index:index\" }\n  }]\n}"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "常见错误"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "路径不是 /plugin/{code}/ 前缀，路由 DTO 会被拒绝。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "组件文件没有复制到 web/src/admin/modules/{code}，会进入插件错误页。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "把 Layout 作为插件页面组件，造成重复后台布局；插件路由外层由宿主统一提供 Layout。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "停用插件后仍能访问接口，通常是 activation snapshot 或 worker 没有重载。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "验证"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "vendor/bin/phpunit tests/PluginCenterHttpTest.php\npnpm vitest run src/admin/router/pluginModules.spec.ts"
+                    }
+                ]
+            }
+        ]
+    }
+}

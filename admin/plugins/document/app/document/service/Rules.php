@@ -27,6 +27,12 @@ final class Rules
         return $type;
     }
 
+    public static function visibility(mixed $value): string
+    {
+        if (!is_string($value) || !in_array($value, ['public', 'admin'], true)) throw new InvalidArgumentException('文档可见性无效', 422);
+        return $value;
+    }
+
     public static function slug(mixed $value): string
     {
         $slug = is_string($value) ? trim($value) : '';

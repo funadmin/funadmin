@@ -24,6 +24,16 @@
         "login": true,
         "permission": "development:business:delete-module"
     },
+    "DELETE /admin/plugin/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::delete": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:delete"
+    },
+    "DELETE /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::delete": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:delete"
+    },
     "DELETE /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
         "guard": "plugin",
         "login": true,
@@ -559,6 +569,31 @@
         "login": true,
         "permission": "cms:tags:providers"
     },
+    "GET /admin/plugin/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::tree": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:tree"
+    },
+    "GET /admin/plugin/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::index": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:index"
+    },
+    "GET /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::detail": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:detail"
+    },
+    "GET /admin/plugin/document/documents/{id:\\d+}/revisions => app\\admin\\plugins\\document\\controller\\DocumentController::revisions": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:revisions"
+    },
+    "GET /admin/plugin/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::revision": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:revision"
+    },
     "GET /admin/plugin/example/index => app\\admin\\plugins\\example\\controller\\Index::index": {
         "guard": "plugin",
         "login": true,
@@ -965,6 +1000,31 @@
         "permission": null
     },
     "GET /cms/{path:(?!member(?:/|$)).+} => app\\cms\\controller\\Index::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /docs => app\\document\\controller\\Reader::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /docs/ => app\\document\\controller\\Reader::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /docs/assets/reader.css => app\\document\\controller\\Reader::stylesheet": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /docs/assets/reader.js => app\\document\\controller\\Reader::script": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /docs/{slug:[a-z0-9][a-z0-9-]{0,119}} => app\\document\\controller\\Reader::detail": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1414,6 +1474,31 @@
         "login": true,
         "permission": "cms:tags:save"
     },
+    "POST /admin/plugin/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::create": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:create"
+    },
+    "POST /admin/plugin/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::create": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:create"
+    },
+    "POST /admin/plugin/document/documents/{id:\\d+}/archive => app\\admin\\plugins\\document\\controller\\DocumentController::archive": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:archive"
+    },
+    "POST /admin/plugin/document/documents/{id:\\d+}/publish => app\\admin\\plugins\\document\\controller\\DocumentController::publish": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:publish"
+    },
+    "POST /admin/plugin/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+}/restore => app\\admin\\plugins\\document\\controller\\DocumentController::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:restore"
+    },
     "POST /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::create": {
         "guard": "plugin",
         "login": true,
@@ -1818,6 +1903,21 @@
         "guard": "admin",
         "login": true,
         "permission": "ai:ai:conversation-update"
+    },
+    "PUT /admin/plugin/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::update": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:update"
+    },
+    "PUT /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::updateMeta": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:update-meta"
+    },
+    "PUT /admin/plugin/document/documents/{id:\\d+}/draft => app\\admin\\plugins\\document\\controller\\DocumentController::saveDraft": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:save-draft"
     },
     "PUT /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::update": {
         "guard": "plugin",

@@ -1,0 +1,175 @@
+{
+    "slug": "plugin-database-upgrade",
+    "title": "插件数据库迁移与数据安全",
+    "summary": "说明插件如何创建表、升级字段、处理失败和保留数据。",
+    "scope": "plugin_dev",
+    "type": "deployment",
+    "category": "plugin-dev-lifecycle",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "迁移文件"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "迁移位于 admin/plugins/{code}/database/migrations，版本应递增且只执行一次。SQL 需要使用项目迁移器支持的前缀占位方式，不要写死 fun_ 前缀。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "升级原则"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "向前兼容：先添加可空字段，再发布使用字段的新代码。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "大表变更拆成多个版本，避免在请求期间长时间锁表。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "删除字段前先停止读取和写入，等待一个发布周期。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "迁移和插件版本必须在测试库和真实 MySQL 中分别验证。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "失败处理"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "迁移失败时插件保持不可启用，记录 migration_pending 和 last_error。不可逆迁移需要人工恢复路径，不能自动伪造回滚成功。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "数据清理"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "uninstall 不等于 purge。只有明确支持 purge 且用户确认时才清理插件数据；默认保留用户创建的数据，便于重新安装后恢复。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "检查命令"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "php webman plugin:status demo\nphp webman plugin:migrate demo\nphp webman plugin:disable demo\nphp webman plugin:enable demo"
+                    }
+                ]
+            }
+        ]
+    }
+}

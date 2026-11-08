@@ -1,0 +1,177 @@
+{
+    "slug": "plugin-structure-manifest",
+    "title": "插件目录与 Manifest",
+    "summary": "从目录结构、plugin.json 到源码复制和前端构建，建立一个可安装插件。",
+    "scope": "plugin_dev",
+    "type": "guide",
+    "category": "plugin-dev-structure",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件目录"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "text"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "admin/plugins/demo/\n├── plugin.json\n├── Plugin.php\n├── app/\n│   ├── admin/plugins/demo/controller/\n│   └── demo/service/\n├── database/migrations/\n├── resources/\n└── web/src/admin/modules/demo/"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Manifest 最小字段"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "json"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "{\n  \"schema_version\": 2,\n  \"code\": \"demo\",\n  \"name\": \"示例插件\",\n  \"version\": \"1.0.0\",\n  \"entry\": { \"class\": \"plugins\\\\demo\\\\Plugin\", \"file\": \"Plugin.php\" },\n  \"adminWeb\": {\n    \"source\": \"web/src/admin/modules/demo\",\n    \"components\": { \"Index\": \"Index.vue\" },\n    \"routes\": []\n  }\n}"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "编码要求"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "code 只使用小写字母和数字，作为目录、权限来源和插件 API 标识。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Manifest 中的路径必须位于插件目录内，不能使用 ..、绝对路径或符号链接逃逸。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "插件版本使用语义化版本，数据库迁移版本单独记录。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "不要在插件 entry 文件加载时执行数据库写入或注册全局状态。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "校验与安装"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cd admin\nphp webman plugin:validate demo\nphp webman plugin:install demo\nphp webman plugin:enable demo"
+                    }
+                ]
+            },
+            {
+                "type": "callout",
+                "attrs": {
+                    "tone": "tip"
+                },
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "插件源码和安装后的 frontend module 必须使用同一份内容；宿主只从 enabledModules 接收已启用插件的组件和路由。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

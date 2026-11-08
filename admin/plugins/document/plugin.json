@@ -2,8 +2,8 @@
   "schema_version": 2,
   "code": "document",
   "name": "技术文档",
-  "description": "管理 FunAdmin 主框架、插件开发规范、官方插件和第三方插件技术文档",
-  "version": "1.0.0",
+  "description": "FunAdmin 简约官方文档站，支持章节化内容、后台编辑与公开阅读",
+  "version": "1.3.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",

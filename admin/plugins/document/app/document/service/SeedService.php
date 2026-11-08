@@ -56,7 +56,7 @@ final class SeedService
         $id = (int) Db::table('documents')->insertGetId([
             'title' => $title, 'slug' => $slug, 'summary' => $summary,
             'scope' => Rules::scope($data['scope']), 'plugin_code' => Rules::pluginCode($data['pluginCode'] ?? ''),
-            'type' => Rules::type($data['type'] ?? 'guide'), 'status' => 'published', 'visibility' => 'admin',
+            'type' => Rules::type($data['type'] ?? 'guide'), 'status' => 'published', 'visibility' => Rules::visibility($data['visibility'] ?? 'public'),
             'applies_to' => Rules::text($data['appliesTo'] ?? '', 64, '适用版本'),
             'content_json' => $json, 'plain_text' => ContentValidator::plainText($content),
             'lock_version' => 1, 'current_revision_no' => 1, 'owner_id' => 0, 'source' => 'seed',

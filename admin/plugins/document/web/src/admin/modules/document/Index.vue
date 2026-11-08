@@ -194,7 +194,7 @@ function jumpTo(index: number) {
         </el-select>
         <el-button v-if="can.manageCategories.value" size="small" data-testid="manage-categories" @click="categoriesOpen = true">{{ t('pluginDocument.categories.manage') }}</el-button>
       </div>
-      <div class="doc-list-count">{{ t('pluginDocument.count', { n: store.total }) }}</div>
+      <div class="doc-list-count"><span>{{ t('pluginDocument.count', { n: store.total }) }}</span><a href="/docs" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicHome') }} ↗</a></div>
       <DocumentList :documents="store.documents" :current-id="store.current?.id ?? null" :loading="store.loadingList" @open="open" />
       <TablePagination
         v-if="store.total > store.query.pageSize"
@@ -219,6 +219,7 @@ function jumpTo(index: number) {
             </div>
           </div>
           <div class="doc-actions">
+            <a v-if="store.current.status === 'published' && store.current.visibility === 'public'" :href="`/docs/${encodeURIComponent(store.current.slug)}`" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicRead') }} ↗</a>
             <el-radio-group v-model="store.editorMode" size="small">
               <el-radio-button value="edit">{{ t('pluginDocument.mode.edit') }}</el-radio-button>
               <el-radio-button value="split">{{ t('pluginDocument.mode.split') }}</el-radio-button>
@@ -309,4 +310,10 @@ function jumpTo(index: number) {
   .doc-body.is-preview { grid-template-columns: 1fr; }
   .doc-outline-col { display: none; }
 }
+</style>
+
+<style scoped>
+.doc-list-count { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.doc-public-link { color: var(--el-color-primary); font-size: 13px; white-space: nowrap; text-decoration: none; }
+.doc-public-link:hover { text-decoration: underline; }
 </style>

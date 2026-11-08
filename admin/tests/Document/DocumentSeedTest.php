@@ -67,6 +67,9 @@ final class DocumentSeedTest extends DocumentTestCase
         (new DocumentService())->delete($doc);
         Db::table('documents')->where('id', $doc)->delete(); // 连同软删除记录一并清掉
         $category = (int) Db::table('document_categories')->where('slug', 'third-party-plugins')->value('id');
+        $thirdPartyDocs = Db::table('document_category_links')->where('category_id', $category)->pluck('document_id')->all();
+        Db::table('document_category_links')->where('category_id', $category)->delete();
+        Db::table('documents')->whereIn('id', $thirdPartyDocs)->delete();
         (new \app\document\service\DocumentCategoryService())->delete($category);
         $renamed = (int) Db::table('document_categories')->where('slug', 'framework-deployment')->value('id');
         (new \app\document\service\DocumentCategoryService())->update($renamed, ['slug' => 'deploy-guide']);

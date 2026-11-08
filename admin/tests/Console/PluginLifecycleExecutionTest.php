@@ -68,6 +68,21 @@ class PluginLifecycleExecutionTest extends TestCase
         rmdir($this->root);
     }
 
+    public function test_install_finishing_disabled_does_not_publish_clickable_menus(): void
+    {
+        $registry = \app\admin\authorization\service\ResourceRegistryService::instance();
+        $registry->registerPermissions([['code' => 'lifecyclefixture:document:index', 'name' => '文档中心']], 'plugin', 'lifecyclefixture');
+        $registry->registerTree([['name' => '文档中心', 'path' => '/plugin/lifecyclefixture/docs', 'permission' => 'lifecyclefixture:document:index']], 0, 0, 'admin', 'plugin', 'lifecyclefixture');
+        $record = \app\common\plugin\model\Plugin::forceCreate(['code' => 'lifecyclefixture', 'version' => '1.0.0', 'lifecycle_state' => 'installing', 'status' => 0]);
+        $service = new PluginService($this->root);
+        (new \ReflectionMethod(PluginService::class, 'transition'))->invoke($service, $record, 'disabled');
+        self::assertSame('disabled', $record->fresh()->lifecycle_state);
+        self::assertGreaterThan(0, Db::table('admin_menu')->where('source_name', 'lifecyclefixture')->count());
+        self::assertSame(0, Db::table('admin_menu')->where('source_name', 'lifecyclefixture')->where('status', 1)->count());
+        // 安装后的权限仍可供管理员配置授权，实际接口由激活状态决定是否开放。
+        self::assertGreaterThan(0, Db::table('permission')->where('source_name', 'lifecyclefixture')->where('status', 1)->count());
+    }
+
     public function test_composer_conflict_does_not_poison_enable_and_acknowledgement_is_scoped(): void
     {
         $directory = $this->root . '/plugins/lifecyclefixture';

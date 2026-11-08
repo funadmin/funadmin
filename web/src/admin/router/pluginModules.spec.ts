@@ -5,6 +5,7 @@ import type { EnabledPluginModule } from '@/api/system/plugin';
 import { clearPluginModules, syncPluginModules } from './pluginModules';
 import { loadPluginModulesSafely } from './pluginStartup';
 import Layout from '@/layout/index.vue';
+import { generateRoutes } from './dynamic';
 
 vi.mock('@/layout/index.vue', () => ({ default: { template: '<router-view />' } }));
 
@@ -61,6 +62,40 @@ describe('Webman plugin module routing', () => {
     expect(activeRouter.getRoutes()).toHaveLength(2);
     await syncPluginModules(activeRouter, [], { modules });
     expect(activeRouter.getRoutes()).toHaveLength(0);
+  });
+
+  it('a plugin menu without an enabled descriptor never mounts the admin layout twice', async () => {
+    activeRouter = router();
+    generateRoutes([{
+      id: 70, parentId: 0, path: '/plugin/document', routeName: 'DocumentMenu',
+      name: '技术文档', type: 'M', component: 'Layout', children: [{
+        id: 71, parentId: 70, path: '/plugin/document/docs', routeName: 'DocumentMenuPage',
+        name: '文档中心', type: 'C', component: 'Layout'
+      }]
+    }] as API.MenuItem[]).forEach(route => activeRouter.addRoute(route));
+    const result = activeRouter.resolve('/admin/plugin/document/docs');
+    expect(result.matched.filter(record => record.components?.default === Layout)).toHaveLength(1);
+  });
+
+  it('the enabled document route replaces the nested menu placeholder', async () => {
+    activeRouter = router();
+    generateRoutes([{
+      id: 70, parentId: 0, path: '/plugin/document', routeName: 'DocumentMenu',
+      name: '技术文档', type: 'M', component: 'Layout', children: [{
+        id: 71, parentId: 70, path: '/plugin/document/docs', routeName: 'DocumentMenuPage',
+        name: '文档中心', type: 'C', component: 'Layout'
+      }]
+    }] as API.MenuItem[]).forEach(route => activeRouter.addRoute(route));
+    const document = { code: 'document', version: '1.0.0', components: { Index: 'Index.vue' }, routes: [{
+      path: '/plugin/document/docs', name: 'Plugin_document_Docs', component: 'Index', meta: { title: '文档中心' }
+    }] };
+    const page = defineComponent({ template: '<article>文档中心</article>' });
+    const synced = await syncPluginModules(activeRouter, [document], { modules: { '../modules/document/Index.vue': page } });
+    expect(synced.errors).toEqual([]);
+    const result = activeRouter.resolve('/admin/plugin/document/docs');
+    expect(result.name).toBe('Plugin_document_Docs');
+    expect(result.matched.filter(record => record.components?.default === Layout)).toHaveLength(1);
+    expect(result.matched.at(-1)?.components?.default).toBe(page);
   });
 
   it('mounts a diagnostic route for missing build assets and clears it on logout', async () => {

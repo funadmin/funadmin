@@ -77,6 +77,9 @@ class PluginService extends AbstractService
             throw new RuntimeException('插件状态保存失败');
         }
         $record->lifecycle_state = $to;
+        if ($to === 'disabled') {
+            $this->infrastructure()->disableMenus((string) $record->code);
+        }
         $this->rebuildActivationCache();
     }
 
@@ -560,7 +563,6 @@ class PluginService extends AbstractService
                     },
                     static fn (): bool => $plugin->disabled()
                 );
-                $this->infrastructure()->disableMenus($code);
                 $this->infrastructure()->disablePermissions($code);
             }
             $this->recordStage($code, $operation, 'resources');

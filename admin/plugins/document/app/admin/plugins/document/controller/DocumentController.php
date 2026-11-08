@@ -41,6 +41,11 @@ final class DocumentController extends DocumentApiController
         return $this->action(function () use ($id): array {
             $input = $this->input();
             if (!array_key_exists('metaVersion', $input)) throw new \InvalidArgumentException('metaVersion 无效', 422);
+            $current = (new DocumentService())->row($id);
+            if (array_key_exists('visibility', $input) && $input['visibility'] !== $current->visibility
+                && !(new \app\admin\authorization\service\AdminAuthorizationService())->can('document:document:publish')) {
+                throw new \InvalidArgumentException('更改文档可见性需要发布权限', 403);
+            }
             return (new DocumentService())->updateMeta($id, $input);
         }, '保存成功');
     }

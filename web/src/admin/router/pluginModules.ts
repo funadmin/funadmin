@@ -115,12 +115,13 @@ function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>
 }
 
 /**
- * 插件安装写入的菜单没有 component，动态菜单会为其生成「只有主布局、没有子页面」的同路径路由；
- * 它先于插件路由注册，会抢先命中导致内容区空白。仅移除这种空壳，管理员显式配置了页面的菜单保留。
+ * 插件菜单占位先于插件模块注册，需要在挂载实际页面前移除。
+ * 同时识别旧的主布局空壳，管理员显式配置了页面的菜单保留。
  */
 function removeMenuPlaceholder(router: Router, path: string): void {
   for (const record of router.getRoutes()) {
-    if (record.path !== path || !record.name || record.children.length > 0 || record.components?.default !== Layout) continue;
+    if (record.path !== path || !record.name || record.children.length > 0) continue;
+    if (record.meta.pluginPlaceholder !== true && record.components?.default !== Layout) continue;
     if (String(record.name).startsWith('Plugin_')) continue;
     router.removeRoute(record.name);
   }

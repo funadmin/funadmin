@@ -18,7 +18,7 @@ final class DocumentService
         $now = Rules::now();
         $id = Db::transaction(function () use ($meta, $content, $payload, $now): int {
             $id = (int) Db::table('documents')->insertGetId($meta + [
-                'status' => 'draft', 'visibility' => 'admin',
+                'status' => 'draft',
                 'content_json' => json_encode($content, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'plain_text' => ContentValidator::plainText($content),
                 'lock_version' => 1, 'current_revision_no' => 0,
@@ -37,7 +37,7 @@ final class DocumentService
         $current = $this->row($id);
         $meta = $this->meta($payload + [
             'title' => $current->title, 'slug' => $current->slug, 'scope' => $current->scope, 'type' => $current->type,
-            'summary' => $current->summary, 'pluginCode' => $current->plugin_code, 'appliesTo' => $current->applies_to,
+            'visibility' => $current->visibility, 'summary' => $current->summary, 'pluginCode' => $current->plugin_code, 'appliesTo' => $current->applies_to,
         ]);
         if ($meta['slug'] !== $current->slug) $this->assertSlugFree($meta['slug']);
         Db::transaction(function () use ($id, $meta, $payload, $current): void {
@@ -118,6 +118,7 @@ final class DocumentService
             'slug' => Rules::slug($payload['slug'] ?? null),
             'summary' => Rules::text($payload['summary'] ?? '', 500, '摘要'),
             'scope' => Rules::scope($payload['scope'] ?? null),
+            'visibility' => Rules::visibility($payload['visibility'] ?? 'public'),
             'type' => Rules::type($payload['type'] ?? 'guide'),
             'plugin_code' => Rules::pluginCode($payload['pluginCode'] ?? ''),
             'applies_to' => Rules::text($payload['appliesTo'] ?? '', 64, '适用版本'),
@@ -147,7 +148,7 @@ final class DocumentService
         $dto = [
             'id' => (int) $row->id, 'title' => (string) $row->title, 'slug' => (string) $row->slug,
             'summary' => (string) $row->summary, 'scope' => (string) $row->scope, 'pluginCode' => (string) $row->plugin_code,
-            'type' => (string) $row->type, 'status' => (string) $row->status, 'appliesTo' => (string) $row->applies_to,
+            'type' => (string) $row->type, 'status' => (string) $row->status, 'visibility' => (string) $row->visibility, 'appliesTo' => (string) $row->applies_to,
             'lockVersion' => (int) $row->lock_version, 'currentRevisionNo' => (int) $row->current_revision_no,
             'hasUnpublishedChanges' => (bool) $row->has_unpublished_changes,
             'metaVersion' => (int) $row->meta_version,

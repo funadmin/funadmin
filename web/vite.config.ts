@@ -75,6 +75,10 @@ export default defineConfig(({ mode }) => {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true
             },
+            '^/docs(?:/|$|[?])': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
+            },
             '^/install(?:/|$)': {
               target: env.VITE_APP_PROXY_TARGET,
               changeOrigin: true

@@ -1,0 +1,208 @@
+{
+    "slug": "framework-frontend-development",
+    "title": "前端开发与表单 Schema",
+    "summary": "理解 Vue 路由、动态菜单、公共表单渲染、API 请求和前端插件模块。",
+    "scope": "framework",
+    "type": "guide",
+    "category": "framework-frontend",
+    "appliesTo": "1.2",
+    "visibility": "public",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台页面位置"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/layout：主布局、侧栏、顶部栏和标签页。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/router：静态路由、动态菜单路由和插件路由。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/views：宿主业务页面和业务生成页面。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/shared/components：跨页面的 DataTable、SearchForm、Upload、TablePagination 等。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "请求与认证"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台 API 统一使用 shared HTTP client。它会自动附加 X-CSRF-TOKEN、处理业务 code、显示错误并在 401 时跳转当前后台登录入口。新页面不要直接创建 axios 实例。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "SchemaRenderer"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "表单 Schema 由 nodes 描述字段和布局，由 dataSource 描述静态或远程选项，由 validation 描述校验。字段值使用 camelCase 前端键，生成后端负责转换为数据库 snake_case。"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "ts"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "const schema = {\n  nodes: [{\n    id: 'status', kind: 'field', field: 'status',\n    type: 'selectV2', title: '状态',\n    dataSource: { kind: 'static', options: [\n      { label: '启用', value: 1 },\n      { label: '停用', value: 0 }\n    ]\n  }]\n}"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "动态路由"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台菜单由 /admin/auth/menus 下发；插件页面由 enabledModules 返回并通过 pluginModules 挂载。插件页面不应自行再挂载 Layout，否则会出现后台套后台。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "分页与列表"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "列表页统一使用 TablePagination，默认位于表格下方右侧。生成列表使用 SchemaTablePage，普通页面也应复用公共分页组件，避免各页自行定义左右对齐和移动端行为。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "验证"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cd web\npnpm vitest run src/admin/views/form/components\npnpm type-check\npnpm build:webman"
+                    }
+                ]
+            }
+        ]
+    }
+}

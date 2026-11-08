@@ -1,16 +1,48 @@
 {
-  "slug": "plugin-development-quick-start",
-  "title": "插件开发快速开始",
-  "summary": "创建、校验和打包一个 FunAdmin 插件的最小流程。",
-  "scope": "plugin_dev",
-  "type": "guide",
-  "category": "plugin-dev-structure",
-  "content": {
-    "type": "doc",
-    "content": [
-      { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "创建插件" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "插件源码位于 admin/plugins/{code}，前端源码位于 web/src/admin/modules/{code}。" }] },
-      { "type": "codeBlock", "attrs": { "language": "bash" }, "content": [{ "type": "text", "text": "cd admin\nphp webman plugin:make demo --title=示例\nphp webman plugin:validate demo" }] }
-    ]
-  }
+    "slug": "plugin-development-quick-start",
+    "title": "插件开发快速开始",
+    "summary": "创建、校验和打包一个 FunAdmin 插件的最小流程。",
+    "scope": "plugin_dev",
+    "type": "guide",
+    "category": "plugin-dev-structure",
+    "content": {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "创建插件"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件源码位于 admin/plugins/{code}，前端源码位于 web/src/admin/modules/{code}。"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cd admin\nphp webman plugin:make demo --title=示例\nphp webman plugin:validate demo"
+                    }
+                ]
+            }
+        ]
+    },
+    "visibility": "public",
+    "appliesTo": "1.2"
 }

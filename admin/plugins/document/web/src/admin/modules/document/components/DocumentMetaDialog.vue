@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { hasPermission } from '@/utils/permission';
 import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import { SCOPES, TYPES, type DocumentCategory, type DocumentMetaInput, type DocumentScope, type DocumentSummary } from '../types';
@@ -12,7 +13,7 @@ const { t } = useI18n();
 const tt = (key: string) => t(`pluginDocument.meta.${key}`);
 
 const formRef = ref<FormInstance>();
-const blank = (): DocumentMetaInput => ({ title: '', slug: '', summary: '', scope: 'framework', type: 'guide', pluginCode: '', appliesTo: '', categoryIds: [] });
+const blank = (): DocumentMetaInput => ({ visibility: 'public', title: '', slug: '', summary: '', scope: 'framework', type: 'guide', pluginCode: '', appliesTo: '', categoryIds: [] });
 const form = reactive<DocumentMetaInput>(blank());
 const rules = computed<FormRules>(() => ({
   title: [{ required: true, message: tt('titleRequired'), trigger: 'blur' }, { max: 200, message: tt('titleMax'), trigger: 'blur' }],
@@ -26,7 +27,7 @@ const flatten = (nodes: DocumentCategory[], depth = 0): Array<DocumentCategory &
 watch(visible, (open) => {
   if (!open) return;
   Object.assign(form, blank(), props.row
-    ? { title: props.row.title, slug: props.row.slug, summary: props.row.summary, scope: props.row.scope, type: props.row.type, pluginCode: props.row.pluginCode, appliesTo: props.row.appliesTo, categoryIds: [...props.row.categoryIds] }
+    ? { visibility: props.row.visibility ?? 'admin', title: props.row.title, slug: props.row.slug, summary: props.row.summary, scope: props.row.scope, type: props.row.type, pluginCode: props.row.pluginCode, appliesTo: props.row.appliesTo, categoryIds: [...props.row.categoryIds] }
     : { scope: props.defaultScope || 'framework', categoryIds: props.defaultCategoryId ? [props.defaultCategoryId] : [] });
 });
 // 切换范围时清掉不属于新范围的目录，避免后端拒绝。
@@ -49,6 +50,15 @@ async function submit() {
       <el-form-item :label="tt('scope')">
         <el-select v-model="form.scope"><el-option v-for="s in SCOPES" :key="s" :label="t(`pluginDocument.scope.${s}`)" :value="s" /></el-select>
       </el-form-item>
+      <el-form-item :label="tt('visibility')">
+        <div class="visibility-field">
+          <el-select v-model="form.visibility" :disabled="!!row && !hasPermission('document:document:publish')">
+            <el-option :label="tt('public')" value="public" />
+            <el-option :label="tt('adminOnly')" value="admin" />
+          </el-select>
+          <small>{{ tt('visibilityHint') }}</small>
+        </div>
+      </el-form-item>
       <el-form-item :label="tt('type')">
         <el-select v-model="form.type"><el-option v-for="docType in TYPES" :key="docType" :label="t(`pluginDocument.type.${docType}`)" :value="docType" /></el-select>
       </el-form-item>
@@ -69,3 +79,8 @@ async function submit() {
     </template>
   </el-dialog>
 </template>
+
+<style scoped>
+.visibility-field { width: 100%; }
+.visibility-field small { display: block; margin-top: 6px; color: var(--el-text-color-secondary); line-height: 1.6; }
+</style>
