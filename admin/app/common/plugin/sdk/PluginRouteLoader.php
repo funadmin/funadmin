@@ -62,9 +62,10 @@ final class PluginRouteLoader extends Route
         foreach ($plugins as $code => $record) {
             if (($record['enabled'] ?? false) !== true) continue;
             $directory = rtrim($pluginsPath, '/\\') . '/' . $code;
-            if (is_file($directory . '/plugin.json')) {
-                $manifests[$code] = Manifest::fromDirectory($directory);
-            }
+            $manifestFile = $directory . '/plugin.json';
+            if (!is_file($manifestFile)) continue;
+            $raw = json_decode((string) @file_get_contents($manifestFile), true);
+            if (is_array($raw) && !empty($raw['routeOverrides'])) $manifests[$code] = Manifest::fromDirectory($directory);
         }
         return self::withLegacyAliases(PluginRouteOverride::apply($definitions, $manifests));
     }

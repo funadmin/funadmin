@@ -49,7 +49,7 @@ final class PluginDerivedPermissionTest extends TestCase
             self::assertSame($derived, $active);
             self::assertSame('审核问答投稿', Db::table('permission')->where('code', 'qa:moderation:review')->value('name'));
             self::assertSame('route', Db::table('permission')->where('code', 'qa:moderation:review')->value('resource_type'));
-            $menu = Db::table('admin_menu')->where('source_name', 'qa')->where('href', '/plugin/qa/moderation')->first();
+            $menu = Db::table('admin_menu')->where('source_name', 'qa')->where('href', '/plugins/qa/moderation')->first();
             self::assertSame('qa:moderation:index', Db::table('permission')->where('id', $menu->permission_id)->value('code'));
         } finally {
             Db::rollBack();

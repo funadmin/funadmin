@@ -132,7 +132,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     expect(defaults[5]).toMatchObject({ color: 'primary', plain: true, icon: 'download' });
   });
   it('已生成的业务列表页 CSV 导出按钮与模板一致使用彩色 primary', () => {
-    for (const file of ['src/admin/views/business/order/index.vue', 'src/admin/views/business/i18n-demo/index.vue', 'src/admin/modules/example/test/index.vue']) {
+    for (const file of ['src/admin/views/business/order/index.vue', 'src/admin/views/business/i18n-demo/index.vue', 'src/admin/plugins/example/test/index.vue']) {
       const source = readFileSync(resolve(process.cwd(), file), 'utf8');
       expect(source, file).toContain('{"id":"export","label":"CSV 导出","action":{"type":"builtin","key":"export"},"color":"primary","plain":true');
       expect(source, file).not.toContain('"color":"default"');

@@ -56,9 +56,9 @@ final class PluginCenterHttpTest extends TestCase
     public function test_plugin_routes_reject_anonymous_and_undeclared_permissions_before_services(): void
     {
         new App(Request::class, new NullLogger(), app_path(), public_path());
-        self::assertSame(401, $this->call('GET', '/admin/plugin/qa/moderation', authenticated: false)->getStatusCode());
-        self::assertSame(403, $this->call('GET', '/admin/plugin/qa/moderation')->getStatusCode());
-        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review', ['id' => '1'])->getStatusCode());
+        self::assertSame(401, $this->call('GET', '/admin/plugins/qa/moderation', authenticated: false)->getStatusCode());
+        self::assertSame(403, $this->call('GET', '/admin/plugins/qa/moderation')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/plugins/qa/moderation/review', ['id' => '1'])->getStatusCode());
     }
 
     public function test_authorized_plugin_request_reaches_validation_and_keeps_csrf(): void
@@ -66,21 +66,21 @@ final class PluginCenterHttpTest extends TestCase
         new App(Request::class, new NullLogger(), app_path(), public_path());
         $auth = new BrowserAuthService(); $anonymous = $auth->bootstrap('');
         $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_root', 'plugin-root-password', '127.0.0.3');
-        $response = $this->call('GET', '/admin/plugin/qa/moderation');
+        $response = $this->call('GET', '/admin/plugins/qa/moderation');
         self::assertSame(200, $response->getStatusCode());
         self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
-        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review', [], csrf: false)->getStatusCode());
-        $response = $this->call('POST', '/admin/plugin/qa/moderation/review');
+        self::assertSame(403, $this->call('POST', '/admin/plugins/qa/moderation/review', [], csrf: false)->getStatusCode());
+        $response = $this->call('POST', '/admin/plugins/qa/moderation/review');
         self::assertSame(200, $response->getStatusCode());
         self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
         $permissionIds = Db::table('permission')->where('code', 'qa:moderation:index')->pluck('id')->all();
         (new CasbinService())->syncRolePermissions(2, $permissionIds);
         $anonymous = $auth->bootstrap('');
         $this->session = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'plugin_reader', 'plugin-reader-password', '127.0.0.4');
-        $response = $this->call('GET', '/admin/plugin/qa/moderation');
+        $response = $this->call('GET', '/admin/plugins/qa/moderation');
         self::assertSame(200, $response->getStatusCode());
         self::assertSame(422, json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['code']);
-        self::assertSame(403, $this->call('POST', '/admin/plugin/qa/moderation/review')->getStatusCode());
+        self::assertSame(403, $this->call('POST', '/admin/plugins/qa/moderation/review')->getStatusCode());
     }
 
     public function test_plugin_install_write_requires_csrf_before_package_processing(): void
@@ -100,7 +100,7 @@ final class PluginCenterHttpTest extends TestCase
         try {
             $manifest = json_decode(file_get_contents($directory . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
             $manifest['adminWeb']['permissions'][] = ['code' => $code . ':item:manage', 'name' => '管理'];
-            $manifest['adminWeb']['routes'][] = ['path' => '/plugin/' . $code . '/manage', 'name' => 'Plugin_' . $code . '_Manage', 'component' => 'Index', 'meta' => ['permission' => $code . ':item:manage']];
+        $manifest['adminWeb']['routes'][] = ['path' => '/plugins/' . $code . '/manage', 'name' => 'Plugin_' . $code . '_Manage', 'component' => 'Index', 'meta' => ['permission' => $code . ':item:manage']];
             file_put_contents($directory . '/plugin.json', json_encode($manifest, JSON_THROW_ON_ERROR));
             Db::table('plugin')->insert(['code' => $code, 'name' => '目录测试', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1, 'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
             (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','needs_reinstall'=>false,'version'=>'1.0.0']], [$code=>$manifest]);
@@ -112,7 +112,7 @@ final class PluginCenterHttpTest extends TestCase
             $modules = json_decode($response->rawBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
             $module = array_values(array_filter($modules, static fn ($item) => $item['code'] === $code))[0] ?? null;
             self::assertNotNull($module);
-            self::assertSame(['/plugin/' . $code . '/items'], array_column($module['routes'], 'path'));
+            self::assertSame(['/plugins/' . $code . '/items'], array_column($module['routes'], 'path'));
             (new CasbinService())->syncRolePermissions(2, []);
             $response = $this->call('GET', '/admin/system/plugin/modules/enabled');
             self::assertSame(200, $response->getStatusCode());

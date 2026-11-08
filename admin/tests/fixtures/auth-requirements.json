@@ -24,32 +24,32 @@
         "login": true,
         "permission": "development:business:delete-module"
     },
-    "DELETE /admin/plugin/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::delete": {
+    "DELETE /admin/plugins/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::delete": {
         "guard": "plugin",
         "login": true,
         "permission": "document:category:delete"
     },
-    "DELETE /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::delete": {
+    "DELETE /admin/plugins/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::delete": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:delete"
     },
-    "DELETE /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
+    "DELETE /admin/plugins/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:recycle"
     },
-    "DELETE /admin/plugin/example/test/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroyMany": {
+    "DELETE /admin/plugins/example/test/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroyMany": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:destroy-many"
     },
-    "DELETE /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::remove": {
+    "DELETE /admin/plugins/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::remove": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:remove"
     },
-    "DELETE /admin/plugin/example/test/{id:\\d+}/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroy": {
+    "DELETE /admin/plugins/example/test/{id:\\d+}/destroy => app\\admin\\plugins\\example\\controller\\TestController::destroy": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:destroy"
@@ -444,185 +444,185 @@
         "login": true,
         "permission": "form:data:sub"
     },
-    "GET /admin/plugin/cms/access => app\\admin\\plugins\\cms\\controller\\Access::index": {
+    "GET /admin/plugins/cms/access => app\\admin\\plugins\\cms\\controller\\Access::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:index"
     },
-    "GET /admin/plugin/cms/access/candidates => app\\admin\\plugins\\cms\\controller\\Access::candidates": {
+    "GET /admin/plugins/cms/access/candidates => app\\admin\\plugins\\cms\\controller\\Access::candidates": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:candidates"
     },
-    "GET /admin/plugin/cms/categories => app\\admin\\plugins\\cms\\controller\\Categories::index": {
+    "GET /admin/plugins/cms/categories => app\\admin\\plugins\\cms\\controller\\Categories::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:categories:index"
     },
-    "GET /admin/plugin/cms/configuration => app\\admin\\plugins\\cms\\controller\\Sites::configuration": {
+    "GET /admin/plugins/cms/configuration => app\\admin\\plugins\\cms\\controller\\Sites::configuration": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:configuration"
     },
-    "GET /admin/plugin/cms/content => app\\admin\\plugins\\cms\\controller\\Content::index": {
+    "GET /admin/plugins/cms/content => app\\admin\\plugins\\cms\\controller\\Content::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:index"
     },
-    "GET /admin/plugin/cms/content/attachments => app\\admin\\plugins\\cms\\controller\\Content::attachments": {
+    "GET /admin/plugins/cms/content/attachments => app\\admin\\plugins\\cms\\controller\\Content::attachments": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:attachments"
     },
-    "GET /admin/plugin/cms/content/detail => app\\admin\\plugins\\cms\\controller\\Content::detail": {
+    "GET /admin/plugins/cms/content/detail => app\\admin\\plugins\\cms\\controller\\Content::detail": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:detail"
     },
-    "GET /admin/plugin/cms/content/lookups => app\\admin\\plugins\\cms\\controller\\Content::lookups": {
+    "GET /admin/plugins/cms/content/lookups => app\\admin\\plugins\\cms\\controller\\Content::lookups": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:lookups"
     },
-    "GET /admin/plugin/cms/content/preview => app\\admin\\plugins\\cms\\controller\\Content::preview": {
+    "GET /admin/plugins/cms/content/preview => app\\admin\\plugins\\cms\\controller\\Content::preview": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:preview"
     },
-    "GET /admin/plugin/cms/content/revisions => app\\admin\\plugins\\cms\\controller\\Content::revisions": {
+    "GET /admin/plugins/cms/content/revisions => app\\admin\\plugins\\cms\\controller\\Content::revisions": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:revisions"
     },
-    "GET /admin/plugin/cms/content/translation => app\\admin\\plugins\\cms\\controller\\Content::translation": {
+    "GET /admin/plugins/cms/content/translation => app\\admin\\plugins\\cms\\controller\\Content::translation": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:translation"
     },
-    "GET /admin/plugin/cms/context => app\\admin\\plugins\\cms\\controller\\Sites::context": {
+    "GET /admin/plugins/cms/context => app\\admin\\plugins\\cms\\controller\\Sites::context": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:context"
     },
-    "GET /admin/plugin/cms/contributions => app\\admin\\plugins\\cms\\controller\\Contributions::index": {
+    "GET /admin/plugins/cms/contributions => app\\admin\\plugins\\cms\\controller\\Contributions::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:contributions:index"
     },
-    "GET /admin/plugin/cms/contributions/settings => app\\admin\\plugins\\cms\\controller\\Contributions::settings": {
+    "GET /admin/plugins/cms/contributions/settings => app\\admin\\plugins\\cms\\controller\\Contributions::settings": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:contributions:settings"
     },
-    "GET /admin/plugin/cms/menus => app\\admin\\plugins\\cms\\controller\\Menus::index": {
+    "GET /admin/plugins/cms/menus => app\\admin\\plugins\\cms\\controller\\Menus::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:index"
     },
-    "GET /admin/plugin/cms/menus/targets => app\\admin\\plugins\\cms\\controller\\Menus::targets": {
+    "GET /admin/plugins/cms/menus/targets => app\\admin\\plugins\\cms\\controller\\Menus::targets": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:targets"
     },
-    "GET /admin/plugin/cms/models => app\\admin\\plugins\\cms\\controller\\Models::index": {
+    "GET /admin/plugins/cms/models => app\\admin\\plugins\\cms\\controller\\Models::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:models:index"
     },
-    "GET /admin/plugin/cms/models/bindings => app\\admin\\plugins\\cms\\controller\\Models::bindings": {
+    "GET /admin/plugins/cms/models/bindings => app\\admin\\plugins\\cms\\controller\\Models::bindings": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:models:bindings"
     },
-    "GET /admin/plugin/cms/settings => app\\admin\\plugins\\cms\\controller\\Sites::settings": {
+    "GET /admin/plugins/cms/settings => app\\admin\\plugins\\cms\\controller\\Sites::settings": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:settings"
     },
-    "GET /admin/plugin/cms/sites => app\\admin\\plugins\\cms\\controller\\Sites::index": {
+    "GET /admin/plugins/cms/sites => app\\admin\\plugins\\cms\\controller\\Sites::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:index"
     },
-    "GET /admin/plugin/cms/sites/options => app\\admin\\plugins\\cms\\controller\\Sites::options": {
+    "GET /admin/plugins/cms/sites/options => app\\admin\\plugins\\cms\\controller\\Sites::options": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:options"
     },
-    "GET /admin/plugin/cms/tags => app\\admin\\plugins\\cms\\controller\\Tags::index": {
+    "GET /admin/plugins/cms/tags => app\\admin\\plugins\\cms\\controller\\Tags::index": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:index"
     },
-    "GET /admin/plugin/cms/tags/options => app\\admin\\plugins\\cms\\controller\\Tags::options": {
+    "GET /admin/plugins/cms/tags/options => app\\admin\\plugins\\cms\\controller\\Tags::options": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:options"
     },
-    "GET /admin/plugin/cms/tags/preview => app\\admin\\plugins\\cms\\controller\\Tags::preview": {
+    "GET /admin/plugins/cms/tags/preview => app\\admin\\plugins\\cms\\controller\\Tags::preview": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:preview"
     },
-    "GET /admin/plugin/cms/tags/providers => app\\admin\\plugins\\cms\\controller\\Tags::providers": {
+    "GET /admin/plugins/cms/tags/providers => app\\admin\\plugins\\cms\\controller\\Tags::providers": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:providers"
     },
-    "GET /admin/plugin/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::tree": {
+    "GET /admin/plugins/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::tree": {
         "guard": "plugin",
         "login": true,
         "permission": "document:category:tree"
     },
-    "GET /admin/plugin/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::index": {
+    "GET /admin/plugins/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::index": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:index"
     },
-    "GET /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::detail": {
+    "GET /admin/plugins/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::detail": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:detail"
     },
-    "GET /admin/plugin/document/documents/{id:\\d+}/revisions => app\\admin\\plugins\\document\\controller\\DocumentController::revisions": {
+    "GET /admin/plugins/document/documents/{id:\\d+}/revisions => app\\admin\\plugins\\document\\controller\\DocumentController::revisions": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:revisions"
     },
-    "GET /admin/plugin/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::revision": {
+    "GET /admin/plugins/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::revision": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:revision"
     },
-    "GET /admin/plugin/example/index => app\\admin\\plugins\\example\\controller\\Index::index": {
+    "GET /admin/plugins/example/index => app\\admin\\plugins\\example\\controller\\Index::index": {
         "guard": "plugin",
         "login": true,
         "permission": "example:index:index"
     },
-    "GET /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::index": {
+    "GET /admin/plugins/example/test => app\\admin\\plugins\\example\\controller\\TestController::index": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:index"
     },
-    "GET /admin/plugin/example/test/export => app\\admin\\plugins\\example\\controller\\TestController::export": {
+    "GET /admin/plugins/example/test/export => app\\admin\\plugins\\example\\controller\\TestController::export": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:export"
     },
-    "GET /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::detail": {
+    "GET /admin/plugins/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::detail": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:detail"
-    },
-    "GET /admin/plugin/qa/moderation => app\\admin\\plugins\\qa\\controller\\Moderation::index": {
-        "guard": "plugin",
-        "login": true,
-        "permission": "qa:moderation:index"
     },
     "GET /admin/plugins/hooks/frontend => app\\common\\plugin\\controller\\FrontendHooks::index": {
         "guard": "self",
         "login": false,
         "permission": null
+    },
+    "GET /admin/plugins/qa/moderation => app\\admin\\plugins\\qa\\controller\\Moderation::index": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:moderation:index"
     },
     "GET /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::index": {
         "guard": "self",
@@ -1359,167 +1359,167 @@
         "login": true,
         "permission": "form:data:validate-async"
     },
-    "POST /admin/plugin/cms/access/members/remove => app\\admin\\plugins\\cms\\controller\\Access::remove": {
+    "POST /admin/plugins/cms/access/members/remove => app\\admin\\plugins\\cms\\controller\\Access::remove": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:remove"
     },
-    "POST /admin/plugin/cms/access/members/save => app\\admin\\plugins\\cms\\controller\\Access::assign": {
+    "POST /admin/plugins/cms/access/members/save => app\\admin\\plugins\\cms\\controller\\Access::assign": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:assign"
     },
-    "POST /admin/plugin/cms/access/roles/save => app\\admin\\plugins\\cms\\controller\\Access::saveRole": {
+    "POST /admin/plugins/cms/access/roles/save => app\\admin\\plugins\\cms\\controller\\Access::saveRole": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:save-role"
     },
-    "POST /admin/plugin/cms/categories/save => app\\admin\\plugins\\cms\\controller\\Categories::save": {
+    "POST /admin/plugins/cms/categories/save => app\\admin\\plugins\\cms\\controller\\Categories::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:categories:save"
     },
-    "POST /admin/plugin/cms/categories/status => app\\admin\\plugins\\cms\\controller\\Categories::status": {
+    "POST /admin/plugins/cms/categories/status => app\\admin\\plugins\\cms\\controller\\Categories::status": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:categories:status"
     },
-    "POST /admin/plugin/cms/configuration/save => app\\admin\\plugins\\cms\\controller\\Sites::configurationSave": {
+    "POST /admin/plugins/cms/configuration/save => app\\admin\\plugins\\cms\\controller\\Sites::configurationSave": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:configuration-save"
     },
-    "POST /admin/plugin/cms/content/offline => app\\admin\\plugins\\cms\\controller\\Content::offline": {
+    "POST /admin/plugins/cms/content/offline => app\\admin\\plugins\\cms\\controller\\Content::offline": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:offline"
     },
-    "POST /admin/plugin/cms/content/publish => app\\admin\\plugins\\cms\\controller\\Content::publish": {
+    "POST /admin/plugins/cms/content/publish => app\\admin\\plugins\\cms\\controller\\Content::publish": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:publish"
     },
-    "POST /admin/plugin/cms/content/save => app\\admin\\plugins\\cms\\controller\\Content::save": {
+    "POST /admin/plugins/cms/content/save => app\\admin\\plugins\\cms\\controller\\Content::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:save"
     },
-    "POST /admin/plugin/cms/content/upload => app\\admin\\plugins\\cms\\controller\\Content::upload": {
+    "POST /admin/plugins/cms/content/upload => app\\admin\\plugins\\cms\\controller\\Content::upload": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:content:upload"
     },
-    "POST /admin/plugin/cms/contributions/review => app\\admin\\plugins\\cms\\controller\\Contributions::review": {
+    "POST /admin/plugins/cms/contributions/review => app\\admin\\plugins\\cms\\controller\\Contributions::review": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:contributions:review"
     },
-    "POST /admin/plugin/cms/contributions/settings/save => app\\admin\\plugins\\cms\\controller\\Contributions::saveSettings": {
+    "POST /admin/plugins/cms/contributions/settings/save => app\\admin\\plugins\\cms\\controller\\Contributions::saveSettings": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:contributions:save-settings"
     },
-    "POST /admin/plugin/cms/domains/save => app\\admin\\plugins\\cms\\controller\\Sites::domainSave": {
+    "POST /admin/plugins/cms/domains/save => app\\admin\\plugins\\cms\\controller\\Sites::domainSave": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:domain-save"
     },
-    "POST /admin/plugin/cms/locales/save => app\\admin\\plugins\\cms\\controller\\Sites::localeSave": {
+    "POST /admin/plugins/cms/locales/save => app\\admin\\plugins\\cms\\controller\\Sites::localeSave": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:locale-save"
     },
-    "POST /admin/plugin/cms/menus/remove => app\\admin\\plugins\\cms\\controller\\Menus::remove": {
+    "POST /admin/plugins/cms/menus/remove => app\\admin\\plugins\\cms\\controller\\Menus::remove": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:remove"
     },
-    "POST /admin/plugin/cms/menus/save => app\\admin\\plugins\\cms\\controller\\Menus::save": {
+    "POST /admin/plugins/cms/menus/save => app\\admin\\plugins\\cms\\controller\\Menus::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:save"
     },
-    "POST /admin/plugin/cms/menus/status => app\\admin\\plugins\\cms\\controller\\Menus::status": {
+    "POST /admin/plugins/cms/menus/status => app\\admin\\plugins\\cms\\controller\\Menus::status": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:status"
     },
-    "POST /admin/plugin/cms/models/save => app\\admin\\plugins\\cms\\controller\\Models::save": {
+    "POST /admin/plugins/cms/models/save => app\\admin\\plugins\\cms\\controller\\Models::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:models:save"
     },
-    "POST /admin/plugin/cms/site-models/save => app\\admin\\plugins\\cms\\controller\\Sites::modelSave": {
+    "POST /admin/plugins/cms/site-models/save => app\\admin\\plugins\\cms\\controller\\Sites::modelSave": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:model-save"
     },
-    "POST /admin/plugin/cms/sites/grant => app\\admin\\plugins\\cms\\controller\\Sites::grant": {
+    "POST /admin/plugins/cms/sites/grant => app\\admin\\plugins\\cms\\controller\\Sites::grant": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:grant"
     },
-    "POST /admin/plugin/cms/sites/save => app\\admin\\plugins\\cms\\controller\\Sites::save": {
+    "POST /admin/plugins/cms/sites/save => app\\admin\\plugins\\cms\\controller\\Sites::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:save"
     },
-    "POST /admin/plugin/cms/tags/publish => app\\admin\\plugins\\cms\\controller\\Tags::publish": {
+    "POST /admin/plugins/cms/tags/publish => app\\admin\\plugins\\cms\\controller\\Tags::publish": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:publish"
     },
-    "POST /admin/plugin/cms/tags/save => app\\admin\\plugins\\cms\\controller\\Tags::save": {
+    "POST /admin/plugins/cms/tags/save => app\\admin\\plugins\\cms\\controller\\Tags::save": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:tags:save"
     },
-    "POST /admin/plugin/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::create": {
+    "POST /admin/plugins/document/categories => app\\admin\\plugins\\document\\controller\\CategoryController::create": {
         "guard": "plugin",
         "login": true,
         "permission": "document:category:create"
     },
-    "POST /admin/plugin/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::create": {
+    "POST /admin/plugins/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::create": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:create"
     },
-    "POST /admin/plugin/document/documents/{id:\\d+}/archive => app\\admin\\plugins\\document\\controller\\DocumentController::archive": {
+    "POST /admin/plugins/document/documents/{id:\\d+}/archive => app\\admin\\plugins\\document\\controller\\DocumentController::archive": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:archive"
     },
-    "POST /admin/plugin/document/documents/{id:\\d+}/publish => app\\admin\\plugins\\document\\controller\\DocumentController::publish": {
+    "POST /admin/plugins/document/documents/{id:\\d+}/publish => app\\admin\\plugins\\document\\controller\\DocumentController::publish": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:publish"
     },
-    "POST /admin/plugin/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+}/restore => app\\admin\\plugins\\document\\controller\\DocumentController::restore": {
+    "POST /admin/plugins/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+}/restore => app\\admin\\plugins\\document\\controller\\DocumentController::restore": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:restore"
     },
-    "POST /admin/plugin/example/test => app\\admin\\plugins\\example\\controller\\TestController::create": {
+    "POST /admin/plugins/example/test => app\\admin\\plugins\\example\\controller\\TestController::create": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:create"
     },
-    "POST /admin/plugin/example/test/import => app\\admin\\plugins\\example\\controller\\TestController::import": {
+    "POST /admin/plugins/example/test/import => app\\admin\\plugins\\example\\controller\\TestController::import": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:import"
     },
-    "POST /admin/plugin/example/test/restore => app\\admin\\plugins\\example\\controller\\TestController::restoreMany": {
+    "POST /admin/plugins/example/test/restore => app\\admin\\plugins\\example\\controller\\TestController::restoreMany": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:restore-many"
     },
-    "POST /admin/plugin/example/test/{id:\\d+}/restore => app\\admin\\plugins\\example\\controller\\TestController::restore": {
+    "POST /admin/plugins/example/test/{id:\\d+}/restore => app\\admin\\plugins\\example\\controller\\TestController::restore": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:restore"
     },
-    "POST /admin/plugin/qa/moderation/review => app\\admin\\plugins\\qa\\controller\\Moderation::review": {
+    "POST /admin/plugins/qa/moderation/review => app\\admin\\plugins\\qa\\controller\\Moderation::review": {
         "guard": "plugin",
         "login": true,
         "permission": "qa:moderation:review"
@@ -1904,22 +1904,22 @@
         "login": true,
         "permission": "ai:ai:conversation-update"
     },
-    "PUT /admin/plugin/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::update": {
+    "PUT /admin/plugins/document/categories/{id:\\d+} => app\\admin\\plugins\\document\\controller\\CategoryController::update": {
         "guard": "plugin",
         "login": true,
         "permission": "document:category:update"
     },
-    "PUT /admin/plugin/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::updateMeta": {
+    "PUT /admin/plugins/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::updateMeta": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:update-meta"
     },
-    "PUT /admin/plugin/document/documents/{id:\\d+}/draft => app\\admin\\plugins\\document\\controller\\DocumentController::saveDraft": {
+    "PUT /admin/plugins/document/documents/{id:\\d+}/draft => app\\admin\\plugins\\document\\controller\\DocumentController::saveDraft": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:save-draft"
     },
-    "PUT /admin/plugin/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::update": {
+    "PUT /admin/plugins/example/test/{id:\\d+} => app\\admin\\plugins\\example\\controller\\TestController::update": {
         "guard": "plugin",
         "login": true,
         "permission": "example:test:update"
