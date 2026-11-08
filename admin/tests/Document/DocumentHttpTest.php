@@ -110,7 +110,7 @@ final class DocumentHttpTest extends DocumentTestCase
     {
         $method = $post ? 'POST' : ($put ? 'PUT' : 'GET');
         $body = $post || $put ? json_encode($post ?: $put, JSON_THROW_ON_ERROR) : '';
-        $uri = '/admin/plugin/document' . ($query ? '?' . http_build_query($query) : '');
+        $uri = '/admin/plugins/document' . ($query ? '?' . http_build_query($query) : '');
         $request = new Request("$method $uri HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
         $request->context['admin'] = ['id' => 1];
         Context::set(\Webman\Http\Request::class, $request);

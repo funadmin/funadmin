@@ -394,10 +394,10 @@ final class Manifest
                 static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(/', $attribute) === 1
             ));
             if (count($groups) !== 1 || preg_match(
-                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/admin\/(?:plugin|plugins)\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/admin\/plugins\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
                 $groups[0]
             ) !== 1) {
-                throw new RuntimeException('Console Attribute Group 必须使用 /admin/plugins/' . $code . ' 前缀（旧 /admin/plugin 仍兼容）：' . $file);
+                throw new RuntimeException('Console Attribute Group 必须使用 /admin/plugins/' . $code . ' 前缀：' . $file);
             }
         }
     }

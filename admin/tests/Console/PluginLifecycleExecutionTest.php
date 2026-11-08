@@ -72,7 +72,7 @@ class PluginLifecycleExecutionTest extends TestCase
     {
         $registry = \app\admin\authorization\service\ResourceRegistryService::instance();
         $registry->registerPermissions([['code' => 'lifecyclefixture:document:index', 'name' => '文档中心']], 'plugin', 'lifecyclefixture');
-        $registry->registerTree([['name' => '文档中心', 'path' => '/plugin/lifecyclefixture/docs', 'permission' => 'lifecyclefixture:document:index']], 0, 0, 'admin', 'plugin', 'lifecyclefixture');
+        $registry->registerTree([['name' => '文档中心', 'path' => '/plugins/lifecyclefixture/docs', 'permission' => 'lifecyclefixture:document:index']], 0, 0, 'admin', 'plugin', 'lifecyclefixture');
         $record = \app\common\plugin\model\Plugin::forceCreate(['code' => 'lifecyclefixture', 'version' => '1.0.0', 'lifecycle_state' => 'installing', 'status' => 0]);
         $service = new PluginService($this->root);
         (new \ReflectionMethod(PluginService::class, 'transition'))->invoke($service, $record, 'disabled');
@@ -180,7 +180,7 @@ class PluginLifecycleExecutionTest extends TestCase
         $anonymous = $auth->bootstrap('');
         $login = $auth->login($anonymous['cookie'], $anonymous['csrfToken'], 'lifecycle_reader', 'test-password', '127.0.0.1');
         $call = static function () use ($controller, $login): int {
-            $request = new \support\Request("GET /admin/plugin/lifecyclefixture/index HTTP/1.1\r\nHost: localhost\r\nCookie: " . \app\admin\authentication\service\BrowserAuthService::COOKIE . '=' . $login['cookie'] . "\r\n\r\n");
+            $request = new \support\Request("GET /admin/plugins/lifecyclefixture/index HTTP/1.1\r\nHost: localhost\r\nCookie: " . \app\admin\authentication\service\BrowserAuthService::COOKIE . '=' . $login['cookie'] . "\r\n\r\n");
             $request->controller = $controller;
             $request->action = 'index';
             \support\Context::set(\Webman\Http\Request::class, $request);

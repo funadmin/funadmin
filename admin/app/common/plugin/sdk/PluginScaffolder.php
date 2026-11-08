@@ -291,7 +291,7 @@ PHP;
 
     private function adminWebApiSource(string $name): string
     {
-        return "import http from '@/utils/http';\nimport type { Item } from './types';\n\nexport const listItems = () => http.get<Item[]>('/plugin/{$name}/index');\n";
+        return "import http from '@/utils/http';\nimport type { Item } from './types';\n\nexport const listItems = () => http.get<Item[]>('/plugins/{$name}/index');\n";
     }
 
     private function adminWebTypesSource(): string

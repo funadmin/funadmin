@@ -14,16 +14,16 @@ export interface TestModelQuery { page: number; pageSize: number; recycled?: 0 |
 export type TestModelPayload = Partial<Omit<TestModel, 'id'>>;
 
 export const testApi = {
-  list: (params: TestModelQuery) => request.get<API.PageResult<TestModel>>('/plugin/example/test', params),
+  list: (params: TestModelQuery) => request.get<API.PageResult<TestModel>>('/plugins/example/test', params),
   detail: (id: TestModelId) => request.get<TestModel>(`/plugin/example/test/${id}`),
-  create: (data: TestModelPayload) => request.post<TestModel>('/plugin/example/test', data),
+  create: (data: TestModelPayload) => request.post<TestModel>('/plugins/example/test', data),
   update: (id: TestModelId, data: TestModelPayload) => request.put<TestModel>(`/plugin/example/test/${id}`, data),
   remove: (id: TestModelId) => request.delete(`/plugin/example/test/${id}`),
   restore: (id: TestModelId) => request.post(`/plugin/example/test/${id}/restore`),
   forceDelete: (id: TestModelId) => request.delete(`/plugin/example/test/${id}/destroy`),
-  removeMany: (ids: TestModelId[]) => request.delete('/plugin/example/test', { ids }),
-  restoreMany: (ids: TestModelId[]) => request.post('/plugin/example/test/restore', { ids }),
-  forceDeleteMany: (ids: TestModelId[]) => request.delete('/plugin/example/test/destroy', { ids }),
-  importRows: (rows: TestModelPayload[]) => request.post('/plugin/example/test/import', { rows }),
-  exportRows: (params: Partial<TestModelQuery>) => request.get<TestModel[]>('/plugin/example/test/export', params)
+  removeMany: (ids: TestModelId[]) => request.delete('/plugins/example/test', { ids }),
+  restoreMany: (ids: TestModelId[]) => request.post('/plugins/example/test/restore', { ids }),
+  forceDeleteMany: (ids: TestModelId[]) => request.delete('/plugins/example/test/destroy', { ids }),
+  importRows: (rows: TestModelPayload[]) => request.post('/plugins/example/test/import', { rows }),
+  exportRows: (params: Partial<TestModelQuery>) => request.get<TestModel[]>('/plugins/example/test/export', params)
 };

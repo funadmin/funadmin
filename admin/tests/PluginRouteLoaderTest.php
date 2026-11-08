@@ -9,26 +9,21 @@ use PHPUnit\Framework\TestCase;
 
 final class PluginRouteLoaderTest extends TestCase
 {
-    public function test_plural_definition_gets_singular_compatibility_alias(): void
+    public function test_plural_definition_is_registered_once(): void
     {
-        $definitions = PluginRouteLoader::withLegacyAliases([[
+        $definitions = [[
             'methods' => ['GET'],
             'path' => '/admin/plugins/demo/items',
             'callback' => ['DemoController', 'index'],
             'name' => 'demo.items',
-        ]]);
+        ]];
 
-        self::assertSame(['/admin/plugins/demo/items', '/admin/plugin/demo/items'], array_column($definitions, 'path'));
-        self::assertNull($definitions[1]['name']);
+        self::assertSame(['/admin/plugins/demo/items'], array_column($definitions, 'path'));
     }
 
-    public function test_legacy_definition_gets_plural_compatibility_alias_without_duplicate(): void
+    public function test_legacy_definition_is_not_accepted(): void
     {
-        $definitions = PluginRouteLoader::withLegacyAliases([
-            ['methods' => ['GET'], 'path' => '/admin/plugin/demo/items', 'callback' => ['DemoController', 'index'], 'name' => 'demo.items'],
-            ['methods' => ['GET'], 'path' => '/admin/plugins/demo/items', 'callback' => ['DemoController', 'index'], 'name' => 'demo.items.plural'],
-        ]);
-
-        self::assertCount(2, $definitions);
+        $this->expectException(\InvalidArgumentException::class);
+        \app\common\plugin\sdk\PluginRouteNamespace::canonical('/admin/plugin/demo/items', 'demo');
     }
 }

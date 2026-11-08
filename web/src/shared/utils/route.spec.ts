@@ -10,9 +10,9 @@ const route = (path: string, children: RouteRecordRaw[] = []): RouteRecordRaw =>
 
 describe('getMenuActiveRootPath', () => {
   it('参数化子页面通过 matched 归属正确的目录', () => {
-    const menus = [route('/admin/plugins', [route('/admin/plugin/:id')])];
-    const current = { path: '/admin/plugin/42', meta: {}, matched: [
-      { path: '/admin/plugins', name: undefined }, { path: '/admin/plugin/:id', name: 'PluginDetail' }
+    const menus = [route('/admin/plugins', [route('/admin/plugins/:id')])];
+    const current = { path: '/admin/plugins/42', meta: {}, matched: [
+      { path: '/admin/plugins', name: undefined }, { path: '/admin/plugins/:id', name: 'PluginDetail' }
     ] };
     expect(getMenuActiveRootPath(current as Parameters<typeof getMenuActiveRootPath>[0], menus)).toBe('/admin/plugins');
   });

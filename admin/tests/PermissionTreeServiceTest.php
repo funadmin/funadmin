@@ -85,7 +85,7 @@ final class PermissionTreeServiceTest extends TestCase
         $stray = Db::table('permission')->insertGetId(['pid' => 0, 'app_name' => 'admin', 'code' => 'system:member:fixture', 'obj' => 'system/member', 'act' => 'fixture', 'name' => '新方法', 'resource_type' => 'route', 'status' => 1, 'source_type' => 'system', 'source_name' => '']);
         $manual = Db::table('permission')->insertGetId(['pid' => 0, 'app_name' => 'admin', 'code' => 'custom:report:view', 'obj' => 'custom/report', 'act' => 'view', 'name' => '手工能力', 'resource_type' => 'capability', 'status' => 1, 'source_type' => 'manual', 'source_name' => '']);
         $menuGroup = Db::table('permission')->insertGetId(['pid' => 0, 'app_name' => 'admin', 'name' => '插件目录', 'resource_type' => 'group', 'status' => 1, 'source_type' => 'plugin', 'source_name' => 'fixture']);
-        Db::table('admin_menu')->insert(['pid' => 0, 'permission_id' => $menuGroup, 'app_name' => 'admin', 'name' => '插件目录', 'href' => '/plugin/fixture', 'query' => 'type=M', 'source_type' => 'plugin', 'source_name' => 'fixture']);
+        Db::table('admin_menu')->insert(['pid' => 0, 'permission_id' => $menuGroup, 'app_name' => 'admin', 'name' => '插件目录', 'href' => '/plugins/fixture', 'query' => 'type=M', 'source_type' => 'plugin', 'source_name' => 'fixture']);
         $empty = Db::table('permission')->insertGetId(['pid' => 0, 'app_name' => 'admin', 'name' => '空分组', 'resource_type' => 'group', 'status' => 1, 'source_type' => 'system', 'source_name' => 'legacy']);
 
         $result = $service->organize();

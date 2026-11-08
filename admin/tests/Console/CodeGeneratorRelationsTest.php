@@ -54,7 +54,7 @@ final class CodeGeneratorRelationsTest extends TestCase
                 'plugins/shopkit/app/admin/plugins/shopkit/service/ShopPlainService.php' => '943bbd4e32e383f35c3cc0661679aaf43e37827dd4378ef69621ecae89161e0e',
                 'plugins/shopkit/app/admin/plugins/shopkit/validate/ShopPlainValidate.php' => 'b981d6cb4d36860cfd2adecb15dd763d4cecb911b7a7ea85f0dc17aa943ef0cc',
                 'plugins/shopkit/database/migrations/001_create_shop_plain.sql' => '59b9f7bceea3862970fa8159613ab9a35c4ac2b3a59ecfd19f6aad96ffd6b49e',
-                'plugins/shopkit/plugin.json' => 'e52c7643568f759275b19ef121bbe798a61eb64f703f241dd29e60624b048e9f',
+                'plugins/shopkit/plugin.json' => 'a70b6b3e5df05cf9760ffc6a9f75629d015ee614810788b2c663e755d07ff5b5',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/api.ts' => '87354cfa671278907fb83577be0c410f36c0885d53a8aa9cf9d958cb8812d220',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/components/ShopPlainDetail.vue' => '7669711049fd28699c321cfb2bde96ecb2eb1100b017e4aab8931c7874654c76',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/components/ShopPlainForm.vue' => '3c197c0278b9865176180b5a22850ae88d07156374ca4b034a922b0dbaf4cddc',

@@ -35,7 +35,6 @@ describe('Webman plugin module routing', () => {
       expect(browserUrl.pathname + browserUrl.hash).toBe(href);
       expect(resolved.path).toBe('/admin/plugins/example/items');
       expect(resolved.meta.activeMenu).toBe('/admin/plugins/example/items');
-      expect(activeRouter.resolve('/admin/plugin/example/items').name).toBe('Plugin_example_Items_Layout_Legacy');
     } finally {
       history.destroy();
       window.history.replaceState(previousState, '', previousUrl);
@@ -57,7 +56,7 @@ describe('Webman plugin module routing', () => {
     expect(activeRouter.resolve('/admin/plugins/example/items').matched.map(route => route.name)).toEqual(['Plugin_example_Items_Layout', 'Plugin_example_Items']);
     expect(activeRouter.resolve('/admin/plugins/example/items').meta.activeMenu).toBe('/admin/plugins/example/items');
     await syncPluginModules(activeRouter, [descriptor()], { modules });
-    expect(activeRouter.getRoutes()).toHaveLength(3);
+    expect(activeRouter.getRoutes()).toHaveLength(2);
     await syncPluginModules(activeRouter, [], { modules });
     expect(activeRouter.getRoutes()).toHaveLength(0);
   });
@@ -114,7 +113,7 @@ describe('Webman plugin module routing', () => {
     expect(result.loaded).toEqual([]);
     expect(result.errors).toEqual([expect.objectContaining({ code: 'market', stage: 'component' })]);
     expect(activeRouter.hasRoute('Plugin_market_Index')).toBe(false);
-    expect(activeRouter.getRoutes().map(route => route.name)).toEqual(['Plugin_market_Error', 'Plugin_market_Error_Legacy']);
+    expect(activeRouter.getRoutes().map(route => route.name)).toEqual(['Plugin_market_Error']);
   });
 
   it('rejects route names belonging to another plugin', async () => {

@@ -5,7 +5,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import http from '@/utils/http';
 import type { Scope, MemberSubmission } from '../types';
 const { t } = useCmsI18n();
-const props=withDefaults(defineProps<{scope:Scope;can:(permission:string)=>boolean;endpoint?:string;qa?:boolean}>(),{endpoint:'/plugin/cms/contributions',qa:false});
+const props=withDefaults(defineProps<{scope:Scope;can:(permission:string)=>boolean;endpoint?:string;qa?:boolean}>(),{endpoint:'/plugins/cms/contributions',qa:false});
 const items=ref<MemberSubmission[]>([]),selected=ref<MemberSubmission>(),status=ref('pending'),page=ref(1),total=ref(0),reason=ref(''),error=ref(''),success=ref(''),loading=ref(false),busy=ref(false);
 const names=computed<Record<string,string>>(()=>({pending:t('cms.labels.pendingReview'),published:t('cms.labels.published'),rejected:t('cms.labels.rejected'),withdrawn:t('cms.labels.withdrawn'),hidden:t('cms.labels.unpublished')}));
 const kinds=computed<Record<string,string>>(()=>({content:t('cms.labels.submission'),question:t('cms.labels.question2'),answer:t('cms.labels.answer')}));

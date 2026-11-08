@@ -12,7 +12,7 @@ const descriptor = (code: string): EnabledPluginModule => ({
   code,
   version: '1.0.0',
   components: { Index: 'Index.vue' },
-  routes: [{ path: `/plugin/${code}/index`, name: `Plugin_${code}`, component: 'Index', meta: { title: code } }]
+  routes: [{ path: `/plugins/${code}/index`, name: `Plugin_${code}`, component: 'Index', meta: { title: code } }]
 });
 
 const modules = (names: string[]): Record<string, Component> => Object.fromEntries(
@@ -64,7 +64,7 @@ describe('pluginModules', () => {
 
     expect(result.loaded).toEqual(['healthy']);
     expect(result.errors[0]).toMatchObject({ code: 'missing', stage: 'component' });
-    expect(router.addRoute).toHaveBeenCalledTimes(4);
+    expect(router.addRoute).toHaveBeenCalledTimes(2);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Plugin_missing_Error',
       component: expect.any(Function)
@@ -88,10 +88,9 @@ describe('pluginModules', () => {
     const options = { modules: modules(['demo']) };
     await syncPluginModules(router, [descriptor('demo')], options);
     await syncPluginModules(router, [descriptor('demo')], options);
-    expect(router.addRoute).toHaveBeenCalledTimes(2);
+    expect(router.addRoute).toHaveBeenCalledTimes(1);
     await syncPluginModules(router, [], options);
     expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo_Layout');
-    expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo_Layout_Legacy');
   });
 
   it('Router 实例重建后恢复路由', async () => {
@@ -101,7 +100,7 @@ describe('pluginModules', () => {
     const options = { modules: modules(['reloadable']) };
     await syncPluginModules(firstRouter, [item], options);
     await syncPluginModules(secondRouter, [item], options);
-    expect(secondRouter.addRoute).toHaveBeenCalledTimes(2);
+    expect(secondRouter.addRoute).toHaveBeenCalledOnce();
     clearPluginModules(secondRouter);
   });
 });

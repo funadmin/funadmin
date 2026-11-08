@@ -20,7 +20,7 @@ watch(siteId,()=>{locale.value=current.value?.default_locale||'';});onMounted(()
   <template #header><div class="qa-context"><strong>{{ t('cms.labels.qAModeration') }}</strong><el-select v-if="sites.length" v-model="siteId" :aria-label="t('cms.labels.qASite')"><el-option v-for="site in sites" :key="site.id" :label="site.name" :value="site.id" /></el-select><el-select v-if="current" v-model="locale" :aria-label="t('cms.labels.qALanguage')"><el-option v-for="language in current.locales" :key="language.locale" :label="language.name" :value="language.locale" /></el-select></div></template>
   <template #extra><el-button @click="load">{{ t('cms.labels.refreshSites') }}</el-button></template>
   <el-alert v-if="error" :title="error" type="error" :closable="false" />
-  <ContributionsPanel v-if="siteId&&locale&&!error" :key="`${siteId}:${locale}`" :scope="scope" :can="can" endpoint="/plugin/qa/moderation" qa />
+  <ContributionsPanel v-if="siteId&&locale&&!error" :key="`${siteId}:${locale}`" :scope="scope" :can="can" endpoint="/plugins/qa/moderation" qa />
   <el-empty v-else-if="!sites.length&&!error&&!loading" :description="t('cms.labels.noSitesAvailableForReviewAssignCmsSiteSubmission')" />
  </PageWrapper>
 </template>

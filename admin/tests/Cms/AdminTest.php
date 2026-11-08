@@ -22,7 +22,7 @@ final class AdminTest extends CmsTestCase
     {
         self::assertTrue(class_exists($class),'CMS admin controller must exist');
         $body=json_encode($input);$query=$post?'':'?'.http_build_query($input);
-        $request=new Request(($post?'POST':'GET').' /admin/plugin/cms/test'.$query." HTTP/1.1\r\nHost: admin.test\r\nContent-Type: application/json\r\nContent-Length: ".strlen($post?$body:'')."\r\n\r\n".($post?$body:''));
+        $request=new Request(($post?'POST':'GET').' /admin/plugins/cms/test'.$query." HTTP/1.1\r\nHost: admin.test\r\nContent-Type: application/json\r\nContent-Length: ".strlen($post?$body:'')."\r\n\r\n".($post?$body:''));
         $request->context['admin']=['id'=>$actor];Context::set(\Webman\Http\Request::class,$request);
         try{$response=(new $class())->$method();return json_decode($response->rawBody(),true);}finally{Context::destroy();}
     }

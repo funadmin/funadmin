@@ -109,7 +109,7 @@ final class CoreSeedPlanTest extends TestCase
         $reference = ['admin_menu' => [['id' => 31, 'pid' => 0, 'permission_id' => 0, 'app_name' => 'admin', 'href' => 'user', 'query' => 'name=SystemUser&component=system/user/index', 'source_type' => 'admin_web', 'source_name' => 'user']]];
         $actual = ['admin_menu' => [
             ['id' => 77, 'pid' => 0, 'permission_id' => 0, 'app_name' => 'admin', 'href' => '/admin/system/user', 'query' => 'name=SystemAdmin&type=C&component=system%2Fuser%2Findex', 'source_type' => 'admin_web', 'source_name' => 'authorization'],
-            ['id' => 88, 'pid' => 0, 'permission_id' => 0, 'app_name' => 'admin', 'href' => '/plugin/user', 'query' => 'name=PluginUser&component=system/user/index', 'source_type' => 'plugin', 'source_name' => 'custom'],
+            ['id' => 88, 'pid' => 0, 'permission_id' => 0, 'app_name' => 'admin', 'href' => '/plugins/user', 'query' => 'name=PluginUser&component=system/user/index', 'source_type' => 'plugin', 'source_name' => 'custom'],
         ]];
         $plan = CoreSeedPlan::build($reference, $actual);
         self::assertSame([], $plan['blockers']);

@@ -20,7 +20,7 @@ final class SiteRoleDelegationTest extends CmsTestCase
         $role=$r->saveRole($id,'1',['code'=>'delegate','name'=>'Delegate','permissions'=>$own]);$r->assign($id,'1','91',[$role['id']]);
         $reader=$r->saveRole($id,'1',['code'=>'shared','name'=>'Shared','permissions'=>['cms:content:list']]);$r->assign($id,'1','92',[$reader['id']]);$r->assign($id,'1','93',[$reader['id']]);
         $high=$r->saveRole($id,'1',['code'=>'high','name'=>'High','permissions'=>['cms:content:publish']]);
-        $request=new Request("GET /admin/plugin/cms/access HTTP/1.1\r\nHost: test\r\n\r\n");$request->context['admin']=['id'=>91];Context::set(\Webman\Http\Request::class,$request);
+        $request=new Request("GET /admin/plugins/cms/access HTTP/1.1\r\nHost: test\r\n\r\n");$request->context['admin']=['id'=>91];Context::set(\Webman\Http\Request::class,$request);
         try {
             self::assertSame(['92'],array_column($r->candidates($id,'91'),'id'));
             foreach([

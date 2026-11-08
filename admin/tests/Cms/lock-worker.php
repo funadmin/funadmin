@@ -5,7 +5,7 @@ $database=getenv('CMS_MYSQL_DATABASE')?:'';if(!preg_match('/^funadmin_cms_test_[
 $capsule=new \Webman\Database\Manager();$capsule->addConnection(['driver'=>'mysql','unix_socket'=>getenv('CMS_MYSQL_SOCKET')?:'/tmp/mysql.sock','database'=>$database,'username'=>'root','password'=>'','prefix'=>'fun_','charset'=>'utf8mb4','collation'=>'utf8mb4_unicode_ci'],'cms_lock_worker');$capsule->getDatabaseManager()->setDefaultConnection('cms_lock_worker');$capsule->setAsGlobal();
 \support\Db::statement('SET innodb_lock_wait_timeout = 3');$input=json_decode(getenv('CMS_LOCK_INPUT'),true,512,JSON_THROW_ON_ERROR);
 if($input['operation']==='menu-api'){
- $body=json_encode(['site_id'=>$input['site'],'locale'=>'zh-cn','code'=>'header','name'=>'Header','items'=>[]]);$request=new \support\Request("POST /admin/plugin/cms/menus/save HTTP/1.1\r\nHost: test\r\nContent-Type: application/json\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->context['admin']=['id'=>1];\support\Context::set(\Webman\Http\Request::class,$request);
+ $body=json_encode(['site_id'=>$input['site'],'locale'=>'zh-cn','code'=>'header','name'=>'Header','items'=>[]]);$request=new \support\Request("POST /admin/plugins/cms/menus/save HTTP/1.1\r\nHost: test\r\nContent-Type: application/json\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->context['admin']=['id'=>1];\support\Context::set(\Webman\Http\Request::class,$request);
 }
 fwrite(STDOUT,"READY\n");fflush(STDOUT);
 try{match($input['operation']){

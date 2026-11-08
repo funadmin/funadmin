@@ -79,7 +79,7 @@ final class PluginRouteExecutionTest extends TestCase
         $call = function (string $action, bool $authenticated = true, bool $csrf = true) use ($controller): int {
             $headers = $authenticated ? 'Cookie: ' . BrowserAuthService::COOKIE . '=' . $this->login['cookie'] . "\r\n" : '';
             if ($csrf) $headers .= 'X-CSRF-TOKEN: ' . $this->login['csrfToken'] . "\r\n";
-            $request = new Request("POST /admin/plugin/routefixture/metadata HTTP/1.1\r\nHost: localhost\r\n" . $headers . "\r\n");
+            $request = new Request("POST /admin/plugins/routefixture/metadata HTTP/1.1\r\nHost: localhost\r\n" . $headers . "\r\n");
             $request->controller = $controller;
             $request->action = $action;
             Context::set(\Webman\Http\Request::class, $request);

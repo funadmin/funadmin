@@ -118,7 +118,7 @@ final class PluginDerivedPermissionTest extends TestCase
         mkdir($app . '/admin/plugins/stalefix/controller', 0700, true);
         $file = $app . '/admin/plugins/stalefix/controller/Items.php';
         $source = static fn (string $methods): string => "<?php\nnamespace app\\admin\\plugins\\stalefix\\controller;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\Post;\n"
-            . "#[\\support\\annotation\\route\\RouteGroup('/admin/plugin/stalefix/items')]\nfinal class Items extends \\app\\common\\controller\\AdminController\n{\n$methods}\n";
+            . "#[\\support\\annotation\\route\\RouteGroup('/admin/plugins/stalefix/items')]\nfinal class Items extends \\app\\common\\controller\\AdminController\n{\n$methods}\n";
         file_put_contents($file, $source("    #[Get('')]\n    public function index(): \\support\\Response { return \$this->ok(); }\n"));
         require $file;
         // 插件升级：同一 worker 内类已加载，文件新增了方法（含 OpenAPI summary）与一个不注册路由的方法。
@@ -140,7 +140,7 @@ final class PluginDerivedPermissionTest extends TestCase
         $app = sys_get_temp_dir() . '/funadmin-subdir-' . bin2hex(random_bytes(4));
         mkdir($app . '/admin/plugins/subfix/controller/admin', 0700, true);
         $file = $app . '/admin/plugins/subfix/controller/admin/OrderController.php';
-        file_put_contents($file, "<?php\nnamespace app\\admin\\plugins\\subfix\\controller\\admin;\nuse support\\annotation\\route\\Post;\nfinal class OrderController\n{\n    #[Post('/admin/plugin/subfix/order/close')]\n    public function close() {}\n}\n");
+        file_put_contents($file, "<?php\nnamespace app\\admin\\plugins\\subfix\\controller\\admin;\nuse support\\annotation\\route\\Post;\nfinal class OrderController\n{\n    #[Post('/admin/plugins/subfix/order/close')]\n    public function close() {}\n}\n");
         try {
             self::assertSame(['subfix:admin-order:close'], (new PermissionSyncService())->pluginCodes('subfix', $app));
         } finally {

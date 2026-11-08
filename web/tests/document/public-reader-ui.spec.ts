@@ -11,6 +11,7 @@ function page(mobile = false) {
     <form role="search"><input id="docs-search" name="keyword" /></form>
     <button data-theme-toggle aria-label="切换主题"></button>
     <details data-navigation open><summary>文档目录</summary><nav><a href="/docs/intro">入门</a></nav></details>
+    <details class="category-group" data-category-id="framework" open><summary class="category-link">框架</summary><a class="chapter-link" href="/docs/intro">入门</a></details>
     <div data-code-block><pre><code>&lt;?php echo '你好';</code></pre><button data-copy-code>复制代码</button></div>
     <button data-copy-page>复制链接</button><span data-copy-feedback role="status"></span>
     </body></html>`, { url: 'http://localhost/docs/intro', runScripts: 'outside-only' });
@@ -57,5 +58,15 @@ describe('公开文档站交互', () => {
     p.document.querySelector<HTMLElement>('summary')!.click();
     expect(navigation.open).toBe(true);
     expect(navigation.querySelector('a')!.href).toBe('http://localhost/docs/intro');
+  });
+  it('保存文档分类的折叠状态，重新初始化后恢复', async () => {
+    const p = page();
+    const category = p.document.querySelector<HTMLDetailsElement>('[data-category-id="framework"]')!;
+    category.querySelector<HTMLElement>('summary')!.click();
+    expect(category.open).toBe(false);
+    await vi.waitFor(() => expect(p.window.sessionStorage.getItem('FUNADMIN_DOCS_CATEGORIES')).toContain('framework'));
+
+    p.window.eval(source());
+    expect(category.open).toBe(false);
   });
 });

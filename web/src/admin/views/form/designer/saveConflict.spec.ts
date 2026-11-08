@@ -234,7 +234,7 @@ describe('插件业务生成闭环', () => {
     await menuItem('generate').trigger('click');
     expect(wrapper.get('[data-code-preview]').attributes('data-module-id')).toBe('12');
     expect(api.publish).not.toHaveBeenCalled();
-    (wrapper.getComponent('[data-code-preview]') as unknown as VueWrapper).vm.$emit('generated', { generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugin/demo/orders' });
+    (wrapper.getComponent('[data-code-preview]') as unknown as VueWrapper).vm.$emit('generated', { generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugins/demo/orders' });
     await nextTick();
     // 插件目标不提供运行时入口，生成结果的路由也不被当作运行时。
     expect(menuItem('open-runtime').exists()).toBe(false);

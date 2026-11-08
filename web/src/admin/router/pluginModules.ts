@@ -53,12 +53,6 @@ export async function syncPluginModules(
         removeMenuPlaceholder(router, route.path);
         router.addRoute(route);
         addedRouteNames.push(String(route.name));
-        const legacy = legacyAdminRoutePath(route.path);
-        if (legacy) {
-          const legacyName = `${String(route.name)}_Legacy`;
-          router.addRoute({ path: legacy, name: legacyName, redirect: route.path, meta: { hidden: true } });
-          addedRouteNames.push(legacyName);
-        }
       });
       mounted.set(descriptor.code, { signature, routeNames: addedRouteNames });
       loaded.push(descriptor.code);
@@ -102,14 +96,7 @@ function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage:
     props: { plugin: descriptor.code, stage, message },
     meta: { title: `${descriptor.code} 插件错误` }
   });
-  const legacy = legacyAdminRoutePath(path);
-  const routeNames = [name];
-  if (legacy) {
-    const legacyName = `${name}_Legacy`;
-    router.addRoute({ path: legacy, name: legacyName, redirect: path, meta: { hidden: true } });
-    routeNames.push(legacyName);
-  }
-  mounted.set(descriptor.code, { signature: `${descriptor.version}:error`, routeNames });
+  mounted.set(descriptor.code, { signature: `${descriptor.version}:error`, routeNames: [name] });
 }
 
 function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginCode: string): RouteRecordRaw {
@@ -132,12 +119,7 @@ function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>
 
 function canonicalPluginPath(path: string, pluginCode: string): string {
   if (path.startsWith(`/plugins/${pluginCode}/`)) return path;
-  if (path.startsWith(`/plugin/${pluginCode}/`)) return `/plugins/${pluginCode}/${path.slice(`/plugin/${pluginCode}/`.length)}`;
   throw new Error(`插件路由 DTO 越界：${path}`);
-}
-
-function legacyAdminRoutePath(path: string): string | undefined {
-  return path.startsWith('/admin/plugins/') ? path.replace('/admin/plugins/', '/admin/plugin/') : undefined;
 }
 
 /**
@@ -145,9 +127,8 @@ function legacyAdminRoutePath(path: string): string | undefined {
  * 同时识别旧的主布局空壳，管理员显式配置了页面的菜单保留。
  */
 function removeMenuPlaceholder(router: Router, path: string): void {
-  const candidates = new Set([path, path.replace('/admin/plugins/', '/admin/plugin/')]);
   for (const record of router.getRoutes()) {
-    if (!candidates.has(record.path) || !record.name || record.children.length > 0) continue;
+    if (record.path !== path || !record.name || record.children.length > 0) continue;
     if (record.meta?.pluginPlaceholder !== true && record.components?.default !== Layout) continue;
     if (String(record.name).startsWith('Plugin_')) continue;
     router.removeRoute(record.name);

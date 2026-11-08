@@ -326,7 +326,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('插件目标生成完成提示待安装／更新发布，不刷新菜单', async () => {
-    const result = { generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugin/demo/orders' };
+    const result = { generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugins/demo/orders' };
     mocks.formalGeneration.mockResolvedValue(result);
     const wrapper = render(pluginModule);
     await flushPromises();

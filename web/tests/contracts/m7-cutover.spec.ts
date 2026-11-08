@@ -85,8 +85,8 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
   });
 
   it('插件菜单与权限仅从 adminWeb 契约注册', () => {
-    const pluginService = read('admin/app/admin/plugin/service/PluginService.php');
-    const infrastructure = read('admin/app/admin/plugin/service/PluginInfrastructureService.php');
+    const pluginService = read('admin/app/admin/plugins/service/PluginService.php');
+    const infrastructure = read('admin/app/admin/plugins/service/PluginInfrastructureService.php');
     expect(pluginService).toContain("$manifestData['adminWeb']['permissions']");
     expect(pluginService).toContain("$manifestData['adminWeb']['menu']");
     expect(pluginService).not.toContain("$manifestData['permissions']");

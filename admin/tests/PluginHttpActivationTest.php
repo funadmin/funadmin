@@ -38,7 +38,7 @@ final class PluginHttpActivationTest extends TestCase
                 ['deleted', 0, null, 404],
             ] as [$state, $status, $token, $expected]) {
                 $compiler->compile(['httpfixture' => array_replace($record, ['lifecycle_state' => $state, 'status' => $status, 'operation_token' => $token])], []);
-                foreach (['/admin/plugin/httpfixture/index', '/httpfixture/index'] as $path) {
+                foreach (['/admin/plugins/httpfixture/index', '/httpfixture/index'] as $path) {
                     $response = $callback(new Request("GET $path HTTP/1.1\r\nHost: localhost\r\n\r\n"));
                     self::assertSame($expected, $response->getStatusCode(), $path . ' ' . $state);
                     if ($expected !== 200) self::assertStringNotContainsString('controller reached', $response->rawBody());
@@ -48,7 +48,7 @@ final class PluginHttpActivationTest extends TestCase
             $alias->controller = 'app\\admin\\plugins\\httpfixture\\controller\\Index';
             self::assertSame(404, $callback($alias)->getStatusCode(), '插件控制器别名路由也必须检查启停状态');
             file_put_contents($root . '/activation/active', 'corrupt');
-            self::assertSame(503, $callback(new Request("GET /admin/plugin/httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
+            self::assertSame(503, $callback(new Request("GET /admin/plugins/httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(503, $callback(new Request("GET /httpfixture/index HTTP/1.1\r\n\r\n"))->getStatusCode());
             self::assertSame(200, $callback(new Request("GET /admin/system/plugin/local/installed HTTP/1.1\r\n\r\n"))->getStatusCode());
         } finally {

@@ -31,7 +31,7 @@ abstract class DocumentTestCase extends TestCase
     protected function actAs(int $adminId, string $method = 'GET', array $payload = []): void
     {
         $body = json_encode($payload, JSON_THROW_ON_ERROR);
-        $request = new Request("$method /admin/plugin/document HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $request = new Request("$method /admin/plugins/document HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
         $request->context['admin'] = ['id' => $adminId];
         Context::set(\Webman\Http\Request::class, $request);
     }

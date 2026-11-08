@@ -10,28 +10,28 @@ final class MenuContractTest extends \PHPUnit\Framework\TestCase
     private function data(): array { return json_decode(file_get_contents(dirname(__DIR__,2).'/plugins/cms/plugin.json'),true); }
     private function validate(array $data): void { (new \ReflectionMethod(Manifest::class,'validateAdminWeb'))->invoke(null,dirname(__DIR__,2).'/plugins/cms',$data['adminWeb'],$data); }
     public function test_nested_menu_rejects_unknown_permission(): void {
-        $d=$this->data();$d['adminWeb']['menu']=[['name'=>'CMS','path'=>'/plugin/cms','menulist'=>[['name'=>'Bad','path'=>'/plugin/cms/manage','permission'=>'cms:unknown:list']]]];
+        $d=$this->data();$d['adminWeb']['menu']=[['name'=>'CMS','path'=>'/plugins/cms','menulist'=>[['name'=>'Bad','path'=>'/plugins/cms/manage','permission'=>'cms:unknown:list']]]];
         $this->expectException(\RuntimeException::class);$this->validate($d);
     }
     public function test_leaf_requires_matching_route_and_directory_requires_namespace(): void {
-        $d=$this->data();$d['adminWeb']['menu']=[['name'=>'CMS','path'=>'/plugin/other','menulist'=>[['name'=>'Page','path'=>'/plugin/cms/missing','permission'=>'cms:site:list']]]];
+        $d=$this->data();$d['adminWeb']['menu']=[['name'=>'CMS','path'=>'/plugins/other','menulist'=>[['name'=>'Page','path'=>'/plugins/cms/missing','permission'=>'cms:site:list']]]];
         $this->expectException(\RuntimeException::class);$this->validate($d);
     }
     public function test_depth_is_bounded(): void {
-        $d=$this->data();$node=$d['adminWeb']['menu'][0];for($i=0;$i<9;$i++)$node=['name'=>'Directory','path'=>'/plugin/cms/d'.$i,'menulist'=>[$node]];$d['adminWeb']['menu']=[$node];
+        $d=$this->data();$node=$d['adminWeb']['menu'][0];for($i=0;$i<9;$i++)$node=['name'=>'Directory','path'=>'/plugins/cms/d'.$i,'menulist'=>[$node]];$d['adminWeb']['menu']=[$node];
         $this->expectException(\RuntimeException::class);$this->validate($d);
     }
     public function test_nested_children_survive_repeat_registration_and_removed_child_is_disabled(): void {
         (new \app\common\service\database\MigrationService())->run();
         $p=new PluginInfrastructureService();$permissions=[['code'=>'nestedtest:page:list','name'=>'Page'],['code'=>'nestedtest:other:list','name'=>'Other']];
-        $child=['name'=>'Page','path'=>'/plugin/nestedtest/page','permission'=>'nestedtest:page:list'];$other=['name'=>'Other','path'=>'/plugin/nestedtest/other','permission'=>'nestedtest:other:list'];
-        $menus=[['name'=>'Nested','path'=>'/plugin/nestedtest','menulist'=>[$child,$other]]];
+        $child=['name'=>'Page','path'=>'/plugins/nestedtest/page','permission'=>'nestedtest:page:list'];$other=['name'=>'Other','path'=>'/plugins/nestedtest/other','permission'=>'nestedtest:other:list'];
+        $menus=[['name'=>'Nested','path'=>'/plugins/nestedtest','menulist'=>[$child,$other]]];
         $p->registerResources($permissions,$menus,'nestedtest');$p->registerResources($permissions,$menus,'nestedtest');
         self::assertSame(3,AdminMenu::where('source_name','nestedtest')->where('status',1)->count());
         $menus[0]['menulist']=[$child];$p->registerResources($permissions,$menus,'nestedtest');
         self::assertSame(2,AdminMenu::where('source_name','nestedtest')->where('status',1)->count());
         Db::table('admin')->insertOrIgnore(['id'=>1,'username'=>'menu_root','password'=>'unused','status'=>1]);
-        $tree=(new \app\admin\authorization\service\AuthorizationService())->menus(['id'=>1]);$root=array_values(array_filter($tree,fn($m)=>$m['path']==='/plugin/nestedtest'))[0];self::assertSame('M',$root['type']);
+        $tree=(new \app\admin\authorization\service\AuthorizationService())->menus(['id'=>1]);$root=array_values(array_filter($tree,fn($m)=>$m['path']==='/plugins/nestedtest'))[0];self::assertSame('M',$root['type']);
     }
     public function test_permission_filter_can_remove_but_never_add_host_rights(): void {
         $root=sys_get_temp_dir().'/cms-menu-hook-'.bin2hex(random_bytes(5));mkdir($root.'/plugins/scope/hooks',0755,true);

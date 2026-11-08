@@ -99,7 +99,7 @@ final class ManifestMerger
             $admin['permissions'] = $this->mergeList($admin['permissions'], $item, 'code', 'permission');
         }
         $route = [
-            'path' => "/plugin/{$plugin}/{$entity}",
+            'path' => "/plugins/{$plugin}/{$entity}",
             'name' => 'Plugin_' . $plugin . '_' . $class,
             'component' => $class,
             'meta' => ['title' => (string) $definition->get('title')],

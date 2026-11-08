@@ -45,7 +45,7 @@ final class PluginLayoutExecutionTest extends TestCase
 
     public function test_manifest_rejects_business_directory(): void
     {
-        $path = $this->root . '/layoutfixture/app/admin/plugin/business/layoutfixture';
+        $path = $this->root . '/layoutfixture/app/admin/plugins/business/layoutfixture';
         if (!is_dir($path)) mkdir($path, 0755, true);
         $this->expectException(\RuntimeException::class);
         Manifest::fromDirectory($this->root . '/layoutfixture');

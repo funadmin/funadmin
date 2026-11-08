@@ -21,7 +21,7 @@ final class PluginManifestRouteContractTest extends TestCase
 <?php
 namespace app\admin\plugins\demo\controller;
 use support\annotation\route\RouteGroup;
-#[RouteGroup('/admin/plugin/demo')]
+#[RouteGroup('/admin/plugins/demo')]
 class Override { public function show(): void {} }
 PHP);
         file_put_contents($this->root . '/web/src/admin/plugins/demo/Index.vue', '<template><div /></template>');
@@ -57,15 +57,16 @@ PHP);
         self::assertSame('demo', $manifest->code());
     }
 
-    public function test_legacy_singular_admin_route_remains_accepted(): void
+    public function test_legacy_singular_admin_route_is_rejected(): void
     {
-        $manifest = $this->manifest([
+        $this->expectException(\RuntimeException::class);
+        $this->manifest([
             'adminWeb' => [
                 'source' => 'web/src/admin/plugins/demo',
                 'components' => ['Index' => 'Index.vue'],
                 'minFrontendVersion' => '1.0.0',
                 'permissions' => [['code' => 'demo:item:index', 'name' => '查看 Demo']],
-                'menu' => [['name' => 'Demo', 'path' => '/plugin/demo/items', 'permission' => 'demo:item:index']],
+                'menu' => [['name' => 'Demo', 'path' => '/plugins/demo/items', 'permission' => 'demo:item:index']],
                 'routes' => [['path' => '/plugin/demo/items', 'name' => 'Plugin_demo_Items', 'component' => 'Index', 'meta' => ['permission' => 'demo:item:index']]],
             ],
         ]);

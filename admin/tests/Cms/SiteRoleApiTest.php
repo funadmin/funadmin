@@ -28,7 +28,7 @@ final class SiteRoleApiTest extends CmsTestCase
     }
     private function call(string $controller,string $action,array $input=[],bool $post=false): array {
         $input=array_replace(['site_id'=>$this->siteRow['id'],'locale'=>'zh-cn'],$input);$body=$post?json_encode($input):'';
-        $request=new Request(($post?'POST':'GET').' /admin/plugin/cms/test'.($post?'':'?'.http_build_query($input))." HTTP/1.1\r\nHost: admin.test\r\nCookie: ".BrowserAuthService::COOKIE.'='.$this->login['cookie']."\r\nX-CSRF-TOKEN: ".$this->login['csrfToken']."\r\nContent-Type: application/json\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->controller='app\\admin\\plugins\\cms\\controller\\'.$controller;$request->action=$action;Context::set(\Webman\Http\Request::class,$request);
+        $request=new Request(($post?'POST':'GET').' /admin/plugins/cms/test'.($post?'':'?'.http_build_query($input))." HTTP/1.1\r\nHost: admin.test\r\nCookie: ".BrowserAuthService::COOKIE.'='.$this->login['cookie']."\r\nX-CSRF-TOKEN: ".$this->login['csrfToken']."\r\nContent-Type: application/json\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->controller='app\\admin\\plugins\\cms\\controller\\'.$controller;$request->action=$action;Context::set(\Webman\Http\Request::class,$request);
         try{$class=$request->controller;$response=(new CheckAdminApiRoleMiddleware())->process($request,fn($r)=>(new CheckAdminApiCsrfMiddleware())->process($r,fn()=>(new $class())->$action()));return [$response->getStatusCode(),json_decode($response->rawBody(),true)];}finally{Context::destroy();}
     }
     public function test_menu_delete_requires_both_host_and_site_delete_permissions(): void {

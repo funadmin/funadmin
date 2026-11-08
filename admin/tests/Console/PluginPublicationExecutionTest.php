@@ -64,7 +64,7 @@ class PluginPublicationExecutionTest extends TestCase
             $journal = $publisher->inspect('invalid');
             $controller = $root . '/app/admin/plugins/recoverfixture/controller/Index.php';
             if (in_array($kind, ['unit', 'business_unit'], true)) {
-                $old = $root . ($kind === 'unit' ? '/app/admin/controller/plugin/recoverfixture' : '/app/admin/plugin/business/recoverfixture/controller');
+                $old = $root . ($kind === 'unit' ? '/app/admin/controller/plugin/recoverfixture' : '/app/admin/plugins/business/recoverfixture/controller');
                 mkdir(dirname($old), 0755, true);
                 rename(dirname($controller), $old);
                 $controller = $old . '/Index.php';

@@ -24,7 +24,7 @@ final class LocalMarketplaceRemovalTest extends TestCase
     public function test_market_server_routes_are_absent_while_framework_client_routes_remain(): void
     {
         Route::load([config_path()]);
-        foreach ([['GET','/market'],['POST','/market/api/v3/auth/login'],['GET','/market/api/v3/plugins'],['GET','/admin/plugin/market/category/'],['POST','/market/pay/notify/alipay']] as [$method,$path]) {
+        foreach ([['GET','/market'],['POST','/market/api/v3/auth/login'],['GET','/market/api/v3/plugins'],['GET','/admin/plugins/market/category/'],['POST','/market/pay/notify/alipay']] as [$method,$path]) {
             self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, Route::dispatch($method,$path)[0],$path);
         }
         $route=Route::dispatch('GET','/admin/system/plugin/market/categories');

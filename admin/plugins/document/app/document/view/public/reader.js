@@ -41,6 +41,26 @@
     smallScreen.addEventListener?.('change', resizeNavigation);
   }
 
+  const categoryStateKey = 'FUNADMIN_DOCS_CATEGORIES';
+  const categoryGroups = [...document.querySelectorAll('[data-category-id]')];
+  let categoryState = {};
+  try {
+    const stored = window.sessionStorage.getItem(categoryStateKey);
+    const parsed = stored ? JSON.parse(stored) : null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) categoryState = parsed;
+  } catch {}
+  const saveCategoryState = () => {
+    try {
+      const state = Object.fromEntries(categoryGroups.map((group) => [group.dataset.categoryId, group.open]));
+      window.sessionStorage.setItem(categoryStateKey, JSON.stringify(state));
+    } catch {}
+  };
+  categoryGroups.forEach((group) => {
+    const id = group.dataset.categoryId;
+    if (id && Object.prototype.hasOwnProperty.call(categoryState, id)) group.open = categoryState[id] === true;
+    group.addEventListener('toggle', saveCategoryState);
+  });
+
   const feedback = document.querySelector('[data-copy-feedback]');
   let feedbackTimer;
   const notify = (message) => {

@@ -148,7 +148,7 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
       permission: menu.permission,
       rank: menu.sort,
       formKey: menu.formKey,
-      ...(!hasChildren && (fullPath.startsWith('/admin/plugin/') || fullPath.startsWith('/admin/plugins/')) && (!menu.component || menu.component === 'Layout')
+      ...(!hasChildren && fullPath.startsWith('/admin/plugins/') && (!menu.component || menu.component === 'Layout')
         ? { pluginPlaceholder: true } : {}),
       ...(menu.routeName === 'BusinessDesigner' ? { activeMenu: adminRoutePath('/development/business/mine') } : {})
     }

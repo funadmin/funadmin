@@ -13,15 +13,15 @@
 ## Global Constraints
 
 - Keep source at `admin/plugins/{code}` and published backend code at `admin/app/admin/plugins/{code}`.
-- New plugin-owned admin routes use `/admin/plugins/{code}/...`; old `/admin/plugin/{code}/...` remains a compatibility alias.
+- Plugin-owned admin routes use `/admin/plugins/{code}/...`; singular `/admin/plugin/{code}/...` is rejected.
 - Never publish plugin files into host controller or common directories.
 - Route overrides must be declared in `plugin.json`, belong to the declaring plugin namespace, and require an existing target route.
 - Do not modify independent application routes `/{code}/...` or public asset paths.
 
 ## Review Focus
 
-- A legacy manifest using `/plugin/{code}` still loads and gets a plural alias; test in manifest and route-loader contracts.
-- A plural route still gets a singular alias without Webman duplicate-route errors; test both dispatch paths.
+- A legacy manifest using `/plugin/{code}` is rejected by schema validation.
+- A plural route registers exactly once without a compatibility redirect.
 - A disabled plugin blocks both aliases; test the plugin application guard.
 - An override cannot point at another plugin or a missing target; test manifest and loader rejection.
 - Uninstall removes only plugin-owned files; test the publication registry remains scoped to `admin/app/admin/plugins/{code}`.
@@ -37,7 +37,6 @@
 
 **Interfaces:**
 - `PluginRouteNamespace::canonical(string $path, ?string $code = null): string`
-- `PluginRouteNamespace::legacyAlias(string $path, ?string $code = null): ?string`
 - `PluginRouteNamespace::isPluginAdminPath(string $path, ?string $code = null): bool`
 - `Manifest::validateAdminWeb()` accepts both prefixes and validates `routeOverrides`.
 
@@ -62,12 +61,12 @@
 - `PluginRouteLoader::definitionsFor()` returns active plugin definitions plus one compatibility alias per plugin route.
 - `PluginRouteOverride::apply(array $definitions, array $manifests): array` replaces exact method/path callbacks while retaining the original route methods and middleware metadata.
 
-- [ ] Add a failing loader test proving a plural route produces a singular alias and a legacy route produces a plural alias.
+- [ ] Add a failing loader test proving a plural route registers once and a singular route is rejected.
 - [ ] Add a failing override test for a valid replacement, duplicate target, missing target, cross-plugin controller, and inactive plugin.
 - [ ] Run the focused tests and confirm the failures are about missing alias/override behavior.
 - [ ] Implement alias generation after annotation definition discovery, using the same callback and name only for the alternate path.
 - [ ] Implement override collection from active manifests, exact method/path matching, duplicate detection, controller ownership checks, and route replacement before registration.
-- [ ] Extend the guard to recognize both `/admin/plugin/{code}` and `/admin/plugins/{code}` while preserving controller-based ownership checks.
+- [ ] Extend the guard to recognize only `/admin/plugins/{code}` while preserving controller-based ownership checks.
 - [ ] Run the focused tests and the existing plugin lifecycle/route suites.
 
 ### Task 3: Canonicalize bundled plugin source and generated output
@@ -103,7 +102,7 @@
 - Modify: `admin/plugins/*/plugin.json` frontend menu/routes as needed
 
 - [ ] Add failing Vitest assertions that plural DTO paths mount at `/admin/plugins/...` and expose singular aliases.
-- [ ] Normalize legacy DTO paths before validation and preserve plugin-code/name checks.
+- [ ] Validate only plural DTO paths and preserve plugin-code/name checks.
 - [ ] Add Vue Router aliases for the singular path on layout routes and update placeholder detection to both prefixes.
 - [ ] Update frontend fixtures and route contracts to plural canonical paths.
 - [ ] Run the focused frontend suites and typecheck/build checks.
@@ -116,7 +115,7 @@
 - Modify: `admin/plugins/document/resources/seed/documents/third-party-production-checklist.json`
 - Create: `admin/tests/PluginRouteMigrationTest.php`
 
-- [ ] Document canonical plural URLs, legacy aliases, filesystem isolation, and `routeOverrides` examples.
+- [ ] Document canonical plural URLs, rejection of singular paths, filesystem isolation, and `routeOverrides` examples.
 - [ ] Add a migration test that scans bundled manifests/controllers for plural canonical routes and rejects direct host-directory override paths.
 - [ ] Run PHP lint, focused PHPUnit suites, focused Vitest suites, `git diff --check`, and the frontend build.
 - [ ] Review the diff for unrelated concurrent changes before committing.

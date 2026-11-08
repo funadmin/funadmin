@@ -29,7 +29,7 @@ final class MenuHierarchyIntegrationTest extends TestCase
 
         foreach ([
             ['parent' => '插件管理', 'href' => '/plugin', 'name' => '插件中心', 'required' => true],
-            ['parent' => '插件管理', 'href' => '/plugin/etst/items', 'name' => 'etst', 'required' => false],
+            ['parent' => '插件管理', 'href' => '/plugins/etst/items', 'name' => 'etst', 'required' => false],
             ['parent' => '开发工具', 'href' => '/business/i18n-demo', 'name' => 'i18n验收演示', 'required' => false],
             ['parent' => '身份与应用', 'href' => '/applications', 'name' => '应用中心', 'required' => false],
         ] as $expected) {

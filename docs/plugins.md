@@ -96,7 +96,7 @@ CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修�
 
 `VITE_APP_BASE` 控制页面与构建资源的部署目录；`VITE_APP_BASE_API` 控制管理接口及下载链接的前缀，默认 `/admin`。两者分别处理。`npm run build:webman` 输出到 `admin/public/index.html` 和 `admin/public/assets/`，保留已有安装锁、上传文件及插件资源。独立前端部署可运行 `npm run build:standalone` 输出到 `web/dist/`。
 
-插件页面和管理接口的新规范使用 `/plugins/{code}/...`。系统仍为旧的 `/plugin/{code}/...` 页面和接口注册兼容别名，旧书签会跳转到复数路径。插件源码、安装目录和 PHP 命名空间继续使用 `plugins/{code}` 隔离，不把插件文件发布到宿主控制器目录。
+插件页面和管理接口统一使用 `/plugins/{code}/...`。单数 `/plugin/{code}/...` 不属于当前协议。插件源码、安装目录和 PHP 命名空间继续使用 `plugins/{code}` 隔离，不把插件文件发布到宿主控制器目录。
 
 需要替换宿主路由时，在 `plugin.json` 声明 `routeOverrides`，不能直接覆盖 `admin/app` 下的宿主文件：
 

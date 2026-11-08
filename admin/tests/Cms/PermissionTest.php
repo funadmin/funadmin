@@ -24,7 +24,7 @@ final class PermissionTest extends CmsTestCase
         $call=function(string $action,bool $authenticated=true,bool $csrf=false)use($login,$site): int {
             $post=$action!=='index';$input=['site_id'=>$site['id'],'locale'=>'zh-cn','model_id'=>(string)Db::table('cms_content_model')->where('code','page')->value('id'),'title'=>'Real permissions','desired_path'=>'/permission-page','data'=>[]];$body=$post?json_encode($input):'';
             $headers=$authenticated?'Cookie: '.BrowserAuthService::COOKIE.'='.$login['cookie']."\r\n":'';if($csrf)$headers.='X-CSRF-TOKEN: '.$login['csrfToken']."\r\n";
-            $request=new Request(($post?'POST':'GET').' /admin/plugin/cms/content'.($post?'':'?'.http_build_query($input))." HTTP/1.1\r\nHost: admin.test\r\n".$headers.'Content-Type: application/json'."\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->controller=Content::class;$request->action=$action;Context::set(\Webman\Http\Request::class,$request);
+            $request=new Request(($post?'POST':'GET').' /admin/plugins/cms/content'.($post?'':'?'.http_build_query($input))." HTTP/1.1\r\nHost: admin.test\r\n".$headers.'Content-Type: application/json'."\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);$request->controller=Content::class;$request->action=$action;Context::set(\Webman\Http\Request::class,$request);
             try{return (new CheckAdminApiRoleMiddleware())->process($request,static fn($r)=>(new CheckAdminApiCsrfMiddleware())->process($r,static fn()=>(new Content())->$action()))->getStatusCode();}finally{Context::destroy();}
         };
         self::assertSame(401,$call('index',false));self::assertSame(200,$call('index'));self::assertSame(403,$call('save',true,true));

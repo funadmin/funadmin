@@ -31,11 +31,11 @@ describe('M6 插件标准 Admin Web 契约', () => {
   });
 
   it('Admin Web 源码与公开资源分别发布并要求重新构建', () => {
-    const publisher = readFileSync(resolve(root, 'admin/app/admin/plugin/service/PluginResourcePublisher.php'), 'utf8');
-    const center = readFileSync(resolve(root, 'admin/app/admin/plugin/service/PluginCenterService.php'), 'utf8');
-    const pipeline = readFileSync(resolve(root, 'admin/app/admin/plugin/service/PluginPackagePipeline.php'), 'utf8');
-    const pluginService = readFileSync(resolve(root, 'admin/app/admin/plugin/service/PluginService.php'), 'utf8')
-      + readFileSync(resolve(root, 'admin/app/admin/plugin/service/concern/PluginServiceSupport.php'), 'utf8');
+    const publisher = readFileSync(resolve(root, 'admin/app/admin/plugins/service/PluginResourcePublisher.php'), 'utf8');
+    const center = readFileSync(resolve(root, 'admin/app/admin/plugins/service/PluginCenterService.php'), 'utf8');
+    const pipeline = readFileSync(resolve(root, 'admin/app/admin/plugins/service/PluginPackagePipeline.php'), 'utf8');
+    const pluginService = readFileSync(resolve(root, 'admin/app/admin/plugins/service/PluginService.php'), 'utf8')
+      + readFileSync(resolve(root, 'admin/app/admin/plugins/service/concern/PluginServiceSupport.php'), 'utf8');
 
     expect(publisher).toContain("['resources']");
     expect(publisher).toContain('plugin-assets');
@@ -77,7 +77,7 @@ describe('M6 插件标准 Admin Web 契约', () => {
   });
 
   it('插件 API 的未知异常不向客户端泄露内部消息', () => {
-    const controller = readFileSync(resolve(root, 'admin/app/admin/plugin/controller/SystemPlugin.php'), 'utf8');
+    const controller = readFileSync(resolve(root, 'admin/app/admin/plugins/controller/SystemPlugin.php'), 'utf8');
     const fallback = controller.match(/catch \(\\Throwable \$exception\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
     expect(fallback).toContain("return $this->fail(msg: '插件操作失败', code: 500)");
     expect(fallback).not.toContain('return $this->fail(msg: $exception->getMessage()');
