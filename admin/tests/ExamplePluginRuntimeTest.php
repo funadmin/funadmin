@@ -34,8 +34,8 @@ final class ExamplePluginRuntimeTest extends TestCase
             return (\Webman\App::getCallback('', 'admin', $match[1]['callback']))($request)->getStatusCode();
         };
         try {
-            self::assertSame(200, $call('/admin/plugin/example/index'));
-            self::assertSame(403, $call('/admin/plugin/example/test'));
+            self::assertSame(200, $call('/admin/plugins/example/index'));
+            self::assertSame(403, $call('/admin/plugins/example/test'));
         } finally {
             \support\Context::destroy();
         }
@@ -44,7 +44,7 @@ final class ExamplePluginRuntimeTest extends TestCase
     public function test_example_registers_native_routes_and_validation(): void
     {
         Route::load([config_path()]);
-        foreach ([['GET', '/admin/plugin/example/index', 'index'], ['GET', '/admin/plugin/example/test', 'index'], ['PUT', '/admin/plugin/example/test/15', 'update'], ['POST', '/admin/plugin/example/test/15/restore', 'restore']] as [$verb, $path, $action]) {
+        foreach ([['GET', '/admin/plugins/example/index', 'index'], ['GET', '/admin/plugins/example/test', 'index'], ['PUT', '/admin/plugins/example/test/15', 'update'], ['POST', '/admin/plugins/example/test/15/restore', 'restore']] as [$verb, $path, $action]) {
             $match = Route::dispatch($verb, $path);
             self::assertSame(\FastRoute\Dispatcher::FOUND, $match[0], $verb . ' ' . $path);
             self::assertSame($action, $match[1]['callback'][1]);
