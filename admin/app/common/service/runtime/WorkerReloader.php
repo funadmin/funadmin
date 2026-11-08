@@ -7,7 +7,8 @@ namespace app\common\service\runtime;
 /**
  * 请求 webman 主进程平滑重载 worker（等价于 php start.php reload）。
  * 注解路由只在 worker 启动时注册，生成新的核心控制器后需要重载才能访问；文件监控默认关闭。
- * 信号由主进程在当前请求返回后逐个重启 worker，正在处理的请求会先完成响应。
+ * 信号由主进程逐个重启 worker：空闲 worker 立即重启；发起重载的请求先完成响应；
+ * 其他 worker 上正在执行的请求最多等待 config/server.php 的 stop_timeout（默认 30 秒，WEBMAN_STOP_TIMEOUT 可调）后才会被强制结束。
  * 任何不可用情况（Windows/无 posix、pid 文件缺失、主进程不存在）都只返回原因，绝不抛异常。
  */
 final class WorkerReloader

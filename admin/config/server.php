@@ -14,7 +14,8 @@
 
 return [
     'event_loop' => '',
-    'stop_timeout' => 2,
+    // 重载/停止时等待忙碌 worker 完成当前请求的秒数，超时才强制结束；空闲 worker 会立即重启。
+    'stop_timeout' => max(2, (int) (getenv('WEBMAN_STOP_TIMEOUT') ?: 30)),
     'pid_file' => runtime_path() . '/webman.pid',
     'status_file' => runtime_path() . '/webman.status',
     'stdout_file' => runtime_path() . '/logs/stdout.log',
