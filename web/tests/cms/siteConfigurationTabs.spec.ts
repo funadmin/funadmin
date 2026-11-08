@@ -54,7 +54,7 @@ it('keeps edits across group and main tab changes and saves values from every gr
   expect((wrapper.get('.configuration-fields input').element as HTMLInputElement).value).toBe('456');
   await wrapper.findAll('button').find(node => node.text() === '保存站点配置')!.trigger('click');
   await flushPromises();
-  expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save', { site_id: '7', values: { headline: '编辑后的标题', phone: '456' } });
+  expect(http.post).toHaveBeenCalledWith('/plugins/cms/configuration/save', { site_id: '7', values: { headline: '编辑后的标题', phone: '456' } });
   expect(http.get).toHaveBeenCalledTimes(1);
   wrapper.unmount();
 });

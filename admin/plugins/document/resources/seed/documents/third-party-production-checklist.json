@@ -134,7 +134,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "插件前端路由必须以 /plugin/{code}/ 开头。"
+                                        "text": "插件前端路由必须以 /plugins/{code}/ 开头；旧 /plugin/{code}/ 仅作为兼容别名。"
                                     }
                                 ]
                             }

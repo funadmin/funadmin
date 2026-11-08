@@ -22,7 +22,7 @@ it('edits ordered rows, toggles visibility and submits the complete list to the 
  await w.findAll('.configuration-row')[0].get('input[type="checkbox"]').setValue(false);
  await w.findAll('button').find(b=>b.text()==='添加一条')!.trigger('click');
  await w.findAll('button').find(b=>b.text()==='保存站点配置')!.trigger('click');await flushPromises();
- expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save',{site_id:'7',values:{partners:[{name:'B',url:'/b',enabled:false},{name:'Changed A',url:'/a',enabled:true},{name:'',url:'',enabled:true}]}});
+ expect(http.post).toHaveBeenCalledWith('/plugins/cms/configuration/save',{site_id:'7',values:{partners:[{name:'B',url:'/b',enabled:false},{name:'Changed A',url:'/a',enabled:true},{name:'',url:'',enabled:true}]}});
  w.unmount();
 });
 it('provides a configurable list field with the partner preset through the field editor',async()=>{
@@ -31,7 +31,7 @@ it('provides a configurable list field with the partner preset through the field
  await w.findAll('button').find(b=>b.text()==='合作伙伴')!.trigger('click');
  state.fieldForm.key='sponsors';state.fieldForm.label='赞助伙伴';state.fieldForm.group='合作伙伴';
  await w.findAll('button').find(b=>b.text()==='保存配置项')!.trigger('click');await flushPromises();
- expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save',expect.objectContaining({site_id:'7',fields:expect.arrayContaining([expect.objectContaining({key:'sponsors',type:'list',fields:expect.arrayContaining([expect.objectContaining({key:'logo',type:'image'}),expect.objectContaining({key:'url',type:'url'})])})])}));w.unmount();
+ expect(http.post).toHaveBeenCalledWith('/plugins/cms/configuration/save',expect.objectContaining({site_id:'7',fields:expect.arrayContaining([expect.objectContaining({key:'sponsors',type:'list',fields:expect.arrayContaining([expect.objectContaining({key:'logo',type:'image'}),expect.objectContaining({key:'url',type:'url'})])})])}));w.unmount();
 });
 it('prevents editing list rows when the current role can only view configuration',async()=>{
  const w=mount(ConfigurationPanel,{props:{siteId:'7',locales:[],can:(code:string)=>code==='cms:site:detail'},global:{stubs,directives:{loading:()=>{}}}});await flushPromises();
@@ -46,12 +46,12 @@ it('keeps an empty translated list as an explicit override when saving the langu
  (w.vm as any).$.setupState.selectedLocale='en-us';await flushPromises();
  expect(w.findAll('.configuration-row')).toHaveLength(0);
  await w.findAll('button').find(b=>b.text()==='保存语言配置')!.trigger('click');await flushPromises();
- expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save',{site_id:'7',locale:'en-us',values:{partners:[]}});w.unmount();
+ expect(http.post).toHaveBeenCalledWith('/plugins/cms/configuration/save',{site_id:'7',locale:'en-us',values:{partners:[]}});w.unmount();
 });
 it('creates homepage module presets with stable template keys and preserves existing definitions',async()=>{
  const w=mount(ConfigurationPanel,{props:{siteId:'7',locales:[],can:()=>true},global:{stubs,directives:{loading:()=>{}}}});await flushPromises();
  const state=(w.vm as any).$.setupState;state.openPreset('slides');await flushPromises();
  expect(state.fieldForm).toMatchObject({key:'slides',label:'轮播图',type:'list',group:'轮播图',localized:true});
- await state.saveField();expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save',expect.objectContaining({site_id:'7',fields:expect.arrayContaining([expect.objectContaining({key:'partners'}),expect.objectContaining({key:'slides',fields:expect.arrayContaining([expect.objectContaining({key:'mobile_image',type:'image'})])})])}));
+ await state.saveField();expect(http.post).toHaveBeenCalledWith('/plugins/cms/configuration/save',expect.objectContaining({site_id:'7',fields:expect.arrayContaining([expect.objectContaining({key:'partners'}),expect.objectContaining({key:'slides',fields:expect.arrayContaining([expect.objectContaining({key:'mobile_image',type:'image'})])})])}));
  state.openPreset('partners');expect(state.fieldForm.key).toBe('partners');expect(state.fieldForm.fields).toEqual(field.fields);w.unmount();
 });

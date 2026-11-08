@@ -19,8 +19,8 @@ it('publishes the revision the editor loaded and keeps its optimistic lock',asyn
   const wrapper=mount(ContentPanel,{props:{scope:{site_id:'7',locale:'zh-cn'},can:()=>true,languages:[{id:'1',site_id:'7',locale:'zh-cn',name:'中文',url_prefix:'',status:1,seo_title:'',seo_description:''}]},global:{stubs,directives:{loading:()=>{}}}});
   await flushPromises();await wrapper.findAll('button').find(node=>node.text()==='编辑 / 翻译')!.trigger('click');await flushPromises();
   await wrapper.findAll('button').find(node=>node.text()==='发布已保存草稿')!.trigger('click');await flushPromises();
-  expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/publish',{site_id:'7',id:'8',revision_id:'9',lock_version:2});
-  expect(http.get).not.toHaveBeenCalledWith('/plugin/cms/content/detail',expect.anything());
+  expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/publish',{site_id:'7',id:'8',revision_id:'9',lock_version:2});
+  expect(http.get).not.toHaveBeenCalledWith('/plugins/cms/content/detail',expect.anything());
 });
 
 it('ignores a late translation response after the editor changed language again',async()=>{
@@ -42,7 +42,7 @@ it('ignores a late translation response after the editor changed language again'
   picker.vm.$emit('update:modelValue','zh-cn');picker.vm.$emit('change','zh-cn');await flushPromises();
   chinese(row);await flushPromises();english({...row,id:'80',draft_revision_id:'90',revision:{...row.revision,id:'90',title:'English text'}});await flushPromises();
   await wrapper.findAll('button').find(node=>node.text()==='保存草稿')!.trigger('click');await flushPromises();
-  expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/save',expect.objectContaining({locale:'zh-cn',title:'My saved draft'}));
+  expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/save',expect.objectContaining({locale:'zh-cn',title:'My saved draft'}));
 });
 
 it.each(['language', 'article'] as const)('ignores a saved draft response after changing the editor %s', async (change) => {
@@ -73,7 +73,7 @@ it.each(['language', 'article'] as const)('ignores a saved draft response after 
   await flushPromises();
   await wrapper.findAll('button').find(node => node.text() === '发布已保存草稿')!.trigger('click');
   await flushPromises();
-  expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/publish', { site_id: '7', id: '80', revision_id: '90', lock_version: 2 });
+  expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/publish', { site_id: '7', id: '80', revision_id: '90', lock_version: 2 });
   wrapper.unmount();
 });
 
@@ -89,7 +89,7 @@ it('updates the saved revision and optimistic lock while the same editor stays o
   await wrapper.findAll('button').find(node => node.text() === '编辑 / 翻译')!.trigger('click'); await flushPromises();
   await wrapper.findAll('button').find(node => node.text() === '保存草稿')!.trigger('click'); await flushPromises();
   await wrapper.findAll('button').find(node => node.text() === '发布已保存草稿')!.trigger('click'); await flushPromises();
-  expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/publish', { site_id: '7', id: '8', revision_id: '10', lock_version: 3 });
+  expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/publish', { site_id: '7', id: '8', revision_id: '10', lock_version: 3 });
   wrapper.unmount();
 });
 
@@ -99,7 +99,7 @@ it('lets a publisher inspect and publish historical revisions without edit right
  const wrapper=mount(ContentPanel,{props:{scope:{site_id:'7',locale:'zh-cn'},can:(code:string)=>['cms:content:list','cms:content:publish'].includes(code),languages:[]},global:{stubs,directives:{loading:()=>{},perm:()=>{}}}});await flushPromises();
  expect(wrapper.findAll('button').some(n=>n.text()==='编辑 / 翻译')).toBe(false);
  const history=wrapper.findAll('button').find(n=>n.text()==='历史版本');expect(history).toBeDefined();await history!.trigger('click');await flushPromises();
- await wrapper.findAll('button').find(n=>n.text()==='发布此版本')!.trigger('click');await flushPromises();expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/publish',{site_id:'7',id:'8',revision_id:'6',lock_version:2});wrapper.unmount();
+ await wrapper.findAll('button').find(n=>n.text()==='发布此版本')!.trigger('click');await flushPromises();expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/publish',{site_id:'7',id:'8',revision_id:'6',lock_version:2});wrapper.unmount();
 });
 
 it('selects an actual theme template and sends formatted body HTML when saving',async()=>{
@@ -114,5 +114,5 @@ it('selects an actual theme template and sends formatted body HTML when saving',
  const picker=wrapper.findAllComponents(select).find(c=>c.props('modelValue')==='detail');expect(picker).toBeDefined();expect(picker!.text()).toContain('文章详情');expect(picker!.text()).toContain('原模板 (detail)');
  picker!.vm.$emit('update:modelValue','article');wrapper.findComponent({name:'RichTextEditor'}).vm.$emit('update:modelValue','<h2>简介</h2><p><strong>正文</strong></p>');await flushPromises();
  await wrapper.findAll('button').find(n=>n.text()==='保存草稿')!.trigger('click');await flushPromises();
- expect(http.post).toHaveBeenCalledWith('/plugin/cms/content/save',expect.objectContaining({template:'article',body_html:'<h2>简介</h2><p><strong>正文</strong></p>'}));wrapper.unmount();
+ expect(http.post).toHaveBeenCalledWith('/plugins/cms/content/save',expect.objectContaining({template:'article',body_html:'<h2>简介</h2><p><strong>正文</strong></p>'}));wrapper.unmount();
 });

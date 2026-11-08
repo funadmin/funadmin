@@ -28,27 +28,27 @@ it('hydrates defaults, renders three actual tabs and resets typed data on model 
 it('selects the error tab and prevents invalid saves while accepting false and zero',async()=>{
  const w=await render();await click(w,'新建内容');Object.assign(state(w).form,{title:'标题',desired_path:'/path'});state(w).form.data.count=6;
  await click(w,'保存草稿');expect(api.post).not.toHaveBeenCalled();expect(state(w).activeEditorTab).toBe('fields');expect(w.text()).toContain('不能大于 5');
- state(w).form.data.count=0;await click(w,'保存草稿');expect(api.post).toHaveBeenCalledWith('/plugin/cms/content/save',expect.objectContaining({data:{enabled:false,count:0,source:'本站'}}));w.unmount();
+ state(w).form.data.count=0;await click(w,'保存草稿');expect(api.post).toHaveBeenCalledWith('/plugins/cms/content/save',expect.objectContaining({data:{enabled:false,count:0,source:'本站'}}));w.unmount();
 });
 it('filters model categories and refreshes their translated labels when changing edit language',async()=>{
  const w=await render();await click(w,'新建内容');expect(state(w).editorCategories.map((c:any)=>c.id)).toEqual(['1','2']);
  state(w).form.category_id='2';state(w).form.model_id='20';await state(w).changeModel();await flushPromises();expect(state(w).form.category_id).toBe('');expect(state(w).editorCategories.map((c:any)=>c.id)).toEqual(['1','3']);
- api.confirm.mockResolvedValue('confirm');state(w).editLocale='en-us';await state(w).changeLanguage('en-us');expect(api.get).toHaveBeenCalledWith('/plugin/cms/content/lookups',{site_id:'7',locale:'en-us'});expect(state(w).editorCategories[0].name).toBe('EN 通用');w.unmount();
+ api.confirm.mockResolvedValue('confirm');state(w).editLocale='en-us';await state(w).changeLanguage('en-us');expect(api.get).toHaveBeenCalledWith('/plugins/cms/content/lookups',{site_id:'7',locale:'en-us'});expect(state(w).editorCategories[0].name).toBe('EN 通用');w.unmount();
 });
 it('keeps the dirty draft when closing or changing languages is cancelled',async()=>{
  const w=await render();await state(w).open(row);state(w).form.title='未保存';await flushPromises();expect(state(w).dirty).toBe(true);
  api.confirm.mockRejectedValue('cancel');const done=vi.fn();await state(w).beforeClose(done);expect(done).not.toHaveBeenCalled();
- state(w).editLocale='en-us';await state(w).changeLanguage('en-us');expect(state(w).editLocale).toBe('zh-cn');expect(state(w).form.title).toBe('未保存');expect(api.get).not.toHaveBeenCalledWith('/plugin/cms/content/translation',expect.anything());w.unmount();
+ state(w).editLocale='en-us';await state(w).changeLanguage('en-us');expect(state(w).editLocale).toBe('zh-cn');expect(state(w).form.title).toBe('未保存');expect(api.get).not.toHaveBeenCalledWith('/plugins/cms/content/translation',expect.anything());w.unmount();
 });
 it('blocks unsaved preview and publication and marks only the submitted snapshot clean',async()=>{
  const w=await render();await state(w).open(row);state(w).form.title='第一稿';await flushPromises();
- await state(w).showPreview();await state(w).publishEditor();expect(api.get).not.toHaveBeenCalledWith('/plugin/cms/content/preview',expect.anything());expect(api.post).not.toHaveBeenCalled();
+ await state(w).showPreview();await state(w).publishEditor();expect(api.get).not.toHaveBeenCalledWith('/plugins/cms/content/preview',expect.anything());expect(api.post).not.toHaveBeenCalled();
  let finish!:(value:any)=>void;api.post.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));const saving=state(w).save();await flushPromises();state(w).form.title='第二稿';finish({...row,lock_version:3,draft_revision_id:'11'});await saving;expect(state(w).form.title).toBe('第二稿');expect(state(w).dirty).toBe(true);w.unmount();
 });
 it('marks a successful save clean while retaining locale IDs and the returned revision version',async()=>{
  const w=await render();await state(w).open(row);state(w).form.title='新标题';api.post.mockResolvedValue({...row,lock_version:3,draft_revision_id:'11',revision:{...row.revision,id:'11',title:'新标题'}});
  await state(w).save();expect(state(w).form.id).toBe('8');expect(state(w).form.lock_version).toBe(3);expect(state(w).form.draft_revision_id).toBe('11');expect(state(w).dirty).toBe(false);
- await state(w).publishEditor();expect(api.post).toHaveBeenCalledWith('/plugin/cms/content/publish',{site_id:'7',id:'8',revision_id:'11',lock_version:3});w.unmount();
+ await state(w).publishEditor();expect(api.post).toHaveBeenCalledWith('/plugins/cms/content/publish',{site_id:'7',id:'8',revision_id:'11',lock_version:3});w.unmount();
 });
 it('discards only after consent and uses the saved source when starting a missing translation',async()=>{
  const w=await render();await state(w).open(row);state(w).form.title='不应复制的未保存标题';api.get.mockImplementation(async(url:string)=>url.endsWith('/lookups')?{models,categories,templates:[]}:url.endsWith('/translation')?{...row,revision:null}:{items:[],total:0});

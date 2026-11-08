@@ -10,7 +10,7 @@ it('uploads inside the content form and selects the returned attachment ID',asyn
  const wrapper=mount(AttachmentField,{props:{scope:{site_id:'7',locale:'zh-cn'},can:()=>true,images:true},global:{plugins:[ElementPlus]}});
  await flushPromises();const input=wrapper.find('input[type=file]');expect(input.exists()).toBe(true);
  Object.defineProperty(input.element,'files',{value:[new File(['image'],'new.png',{type:'image/png'})]});await input.trigger('change');await flushPromises();
- expect(http.upload).toHaveBeenCalledWith('/plugin/cms/content/upload',expect.any(FormData));
+ expect(http.upload).toHaveBeenCalledWith('/plugins/cms/content/upload',expect.any(FormData));
  const body=http.upload.mock.calls[0][1] as FormData;expect(body.get('site_id')).toBe('7');expect(body.get('bizType')).toBe('image');
  expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['9007199254740993']);wrapper.unmount();
 });

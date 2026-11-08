@@ -90,11 +90,31 @@ CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修�
 |---|---|
 | 网站首页 | `/` |
 | 后台登录 | `/#/admin/login` |
-| demo 插件后台页面 | `/#/admin/plugin/demo/items` |
-| demo 插件后台接口 | `/admin/plugin/demo/index` |
+| demo 插件后台页面 | `/#/admin/plugins/demo/items` |
+| demo 插件后台接口 | `/admin/plugins/demo/index` |
 | demo 公开静态资源 | `/plugin-assets/demo/public/文件名` |
 
 `VITE_APP_BASE` 控制页面与构建资源的部署目录；`VITE_APP_BASE_API` 控制管理接口及下载链接的前缀，默认 `/admin`。两者分别处理。`npm run build:webman` 输出到 `admin/public/index.html` 和 `admin/public/assets/`，保留已有安装锁、上传文件及插件资源。独立前端部署可运行 `npm run build:standalone` 输出到 `web/dist/`。
+
+插件页面和管理接口的新规范使用 `/plugins/{code}/...`。系统仍为旧的 `/plugin/{code}/...` 页面和接口注册兼容别名，旧书签会跳转到复数路径。插件源码、安装目录和 PHP 命名空间继续使用 `plugins/{code}` 隔离，不把插件文件发布到宿主控制器目录。
+
+需要替换宿主路由时，在 `plugin.json` 声明 `routeOverrides`，不能直接覆盖 `admin/app` 下的宿主文件：
+
+```json
+{
+  "routeOverrides": [
+    {
+      "methods": ["GET"],
+      "path": "/admin/system/user/profile",
+      "controller": "app\\admin\\plugins\\demo\\controller\\ProfileOverride",
+      "action": "show",
+      "priority": 100
+    }
+  ]
+}
+```
+
+覆盖处理器必须属于当前插件的 `app\\admin\\plugins\\{code}\\controller` 命名空间，目标路由必须已经存在；同一个方法和路径不能被多个插件覆盖。卸载插件时只移除插件发布资源，宿主控制器文件不会被删除。
 
 开发环境由 Vite 将 `/admin/...`、Hook 描述接口及 `/plugin-assets/...` 等请求代理到 `VITE_APP_PROXY_TARGET`，默认 Webman 地址为 `http://127.0.0.1:8787`。同端口部署直接请求后端；独立前端域名部署需要配置对应接口和公开资源代理，参见 `web/README.md`。
 

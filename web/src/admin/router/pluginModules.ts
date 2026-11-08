@@ -132,7 +132,7 @@ function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>
 
 function canonicalPluginPath(path: string, pluginCode: string): string {
   if (path.startsWith(`/plugins/${pluginCode}/`)) return path;
-  if (path.startsWith(`/plugin/${pluginCode}/`)) return `/plugins/${path.slice(`/plugin/${pluginCode}/`.length)}`;
+  if (path.startsWith(`/plugin/${pluginCode}/`)) return `/plugins/${pluginCode}/${path.slice(`/plugin/${pluginCode}/`.length)}`;
   throw new Error(`插件路由 DTO 越界：${path}`);
 }
 
@@ -148,7 +148,7 @@ function removeMenuPlaceholder(router: Router, path: string): void {
   const candidates = new Set([path, path.replace('/admin/plugins/', '/admin/plugin/')]);
   for (const record of router.getRoutes()) {
     if (!candidates.has(record.path) || !record.name || record.children.length > 0) continue;
-    if (record.meta.pluginPlaceholder !== true && record.components?.default !== Layout) continue;
+    if (record.meta?.pluginPlaceholder !== true && record.components?.default !== Layout) continue;
     if (String(record.name).startsWith('Plugin_')) continue;
     router.removeRoute(record.name);
   }

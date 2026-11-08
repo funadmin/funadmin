@@ -38,7 +38,7 @@ describe('pluginModules', () => {
 
     expect(result.loaded).toEqual(['example']);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
-      path: '/admin/plugin/example/index',
+      path: '/admin/plugins/example/index',
       name: 'Plugin_example_Layout',
       component: Layout,
       children: [expect.objectContaining({ path: '', name: 'Plugin_example', component: expect.any(Object) })]
@@ -46,8 +46,8 @@ describe('pluginModules', () => {
   });
 
   it('移除菜单为同路径生成的空壳布局路由，保留显式配置页面的菜单', async () => {
-    const placeholder = { path: '/admin/plugin/example/index', name: 'Menu_60', children: [], components: { default: Layout } };
-    const configured = { path: '/admin/plugin/other/index', name: 'Menu_61', children: [{ path: '' }], components: { default: Layout } };
+    const placeholder = { path: '/admin/plugins/example/index', name: 'Menu_60', children: [], components: { default: Layout } };
+    const configured = { path: '/admin/plugins/other/index', name: 'Menu_61', children: [{ path: '' }], components: { default: Layout } };
     const router = routerStub([placeholder, configured] as Array<Partial<RouteRecordNormalized>>);
     const other = descriptor('other');
     await syncPluginModules(router, [descriptor('example'), other], { modules: modules(['example', 'other']) });
@@ -64,7 +64,7 @@ describe('pluginModules', () => {
 
     expect(result.loaded).toEqual(['healthy']);
     expect(result.errors[0]).toMatchObject({ code: 'missing', stage: 'component' });
-    expect(router.addRoute).toHaveBeenCalledTimes(2);
+    expect(router.addRoute).toHaveBeenCalledTimes(4);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Plugin_missing_Error',
       component: expect.any(Function)
@@ -88,9 +88,10 @@ describe('pluginModules', () => {
     const options = { modules: modules(['demo']) };
     await syncPluginModules(router, [descriptor('demo')], options);
     await syncPluginModules(router, [descriptor('demo')], options);
-    expect(router.addRoute).toHaveBeenCalledTimes(1);
+    expect(router.addRoute).toHaveBeenCalledTimes(2);
     await syncPluginModules(router, [], options);
     expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo_Layout');
+    expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo_Layout_Legacy');
   });
 
   it('Router 实例重建后恢复路由', async () => {
@@ -100,7 +101,7 @@ describe('pluginModules', () => {
     const options = { modules: modules(['reloadable']) };
     await syncPluginModules(firstRouter, [item], options);
     await syncPluginModules(secondRouter, [item], options);
-    expect(secondRouter.addRoute).toHaveBeenCalledOnce();
+    expect(secondRouter.addRoute).toHaveBeenCalledTimes(2);
     clearPluginModules(secondRouter);
   });
 });

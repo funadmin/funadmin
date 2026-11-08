@@ -102,7 +102,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "路径不是 /plugin/{code}/ 前缀，路由 DTO 会被拒绝。"
+                                        "text": "路径不是 /plugins/{code}/ 前缀，路由 DTO 会被拒绝；旧 /plugin/{code}/ 会被规范化为复数路径。"
                                     }
                                 ]
                             }
