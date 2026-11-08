@@ -8,10 +8,10 @@ final class PluginHookManifestTest extends TestCase
     protected function setUp(): void {
         $this->root = sys_get_temp_dir().'/hookmanifest-'.bin2hex(random_bytes(5)).'/demo';
         mkdir($this->root.'/hooks',0700,true);
-        mkdir($this->root.'/web/src/admin/modules/demo',0700,true);
+        mkdir($this->root.'/web/src/admin/plugins/demo',0700,true);
         file_put_contents($this->root.'/Plugin.php','<?php namespace plugins\\demo; class Plugin {}');
         file_put_contents($this->root.'/hooks/test.php','<?php throw new \\RuntimeException("must never execute");');
-        file_put_contents($this->root.'/web/src/admin/modules/demo/hooks.ts','export const run = () => false');
+        file_put_contents($this->root.'/web/src/admin/plugins/demo/hooks.ts','export const run = () => false');
     }
     protected function tearDown(): void {
         $parent=dirname($this->root);
@@ -28,7 +28,7 @@ final class PluginHookManifestTest extends TestCase
         self::assertSame('demo',$m->code());
     }
     public function test_functions_only_frontend_with_empty_components(): void {
-        $m=$this->manifest(['adminWeb'=>['source'=>'web/src/admin/modules/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'filter','file'=>'hooks.ts','export'=>'run']]]);
+        $m=$this->manifest(['adminWeb'=>['source'=>'web/src/admin/plugins/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'filter','file'=>'hooks.ts','export'=>'run']]]);
         self::assertSame('demo',$m->code());
     }
     public function test_duplicate_backend_ids_rejected(): void {
@@ -38,7 +38,7 @@ final class PluginHookManifestTest extends TestCase
     }
     public function test_permission_on_public_hook_rejected(): void {
         $this->expectException(\RuntimeException::class);
-        $this->manifest(['adminWeb'=>['source'=>'web/src/admin/modules/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','permission'=>'system:plugin:list','audiences'=>['public']]]]);
+        $this->manifest(['adminWeb'=>['source'=>'web/src/admin/plugins/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run','permission'=>'system:plugin:list','audiences'=>['public']]]]);
     }
     public function test_invalid_hook_type_and_priority_rejected(): void {
         $this->expectException(\RuntimeException::class);
@@ -61,6 +61,6 @@ final class PluginHookManifestTest extends TestCase
     }
     public function test_missing_component_reference_rejected(): void {
         $this->expectException(\RuntimeException::class);
-        $this->manifest(['adminWeb'=>['source'=>'web/src/admin/modules/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'component','component'=>'Missing']]]);
+        $this->manifest(['adminWeb'=>['source'=>'web/src/admin/plugins/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'component','component'=>'Missing']]]);
     }
 }

@@ -1,8 +1,8 @@
 import { defineComponent, h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, expect, it, vi } from 'vitest';
-import SettingsPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ContributionSettingsPanel.vue';
-import ReviewPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ContributionsPanel.vue';
+import SettingsPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ContributionSettingsPanel.vue';
+import ReviewPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ContributionsPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:http}));
 const pass=defineComponent({setup(_, {slots}){return()=>h('div',slots.default?.());}});

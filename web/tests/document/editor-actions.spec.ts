@@ -7,8 +7,8 @@ const upload = vi.hoisted(() => vi.fn());
 vi.mock('element-plus', () => ({ ElMessageBox: { prompt: box.prompt }, ElMessage: { error: box.error } }));
 vi.mock('@/api/common/upload', () => ({ uploadApi: { upload } }));
 
-import DocumentEditor from '../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentEditor.vue';
-import { documentMessages } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
+import DocumentEditor from '../../../admin/plugins/document/web/src/admin/plugins/document/editor/DocumentEditor.vue';
+import { documentMessages } from '../../../admin/plugins/document/web/src/admin/plugins/document/locales';
 
 const i18n = (locale: 'zh-CN' | 'en-US') => createI18n({ legacy: false, locale, messages: documentMessages });
 type EditorVm = { editor: { getJSON: () => any; commands: { setNodeSelection: (p: number) => boolean } } };

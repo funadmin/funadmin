@@ -4,10 +4,10 @@
 
 ## 安装与配置
 
-1. 将整个 `oss` 目录（含已构建的 `vendor/`）放到后端 `plugins/oss/`，在插件中心的本地插件中安装并启用。安装后的后端模块由发布器写入 `app/admin/plugins/oss/`，前端写入项目 `web/src/admin/modules/oss/`。不要手工提前创建这些安装目录，以免形成未登记发布目标。
+1. 将整个 `oss` 目录（含已构建的 `vendor/`）放到后端 `plugins/oss/`，在插件中心的本地插件中安装并启用。安装后的后端模块由发布器写入 `app/admin/plugins/oss/`，前端写入项目 `web/src/admin/plugins/oss/`。不要手工提前创建这些安装目录，以免形成未登记发布目标。
 2. 前端模块沿用项目现有插件部署机制，安装后在前端项目执行 `npm run build:webman`，并按宿主要求重载 worker。
 3. 宿主须有有效的 `OAUTH_ENCRYPTION_KEY`（Defuse ASCII safe key）。保管原密钥；换密钥前应完成原配置的重新加密。插件不会生成弱替代密钥。
-4. 进入 `/#/admin/plugin/oss/storage` 添加配置，再设为当前存储。新启用但未配置时显示“尚未接管”，现有上传继续原方式。插件配置好当前存储后自动接管，无需修改 CMS、编辑器或附件上传地址。
+4. 进入 `/#/admin/plugins/oss/storage` 添加配置，再设为当前存储。新启用但未配置时显示“尚未接管”，现有上传继续原方式。插件配置好当前存储后自动接管，无需修改 CMS、编辑器或附件上传地址。
 5. 阿里云填写 HTTPS 官方 endpoint、Bucket 和 AccessKey；腾讯云填写带 APPID 的 Bucket、Region 和 SecretId/SecretKey；七牛填写 Bucket、区域（z0/z1/z2/na0/as0 等，支持 SDK 自动发现）和 AccessKey/SecretKey。填写真实的 HTTP(S) 访问域名和可选安全目录前缀。云端访问权限和 CDN 由桶管理员配置，插件不会把私有桶改成公开桶。
 6. “测试连接”会写入并删除一个随机测试对象，结果成功才代表真实云联通。本插件开发测试不使用真实密钥，不声称已对用户桶做过真实云验证。
 

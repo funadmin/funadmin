@@ -11,7 +11,7 @@ interface Entry {
     module: HookModule;
     hook: HookDescriptor;
 }
-const sources = import.meta.glob('/src/admin/modules/**/*.{ts,js,vue,tsx}');
+const sources = import.meta.glob('/src/admin/plugins/**/*.{ts,js,vue,tsx}');
 export class HookRuntime implements HookCalls {
     readonly revision = shallowRef(0);
     private entries: Entry[] = [];
@@ -93,7 +93,7 @@ export class HookRuntime implements HookCalls {
     private source(module: HookModule, file?: string): () => Promise<any> {
         if (!file || file.startsWith('/') || file.includes('\\') || file.split('/').some(x => x === '..' || x === '.') || !/\.(ts|js|vue|tsx)$/.test(file))
             throw Error('Invalid plugin source');
-        const loader = this.modules[`/src/admin/modules/${module.code}/${file}`];
+        const loader = this.modules[`/src/admin/plugins/${module.code}/${file}`];
         if (!loader)
             throw Error(`Plugin source missing from build: ${module.code}/${file}`);
         return loader;

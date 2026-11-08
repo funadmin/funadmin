@@ -22,8 +22,8 @@ final class PluginHookExampleTest extends TestCase
                 self::assertTrue($zip->open($file));
                 try {
                     self::assertNotFalse($zip->getFromName('hookdemo/hooks/main.php'));
-                    self::assertNotFalse($zip->getFromName('hookdemo/web/src/admin/modules/hookdemo/hooks.ts'));
-                    self::assertNotFalse($zip->getFromName('hookdemo/web/src/admin/modules/hookdemo/components/HookCard.vue'));
+                    self::assertNotFalse($zip->getFromName('hookdemo/web/src/admin/plugins/hookdemo/hooks.ts'));
+                    self::assertNotFalse($zip->getFromName('hookdemo/web/src/admin/plugins/hookdemo/components/HookCard.vue'));
                     self::assertFalse($zip->getFromName('hookdemo/public/hooks/main.php'));
                     self::assertFalse($zip->getFromName('hookdemo/app/'));
                 } finally {

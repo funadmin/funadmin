@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
         { find: '@/api', replacement: fileURLToPath(new URL('./src/admin/api', import.meta.url)) },
         { find: '@/layout', replacement: fileURLToPath(new URL('./src/admin/layout', import.meta.url)) },
         { find: '@/mock', replacement: fileURLToPath(new URL('./src/admin/mock', import.meta.url)) },
-        { find: '@/modules', replacement: fileURLToPath(new URL('./src/admin/modules', import.meta.url)) },
+        { find: '@/plugins', replacement: fileURLToPath(new URL('./src/admin/plugins', import.meta.url)) },
         { find: '@/router', replacement: fileURLToPath(new URL('./src/admin/router', import.meta.url)) },
         { find: '@/store', replacement: fileURLToPath(new URL('./src/admin/store', import.meta.url)) },
         { find: '@/views', replacement: fileURLToPath(new URL('./src/admin/views', import.meta.url)) },

@@ -19,7 +19,7 @@ final class PluginFrontendPermissionContractTest extends TestCase
     public function test_every_plugin_permission_code_used_by_the_frontend_exists(): void
     {
         $root = dirname(__DIR__, 2);
-        $sources = [$root . '/web/src/admin/modules'];
+        $sources = [$root . '/web/src/admin/plugins'];
         foreach (self::PLUGINS as $plugin) $sources[] = dirname(__DIR__) . "/plugins/$plugin/web/src";
         $checked = 0;
         foreach ($sources as $source) {

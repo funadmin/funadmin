@@ -1,7 +1,7 @@
 import http from '@/utils/http';
 import type { StorageOverview, StorageProfile, StorageProfilePayload } from './types';
 
-const PREFIX = '/plugin/oss/storage';
+const PREFIX = '/plugins/oss/storage';
 
 export const ossStorageApi = {
   list: () => http.get<StorageOverview>(PREFIX),

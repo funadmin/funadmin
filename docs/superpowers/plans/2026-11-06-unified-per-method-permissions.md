@@ -66,7 +66,7 @@
 
 ### Task 5: 插件中间件合并与前端
 
-**Files:** Modify `CheckAdminApiRoleMiddleware.php`；Delete `CheckPluginPermissionMiddleware.php`；Modify 市场 6 控制器、`PluginRoute.php`、插件控制器去掉 `#[Permission]`；Modify `web/src/admin/modules/**`；Tests：快照更新、`PluginRouteExecutionTest`、前端契约。
+**Files:** Modify `CheckAdminApiRoleMiddleware.php`；Delete `CheckPluginPermissionMiddleware.php`；Modify 市场 6 控制器、`PluginRoute.php`、插件控制器去掉 `#[Permission]`；Modify `web/src/admin/plugins/**`；Tests：快照更新、`PluginRouteExecutionTest`、前端契约。
 
 - [ ] 测试：插件路由所需码 = 推导码；跨插件码拒绝；Task 2 矩阵不变；前端按钮码 ∈ 推导码集合。
 - [ ] 实现；通知 `funadmin-5f`。

@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import CmsPage from '../../../admin/plugins/cms/web/src/admin/modules/cms/pages/Content.vue';
+import CmsPage from '../../../admin/plugins/cms/web/src/admin/plugins/cms/pages/Content.vue';
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/utils/http', () => ({ default: http }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: ['*'] }) }));

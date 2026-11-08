@@ -42,7 +42,7 @@ admin/plugins/oss/
   app/admin/plugins/oss/
     controller/Storage.php
     service/...                # 配置、加密、驱动、SDK 适配
-  web/src/admin/modules/oss/
+  web/src/admin/plugins/oss/
     api.ts
     types.ts
     pages/Index.vue
@@ -50,7 +50,7 @@ admin/plugins/oss/
   README.md
 ```
 
-安装后发布到 `admin/app/admin/plugins/oss/` 和 `web/src/admin/modules/oss/`。后台接口使用 `/admin/plugin/oss/...`，页面为 `/#/admin/plugin/oss/storage`。不恢复 business 层，不把宿主业务接口改成云厂商地址。
+安装后发布到 `admin/app/admin/plugins/oss/` 和 `web/src/admin/plugins/oss/`。后台接口使用 `/admin/plugin/oss/...`，页面为 `/#/admin/plugin/oss/storage`。不恢复 business 层，不把宿主业务接口改成云厂商地址。
 
 依赖阿里云、腾讯云、七牛云官方 PHP SDK，插件独立锁定依赖并打入 vendor，继续走当前宿主优先与 Composer 冲突检测。正式实现时核对 SDK 官方接口与版本及 PHP 8.5 兼容性；不得让插件安装端自动执行 Composer。
 

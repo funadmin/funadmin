@@ -3,16 +3,16 @@ import { flushPromises, mount } from '@vue/test-utils';
 
 const msg = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), confirm: vi.fn() }));
 vi.mock('element-plus', () => ({ ElMessage: { success: msg.success, error: msg.error }, ElMessageBox: { confirm: msg.confirm } }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/api', () => ({
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/api', () => ({
   documentApi: {
     revisions: vi.fn().mockResolvedValue({ list: [{ revisionNo: 1, title: 't', changeSummary: '首版', createdBy: 1, createdAt: '2026-11-08 10:00:00' }], total: 1 }),
     revision: vi.fn().mockResolvedValue({ revisionNo: 1, title: 't', summary: '', changeSummary: '', createdAt: '', content: { type: 'doc', content: [] } })
   }
 }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentPreview.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/editor/DocumentPreview.vue', () => ({ default: { template: '<div />' } }));
 
-import Drawer from '../../../admin/plugins/document/web/src/admin/modules/document/components/DocumentVersionDrawer.vue';
-import { nextMermaidId } from '../../../admin/plugins/document/web/src/admin/modules/document/editor/mermaidId';
+import Drawer from '../../../admin/plugins/document/web/src/admin/plugins/document/components/DocumentVersionDrawer.vue';
+import { nextMermaidId } from '../../../admin/plugins/document/web/src/admin/plugins/document/editor/mermaidId';
 
 const stubs = {
   'el-drawer': { props: ['modelValue'], template: '<div v-if="modelValue"><slot /></div>' },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { i18n } from '@/locales';
-import { documentMessages, registerDocumentLocales } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
+import { documentMessages, registerDocumentLocales } from '../../../admin/plugins/document/web/src/admin/plugins/document/locales';
 
 const flatten = (obj: Record<string, unknown>, prefix = ''): string[] =>
   Object.entries(obj).flatMap(([k, v]) => (v && typeof v === 'object' ? flatten(v as Record<string, unknown>, `${prefix}${k}.`) : [`${prefix}${k}`]));

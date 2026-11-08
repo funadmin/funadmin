@@ -1,8 +1,8 @@
 import { computed, defineComponent, h, inject, provide } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, expect, it, vi } from 'vitest';
-import ContentPage from '../../../admin/plugins/cms/web/src/admin/modules/cms/pages/Content.vue';
-import AccessPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/AccessPanel.vue';
+import ContentPage from '../../../admin/plugins/cms/web/src/admin/plugins/cms/pages/Content.vue';
+import AccessPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/AccessPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:http}));
 vi.mock('@/store/modules/user',()=>({useUserStore:()=>({permissions:['*']})}));

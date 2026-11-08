@@ -4,7 +4,7 @@
 
 Completed five user-approved improvements: typed defaults, frontend+backend field constraints, model/language category filtering, unsaved-edit protection and three editor tabs. ModelPanel exposes scalar default/description/placeholder/number min-max/text max_length. Existing eight field types retained, no SQL migrations. Exact string identity, historical schemas and CAS preserved.
 
-Authoritative source changes: admin/plugins/cms/web/src/admin/modules/cms/components/{ContentPanel.vue,ModelPanel.vue,contentForm.ts},types.ts and app/cms/service/ModelService.php. New shared dirty composable web/src/shared/composables/useUnsavedChanges.ts. Mirrors synchronized.
+Authoritative source changes: admin/plugins/cms/web/src/admin/plugins/cms/components/{ContentPanel.vue,ModelPanel.vue,contentForm.ts},types.ts and app/cms/service/ModelService.php. New shared dirty composable web/src/shared/composables/useUnsavedChanges.ts. Mirrors synchronized.
 
 ## Evidence
 

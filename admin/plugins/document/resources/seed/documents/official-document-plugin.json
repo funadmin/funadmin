@@ -27,7 +27,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "后台地址为 /#/admin/plugin/document/docs。可以创建文档、选择范围和目录、使用 Tiptap 编辑器、保存草稿、查看版本和发布。"
+                        "text": "后台地址为 /#/admin/plugins/document/docs。可以创建文档、选择范围和目录、使用 Tiptap 编辑器、保存草稿、查看版本和发布。"
                     }
                 ]
             },

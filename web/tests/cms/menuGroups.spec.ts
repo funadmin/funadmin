@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { ElButton, ElTable, ElTableColumn } from 'element-plus';
-import SourcePanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/MenuPanel.vue';
-import RuntimePanel from '../../src/admin/modules/cms/components/MenuPanel.vue';
+import SourcePanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/MenuPanel.vue';
+import RuntimePanel from '../../src/admin/plugins/cms/components/MenuPanel.vue';
 const api = vi.hoisted(() => ({ menus: vi.fn(), menuTargets: vi.fn(), removeMenu: vi.fn(), saveMenu: vi.fn(), menuStatus: vi.fn() }));
-vi.mock('../../../admin/plugins/cms/web/src/admin/modules/cms/api', () => ({ cmsApi: api }));
-vi.mock('../../src/admin/modules/cms/api', () => ({ cmsApi: api }));
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: api }));
+vi.mock('../../src/admin/plugins/cms/api', () => ({ cmsApi: api }));
 const confirmation = defineComponent({
   props: ['title'], emits: ['confirm'], setup(props, { slots, emit }) {
     const shown = ref(false);

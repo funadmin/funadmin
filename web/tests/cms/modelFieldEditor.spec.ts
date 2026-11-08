@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, expect, it, vi } from 'vitest';
-import ModelPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ModelPanel.vue';
+import ModelPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ModelPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));vi.mock('@/utils/http',()=>({default:http}));
 const pass=defineComponent({setup(_,{slots}){return()=>h('div',[slots.default?.(),slots.footer?.()]);}});
 const input=defineComponent({props:['modelValue'],emits:['update:modelValue'],setup(p,{emit}){return()=>h('input',{value:p.modelValue,onInput:(e:any)=>emit('update:modelValue',e.target.value)});}});

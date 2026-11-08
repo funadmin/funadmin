@@ -45,7 +45,7 @@ admin/plugins/cms/
     controller/ model/ service/ middleware/ template/ tags/
     view/default/
     config/app.php
-  web/src/admin/modules/cms/
+  web/src/admin/plugins/cms/
     api.ts types.ts pages/ components/
   public/plugin-assets/cms/public/
     css/ js/ vendor/

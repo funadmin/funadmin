@@ -46,13 +46,13 @@ final class LifecycleTest extends TestCase
         $service=new PluginService($root);
         try{
             self::assertTrue($service->installPlugin('oss'));
-            self::assertFileExists($root.'/app/admin/plugins/oss/controller/Storage.php');self::assertFileExists($root.'/web/src/admin/modules/oss/pages/Index.vue');
+            self::assertFileExists($root.'/app/admin/plugins/oss/controller/Storage.php');self::assertFileExists($root.'/web/src/admin/plugins/oss/pages/Index.vue');
             self::assertTrue($service->enablePlugin('oss'),'An unconfigured plugin must be enabled before its settings UI is accessible');
             $profiles=new ProfileService(\Defuse\Crypto\Key::createNewRandomKey()->saveToAsciiSafeString());
             $profile=$profiles->save(['name'=>'History','provider'=>'qiniu','bucket'=>'history-bucket','domain'=>'https://cdn.example.com','region'=>'z0','access_key'=>'fixture-ak','secret_key'=>'fixture-sk']);
             self::assertTrue($service->disablePlugin('oss'));$manifest['version']='1.1.0';file_put_contents($manifestPath,json_encode($manifest));self::assertTrue($service->updatePlugin('oss'));
             self::assertSame($profile['id'],$profiles->listing()[0]['id']);self::assertTrue($service->uninstallPlugin('oss'));
-            self::assertFileDoesNotExist($root.'/app/admin/plugins/oss/controller/Storage.php');self::assertFileDoesNotExist($root.'/web/src/admin/modules/oss/pages/Index.vue');
+            self::assertFileDoesNotExist($root.'/app/admin/plugins/oss/controller/Storage.php');self::assertFileDoesNotExist($root.'/web/src/admin/plugins/oss/pages/Index.vue');
             self::assertSame($profile['id'],$profiles->listing()[0]['id']);self::assertTrue($service->installPlugin('oss'));self::assertTrue($service->enablePlugin('oss'));self::assertSame($profile['id'],$profiles->listing()[0]['id']);
         }finally{
             $files=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root,\FilesystemIterator::SKIP_DOTS),\RecursiveIteratorIterator::CHILD_FIRST);foreach($files as $file)$file->isDir()?rmdir($file->getPathname()):unlink($file->getPathname());rmdir($root);

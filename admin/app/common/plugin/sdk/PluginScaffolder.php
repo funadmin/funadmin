@@ -32,7 +32,7 @@ final class PluginScaffolder
             $files[] = "app/admin/plugins/{$name}/controller/Index.php";
             foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/admin/plugins/{$name}/{$layer}/.gitkeep";
         }
-        if ($adminWeb) array_push($files, "web/src/admin/modules/{$name}/api.ts", "web/src/admin/modules/{$name}/types.ts", "web/src/admin/modules/{$name}/pages/Index.vue", "web/src/admin/modules/{$name}/pages/components/EditDialog.vue");
+        if ($adminWeb) array_push($files, "web/src/admin/plugins/{$name}/api.ts", "web/src/admin/plugins/{$name}/types.ts", "web/src/admin/plugins/{$name}/pages/Index.vue", "web/src/admin/plugins/{$name}/pages/components/EditDialog.vue");
         sort($files, SORT_STRING);
         return ['code' => $name, 'target' => 'plugins/' . $name, 'files' => $files];
     }
@@ -111,7 +111,7 @@ final class PluginScaffolder
         ];
         if ($adminWeb) {
             $manifest['adminWeb'] = [
-                'source' => 'web/src/admin/modules/' . $name,
+                'source' => 'web/src/admin/plugins/' . $name,
                 'components' => ['Index' => 'pages/Index.vue'],
                 'minFrontendVersion' => '1.0.0',
                 'permissions' => [[
@@ -120,11 +120,11 @@ final class PluginScaffolder
                 ]],
                 'menu' => [[
                     'name' => $title,
-                    'path' => '/plugin/' . $name . '/items',
+                    'path' => '/plugins/' . $name . '/items',
                     'permission' => $name . ':index:index',
                 ]],
                 'routes' => [[
-                    'path' => '/plugin/' . $name . '/items',
+                    'path' => '/plugins/' . $name . '/items',
                     'name' => 'Plugin_' . $name . '_Index',
                     'component' => 'Index',
                     'meta' => ['permission' => $name . ':index:index'],
@@ -161,7 +161,7 @@ final class PluginScaffolder
             }
         }
         if ($adminWeb) {
-            $adminWebRoot = $directory . '/web/src/admin/modules/' . $name;
+            $adminWebRoot = $directory . '/web/src/admin/plugins/' . $name;
             $this->write($adminWebRoot . '/api.ts', $this->adminWebApiSource($name));
             $this->write($adminWebRoot . '/types.ts', $this->adminWebTypesSource());
             $this->write($adminWebRoot . '/pages/Index.vue', $this->adminWebSource($name, $title));
@@ -232,7 +232,7 @@ use support\\annotation\\route\\Get;
 use support\\annotation\\route\\RouteGroup;
 use support\\Response;
 
-#[RouteGroup('/admin/plugin/{$name}')]
+#[RouteGroup('/admin/plugins/{$name}')]
 final class Index extends AdminController
 {
 

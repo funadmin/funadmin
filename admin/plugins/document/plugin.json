@@ -3,7 +3,7 @@
   "code": "document",
   "name": "技术文档",
   "description": "FunAdmin 简约官方文档站，支持章节化内容、后台编辑与公开阅读",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
@@ -23,7 +23,7 @@
     "supported": false
   },
   "adminWeb": {
-    "source": "web/src/admin/modules/document",
+    "source": "web/src/admin/plugins/document",
     "components": {
       "Index": "Index.vue"
     },
@@ -93,11 +93,11 @@
     "menu": [
       {
         "name": "技术文档",
-        "path": "/plugin/document",
+        "path": "/plugins/document",
         "menulist": [
           {
             "name": "文档中心",
-            "path": "/plugin/document/docs",
+            "path": "/plugins/document/docs",
             "permission": "document:document:index"
           }
         ]
@@ -105,7 +105,7 @@
     ],
     "routes": [
       {
-        "path": "/plugin/document/docs",
+        "path": "/plugins/document/docs",
         "name": "Plugin_document_Docs",
         "component": "Index",
         "meta": {

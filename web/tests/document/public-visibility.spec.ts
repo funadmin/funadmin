@@ -1,8 +1,8 @@
 import { defineComponent } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import Dialog from '../../../admin/plugins/document/web/src/admin/modules/document/components/DocumentMetaDialog.vue';
-import { registerDocumentLocales } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
+import Dialog from '../../../admin/plugins/document/web/src/admin/plugins/document/components/DocumentMetaDialog.vue';
+import { registerDocumentLocales } from '../../../admin/plugins/document/web/src/admin/plugins/document/locales';
 
 const permissions = vi.hoisted(() => ({ publish: true }));
 vi.mock('@/utils/permission', () => ({ hasPermission: () => permissions.publish }));

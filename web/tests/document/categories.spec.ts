@@ -4,12 +4,12 @@ import { createI18n } from 'vue-i18n';
 
 const api = vi.hoisted(() => ({ createCategory: vi.fn(), updateCategory: vi.fn(), deleteCategory: vi.fn() }));
 const msg = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), confirm: vi.fn() }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/api', () => ({ documentApi: api }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/api', () => ({ documentApi: api }));
 vi.mock('element-plus', () => ({ ElMessage: { success: msg.success, error: msg.error }, ElMessageBox: { confirm: msg.confirm } }));
 
-import Dialog from '../../../admin/plugins/document/web/src/admin/modules/document/components/DocumentCategoryDialog.vue';
-import { documentMessages } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
-import type { DocumentCategory } from '../../../admin/plugins/document/web/src/admin/modules/document/types';
+import Dialog from '../../../admin/plugins/document/web/src/admin/plugins/document/components/DocumentCategoryDialog.vue';
+import { documentMessages } from '../../../admin/plugins/document/web/src/admin/plugins/document/locales';
+import type { DocumentCategory } from '../../../admin/plugins/document/web/src/admin/plugins/document/types';
 
 const tree: DocumentCategory[] = [
   { id: 1, scope: 'framework', parentId: 0, name: '主框架', slug: 'framework', sortOrder: 10, children: [{ id: 2, scope: 'framework', parentId: 1, name: '架构', slug: 'arch', sortOrder: 10, children: [] }] }

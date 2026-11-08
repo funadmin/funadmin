@@ -30,7 +30,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "admin/plugins/demo/\n├── plugin.json\n├── Plugin.php\n├── app/\n│   ├── admin/plugins/demo/controller/\n│   └── demo/service/\n├── database/migrations/\n├── resources/\n└── web/src/admin/modules/demo/"
+                        "text": "admin/plugins/demo/\n├── plugin.json\n├── Plugin.php\n├── app/\n│   ├── admin/plugins/demo/controller/\n│   └── demo/service/\n├── database/migrations/\n├── resources/\n└── web/src/admin/plugins/demo/"
                     }
                 ]
             },
@@ -54,7 +54,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "{\n  \"schema_version\": 2,\n  \"code\": \"demo\",\n  \"name\": \"示例插件\",\n  \"version\": \"1.0.0\",\n  \"entry\": { \"class\": \"plugins\\\\demo\\\\Plugin\", \"file\": \"Plugin.php\" },\n  \"adminWeb\": {\n    \"source\": \"web/src/admin/modules/demo\",\n    \"components\": { \"Index\": \"Index.vue\" },\n    \"routes\": []\n  }\n}"
+                        "text": "{\n  \"schema_version\": 2,\n  \"code\": \"demo\",\n  \"name\": \"示例插件\",\n  \"version\": \"1.0.0\",\n  \"entry\": { \"class\": \"plugins\\\\demo\\\\Plugin\", \"file\": \"Plugin.php\" },\n  \"adminWeb\": {\n    \"source\": \"web/src/admin/plugins/demo\",\n    \"components\": { \"Index\": \"Index.vue\" },\n    \"routes\": []\n  }\n}"
                     }
                 ]
             },

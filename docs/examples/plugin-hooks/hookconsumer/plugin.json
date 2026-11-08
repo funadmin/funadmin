@@ -13,7 +13,7 @@
     "file": "Plugin.php"
   },
   "adminWeb": {
-    "source": "web/src/admin/modules/hookconsumer",
+    "source": "web/src/admin/plugins/hookconsumer",
     "components": {},
     "minFrontendVersion": "0.1.0",
     "permissions": [],

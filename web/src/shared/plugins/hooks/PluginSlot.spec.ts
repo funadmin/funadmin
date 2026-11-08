@@ -4,7 +4,7 @@ import { defineComponent, h, KeepAlive, ref, nextTick, reactive } from 'vue';
 import PluginSlot from './PluginSlot';
 import { HookRuntime } from './runtime';
 it('renders context, isolates broken components, unmounts on clear', async () => {
-    const r = new HookRuntime({ '/src/admin/modules/a/card.vue': async () => ({ default: defineComponent({ props: ['context'], setup: p => () => h('span', p.context.label) }) }), '/src/admin/modules/a/bad.vue': async () => ({ default: defineComponent({ setup() {
+    const r = new HookRuntime({ '/src/admin/plugins/a/card.vue': async () => ({ default: defineComponent({ props: ['context'], setup: p => () => h('span', p.context.label) }) }), '/src/admin/plugins/a/bad.vue': async () => ({ default: defineComponent({ setup() {
                     throw Error('bad');
                 } }) }) }, () => {
     });
@@ -19,7 +19,7 @@ it('renders context, isolates broken components, unmounts on clear', async () =>
 });
 
 function slotRuntime(loader: () => Promise<any>) {
-    const runtime = new HookRuntime({ '/src/admin/modules/a/card.vue': loader }, () => {});
+    const runtime = new HookRuntime({ '/src/admin/plugins/a/card.vue': loader }, () => {});
     runtime.sync([{ code: 'a', version: '1', components: { card: 'card.vue' }, clientHooks: [{ id: 'card', point: 'cards', type: 'component', component: 'card' }] }], 'admin:1');
     return runtime;
 }

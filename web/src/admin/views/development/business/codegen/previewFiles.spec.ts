@@ -24,7 +24,7 @@ describe('previewFileGroup', () => {
     ['tests/business/ShopGoodsGeneratedTest.php', 'test'],
     ['web/tests/business/shop-goods.spec.ts', 'test'],
     ['plugins/demo/app/admin/plugins/demo/controller/GoodsController.php', 'backend'],
-    ['plugins/demo/web/src/admin/modules/demo/goods/index.vue', 'frontend'],
+    ['plugins/demo/web/src/admin/plugins/demo/goods/index.vue', 'frontend'],
     ['plugins/demo/database/migrations/001_goods.sql', 'database'],
     ['plugins/demo/plugin.json', 'other'],
     ['README.md', 'other']

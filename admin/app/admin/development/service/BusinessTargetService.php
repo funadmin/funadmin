@@ -128,7 +128,7 @@ final class BusinessTargetService
         try {
             $directory = PathGuard::resolve($this->root, 'plugins/' . $option['code'], '插件目录');
             $data = Manifest::fromDirectory($directory)->toArray();
-            $frontend = 'web/src/admin/modules/' . $option['code'];
+            $frontend = 'web/src/admin/plugins/' . $option['code'];
             if (($data['adminWeb']['source'] ?? '') !== $frontend || !is_dir($directory . '/' . $frontend)) return 'ADMIN_WEB_MISSING';
             if (($data['migrations']['path'] ?? 'database/migrations') !== 'database/migrations') return 'MIGRATION_PATH_UNSUPPORTED';
             foreach ([$directory, $directory . '/plugin.json', $directory . '/app/admin/plugins/' . $option['code'], $directory . '/' . $frontend] as $path) {

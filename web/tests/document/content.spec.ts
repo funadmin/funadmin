@@ -6,7 +6,7 @@ import {
   extractPlainText,
   parseImportedMarkdown,
   sanitizeDocumentUrl
-} from '../../../admin/plugins/document/web/src/admin/modules/document/editor/content';
+} from '../../../admin/plugins/document/web/src/admin/plugins/document/editor/content';
 
 const find = (doc: JSONContent, type: string): JSONContent | undefined => {
   if (doc.type === type) return doc;

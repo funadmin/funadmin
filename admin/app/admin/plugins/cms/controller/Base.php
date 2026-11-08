@@ -6,7 +6,7 @@ use app\cms\service\Input;
 use app\cms\service\SiteAccess;
 use support\Response;
 use support\annotation\route\RouteGroup;
-#[RouteGroup('/admin/plugin/cms')]
+#[RouteGroup('/admin/plugins/cms')]
 abstract class Base extends AdminController
 {
     protected function actor(): string { return Input::id($this->request->context['admin']['id']??''); }

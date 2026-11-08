@@ -85,7 +85,7 @@ final class PluginApplicationGuardMiddleware implements MiddlewareInterface
             return [$owner[1], 'app', $this->hasManifest($owner[1])];
         }
         $segments = array_values(array_filter(explode('/', trim($request->path(), '/')), static fn (string $segment): bool => $segment !== ''));
-        if (($segments[0] ?? '') === 'admin' && ($segments[1] ?? '') === 'plugin') {
+        if (($segments[0] ?? '') === 'admin' && in_array(($segments[1] ?? ''), ['plugin', 'plugins'], true)) {
             $code = (string) ($segments[2] ?? '');
             return preg_match('/^[a-z][a-z0-9]*$/', $code) === 1 ? [$code, 'admin', true] : null;
         }

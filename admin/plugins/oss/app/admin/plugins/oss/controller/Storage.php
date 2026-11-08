@@ -5,7 +5,7 @@ use app\common\controller\AdminController;
 use app\admin\plugins\oss\service\ProfileService;
 use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
-#[RouteGroup('/admin/plugin/oss/storage')]
+#[RouteGroup('/admin/plugins/oss/storage')]
 final class Storage extends AdminController
 {
     private function service():ProfileService{return \support\Container::get(ProfileService::class);}

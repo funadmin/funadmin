@@ -10,8 +10,8 @@ import type {
   RevisionSummary
 } from './types';
 
-const docs = '/plugin/document/documents';
-const categories = '/plugin/document/categories';
+const docs = '/plugins/document/documents';
+const categories = '/plugins/document/categories';
 
 /** 业务错误（409 冲突、422 校验）由页面自行提示，不弹全局消息。 */
 const quiet = { requestOptions: { showErrorMsg: false } };

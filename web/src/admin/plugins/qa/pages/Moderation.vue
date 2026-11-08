@@ -2,9 +2,9 @@
 import { useCmsI18n } from '@/composables/useCmsI18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import PageWrapper from '@/components/PageWrapper/index.vue';
-import ContributionsPanel from '@/modules/cms/components/ContributionsPanel.vue';
-import { cmsApi } from '@/modules/cms/api';
-import type { SiteContext } from '@/modules/cms/types';
+import ContributionsPanel from '@/plugins/cms/components/ContributionsPanel.vue';
+import { cmsApi } from '@/plugins/cms/api';
+import type { SiteContext } from '@/plugins/cms/types';
 import { checkPermission, hasPermission } from '@/utils/permission';
 const { t } = useCmsI18n();
 const sites=ref<SiteContext[]>([]),siteId=ref(''),locale=ref(''),isSuper=ref(false),error=ref(''),loading=ref(false);

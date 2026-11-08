@@ -158,7 +158,7 @@ admin/plugins/document/
 │   ├── service/
 │   └── middleware/
 ├── database/migrations/
-├── web/src/admin/modules/document/
+├── web/src/admin/plugins/document/
 │   ├── api.ts
 │   ├── types.ts
 │   ├── Index.vue

@@ -38,7 +38,7 @@ final class PluginCrudExecutionTest extends TestCase
         $data['target'] = ['type' => 'plugin', 'plugin' => 'crudfixture', 'scope' => 'both'];
         $data['permissionPrefix'] = 'crudfixture:console-item';
         $data['apiPrefix'] = '/console-item';
-        $data['routePath'] = '/plugin/crudfixture/console-item';
+        $data['routePath'] = '/plugins/crudfixture/console-item';
         $data['tableIdentity'] = ['source' => 'created', 'kind' => 'physical'];
         unset($data['generationTargets']);
         return CrudDefinition::fromArray($data);
@@ -104,7 +104,7 @@ final class PluginCrudExecutionTest extends TestCase
         }
         self::assertTrue(class_exists('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController'), '插件 CRUD 必须使用模块命名空间');
         $class = new \ReflectionClass('app\\admin\\plugins\\crudfixture\\controller\\ConsoleItemController');
-        self::assertSame('/admin/plugin/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
+        self::assertSame('/admin/plugins/crudfixture/console-item', $class->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
         // 代码即权限：生成的插件方法不再声明权限注解；清单与前端使用的权限码等于控制器方法推导码。
         $declared = array_map(static fn (array $action): string => 'crudfixture:console-item:' . $action['codeSuffix'], $definition->toArray()['permission']['actions']);
         foreach (['index', 'create', 'update', 'remove', 'recycle', 'restoreMany', 'destroyMany'] as $method) {
@@ -114,12 +114,12 @@ final class PluginCrudExecutionTest extends TestCase
         }
         self::assertStringNotContainsString('annotation\\Permission', $context['controllerContent']);
         $definitions = (new \ReflectionMethod(\Webman\Route::class, 'buildAnnotationRouteDefinitions'))->invoke(null, [new \Webman\Finder\FileInfo($this->root . '/controllerContent.php', ['class' => $class->getName()])]);
-        self::assertContains('/admin/plugin/crudfixture/console-item/restore', array_column($definitions, 'path'));
+        self::assertContains('/admin/plugins/crudfixture/console-item/restore', array_column($definitions, 'path'));
         $dispatcher = \FastRoute\simpleDispatcher(static function (\FastRoute\RouteCollector $collector) use ($definitions): void {
             foreach ($definitions as $route) $collector->addRoute($route['methods'], $route['path'], $route['callback']);
         });
-        self::assertSame('destroyMany', $dispatcher->dispatch('DELETE', '/admin/plugin/crudfixture/console-item/destroy')[1][1]);
-        self::assertSame('export', $dispatcher->dispatch('GET', '/admin/plugin/crudfixture/console-item/export')[1][1]);
+        self::assertSame('destroyMany', $dispatcher->dispatch('DELETE', '/admin/plugins/crudfixture/console-item/destroy')[1][1]);
+        self::assertSame('export', $dispatcher->dispatch('GET', '/admin/plugins/crudfixture/console-item/export')[1][1]);
     }
 
     public function test_both_scopes_generate_native_php_and_history_is_immutable(): void

@@ -4,7 +4,7 @@
 
 **Goal:** 构建一个可独立安装、停用、升级和打包的 FunAdmin 文档管理插件，统一管理 FunAdmin 主框架、插件开发规范、官方插件和第三方插件技术文档。
 
-**Architecture:** 使用标准 FunAdmin 插件目录；后端在 `admin/plugins/document` 提供目录、文档、版本、搜索、导入导出和权限接口，前端在 `web/src/admin/modules/document` 提供三栏文档工作台。正文以 Tiptap JSON 作为主格式，发布时生成不可变修订，Markdown/HTML 只作为导入导出和安全预览格式。
+**Architecture:** 使用标准 FunAdmin 插件目录；后端在 `admin/plugins/document` 提供目录、文档、版本、搜索、导入导出和权限接口，前端在 `web/src/admin/plugins/document` 提供三栏文档工作台。正文以 Tiptap JSON 作为主格式，发布时生成不可变修订，Markdown/HTML 只作为导入导出和安全预览格式。
 
 **Tech Stack:** PHP 8.5 + Webman + MySQL migration + FunAdmin RBAC；Vue 3 + TypeScript + Vite + Element Plus + Tailwind CSS + Pinia + Axios + Tiptap + Vitest/Vue Test Utils。
 
@@ -49,14 +49,14 @@
 - Create: `admin/plugins/document/database/migrations/001_document_baseline.sql`
 - Create: `admin/plugins/document/app/admin/plugins/document/controller/Index.php`
 - Create: `admin/plugins/document/app/admin/plugins/document/service/DocumentPluginService.php`
-- Create: `admin/plugins/document/web/src/admin/modules/document/api.ts`
-- Create: `admin/plugins/document/web/src/admin/modules/document/types.ts`
-- Create: `admin/plugins/document/web/src/admin/modules/document/Index.vue`
+- Create: `admin/plugins/document/web/src/admin/plugins/document/api.ts`
+- Create: `admin/plugins/document/web/src/admin/plugins/document/types.ts`
+- Create: `admin/plugins/document/web/src/admin/plugins/document/Index.vue`
 - Test: `admin/tests/DocumentPluginLayoutTest.php`
 - Test: `admin/tests/DocumentMigrationTest.php`
 
 **Interfaces:**
-- Produces plugin code `document`、菜单入口、五项权限声明和前端入口 `web/src/admin/modules/document`。
+- Produces plugin code `document`、菜单入口、五项权限声明和前端入口 `web/src/admin/plugins/document`。
 - Produces migration scope `plugin:document`，创建目录、文档、修订和文档日志所需的第一版表结构。
 
 - [ ] **Step 1: Write the failing plugin contract tests**
@@ -169,17 +169,17 @@
 ## Task 5: 安全内容转换、Tiptap 扩展和导入导出
 
 **Files:**
-- Create: `web/src/admin/modules/document/editor/extensions.ts`
-- Create: `web/src/admin/modules/document/editor/content.ts`
-- Create: `web/src/admin/modules/document/editor/DocumentEditor.vue`
-- Create: `web/src/admin/modules/document/editor/DocumentPreview.vue`
-- Create: `web/src/admin/modules/document/editor/DocumentOutline.vue`
-- Create: `web/src/admin/modules/document/editor/markdown.ts`
+- Create: `web/src/admin/plugins/document/editor/extensions.ts`
+- Create: `web/src/admin/plugins/document/editor/content.ts`
+- Create: `web/src/admin/plugins/document/editor/DocumentEditor.vue`
+- Create: `web/src/admin/plugins/document/editor/DocumentPreview.vue`
+- Create: `web/src/admin/plugins/document/editor/DocumentOutline.vue`
+- Create: `web/src/admin/plugins/document/editor/markdown.ts`
 - Modify: `web/package.json`
 - Modify: `web/package-lock.json`
-- Modify: `web/src/admin/modules/document/api.ts`
+- Modify: `web/src/admin/plugins/document/api.ts`
 - Modify: `admin/plugins/document/app/admin/plugins/document/controller/DocumentController.php`
-- Test: `web/src/admin/modules/document/editor/content.spec.ts`
+- Test: `web/src/admin/plugins/document/editor/content.spec.ts`
 - Test: `admin/tests/DocumentContentSecurityTest.php`
 
 **Interfaces:**
@@ -196,7 +196,7 @@
   - Mermaid 只作为源码节点保存，不接受任意 SVG/HTML 注入。
 - [ ] **Step 2: Add exact frontend dependencies and run the focused test**
   - Add fixed versions of Tiptap table/task-list/code-block-lowlight extensions, Markdown parser/serializer, Mermaid renderer and DOM sanitizer to the host `web` package. The plugin declares the minimum host frontend capability version; it never installs packages at runtime。
-  - Run: `cd web && npm test -- --run src/admin/modules/document/editor/content.spec.ts`
+  - Run: `cd web && npm test -- --run src/admin/plugins/document/editor/content.spec.ts`
 - [ ] **Step 3: Implement extensions and conversion boundary**
   - JSON schema 白名单限制节点；编辑器使用 custom Callout/Mermaid nodes；预览只渲染允许节点。
   - 导入先在浏览器解析/净化，再转换为 JSON 并调用普通保存接口；导出从当前 JSON 在浏览器生成 Markdown/HTML 下载文件；上传沿用现有附件 API。
@@ -207,16 +207,16 @@
 ## Task 6: 三栏文档工作台前端
 
 **Files:**
-- Create: `web/src/admin/modules/document/Index.vue`
-- Create: `web/src/admin/modules/document/components/DocumentSidebar.vue`
-- Create: `web/src/admin/modules/document/components/DocumentList.vue`
-- Create: `web/src/admin/modules/document/components/DocumentMetaPanel.vue`
-- Create: `web/src/admin/modules/document/components/DocumentVersionDrawer.vue`
-- Create: `web/src/admin/modules/document/store.ts`
-- Modify: `web/src/admin/modules/document/api.ts`
-- Modify: `web/src/admin/modules/document/types.ts`
-- Test: `web/src/admin/modules/document/Index.spec.ts`
-- Test: `web/src/admin/modules/document/components/DocumentList.spec.ts`
+- Create: `web/src/admin/plugins/document/Index.vue`
+- Create: `web/src/admin/plugins/document/components/DocumentSidebar.vue`
+- Create: `web/src/admin/plugins/document/components/DocumentList.vue`
+- Create: `web/src/admin/plugins/document/components/DocumentMetaPanel.vue`
+- Create: `web/src/admin/plugins/document/components/DocumentVersionDrawer.vue`
+- Create: `web/src/admin/plugins/document/store.ts`
+- Modify: `web/src/admin/plugins/document/api.ts`
+- Modify: `web/src/admin/plugins/document/types.ts`
+- Test: `web/src/admin/plugins/document/Index.spec.ts`
+- Test: `web/src/admin/plugins/document/components/DocumentList.spec.ts`
 
 **Interfaces:**
 - Store actions：`loadTree()`、`loadList(query)`、`openDocument(id)`、`saveDraft()`、`publish()`、`archive()`、`restoreRevision(revisionNo)`。
@@ -228,7 +228,7 @@
   - 保存状态显示已保存/保存中/冲突；409 提示用户重新载入或另存草稿。
   - 无权限时不显示对应按钮，但组件不能代替后端授权。
 - [ ] **Step 2: Run focused frontend tests and verify failure**
-  - Run: `cd web && npm test -- --run src/admin/modules/document/Index.spec.ts src/admin/modules/document/components/DocumentList.spec.ts`
+  - Run: `cd web && npm test -- --run src/admin/plugins/document/Index.spec.ts src/admin/plugins/document/components/DocumentList.spec.ts`
 - [ ] **Step 3: Implement the three-column workspace**
   - 左栏目录树和范围筛选；中栏文档列表/搜索/状态；右栏标题、摘要、编辑器、预览、大纲、元信息和版本抽屉。
   - 使用现有 Element Plus、主题变量、响应式布局、动态路由和 i18n；移动宽度退化为目录抽屉 + 文档列表/正文切换。
@@ -239,10 +239,10 @@
 
 **Files:**
 - Modify: `admin/plugins/document/plugin.json`
-- Create: `web/src/admin/modules/document/locales/zh-CN.ts`
-- Create: `web/src/admin/modules/document/locales/en-US.ts`
+- Create: `web/src/admin/plugins/document/locales/zh-CN.ts`
+- Create: `web/src/admin/plugins/document/locales/en-US.ts`
 - Test: `admin/tests/DocumentPluginLifecycleTest.php`
-- Test: `web/src/admin/modules/document/i18n.spec.ts`
+- Test: `web/src/admin/plugins/document/i18n.spec.ts`
 
 - [ ] **Step 1: Write failing lifecycle/i18n tests**
   - 启用后菜单和路由可见，停用后不可访问；重新启用后文档数据仍在。
@@ -252,7 +252,7 @@
   - 菜单入口指向 `/admin/plugin/document`；权限 code 与后端一致；不把实现源码作为运行时动态脚本下载。
 - [ ] **Step 3: Run lifecycle and build checks**
   - Run: `cd admin && vendor/bin/phpunit tests/DocumentPluginLifecycleTest.php`
-  - Run: `cd web && npm run type-check && npm test -- --run src/admin/modules/document/i18n.spec.ts`
+  - Run: `cd web && npm run type-check && npm test -- --run src/admin/plugins/document/i18n.spec.ts`
   - Run: `cd admin && php webman plugin:validate document`
   - Expected: PASS。
 
@@ -271,7 +271,7 @@
   - 用无权限账号验证页面和直接 API 都不能越权。
 - [ ] **Step 2: Run complete verification**
   - `cd admin && vendor/bin/phpunit tests/Document*.php`
-  - `cd web && npm run type-check && npm test -- --run src/admin/modules/document`
+  - `cd web && npm run type-check && npm test -- --run src/admin/plugins/document`
   - `cd admin && php webman plugin:validate document && php webman plugin:package document`
   - Run the browser acceptance flow against a fresh test database and record actual results in `docs/verification/document-plugin.md`。
 - [ ] **Step 3: Review changed files and leave the branch uncommitted**

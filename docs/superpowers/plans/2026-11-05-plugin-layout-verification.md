@@ -7,7 +7,7 @@
 ## 已验证行为
 
 - 脚手架、CRUD、业务生成白名单、Manifest、ZIP 和安装发布使用相同的项目相对路径。
-- 后台为 `app/admin/plugin/business/{code}`，前端为 `web/src/admin/modules/{code}`，静态资源为 `public/plugin-assets/{code}/public`。
+- 后台为 `app/admin/plugin/business/{code}`，前端为 `web/src/admin/plugins/{code}`，静态资源为 `public/plugin-assets/{code}/public`。
 - 旧后台、前端、静态资源及迁移目录被拒绝，包括没有相应 Manifest 声明的旧物理目录。
 - 旧资源登记、旧恢复日志及旧恢复上下文在文件或注册表恢复前被拒绝；原文件、登记和恢复材料保持原状。
 - 新目录的普通回滚和持久备份人工恢复继续有效。

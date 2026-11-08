@@ -57,7 +57,47 @@ final class PluginRouteLoader extends Route
             }
             $eligible[] = $file;
         }
-        return parent::buildAnnotationRouteDefinitions($eligible);
+        $definitions = parent::buildAnnotationRouteDefinitions($eligible);
+        $manifests = [];
+        foreach ($plugins as $code => $record) {
+            if (($record['enabled'] ?? false) !== true) continue;
+            $directory = rtrim($pluginsPath, '/\\') . '/' . $code;
+            if (is_file($directory . '/plugin.json')) {
+                $manifests[$code] = Manifest::fromDirectory($directory);
+            }
+        }
+        return self::withLegacyAliases(PluginRouteOverride::apply($definitions, $manifests));
+    }
+
+    /** Add the old singular namespace as an alias without registering duplicate routes. */
+    public static function withLegacyAliases(array $definitions): array
+    {
+        $existing = [];
+        foreach ($definitions as $definition) {
+            foreach ((array) ($definition['methods'] ?? []) as $method) {
+                $existing[strtoupper((string) $method) . ' ' . ($definition['path'] ?? '')] = true;
+            }
+        }
+        $aliases = [];
+        foreach ($definitions as $definition) {
+            $alias = PluginRouteNamespace::legacyAlias((string) ($definition['path'] ?? ''));
+            if ($alias === null || $alias === $definition['path']) continue;
+            $methods = (array) ($definition['methods'] ?? []);
+            $available = false;
+            foreach ($methods as $method) {
+                if (!isset($existing[strtoupper((string) $method) . ' ' . $alias])) {
+                    $available = true;
+                    break;
+                }
+            }
+            if (!$available) continue;
+            $copy = $definition;
+            $copy['path'] = $alias;
+            $copy['name'] = null;
+            $aliases[] = $copy;
+            foreach ($methods as $method) $existing[strtoupper((string) $method) . ' ' . $alias] = true;
+        }
+        return array_merge($definitions, $aliases);
     }
 
     /** 启动时列出残留的旧版 generated 目录并记录一条告警；无残留时静默。 */

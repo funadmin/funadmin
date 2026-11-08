@@ -4,8 +4,8 @@ import { nextTick } from 'vue';
 
 vi.mock('@/api/common/upload', () => ({ uploadApi: { upload: vi.fn() } }));
 import { createI18n } from 'vue-i18n';
-import { documentMessages } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
-import DocumentEditor from '../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentEditor.vue';
+import { documentMessages } from '../../../admin/plugins/document/web/src/admin/plugins/document/locales';
+import DocumentEditor from '../../../admin/plugins/document/web/src/admin/plugins/document/editor/DocumentEditor.vue';
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 

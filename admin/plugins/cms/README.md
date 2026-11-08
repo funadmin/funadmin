@@ -8,7 +8,7 @@ Manifest v2 插件，按仓库 `docs/plugins.md` 的项目相对路径发布。�
 2. 在后端目录运行 `php webman plugin:validate cms`。
 3. 在插件中心的本地插件列表安装 CMS。安装通过宿主依次执行 `001_cms.sql`、`002_site_roles.sql`、`003_member_contributions.sql`，必须使用 MySQL；不要手动修改已执行迁移。插件启用时补齐五个内置模型，不自动创建真实网站或域名。
 4. 启用插件，按部署流程重载 Webman，让新注解路由进入 worker。
-5. 插件安装会发布管理端源码；在前端项目执行 `npm run build:webman`。按宿主实际前端 base 打开后台的 CMS 菜单，根部署的站点管理页为 `/#/admin/plugin/cms/sites`；旧 `/manage` 书签自动跳转到第一个可访问菜单。
+5. 插件安装会发布管理端源码；在前端项目执行 `npm run build:webman`。按宿主实际前端 base 打开后台的 CMS 菜单，根部署的站点管理页为 `/#/admin/plugins/cms/sites`；旧 `/manage` 书签自动跳转到第一个可访问菜单。
 6. 超级管理员创建站点，配置域名、语言。在“站点权限”里维护本站角色，并给成员分配一个或多个角色；再由平台管理员在系统角色管理中授予相应 CMS 功能资格。实际权限为系统资格与本站启用角色权限并集的交集。
 
 网站前台模板、CSS 和 JS 不需要 npm 构建。管理端是现有后台的一部分，需要正常构建。插件卸载保留数据库内容和修订记录；本版没有清空数据操作。

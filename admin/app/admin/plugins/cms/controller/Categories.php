@@ -4,7 +4,7 @@ namespace app\admin\plugins\cms\controller;
 use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
 use app\cms\service\CategoryService;
-#[RouteGroup('/admin/plugin/cms/categories')]
+#[RouteGroup('/admin/plugins/cms/categories')]
 final class Categories extends Base
 {
     #[Get('')]

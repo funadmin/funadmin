@@ -17,7 +17,7 @@ describe('M6 插件标准 Admin Web 契约', () => {
   it('plugin.json 只使用源码构建 adminWeb 契约', () => {
     const manifest = scaffoldedPluginManifest();
     expect(manifest.adminWeb).toMatchObject({
-      source: 'web/src/admin/modules/example',
+      source: 'web/src/admin/plugins/example',
       components: { Index: 'pages/Index.vue' },
       minFrontendVersion: expect.any(String),
       menu: expect.any(Array),
@@ -40,7 +40,7 @@ describe('M6 插件标准 Admin Web 契约', () => {
     expect(publisher).toContain("['resources']");
     expect(publisher).toContain('plugin-assets');
     expect(publisher).toContain('adminWebRoot');
-    expect(publisher).toContain('src/admin/modules/');
+    expect(publisher).toContain('src/admin/plugins/');
     expect(publisher + pipeline).toContain('rebuildRequired');
     expect(center).toContain("['adminWeb']");
     expect(center).toContain('FrontendHookService::class');

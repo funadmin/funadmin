@@ -25,8 +25,8 @@
 | `src/shared/directives/permission.spec.ts` | 4 |
 | `src/shared/utils/permission.spec.ts` | 6 |
 | `src/admin/views/applications/actionPermission.spec.ts` | 4 |
-| `src/admin/modules/cms/components/permission.spec.ts` | 4 |
-| `src/admin/modules/market/components/permission.spec.ts` | 2 |
+| `src/admin/plugins/cms/components/permission.spec.ts` | 4 |
+| `src/admin/plugins/market/components/permission.spec.ts` | 2 |
 | `src/admin/views/form/runtime/generatedListButtons.spec.ts` | 18 |
 | `src/admin/views/system/attachment/uploadPermission.spec.ts` | 2 |
 | `src/admin/views/system/config/actionPermission.spec.ts` | 3 |

@@ -17,7 +17,7 @@
 - Preserve user changes and existing lifecycle recovery and resource ownership guarantees.
 - No production database migration or new dependencies.
 - Backend API: `/admin/plugin/{code}/…`; backend module: `app/admin/plugin/business/{code}/{layer}`.
-- Frontend module: sibling `web/src/admin/modules/{code}`; new sources require frontend rebuild.
+- Frontend module: sibling `web/src/admin/plugins/{code}`; new sources require frontend rebuild.
 
 ## Review Focus
 
@@ -53,7 +53,7 @@
 
 **Files:** `PluginInfrastructureService.php`, `PluginResourcePublisher.php`, `config/plugins.php`, `web/src/admin/router/pluginStartup.ts`, `pluginModules.ts`, component loader and corresponding tests.
 
-**Interfaces:** enabled-module DTO stays compatible; published components resolve under `src/admin/modules` and routes use `/admin`.
+**Interfaces:** enabled-module DTO stays compatible; published components resolve under `src/admin/plugins` and routes use `/admin`.
 
 - [x] Add failing Webman startup/route synchronization and frontend publication tests.
 - [x] Run targeted PHPUnit/Vitest tests; observe failures.

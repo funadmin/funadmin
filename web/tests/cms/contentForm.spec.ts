@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { fieldDefaults, validateContentForm, compatibleCategories, contentFingerprint } from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/contentForm';
+import { fieldDefaults, validateContentForm, compatibleCategories, contentFingerprint } from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/contentForm';
 const fields=[{name:'enabled',label:'启用',type:'boolean',required:true},{name:'count',label:'数量',type:'number',min:0,max:10},{name:'source',label:'来源',type:'text',default:'本站',max_length:4},{name:'photos',label:'图片',type:'gallery'},{name:'choice',label:'选项',type:'select',options:['A','B']}];
 it('initializes typed defaults without overwriting existing zero false or explicit null',()=>{
  expect(fieldDefaults(fields)).toEqual({enabled:false,count:null,source:'本站',photos:[],choice:''});

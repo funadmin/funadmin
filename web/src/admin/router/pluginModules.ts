@@ -53,8 +53,14 @@ export async function syncPluginModules(
         removeMenuPlaceholder(router, route.path);
         router.addRoute(route);
         addedRouteNames.push(String(route.name));
+        const legacy = legacyAdminRoutePath(route.path);
+        if (legacy) {
+          const legacyName = `${String(route.name)}_Legacy`;
+          router.addRoute({ path: legacy, name: legacyName, redirect: route.path, meta: { hidden: true } });
+          addedRouteNames.push(legacyName);
+        }
       });
-      mounted.set(descriptor.code, { signature, routeNames: routes.map((route) => String(route.name)) });
+      mounted.set(descriptor.code, { signature, routeNames: addedRouteNames });
       loaded.push(descriptor.code);
     } catch (error) {
       addedRouteNames.forEach(name => router.removeRoute(name));
@@ -88,30 +94,50 @@ const resolveComponents = (
 function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage: PluginModuleErrorStage, message: string): void {
   const name = `Plugin_${descriptor.code}_Error`;
   if (router.hasRoute(name)) router.removeRoute(name);
+  const path = adminRoutePath(`/plugins/${descriptor.code}/error`);
   router.addRoute({
-    path: adminRoutePath(`/plugin/${descriptor.code}/error`),
+    path,
     name,
     component: PluginModuleError,
     props: { plugin: descriptor.code, stage, message },
     meta: { title: `${descriptor.code} 插件错误` }
   });
-  mounted.set(descriptor.code, { signature: `${descriptor.version}:error`, routeNames: [name] });
+  const legacy = legacyAdminRoutePath(path);
+  const routeNames = [name];
+  if (legacy) {
+    const legacyName = `${name}_Legacy`;
+    router.addRoute({ path: legacy, name: legacyName, redirect: path, meta: { hidden: true } });
+    routeNames.push(legacyName);
+  }
+  mounted.set(descriptor.code, { signature: `${descriptor.version}:error`, routeNames });
 }
 
 function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginCode: string): RouteRecordRaw {
-  if (!dto.path.startsWith(`/plugin/${pluginCode}/`) || !(dto.name === `Plugin_${pluginCode}` || dto.name.startsWith(`Plugin_${pluginCode}_`))) {
+  const canonicalPath = canonicalPluginPath(dto.path, pluginCode);
+  if (!(dto.name === `Plugin_${pluginCode}` || dto.name.startsWith(`Plugin_${pluginCode}_`))) {
     throw new Error('插件路由 DTO 越界');
   }
   const component = components[dto.component];
   if (!component) throw new Error(`插件组件未注册：${dto.component}`);
+  const path = adminRoutePath(canonicalPath);
   // 与核心单页菜单一致：外层主布局 + 空路径子页面，插件页才会出现在侧栏/标签布局内。
   return {
-    path: adminRoutePath(dto.path),
+    path,
     name: `${dto.name}_Layout`,
     component: Layout,
     meta: { ...dto.meta, menuKey: dto.name },
-    children: [{ path: '', name: dto.name, component, meta: { ...dto.meta, activeMenu: adminRoutePath(dto.path) } }]
+    children: [{ path: '', name: dto.name, component, meta: { ...dto.meta, activeMenu: path } }]
   } as RouteRecordRaw;
+}
+
+function canonicalPluginPath(path: string, pluginCode: string): string {
+  if (path.startsWith(`/plugins/${pluginCode}/`)) return path;
+  if (path.startsWith(`/plugin/${pluginCode}/`)) return `/plugins/${path.slice(`/plugin/${pluginCode}/`.length)}`;
+  throw new Error(`插件路由 DTO 越界：${path}`);
+}
+
+function legacyAdminRoutePath(path: string): string | undefined {
+  return path.startsWith('/admin/plugins/') ? path.replace('/admin/plugins/', '/admin/plugin/') : undefined;
 }
 
 /**
@@ -119,8 +145,9 @@ function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>
  * 同时识别旧的主布局空壳，管理员显式配置了页面的菜单保留。
  */
 function removeMenuPlaceholder(router: Router, path: string): void {
+  const candidates = new Set([path, path.replace('/admin/plugins/', '/admin/plugin/')]);
   for (const record of router.getRoutes()) {
-    if (record.path !== path || !record.name || record.children.length > 0) continue;
+    if (!candidates.has(record.path) || !record.name || record.children.length > 0) continue;
     if (record.meta.pluginPlaceholder !== true && record.components?.default !== Layout) continue;
     if (String(record.name).startsWith('Plugin_')) continue;
     router.removeRoute(record.name);

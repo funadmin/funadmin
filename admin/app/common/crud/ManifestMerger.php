@@ -137,7 +137,7 @@ final class ManifestMerger
         }
         foreach (['routes', 'menu'] as $section) {
             foreach ($base['adminWeb'][$section] ?? [] as $item) {
-                if (($item['path'] ?? '') !== '/plugin/' . $plugin . '/' . $entity) throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
+                if (\app\common\plugin\sdk\PluginRouteNamespace::canonical((string) ($item['path'] ?? ''), $plugin) !== '/plugins/' . $plugin . '/' . $entity) throw new InvalidArgumentException('BUSINESS_ARTIFACT_PATH_FORBIDDEN');
             }
         }
         foreach ($base['adminWeb']['permissions'] ?? [] as $item) {

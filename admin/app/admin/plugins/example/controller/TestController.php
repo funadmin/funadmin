@@ -23,7 +23,7 @@ use support\Response;
 /**
  * 示例插件测试记录接口。
  */
-#[Group('/admin/plugin/example/test')]
+#[Group('/admin/plugins/example/test')]
 final class TestController extends AdminController
 {
     use Crud {
@@ -49,7 +49,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugin/example/test",
+     *     path="/admin/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_index_get",
      *     tags={"示例插件测试记录"},
      *     summary="获取示例插件测试记录列表。",
@@ -77,7 +77,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugin/example/test/{id}",
+     *     path="/admin/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_detail_get",
      *     tags={"示例插件测试记录"},
      *     summary="获取指定示例插件测试记录的详情。",
@@ -101,7 +101,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugin/example/test",
+     *     path="/admin/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_create_post",
      *     tags={"示例插件测试记录"},
      *     summary="创建示例插件测试记录，校验提交字段后保存。",
@@ -124,7 +124,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Put(
-     *     path="/admin/admin/plugin/example/test/{id}",
+     *     path="/admin/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_update_put",
      *     tags={"示例插件测试记录"},
      *     summary="更新指定示例插件测试记录。",
@@ -149,7 +149,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugin/example/test/{id}",
+     *     path="/admin/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_remove_delete",
      *     tags={"示例插件测试记录"},
      *     summary="删除指定示例插件测试记录。",
@@ -174,7 +174,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugin/example/test/{id}/restore",
+     *     path="/admin/admin/plugins/example/test/{id}/restore",
      *     operationId="admin_plugins_example_controller_TestController_restore_post",
      *     tags={"示例插件测试记录"},
      *     summary="恢复回收站中的示例插件测试记录。",
@@ -199,7 +199,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugin/example/test/{id}/destroy",
+     *     path="/admin/admin/plugins/example/test/{id}/destroy",
      *     operationId="admin_plugins_example_controller_TestController_destroy_delete",
      *     tags={"示例插件测试记录"},
      *     summary="永久删除示例插件测试记录，删除后不可通过回收站恢复。",
@@ -223,7 +223,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugin/example/test",
+     *     path="/admin/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_recycle_delete",
      *     tags={"示例插件测试记录"},
      *     summary="将选中的示例插件测试记录移入回收站。",
@@ -249,7 +249,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugin/example/test/restore",
+     *     path="/admin/admin/plugins/example/test/restore",
      *     operationId="admin_plugins_example_controller_TestController_restoreMany_post",
      *     tags={"示例插件测试记录"},
      *     summary="批量恢复回收站中的示例插件测试记录。",
@@ -271,7 +271,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugin/example/test/destroy",
+     *     path="/admin/admin/plugins/example/test/destroy",
      *     operationId="admin_plugins_example_controller_TestController_destroyMany_delete",
      *     tags={"示例插件测试记录"},
      *     summary="批量永久删除示例插件测试记录，删除后不可通过回收站恢复。",
@@ -293,7 +293,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugin/example/test/import",
+     *     path="/admin/admin/plugins/example/test/import",
      *     operationId="admin_plugins_example_controller_TestController_import_post",
      *     tags={"示例插件测试记录"},
      *     summary="批量导入示例插件测试记录，返回导入结果。",
@@ -319,7 +319,7 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugin/example/test/export",
+     *     path="/admin/admin/plugins/example/test/export",
      *     operationId="admin_plugins_example_controller_TestController_export_get",
      *     tags={"示例插件测试记录"},
      *     summary="按筛选条件导出示例插件测试记录数据。",

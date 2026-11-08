@@ -53,7 +53,7 @@
     }
   ],
   "adminWeb": {
-    "source": "web/src/admin/modules/oss",
+    "source": "web/src/admin/plugins/oss",
     "components": {
       "Index": "pages/Index.vue"
     },
@@ -79,13 +79,13 @@
     "menu": [
       {
         "name": "OSS 云存储",
-        "path": "/plugin/oss/storage",
+        "path": "/plugins/oss/storage",
         "permission": "oss:storage:index"
       }
     ],
     "routes": [
       {
-        "path": "/plugin/oss/storage",
+        "path": "/plugins/oss/storage",
         "name": "Plugin_oss_Storage",
         "component": "Index",
         "meta": {

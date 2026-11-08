@@ -164,7 +164,7 @@ class PluginLifecycleExecutionTest extends TestCase
         self::assertTrue($service->installPlugin('lifecyclefixture'));
         $controllerFile = $this->root . '/app/admin/plugins/lifecyclefixture/controller/Index.php';
         self::assertFileExists($controllerFile);
-        self::assertFileExists($this->root . '/web/src/admin/modules/lifecyclefixture/pages/Index.vue');
+        self::assertFileExists($this->root . '/web/src/admin/plugins/lifecyclefixture/pages/Index.vue');
         require_once $controllerFile; // 安装时宿主已按控制器推导权限码并载入该文件
         $controller = 'app\\admin\\plugins\\lifecyclefixture\\controller\\Index';
         $reader = new \app\common\plugin\sdk\PluginActivationReader($this->root . '/runtime/plugins/activation');
@@ -203,7 +203,7 @@ class PluginLifecycleExecutionTest extends TestCase
             self::assertTrue($service->uninstallPlugin('lifecyclefixture'));
             self::assertSame(404, $call());
             self::assertFileDoesNotExist($controllerFile);
-            self::assertFileDoesNotExist($this->root . '/web/src/admin/modules/lifecyclefixture/pages/Index.vue');
+            self::assertFileDoesNotExist($this->root . '/web/src/admin/plugins/lifecyclefixture/pages/Index.vue');
             self::assertSame(0, Db::table('plugin_resource')->where('plugin_code', 'lifecyclefixture')->count());
         } finally {
             \support\Context::destroy();
@@ -229,7 +229,7 @@ class PluginLifecycleExecutionTest extends TestCase
         $runtime = new \app\common\plugin\hook\HookRuntime($reader, $this->root . '/plugins');
         foreach (['hookdemo', 'hookconsumer'] as $code) {
             self::assertTrue($service->installPlugin($code));
-            self::assertFileExists($this->root . '/web/src/admin/modules/' . $code . '/hooks.ts');
+            self::assertFileExists($this->root . '/web/src/admin/plugins/' . $code . '/hooks.ts');
             self::assertDirectoryDoesNotExist($this->root . '/app/' . $code);
             self::assertDirectoryDoesNotExist($this->root . '/app/admin/plugins/' . $code);
             self::assertSame(0, Db::table('admin_menu')->where('source_name', $code)->count());
@@ -257,7 +257,7 @@ class PluginLifecycleExecutionTest extends TestCase
         self::assertTrue($service->disablePlugin('hookconsumer'));
         foreach (['hookdemo', 'hookconsumer'] as $code) {
             self::assertTrue($service->uninstallPlugin($code));
-            self::assertFileDoesNotExist($this->root . '/web/src/admin/modules/' . $code . '/hooks.ts');
+            self::assertFileDoesNotExist($this->root . '/web/src/admin/plugins/' . $code . '/hooks.ts');
         }
     }
 

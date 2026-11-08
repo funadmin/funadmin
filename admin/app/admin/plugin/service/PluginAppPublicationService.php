@@ -202,7 +202,7 @@ final class PluginAppPublicationService
             }
             foreach ((array) ($snapshot['records'] ?? []) as $record) $targets[] = $record['target_path'] ?? '';
             foreach ($targets as $path) {
-                if (!is_string($path) || (!str_starts_with($path, 'web:src/admin/modules/' . $code . '/')
+                if (!is_string($path) || (!str_starts_with($path, 'web:src/admin/plugins/' . $code . '/')
                     && !str_starts_with($path, 'public:plugin-assets/' . $code . '/'))
                     || str_contains($path, '\\') || preg_match('~(?:^|/)\.\.?(?:/|$)~', $path)) {
                     throw new RuntimeException('publication journal 文件资源必须使用统一目录');

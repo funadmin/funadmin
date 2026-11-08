@@ -1,6 +1,6 @@
 import http from '@/utils/http';
 import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy } from './types';
-const base = '/plugin/cms';
+const base = '/plugins/cms';
 const get = <T>(path: string, params?: FormData) => http.get<T>(`${base}${path}`, params);
 const post = <T>(path: string, data: FormData) => http.post<T>(`${base}${path}`, data);
 export const cmsApi = {

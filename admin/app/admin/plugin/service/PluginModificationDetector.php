@@ -94,7 +94,7 @@ final class PluginModificationDetector
         if (preg_match('~^public:plugin-assets/' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
             return $this->safeTarget($this->publicRoot, 'plugin-assets/' . $pluginCode . '/' . $match[1]);
         }
-        if (preg_match('~^web:(src/admin/modules/)' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
+        if (preg_match('~^web:(src/admin/plugins/)' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
             return $this->safeTarget($this->adminWebRoot, $match[1] . $pluginCode . '/' . $match[2]);
         }
         if (preg_match('~^application:' . preg_quote($pluginCode, '~') . '/(.+)$~', $targetPath, $match) === 1) {
@@ -129,7 +129,7 @@ final class PluginModificationDetector
             $targetPath = (string) ($record['target_path'] ?? '');
             if (str_starts_with($targetPath, 'public:plugin-assets/' . $pluginCode . '/')) {
                 $roots[$this->safeTarget($this->publicRoot, 'plugin-assets/' . $pluginCode)] = true;
-            } elseif (preg_match('~^web:(src/admin/modules/)' . preg_quote($pluginCode, '~') . '/~', $targetPath, $match) === 1) {
+            } elseif (preg_match('~^web:(src/admin/plugins/)' . preg_quote($pluginCode, '~') . '/~', $targetPath, $match) === 1) {
                 $roots[$this->safeTarget($this->adminWebRoot, $match[1] . $pluginCode)] = true;
             }
         }

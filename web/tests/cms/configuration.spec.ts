@@ -1,7 +1,7 @@
 import { computed, defineComponent, h, inject, provide } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, expect, it, vi } from 'vitest';
-import ConfigurationPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ConfigurationPanel.vue';
+import ConfigurationPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ConfigurationPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));vi.mock('@/utils/http',()=>({default:http}));
 const pass=defineComponent({setup(_, {slots}){return()=>h('div',[slots.default?.(),slots.footer?.()]);}});
 const button=defineComponent({emits:['click'],setup(_, {slots,emit}){return()=>h('button',{onClick:()=>emit('click')},slots.default?.());}});
@@ -33,7 +33,7 @@ it('creates a custom typed field without dropping existing values',async()=>{
  const w=mount(ConfigurationPanel,{props:{siteId:'7',locales:[],can:()=>true},global:{stubs,directives:{loading:()=>{}}}});await flushPromises();const state=(w.vm as any).$.setupState;state.openField();state.fieldForm={key:'wechat',label:'客服微信',type:'text',group:'联系信息',localized:false,default:'',options:[]};await state.saveField();expect(http.post).toHaveBeenCalledWith('/plugin/cms/configuration/save',expect.objectContaining({site_id:'7',fields:expect.arrayContaining([expect.objectContaining({key:'wechat',label:'客服微信'})]),values:{headline:'Site title',enabled:true,count:3}}));w.unmount();
 });
 it('metadata editing does not send an old configuration snapshot back to the server',async()=>{
- const {default:SitePanel}=await import('../../../admin/plugins/cms/web/src/admin/modules/cms/components/SitePanel.vue');
+ const {default:SitePanel}=await import('../../../admin/plugins/cms/web/src/admin/plugins/cms/components/SitePanel.vue');
  const settings:any={site:{id:'7',code:'main',name:'Main',default_locale:'zh-cn',theme:'default',status:1,settings:{configuration:{values:{headline:'Old'}}}},locales:[{locale:'zh-cn',settings:{configuration:{values:{headline:'Old locale'}}}}],domains:[],models:[]};
  const w=mount(SitePanel,{props:{settings,can:()=>true,isSuper:true},global:{stubs:{...stubs,ConfigurationPanel:true,ElTableColumn:true,ElDescriptions:true,ElDescriptionsItem:true},directives:{loading:()=>{}}}});await flushPromises();const state=(w.vm as any).$.setupState;state.dialog='site';state.form={...settings.site,name:'New name'};await state.save();expect(http.post).toHaveBeenCalledWith('/plugin/cms/sites/save',expect.not.objectContaining({settings:expect.anything()}));
  state.dialog='locale';state.form={...settings.locales[0],name:'New locale'};await state.save();expect(http.post).toHaveBeenCalledWith('/plugin/cms/locales/save',expect.not.objectContaining({settings:expect.anything()}));w.unmount();

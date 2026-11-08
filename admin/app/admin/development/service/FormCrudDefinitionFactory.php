@@ -156,7 +156,7 @@ final class FormCrudDefinitionFactory
         $data['target'] = ['type' => 'plugin', 'plugin' => $plugin, 'scope' => 'admin'];
         $data['module'] = $plugin;
         $data['apiPrefix'] = '/' . $entity;
-        $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
+        $data['routePath'] = '/plugins/' . $plugin . '/' . $entity;
         $data['permissionPrefix'] = $plugin . ':' . $entity;
         // 关联模型随模型层迁入插件命名空间。
         $coreModels = 'app\\admin\\business\\' . str_replace('-', '_', $entity) . '\\model\\';

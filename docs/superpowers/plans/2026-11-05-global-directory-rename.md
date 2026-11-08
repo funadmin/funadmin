@@ -4,7 +4,7 @@
 
 **Goal:** Rename the frontend project directory to `web` and the Webman backend project directory to `admin`, including the plugin path protocol and all repository references.
 
-**Architecture:** Physical paths use `web/` and `admin/`. The plugin manifest source contract becomes `web/src/admin/modules/{code}` and backend project paths become `admin/...`. Semantic keys such as `adminWeb` and `admin_web_path` remain because they describe the admin surface, not a directory.
+**Architecture:** Physical paths use `web/` and `admin/`. The plugin manifest source contract becomes `web/src/admin/plugins/{code}` and backend project paths become `admin/...`. Semantic keys such as `adminWeb` and `admin_web_path` remain because they describe the admin surface, not a directory.
 
 ## Tasks
 

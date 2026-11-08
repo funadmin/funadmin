@@ -29,7 +29,7 @@ Long-lived workers and mid-upload profile switches; historical cloud deletion an
 ### Task 3: Admin UI and integration
 - [x] RED: profile form retains masked secrets, provider fields switch, activation and connection result.
 - [x] API /admin/plugin/oss/storage GET -> {profiles,current,managed}; POST /profiles -> sanitized profile; POST /activate {id}; POST /test {id}. Permission oss:storage:list/config/test. Fields id,name,provider,bucket,region,endpoint,domain,prefix,access_key,secret_key; responses omit credentials, include has_credentials.
-- [x] Source web/src/admin/modules/oss with list/config/activate/test UI. Host storage metadata adds managed:{source,label,driver}|null; disable host driver picker during takeover. Refresh attachments after partial deletion errors.
+- [x] Source web/src/admin/plugins/oss with list/config/activate/test UI. Host storage metadata adds managed:{source,label,driver}|null; disable host driver picker during takeover. Refresh attachments after partial deletion errors.
 - [x] Verify isolated native installation/publication, SDK compatibility, focused suites, typecheck/build, full-suite snapshot, independent review and verification record.
 
 ## Execution notes

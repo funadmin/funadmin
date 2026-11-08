@@ -30,7 +30,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "#[RouteGroup('/admin/plugin/demo')]\nfinal class Index extends AdminController\n{\n    #[Get('/items')]\n    public function index(): Response\n    {\n        return $this->ok(data: (new ItemService())->list());\n    }\n}"
+                        "text": "#[RouteGroup('/admin/plugins/demo')]\nfinal class Index extends AdminController\n{\n    #[Get('/items')]\n    public function index(): Response\n    {\n        return $this->ok(data: (new ItemService())->list());\n    }\n}"
                     }
                 ]
             },
@@ -75,7 +75,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "\"adminWeb\": {\n  \"source\": \"web/src/admin/modules/demo\",\n  \"components\": { \"Index\": \"Index.vue\" },\n  \"routes\": [{\n    \"path\": \"/plugin/demo/items\",\n    \"name\": \"Plugin_demo_Items\",\n    \"component\": \"Index\",\n    \"meta\": { \"title\": \"示例列表\", \"permission\": \"demo:index:index\" }\n  }]\n}"
+                        "text": "\"adminWeb\": {\n  \"source\": \"web/src/admin/plugins/demo\",\n  \"components\": { \"Index\": \"Index.vue\" },\n  \"routes\": [{\n    \"path\": \"/plugins/demo/items\",\n    \"name\": \"Plugin_demo_Items\",\n    \"component\": \"Index\",\n    \"meta\": { \"title\": \"示例列表\", \"permission\": \"demo:index:index\" }\n  }]\n}"
                     }
                 ]
             },
@@ -116,7 +116,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "组件文件没有复制到 web/src/admin/modules/{code}，会进入插件错误页。"
+                                        "text": "组件文件没有复制到 web/src/admin/plugins/{code}，会进入插件错误页。"
                                     }
                                 ]
                             }

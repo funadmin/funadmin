@@ -29,7 +29,7 @@
     "supported": false
   },
   "adminWeb": {
-    "source": "web/src/admin/modules/cms",
+    "source": "web/src/admin/plugins/cms",
     "components": {
       "Index": "pages/Index.vue",
       "Sites": "pages/Sites.vue",
@@ -223,46 +223,46 @@
     "menu": [
       {
         "name": "CMS 内容管理",
-        "path": "/plugin/cms",
+        "path": "/plugins/cms",
         "menulist": [
           {
             "name": "站点管理",
-            "path": "/plugin/cms/sites",
+            "path": "/plugins/cms/sites",
             "permission": "cms:sites:index"
           },
           {
             "name": "栏目管理",
-            "path": "/plugin/cms/categories",
+            "path": "/plugins/cms/categories",
             "permission": "cms:categories:index"
           },
           {
             "name": "内容管理",
-            "path": "/plugin/cms/content",
+            "path": "/plugins/cms/content",
             "permission": "cms:content:index"
           },
           {
             "name": "会员投稿",
-            "path": "/plugin/cms/contributions",
+            "path": "/plugins/cms/contributions",
             "permission": "cms:contributions:index"
           },
           {
             "name": "导航管理",
-            "path": "/plugin/cms/menus",
+            "path": "/plugins/cms/menus",
             "permission": "cms:menus:index"
           },
           {
             "name": "模板标签",
-            "path": "/plugin/cms/tags",
+            "path": "/plugins/cms/tags",
             "permission": "cms:tags:index"
           },
           {
             "name": "内容模型",
-            "path": "/plugin/cms/models",
+            "path": "/plugins/cms/models",
             "permission": "cms:models:index"
           },
           {
             "name": "站点权限",
-            "path": "/plugin/cms/access",
+            "path": "/plugins/cms/access",
             "permission": "cms:access:index"
           }
         ]
@@ -270,7 +270,7 @@
     ],
     "routes": [
       {
-        "path": "/plugin/cms/manage",
+        "path": "/plugins/cms/manage",
         "name": "Plugin_cms_Manage",
         "component": "Index",
         "meta": {
@@ -278,7 +278,7 @@
         }
       },
       {
-        "path": "/plugin/cms/sites",
+        "path": "/plugins/cms/sites",
         "name": "Plugin_cms_Sites",
         "component": "Sites",
         "meta": {
@@ -287,7 +287,7 @@
         }
       },
       {
-        "path": "/plugin/cms/categories",
+        "path": "/plugins/cms/categories",
         "name": "Plugin_cms_Categories",
         "component": "Categories",
         "meta": {
@@ -296,7 +296,7 @@
         }
       },
       {
-        "path": "/plugin/cms/content",
+        "path": "/plugins/cms/content",
         "name": "Plugin_cms_Content",
         "component": "Content",
         "meta": {
@@ -305,7 +305,7 @@
         }
       },
       {
-        "path": "/plugin/cms/menus",
+        "path": "/plugins/cms/menus",
         "name": "Plugin_cms_Menus",
         "component": "Menus",
         "meta": {
@@ -314,7 +314,7 @@
         }
       },
       {
-        "path": "/plugin/cms/tags",
+        "path": "/plugins/cms/tags",
         "name": "Plugin_cms_Tags",
         "component": "Tags",
         "meta": {
@@ -323,7 +323,7 @@
         }
       },
       {
-        "path": "/plugin/cms/models",
+        "path": "/plugins/cms/models",
         "name": "Plugin_cms_Models",
         "component": "Models",
         "meta": {
@@ -332,7 +332,7 @@
         }
       },
       {
-        "path": "/plugin/cms/access",
+        "path": "/plugins/cms/access",
         "name": "Plugin_cms_Access",
         "component": "Access",
         "meta": {
@@ -341,7 +341,7 @@
         }
       },
       {
-        "path": "/plugin/cms/contributions",
+        "path": "/plugins/cms/contributions",
         "name": "Plugin_cms_Contributions",
         "component": "Contributions",
         "meta": {

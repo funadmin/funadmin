@@ -32,7 +32,7 @@ $root = sys_get_temp_dir() . '/frontend-preview-' . bin2hex(random_bytes(8));
 try {
     (new PluginScaffolder($root . '/plugins'))->scaffold('closeout', '隔离测试', false, true, true);
     foreach (['alpha', 'beta'] as $entity) {
-        $directory = $root . '/plugins/closeout/web/src/admin/modules/closeout/' . $entity;
+        $directory = $root . '/plugins/closeout/web/src/admin/plugins/closeout/' . $entity;
         mkdir($directory, 0700, true);
         file_put_contents($directory . '/index.vue', '<template />');
     }
@@ -54,7 +54,7 @@ try {
     $state->records[] = ['artifact_type' => 'manifest', 'relative_path' => 'plugins/closeout/plugin.json',
         'base_storage_path' => $base['path'], 'base_hash' => $base['hash']];
     $sourceBase = $blobs->prepare('<template />');
-    $state->records[] = ['artifact_type' => 'source', 'relative_path' => 'plugins/closeout/web/src/admin/modules/closeout/alpha/index.vue',
+    $state->records[] = ['artifact_type' => 'source', 'relative_path' => 'plugins/closeout/web/src/admin/plugins/closeout/alpha/index.vue',
         'base_storage_path' => $sourceBase['path'], 'base_hash' => $sourceBase['hash']];
     $rows = [];
     $service = new ManagedGenerationService($root, baselines: $blobs, stateRepository: $state,

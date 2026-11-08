@@ -161,16 +161,17 @@ final class Manifest
     private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
     {
         if (is_dir($directory . '/web')) {
-            foreach (['web' => ['src'], 'web/src' => ['admin'], 'web/src/admin' => ['modules'], 'web/src/admin/modules' => [$data['code']]] as $path => $allowed) {
+            foreach (['web' => ['src'], 'web/src' => ['admin'], 'web/src/admin' => ['plugins'], 'web/src/admin/plugins' => [$data['code']]] as $path => $allowed) {
                 self::validateDirectoryChildren($directory . '/' . $path, $allowed);
             }
         }
+        self::validateRouteOverrides($data, (string) $data['code']);
         if ($adminWeb === null) {
             return;
         }
         $source = (string) ($adminWeb['source'] ?? '');
-        if ($source !== 'web/src/admin/modules/' . $data['code']) {
-            throw new RuntimeException('adminWeb.source 必须使用统一目录 web/src/admin/modules/' . $data['code']);
+        if ($source !== 'web/src/admin/plugins/' . $data['code']) {
+            throw new RuntimeException('adminWeb.source 必须使用统一目录 web/src/admin/plugins/' . $data['code']);
         }
         $sourceRoot = self::existingRelativeDirectory($directory, $source, 'adminWeb.source');
         $declaredComponents = [];
@@ -208,11 +209,16 @@ final class Manifest
         }
         $routes = [];
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
-            if (!str_starts_with($route['path'], '/plugin/' . $pluginCode . '/')) {
+            try {
+                $path = PluginRouteNamespace::canonical((string) ($route['path'] ?? ''), $pluginCode);
+            } catch (\InvalidArgumentException $exception) {
+                throw new RuntimeException('adminWeb.routes.path 必须使用 /plugin(s)/' . $pluginCode . ' 命名空间', 0, $exception);
+            }
+            if (!str_starts_with($path, '/plugins/' . $pluginCode . '/')) {
                 throw new RuntimeException('adminWeb.routes.path 必须使用插件命名空间');
             }
-            if (isset($routes[$route['path']])) throw new RuntimeException('adminWeb.routes.path 重复');
-            $routes[$route['path']] = $route;
+            if (isset($routes[$path])) throw new RuntimeException('adminWeb.routes.path 重复');
+            $routes[$path] = $route;
         }
         $count = 0;
         $paths = [];
@@ -221,15 +227,20 @@ final class Manifest
             foreach ($menus as $menu) {
                 if (++$count > 200) throw new RuntimeException('adminWeb.menu 数量不能超过 200');
                 $path = (string) ($menu['path'] ?? '');
-                if (preg_match('~^/plugin/' . preg_quote($pluginCode, '~') . '(?:/[A-Za-z0-9_-]+)*$~D', $path) !== 1 || isset($paths[strtolower($path)])) {
+                try {
+                    $canonicalPath = PluginRouteNamespace::canonical($path, $pluginCode);
+                } catch (\InvalidArgumentException $exception) {
+                    throw new RuntimeException('adminWeb.menu.path 命名空间无效：' . $path, 0, $exception);
+                }
+                if (!preg_match('~^/plugins/' . preg_quote($pluginCode, '~') . '(?:/[A-Za-z0-9_-]+)*$~D', $canonicalPath) || isset($paths[strtolower($canonicalPath)])) {
                     throw new RuntimeException('adminWeb.menu.path 命名空间无效或重复：' . $path);
                 }
-                $paths[strtolower($path)] = true;
+                $paths[strtolower($canonicalPath)] = true;
                 $permission = (string) ($menu['permission'] ?? '');
                 self::validatePermissionReference($permission, $declared, 'adminWeb.menu.permission');
                 if (!empty($menu['menulist'])) {
                     $validateMenus($menu['menulist'], $depth + 1);
-                } elseif ($permission === '' || !isset($routes[$path]) || ($routes[$path]['meta']['permission'] ?? '') !== $permission) {
+                } elseif ($permission === '' || !isset($routes[$canonicalPath]) || ($routes[$canonicalPath]['meta']['permission'] ?? '') !== $permission) {
                     throw new RuntimeException('adminWeb.menu 叶子必须绑定同权限的已声明路由：' . $path);
                 }
             }
@@ -237,6 +248,30 @@ final class Manifest
         $validateMenus((array) ($adminWeb['menu'] ?? []));
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
             self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'adminWeb.routes.meta.permission');
+        }
+    }
+
+    private static function validateRouteOverrides(array $data, string $pluginCode): void
+    {
+        foreach ((array) ($data['routeOverrides'] ?? []) as $override) {
+            $controller = (string) ($override['controller'] ?? '');
+            if (preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\controller\\\\[A-Za-z][A-Za-z0-9_]*$/', $controller, $match) !== 1 || ($match[1] ?? '') !== $pluginCode) {
+                throw new RuntimeException('routeOverrides.controller 必须属于当前插件 controller 命名空间：' . $controller);
+            }
+            $path = (string) ($override['path'] ?? '');
+            if (preg_match('~^/admin/[A-Za-z0-9_./-]+$~D', $path) !== 1) {
+                throw new RuntimeException('routeOverrides.path 必须是 /admin 下的绝对路径：' . $path);
+            }
+            $methods = (array) ($override['methods'] ?? []);
+            if ($methods === [] || count($methods) !== count(array_unique($methods))) {
+                throw new RuntimeException('routeOverrides.methods 不能为空或重复');
+            }
+            if (!isset($override['action']) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', (string) $override['action']) !== 1) {
+                throw new RuntimeException('routeOverrides.action 无效');
+            }
+            if (isset($override['priority']) && (!is_int($override['priority']) || $override['priority'] < 0)) {
+                throw new RuntimeException('routeOverrides.priority 必须是非负整数');
+            }
         }
     }
 
@@ -359,10 +394,10 @@ final class Manifest
                 static fn (string $attribute): bool => preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(/', $attribute) === 1
             ));
             if (count($groups) !== 1 || preg_match(
-                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/admin\/plugin\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
+                '/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)*(?:RouteGroup|Group)\s*\(\s*[\'\"]\/admin\/(?:plugin|plugins)\/' . preg_quote($code, '/') . '(?:\/[A-Za-z0-9_\/-]+)?[\'\"]\s*(?:,|\))/',
                 $groups[0]
             ) !== 1) {
-                throw new RuntimeException('Console Attribute Group 必须使用 /admin/plugin/' . $code . ' 前缀：' . $file);
+                throw new RuntimeException('Console Attribute Group 必须使用 /admin/plugins/' . $code . ' 前缀（旧 /admin/plugin 仍兼容）：' . $file);
             }
         }
     }

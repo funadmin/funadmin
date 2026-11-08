@@ -212,13 +212,18 @@ final class PluginCenterService extends AbstractService
             $path = (string) ($route['path'] ?? '');
             $component = (string) ($route['component'] ?? '');
             $routeName = (string) ($route['name'] ?? 'Plugin_' . $code . '_' . count($result));
-            if (!preg_match('~^/plugin/' . preg_quote($code, '~') . '/[a-zA-Z0-9/_-]+$~', $path)
+            try {
+                $canonicalPath = \app\common\plugin\sdk\PluginRouteNamespace::canonical($path);
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
+            if (!preg_match('~^/plugins/' . preg_quote($code, '~') . '/[a-zA-Z0-9/_-]+$~', $canonicalPath)
                 || !preg_match('/^Plugin_' . preg_quote($code, '/') . '(?:_[A-Za-z0-9_-]+)?$/', $routeName)
                 || !preg_match('/^[A-Za-z][A-Za-z0-9_-]*$/', $component)) {
                 continue;
             }
             $result[] = [
-                'path' => $path,
+                'path' => $canonicalPath,
                 'name' => $routeName,
                 'component' => $component,
                 'meta' => is_array($route['meta'] ?? null) ? $route['meta'] : [],

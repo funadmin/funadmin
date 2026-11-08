@@ -45,7 +45,7 @@ Interfaces: Base::site(operation) validates site and action; context returns min
 
 ### Task 4: Seven child pages and role/member UI
 
-Files: CMS web/src/admin/modules/cms/pages/{Index,Sites,Content,Categories,Menus,Tags,Models,Access}.vue; components/{CmsPage,AccessPanel,...}.vue; api.ts/types.ts; web/tests/cms.
+Files: CMS web/src/admin/plugins/cms/pages/{Index,Sites,Content,Categories,Menus,Tags,Models,Access}.vue; components/{CmsPage,AccessPanel,...}.vue; api.ts/types.ts; web/tests/cms.
 Interfaces: shared CmsPage loads authorized sites by menu operation and context, persists site/locale, passes per-site can() to focused panels. Index legacy manage redirect selects first allowed child. AccessPanel shows roles + tree of operation checks and member role assignments, read-only host ceilings and effective preview.
 - [x] RED frontend tests for child routing, context by operation, role assignment payload, button restrictions and site switching.
 - [x] Replace Tab overview with seven explicit menu routes/components. Split action gating and prevent hidden bulk status edits; keep native PageWrapper/DataTableShell.

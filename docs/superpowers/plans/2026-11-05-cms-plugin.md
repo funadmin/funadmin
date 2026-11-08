@@ -63,7 +63,7 @@ All production paths below are relative to admin/plugins/cms. Tests live at admi
 
 ### Task 5: Admin APIs and working management UI
 
-**Files:** app/admin/plugins/cms/controller/{Base,Sites,Content,Categories,Models,Menus,Tags}.php; web/src/admin/modules/cms/{api.ts,types.ts,pages/Index.vue,components/*}; tests/Cms/AdminTest.php; web/tests/cms/*.spec.ts.
+**Files:** app/admin/plugins/cms/controller/{Base,Sites,Content,Categories,Models,Menus,Tags}.php; web/src/admin/plugins/cms/{api.ts,types.ts,pages/Index.vue,components/*}; tests/Cms/AdminTest.php; web/tests/cms/*.spec.ts.
 **Interfaces:** /admin/plugin/cms endpoints expose scoped sites/locales/domains/grants, models/versions, categories, content/revisions/save/publish/offline/preview, menus/items and tag providers/save/publish/preview. Reuse AdminApiController and declared PluginPermission attributes; responses use host envelope.
 - [x] Write RED tests for real actions, site access and separate save/publish permissions; frontend selection and requests must exercise real exported API contracts.
 - [x] Implement focused controllers and tabbed pages with site/language context, structured model fields and SEO/path/version controls.

@@ -76,6 +76,55 @@ final class PublicDocumentService
         ])->values()->all();
     }
 
+    /**
+     * 左侧菜单：可见目录按树形顺序排列（先序），每个目录带上直接归属它的公开文档（按创建顺序）。
+     *
+     * @return list<array{id:int,parentId:int,name:string,scope:string,documents:list<array{slug:string,title:string}>}>
+     */
+    public function navigation(): array
+    {
+        $documents = [];
+        foreach ($this->published()->join('document_category_links as l', 'l.document_id', '=', 'd.id')
+            ->orderBy('d.id')->get(['l.category_id', 'd.slug', 'r.title']) as $row) {
+            $documents[(int)$row->category_id][] = ['slug'=>(string)$row->slug, 'title'=>(string)$row->title];
+        }
+        $children = [];
+        foreach ($this->categories() as $category) $children[$category['parentId']][] = $category;
+        $ordered = [];
+        $walk = static function (int $parentId) use (&$walk, &$ordered, $children, $documents): void {
+            foreach ($children[$parentId] ?? [] as $category) {
+                $ordered[] = $category + ['documents'=>$documents[$category['id']] ?? []];
+                $walk($category['id']);
+            }
+        };
+        $walk(0);
+        // 没有归属任何目录的公开文档按文档范围归入"其他"分组，保证每篇公开文档都能从菜单进入。
+        $loose = $this->published()->whereNotExists(static function ($query): void {
+            $query->selectRaw('1')->from('document_category_links as l')->whereColumn('l.document_id', 'd.id');
+        })->orderBy('d.id')->get(['d.scope', 'd.slug', 'r.title']);
+        $groups = [];
+        foreach ($loose as $row) $groups[(string)$row->scope][] = ['slug'=>(string)$row->slug, 'title'=>(string)$row->title];
+        $index = 0;
+        foreach (ReaderPage::SCOPES + array_fill_keys(array_keys($groups), '') as $scope => $name) {
+            if (!isset($groups[$scope])) continue;
+            $ordered[] = ['id'=>--$index, 'parentId'=>0, 'name'=>($name !== '' ? $name . ' · ' : '') . '其他', 'scope'=>(string)$scope, 'documents'=>$groups[$scope]];
+        }
+        return $ordered;
+    }
+
+    /** 点击文档范围或目录时直接打开的文档：按菜单顺序取第一篇，没有归属目录的文档按列表顺序兜底。 */
+    public function firstSlug(array $filters): ?string
+    {
+        $scope = ($filters['scope'] ?? '') !== '' ? Rules::scope($filters['scope']) : '';
+        $categoryIds = ($filters['categoryId'] ?? '') !== '' ? $this->categoryDescendants(Rules::id($filters['categoryId'])) : null;
+        foreach ($this->navigation() as $category) {
+            if ($scope !== '' && $category['scope'] !== $scope) continue;
+            if ($categoryIds !== null && !in_array($category['id'], $categoryIds, true)) continue;
+            if ($category['documents'] !== []) return $category['documents'][0]['slug'];
+        }
+        return $this->listing(array_intersect_key($filters, ['scope'=>true, 'categoryId'=>true]))['list'][0]['slug'] ?? null;
+    }
+
     private function categoryDescendants(int $id): array
     {
         $rows = Db::table('document_categories')->get(['id','parent_id']);

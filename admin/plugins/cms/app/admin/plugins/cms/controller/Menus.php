@@ -4,7 +4,7 @@ namespace app\admin\plugins\cms\controller;
 use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
 use app\cms\service\MenuService;
-#[RouteGroup('/admin/plugin/cms/menus')]
+#[RouteGroup('/admin/plugins/cms/menus')]
 final class Menus extends Base
 {
     #[Get('')]

@@ -12,7 +12,7 @@ use support\annotation\route\RouteGroup;
 use support\Response;
 
 /** 示例插件管理后台入口。 */
-#[RouteGroup('/admin/plugin/example')]
+#[RouteGroup('/admin/plugins/example')]
 final class Index extends AdminController
 {
     /**
@@ -21,7 +21,7 @@ final class Index extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/plugin/example/index",
+     *     path="/admin/plugins/example/index",
      *     operationId="admin_plugins_example_controller_Index_index_get",
      *     tags={"示例插件入口"},
      *     summary="返回示例插件后台入口响应。",

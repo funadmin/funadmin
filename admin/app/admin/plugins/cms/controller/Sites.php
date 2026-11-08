@@ -11,7 +11,7 @@ use app\cms\service\SiteService;
 use app\cms\service\SiteAccess;
 use app\cms\service\SiteAuthorization;
 use app\cms\service\PermissionCatalog;
-#[RouteGroup('/admin/plugin/cms')]
+#[RouteGroup('/admin/plugins/cms')]
 final class Sites extends Base
 {
     #[Get('/context')]

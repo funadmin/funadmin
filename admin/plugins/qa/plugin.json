@@ -25,7 +25,7 @@
     "supported": false
   },
   "adminWeb": {
-    "source": "web/src/admin/modules/qa",
+    "source": "web/src/admin/plugins/qa",
     "components": {
       "Moderation": "pages/Moderation.vue"
     },
@@ -46,11 +46,11 @@
     "menu": [
       {
         "name": "问答社区",
-        "path": "/plugin/qa",
+        "path": "/plugins/qa",
         "menulist": [
           {
             "name": "问答审核",
-            "path": "/plugin/qa/moderation",
+            "path": "/plugins/qa/moderation",
             "permission": "qa:moderation:index"
           }
         ]
@@ -58,7 +58,7 @@
     ],
     "routes": [
       {
-        "path": "/plugin/qa/moderation",
+        "path": "/plugins/qa/moderation",
         "name": "Plugin_qa_Moderation",
         "component": "Moderation",
         "meta": {

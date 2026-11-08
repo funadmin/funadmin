@@ -30,7 +30,7 @@ final class PluginCrudDefinitionFactory
             'schemaVersion' => '1.0', 'connection' => $connection, 'module' => $plugin,
             'entity' => $entity, 'table' => $table, 'title' => $title,
             'tableIdentity' => ['source' => 'adopted', 'kind' => 'physical'],
-            'apiPrefix' => '/' . $entity, 'routePath' => '/plugin/' . $plugin . '/' . $entity,
+            'apiPrefix' => '/' . $entity, 'routePath' => '/plugins/' . $plugin . '/' . $entity,
             'primaryKey' => (string) $primary[0]['name'], 'timestamps' => $this->has($fields, 'created_at') && $this->has($fields, 'updated_at'),
             'softDeletes' => $this->has($fields, 'deleted_at'),
             'target' => ['type' => 'plugin', 'plugin' => $plugin, 'scope' => $scope],

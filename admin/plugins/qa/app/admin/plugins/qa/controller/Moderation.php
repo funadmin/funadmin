@@ -9,7 +9,7 @@ use app\cms\service\SiteAuthorization;
 use app\qa\service\QuestionService;
 use support\{Db,Response};
 use support\annotation\route\{Get,Post,RouteGroup};
-#[RouteGroup('/admin/plugin/qa/moderation')]
+#[RouteGroup('/admin/plugins/qa/moderation')]
 final class Moderation extends AdminController
 {
     #[Get('')]

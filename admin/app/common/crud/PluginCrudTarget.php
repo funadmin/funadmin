@@ -33,7 +33,7 @@ final class PluginCrudTarget
             $context = PluginTemplateContext::build($definition, $plugin, true);
             $this->renderBackend($files, $renderer, $templates, $context, "plugins/{$plugin}/app/admin/plugins/{$plugin}", $class);
             $this->renderRelationModels($files, $definition, $renderer, $templates, $context, $plugin);
-            $base = "plugins/{$plugin}/web/src/admin/modules/{$plugin}/{$entity}";
+            $base = "plugins/{$plugin}/web/src/admin/plugins/{$plugin}/{$entity}";
             foreach (['api' => 'api.ts', 'view' => 'index.vue', 'form' => "components/{$class}Form.vue", 'detail' => "components/{$class}Detail.vue"] as $type => $path) {
                 $files["{$base}/{$path}"] = $this->render($renderer, $templates, $type, $context);
             }

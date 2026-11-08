@@ -29,7 +29,7 @@ Default-theme projection is bounded to8 slides,12 partners,6 contacts and4 ads s
 - `ContentService::listing` keeps its current signature/shape; new optional filter keys order/offset are validated. Published-title ordering uses the published revision.
 - `BuiltinTags::content` defaults remain latest-first, offset=0 and limit=12. `config` scalar behavior remains compatible.
 - `ThemePresentation` prepares bounded module arrays and booleans; `Renderer` retains site/locale isolation and supplies those lists to the current theme.
-- Plugin source under admin/plugins/cms is authoritative; mirror only changed files into admin/app/cms, web/src/admin/modules/cms and public assets. Preserve concurrent editor/permission/marketplace work.
+- Plugin source under admin/plugins/cms is authoritative; mirror only changed files into admin/app/cms, web/src/admin/plugins/cms and public assets. Preserve concurrent editor/permission/marketplace work.
 - Verify using SQLite memory/temp files and actual frontend builds; never run production DB migrations or create demo site data.
 
 ## Acceptance

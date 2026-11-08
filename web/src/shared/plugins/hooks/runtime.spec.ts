@@ -4,7 +4,7 @@ import type { HookModule } from './types';
 
 it('uses the same ASCII id order as PHP independent of browser locale', async () => {
     const runtime = new HookRuntime({
-        '/src/admin/modules/a/hooks.ts': async () => ({
+        '/src/admin/plugins/a/hooks.ts': async () => ({
             a: (value: string) => value + 'a',
             A: (value: string) => value + 'A'
         })
@@ -18,7 +18,7 @@ const hook = (id: string, type: 'filter' | 'action' = 'filter', point = 'test') 
 describe('shared hook runtime', () => {
     it('orders cross-plugin filters and preserves false/null', async () => {
         const seen: unknown[] = [];
-        const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ x: () => false }), '/src/admin/modules/b/hooks.ts': async () => ({ y: (v: unknown) => {
+        const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ x: () => false }), '/src/admin/plugins/b/hooks.ts': async () => ({ y: (v: unknown) => {
                     seen.push(v);
                     return null;
                 } }) });
@@ -28,7 +28,7 @@ describe('shared hook runtime', () => {
     });
     it('isolates action errors and binds nested depth per independent chain', async () => {
         const report = vi.fn();
-        const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ bad: () => {
+        const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ bad: () => {
                     throw Error('bad');
                 }, ok: vi.fn(), loop: (_: unknown, c: any) => c.hooks.filter('loop', 0) }) }, report);
         r.sync([mod('a', [hook('bad', 'action'), hook('ok', 'action'), hook('loop', 'filter', 'loop')])], 'x');
@@ -40,7 +40,7 @@ describe('shared hook runtime', () => {
     it('cancels pending imports before invocation and rejects stale filters', async () => {
         let resolve!: (v: any) => void;
         const fn = vi.fn();
-        const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': () => new Promise(res => resolve = res) });
+        const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': () => new Promise(res => resolve = res) });
         r.sync([mod('a', [hook('x')])], 'x');
         const pending = r.filter('test', 0);
         r.clear();
@@ -51,7 +51,7 @@ describe('shared hook runtime', () => {
     it('cleans once on host or projection change, including late registration', async () => {
         let ctx: any;
         const cleanup = vi.fn();
-        const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ x: (_: unknown, c: any) => {
+        const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ x: (_: unknown, c: any) => {
                     ctx = c;
                     c.onDispose(cleanup);
                 } }) });
@@ -71,7 +71,7 @@ describe('shared hook runtime', () => {
     });
 });
 it('isolates invalid plugins and snapshots caller-owned descriptors', async () => {
-    const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ x: () => 42 }) }, () => {
+    const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ x: () => 42 }) }, () => {
     });
     const good = mod('a', [hook('x')]);
     r.sync([good, mod('BAD', [hook('x')]), mod('b', [{ ...hook('x'), priority: NaN }])], 'x');
@@ -80,7 +80,7 @@ it('isolates invalid plugins and snapshots caller-owned descriptors', async () =
 });
 it('contains reporter failures during actions and cleanup', async () => {
     const cleaned = vi.fn();
-    const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ bad: () => {
+    const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ bad: () => {
                 throw Error('handler');
             }, ok: (_: unknown, c: any) => {
                 c.onDispose(() => {
@@ -96,7 +96,7 @@ it('contains reporter failures during actions and cleanup', async () => {
     expect(cleaned).toHaveBeenCalledOnce();
 });
 it('rejects duplicate codes/ids and noninteger priorities without dropping valid plugins', async () => {
-    const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ x: () => 42 }), '/src/admin/modules/b/hooks.ts': async () => ({ x: () => -1 }) }, () => {
+    const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ x: () => 42 }), '/src/admin/plugins/b/hooks.ts': async () => ({ x: () => -1 }) }, () => {
     });
     const valid = mod('a', [hook('x')]);
     for (const invalid of [[mod('b', [hook('x'), hook('x')])], [mod('b', [hook('x')]), mod('b', [hook('x')])], [mod('b', [{ ...hook('x'), priority: NaN }])]]) {
@@ -105,7 +105,7 @@ it('rejects duplicate codes/ids and noninteger priorities without dropping valid
     }
 });
 it('keeps concurrent asynchronous nested chains independent', async () => {
-    const r = new HookRuntime({ '/src/admin/modules/a/hooks.ts': async () => ({ root: async (v: unknown, c: any) => {
+    const r = new HookRuntime({ '/src/admin/plugins/a/hooks.ts': async () => ({ root: async (v: unknown, c: any) => {
                 await Promise.resolve();
                 return c.hooks.filter('nested', v);
             }, nested: async (v: unknown) => {

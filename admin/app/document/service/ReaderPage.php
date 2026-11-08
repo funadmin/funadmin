@@ -68,8 +68,13 @@ final class ReaderPage
         $listingTitle = $keyword !== '' ? '搜索结果' : ($categoryName ?: (self::SCOPES[$scope] ?? '最近更新'));
         $previous = $next = null;
         if ($document) {
-            $index = array_search($document['slug'], array_column($listing['list'], 'slug'), true);
-            if ($index !== false) { $previous = $listing['list'][$index-1] ?? null; $next = $listing['list'][$index+1] ?? null; }
+            // 上一篇、下一篇按左侧菜单顺序；文档不在任何目录时按列表顺序。
+            $sequence = [];
+            foreach ($categories as $category) foreach ($category['documents'] ?? [] as $item) $sequence[$item['slug']] ??= $item;
+            $sequence = array_values($sequence);
+            $index = array_search($document['slug'], array_column($sequence, 'slug'), true);
+            if ($index === false) { $sequence = $listing['list']; $index = array_search($document['slug'], array_column($sequence, 'slug'), true); }
+            if ($index !== false) { $previous = $sequence[$index-1] ?? null; $next = $sequence[$index+1] ?? null; }
         }
         $assetsVersion = substr(hash('sha256', (string)@file_get_contents(self::assetPath('reader.css')).(string)@file_get_contents(self::assetPath('reader.js'))), 0, 12);
         ob_start();

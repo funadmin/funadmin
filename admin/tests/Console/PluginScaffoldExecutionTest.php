@@ -73,7 +73,7 @@ final class PluginScaffoldExecutionTest extends TestCase
             self::assertNotEmpty($attributes[0]->newInstance());
         }
         $adminClass = 'app\\admin\\plugins\\' . $code . '\\controller\\Index';
-        self::assertSame('/admin/plugin/' . $code, (new \ReflectionClass($adminClass))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
+        self::assertSame('/admin/plugins/' . $code, (new \ReflectionClass($adminClass))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance()->prefix);
         self::assertSame([], (new \ReflectionMethod($adminClass, 'index'))->getAttributes(\app\common\annotation\Permission::class));
         self::assertSame($code . ':index:index', \app\admin\authorization\service\PermissionCode::derive($adminClass, 'index'));
         $adminMiddleware = \Webman\Middleware::getMiddleware('', 'admin', [$adminClass, 'index'], null, false);
@@ -117,8 +117,8 @@ final class PluginScaffoldExecutionTest extends TestCase
         $directory = $this->root . '/plugins/' . $code;
         $data = json_decode(file_get_contents($directory . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
         $data['adminWeb']['components']['value'] = 'components/Value.vue';
-        mkdir($directory . '/web/src/admin/modules/' . $code . '/components', 0700, true);
-        file_put_contents($directory . '/web/src/admin/modules/' . $code . '/components/Value.vue', '<template><span /></template>');
+        mkdir($directory . '/web/src/admin/plugins/' . $code . '/components', 0700, true);
+        file_put_contents($directory . '/web/src/admin/plugins/' . $code . '/components/Value.vue', '<template><span /></template>');
         $data['formComponents'] = [['type' => $code . ':value', 'component' => 'value', 'propertySchema' => (object) [], 'valueType' => 'object', 'defaultProps' => (object) [], 'allowedEvents' => [], 'capabilityVersion' => 1, 'validator' => $code . ':validate', 'codec' => $code . ':codec']];
         file_put_contents($directory . '/plugin.json', json_encode($data, JSON_THROW_ON_ERROR));
         file_put_contents($directory . '/Plugin.php', '<?php namespace plugins\\' . $code . '; final class Plugin extends \\app\\common\\plugin\\sdk\\Plugin {'

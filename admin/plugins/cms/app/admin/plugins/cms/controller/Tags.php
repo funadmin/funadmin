@@ -7,7 +7,7 @@ use app\cms\service\Input;
 use app\cms\service\TemplateTagService;
 use app\cms\tags\BuiltinTags;
 use app\cms\template\RenderContext;
-#[RouteGroup('/admin/plugin/cms/tags')]
+#[RouteGroup('/admin/plugins/cms/tags')]
 final class Tags extends Base
 {
     #[Get('')]

@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 const mocks = vi.hoisted(() => ({ allowed: false, permissions: [] as string[], saveSite: vi.fn(), grant: vi.fn(), saveCategory: vi.fn(), saveModel: vi.fn(), saveSiteModel: vi.fn() }));
 vi.mock('@/utils/permission', () => ({ hasPermission: (code: string) => mocks.permissions.includes(code) }));
-vi.mock('../../../admin/plugins/cms/web/src/admin/modules/cms/api', () => ({ cmsApi: { sites: async () => [], categories: async () => [], models: async () => [], saveSite: mocks.saveSite, grant: mocks.grant, saveCategory: mocks.saveCategory, saveModel: mocks.saveModel, saveSiteModel: mocks.saveSiteModel } }));
-import SitePanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/SitePanel.vue';
-import CategoryPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/CategoryPanel.vue';
-import ModelPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ModelPanel.vue';
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: { sites: async () => [], categories: async () => [], models: async () => [], saveSite: mocks.saveSite, grant: mocks.grant, saveCategory: mocks.saveCategory, saveModel: mocks.saveModel, saveSiteModel: mocks.saveSiteModel } }));
+import SitePanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/SitePanel.vue';
+import CategoryPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/CategoryPanel.vue';
+import ModelPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ModelPanel.vue';
 const global = { directives: { perm: {}, loading: {} }, stubs: Object.fromEntries(['ElAlert','ElButton','ElDialog','ElForm','ElFormItem','ElInput','ElInputNumber','ElSelect','ElOption','ElSwitch','ElCheckbox','ElTable','ElTableColumn','ElTag','ElDescriptions','ElDescriptionsItem'].map(name => [name, true])) };
 const scope = { site_id: 'site-a', locale: 'zh-cn' };
 describe('CMS功能权限与站点授权', () => {

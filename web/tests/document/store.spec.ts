@@ -12,10 +12,10 @@ const api = vi.hoisted(() => ({
   restore: vi.fn(),
   remove: vi.fn()
 }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/api', () => ({ documentApi: api }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/api', () => ({ documentApi: api }));
 
-import { useDocumentStore } from '../../../admin/plugins/document/web/src/admin/modules/document/store';
-import type { DocumentDetail } from '../../../admin/plugins/document/web/src/admin/modules/document/types';
+import { useDocumentStore } from '../../../admin/plugins/document/web/src/admin/plugins/document/store';
+import type { DocumentDetail } from '../../../admin/plugins/document/web/src/admin/plugins/document/types';
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 const detail = (over: Record<string, unknown> = {}): DocumentDetail => ({

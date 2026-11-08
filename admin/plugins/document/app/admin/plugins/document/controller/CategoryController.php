@@ -13,7 +13,7 @@ use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
 
-#[RouteGroup('/admin/plugin/document/categories')]
+#[RouteGroup('/admin/plugins/document/categories')]
 final class CategoryController extends DocumentApiController
 {
     #[Get('')]

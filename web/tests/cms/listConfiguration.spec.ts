@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, expect, it, vi } from 'vitest';
-import ConfigurationPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ConfigurationPanel.vue';
+import ConfigurationPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ConfigurationPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:http}));
 vi.mock('@/components/Upload/index.vue',()=>({default:{name:'AppUpload',template:'<div />'}}));

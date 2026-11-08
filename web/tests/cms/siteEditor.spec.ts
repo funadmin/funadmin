@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
-import SourcePanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/SitePanel.vue';
-import RuntimePanel from '../../src/admin/modules/cms/components/SitePanel.vue';
+import SourcePanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/SitePanel.vue';
+import RuntimePanel from '../../src/admin/plugins/cms/components/SitePanel.vue';
 const api=vi.hoisted(()=>({siteOptions:vi.fn(),saveSite:vi.fn(),saveLocale:vi.fn(),saveDomain:vi.fn()}));
-vi.mock('../../../admin/plugins/cms/web/src/admin/modules/cms/api',()=>({cmsApi:api}));
-vi.mock('../../src/admin/modules/cms/api',()=>({cmsApi:api}));
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api',()=>({cmsApi:api}));
+vi.mock('../../src/admin/plugins/cms/api',()=>({cmsApi:api}));
 const pass=defineComponent({setup(_props,{slots}){return()=>h('div',slots.default?.());}});
 const button=defineComponent({emits:['click'],setup(_props,{slots,emit}){return()=>h('button',{onClick:()=>emit('click')},slots.default?.());}});
 const select=defineComponent({props:['modelValue','disabled'],emits:['update:modelValue','change'],setup(props,{slots,emit}){return()=>h('select',{value:props.modelValue,disabled:props.disabled,onChange:(event:Event)=>{const value=(event.target as HTMLSelectElement).value;emit('update:modelValue',value);emit('change',value);}},slots.default?.());}});

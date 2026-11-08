@@ -43,8 +43,8 @@ final class DocumentHttpTest extends DocumentTestCase
                 'delete' => [Delete::class, '/{id:\d+}', 'document:category:delete'],
             ],
         ];
-        self::assertSame('/admin/plugin/document/documents', $this->prefix(DocumentController::class));
-        self::assertSame('/admin/plugin/document/categories', $this->prefix(CategoryController::class));
+        self::assertSame('/admin/plugins/document/documents', $this->prefix(DocumentController::class));
+        self::assertSame('/admin/plugins/document/categories', $this->prefix(CategoryController::class));
         foreach ($expected as $class => $actions) {
             self::assertTrue(is_subclass_of($class, AdminController::class), $class . ' 必须走后台会话、CSRF 和操作日志');
             foreach ($actions as $method => [$verb, $path, $permission]) {

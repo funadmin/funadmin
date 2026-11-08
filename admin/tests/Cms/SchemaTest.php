@@ -9,7 +9,7 @@ final class SchemaTest extends CmsTestCase
         $root=dirname(__DIR__,2).'/plugins/cms';
         self::assertFileExists($root.'/plugin.json');
         $manifest=\app\common\plugin\sdk\Manifest::fromDirectory($root)->toArray();
-        self::assertSame('web/src/admin/modules/cms',$manifest['adminWeb']['source']);
+        self::assertSame('web/src/admin/plugins/cms',$manifest['adminWeb']['source']);
         self::assertContains('cms:content:publish',array_column($manifest['adminWeb']['permissions'],'code'));
         self::assertFalse($manifest['purge']['supported']);
     }

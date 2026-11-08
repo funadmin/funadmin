@@ -2,7 +2,7 @@ import { defineComponent, h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElTabs, ElTabPane } from 'element-plus';
 import { beforeEach, expect, it, vi } from 'vitest';
-import SitePanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/SitePanel.vue';
+import SitePanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/SitePanel.vue';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/utils/http', () => ({ default: http }));

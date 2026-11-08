@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { ElTabs, ElTabPane } from 'element-plus';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { createRouter, createMemoryHistory, RouterView } from 'vue-router';
-import ContentPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ContentPanel.vue';
+import ContentPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ContentPanel.vue';
 const api=vi.hoisted(()=>({get:vi.fn(),post:vi.fn(),confirm:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:api}));
 vi.mock('element-plus',async original=>({...await original<any>(),ElMessageBox:{confirm:api.confirm}}));

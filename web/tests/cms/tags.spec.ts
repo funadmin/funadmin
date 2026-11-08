@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElButton, ElTable, ElTableColumn, ElTag } from 'element-plus';
-import SourceTagPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/TagPanel.vue';
-import PublishedTagPanel from '../../src/admin/modules/cms/components/TagPanel.vue';
+import SourceTagPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/TagPanel.vue';
+import PublishedTagPanel from '../../src/admin/plugins/cms/components/TagPanel.vue';
 
 const api = vi.hoisted(() => ({ tags: vi.fn(), providers: vi.fn(), tagOptions: vi.fn(), saveTag: vi.fn(), publishTag: vi.fn(), previewTag: vi.fn() }));
-vi.mock('../../../admin/plugins/cms/web/src/admin/modules/cms/api', () => ({ cmsApi: api }));
-vi.mock('../../src/admin/modules/cms/api', () => ({ cmsApi: api }));
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: api }));
+vi.mock('../../src/admin/plugins/cms/api', () => ({ cmsApi: api }));
 const builtin = { id: 'builtin:content', builtin: true, name: 'content', parameters: { limit: { type: 'integer', default: 12, min: 1, max: 100 } } };
 const custom = { id: '12', builtin: false, name: 'company_news', locale: '', current_version: 1, draft_version: 2, draft: { provider: 'content', parameters: { limit: 3 }, template_fragment: '<p>{$item.title}</p>' } };
 const dialog = defineComponent({

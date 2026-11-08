@@ -6,7 +6,7 @@ namespace app\admin\plugins\cms\controller;
 use app\cms\service\{ContributionPolicy, ContributionService};
 use support\annotation\route\{Get, Post, RouteGroup};
 use support\{Db, Response};
-#[RouteGroup('/admin/plugin/cms/contributions')]
+#[RouteGroup('/admin/plugins/cms/contributions')]
 final class Contributions extends Base
 {
     #[Get('')]

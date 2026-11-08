@@ -29,6 +29,34 @@ final class PublicReaderTest extends DocumentTestCase
         self::assertSame(404, (new Reader())->detail(new Request("GET /docs/missing HTTP/1.1\r\n\r\n"), 'missing')->getStatusCode());
     }
 
+    public function test_sidebar_lists_each_category_documents_and_category_links_open_the_first_document(): void
+    {
+        $category = (new \app\document\service\DocumentCategoryService())->create(['scope'=>'plugin_dev','name'=>'目录与 Manifest','slug'=>'manifest']);
+        foreach (['plugin-directory'=>'插件目录与 Manifest','plugin-routes'=>'插件后端接口与前端路由'] as $slug => $title) {
+            $row = (new DocumentService())->create(['title'=>$title,'slug'=>$slug,'scope'=>'plugin_dev','visibility'=>'public','categoryIds'=>[$category['id']],'content'=>$this->doc($title.'正文')]);
+            (new DocumentVersionService())->publish($row['id'], '', 1);
+        }
+        Context::destroy();
+        $page = (new Reader())->detail(new Request("GET /docs/plugin-routes HTTP/1.1\r\nHost: localhost\r\n\r\n"), 'plugin-routes')->rawBody();
+        // 左侧菜单直接列出目录下的文档，当前文档高亮，不需要先进入目录列表页。
+        self::assertMatchesRegularExpression('/目录与 Manifest.*href="\/docs\/plugin-directory".*插件目录与 Manifest.*href="\/docs\/plugin-routes"[^>]*aria-current="page"/s', $page);
+        foreach (['categoryId='.$category['id'], 'scope=plugin_dev'] as $query) {
+            $response = (new Reader())->index(new Request("GET /docs?$query HTTP/1.1\r\nHost: localhost\r\n\r\n"));
+            self::assertSame(302, $response->getStatusCode(), $query);
+            self::assertSame('/docs/plugin-directory', $response->getHeader('Location'), $query);
+        }
+        $search = (new Reader())->index(new Request("GET /docs?keyword=%E6%8F%92%E4%BB%B6 HTTP/1.1\r\nHost: localhost\r\n\r\n"));
+        self::assertSame(200, $search->getStatusCode());
+        self::assertStringContainsString('篇文档', $search->rawBody(), '搜索仍然显示结果列表');
+    }
+
+    public function test_reader_layout_uses_the_full_width(): void
+    {
+        $css = (string) file_get_contents(\app\document\service\ReaderPage::assetPath('reader.css'));
+        preg_match('/\.docs-shell \{[^}]*\}/', $css, $shell);
+        self::assertStringNotContainsString('max-width', $shell[0], '文档页左右不留空白');
+    }
+
     public function test_public_reader_assets_are_served_with_their_correct_types(): void
     {
         Context::destroy();

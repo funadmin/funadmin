@@ -1,7 +1,7 @@
 import { computed, defineComponent, h, inject, provide } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import ContentPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ContentPanel.vue';
+import ContentPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ContentPanel.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:http}));
 const row={id:'8',content_id:'4',model_id:'2',category_id:null,locale:'zh-cn',status:'published',draft_revision_id:'9',published_revision_id:'7',lock_version:2,revision:{id:'9',model_version_id:'2',title:'My saved draft',desired_path:'/draft',data:{},body_html:'',template:'detail',robots:'index,follow'}};

@@ -7,14 +7,14 @@ const api = vi.hoisted(() => ({
   archive: vi.fn(), restore: vi.fn(), remove: vi.fn(), create: vi.fn(), revisions: vi.fn(), revision: vi.fn(), updateMeta: vi.fn()
 }));
 const perms = vi.hoisted(() => ({ granted: ['document:document:index', 'document:document:detail', 'document:document:create', 'document:document:update-meta', 'document:document:save-draft', 'document:document:publish', 'document:document:archive', 'document:document:restore'] as string[] }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/api', () => ({ documentApi: api }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/api', () => ({ documentApi: api }));
 vi.mock('@/utils/permission', () => ({ hasPermission: (code: string | string[]) => (Array.isArray(code) ? code : [code]).some((c) => perms.granted.includes(c)) }));
 // 编辑器/预览依赖真实 DOM 排版，在组件测试里用占位替代，单独由内容测试覆盖。
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentEditor.vue', () => ({ default: { name: 'DocumentEditor', props: ['modelValue', 'editable'], template: '<div class="stub-editor" />' } }));
-vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentPreview.vue', () => ({ default: { name: 'DocumentPreview', props: ['content'], template: '<div class="stub-preview" />' } }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/editor/DocumentEditor.vue', () => ({ default: { name: 'DocumentEditor', props: ['modelValue', 'editable'], template: '<div class="stub-editor" />' } }));
+vi.mock('../../../admin/plugins/document/web/src/admin/plugins/document/editor/DocumentPreview.vue', () => ({ default: { name: 'DocumentPreview', props: ['content'], template: '<div class="stub-preview" />' } }));
 
-import Index from '../../../admin/plugins/document/web/src/admin/modules/document/Index.vue';
-import { useDocumentStore } from '../../../admin/plugins/document/web/src/admin/modules/document/store';
+import Index from '../../../admin/plugins/document/web/src/admin/plugins/document/Index.vue';
+import { useDocumentStore } from '../../../admin/plugins/document/web/src/admin/plugins/document/store';
 
 const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '正文' }] }] };
 const row = (over: Record<string, unknown> = {}) => ({ id: 1, title: '插件开发快速开始', slug: 'quick', summary: '', scope: 'plugin_dev', pluginCode: '', type: 'guide', status: 'published', appliesTo: 'v1.0', lockVersion: 1, currentRevisionNo: 1, categoryIds: [], updatedAt: '2026-11-06 10:00:00', ...over });

@@ -9,7 +9,7 @@
 - 开发包：`admin/runtime/plugin-packages/oss-1.0.0.zip`，约 1.3 MiB、992 个文件，包含独立 vendor。
 - SHA-256：`2a099342ba408218809812b15189313b42d5ab12b02d5cb9856159ccd408c3df`。
 - 使用标准 PluginArchiveService 打包并通过 PluginPackageService 暂存/Manifest/源树检查后丢弃暂存。开发包没有部署方的可信签名，不可绕过上传包签名校验；当前本地源码可在插件中心安装。发布分发包应使用部署方自己的签名密钥。
-- 未在当前应用创建未登记的 `app/admin/plugins/oss` 或 `web/src/admin/modules/oss` 目录，避免阻断后续原生安装。真实发布/移除在隔离项目中验证。
+- 未在当前应用创建未登记的 `app/admin/plugins/oss` 或 `web/src/admin/plugins/oss` 目录，避免阻断后续原生安装。真实发布/移除在隔离项目中验证。
 
 ## 已验证行为
 

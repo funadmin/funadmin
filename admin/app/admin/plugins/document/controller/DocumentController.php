@@ -14,7 +14,7 @@ use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
 
-#[RouteGroup('/admin/plugin/document/documents')]
+#[RouteGroup('/admin/plugins/document/documents')]
 final class DocumentController extends DocumentApiController
 {
     #[Get('')]

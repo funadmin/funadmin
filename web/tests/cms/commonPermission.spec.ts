@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 const mocks = vi.hoisted(() => ({ saveModel: vi.fn(), attachments: vi.fn(async () => []), context: vi.fn(async () => ({ items: [], is_super: false })) }));
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ permissions: [] }) }));
-vi.mock('../../../admin/plugins/cms/web/src/admin/modules/cms/api', () => ({ cmsApi: { context: mocks.context, saveModel: mocks.saveModel, attachments: mocks.attachments } }));
-import CmsPage from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/CmsPage.vue';
-import ModelPanel from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/ModelPanel.vue';
-import AttachmentField from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/AttachmentField.vue';
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: { context: mocks.context, saveModel: mocks.saveModel, attachments: mocks.attachments } }));
+import CmsPage from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/CmsPage.vue';
+import ModelPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ModelPanel.vue';
+import AttachmentField from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/AttachmentField.vue';
 const global = { directives: { loading: {}, perm: {} }, stubs: Object.fromEntries(['PageWrapper','ElEmpty','ElAlert','ElButton','ElDialog','ElForm','ElFormItem','ElInput','ElInputNumber','ElSelect','ElOption','ElSwitch','ElCheckbox','ElTable','ElTableColumn','ElTag'].map(name => [name, true])) };
 const scope = { site_id: 'a', locale: 'zh-cn' };
 describe('CMS源插件公共权限保持站点上下文', () => {

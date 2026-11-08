@@ -537,7 +537,7 @@ final class PluginResourcePublisher
         if (is_array($data['adminWeb'] ?? null)) {
             $publications[] = [
                 'source' => (string) $data['adminWeb']['source'],
-                'target' => 'src/admin/modules/' . $manifest->code(),
+                'target' => 'src/admin/plugins/' . $manifest->code(),
                 'root' => $roots['web'],
                 'type' => 'web',
             ];
@@ -584,7 +584,7 @@ final class PluginResourcePublisher
 
     private function targetDirectory(string $root, string $pluginCode, string $relative, string $type): string
     {
-        $prefix = $type === 'web' ? 'src/admin/modules/' . $pluginCode : 'plugin-assets/' . $pluginCode;
+        $prefix = $type === 'web' ? 'src/admin/plugins/' . $pluginCode : 'plugin-assets/' . $pluginCode;
         if ($relative !== $prefix && !str_starts_with($relative, $prefix . '/')) {
             throw new RuntimeException('资源目标必须位于 ' . $prefix . '/');
         }
@@ -600,8 +600,8 @@ final class PluginResourcePublisher
     {
         if (str_starts_with($targetPath, self::ADMIN_WEB_PREFIX)) {
             $relative = substr($targetPath, strlen(self::ADMIN_WEB_PREFIX));
-            if (preg_match('~^src/admin/modules/[a-z][a-z0-9]*/.+$~D', $relative) !== 1) {
-                throw new RuntimeException('前端资源登记必须使用统一目录 src/admin/modules/{code}/');
+            if (preg_match('~^src/admin/plugins/[a-z][a-z0-9]*/.+$~D', $relative) !== 1) {
+                throw new RuntimeException('前端资源登记必须使用统一目录 src/admin/plugins/{code}/');
             }
             return [$roots['web'], $relative];
         }

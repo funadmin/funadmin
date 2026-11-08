@@ -25,7 +25,7 @@ final class CommunityWiringTest extends TestCase
         $data=json_decode(file_get_contents($root.'/plugin.json'),true,flags:JSON_THROW_ON_ERROR);
         self::assertSame('1.3.2',$data['version']);
         self::assertContains('cms:submission:review',array_column($data['adminWeb']['permissions'],'code'));
-        $route=array_values(array_filter($data['adminWeb']['routes'],fn($r)=>$r['path']==='/plugin/cms/contributions'));
+        $route=array_values(array_filter($data['adminWeb']['routes'],fn($r)=>$r['path']==='/plugins/cms/contributions'));
         self::assertCount(1,$route);self::assertSame('Contributions',$route[0]['component']);
         (new \ReflectionMethod(Manifest::class,'validateAdminWeb'))->invoke(null,$root,$data['adminWeb'],$data);
         // 投稿审核员进入站点上下文：投稿列表站点操作覆盖 Sites::context 接口。

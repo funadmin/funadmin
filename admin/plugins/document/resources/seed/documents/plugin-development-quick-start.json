@@ -25,7 +25,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "插件源码位于 admin/plugins/{code}，前端源码位于 web/src/admin/modules/{code}。"
+                        "text": "插件源码位于 admin/plugins/{code}，前端源码位于 web/src/admin/plugins/{code}。"
                     }
                 ]
             },

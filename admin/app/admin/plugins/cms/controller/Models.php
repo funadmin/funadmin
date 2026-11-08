@@ -5,7 +5,7 @@ use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
 use app\cms\service\ModelService;
 use app\cms\service\SiteAccess;
-#[RouteGroup('/admin/plugin/cms/models')]
+#[RouteGroup('/admin/plugins/cms/models')]
 final class Models extends Base
 {
     #[Get('')]

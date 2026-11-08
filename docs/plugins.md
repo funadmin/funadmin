@@ -37,7 +37,7 @@ admin/plugins/demo/
 ├── web/
 │   └── src/
 │       └── admin/
-│           └── modules/
+│           └── plugins/
 │               └── demo/
 │                   ├── api.ts
 │                   ├── types.ts
@@ -60,7 +60,7 @@ admin/plugins/demo/
 |---|---|
 | `app/admin/plugins/demo/` | `admin/app/admin/plugins/demo/` |
 | `app/demo/` | `admin/app/demo/` |
-| `web/src/admin/modules/demo/` | `web/src/admin/modules/demo/` |
+| `web/src/admin/plugins/demo/` | `web/src/admin/plugins/demo/` |
 | `public/plugin-assets/demo/public/` | `admin/public/plugin-assets/demo/public/` |
 
 后台控制器的命名空间为 `app\admin\plugins\demo\controller`。独立应用控制器为 `app\demo\controller`。管理端模型和生成模型统一继承 `app\common\model\BaseModel`，已移除空包装类 `app\admin\model\BackendModel`。
@@ -76,7 +76,7 @@ php webman plugin:validate demo
 php webman plugin:package demo
 ```
 
-Manifest 的前端入口固定为 `web/src/admin/modules/demo`。公开资源的 `source` 使用 `public/plugin-assets/demo/public`，`target` 使用 `plugin-assets/demo/public`。声明迁移时路径固定为 `database/migrations`；无 SQL 插件可不声明 `migrations`，有迁移历史后必须保留声明。
+Manifest 的前端入口固定为 `web/src/admin/plugins/demo`。公开资源的 `source` 使用 `public/plugin-assets/demo/public`，`target` 使用 `plugin-assets/demo/public`。声明迁移时路径固定为 `database/migrations`；无 SQL 插件可不声明 `migrations`，有迁移历史后必须保留声明。
 
 CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修改检测和恢复只接受统一后的目录及资源标识。旧包结构和旧资源登记会明确报错，不自动转换或删除原文件。
 

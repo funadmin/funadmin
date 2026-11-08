@@ -7,7 +7,7 @@ use app\cms\service\Input;
 use app\cms\service\ContentService;
 use app\cms\service\SiteService;
 use app\cms\service\Renderer;
-#[RouteGroup('/admin/plugin/cms/content')]
+#[RouteGroup('/admin/plugins/cms/content')]
 final class Content extends Base
 {
     #[Get('')]

@@ -55,7 +55,7 @@ Interfaces:
 - export hooks singleton, HookRuntime class, HookCancelledError, HookModule DTO matching Task2.
 - runtime sync(modules,identity), clear(), action/filter, reactive revision for slot/host refresh.
 - context.hooks bound dispatch, signal, onDispose; host context signal composes plugin revision lifecycle.
-- sourceModules from Vite build whitelist src/admin/modules; lazy imports, no remote import.
+- sourceModules from Vite build whitelist src/admin/plugins; lazy imports, no remote import.
 - shared bootstrap route audience exact rules and 30s-visible/focus synchronization; latest request wins, session switch clears first.
 Steps:
 - [x] Write/run failing runtime tests for ordering/false/null, nested calls, depth, two concurrent chains, disable/late imports, permissions signature and cleanup.

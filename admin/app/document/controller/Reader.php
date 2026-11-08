@@ -50,9 +50,16 @@ final class Reader
                 if ($first) $document = $service->find($first['slug']);
             }
 
+            // 点击文档范围或目录时直接打开该处的第一篇文档；只有搜索才显示结果列表。
+            $query = $request->get();
+            if ($slug === null && ($query['keyword'] ?? '') === '' && (($query['scope'] ?? '') !== '' || ($query['categoryId'] ?? '') !== '')) {
+                $first = $service->firstSlug($query);
+                if ($first !== null) return new Response(302, ['Location'=>'/docs/'.rawurlencode($first), 'Cache-Control'=>'no-store']);
+            }
+
             if ($slug !== null && $document === null) return $this->html((new ReaderPage())->render(['list'=>[],'total'=>0,'page'=>1,'pageSize'=>20], [], null, [], '文档不存在或尚未公开'), 404);
             $filters = $document ? ['scope'=>$document['scope']] : $request->get();
-            return $this->html((new ReaderPage())->render($service->listing($filters), $service->categories(), $document, $filters));
+            return $this->html((new ReaderPage())->render($service->listing($filters), $service->navigation(), $document, $filters));
         } catch (InvalidArgumentException $error) {
             return $this->html((new ReaderPage())->render(['list'=>[],'total'=>0,'page'=>1,'pageSize'=>20], [], null, [], $error->getMessage()), 422);
         } catch (\Throwable $error) {

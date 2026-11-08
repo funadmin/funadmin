@@ -9,7 +9,7 @@ use app\cms\service\Input;
 use app\cms\service\SiteRoleService;
 use app\cms\service\PermissionCatalog;
 use app\cms\service\SiteAuthorization;
-#[RouteGroup('/admin/plugin/cms/access')]
+#[RouteGroup('/admin/plugins/cms/access')]
 final class Access extends Base
 {
     #[Get('')]

@@ -6,7 +6,7 @@
 
 - 源包：`admin/plugins/cms/`，Manifest v2。
 - 最新后台目录：包内 `app/admin/plugins/cms/`，命名空间 `app\admin\plugins\cms`；管理 URL 保持 `/admin/plugin/cms/...`。
-- 网站应用：`app/cms/`；管理前端：`web/src/admin/modules/cms/`；普通发行静态资源：`public/plugin-assets/cms/public/`。
+- 网站应用：`app/cms/`；管理前端：`web/src/admin/plugins/cms/`；普通发行静态资源：`public/plugin-assets/cms/public/`。
 - 安装、域名入口和自定义 PHP/后台标签说明：插件 README。
 
 ## 已实现

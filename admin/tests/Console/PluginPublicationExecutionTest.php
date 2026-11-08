@@ -111,12 +111,12 @@ class PluginPublicationExecutionTest extends TestCase
             $infrastructure = new PluginInfrastructureService(projectRoot: $root);
             $infrastructure->publishResources($manifest, 'initial');
             $infrastructure->completePublishedResources('initial');
-            $current = $root . '/web/src/admin/modules/frontfixture';
+            $current = $root . '/web/src/admin/plugins/frontfixture';
             $old = $root . '/web/src/modules/frontfixture';
             mkdir(dirname($old), 0755, true);
             rename($current, $old);
             foreach (Db::table('plugin_resource')->where('target_path', 'like', 'web:%')->get() as $record) {
-                Db::table('plugin_resource')->where('id', $record->id)->update(['target_path' => str_replace('src/admin/modules/', 'src/modules/', $record->target_path)]);
+                Db::table('plugin_resource')->where('id', $record->id)->update(['target_path' => str_replace('src/admin/plugins/', 'src/modules/', $record->target_path)]);
             }
             $before = Db::table('plugin_resource')->orderBy('id')->get()->toJson();
             $error = null;
@@ -191,10 +191,10 @@ class PluginPublicationExecutionTest extends TestCase
             self::assertSame('public-payload', file_get_contents($resource));
             $controller = $root . '/app/admin/plugins/publishfixture/controller/Index.php';
             self::assertFileExists($controller);
-            self::assertFileExists($root . '/web/src/admin/modules/publishfixture/pages/Index.vue');
+            self::assertFileExists($root . '/web/src/admin/plugins/publishfixture/pages/Index.vue');
             foreach ([
                 'app/admin/plugins/publishfixture/controller/Index.php',
-                'web/src/admin/modules/publishfixture/pages/Index.vue',
+                'web/src/admin/plugins/publishfixture/pages/Index.vue',
                 'public/plugin-assets/publishfixture/public/fixture.txt',
             ] as $relative) {
                 self::assertSame(file_get_contents($root . '/plugins/publishfixture/' . $relative), file_get_contents($root . '/' . $relative));

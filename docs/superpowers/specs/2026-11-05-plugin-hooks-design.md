@@ -59,7 +59,7 @@
 
 audience 按当前页面路由决定，采用精确匹配、不自动继承：`meta.public=true` 的公共页（包括公开登录/注册页）使用 public；其余 `meta.member=true` 的会员页使用 member；后台受保护页面使用 admin。已经登录的会员访问公共首页仍为 public，后台 Cookie 不会让会员页获得 admin 贡献。希望三类页面共用的贡献显式声明三个值。带 permission 的项只允许 audiences=["admin"]，需要公共版本时声明独立无私有权限的贡献。
 
-只有后端钩子的插件无需 `adminWeb`、`app/{code}` 或 `app/admin`。后端 hooks 文件保留在私有插件目录中，安装、ZIP 打包、更新和恢复均覆盖这些文件；不会发布到 public，也不会制造应用目录用于通过激活检查。前端文件按现有发布规则进入 `src/admin/modules/{code}`。
+只有后端钩子的插件无需 `adminWeb`、`app/{code}` 或 `app/admin`。后端 hooks 文件保留在私有插件目录中，安装、ZIP 打包、更新和恢复均覆盖这些文件；不会发布到 public，也不会制造应用目录用于通过激活检查。前端文件按现有发布规则进入 `src/admin/plugins/{code}`。
 
 Manifest 校验器检查字段、id 重复、类型组合、引用、文件扩展名、路径归属与符号链接，不执行处理器源码。只有 runtime 执行器在通过激活检查后才加载代码。
 

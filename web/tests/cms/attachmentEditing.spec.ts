@@ -1,7 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import ElementPlus from 'element-plus';
 import { afterEach, expect, it, vi } from 'vitest';
-import AttachmentField from '../../../admin/plugins/cms/web/src/admin/modules/cms/components/AttachmentField.vue';
+import AttachmentField from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/AttachmentField.vue';
 const http=vi.hoisted(()=>({get:vi.fn(),upload:vi.fn()}));
 vi.mock('@/utils/http',()=>({default:http}));
 afterEach(()=>vi.clearAllMocks());
