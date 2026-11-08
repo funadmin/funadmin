@@ -72,25 +72,37 @@ describe('统一表单发布引擎契约', () => {
     expect(definition).toContain("'layoutSchema'");
   });
 
-  it('基本信息提供所属菜单选择，并将选择纳入发布配置', () => {
-    const designer = read('web/src/admin/views/form/designer/index.vue');
-    expect(designer).toContain("t('formDesigner.parentMenu', '所属菜单')");
-    expect(designer).toContain(':model-value="publishConfig.parentSourceName"');
-    expect(designer).toContain('menuApi.tree()');
-    expect(designer).toContain('sourceType');
+  it('表单设置（编辑生成信息）提供所属菜单选择，并将选择纳入发布配置', () => {
+    // 设计器「基本信息」页签已并入「⚙ 表单设置」打开的 EditGenerationDialog → ConfigTab。
+    const config = read('web/src/admin/views/development/business/codegen/tabs/ConfigTab.vue');
+    const editor = read('web/src/admin/views/development/business/codegen/useGenerationEditor.ts');
+    const generationConfig = read('web/src/admin/views/development/business/codegen/generationConfig.ts');
+    expect(config).toContain("t('business.codegen.edit.parentMenu', '所属菜单')");
+    expect(config).toContain(':model-value="publish.parentSourceName || undefined"');
+    expect(config).toContain("emitPublish({ parentSourceName: String(value ?? ''), parentId: null })");
+    expect(editor).toContain('menuApi.tree()');
+    expect(generationConfig).toContain('sourceType');
+    expect(read('web/src/admin/views/form/designer/index.vue')).toContain('<EditGenerationDialog');
   });
 
   it('设计器隔离动态发布与正式生成，并对冲突 fail closed', () => {
+    // 三步「生成正式模块」弹窗已移除：设计器的预览代码 / 生成 / 动态发布统一由代码生成的 CodePreviewDialog 承担。
     const designer = read('web/src/admin/views/form/designer/index.vue');
-    for (const label of ['动态发布', '生成正式模块', '变更预览', '冲突确认', '发布结果', 'Base', 'Local', 'Remote']) expect(designer).toContain(label);
-    expect(designer).toContain('businessDevelopmentApi.previewPublish');
-    expect(designer).toContain('businessDevelopmentApi.previewFormalGeneration');
-    expect(designer).toContain('businessDevelopmentApi.formalGeneration');
-    expect(designer).toContain(':disabled="!canConfirmGeneration"');
-        expect(designer).toContain('!conflictFiles.value.length');
-    expect(designer).toContain('confirmToken');
-    expect(designer).not.toContain('allowOverwrite');
-    expect(designer).not.toContain('formFullPublishApi.');
+    const preview = read('web/src/admin/views/development/business/codegen/CodePreviewDialog.vue');
+    const formal = read('web/src/admin/views/development/business/codegen/formalGeneration.ts');
+    expect(designer).toContain('<CodePreviewDialog');
+    expect(designer).not.toContain('publishVisible');
+    for (const label of ['动态发布', '生成到项目', '与本地对比', '重新预览']) expect(preview).toContain(label);
+    expect(preview).toContain('businessDevelopmentApi.previewPublish');
+    expect(preview).toContain('businessDevelopmentApi.previewFormalGeneration');
+    expect(formal).toContain('businessDevelopmentApi.formalGeneration');
+    expect(preview).toContain(':disabled="!canConfirmGeneration"');
+    expect(formal).toContain('preview.plan.blocked || previewConflictCount(preview) > 0');
+    expect(preview).toContain('confirmToken');
+    for (const source of [designer, preview, formal]) {
+      expect(source).not.toContain('allowOverwrite');
+      expect(source).not.toContain('formFullPublishApi.');
+    }
   });
 
   it('表单设计器仅保留基础模式，移除高级模式专属入口和状态', () => {
@@ -99,21 +111,27 @@ describe('统一表单发布引擎契约', () => {
     expect(designer).not.toContain('高级模式');
     expect(designer).not.toContain('SchemaJsonEditor');
     expect(designer).not.toContain('SchemaStructurePanel');
-    expect(designer).not.toContain('VersionHistoryDrawer');
+    // 版本历史按改版设计放入顶栏「⋯」菜单（与编辑生成信息弹窗共用同一 VersionHistoryDrawer）。
+    expect(designer).toContain('<VersionHistoryDrawer v-if="canViewVersions && moduleId"');
     expect(designer).not.toContain('buildDesignerDebugState');
     expect(designer).not.toContain('buildSchemaDebugSummary');
   });
 
   it('正式生成复用服务端 operation，并在响应不确定时按 generationId 收敛', () => {
     const designer = read('web/src/admin/views/form/designer/index.vue');
-    expect(designer).toContain('const formalGenerationNonce = ref(crypto.randomUUID())');
-    expect(designer).toContain('previewFormalGeneration(moduleId, formalGenerationNonce.value)');
-    expect(designer).toContain('businessDevelopmentApi.generation(generationId)');
-    expect(designer).toContain("generation.status === 'completed' && generation.result");
-    expect(designer).toContain('retryGenerationQuery');
-    expect(designer).toContain('查询生成结果');
+    const preview = read('web/src/admin/views/development/business/codegen/CodePreviewDialog.vue');
+    const formal = read('web/src/admin/views/development/business/codegen/formalGeneration.ts');
+    // 每次预览使用新的客户端 nonce；下载 zip 复用同一 nonce，不让打开中的计划被 supersede。
+    expect(preview).toContain('const nonce = crypto.randomUUID();');
+    expect(preview).toContain('previewFormalGeneration(module.id, nonce)');
+    expect(preview).toContain('formalGenerationArchive(module.id, nonce)');
+    expect(formal).toContain('businessDevelopmentApi.generation(generationId)');
+    expect(formal).toContain("generation.status === 'completed' && generation.result");
+    expect(formal).toContain("{ kind: 'pending' }");
+    expect(preview).toContain('生成状态尚未确认，请到生成记录查看结果');
+    expect(preview).toContain('useBusinessMenuRefresh');
+    expect(preview).toContain("t('business.codegen.preview.menuRefreshFailed', '操作成功，菜单刷新失败')");
     expect(designer).toContain('useBusinessMenuRefresh');
-    expect(designer).toContain("t('formDesigner.menuRefreshFailed', '生成成功，菜单刷新失败')");
     expect(read('admin/app/admin/development/service/ManagedGenerationService.php')).toContain("'parentSourceName'");
     expect(read('admin/app/admin/development/service/GenerationResourceTransaction.php')).toContain("'parentSourceName'");
     expect(designer).not.toContain('permissionStore.fetchMenus()');
@@ -121,8 +139,15 @@ describe('统一表单发布引擎契约', () => {
 
   it('正式生成按钮维持 generate 与 apply-resources 权限边界', () => {
     const designer = read('web/src/admin/views/form/designer/index.vue');
-    expect(designer).toMatch(/v-perm:all="\['development:business:preview-formal-generation', 'development:business:generate'\]"[^>]*@click="openFormalGeneration"/);
-    expect(designer).toContain(`v-perm:all="['development:business:formal-generation', 'development:business:generate', 'development:business:apply-resources']"`);
+    const preview = read('web/src/admin/views/development/business/codegen/CodePreviewDialog.vue');
+    const formal = read('web/src/admin/views/development/business/codegen/formalGeneration.ts');
+    // 设计器顶栏「生成」需要预览 + 生成权限；真正写入项目的「生成到项目」另需 formal-generation 与 apply-resources。
+    expect(designer).toContain('const canGenerate = computed(() => hasPermission([PERM_PREVIEW, PERM_GENERATE], \'all\'));');
+    expect(formal).toContain("export const PERM_PREVIEW = 'development:business:preview-formal-generation';");
+    expect(formal).toContain("export const PERM_GENERATE = 'development:business:generate';");
+    expect(formal).toContain("export const PERMS_FORMAL_GENERATION = ['development:business:formal-generation', PERM_GENERATE, 'development:business:apply-resources'];");
+    expect(preview).toMatch(/v-if="canGenerateToProject"[\s\S]*?data-action="generate"/);
+    expect(preview).toContain("const canGenerateToProject = computed(() => hasPermission(PERMS_FORMAL_GENERATION, 'all'));");
   });
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {

@@ -52,8 +52,12 @@ final class FormActionRegistry
         );
     }
 
-    /** 仅供服务端列表执行服务调用；HTTP 入口不能直接传入处理器参数。 */
-    public function invokeList(string $key, array $parameters, callable $permissionChecker): mixed
+    /**
+     * 仅供服务端列表执行服务调用；HTTP 入口不能直接传入处理器参数。
+     * $context 由执行器在授权并重新加载记录后构造（location、ids，行内另有 id）；
+     * 仅声明 receivesContext 的处理器以第二个参数接收，既有处理器的调用方式不变。
+     */
+    public function invokeList(string $key, array $parameters, callable $permissionChecker, array $context = []): mixed
     {
         $definition = $this->actions[$key] ?? null;
         if (!$definition || empty($definition['locations'])) throw new InvalidArgumentException('FORM_ACTION_NOT_REGISTERED');
@@ -71,7 +75,8 @@ final class FormActionRegistry
             };
             if (!$valid) throw new InvalidArgumentException('FORM_LIST_PARAMETER_INVALID');
         }
-        $result = DeadlineExecutor::run(fn () => ($definition['handler'])($parameters), (int) ($definition['timeoutMs'] ?? 3000),
+        $result = DeadlineExecutor::run(fn () => ($definition['receivesContext'] ?? false) === true
+                ? ($definition['handler'])($parameters, $context) : ($definition['handler'])($parameters), (int) ($definition['timeoutMs'] ?? 3000),
             static fn () => new InvalidArgumentException('FORM_ACTION_TIMEOUT'));
         if (!$this->safeResult($result)) throw new InvalidArgumentException('FORM_ACTION_UNSAFE_RESULT');
         return $result;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { flushPromises, shallowMount, type VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { createPinia } from 'pinia';
 import designerSource from './index.vue?raw';
@@ -9,9 +9,16 @@ import { service } from '@/utils/http';
 
 const menuChoices = vi.hoisted(() => ({ tree: vi.fn() }));
 const api = vi.hoisted(() => ({ module: vi.fn(), saveSchema: vi.fn(), savePublishConfig: vi.fn(), previewFormalGeneration: vi.fn(), formalGeneration: vi.fn(), previewPublish: vi.fn(), publish: vi.fn(), generation: vi.fn() }));
+// 预览代码 / 生成 / 动态发布由代码生成的 CodePreviewDialog 承担（其流程测试见 codegen/CodePreviewDialog.spec.ts）。
+const codePreview = vi.hoisted(() => ({ dynamicPublish: vi.fn() }));
 vi.mock('@/api/development/business', async (original) => ({ ...await original<object>(), businessDevelopmentApi: api }));
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { moduleId: 12 } }), useRouter: () => ({}), onBeforeRouteLeave: vi.fn() }));
-vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, fallback: string) => fallback }) }));
+// 兼容 t(key, fallback) 与 t(key, params, fallback)，按参数插值。
+vi.mock('vue-i18n', async importOriginal => ({ ...await importOriginal<typeof import('vue-i18n')>(), useI18n: () => ({ t: (_: string, a: unknown, b?: string) => {
+  const template = typeof a === 'string' ? a : String(b ?? '');
+  const params = (typeof a === 'object' && a ? a : {}) as Record<string, unknown>;
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
+} }) }));
 vi.mock('@/api/system/permission', () => ({ permissionApi: { tree: async () => [] } }));
 vi.mock('@/api/system/menu', () => ({ menuApi: menuChoices }));
 // 冲突与生成测试使用明确授权的设计人员，仍由公共判断验证真实动作码。
@@ -27,7 +34,7 @@ vi.mock('../schema/pluginComponentLoader', () => ({ loadPluginFormComponents: as
 vi.mock('../../development/business/composables/useBusinessMenuRefresh', () => ({ useBusinessMenuRefresh: () => ({ refreshBusinessMenu: vi.fn() }) }));
 vi.mock('sortablejs', () => ({ default: { create: () => ({ destroy() {} }) } }));
 vi.mock('element-plus', () => ({ ElMessage: { warning: vi.fn(), success: vi.fn(), error: vi.fn() }, ElMessageBox: { confirm: vi.fn() } }));
-import { ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import Designer from './index.vue';
 
 const hash = (letter: string) => letter.repeat(64);
@@ -47,9 +54,17 @@ const start = async () => {
     ElCard: { template: '<section><header><slot name="header" /></header><slot /></section>' },
     ElDrawer: { props: ['modelValue', 'title', 'size'], template: '<aside v-if="modelValue" role="dialog"><h2>{{ title }}</h2><button aria-label="关闭表单大纲" @click="$emit(\'update:modelValue\', false)">关闭</button><slot /></aside>' },
     SchemaNodeTree: false,
+    DesignerLeftPanel: false,
     DesignerCanvas: false,
     DesignerCanvasNode: false,
-    ElDialog: { props: ['modelValue'], template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>' }
+    ElDialog: { props: ['modelValue'], template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>' },
+    DesignerTopBar: false,
+    ElTooltip: { template: '<span><slot /></span>' },
+    ElDropdown: { template: '<div><slot /><slot name="dropdown" /></div>' },
+    ElDropdownMenu: { template: '<ul><slot /></ul>' },
+    ElDropdownItem: { inheritAttrs: false, props: ['disabled'], emits: ['click'], template: '<li><button v-bind="$attrs" :disabled="disabled" @click="$emit(\'click\')"><slot /></button></li>' },
+    CodePreviewDialog: { props: ['modelValue', 'module'], emits: ['update:modelValue', 'generated', 'published'], methods: { dynamicPublish: codePreview.dynamicPublish }, template: '<div v-if="modelValue" data-code-preview :data-module-id="module && module.id" />' },
+    EditGenerationDialog: { props: ['modelValue', 'moduleId', 'hideDesignerLink'], emits: ['update:modelValue', 'saved', 'preview'], template: '<div v-if="modelValue" data-edit-generation />' }
   } } });
   await flushPromises();
   state = (wrapper.vm as any).$.setupState;
@@ -79,38 +94,45 @@ beforeEach(() => {
 afterEach(() => { wrapper?.unmount(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('设计器测试请求边界', () => {
-  it('初始化从菜单测试依赖填充所属菜单，不触发真实 HTTP transport', async () => {
+  it('初始化不触发真实 HTTP transport，也不再加载所属菜单', async () => {
     const originalAdapter = service.defaults.adapter;
     const unexpectedRequest = vi.fn(async () => { throw new Error('设计器测试不应访问真实 HTTP transport'); });
     service.defaults.adapter = unexpectedRequest;
     try {
       await start();
       expect(unexpectedRequest).not.toHaveBeenCalled();
-      expect(state.parentMenus).toEqual([{ id: 1, name: '系统管理', sourceType: 'system', sourceName: 'system', children: [] }]);
+      // 所属菜单已移入「⚙ 表单设置」（EditGenerationDialog 打开时自行加载菜单树），设计器初始化不再请求。
+      expect(menuChoices.tree).not.toHaveBeenCalled();
     } finally {
       service.defaults.adapter = originalAdapter;
     }
   });
 });
 
-describe('按需表单大纲', () => {
+describe('常驻表单大纲（左栏页签）', () => {
+  // 大纲从抽屉改为左栏「大纲」页签：默认显示「控件」，切换页签即显示/隐藏大纲树。
   const open = async () => {
-    const button = wrapper.findAll('.designer-canvas-heading button').find((item) => item.text() === '表单大纲');
-    expect(button, '画布提供次要大纲入口').toBeDefined();
-    await button!.trigger('click');
+    const tab = wrapper.find('[data-left-tab="outline"]');
+    expect(tab.exists(), '左栏提供大纲页签').toBe(true);
+    await tab.trigger('click');
   };
-  it.each(['basic', 'advanced'])('%s 默认不内联树或来源提示，点击打开并关闭', async (mode) => {
+  const close = async () => { await wrapper.get('[data-left-tab="controls"]').trigger('click'); };
+  const treeVisible = () => {
+    const tree = wrapper.find('.schema-node-tree');
+    return tree.exists() && (tree.element.closest('[role="tabpanel"]') as HTMLElement).style.display !== 'none';
+  };
+  it.each(['basic', 'advanced'])('%s 默认不显示树或来源提示，切到大纲页签显示，切回隐藏', async (mode) => {
     await start();
     state.designerMode = mode;
     await nextTick();
-    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+    expect(treeVisible()).toBe(false);
     expect(wrapper.html()).not.toContain('Schema 来源');
     expect(wrapper.text()).not.toContain('FormSchema v2 AST 节点树');
     await open();
-    expect(wrapper.get('[role="dialog"] h2').text()).toBe('表单大纲');
-    expect(wrapper.find('.schema-node-tree').exists()).toBe(true);
-    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
-    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+    expect(wrapper.get('[data-left-tab="outline"]').attributes('aria-selected')).toBe('true');
+    expect(treeVisible()).toBe(true);
+    await close();
+    expect(treeVisible()).toBe(false);
   });
   it('标题使用真实字段名与中文类型，布局不伪造字段；选择同步画布', async () => {
     await start();
@@ -125,12 +147,12 @@ describe('按需表单大纲', () => {
     expect(rows[1].text()).toContain('分组');
     expect(rows[1].text()).not.toContain('（');
     await rows[0].trigger('click');
-    expect(wrapper.get(`[data-node-id="${field.id}"]`).attributes('aria-selected')).toBe('true');
+    expect(wrapper.get(`.designer-node[data-node-id="${field.id}"]`).attributes('aria-selected')).toBe('true');
     expect(state.store.selected.value.field_name).toBe(field.field);
-    await wrapper.get(`[data-node-id="${state.store.nodes.value[1].id}"]`).trigger('click');
+    await wrapper.get(`.designer-node[data-node-id="${state.store.nodes.value[1].id}"]`).trigger('click');
     expect(rows[1].classes()).toContain('is-selected');
   });
-  it('抽屉内移动、复制、添加分组保留真实结构操作', async () => {
+  it('大纲内移动、复制、添加分组保留真实结构操作', async () => {
     await start();
     state.store.addNode('input'); state.store.addNode('select');
     const firstId = state.store.nodes.value[0].id;
@@ -140,15 +162,17 @@ describe('按需表单大纲', () => {
     await wrapper.findAll('.schema-tree-row')[1].get('[title="复制"]').trigger('click');
     expect(state.store.nodes.value).toHaveLength(3);
     expect(new Set(state.store.nodes.value.map((node: any) => node.field)).size).toBe(3);
-    await wrapper.findAll('[role="dialog"] button').find((item) => item.text() === '添加布局分组')!.trigger('click');
+    const addGroup = wrapper.get('[data-action="add-layout-group"]');
+    expect(addGroup.text()).toBe('添加布局分组');
+    await addGroup.trigger('click');
     expect(state.store.nodes.value[3].type).toBe('group');
   });
-  it('开关不改变 Schema、历史、dirty、保存状态或草稿', async () => {
+  it('切换页签不改变 Schema、历史、dirty、保存状态或草稿', async () => {
     await start();
     const schema = JSON.stringify(state.store.schemaDocument.value);
     localStorage.setItem('form-designer-draft:7', '保留草稿');
     await open();
-    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
+    await close();
     await vi.advanceTimersByTimeAsync(5000);
     expect(state.store.dirty.value).toBe(false);
     expect(state.store.saveStatus.value).toBe('saved');
@@ -160,122 +184,92 @@ describe('按需表单大纲', () => {
     await vi.advanceTimersByTimeAsync(1000);
     const savedDraft = localStorage.getItem('form-designer-draft:7');
     await open();
-    await wrapper.get('[aria-label="关闭表单大纲"]').trigger('click');
+    await close();
     await vi.advanceTimersByTimeAsync(5000);
     expect(state.store.dirty.value).toBe(true);
     expect(state.saveBlocked).toBe(true);
     expect(localStorage.getItem('form-designer-draft:7')).toBe(savedDraft);
     expect(api.saveSchema).toHaveBeenCalledTimes(1);
   });
-  it.each(['desktop', 'tablet', 'mobile'])('切换 %s 预览关闭大纲，返回编辑不自动打开', async (mode) => {
+  it.each(['desktop', 'tablet', 'mobile'])('切换 %s 预览收起左栏与大纲，返回编辑不自动打开大纲', async (mode) => {
     await start(); await open();
     state.workspaceMode = mode; await nextTick();
     expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
-    expect(wrapper.findAll('.designer-canvas-heading button')).toHaveLength(0);
+    expect(wrapper.findAll('[data-canvas-toolbar] button')).toHaveLength(0);
     expect(state.activeTab).toBe('design');
     state.workspaceMode = 'edit'; await nextTick();
-    expect(wrapper.find('.schema-node-tree').exists()).toBe(false);
+    expect(treeVisible()).toBe(false);
   });
-  it('抽屉宽度限制在视口内', async () => {
-    await start(); await open();
-    expect(wrapper.getComponent<any>('[role="dialog"]').props('size')).toBe('min(480px, 100vw)');
+  it('窄屏抽屉宽度限制在视口内', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: 700 <= Number(/max-width:\s*(\d+)px/.exec(query)?.[1] ?? Infinity), media: query, addEventListener() {}, removeEventListener() {} }));
+    await start();
+    await wrapper.get('[data-action="toggle-left-panel"]').trigger('click');
+    expect(wrapper.getComponent<any>('[role="dialog"]').props('size')).toBe('min(288px, 100vw)');
+    await open();
+    expect(treeVisible()).toBe(true);
   });
 });
 
 describe('插件业务生成闭环', () => {
-  const pluginRemote = () => ({ ...remote(), module: { id: 12, metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', tableStrategy: 'owned', locked: true } } } });
-  const plan = () => ({ generationId: 42, schemaHash: hash('a'), plan: { blocked: false, files: [] }, conflicts: [], sensitive: { confirmToken: 'token' } });
+  const pluginRemote = () => ({ ...remote(), module: { id: 12, runtime_route: '/development/business/runtime/orders', metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'console', tableStrategy: 'owned', locked: true } } } });
+  const menuItem = (action: string) => wrapper.find(`[data-action="${action}"]`);
   it('展示所属插件和锁定，隐藏动态发布且方法也拒绝调用', async () => {
     api.module.mockResolvedValue(pluginRemote());
     await start();
     expect(wrapper.text()).toContain('demo');
     expect(wrapper.text()).toContain('已锁定');
     expect(wrapper.findAll('button').some((button) => button.text() === '动态发布')).toBe(false);
-    await state.onDynamicPublish();
+    await state.openDynamicPublish();
+    expect(codePreview.dynamicPublish).not.toHaveBeenCalled();
     expect(api.previewPublish).not.toHaveBeenCalled();
   });
   it('保存草稿后直接预览生成，完成提示待发布而不是打开运行时', async () => {
     api.module.mockResolvedValue(pluginRemote());
-    api.previewFormalGeneration.mockResolvedValue(plan());
-    api.formalGeneration.mockResolvedValue({ generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugin/demo/orders' });
     await start();
     state.store.updateForm({ name: '新草稿' });
-    await state.onSave();
-    await state.openFormalGeneration();
-    expect(api.previewFormalGeneration).toHaveBeenCalledWith(12, expect.any(String));
-    expect(api.publish).not.toHaveBeenCalled();
-    await state.onPublish();
     await nextTick();
-    expect(state.generationResultTitle).toContain('待安装／更新发布');
-    expect(wrapper.findAll('button').some((button) => button.text() === '打开独立页面')).toBe(false);
+    expect(menuItem('generate').attributes('disabled'), '未保存时不能生成').toBeDefined();
+    await state.onSave();
+    await nextTick();
+    await menuItem('generate').trigger('click');
+    expect(wrapper.get('[data-code-preview]').attributes('data-module-id')).toBe('12');
+    expect(api.publish).not.toHaveBeenCalled();
+    (wrapper.getComponent('[data-code-preview]') as unknown as VueWrapper).vm.$emit('generated', { generationId: 42, state: 'completed', resourceApplyStatus: 'pending_publication', routePath: '/plugin/demo/orders' });
+    await nextTick();
+    // 插件目标不提供运行时入口，生成结果的路由也不被当作运行时。
+    expect(menuItem('open-runtime').exists()).toBe(false);
+    expect(state.runtimeRoute).toBe('');
   });
-  it('Schema 变化立即清除计划和令牌，迟到预览不能恢复旧计划', async () => {
+  it('Schema 变化立即关闭已打开的预览，未保存时不能重新打开', async () => {
     api.module.mockResolvedValue(pluginRemote());
     await start();
-    let finish!: (value: unknown) => void;
-    api.previewFormalGeneration.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
-    const pending = state.openFormalGeneration();
+    state.openCodePreview();
+    await nextTick();
+    expect(wrapper.find('[data-code-preview]').exists()).toBe(true);
     state.store.updateForm({ name: '预览期间编辑' });
-    finish(plan());
-    await pending; await nextTick();
-    expect(state.publishPreview).toBeNull();
-    await state.onPublish();
-    expect(api.formalGeneration).not.toHaveBeenCalled();
+    await nextTick();
+    expect(wrapper.find('[data-code-preview]').exists()).toBe(false);
+    state.openCodePreview();
+    await nextTick();
+    expect(wrapper.find('[data-code-preview]').exists()).toBe(false);
   });
-  it('旧预览入口也丢弃 Schema 变化后的迟到响应', async () => {
+  it('目标变化使已打开的预览失效', async () => {
     api.module.mockResolvedValue(pluginRemote());
     await start();
-    Object.assign(state.publishConfig, { module: 'generated', apiPrefix: '/generated/orders', routePath: '/generated/orders', menuName: '订单' });
-    api.savePublishConfig.mockImplementationOnce(async (_id: number, publishConfig: object) => ({ publishConfig }));
-    let finish!: (value: unknown) => void;
-    api.previewFormalGeneration.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
-    const pending = state.onPreviewPublish();
-    // 发布设置先落库，预览请求发出后再模拟编辑。
-    await vi.waitFor(() => expect(api.previewFormalGeneration).toHaveBeenCalled());
-    expect(api.savePublishConfig).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ apiPrefix: '/generated/orders' }));
-    state.store.updateForm({ name: '预览中编辑' });
-    finish(plan());
-    await pending;
-    expect(state.publishPreview).toBeNull();
-  });
-  it('启用前台接口但未选择整数归属字段时不保存发布设置也不预览', async () => {
-    api.module.mockResolvedValue(pluginRemote());
-    await start();
-    Object.assign(state.publishConfig, { module: 'generated', apiPrefix: '/generated/orders', routePath: '/generated/orders', menuName: '订单', memberApiEnabled: true, memberApiOwnerField: 'not_a_field' });
-    await state.onPreviewPublish();
-    expect(api.savePublishConfig).not.toHaveBeenCalled();
-    expect(api.previewFormalGeneration).not.toHaveBeenCalled();
-  });
-  it('执行期间 Schema 变化后网络失败仍查询原生成记录', async () => {
-    api.module.mockResolvedValue(pluginRemote());
-    api.previewFormalGeneration.mockResolvedValue(plan());
-    api.generation.mockResolvedValue({ id: 42, status: 'completed', result: { state: 'completed', resourceApplyStatus: 'pending_publication' } });
-    await start(); await state.openFormalGeneration();
-    let fail!: (error: Error) => void;
-    api.formalGeneration.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
-    const pending = state.onPublish();
-    state.store.updateForm({ name: '执行中编辑' });
-    fail(new Error('连接中断'));
-    await pending;
-    expect(api.generation).toHaveBeenCalledWith(42);
-    expect(state.generationResultTitle).toContain('待安装／更新发布');
-  });
-  it('无确认令牌不得执行', async () => {
-    api.module.mockResolvedValue(pluginRemote());
-    api.previewFormalGeneration.mockResolvedValue({ ...plan(), sensitive: undefined });
-    await start(); await state.openFormalGeneration(); await state.onPublish();
-    expect(api.formalGeneration).not.toHaveBeenCalled();
-  });
-  it('目标变化使已有计划失效，blocked 不得确认生成', async () => {
-    api.module.mockResolvedValue(pluginRemote());
-    api.previewFormalGeneration.mockResolvedValue(plan());
-    await start(); await state.openFormalGeneration();
+    state.openCodePreview();
+    await nextTick();
     state.businessModule.metadata.target.pluginCode = 'other';
     await nextTick();
-    expect(state.publishPreview).toBeNull();
-    api.previewFormalGeneration.mockResolvedValue({ ...plan(), plan: { blocked: true, files: [] } });
-    await state.openFormalGeneration(); await state.onPublish();
-    expect(api.formalGeneration).not.toHaveBeenCalled();
+    expect(state.codePreviewVisible).toBe(false);
+  });
+  it('保存冲突暂停时预览与生成都不可用', async () => {
+    api.module.mockResolvedValue(pluginRemote());
+    await start(); await pause();
+    expect(menuItem('preview-code').attributes('disabled')).toBeDefined();
+    expect(menuItem('generate').attributes('disabled')).toBeDefined();
+    state.openCodePreview();
+    await nextTick();
+    expect(wrapper.find('[data-code-preview]').exists()).toBe(false);
   });
 });
 
@@ -512,5 +506,47 @@ describe('保存冲突的明确恢复', () => {
     expect(state.conflictReview).toBeNull();
     expect(state.conflictReviewError).toContain('网络不可用');
     expect(draft().definition.name).toBe('本地编辑');
+  });
+});
+
+describe('保存前兜底：分类树映射未补全按未开启保存', () => {
+  const staleTree = { enabled: true, source: { type: 'current' }, mapping: { valueField: '', labelField: '', targetField: '' } };
+  const staleRemote = () => {
+    const data = remote();
+    return { ...data, form: { ...data.form, schema_document: { ...data.form.schema_document, list: { leftTree: staleTree } } } };
+  };
+  const warned = () => vi.mocked(ElMessage.warning).mock.calls.map(([message]) => String(message));
+
+  it('自动保存发送关闭的分类树并保留映射草稿，提示缺少项；本地同步为已保存值，不再循环保存', async () => {
+    api.module.mockResolvedValue(staleRemote());
+    await start();
+    state.store.updateForm({ name: '本地编辑' });
+    await nextTick(); await vi.advanceTimersByTimeAsync(1500);
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
+    const sent = api.saveSchema.mock.calls[0][1];
+    expect(sent.list.leftTree).toEqual({ ...staleTree, enabled: false });
+    expect(warned()).toContain('左侧分类树的字段对应未填完（缺少：来源主键 / 显示字段 / 右表关联字段），已按未开启保存');
+    expect(state.store.schemaDocument.value.list.leftTree.enabled).toBe(false);
+    expect(state.store.dirty.value).toBe(false);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(api.saveSchema).toHaveBeenCalledTimes(1);
+  });
+
+  it('映射完整或未开启时原样发送，不提示', async () => {
+    await start();
+    state.store.updateList({ leftTree: { ...staleTree, mapping: { valueField: 'id', labelField: 'title', targetField: 'cid' } } });
+    await state.onSave();
+    expect(api.saveSchema.mock.calls[0][1].list.leftTree.enabled).toBe(true);
+    expect(warned().some((message) => message.includes('已按未开启保存'))).toBe(false);
+  });
+
+  it('冲突核对后采用本地同样发送关闭的分类树', async () => {
+    api.module.mockResolvedValue(staleRemote());
+    await start(); await pause(); await review();
+    await state.resolveSaveConflict('local');
+    expect(api.saveSchema).toHaveBeenCalledTimes(2);
+    expect(api.saveSchema.mock.calls[1][1].list.leftTree).toEqual({ ...staleTree, enabled: false });
+    expect(warned().some((message) => message.includes('已按未开启保存'))).toBe(true);
+    expect(state.store.schemaDocument.value.list.leftTree.enabled).toBe(false);
   });
 });

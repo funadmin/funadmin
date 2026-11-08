@@ -7,6 +7,7 @@ use OpenApi\Annotations as OA;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
+use app\admin\authentication\service\AdminLoginPath;
 use DomainException;
 use support\Request;
 use support\Response;
@@ -17,7 +18,7 @@ use support\annotation\route\RouteGroup;
 /**
  * Admin Web 认证 HTTP 适配层。
  */
-#[RouteGroup('/admin/auth')]
+#[RouteGroup('/admin/{entry:[a-z][a-z0-9-]{3,31}}/auth')]
 final class AdminAuth
 {
     /**
@@ -27,7 +28,7 @@ final class AdminAuth
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/auth/csrf",
+     *     path="/admin/{entry}/auth/csrf",
      *     operationId="admin_authentication_controller_AdminAuth_csrf_get",
      *     tags={"后台浏览器认证"},
      *     summary="建立或读取浏览器会话，返回 CSRF 令牌并设置会话 Cookie。",
@@ -44,8 +45,9 @@ final class AdminAuth
      * )
      */
     #[Get('/csrf')]
-    public function csrf(Request $request): Response
+    public function csrf(Request $request, ?string $entry = null): Response
     {
+        $this->assertEntry($entry);
         $session = (new BrowserAuthService())->bootstrap($this->cookie($request));
         return $this->attachCookie($this->result(['csrfToken' => $session['csrfToken'], 'captchaEnabled' => false]), $session);
     }
@@ -59,7 +61,7 @@ final class AdminAuth
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/auth/login",
+     *     path="/admin/{entry}/auth/login",
      *     operationId="admin_authentication_controller_AdminAuth_login_post",
      *     tags={"后台浏览器认证"},
      *     summary="验证账号、密码和 CSRF 令牌后建立后台浏览器登录会话。",
@@ -82,9 +84,10 @@ final class AdminAuth
      * )
      */
     #[Post('/login')]
-    public function login(Request $request): Response
+    public function login(Request $request, ?string $entry = null): Response
     {
         try {
+            $this->assertEntry($entry);
             $username = $request->post('username');
             $password = $request->post('password');
             if (!is_string($username) || !is_string($password)) {
@@ -105,7 +108,7 @@ final class AdminAuth
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/auth/me",
+     *     path="/admin/{entry}/auth/me",
      *     operationId="admin_authentication_controller_AdminAuth_me_get",
      *     tags={"后台浏览器认证"},
      *     summary="根据浏览器会话获取当前管理员及其权限信息。",
@@ -118,9 +121,10 @@ final class AdminAuth
      * )
      */
     #[Get('/me')]
-    public function me(Request $request): Response
+    public function me(Request $request, ?string $entry = null): Response
     {
         try {
+            $this->assertEntry($entry);
             $admin = (new BrowserAuthService())->user($this->cookie($request));
             return $this->result((new AuthorizationService())->userInfo($admin));
         } catch (DomainException $error) {
@@ -135,7 +139,7 @@ final class AdminAuth
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/auth/menus",
+     *     path="/admin/{entry}/auth/menus",
      *     operationId="admin_authentication_controller_AdminAuth_menus_get",
      *     tags={"后台浏览器认证"},
      *     summary="根据浏览器会话获取当前管理员可访问的菜单。",
@@ -148,9 +152,10 @@ final class AdminAuth
      * )
      */
     #[Get('/menus')]
-    public function menus(Request $request): Response
+    public function menus(Request $request, ?string $entry = null): Response
     {
         try {
+            $this->assertEntry($entry);
             $admin = (new BrowserAuthService())->user($this->cookie($request));
             return $this->result((new AuthorizationService())->menus($admin));
         } catch (DomainException $error) {
@@ -165,7 +170,7 @@ final class AdminAuth
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/auth/logout",
+     *     path="/admin/{entry}/auth/logout",
      *     operationId="admin_authentication_controller_AdminAuth_logout_post",
      *     tags={"后台浏览器认证"},
      *     summary="验证 CSRF 令牌后注销浏览器会话，并清除登录 Cookie。",
@@ -178,13 +183,22 @@ final class AdminAuth
      * )
      */
     #[Post('/logout')]
-    public function logout(Request $request): Response
+    public function logout(Request $request, ?string $entry = null): Response
     {
         try {
+            $this->assertEntry($entry);
             (new BrowserAuthService())->logout($this->cookie($request), $request->header('x-csrf-token', ''));
             return $this->result(null, '退出成功')->cookie(BrowserAuthService::COOKIE, '', 0, '/admin', '', $this->secure(), true, 'Lax');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());
+        }
+    }
+
+    private function assertEntry(?string $entry): void
+    {
+        $entry = $entry === null || $entry === '' ? AdminLoginPath::DEFAULT : strtolower($entry);
+        if (!hash_equals(AdminLoginPath::current(), $entry)) {
+            throw new DomainException('接口不存在', 404);
         }
     }
 

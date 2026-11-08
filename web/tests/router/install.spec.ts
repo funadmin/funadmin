@@ -38,16 +38,17 @@ describe('安装向导', () => {
 
   it('Webman 安装密码与认证长度要求一致', () => {
     vi.stubEnv('VITE_APP_BACKEND', 'webman');
-    const base = { hostname: 'localhost', port: '3306', database: 'funadmin', prefix: '', username: 'root', password: '', adminUserName: 'admin', email: 'admin@example.com', appDebug: false };
+    const base = { hostname: 'localhost', port: '3306', database: 'funadmin', prefix: '', username: 'root', password: '', adminUserName: 'admin', email: 'admin@example.com', adminLoginPath: 'admin', appDebug: false };
     expect(validateInstallForm({ ...base, adminPassword: 'abc123', rePassword: 'abc123' })).not.toBe('');
     expect(validateInstallForm({ ...base, adminPassword: 'safe-password-123', rePassword: 'safe-password-123' })).toBe('');
+    expect(validateInstallForm({ ...base, adminLoginPath: 'auth', adminPassword: 'safe-password-123', rePassword: 'safe-password-123' })).not.toBe('');
     vi.unstubAllEnvs();
   });
 
   it('校验管理员密码一致且包含字母和数字', () => {
     const base = {
       hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_',
-      username: 'root', password: '', adminUserName: 'admin', email: 'admin@example.com', appDebug: false
+      username: 'root', password: '', adminUserName: 'admin', email: 'admin@example.com', adminLoginPath: 'admin', appDebug: false
     };
 
     expect(validateInstallForm({ ...base, adminPassword: 'abcdef', rePassword: 'abcdef' })).toBe('管理员密码必须同时包含字母和数字');

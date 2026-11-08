@@ -1,41 +1,7 @@
 <template>
-  <el-card shadow="never" class="mb-4" :class="{ 'list-panel--buttons-only': buttonsOnly }">
-    <el-form label-width="110px" :class="{ 'mt-3': !buttonsOnly }">
-      <template v-if="!buttonsOnly">
-      <el-form-item :label="t('formDesigner.listPanel.categoryFilter', '选项筛选')"><el-switch :model-value="modelValue.category?.enabled ?? false" @change="enabled => category({ enabled: Boolean(enabled) })" /></el-form-item>
-      <el-form-item v-if="modelValue.category?.enabled" :label="t('formDesigner.listPanel.categoryField', '分类绑定字段')">
-        <el-select :model-value="modelValue.category.field" filterable :placeholder="t('formDesigner.listPanel.categoryFieldPlaceholder', '选择已有静态选项或字典字段')" @change="field => category({ field })">
-          <el-option v-for="field in categoryFields" :key="field.field_name" :label="fieldLabel(field)" :value="field.field_name" />
-        </el-select>
-      </el-form-item>
-      <el-divider />
-      <el-form-item :label="t('formDesigner.listPanel.manageableCategory', '可管理分类')"><el-switch :model-value="left.enabled" @change="value => updateLeft({ enabled: Boolean(value) })" /></el-form-item>
-      <template v-if="left.enabled">
-        <el-form-item :label="t('formDesigner.listPanel.source', '来源')"><el-select :model-value="left.source.type" @change="changeSource"><el-option :label="t('formDesigner.listPanel.sourceCurrent', '当前业务（same）')" value="current" /><el-option :label="t('formDesigner.listPanel.sourceModule', '已发布业务（cross）')" value="module" /></el-select></el-form-item>
-        <el-form-item v-if="left.source.type === 'module'" :label="t('formDesigner.listPanel.businessModule', '业务模块')"><el-select :model-value="left.source.module" filterable @visible-change="shown => shown && loadModules()" @change="chooseModule"><el-option v-for="item in modules" :key="item.moduleId" :label="item.moduleCode" :value="item.moduleCode" /></el-select></el-form-item>
-        <el-form-item v-for="binding in bindings" :key="binding.key" :label="binding.label">
-          <el-select :model-value="left.mapping[binding.key]" clearable filterable @change="value => updateLeft({ mapping: { ...left.mapping, [binding.key]: value } })">
-            <el-option v-if="binding.key === 'valueField' && left.source.type === 'current' && !sourceFields.some(field => field.field_name === 'id')" :label="t('formDesigner.listPanel.systemPrimaryKey', '系统主键 (id)')" value="id" />
-            <el-option v-for="field in binding.key === 'targetField' ? targetFields : sourceFields" :key="field.field_name" :label="fieldLabel(field)" :value="field.field_name" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('formDesigner.listPanel.selectionMode', '选择模式')"><el-radio-group :model-value="left.selection?.mode ?? 'single'" @change="mode => updateLeft({ selection: { ...left.selection, mode: mode as 'single' | 'multiple' } })"><el-radio value="single">{{ t('formDesigner.listPanel.single', '单选') }}</el-radio><el-radio value="multiple">{{ t('formDesigner.listPanel.multiple', '复选') }}</el-radio></el-radio-group></el-form-item>
-        <el-form-item :label="t('formDesigner.listPanel.includeDescendants', '包含后代')"><el-switch :disabled="!left.mapping.parentField" :model-value="left.selection?.includeDescendants ?? false" @change="value => updateLeft({ selection: { ...left.selection, includeDescendants: Boolean(value) } })" /></el-form-item>
-        <el-form-item v-for="action in actions" :key="action.key" :label="action.label"><el-switch :disabled="action.key === 'addChild' && !left.mapping.parentField" :model-value="action.key === 'addChild' && !left.mapping.parentField ? false : left.actions?.[action.key] ?? false" @change="value => updateLeft({ actions: { ...left.actions, [action.key]: Boolean(value) } })" /></el-form-item>
-      </template>
-      </template>
-      <template v-else>
-        <div class="list-button-section">
-          <div class="list-button-actions">
-            <span class="list-button-actions__hint">{{ t('formDesigner.listPanel.actionCatalogHint', '各位置可选的“注册动作”来自服务端设计目录（按路由权限过滤）；服务端新增或调整动作后点此刷新。') }}</span>
-            <el-button size="small" :loading="catalogLoading" @click="loadButtonCatalog"><i class="i-ep-refresh" />{{ t('formDesigner.listPanel.reloadActionCatalog', '重新加载动作目录') }}</el-button>
-          </div>
-        <ListButtonEditor v-for="location in buttonLocations" :key="location.key" :title="location.label" :location="location.key" :fields="location.key.startsWith('category') ? categoryButtonFields : buttonFields" :filter-fields="scalarFields.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name)" :category-fields="categoryButtonFields" :resources="resources" :actions="actionCatalogs[location.key]" :catalog-error="catalogErrors[location.key]" :builtin-keys="builtinKeys(location.key)" :resource-enabled="!pluginTarget && (!location.key.startsWith('category') || left.enabled)" :model-value="modelValue.buttons?.[location.key]" @update="value => updateButtons(location.key, value)" />
-        </div>
-        <el-divider>{{ t('formDesigner.listPanel.commonTools', '通用工具') }}</el-divider>
-        <div class="list-tools-grid"><el-form-item v-for="tool in tools" :key="tool.key" :label="tool.label"><el-switch :model-value="modelValue.tools?.[tool.key] !== false" @change="value => emit('update', { tools: { ...modelValue.tools, [tool.key]: Boolean(value) } })" /></el-form-item></div>
-      </template>
-    </el-form>
+  <el-card shadow="never" class="mb-4" :class="{ 'list-panel--buttons-only': buttonsOnly, 'list-panel--categories': mode === 'categories' }">
+    <CategoryWorkspace v-if="!buttonsOnly" :model-value="modelValue" :left="left" :category-fields="categoryFields" :source-fields="sourceFields" :target-fields="targetFields" :modules="modules" :columns="previewColumns" :locations="workspaceLocations" :tree-pending="treePending" @category="category" @update-left="updateLeft" @change-source="changeSource" @choose-module="code => chooseModule(code)" @load-modules="loadModules" @clear="clearCategories" />
+    <ButtonsWorkspace v-else :model-value="modelValue" :locations="workspaceLocations" :tools="tools" :filter-fields="filterFields" :category-fields="categoryButtonFields" :resources="resources" :columns="previewColumns" :catalog-loading="catalogLoading" :catalog-count="catalogCount" :catalog-failed="Object.keys(catalogErrors).length > 0" :catalog-teleport="catalogTeleport" :custom-action-entity="customActionEntity" :custom-actions-blocked="pluginTarget" @update-buttons="updateButtons" @update-tools="value => emit('update', { tools: value })" @reload-catalog="loadButtonCatalog" @update-custom-actions="updateCustomActions" />
   </el-card>
 </template>
 <script setup lang="ts">
@@ -47,9 +13,12 @@ import { businessDevelopmentApi } from '@/api/development/business';
 import type { ListResource } from '../../runtime/listResourceHost';
 import { listButtonKeys } from '../../runtime/listButtonHost';
 import type { FormListActionMetadata, FormListBuiltinAction } from '../../schema/types';
-import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation } from '../../schema/types';
-import ListButtonEditor from './ListButtonEditor.vue';
-const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories' }>();
+import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation, FormListCustomAction } from '../../schema/types';
+import { customActionEntity as customActionEntityOf } from './customActions';
+import ButtonsWorkspace, { type ButtonsWorkspaceLocation } from './ButtonsWorkspace.vue';
+import CategoryWorkspace from './CategoryWorkspace.vue';
+import type { ListPreviewColumn } from './listPreviewSample';
+const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories'; catalogTeleport?: string }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
 const { t } = useI18n();
 // 按钮与工具模式下外层只保留编辑区，去掉卡片头、说明与冗余的二级 Tab 条。
@@ -61,9 +30,10 @@ const updateButtons = (location: FormListButtonLocation, value: FormListButton[]
   if (value === undefined) delete buttons[location]; else buttons[location] = value;
   emit('update', { buttons });
 };
-const fieldLabel = (field: FormSourceField): string => {
-  const title = field.label?.trim();
-  return title && title !== field.field_name ? `${title} (${field.field_name})` : field.field_name;
+// 自定义动作写回 list.customActions（为空时写 undefined 以删除该键，不写空数组），删除 / 去掉位置时同时移除绑定的按钮。
+const customActionEntity = computed(() => props.formKey ? customActionEntityOf(props.formKey) : undefined);
+const updateCustomActions = (actions: FormListCustomAction[] | undefined, buttons: Partial<Record<FormListButtonLocation, FormListButton[]>> | undefined) => {
+  emit('update', { customActions: actions, ...(buttons ? { buttons: { ...props.modelValue.buttons, ...buttons } } : {}) });
 };
 const targetFields = computed(() => props.fields.filter(field => field.column_type && ['none', 'belongs_to'].includes(field.relation_type) && !['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'].includes(field.type) && !field.control_props?.multiple && !field.control_props?.sensitive && !field.control_props?.writeOnly));
 const scalarFields = computed(() => targetFields.value.filter(field => field.relation_type === 'none'));
@@ -71,15 +41,46 @@ const modules = ref<FormSourceMeta[]>([]);
 const externalFields = ref<FormSourceField[]>([]);
 const left = computed<FormLeftTreeConfiguration>(() => props.modelValue.leftTree ?? { enabled: false, source: { type: 'current' }, mapping: { valueField: '', labelField: '', targetField: '' } });
 const sourceFields = computed(() => left.value.source.type === 'current' ? scalarFields.value : externalFields.value);
-const bindings = computed(() => [{ key: 'valueField', label: t('formDesigner.listPanel.sourcePrimaryKey', '来源主键') }, { key: 'labelField', label: t('formDesigner.listPanel.labelField', '显示字段') }, { key: 'parentField', label: t('formDesigner.listPanel.parentField', '父级字段') }, { key: 'sortField', label: t('formDesigner.listPanel.sortField', '排序字段') }, { key: 'targetField', label: t('formDesigner.listPanel.targetField', '右表关联字段') }] as const);
-const actions = computed(() => [{ key: 'create', label: t('formDesigner.listPanel.addRootNode', '新增根节点') }, { key: 'addChild', label: t('formDesigner.listPanel.addChildNode', '新增子节点') }, { key: 'edit', label: t('formDesigner.listPanel.editNode', '编辑节点') }, { key: 'delete', label: t('formDesigner.listPanel.deleteNode', '删除节点') }] as const);
-const updateLeft = (patch: Partial<FormLeftTreeConfiguration>) => {
+// 没有父级字段时不能新增子节点、也不能包含后代：每次写回分类树都按此规则清理。
+const normalizeLeft = (patch: Partial<FormLeftTreeConfiguration>): FormLeftTreeConfiguration => {
   const next = { ...left.value, ...patch };
   if (!next.mapping.parentField) {
     next.actions = { ...next.actions, addChild: false };
     next.selection = { ...next.selection, includeDescendants: false };
   }
-  emit('update', { leftTree: next, ...(next.enabled ? { category: { ...props.modelValue.category, enabled: false } } : {}) });
+  return next;
+};
+// 后端拒绝必填映射为空的已开启分类树：选中分类树但映射未补全时只保留界面选中态（待完成），
+// 写回的配置保持关闭，映射补全后与 enabled: true 一并写回，自动保存因此不会失败。
+const REQUIRED_MAPPINGS = ['valueField', 'labelField', 'targetField'] as const;
+const mappingComplete = (config: FormLeftTreeConfiguration) => REQUIRED_MAPPINGS.every(key => Boolean(config.mapping[key]));
+const treePending = ref(false);
+// 本面板最近一次写回的分类树：据此区分外部改动（保存前兜底关闭、撤销等）与本面板的关闭操作。
+let emittedLeft = '';
+const emitUpdate = (value: FormListConfiguration) => {
+  if (value.leftTree) emittedLeft = JSON.stringify(value.leftTree);
+  emit('update', value);
+};
+// 外部把映射未补全的已开启分类树改为关闭时（保存前兜底），保留分类树选中与待完成提示。
+watch(() => [left.value.enabled, props.modelValue.category?.enabled], ([tree, tabs], [wasTree]) => {
+  if (tree || tabs) treePending.value = false;
+  else if (wasTree && !mappingComplete(left.value) && JSON.stringify(left.value) !== emittedLeft) treePending.value = true;
+});
+// 选择分类树（当前业务）时预填：来源主键用系统主键，显示字段用首个文本字段；右表关联字段必须由用户选择。
+const prefillMapping = (patch: Partial<FormLeftTreeConfiguration>): Partial<FormLeftTreeConfiguration> => {
+  const source = patch.source ?? left.value.source;
+  if (source.type !== 'current') return patch;
+  const mapping = patch.mapping ?? left.value.mapping;
+  const text = scalarFields.value.find(field => ['input', 'textarea'].includes(field.type));
+  return { ...patch, mapping: { ...mapping, valueField: mapping.valueField || 'id', labelField: mapping.labelField || text?.field_name || '' } };
+};
+const updateLeft = (patch: Partial<FormLeftTreeConfiguration>) => {
+  const choosing = patch.enabled === true && !left.value.enabled && !treePending.value;
+  const next = normalizeLeft(choosing ? prefillMapping(patch) : patch);
+  const wantTree = next.enabled || (treePending.value && patch.enabled !== false);
+  if (wantTree) next.enabled = mappingComplete(next);
+  treePending.value = wantTree && !next.enabled;
+  emitUpdate({ leftTree: next, ...(next.enabled || (wantTree && props.modelValue.category?.enabled) ? { category: { ...props.modelValue.category, enabled: false } } : {}) });
 };
 let sourceSequence = 0;
 let disposed = false;
@@ -146,14 +147,26 @@ async function loadButtonCatalog() {
   } finally { if (!disposed && current === catalogSequence) { catalogErrors.value = errors; catalogLoading.value = false; } }
 }
 watch(() => [props.moduleId, props.permissions, props.pluginTarget], loadButtonCatalog, { immediate: true, deep: true });
+const filterFields = computed(() => scalarFields.value.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name));
+// 按钮与工具工作区：每个位置的字段、可用内置动作、目录与错误；数据语义与原四个 ListButtonEditor 完全一致。
+const workspaceLocations = computed<ButtonsWorkspaceLocation[]>(() => buttonLocations.value.map(location => ({ key: location.key, label: location.label, fields: location.key.startsWith('category') ? categoryButtonFields.value : buttonFields.value, builtinKeys: builtinKeys(location.key), resourceEnabled: !props.pluginTarget && (!location.key.startsWith('category') || left.value.enabled), actions: actionCatalogs.value[location.key], catalogError: catalogErrors.value[location.key] })));
+const catalogCount = computed(() => catalogLoading.value || !props.moduleId || Object.keys(catalogErrors.value).length ? undefined : Object.keys(resources.value).length + Object.values(actionCatalogs.value).reduce((total, items) => total + Object.keys(items ?? {}).length, 0));
+const staticOptions = (field: FormFieldDef) => { const source = field.options_source as { kind?: string; mode?: string; options?: Array<{ label?: unknown; value?: unknown }> } | null | undefined; return (source?.kind ?? source?.mode) === 'static' && Array.isArray(source?.options) ? source.options.filter(option => option && option.value !== undefined).map(option => ({ label: String(option.label ?? option.value), value: option.value })) : undefined; };
+const previewColumns = computed<ListPreviewColumn[]>(() => { const readable = scalarFields.value.filter(field => buttonFields.value.includes(field.field_name)); const shown = readable.filter(field => field.list_show); return [...shown, ...readable.filter(field => !field.list_show)].map(field => ({ field: field.field_name, label: field.label?.trim() || field.field_name, options: staticOptions(field), numeric: /int|decimal|float|double|numeric/i.test(field.column_type ?? '') })); });
 const categoryFields = computed(() => scalarFields.value.filter(field => ['static', 'dictionary'].includes(String(field.options_source?.kind ?? field.options_source?.mode ?? ''))));
-const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>) => emit('update', { category: { enabled: false, ...props.modelValue.category, ...patch }, ...(patch.enabled ? { leftTree: { ...left.value, enabled: false } } : {}) });
+const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>) => {
+  if (patch.enabled) treePending.value = false;
+  emitUpdate({ category: { enabled: false, ...props.modelValue.category, ...patch }, ...(patch.enabled ? { leftTree: { ...left.value, enabled: false } } : {}) });
+};
+// 「不分类」：只关闭当前开启的一方，写回内容与原先分别关闭两个开关一致（分类树经同一父级规则清理），其余配置保留以便再次开启。
+// 分类树仅处于待完成（未写入开启）时只清除界面状态。
+const clearCategories = () => {
+  treePending.value = false;
+  if (!props.modelValue.category?.enabled && !left.value.enabled) return;
+  emitUpdate({ ...(props.modelValue.category?.enabled ? { category: { ...props.modelValue.category, enabled: false } } : {}), ...(left.value.enabled ? { leftTree: normalizeLeft({ enabled: false }) } : {}) });
+};
 </script>
 <style scoped>
-.list-button-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.list-button-actions__hint { font-size: 12px; color: var(--el-text-color-secondary); }
-.list-tools-grid { display: flex; flex-wrap: wrap; gap: 0 32px; }
-.list-tools-grid :deep(.el-form-item) { margin-bottom: 8px; }
-.list-tools-grid :deep(.el-form-item__label) { width: auto !important; }
-.list-tools-grid :deep(.el-form-item__content) { flex: 0 0 auto; }
+.list-panel--buttons-only, .list-panel--categories { border: 0; background: transparent; }
+.list-panel--buttons-only :deep(.el-card__body), .list-panel--categories :deep(.el-card__body) { padding: 0; }
 </style>

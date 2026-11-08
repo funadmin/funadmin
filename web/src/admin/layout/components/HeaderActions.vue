@@ -73,7 +73,7 @@ import { useAppStore, type LocaleType } from '@/store/modules/app';
 import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
 import { useTabsStore } from '@/store/modules/tabs';
-import { ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX } from '@/config';
+import { ADMIN_ROUTE_PREFIX, adminLoginPath, getAdminLoginEntry } from '@/config';
 
 const { t } = useI18n();
 const appStore = useAppStore();
@@ -135,7 +135,7 @@ async function onUserCmd(cmd: string) {
     await userStore.logout();
     permissionStore.reset();
     tabsStore.reset();
-    router.replace(ADMIN_LOGIN_PATH);
+    router.replace(adminLoginPath(getAdminLoginEntry()));
   }
 }
 </script>

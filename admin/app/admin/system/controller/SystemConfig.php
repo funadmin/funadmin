@@ -6,6 +6,7 @@ namespace app\admin\system\controller;
 
 use OpenApi\Annotations as OA;
 
+use app\admin\authentication\service\AdminLoginPath;
 use app\common\controller\AdminController;
 use app\common\model\Config;
 use app\common\model\ConfigGroup;
@@ -61,6 +62,7 @@ class SystemConfig extends AdminController
     #[Get('/config')]
     public function index(): Response
     {
+        AdminLoginPath::ensure();
         $page = $this->page();
         $pageSize = $this->pageSize();
         $query = Config::orderBy('id', 'asc');
@@ -140,6 +142,7 @@ class SystemConfig extends AdminController
     #[Get('/config/options')]
     public function options(): Response
     {
+        AdminLoginPath::ensure();
         $groups = ConfigGroup::orderBy('id', 'asc')->get();
         $types = FieldType::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
         $verifies = FieldVerify::orderBy('verify', 'asc')->get();
@@ -238,6 +241,9 @@ class SystemConfig extends AdminController
         if (!$config) {
             return $this->fail(msg: '配置项不存在', code: 404);
         }
+        if ((string) $config->code === AdminLoginPath::CODE && !$this->isSuperAdmin()) {
+            return $this->fail(msg: '仅超级管理员可修改后台登录入口', code: 403);
+        }
         $data = $this->payload($config);
         if ((string) $config->type === 'password' && $data['value'] === '') {
             $data['value'] = (string) $config->value;
@@ -247,6 +253,9 @@ class SystemConfig extends AdminController
         }
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
+        }
+        if ((string) $config->code === AdminLoginPath::CODE) {
+            try { $data['value'] = AdminLoginPath::normalize($data['value']); } catch (\InvalidArgumentException $error) { return $this->fail(msg: $error->getMessage(), code: 422); }
         }
         if (Config::withTrashed()->where('code', $data['code'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '配置编码已存在', code: 422);
@@ -290,10 +299,16 @@ class SystemConfig extends AdminController
         if (!$config) {
             return $this->fail(msg: '配置项不存在', code: 404);
         }
+        if ((string) $config->code === AdminLoginPath::CODE && !$this->isSuperAdmin()) {
+            return $this->fail(msg: '仅超级管理员可修改后台登录入口', code: 403);
+        }
         [$value, $error] = $this->normalizeValue((string) $config->type, $this->request->post('value', ''), (string) ($config->extra ?? ''));
         if ($error === null) $error = $this->validateRule((string) ($config->verify ?? ''), $value);
         if ($error) {
             return $this->fail(msg: $error, code: 422);
+        }
+        if ((string) $config->code === AdminLoginPath::CODE) {
+            try { $value = AdminLoginPath::normalize($value); } catch (\InvalidArgumentException $error) { return $this->fail(msg: $error->getMessage(), code: 422); }
         }
         $config->forceFill(['value' => $value])->save();
         $this->clearConfigCache();
@@ -339,8 +354,14 @@ class SystemConfig extends AdminController
         if (!$config) {
             return $this->fail(msg: '配置项不存在', code: 404);
         }
+        if ((string) $config->code === AdminLoginPath::CODE && !$this->isSuperAdmin()) {
+            return $this->fail(msg: '仅超级管理员可修改后台登录入口', code: 403);
+        }
         $status = $this->request->post()['status'] ?? null;
         if (!in_array($status, [0, 1, '0', '1', true, false], true)) return $this->fail(msg: '状态必须为 0 或 1', code: 422);
+        if ((string) $config->code === AdminLoginPath::CODE && (int) $status !== 1) {
+            return $this->fail(msg: '后台登录入口不能停用', code: 422);
+        }
         $config->forceFill(['status' => (int) $status])->save();
         $this->clearConfigCache();
         return $this->ok('状态更新成功', $this->configData($config));
@@ -741,5 +762,10 @@ class SystemConfig extends AdminController
     private function clearConfigCache(): void
     {
         Cache::clear();
+    }
+
+    private function isSuperAdmin(): bool
+    {
+        return (int) ($this->request->context['admin']['id'] ?? 0) === (int) config('auth.super_admin_id', 1);
     }
 }

@@ -1,6 +1,10 @@
 import http from '@/utils/http';
+import { ADMIN_ROUTE_PREFIX, adminAuthPrefix, getAdminLoginEntry } from '@/config';
 
-const PREFIX = '/auth';
+const prefix = (entry?: string) => {
+  const path = adminAuthPrefix(entry ?? getAdminLoginEntry());
+  return path.startsWith(ADMIN_ROUTE_PREFIX) ? path.slice(ADMIN_ROUTE_PREFIX.length) : path;
+};
 
 export interface CsrfResult {
   csrfToken: string;
@@ -8,14 +12,14 @@ export interface CsrfResult {
 }
 
 export const authApi = {
-  csrf: () => http.get<CsrfResult>(`${PREFIX}/csrf`),
-  login: (params: API.LoginParams) =>
-    http.post<API.LoginResult>(`${PREFIX}/login`, params, {
+  csrf: (entry?: string) => http.get<CsrfResult>(`${prefix(entry)}/csrf`),
+  login: (params: API.LoginParams, entry?: string) =>
+    http.post<API.LoginResult>(`${prefix(entry)}/login`, params, {
       requestOptions: { showSuccessMsg: true, ignoreUnauthorized: true }
     }),
-  logout: () => http.post<void>(`${PREFIX}/logout`),
-  me: (silent = false) => http.get<API.UserInfo>(`${PREFIX}/me`, undefined, silent
+  logout: (entry?: string) => http.post<void>(`${prefix(entry)}/logout`),
+  me: (silent = false, entry?: string) => http.get<API.UserInfo>(`${prefix(entry)}/me`, undefined, silent
     ? { requestOptions: { ignoreUnauthorized: true, showErrorMsg: false } }
     : undefined),
-  menus: () => http.get<API.MenuItem[]>(`${PREFIX}/menus`)
+  menus: (entry?: string) => http.get<API.MenuItem[]>(`${prefix(entry)}/menus`)
 };

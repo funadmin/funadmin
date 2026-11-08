@@ -99,6 +99,26 @@ final class FormSchemaRelationsTest extends TestCase
         ];
     }
 
+    /** 关联名生成为模型方法名，不能覆盖 Eloquent 模型自带方法。 */
+    #[DataProvider('modelMethodNames')]
+    public function test_relation_name_overriding_model_method_is_rejected(string $name): void
+    {
+        try {
+            $this->compile($this->document(['relations' => [
+                ['type' => 'hasMany', 'name' => $name, 'table' => 'fun_comment', 'localField' => 'id', 'foreignField' => 'article_id'],
+            ]]));
+            self::fail('覆盖模型方法的关联名应被拒绝');
+        } catch (FormSchemaException $exception) {
+            self::assertSame('/relations/0/name', $exception->schemaPath());
+            self::assertSame('关联名称与模型内置方法冲突：' . $name, $exception->getMessage());
+        }
+    }
+
+    public static function modelMethodNames(): array
+    {
+        return ['delete' => ['delete'], 'save' => ['save']];
+    }
+
     private function compile(array $document): \app\common\form\schema\FormSchema
     {
         return (new FormSchemaCompiler(new FormSchemaValidator()))->compile($document);

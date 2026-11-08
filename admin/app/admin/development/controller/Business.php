@@ -65,7 +65,7 @@ final class Business extends AdminController
     /**
      * 查询业务模块；source 模式返回有权读取的来源候选。
      *
-     * 查询参数：source/b、page、pageSize、keyword、status、origin。
+     * 查询参数：source/b、page、pageSize、keyword、status、origin、target。
      *
      * @return Response JSON 格式的接口响应。
      *
@@ -94,6 +94,7 @@ final class Business extends AdminController
      *         @OA\Schema(type="string", enum={"", "draft", "published", "dynamic_published", "disabled"})
      *     ),
      *     @OA\Parameter(name="origin", in="query", required=false, description="origin", @OA\Schema(type="string", enum={"", "visual", "database"})),
+     *     @OA\Parameter(name="target", in="query", required=false, description="生成目标筛选。", @OA\Schema(type="string", enum={"", "core", "plugin"})),
      *     @OA\Parameter(name="X-Request-ID", in="header", required=false, description="X-Request-ID 参数。", @OA\Schema(type="string")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -115,7 +116,7 @@ final class Business extends AdminController
                 ))->sourceCandidates();
             }
             [$page, $pageSize] = BusinessDevelopmentService::pagination((int) $this->request->get('page', 1), (int) $this->request->get('pageSize', 20));
-            return $this->business->modules($page, $pageSize, trim((string) $this->request->get('keyword', '')), trim((string) $this->request->get('status', '')), trim((string) $this->request->get('origin', '')));
+            return $this->business->modules($page, $pageSize, trim((string) $this->request->get('keyword', '')), trim((string) $this->request->get('status', '')), trim((string) $this->request->get('origin', '')), trim((string) $this->request->get('target', '')));
         });
     }
 
@@ -856,7 +857,7 @@ final class Business extends AdminController
     /**
      * 检查代码生成及资源应用权限，确认预览令牌后执行正式生成。
      *
-     * 请求字段：generationId、confirmToken。
+     * 请求字段：generationId、confirmToken、deferReload（可选布尔；批量生成时除最后一个模块外传 true，跳过 worker 重载，返回 reloadReason=deferred）。
      *
      * @param int $id 路由中的目标记录 ID。
      * @return Response JSON 格式的接口响应。
@@ -876,7 +877,8 @@ final class Business extends AdminController
      *             type="object",
      *             required={"generationId", "confirmToken"},
      *             @OA\Property(property="generationId", type="integer"),
-     *             @OA\Property(property="confirmToken", type="string")
+     *             @OA\Property(property="confirmToken", type="string"),
+     *             @OA\Property(property="deferReload", type="boolean", description="为 true 时跳过 worker 重载（批量生成中非最后一个模块）。")
      *         )
      *     ),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
@@ -902,18 +904,21 @@ final class Business extends AdminController
     /**
      * 把正式生成预览中将要生成的文件（不含 delete 状态）打包为 zip 下载。
      *
+     * 请求字段：nonce（预览弹窗当前预览使用的 nonce；相同 nonce 复用同一生成记录，不会让已打开的预览失效）。
+     *
      * @param int $id 路由中的目标记录 ID。
      * @return Response 成功时为 zip 下载响应，失败时为 JSON 错误响应。
      *
-     * @OA\Get(
+     * @OA\Post(
      *     path="/admin/development/business/modules/{id}/formal-generation/archive",
-     *     operationId="admin_development_controller_Business_formalGenerationArchive_get",
+     *     operationId="admin_development_controller_Business_formalGenerationArchive_post",
      *     tags={"业务开发模块"},
      *     summary="把正式生成预览中将要生成的文件（不含 delete 状态）打包为 zip 下载。",
      *     description="需要 development:business:generate 权限。zip 条目为项目相对路径，内容为预览的 remoteContent；无文本内容（二进制或超过 512KB）的文件跳过，跳过数量见响应头 X-Archive-Skipped。失败时返回 JSON 错误响应。",
      *     security={{"AdminSession"={}}},
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
      *     @OA\Parameter(name="X-Request-ID", in="header", required=false, description="X-Request-ID 参数。", @OA\Schema(type="string")),
+     *     @OA\RequestBody(required=false, @OA\JsonContent(type="object", @OA\Property(property="nonce", type="string"))),
      *     @OA\Response(
      *         response=200,
      *         description="zip 文件；文件名为 {业务标识}-{yyyymmddHHMMSS}.zip。",
@@ -925,14 +930,16 @@ final class Business extends AdminController
      *     @OA\Response(response="default", ref="#/components/responses/AdminError")
      * )
      */
-    #[Get('/modules/{id:\d+}/formal-generation/archive')]
+    #[Post('/modules/{id:\d+}/formal-generation/archive')]
     public function formalGenerationArchive(int $id): Response
     {
         if (!(new AdminAuthorizationService())->can('development:business:generate')) {
             return $this->fail(msg: '缺少正式生成权限', code: 403);
         }
         try {
-            $archive = $this->business->formalGenerationArchive($id);
+            // 复用预览弹窗的 nonce：同一 nonce 得到同一 operation key，复用而不是 supersede 已打开预览的 planned 记录
+            $nonce = trim((string) $this->request->post('nonce', ''));
+            $archive = $this->business->formalGenerationArchive($id, $nonce === '' ? null : $nonce);
         } catch (Throwable $exception) {
             return $this->failure($exception);
         }

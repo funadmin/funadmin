@@ -245,8 +245,8 @@ function submit() {
   emit('save', payload, selectedId.value);
   apiKey.value = '';
 }
-function discoveryPayload(): Partial<AiProfileInput> {
-  return { ...form, api_key: clearKey.value ? '' : apiKey.value };
+function discoveryPayload(): Partial<AiProfileInput> & { profile_id?: number | null } {
+  return { ...form, profile_id: selectedId.value ?? undefined, ...(clearKey.value || apiKey.value ? { api_key: clearKey.value ? '' : apiKey.value } : {}) };
 }
 function test() {
   if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.protocolReasoningUnsupported', '当前协议不支持显式推理模式。'); return; }

@@ -44,7 +44,7 @@ final class FormBuilderRegistryService
         if (!$form) {
             return;
         }
-        $form->save([
+        $form->fill([
             'form_key' => $compiled->key(),
             'name' => (string) ($document['title'] ?? ''),
             'table_name' => (string) ($database['table'] ?? ''),
@@ -52,6 +52,6 @@ final class FormBuilderRegistryService
             'source_type' => (string) ($database['source'] ?? 'created'),
             'form_config' => (array) ($document['form'] ?? []),
             'list_config' => (array) ($document['list'] ?? []),
-        ]);
+        ])->save();
     }
 }

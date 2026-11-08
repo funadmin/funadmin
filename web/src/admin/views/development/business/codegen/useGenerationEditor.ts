@@ -6,6 +6,7 @@ import { businessDevelopmentApi, isBusinessApiError, type BusinessModule } from 
 import { menuApi } from '@/api/system/menu';
 import { hasPermission } from '@/utils/permission';
 import type { FormSchemaDocument } from '@/views/form/schema/types';
+import { leftTreeMissingLabels, sanitizeLeftTreeForSave } from '@/views/form/schema/leftTreeGuard';
 import { FORM_WIDTH_MAX, FORM_WIDTH_MIN, changedPublishConfig, publishConfigOf, pruneParentMenus } from './generationConfig';
 import { integerFieldNodes, schemaFieldNodes } from './schemaFields';
 
@@ -13,6 +14,7 @@ export const PERM_SAVE_SCHEMA = 'development:business:save-schema';
 export const PERM_SAVE_PUBLISH = 'development:business:save-publish-config';
 
 const PATH_PATTERN = /^\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/;
+const MODULE_PATTERN = /^[a-z][a-z0-9-]*$/;
 
 export interface ConflictReview {
   local: FormSchemaDocument;
@@ -70,6 +72,16 @@ export function useGenerationEditor(moduleId: () => number, options: GenerationE
   const errorText = (error: unknown, fallback: string): string => {
     if (isBusinessApiError(error)) return t('business.codegen.edit.requestError', { msg: error.msg, id: error.data.error.requestId }, '{msg}（请求 ID：{id}）');
     return error instanceof Error && error.message ? error.message : fallback;
+  };
+
+  // 分类树映射未补全时按未开启保存（见 leftTreeGuard）；保存成功后提示，本地随后采用服务端返回的关闭值。
+  const saveGuardedSchema = async (id: number, document: FormSchemaDocument, hash: string, summary: string) => {
+    const guarded = sanitizeLeftTreeForSave(document);
+    const saved = await businessDevelopmentApi.saveSchema(id, toApi(guarded.doc), hash, summary);
+    if (guarded.pendingMissing.length) {
+      ElMessage.warning(t('business.codegen.edit.leftTreeSavedDisabled', { missing: leftTreeMissingLabels(t, guarded.pendingMissing) }, '左侧分类树的字段对应未填完（缺少：{missing}），已按未开启保存'));
+    }
+    return saved;
   };
 
   const applyServerSchema = (document: FormSchemaDocument, hash: string) => {
@@ -149,6 +161,10 @@ export function useGenerationEditor(moduleId: () => number, options: GenerationE
   function validatePublish(): string {
     const config = publish.value as FormPublishConfig;
     const fields = doc.value ? schemaFieldNodes(doc.value) : [];
+    // 与原设计器「发布设置」一致；插件目标的 module 由服务端以插件标识覆盖，不校验。
+    if (module.value?.metadata?.target?.type !== 'plugin' && !MODULE_PATTERN.test(String(config.module ?? ''))) {
+      return t('business.codegen.edit.moduleNameInvalid', '模块名须以小写字母开头，仅包含小写字母、数字和短横线');
+    }
     if (!PATH_PATTERN.test(config.apiPrefix)) return t('business.codegen.edit.apiPrefixInvalid', '请填写正确的接口前缀，如 /generated/shop-goods');
     if (!PATH_PATTERN.test(config.routePath)) return t('business.codegen.edit.routePathInvalid', '请填写正确的前端路由，如 /generated/shop-goods');
     if (!config.menuName.trim()) return t('business.codegen.edit.menuNameRequired', '请填写菜单名称');
@@ -190,7 +206,7 @@ export function useGenerationEditor(moduleId: () => number, options: GenerationE
     try {
       if (schemaDirty.value) {
         try {
-          const saved = await businessDevelopmentApi.saveSchema(id, toApi(doc.value), schemaHash.value, t('business.codegen.edit.saveSummary', '代码生成：编辑生成信息'));
+          const saved = await saveGuardedSchema(id, doc.value, schemaHash.value, t('business.codegen.edit.saveSummary', '代码生成：编辑生成信息'));
           applyServerSchema(fromApi(saved.document), saved.schemaHash);
           schemaSaved = true;
           options.onWrite?.('schema');
@@ -275,7 +291,7 @@ export function useGenerationEditor(moduleId: () => number, options: GenerationE
     }
     saving.value = true;
     try {
-      const saved = await businessDevelopmentApi.saveSchema(loadedId.value, toApi(review.local), review.serverHash, t('business.codegen.edit.reasonConflictLocal', '代码生成：核对冲突后采用本地'));
+      const saved = await saveGuardedSchema(loadedId.value, review.local, review.serverHash, t('business.codegen.edit.reasonConflictLocal', '代码生成：核对冲突后采用本地'));
       applyServerSchema(fromApi(saved.document), saved.schemaHash);
       options.onWrite?.('schema');
       conflict.value = false;

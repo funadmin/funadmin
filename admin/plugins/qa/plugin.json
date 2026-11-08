@@ -40,6 +40,9 @@
         "name": "审核问答投稿"
       }
     ],
+    "permissionGroups": {
+      "moderation": "问答审核"
+    },
     "menu": [
       {
         "name": "问答社区",

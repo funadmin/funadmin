@@ -7,6 +7,7 @@ namespace Tests;
 use app\admin\authorization\service\PermissionCode;
 use app\admin\development\controller\Business;
 use app\admin\development\service\BusinessDevelopmentService;
+use app\common\service\runtime\WorkerReloader;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -113,9 +114,161 @@ final class BusinessGenerationArchiveTest extends TestCase
         self::assertSame($before, $this->temporaryArchives());
     }
 
-    private function actAs(int $adminId): void
+    /** spec 4.7：下载会创建或复用生成记录，必须走带 CSRF 的 POST。 */
+    public function test_archive_route_is_post(): void
     {
-        $request = new Request("GET /admin/development/business/modules/1/formal-generation/archive HTTP/1.1\r\n\r\n");
+        $attributes = (new \ReflectionMethod(Business::class, 'formalGenerationArchive'))->getAttributes();
+        $verbs = array_map(static fn (\ReflectionAttribute $attribute): string => $attribute->getName(), $attributes);
+        self::assertContains(\support\annotation\route\Post::class, $verbs);
+        self::assertNotContains(\support\annotation\route\Get::class, $verbs);
+    }
+
+    /** 预览弹窗打开时下载 zip：复用预览 nonce，已打开预览的生成记录仍为 planned，不被 superseded。 */
+    public function test_controller_archive_with_preview_nonce_keeps_open_preview_planned(): void
+    {
+        $this->createMetadataTables();
+        $service = BusinessDevelopmentService::production(base_path(), ['sqlite']);
+        $moduleId = $this->adoptPublished($service, 'archive_nonce_http');
+        $this->actAs(1);
+        $preview = $service->previewFormalGeneration($moduleId, true, 'dialog_nonce_0001');
+        $this->actAs(1, ['nonce' => 'dialog_nonce_0001']);
+
+        $response = (new Business())->formalGenerationArchive($moduleId);
+
+        self::assertSame(200, $response->getStatusCode(), $response->rawBody());
+        self::assertSame('application/zip', $response->getHeader('Content-Type'), $response->rawBody());
+        self::assertSame('planned', Db::table('crud_generation')->where('id', $preview['generationId'])->value('status'));
+        self::assertSame(1, Db::table('crud_generation')->where('business_module_id', $moduleId)->count());
+    }
+
+    /** preview(nonce) → archive(nonce) → 生成记录仍为 planned → 正式生成成功（隔离项目根，不写真实项目）。 */
+    public function test_preview_archive_then_formal_generation_succeeds(): void
+    {
+        $this->createMetadataTables();
+        $root = sys_get_temp_dir() . '/funadmin-archive-flow-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        try {
+            $service = $this->isolatedService($root);
+            $moduleId = $this->adoptPublished($service, 'archive_flow');
+            $this->actAs(1);
+            $preview = $service->previewFormalGeneration($moduleId, true, 'dialog_nonce_0002');
+            $archive = $service->formalGenerationArchive($moduleId, 'dialog_nonce_0002');
+
+            self::assertNotEmpty($archive['entries']);
+            self::assertSame('planned', Db::table('crud_generation')->where('id', $preview['generationId'])->value('status'));
+            $result = $service->formalGeneration($moduleId, (int) $preview['generationId'], (string) $preview['sensitive']['confirmToken']);
+            self::assertSame((int) $preview['generationId'], (int) $result['generationId']);
+            self::assertSame('completed', Db::table('crud_generation')->where('id', $preview['generationId'])->value('status'));
+            self::assertFileExists($root . '/app/admin/generated/archive_flow/model/ArchiveFlow.php');
+        } finally {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($files as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            rmdir($root);
+        }
+    }
+
+    /**
+     * 批量生成：除最后一个模块外都带 deferReload=true，跳过重载并返回 reloadReason=deferred；
+     * deferReload=false（或缺省）照常请求重载。重载器注入假信号发送器，不触碰真实 webman 主进程。
+     */
+    public function test_formal_generation_defer_reload_skips_worker_reload(): void
+    {
+        $this->createMetadataTables();
+        $root = sys_get_temp_dir() . '/funadmin-defer-reload-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        $pidFile = $root . '/webman.pid';
+        file_put_contents($pidFile, '4321');
+        $signals = [];
+        $reloader = new WorkerReloader($pidFile, static function (int $pid, int $signal) use (&$signals): bool {
+            $signals[] = [$pid, $signal];
+            return true;
+        });
+        try {
+            $service = $this->isolatedService($root, $reloader);
+            $this->actAs(1);
+
+            $deferredId = $this->adoptPublished($service, 'defer_reload_a');
+            $preview = $service->previewFormalGeneration($deferredId, true, 'defer_nonce_0001');
+            $deferred = $service->formalGeneration($deferredId, (int) $preview['generationId'], (string) $preview['sensitive']['confirmToken'], ['deferReload' => true]);
+            self::assertSame('completed', $deferred['state']);
+            self::assertFalse($deferred['reloadRequested']);
+            self::assertSame('deferred', $deferred['reloadReason']);
+            self::assertSame([], $signals, 'deferReload=true 不得发送任何信号');
+
+            $lastId = $this->adoptPublished($service, 'defer_reload_b');
+            $preview = $service->previewFormalGeneration($lastId, true, 'defer_nonce_0002');
+            $last = $service->formalGeneration($lastId, (int) $preview['generationId'], (string) $preview['sensitive']['confirmToken'], ['deferReload' => false]);
+            self::assertSame('completed', $last['state']);
+            self::assertTrue($last['reloadRequested']);
+            self::assertNull($last['reloadReason']);
+            self::assertContains([4321, WorkerReloader::reloadSignal()], $signals);
+        } finally {
+            $this->removeTree($root);
+        }
+    }
+
+    public function test_formal_generation_rejects_non_boolean_defer_reload_before_executing(): void
+    {
+        $this->createMetadataTables();
+        $root = sys_get_temp_dir() . '/funadmin-defer-invalid-' . bin2hex(random_bytes(8));
+        mkdir($root, 0700, true);
+        try {
+            $service = $this->isolatedService($root, new WorkerReloader($root . '/missing.pid', static fn (): bool => true));
+            $this->actAs(1);
+            $moduleId = $this->adoptPublished($service, 'defer_reload_bad');
+            $preview = $service->previewFormalGeneration($moduleId, true, 'defer_nonce_0003');
+            foreach (['1', 1, 'true', null] as $value) {
+                try {
+                    $service->formalGeneration($moduleId, (int) $preview['generationId'], (string) $preview['sensitive']['confirmToken'], ['deferReload' => $value]);
+                    self::fail('deferReload 必须为布尔值');
+                } catch (\InvalidArgumentException $exception) {
+                    self::assertSame('deferReload 不合法', $exception->getMessage());
+                }
+            }
+            self::assertSame('planned', Db::table('crud_generation')->where('id', $preview['generationId'])->value('status'));
+        } finally {
+            $this->removeTree($root);
+        }
+    }
+
+    private function removeTree(string $root): void
+    {
+        if (!is_dir($root)) return;
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($files as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+        rmdir($root);
+    }
+
+    /** 与 production 相同的组装，但项目根为临时目录、菜单/权限资源事务替换为空实现；重载器默认指向不存在的 pid 文件。 */
+    private function isolatedService(string $root, ?WorkerReloader $reloader = null): BusinessDevelopmentService
+    {
+        $schemas = new \app\admin\form\repository\FormSchemaRepository();
+        $forms = new \app\admin\form\service\FormDesignerService($root, $schemas);
+        $targets = new \app\admin\development\service\BusinessTargetService($root, 'sqlite');
+        $resources = new class {
+            public function begin(): void {}
+            public function apply(array $resources): array { return ['inserted' => 0, 'skipped' => 0]; }
+            public function commit(): void {}
+            public function rollback(): void {}
+        };
+        return new BusinessDevelopmentService(
+            new \app\admin\development\service\BusinessModuleService($targets),
+            $forms,
+            $schemas,
+            new \app\admin\form\service\FormPublishService($forms, $schemas),
+            new \app\admin\development\service\ManagedGenerationService($root, resources: $resources, schemas: $schemas),
+            new \app\admin\form\service\FormDataService(),
+            new \app\admin\development\service\DevCrudService($root, ['sqlite']),
+            new \app\common\form\registry\FieldCapabilityRegistry(),
+            $targets,
+            $reloader ?? new WorkerReloader($root . '/no-webman.pid', static fn (): bool => false)
+        );
+    }
+
+    private function actAs(int $adminId, array $body = []): void
+    {
+        $json = json_encode((object) $body, JSON_THROW_ON_ERROR);
+        $request = new Request("POST /admin/development/business/modules/1/formal-generation/archive HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($json) . "\r\n\r\n" . $json);
         $request->context['admin'] = ['id' => $adminId, 'username' => 'archive-test'];
         // 预览记录 actor 时读取 session；测试请求没有真实连接，补一个空会话
         $request->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
@@ -174,6 +327,9 @@ final class BusinessGenerationArchiveTest extends TestCase
             foreach (['list_config', 'form_config', 'schema_document', 'publish_config'] as $field) $table->json($field)->nullable();
             foreach (['schema_hash', 'published_schema_hash', 'schema_origin', 'publish_status', 'remark'] as $field) $table->string($field)->nullable();
             $table->integer('sort_order')->default(0); $table->unsignedBigInteger('business_module_id')->nullable();
+            // 正式生成完成后回写的发布状态列
+            foreach (['publish_mode', 'published_definition_hash'] as $field) $table->string($field)->nullable();
+            $table->dateTime('published_at')->nullable(); $table->unsignedBigInteger('crud_generation_id')->nullable();
             $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('form_field', static function (Blueprint $table): void {
@@ -193,6 +349,9 @@ final class BusinessGenerationArchiveTest extends TestCase
             $table->id(); $table->string('code')->unique(); $table->string('name'); $table->unsignedBigInteger('form_id');
             foreach (['origin', 'connection_name', 'table_name', 'runtime_route', 'module_route', 'lifecycle_status', 'generation_status'] as $field) $table->string($field);
             $table->json('metadata'); $table->timestamps(); $table->softDeletes();
+            // 正式生成完成后回写的发布状态列
+            $table->string('published_schema_hash')->nullable(); $table->integer('published_schema_version')->nullable();
+            $table->unsignedBigInteger('current_generation_id')->nullable(); $table->unsignedBigInteger('last_success_generation_id')->nullable();
         });
         Db::schema()->create('crud_generation', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->unsignedBigInteger('form_id')->default(0);

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { EnvironmentCheck, InstallForm } from '@/views/install/install';
 import { i18n } from '@/locales';
+import { setAdminLoginEntry } from '@/config';
 
 export const installHttp = axios.create({
   baseURL: import.meta.env.VITE_APP_BACKEND === 'webman' ? '/install/index' : '/install.php/index',
@@ -28,6 +29,7 @@ installHttp.interceptors.response.use(
 
 export interface InstallEnvironment {
   installed: boolean;
+  backend?: string;
   csrfToken?: string;
   siteName: string;
   siteVersion: string;
@@ -40,6 +42,7 @@ export interface InstallEnvironment {
 
 export interface InstallResult {
   username: string;
+  loginEntry?: string;
   password?: string;
   backend: string;
 }
@@ -71,9 +74,11 @@ export const installApi = {
       adminPassword: form.adminPassword,
       rePassword: form.rePassword,
       email: form.email,
+      adminLoginPath: form.adminLoginPath,
       app_debug: form.appDebug ? 1 : 0
     });
     installedCache = Promise.resolve(true);
+    if (result.loginEntry) setAdminLoginEntry(result.loginEntry);
     return result;
   },
   finish: () => installHttp.post<never, { installed: boolean; backend: string }>('/step4')

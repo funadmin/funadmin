@@ -43,4 +43,13 @@ final class ListActionStore
         $statement->execute([$state, json_encode($result, JSON_THROW_ON_ERROR), $scope, $digest]);
         if ($statement->rowCount() !== 1) throw new InvalidArgumentException('FORM_LIST_STORE_STATE_CONFLICT');
     }
+
+    /** 处理器明确声明未成功（未做任何更改）时删除本次占位，同一请求可原样重试；仅释放仍处于 processing 的本人占位。 */
+    public function release(string $scope, string $digest): void
+    {
+        if ($this->connection->inTransaction()) throw new InvalidArgumentException('FORM_LIST_STORE_INVALID');
+        $statement = $this->connection->prepare("DELETE FROM {$this->table} WHERE scope = ? AND digest = ? AND state = 'processing'");
+        $statement->execute([$scope, $digest]);
+        if ($statement->rowCount() !== 1) throw new InvalidArgumentException('FORM_LIST_STORE_STATE_CONFLICT');
+    }
 }

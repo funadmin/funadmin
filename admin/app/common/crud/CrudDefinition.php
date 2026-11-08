@@ -200,6 +200,13 @@ final class CrudDefinition implements JsonSerializable
         $append($softDelete && ($features['batchDelete'] ?? false), 'destroyMany', 'batch-destroy', '批量永久删除');
         $append($enabled('import') && ($features['import'] ?? false), 'import', 'import', '导入');
         $append($enabled('export') && ($features['export'] ?? false), 'export', 'export', '导出');
+        // 设计器自定义动作：每个动作一条权限（generated:{实体}:action-{kebab}），经列表动作宿主执行。
+        $custom = is_array($data['list'] ?? null) && is_array($data['list']['customActions'] ?? null) ? $data['list']['customActions'] : [];
+        foreach ($custom as $action) {
+            if (!is_array($action) || !is_string($action['key'] ?? null)) continue;
+            $suffix = \app\common\form\action\CustomActions::codeSuffix($action['key']);
+            $append($listActions, $suffix, $suffix, (string) ($action['label'] ?? $action['key']));
+        }
         return $actions;
     }
 

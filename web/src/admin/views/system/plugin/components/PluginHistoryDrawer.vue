@@ -56,6 +56,7 @@ import { ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { pluginApi, type PluginOperation, type PluginRecoveryInfo, type PluginVersionHistory } from '@/api/plugin';
+import { afterPluginLifecycle } from '../pluginReload';
 
 const { t } = useI18n();
 const visible = defineModel<boolean>({ default: false });
@@ -91,8 +92,7 @@ async function redeploy(row: PluginVersionHistory) { if (!(hasPermission('plugin
   redeploying.value = row.id;
   try {
     if (!hasPermission('plugin:plugin:redeploy-history')) return;
-    await pluginApi.redeployHistory(props.code, row.id, false);
-    await load();
+    await afterPluginLifecycle(await pluginApi.redeployHistory(props.code, row.id, false), load);
   } catch (reason) {
     if (reason !== 'cancel' && reason !== 'close') throw reason;
   } finally {

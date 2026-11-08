@@ -3,6 +3,14 @@ import * as host from './listButtonHost';
 import type { FormListButton } from '../schema/types';
 const button: FormListButton = { id: 'edit', label: '改名不改动作', action: { type: 'builtin', key: 'edit' } };
 describe('列表宿主能力交集', () => {
+  it('操作列判断：绑定本模块已声明自定义动作的按钮计为存在（待生成按钮禁用提示而非连列隐藏）', () => {
+    const schema = { key: 'fun_order', list: { customActions: [{ key: 'mark_paid' }] } };
+    const bound = (key: string): FormListButton => ({ id: key, label: key, action: { type: 'registered', key, capabilityVersion: '1' } });
+    expect(host.declaredCustomActionButton(bound('generated.fun-order.mark_paid'), schema)).toBe(true);
+    expect(host.declaredCustomActionButton(bound('generated.fun-order.other'), schema)).toBe(false);
+    expect(host.declaredCustomActionButton(bound('generated.fun-order.mark_paid'), { key: 'fun_order' })).toBe(false);
+    expect(host.declaredCustomActionButton(button, schema)).toBe(false);
+  });
   it('默认、空集合、排序以及改名不改变分派', () => {
     expect(host.defaultListButtons('row').map(item => item.action)).toContainEqual(button.action);
     expect(host.listActionKey(button)).toBe('edit');

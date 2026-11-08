@@ -1,7 +1,7 @@
 import { listButtonAdapterKey } from '../runtime/listButtonHost';
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import ElementPlus, { ElMessageBox } from 'element-plus';
+import ElementPlus, { ElMessage, ElMessageBox } from 'element-plus';
 import { formDataApi } from '@/api/formData';
 import Bar from './ListButtonBar.vue';
 import Interaction from './ListButtonInteraction.vue';
@@ -159,6 +159,57 @@ describe('真实共享按钮组件', () => {
     expect(catalog).toHaveBeenCalled(); expect(invoke).toHaveBeenCalledTimes(2);
     expect(invoke.mock.calls[1]![1]).toEqual({ ...invoke.mock.calls[0]![1], confirmation: 'token' });
     expect(confirm).toHaveBeenCalledOnce();
+    wrapper.unmount(); vi.restoreAllMocks();
+  });
+  describe('注册动作结果提示', () => {
+    const approve = { permission: 'approve', capabilityVersion: 'v1', locations: ['row'], targets: ['record'], batch: false, effect: 'write', resultContract: 'json' };
+    const button = (extra: Partial<FormListButton> = {}): FormListButton => ({ id: 'approve', label: '审核', permission: 'approve', action: { type: 'registered', key: 'approve', capabilityVersion: 'v1' }, ...extra });
+    async function run(reply: () => Promise<unknown>, extra: Partial<FormListButton> = {}) {
+      vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: { approve } });
+      vi.spyOn(formDataApi, 'listAction').mockImplementation(reply as never);
+      const success = vi.spyOn(ElMessage, 'success').mockImplementation((() => undefined) as never);
+      const failure = vi.spyOn(ElMessage, 'error').mockImplementation((() => undefined) as never);
+      const wrapper = mount(Bar, { props: { buttons: [button(extra)], handlers: {}, allowed: () => true, permissionCheck: () => true, context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
+      await flushPromises();
+      await wrapper.get('button').trigger('click'); await flushPromises();
+      wrapper.unmount(); vi.restoreAllMocks();
+      return { success: success.mock.calls.map(call => call[0]), failure: failure.mock.calls.map(call => call[0]) };
+    }
+    it('未实现与处理器主动拒绝显示后端消息，其他错误仍为通用提示', async () => {
+      expect((await run(() => Promise.reject({ code: 422, msg: '未实现：审核', data: { code: 'FORM_ACTION_NOT_IMPLEMENTED' } }))).failure).toEqual(['未实现：审核']);
+      expect((await run(() => Promise.reject({ code: 422, msg: '订单已关闭', data: { code: 'FORM_ACTION_USER_ERROR' } }))).failure).toEqual(['订单已关闭']);
+      expect((await run(() => Promise.reject({ code: 500, msg: '服务器内部错误', data: null }))).failure).toEqual(['动作执行失败']);
+    });
+    it('按钮未配置成功提示时以处理器返回的 message 作为成功提示；已配置时以按钮为准', async () => {
+      expect((await run(() => Promise.resolve({ status: 'success', result: { message: '已审核 1 条' } }))).success).toEqual(['已审核 1 条']);
+      expect((await run(() => Promise.resolve({ status: 'success', result: { message: '已审核 1 条' } }), { success: { message: '操作完成' } })).success).toEqual(['操作完成']);
+      expect((await run(() => Promise.resolve({ status: 'success', result: { message: 3 } }))).success).toEqual([]);
+    });
+  });
+  it('动态发布时尚未生成的自定义动作（generated.* 不在运行时目录）显示为禁用并提示「正式生成后可用」，不隐藏、不执行', async () => {
+    vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, pendingKeys: ['generated.orders.approve'] });
+    const invoke = vi.spyOn(formDataApi, 'listAction');
+    const pending: FormListButton = { id: 'approve', label: '审批', permission: 'generated:orders:action-approve', action: { type: 'registered', key: 'generated.orders.approve', capabilityVersion: '1' } };
+    const missing: FormListButton = { id: 'other', label: '其他', permission: 'other', action: { type: 'registered', key: 'other', capabilityVersion: '1' } };
+    // 权限码在生成前并不存在：宿主权限判断为 false 时待生成按钮仍应可见（禁用）。
+    const wrapper = mount(Bar, { props: { buttons: [pending, missing], handlers: {}, allowed: button => button.id !== 'other' && !button.permission?.startsWith('generated:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
+    await flushPromises();
+    const button = wrapper.findAll('button').find(item => item.text() === '审批')!;
+    expect(button.attributes('disabled')).toBeDefined();
+    expect(button.element.parentElement!.getAttribute('title')).toBe('正式生成后可用');
+    expect(wrapper.findAll('button').some(item => item.text() === '其他')).toBe(false);
+    await button.trigger('click'); await flushPromises();
+    expect(invoke).not.toHaveBeenCalled();
+    wrapper.unmount(); vi.restoreAllMocks();
+  });
+  it('已正式生成但当前用户无权限的自定义动作（不在 pendingKeys）仍按原规则隐藏，不提示「正式生成后可用」', async () => {
+    // 运行时目录按权限过滤：已生成的 generated.* 键缺席只代表无权限。
+    vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, pendingKeys: [] });
+    const generated: FormListButton = { id: 'approve', label: '审批', permission: 'generated:orders:action-approve', action: { type: 'registered', key: 'generated.orders.approve', capabilityVersion: '1' } };
+    const wrapper = mount(Bar, { props: { buttons: [generated], handlers: {}, allowed: button => !button.permission?.startsWith('generated:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
+    await flushPromises();
+    expect(wrapper.findAll('button').some(item => item.text() === '审批')).toBe(false);
+    expect(wrapper.html()).not.toContain('正式生成后可用');
     wrapper.unmount(); vi.restoreAllMocks();
   });
   it('目录失败关闭执行入口，重试后恢复；确认期间换记录不重发', async () => {

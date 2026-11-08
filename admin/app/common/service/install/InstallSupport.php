@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\service\install;
 
+use app\admin\authentication\service\AdminLoginPath;
 use app\common\service\database\MigrationService;
 use DomainException;
 use RuntimeException;
@@ -12,7 +13,7 @@ use support\Db;
 /** Web 与 CLI 共用的 Webman 安装内核。 */
 final class InstallSupport
 {
-    public static function validate(array $db, array $admin): string
+    public static function validate(array $db, array $admin, ?string $adminLoginPath = null): string
     {
         foreach (array_merge($db, $admin) as $value) {
             if (!is_string($value) || str_contains($value, "\0") || preg_match('/[\r\n]/', $value)) {
@@ -32,6 +33,9 @@ final class InstallSupport
         if (($db['username'] ?? '') === '') return '数据库用户名不能为空';
         if (!preg_match('/\A[A-Za-z0-9_]{3,12}\z/', $admin['username'] ?? '')) return '管理员账号需为3～12位字母、数字或下划线';
         if (strlen($admin['email'] ?? '') > 60 || !filter_var($admin['email'] ?? '', FILTER_VALIDATE_EMAIL)) return '管理员邮箱格式不正确或超过60个字符';
+        if ($adminLoginPath !== null) {
+            try { AdminLoginPath::normalize($adminLoginPath); } catch (\InvalidArgumentException $error) { return $error->getMessage(); }
+        }
         return '';
     }
 
@@ -152,10 +156,12 @@ final class InstallSupport
         }
     }
 
-    public static function install(array $db, array $admin, bool $debug, string $rootPath, string $minMysqlVersion = '5.7', ?callable $progress = null): array
+    public static function install(array $db, array $admin, bool $debug, string $rootPath, string $minMysqlVersion = '5.7', ?callable $progress = null, ?string $adminLoginPath = null): array
     {
         $db = self::normalizeDatabaseInput($db);
-        if ($error = self::validate($db, $admin)) throw new DomainException($error, 422);
+        $adminLoginPath ??= AdminLoginPath::DEFAULT;
+        if ($error = self::validate($db, $admin, $adminLoginPath)) throw new DomainException($error, 422);
+        $adminLoginPath = AdminLoginPath::normalize($adminLoginPath);
         $paths = self::paths($rootPath);
         $mutex = fopen($paths['runtime'] . '/install.mutex', 'c');
         if (!$mutex) throw new RuntimeException('无法创建安装互斥锁，请检查 runtime 权限');
@@ -181,10 +187,11 @@ final class InstallSupport
             $progress?->__invoke('schema');
             self::installSchemaAndAdmin(MigrationService::coreDirectory($rootPath), $admin);
             $progress?->__invoke('configuration');
+            AdminLoginPath::set($adminLoginPath);
             self::writeFile($paths['env'], $content, 0600);
             self::writeFile($paths['lock'], json_encode(['installed_at' => date(DATE_ATOM), 'env_hash' => hash('sha256', $content)], JSON_THROW_ON_ERROR), 0644);
             $progress?->__invoke('complete');
-            return ['username' => $admin['username'], 'backend' => '/#/admin/login'];
+            return ['username' => $admin['username'], 'loginEntry' => $adminLoginPath, 'backend' => '/#/admin/' . ($adminLoginPath === AdminLoginPath::DEFAULT ? '' : $adminLoginPath . '/') . 'login'];
         } finally {
             $manager->setDefaultConnection($previous);
             flock($mutex, LOCK_UN);

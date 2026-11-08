@@ -500,6 +500,8 @@ final class PluginInfrastructureService
             $this->enableMenus($menus, $code);
             $this->disableUndeclaredPermissions($permissions, $code, $derived);
             $this->disableUndeclaredMenus($menus, $code);
+            // 能力权限与菜单目录登记完成后再整理一次权限树。
+            (new \app\admin\authorization\service\PermissionTreeService())->organize();
         });
     }
 

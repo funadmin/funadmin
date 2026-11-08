@@ -223,7 +223,7 @@ final class Profiles extends AdminController
     public function models(int $id): Response { return $this->run(fn ($service, $admin) => $service->models($admin, $id)); }
 
     #[Post('/models-preview')]
-    public function modelsPreview(): Response { return $this->run(fn ($service) => $service->modelsPreview($this->input())); }
+    public function modelsPreview(): Response { return $this->run(fn ($service, $admin) => $service->modelsPreview($admin, $this->input())); }
 
     private function input(): array
     {

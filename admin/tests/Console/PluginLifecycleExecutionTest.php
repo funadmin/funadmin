@@ -395,6 +395,128 @@ class PluginLifecycleExecutionTest extends TestCase
         } finally { $lock->release(); }
     }
 
+    public function test_each_lifecycle_success_requests_exactly_one_worker_reload(): void
+    {
+        $this->withoutMigrations();
+        $signals = [];
+        $service = new PluginService($this->root, $this->reloader($this->pidFile('4321'), $signals));
+        $reloads = static function () use (&$signals): int {
+            return count(array_filter($signals, static fn (array $call): bool => $call[1] !== 0));
+        };
+
+        // 流水线式嵌套（协调器 → 安装生命周期）只在最外层成功后重载一次。
+        $installed = $service->withWorkerReload(fn () => $service->runPackageOperation('install', 'lifecyclefixture',
+            fn (): mixed => $service->withWorkerReload(fn (): bool => $service->installPlugin('lifecyclefixture'))));
+        self::assertSame(['result' => true, 'reloadRequested' => true, 'reloadReason' => null], $installed);
+        self::assertSame(1, $reloads());
+        $this->state('disabled', 0);
+
+        $controller = $this->controller($service);
+        $enabled = $this->body($controller->enable('lifecyclefixture'));
+        self::assertSame(200, $enabled['code'], json_encode($enabled));
+        self::assertSame(['enabled' => true, 'reloadRequested' => true, 'reloadReason' => null], $enabled['data']);
+        self::assertSame(2, $reloads());
+        $this->state('enabled', 1);
+
+        $disabled = $this->body($controller->disable('lifecyclefixture'));
+        self::assertSame(['disabled' => true, 'reloadRequested' => true, 'reloadReason' => null], $disabled['data']);
+        self::assertSame(3, $reloads());
+
+        $manifestFile = $this->root . '/plugins/lifecyclefixture/plugin.json';
+        $manifest = json_decode(file_get_contents($manifestFile), true, 512, JSON_THROW_ON_ERROR);
+        $manifest['version'] = '1.1.0';
+        file_put_contents($manifestFile, json_encode($manifest, JSON_THROW_ON_ERROR));
+        $updated = $service->withWorkerReload(fn (): bool => $service->updatePlugin('lifecyclefixture'));
+        self::assertTrue($updated['reloadRequested']);
+        self::assertSame(4, $reloads());
+
+        $uninstalled = $this->body($controller->uninstall('lifecyclefixture'));
+        self::assertSame(['uninstalled' => true, 'reloadRequested' => true, 'reloadReason' => null], $uninstalled['data']);
+        self::assertSame(5, $reloads());
+        self::assertSame([4321], array_values(array_unique(array_column($signals, 0))));
+        self::assertSame([0, \app\common\service\runtime\WorkerReloader::reloadSignal()], array_values(array_unique(array_column($signals, 1))));
+    }
+
+    public function test_failed_or_rolled_back_lifecycle_requests_no_worker_reload(): void
+    {
+        $this->withoutMigrations();
+        $signals = [];
+        $service = new PluginService($this->root, $this->reloader($this->pidFile('4321'), $signals));
+        $controller = $this->controller($service);
+
+        $response = $this->body($controller->enable('lifecyclefixture'));
+        self::assertSame(422, $response['code']);
+        self::assertArrayNotHasKey('reloadRequested', (array) ($response['data'] ?? []));
+
+        try {
+            $service->withWorkerReload(fn () => $service->runPackageOperation('install', 'lifecyclefixture', static function (): never {
+                throw new \RuntimeException('deploy failed');
+            }));
+            self::fail('Expected install failure');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('deploy failed', $exception->getMessage());
+        }
+        self::assertSame([], $signals);
+
+        // 失败后作用域深度必须复位：下一次成功操作仍由最外层重载。
+        Db::table('plugin')->delete();
+        $service->withWorkerReload(fn (): bool => $service->installPlugin('lifecyclefixture'));
+        self::assertCount(1, array_filter($signals, static fn (array $call): bool => $call[1] !== 0));
+    }
+
+    public function test_missing_pid_file_does_not_throw_and_reports_reload_not_requested(): void
+    {
+        $this->withoutMigrations();
+        $signals = [];
+        $service = new PluginService($this->root, $this->reloader($this->root . '/runtime/missing-webman.pid', $signals));
+        $installed = $service->withWorkerReload(fn (): bool => $service->installPlugin('lifecyclefixture'));
+        self::assertSame(['result' => true, 'reloadRequested' => false, 'reloadReason' => 'pid_file_missing'], $installed);
+        $enabled = $this->body($this->controller($service)->enable('lifecyclefixture'));
+        self::assertSame(200, $enabled['code']);
+        self::assertSame(['enabled' => true, 'reloadRequested' => false, 'reloadReason' => 'pid_file_missing'], $enabled['data']);
+        self::assertSame([], $signals);
+        $this->state('enabled', 1);
+    }
+
+    private function withoutMigrations(): void
+    {
+        $manifestFile = $this->root . '/plugins/lifecyclefixture/plugin.json';
+        $manifest = json_decode(file_get_contents($manifestFile), true, 512, JSON_THROW_ON_ERROR);
+        unset($manifest['migrations']);
+        file_put_contents($manifestFile, json_encode($manifest, JSON_THROW_ON_ERROR));
+    }
+
+    private function pidFile(string $pid): string
+    {
+        $file = $this->root . '/runtime/webman.pid';
+        if (!is_dir(dirname($file))) mkdir(dirname($file), 0755, true);
+        file_put_contents($file, $pid);
+        return $file;
+    }
+
+    /** @param list<array{0:int,1:int}> $signals */
+    private function reloader(string $pidFile, array &$signals): \app\common\service\runtime\WorkerReloader
+    {
+        return new \app\common\service\runtime\WorkerReloader($pidFile, static function (int $pid, int $signal) use (&$signals): bool {
+            $signals[] = [$pid, $signal];
+            return true;
+        });
+    }
+
+    private function controller(PluginService $service): \app\admin\plugin\controller\SystemPlugin
+    {
+        \support\Container::instance()->addDefinitions([PluginService::class => static fn (): PluginService => $service]);
+        $request = new \support\Request("POST /admin/system/plugin/lifecyclefixture/enable HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        $request->context['admin'] = ['id' => 1];
+        \support\Context::set(\Webman\Http\Request::class, $request);
+        return new \app\admin\plugin\controller\SystemPlugin();
+    }
+
+    private function body(\support\Response $response): array
+    {
+        return json_decode($response->rawBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
     private function state(string $state, int $enabled): void
     {
         $record = Db::table('plugin')->first();

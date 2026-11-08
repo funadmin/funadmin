@@ -35,6 +35,12 @@ vi.mock('vue-router', async (importOriginal) => {
   };
 });
 
+// 旧路由跳转由 codegen/legacyRoutes.spec.ts 覆盖；这里只测本页面（权限 '*' 时不跳转）。
+vi.mock('./codegen/useLegacyCodegenRedirect', async () => {
+  const { ref } = await import('vue');
+  return { useLegacyCodegenRedirect: () => ({ redirected: ref(false) }) };
+});
+
 import BusinessVisual from './visual.vue';
 import visualSource from './visual.vue?raw';
 

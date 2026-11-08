@@ -17,7 +17,7 @@ import { Plus, Edit, Delete, DeleteFilled, View, Refresh, RefreshLeft, Download,
 import type { Component } from 'vue';
 import type { FormListButton } from '../schema/types';
 import { useListButtonAdapter, listButtonAdapterAllowed, listActionKey, listButtonState, type ListButtonHandlers } from '../runtime/listButtonHost';
-import { createListButtonExecutor, registeredListButtonAvailable, listButtonRequest, listButtonSelectionReason, type ListButtonContext } from '../runtime/listButtonExecutor';
+import { createListButtonExecutor, registeredListButtonAvailable, listButtonErrorMessage, listButtonRequest, listButtonSelectionReason, listButtonSuccessMessage, type ListButtonContext } from '../runtime/listButtonExecutor';
 import ListButtonInteraction from './ListButtonInteraction.vue';
 import { routerKey } from 'vue-router';
 import { executeListResource, isListResource } from '../runtime/listResourceHost';
@@ -59,10 +59,15 @@ async function loadCatalog() {
     if (active && current === sequence) catalog.value = result;
   } catch { if (active && current === sequence) catalogError.value = t('formData.catalogLoadFailed', '动作目录加载失败，请重试'); }
 }
+// 设计器新建、尚未正式生成的自定义动作：只认服务端 pendingKeys（注册表中完全不存在，与权限无关）。
+// 其权限码生成前并不存在，不按权限隐藏而显示为禁用并提示；已生成但无权限的动作不在 pendingKeys 中，仍按原规则隐藏。
+// registered() 仍为 false，执行入口保持关闭。
+const pendingGenerated = (button: FormListButton) => button.action.type === 'registered' && !catalogError.value && Boolean(catalog.value?.pendingKeys?.includes(button.action.key));
 const state = (button: FormListButton) => {
   if (props.localHost) return { ...props.localHost.state(button), reason: '' };
-  const result = listButtonState(button, { handlers: props.handlers, allowed: props.allowed, registered, resource, values: props.values ?? props.row, fields: props.fields });
-  if (button.action.type === 'registered' && result.disabled) result.reason = catalogError.value || t('formData.actionUnavailable', '动作目录、权限、版本或选择不满足执行条件');
+  const pending = pendingGenerated(button);
+  const result = listButtonState(button, { handlers: props.handlers, allowed: item => pending || props.allowed(item), registered, resource, values: props.values ?? props.row, fields: props.fields });
+  if (button.action.type === 'registered' && result.disabled) result.reason = pending ? t('formDesigner.customAction.availableAfterGenerate', '正式生成后可用') : catalogError.value || t('formData.actionUnavailable', '动作目录、权限、版本或选择不满足执行条件');
   const selectionReason = listButtonSelectionReason(button, props.context);
   if (selectionReason) { result.disabled = true; result.reason = selectionReason; }
   return result;
@@ -118,11 +123,11 @@ async function execute(button: FormListButton, submittedInput?: Record<string, u
   try {
     const result = await executor.execute(button, submittedInput);
     if (result.status === 'success' && result.effectError) ElMessage.warning(t('formData.actionRefreshFailed', '动作已成功，但刷新失败，请手动刷新，不要重复提交'));
-    else if (result.status === 'success' && button.success?.message) ElMessage.success(button.success.message);
+    else if (result.status === 'success' && listButtonSuccessMessage(button, result.result)) ElMessage.success(listButtonSuccessMessage(button, result.result));
   } catch (error) {
     emit('error', error);
     if (error !== 'cancel' && error !== 'close') {
-      const message = error instanceof Error ? error.message : t('formData.actionFailed', '动作执行失败');
+      const message = listButtonErrorMessage(error, t('formData.actionFailed', '动作执行失败'));
       if (active && !message.includes('CONTEXT_CHANGED') && ['input', 'form'].includes(button.interaction?.type ?? '')) {
         const failedContext = contextToken();
         interaction.value?.showError(button, executor.input(button.id), message, input => { if (failedContext === contextToken()) void execute(button, input); });

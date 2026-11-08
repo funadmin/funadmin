@@ -39,14 +39,13 @@
           </el-table-column>
         </template>
       </el-table>
-      <div v-if="!treeEnabled && definition.pagination.enabled !== false" class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" :page-sizes="definition.pagination.pageSizes" layout="total, sizes, prev, pager, next, jumper" @change="emit('refresh')" />
-      </div>
+      <TablePagination v-if="!treeEnabled && definition.pagination.enabled !== false" v-model:current-page="query.page" v-model:page-size="query.pageSize" :total="total" :page-sizes="definition.pagination.pageSizes" @change="emit('refresh')" />
     </template>
   </DataTableShell>
   </div>
 </template>
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { checkPermission } from '@/utils/permission';

@@ -44,7 +44,37 @@
     </template>
 
     <div class="codegen-preview" :aria-busy="loading">
+      <el-alert
+        v-if="stalePublished"
+        data-preview-stale
+        class="codegen-preview__stale"
+        :title="t('business.codegen.preview.stalePublished', '预览基于已发布的版本；已保存但未发布的字段改动需要先「动态发布」后才会出现在生成代码里。')"
+        type="info"
+        show-icon
+        :closable="false"
+      >
+        <el-button
+          v-if="canDynamicPublish"
+          data-action="stale-dynamic-publish"
+          size="small"
+          type="primary"
+          plain
+          :loading="publishing"
+          :disabled="busy && !publishing"
+          @click="dynamicPublish"
+        >{{ t('business.codegen.preview.dynamicPublish', '动态发布（不写文件）') }}</el-button>
+      </el-alert>
       <div v-if="loading && !preview" class="codegen-preview__state" data-preview-loading>{{ t('business.codegen.preview.loading', '正在生成预览…') }}</div>
+      <el-alert
+        v-else-if="notPublished && !preview"
+        data-preview-unpublished
+        :title="isPluginTarget
+          ? t('business.codegen.preview.notPublishedPlugin', '请先在表单设计器保存并发布后再预览。')
+          : t('business.codegen.preview.notPublished', '这张表还没有发布过。正式生成使用已发布的版本：请先点击下方「动态发布」发布一次，再预览或生成代码。')"
+        type="info"
+        show-icon
+        :closable="false"
+      />
       <el-alert v-else-if="loadError && !preview" :title="loadError" type="error" show-icon :closable="false" />
       <div v-else-if="preview && !files.length" class="codegen-preview__state">{{ t('business.codegen.preview.noFiles', '没有需要生成的文件') }}</div>
       <div v-else-if="preview" class="codegen-preview__layout">
@@ -107,8 +137,21 @@
                   @click="view = option.value"
                 >{{ option.label }}</button>
               </div>
+              <el-button
+                v-if="canAdoptActive"
+                data-action="adopt-resolved"
+                size="small"
+                type="primary"
+                plain
+                :loading="adopting"
+                :disabled="busy && !adopting"
+                @click="adoptResolved"
+              >{{ t('business.codegen.preview.adoptResolved', '采纳已解决') }}</el-button>
               <el-button size="small" text :icon="DocumentCopy" data-action="copy-path" @click="copyPath">{{ t('business.codegen.preview.copyPath', '复制路径') }}</el-button>
             </div>
+            <p v-if="adoptHintVisible" class="codegen-preview__adopt-hint" data-adopt-hint>
+              {{ t('business.codegen.preview.adoptResolvedHint', '该文件没有生成基线：在本地编辑器中把它改成与生成内容一致后点击「重新预览」，即可「采纳已解决」。') }}
+            </p>
 
             <div class="codegen-preview__content">
               <div v-if="contentHint" class="codegen-preview__state" data-content-hint>{{ contentHint }}</div>
@@ -118,10 +161,24 @@
           </template>
         </section>
       </div>
+      <el-collapse v-if="preview" class="codegen-preview__baseline" data-generation-baseline>
+        <el-collapse-item :title="t('business.codegen.preview.baseline', '生成基线')" name="baseline">
+          <dl class="codegen-preview__baseline-list">
+            <div data-baseline="schemaHash"><dt>Schema Hash</dt><dd><code>{{ preview.schemaHash || '—' }}</code></dd></div>
+            <div data-baseline="definitionHash"><dt>Definition Hash</dt><dd><code>{{ preview.definitionHash || '—' }}</code></dd></div>
+          </dl>
+        </el-collapse-item>
+      </el-collapse>
     </div>
 
     <template #footer>
       <div class="codegen-preview__footer">
+        <p v-if="applyError" class="codegen-preview__hint codegen-preview__full is-danger" role="alert" data-resource-apply-error>
+          {{ t('business.codegen.preview.resourceApplyError', { error: applyError }, '资源应用失败：{error}。源码已写入，请到生成记录重试资源应用。') }}
+        </p>
+        <dl v-if="preview && publishSummary" class="codegen-preview__summary codegen-preview__full" data-generate-summary :aria-label="t('business.codegen.preview.summaryAria', '生成后的菜单与接口')">
+          <div v-for="item in publishSummary" :key="item.key" :data-summary="item.key"><dt>{{ item.label }}</dt><dd>{{ item.value }}</dd></div>
+        </dl>
         <p v-if="blocked" class="codegen-preview__hint is-warning" data-blocked-hint>
           {{ conflictCount
             ? t('business.codegen.preview.conflictHint', { count: conflictCount }, '存在 {count} 个冲突文件，暂不能生成：请在「与本地对比」里查看，在本地编辑器中解决后点击「重新预览」。系统不会覆盖本地修改。')
@@ -137,7 +194,7 @@
           type="primary"
           plain
           :loading="publishing"
-          :disabled="!preview || (busy && !publishing)"
+          :disabled="(!preview && !notPublished) || (busy && !publishing)"
           @click="dynamicPublish"
         >{{ t('business.codegen.preview.dynamicPublish', '动态发布（不写文件）') }}</el-button>
         <el-button
@@ -159,6 +216,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type TagProps } from 'element-plus';
 import { Aim, DocumentCopy, Download, FullScreen, Refresh } from '@element-plus/icons-vue';
 
+import type { FormPublishConfig } from '@/api/form';
 import {
   businessDevelopmentApi,
   isBusinessApiError,
@@ -173,7 +231,8 @@ import { FILE_STATUS_META, type BusinessStatusTone, type GenerationFileStatus } 
 import { useBusinessMenuRefresh } from '../composables/useBusinessMenuRefresh';
 import CodeBlock from './CodeBlock.vue';
 import { countFileStatuses, fileLabel, fileLanguage, groupPreviewFiles, type PreviewFileGroup } from './previewFiles';
-import { PERM_GENERATE, PERM_PREVIEW, PERMS_FORMAL_GENERATION, confirmFormalGeneration, isPreviewBlocked } from './formalGeneration';
+import { PERM_GENERATE, PERM_PREVIEW, PERMS_FORMAL_GENERATION, confirmFormalGeneration, isFormNotPublishedError, isPreviewBlocked, waitForBackendReload } from './formalGeneration';
+import { publishConfigOf } from './generationConfig';
 
 const props = defineProps<{ modelValue: boolean; module: BusinessModule | null }>();
 const emit = defineEmits<{
@@ -186,19 +245,33 @@ const { t } = useI18n();
 const { refreshBusinessMenu } = useBusinessMenuRefresh();
 
 const PERMS_DYNAMIC_PUBLISH = ['development:business:preview-publish', 'development:business:publish'];
+const PERM_ARCHIVE = 'development:business:formal-generation-archive';
+const PERM_ADOPT_RESOLVED = 'development:business:adopt-resolved-baseline';
 
 type PreviewView = 'remote' | 'diff';
 
 const preview = ref<BusinessFormalGenerationPreview | null>(null);
 const loading = ref(false);
 const loadError = ref('');
+/** 预览因表单从未发布而被拒绝：显示说明并允许直接「动态发布」（动态发布不依赖预览结果）。 */
+const notPublished = ref(false);
 const generating = ref(false);
 const publishing = ref(false);
 const downloading = ref(false);
+const adopting = ref(false);
+/** 当前预览使用的 nonce：下载 zip 复用它，服务端复用同一生成记录而不是 supersede 当前预览。 */
+const previewNonce = ref('');
+/** 已保存（草稿）与已发布的 Schema hash：核心目标预览读取已发布版本，二者不同时提示需先动态发布。 */
+const savedSchemaHash = ref('');
+const publishedSchemaHash = ref('');
 const fullscreen = ref(false);
 const view = ref<PreviewView>('remote');
 const activePath = ref('');
 const openTabs = ref<string[]>([]);
+/** 生成后资源（菜单/权限）应用失败的原因，partial 结果时由服务端返回。 */
+const applyError = ref('');
+/** 按正式生成同一套默认值解析后的发布设置：确认生成前展示菜单与会员端 API 摘要。 */
+const publishConfig = ref<FormPublishConfig | null>(null);
 let revision = 0;
 
 const isPluginTarget = computed(() => props.module?.metadata?.target?.type === 'plugin');
@@ -209,16 +282,48 @@ const statusCounts = computed(() => countFileStatuses(files.value));
 const conflictCount = computed(() => preview.value?.conflicts.length ?? 0);
 const blocked = computed(() => Boolean(preview.value && isPreviewBlocked(preview.value)));
 const activeFile = computed(() => files.value.find((file) => file.path === activePath.value) ?? null);
-const busy = computed(() => loading.value || generating.value || publishing.value);
+const busy = computed(() => loading.value || generating.value || publishing.value || adopting.value);
 
 // 文件内容只有持有生成权限时才由服务端返回；与下载 zip 同一门槛。
 const canViewContent = computed(() => hasPermission(PERM_GENERATE));
-const canDownload = computed(() => canViewContent.value);
+const canDownload = computed(() => hasPermission([PERM_GENERATE, PERM_ARCHIVE], 'all'));
 const canGenerateToProject = computed(() => hasPermission(PERMS_FORMAL_GENERATION, 'all'));
 const canDynamicPublish = computed(() => Boolean(props.module) && !isPluginTarget.value && hasPermission(PERMS_DYNAMIC_PUBLISH, 'all'));
+/** 核心目标正式生成读取已发布 Schema（插件目标读取草稿）：已保存版本与预览所用版本不同时提示先动态发布。 */
+const stalePublished = computed(() => {
+  if (isPluginTarget.value || !preview.value || !savedSchemaHash.value) return false;
+  const basis = preview.value.schemaHash || publishedSchemaHash.value;
+  return basis !== savedSchemaHash.value;
+});
+/** conflict-no-base 只能在本地已改成生成内容（Local hash = Remote hash）后采纳为基线，与服务端校验一致。 */
+const activeNoBase = computed(() => view.value === 'diff' && canViewContent.value && activeFile.value?.status === 'conflict-no-base');
+const activeResolved = computed(() => {
+  const file = activeFile.value;
+  return Boolean(file?.localHash && file.remoteHash && file.localHash === file.remoteHash);
+});
+const canAdoptActive = computed(() => activeNoBase.value && activeResolved.value && hasPermission(PERM_ADOPT_RESOLVED) && Boolean(preview.value?.generationId));
+const adoptHintVisible = computed(() => activeNoBase.value && !activeResolved.value);
 const canConfirmGeneration = computed(() => Boolean(
   preview.value?.sensitive?.confirmToken && preview.value.generationId && !blocked.value && !busy.value
 ));
+
+const publishSummary = computed(() => {
+  const config = publishConfig.value;
+  if (!config) return null;
+  const notFilled = t('business.codegen.preview.notFilled', '（未填写）');
+  // 关闭「生成菜单」时 FormCrudDefinitionFactory 以 enabled=false 跳过菜单，父级与图标不再适用。
+  const menu = config.menuEnabled === false
+    ? [{ key: 'menuName', label: t('business.codegen.preview.summaryMenuName', '菜单名称'), value: t('business.codegen.preview.menuDisabled', '不生成菜单') }]
+    : [
+      { key: 'menuName', label: t('business.codegen.preview.summaryMenuName', '菜单名称'), value: config.menuName || notFilled },
+      { key: 'parentMenu', label: t('business.codegen.preview.summaryParentMenu', '父级菜单'), value: config.parentSourceName || t('business.codegen.preview.topMenu', '顶级菜单') },
+      { key: 'icon', label: t('business.codegen.preview.summaryIcon', '菜单图标'), value: config.icon || notFilled }
+    ];
+  return [
+    ...menu,
+    { key: 'memberApi', label: t('business.codegen.preview.summaryMemberApi', '会员端 API'), value: config.memberApiEnabled ? t('business.codegen.preview.memberApiOn', { field: config.memberApiOwnerField ?? '' }, '已启用（{field}）') : t('business.codegen.preview.memberApiOff', '未启用') }
+  ];
+});
 
 const viewOptions = computed(() => [
   { value: 'remote' as const, label: t('business.codegen.preview.viewRemote', '生成内容') },
@@ -320,24 +425,56 @@ async function loadPreview() {
   const current = ++revision;
   loading.value = true;
   loadError.value = '';
+  notPublished.value = false;
+  void loadPublishConfig(module.id, current);
   try {
-    const result = await businessDevelopmentApi.previewFormalGeneration(module.id, crypto.randomUUID());
+    const nonce = crypto.randomUUID();
+    const result = await businessDevelopmentApi.previewFormalGeneration(module.id, nonce);
     if (current !== revision) return;
     preview.value = result;
+    previewNonce.value = nonce;
+    applyError.value = '';
     resetSelection(result);
   } catch (error) {
     if (current !== revision) return;
+    notPublished.value = isFormNotPublishedError(error);
     loadError.value = errorMessage(error, t('business.codegen.preview.loadFailed', '生成预览失败'));
   } finally {
     if (current === revision) loading.value = false;
   }
 }
 
+// 摘要只作提示：读取失败不影响预览与生成。
+async function loadPublishConfig(moduleId: number, current: number) {
+  if (!hasPermission('development:business:module')) return;
+  try {
+    const detail = await businessDevelopmentApi.module(moduleId);
+    const form = detail?.form;
+    // 与编辑生成信息弹窗同一个 publishConfigOf：合并后端 FormCrudDefinitionFactory::config 的默认值，空菜单名回退表单名。
+    if (current !== revision) return;
+    publishConfig.value = form ? publishConfigOf({ ...form, name: form.schema_document?.title || form.name }) : null;
+    savedSchemaHash.value = String(form?.schema_hash ?? '');
+    publishedSchemaHash.value = String(form?.published_schema_hash ?? '');
+  } catch {
+    if (current === revision) {
+      publishConfig.value = null;
+      savedSchemaHash.value = '';
+      publishedSchemaHash.value = '';
+    }
+  }
+}
+
 function reset() {
   revision++;
   preview.value = null;
+  previewNonce.value = '';
+  publishConfig.value = null;
+  savedSchemaHash.value = '';
+  publishedSchemaHash.value = '';
+  applyError.value = '';
   loading.value = false;
   loadError.value = '';
+  notPublished.value = false;
   view.value = 'remote';
   activePath.value = '';
   openTabs.value = [];
@@ -361,16 +498,26 @@ watch(
 
 async function completeGeneration(result: BusinessFormalGenerationResult) {
   emit('generated', result);
-  if (result.state !== 'completed') {
-    ElMessage.warning(t('business.codegen.preview.generateIncomplete', '正式模块生成未完成，请到生成记录查看'));
+  applyError.value = result.resourceApplyError ? String(result.resourceApplyError) : '';
+  if (result.state !== 'completed' || applyError.value) {
+    ElMessage.warning(applyError.value
+      ? t('business.codegen.preview.generateIncompleteWithError', { error: applyError.value }, '正式模块生成未完成：{error}，请到生成记录查看')
+      : t('business.codegen.preview.generateIncomplete', '正式模块生成未完成，请到生成记录查看'));
     return;
   }
   if (isPluginTarget.value) {
     ElMessage.success(t('business.codegen.preview.generatedPendingInstall', '源码已生成，待安装／更新发布'));
   } else {
+    // 新控制器的注解路由在 worker 重启后才注册：后端已请求重载时稍等再刷新菜单；未能重载时提示手动重启。
+    if (result.reloadRequested === true) {
+      ElMessage.success(t('business.codegen.preview.backendReloaded', '后端已重新加载，新页面稍后可用'));
+      await waitForBackendReload();
+    } else if (result.reloadRequested === false) {
+      ElMessage.warning(t('business.codegen.preview.restartRequired', { reason: result.reloadReason || '-' }, '请重启后端服务使新接口生效（原因：{reason}）'));
+    }
     try {
       await refreshBusinessMenu();
-      ElMessage.success(t('business.codegen.preview.generateSuccess', '正式模块生成成功'));
+      if (result.reloadRequested !== true) ElMessage.success(t('business.codegen.preview.generateSuccess', '正式模块生成成功'));
     } catch {
       ElMessage.warning(t('business.codegen.preview.menuRefreshFailed', '操作成功，菜单刷新失败'));
     }
@@ -386,6 +533,8 @@ async function generate() {
   try {
     const outcome = await confirmFormalGeneration(module.id, current.generationId, current.sensitive?.confirmToken ?? '');
     if (outcome.kind === 'done') {
+      // 确认令牌已被消费：清掉它，避免再次点击「生成到项目」提交失效令牌。
+      if (preview.value === current) preview.value = { ...current, sensitive: undefined };
       await completeGeneration(outcome.result);
     } else if (outcome.kind === 'rejected') {
       // 确认令牌已被消费或计划已失效：清掉旧预览，要求重新预览后再生成。
@@ -429,12 +578,17 @@ async function dynamicPublish() {
     }
     ElMessage.success(t('business.codegen.preview.publishSuccess', '动态发布成功'));
     emit('published');
+    // 发布后正式生成读取新的已发布版本（首次发布或已保存改动刚发布）：弹窗仍打开时直接重新预览。
+    if ((notPublished.value || preview.value) && props.modelValue && props.module?.id === module.id) void loadPreview();
   } catch (error) {
     ElMessage.error(errorMessage(error, t('business.codegen.preview.publishFailed', '动态发布失败')));
   } finally {
     publishing.value = false;
   }
 }
+
+// 设计器「⋯ → 动态发布」直接复用同一流程，无需先打开预览（动态发布不依赖正式生成预览权限）。
+defineExpose({ dynamicPublish });
 
 function timestamp(date = new Date()) {
   const pad = (value: number) => String(value).padStart(2, '0');
@@ -443,10 +597,12 @@ function timestamp(date = new Date()) {
 
 async function downloadArchive() {
   const module = props.module;
-  if (!module || !hasPermission(PERM_GENERATE) || downloading.value) return;
+  const nonce = previewNonce.value;
+  if (!module || !preview.value || !nonce || !canDownload.value || downloading.value) return;
   downloading.value = true;
   try {
-    const blob = await businessDevelopmentApi.formalGenerationArchive(module.id);
+    // 复用当前预览的 nonce：同一生成记录被复用，打开中的预览仍可「生成到项目」。
+    const blob = await businessDevelopmentApi.formalGenerationArchive(module.id, nonce);
     // http.download 只返回 Blob，拿不到服务端文件名；按同一规则在本地命名。
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -465,6 +621,38 @@ async function downloadArchive() {
   } finally {
     downloading.value = false;
   }
+}
+
+async function adoptResolved() {
+  const module = props.module;
+  const current = preview.value;
+  const file = activeFile.value;
+  if (!module || !current || !file || !canAdoptActive.value || adopting.value) return;
+  try {
+    await ElMessageBox.confirm(
+      t('business.codegen.preview.adoptResolvedConfirm', { path: file.path }, '本地文件 {path} 已与生成内容一致，将以它作为该文件的生成基线，之后的生成会在其基础上三方合并。确认采纳？'),
+      t('business.codegen.preview.adoptResolvedTitle', '采纳已解决的文件'),
+      { type: 'warning', confirmButtonText: t('common.confirm', '确定'), cancelButtonText: t('common.cancel', '取消') }
+    );
+  } catch {
+    return;
+  }
+  adopting.value = true;
+  try {
+    await businessDevelopmentApi.adoptResolvedBaseline(module.id, {
+      generationId: current.generationId,
+      path: file.path,
+      localHash: String(file.localHash),
+      remoteHash: String(file.remoteHash)
+    });
+    ElMessage.success(t('business.codegen.preview.adoptResolvedSuccess', '已采纳，正在重新预览'));
+  } catch (error) {
+    ElMessage.error(errorMessage(error, t('business.codegen.preview.adoptResolvedFailed', '采纳失败')));
+    return;
+  } finally {
+    adopting.value = false;
+  }
+  if (props.modelValue && props.module?.id === module.id) await loadPreview();
 }
 
 async function copyPath() {
@@ -502,6 +690,22 @@ async function copyPath() {
 
 .codegen-preview {
   min-height: 0;
+}
+
+.codegen-preview__stale {
+  margin-bottom: 8px;
+}
+
+.codegen-preview__stale :deep(.el-alert__description) {
+  margin-top: 6px;
+}
+
+.codegen-preview__adopt-hint {
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  color: var(--el-color-warning);
+  font-size: 12px;
 }
 
 .codegen-preview__state {
@@ -732,6 +936,50 @@ async function copyPath() {
 
 .codegen-preview__hint.is-danger {
   color: var(--el-color-danger);
+}
+
+.codegen-preview__full {
+  flex: 1 1 100%;
+}
+
+.codegen-preview__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: left;
+}
+
+.codegen-preview__summary > div,
+.codegen-preview__baseline-list > div {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.codegen-preview__summary dt,
+.codegen-preview__baseline-list dt {
+  color: var(--el-text-color-secondary);
+}
+
+.codegen-preview__summary dd,
+.codegen-preview__baseline-list dd {
+  margin: 0;
+  color: var(--el-text-color-regular);
+  overflow-wrap: anywhere;
+}
+
+.codegen-preview__baseline {
+  margin-top: 10px;
+}
+
+.codegen-preview__baseline-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
 }
 
 .sr-only {

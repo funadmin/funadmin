@@ -9,6 +9,7 @@ use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use app\admin\development\model\GeneratedFileBaseline;
 use app\admin\form\model\Form;
+use app\admin\form\model\FormSchemaVersion;
 use RuntimeException;
 use Throwable;
 use support\Db;
@@ -408,20 +409,23 @@ final class DatabaseGenerationStateRepository
                 'failed_at' => null,
                 'recovered_at' => $isRecovery ? $now : null,
             ])->save();
-            $module->fill(($plugin ? ['metadata' => $metadata] : []) + [
-                'lifecycle_status' => $plugin ? 'generated' : 'published',
-                'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
-                'published_schema_version' => isset($definition['formSchemaVersion']) ? (int) $definition['formSchemaVersion'] : null,
-                'module_route' => $routePath,
-                'current_generation_id' => $generationId,
-                'last_success_generation_id' => $generationId,
-                'generation_status' => 'completed',
-            ])->save();
+            $form = null;
             if ((int) $generation->form_id > 0) {
                 $form = Form::query()->where('id', (int) $generation->form_id)->lockForUpdate()->first();
                 if (!$form || ((int) $module->form_id > 0 && (int) $module->form_id !== (int) $form->id)) {
                     throw new RuntimeException('生成记录与表单不匹配');
                 }
+            }
+            $module->fill(($plugin ? ['metadata' => $metadata] : []) + [
+                'lifecycle_status' => $plugin ? 'generated' : 'published',
+                'published_schema_hash' => $result['schemaHash'] !== '' ? $result['schemaHash'] : null,
+                'published_schema_version' => $this->publishedSchemaVersion($module, $form ? (int) $form->id : (int) $module->form_id, $result['schemaHash']),
+                'module_route' => $routePath,
+                'current_generation_id' => $generationId,
+                'last_success_generation_id' => $generationId,
+                'generation_status' => 'completed',
+            ])->save();
+            if ($form) {
                 $form->fill([
                     'publish_mode' => 'generated',
                     'publish_status' => $plugin ? 'generated' : 'published',
@@ -432,6 +436,29 @@ final class DatabaseGenerationStateRepository
                 ])->save();
             }
         });
+    }
+
+    /**
+     * 绑定生成哈希对应的已存储 FormSchema 版本号（form_schema_version.version）。
+     * 定义中的 formSchemaVersion 是文档格式版本（schemaVersion），不能作为存储版本号使用。
+     */
+    private function publishedSchemaVersion(BusinessModule $module, int $formId, string $schemaHash): ?int
+    {
+        if ($schemaHash === '') {
+            return null;
+        }
+        if ($formId > 0) {
+            $version = FormSchemaVersion::query()
+                ->where('form_id', $formId)
+                ->where('schema_hash', $schemaHash)
+                ->orderByDesc('version')
+                ->value('version');
+            if ($version !== null) {
+                return (int) $version;
+            }
+        }
+        $current = $module->published_schema_version;
+        return $current !== null && hash_equals((string) ($module->published_schema_hash ?? ''), $schemaHash) ? (int) $current : null;
     }
 
     private function updateGeneration(int $generationId, array $attributes): void

@@ -84,7 +84,7 @@ final class FormDataService
     {
         $form = $this->form($key);
         $runtime = $this->publishedRuntime($form);
-        if (!($this->permissionChecker)($this->businessPermissionRoute($runtime['module']) . '/index')) {
+        if (!($this->permissionChecker)($this->modulePermission($runtime['module'], 'index'))) {
             throw new InvalidArgumentException('没有来源业务读取权限');
         }
         $fields = [];
@@ -114,7 +114,7 @@ final class FormDataService
             ->select(['id', 'form_id', 'code', 'lifecycle_status', 'metadata'])->orderBy('id', 'asc')->get();
         foreach ($modules as $module) {
             try {
-                if (!($this->permissionChecker)($this->businessPermissionRoute($module) . '/index')) continue;
+                if (!($this->permissionChecker)($this->modulePermission($module, 'index'))) continue;
                 $form = Form::where('id', (int) $module->form_id)->select(['id', 'form_key'])->first();
                 if (!$form) continue;
                 $meta = $this->sourceMeta((string) $form->form_key);
@@ -177,7 +177,7 @@ final class FormDataService
         if (($list['leftTree']['enabled'] ?? false) === true && array_key_exists('__leftTree', $filters)) {
             $selected = $filters['__leftTree'];
             if (!is_array($selected)) throw new InvalidArgumentException('左树选择必须为数组');
-            $tree = $this->leftTree((string) $form->form_key);
+            $tree = $this->leftTreeFor((string) $form->form_key, 'index');
             $config = $list['leftTree'];
             $values = (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $tree['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
             if ($values !== []) {
@@ -235,6 +235,16 @@ final class FormDataService
     /** 左树仅从已发布业务快照读取，字段及行权限均在查询前校验。 */
     public function leftTree(string $key): array
     {
+        return $this->leftTreeFor($key, 'leftTree');
+    }
+
+    /**
+     * $entry 为服务本次请求的生成控制器方法（leftTree / leftTreeForm / mutateLeftTree / index）。
+     * 来源为当前正式生成模块时，读取检查该方法推导码与 index，写动作检查对应 create/update/remove 与 mutateLeftTree 推导码；
+     * 来源为其他模块（或动态运行时）时检查来源模块的 index 与 create/update/remove。
+     */
+    private function leftTreeFor(string $key, string $entry): array
+    {
         $target = $this->form($key);
         $targetRuntime = $this->publishedRuntime($target);
         $config = $targetRuntime['schema']['list']['leftTree'] ?? [];
@@ -249,8 +259,12 @@ final class FormDataService
         }
         $source = $this->form($sourceKey);
         $runtime = $this->publishedRuntime($source);
-        $permission = $this->businessPermissionRoute($runtime['module']);
-        if (!($this->permissionChecker)($permission . '/index')) throw new InvalidArgumentException('没有来源业务读取权限');
+        $current = $sourceKey === $key && (string) $runtime['module']->lifecycle_status !== 'dynamic_published';
+        // 当前正式生成模块：服务本次请求的方法码（左树/来源表单/写入端点）之外仍须具备列表读取 index。
+        $reads = $current && $entry !== 'index' ? [$entry, 'index'] : ['index'];
+        foreach ($reads as $method) {
+            if (!($this->permissionChecker)($this->modulePermission($runtime['module'], $method))) throw new InvalidArgumentException('没有来源业务读取权限');
+        }
         $mapping = $config['mapping'];
         $schema = $this->tableFields(Db::connection((string) $source->connection), (string) $source->table_name);
         $primary = $this->primaryKey($schema);
@@ -279,7 +293,8 @@ final class FormDataService
         foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
             $actions[$action] = ($config['actions'][$action] ?? false) === true
                             && ($action !== 'addChild' || ($mapping['parentField'] ?? '') !== '')
-                            && ($this->permissionChecker)($permission . '/' . $operation);
+                            && ($this->permissionChecker)($this->modulePermission($runtime['module'], $operation))
+                            && (!$current || ($this->permissionChecker)($this->modulePermission($runtime['module'], 'mutateLeftTree')));
         }
         return ['nodes' => $nodes, 'sourceKey' => $sourceKey, 'schemaHash' => $runtime['schemaHash'], 'actions' => $actions];
     }
@@ -290,14 +305,14 @@ final class FormDataService
         $runtime = $this->publishedRuntime($this->form($key));
         $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
         $config = $runtime['schema']['list']['leftTree'];
-        return (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $this->leftTree($key)['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
+        return (new \app\common\form\schema\FormTreeSelection())->resolve($selected, $this->leftTreeFor($key, 'index')['nodes'], $config['selection']['mode'] ?? 'single', $config['selection']['includeDescendants'] ?? false);
     }
 
     public function leftTreeForm(string $key, string $action, int|string $id, string $schemaHash, string $optionField = '', array $context = []): array
     {
         $runtime = $this->publishedRuntime($this->form($key));
         $this->assertPublishedSchemaHash($schemaHash, $runtime['schemaHash']);
-        $tree = $this->leftTree($key);
+        $tree = $this->leftTreeFor($key, 'leftTreeForm');
         if (!in_array($action, ['create', 'addChild', 'edit'], true) || !($tree['actions'][$action] ?? false)) {
             throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
         }
@@ -320,7 +335,7 @@ final class FormDataService
         $target = $this->form($key);
         $published = $this->publishedRuntime($target);
         $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
-        $tree = $this->leftTree($key);
+        $tree = $this->leftTreeFor($key, 'mutateLeftTree');
         if (!($tree['actions'][$action] ?? false)) throw new InvalidArgumentException('没有来源业务操作权限或动作未启用');
         $this->assertPublishedSchemaHash($sourceSchemaHash, $tree['schemaHash']);
         $source = $this->form($tree['sourceKey']);
@@ -461,7 +476,20 @@ final class FormDataService
         }
     }
 
-    /** nodeAccess 接受路由资源，不接受前端 generated:* 能力码。 */
+    /**
+     * 来源模块某控制器方法的权限：动态运行时为 admin/form.data/{操作}（保持原资源路径），
+     * 正式生成模块为生成控制器方法的推导码 generated:{资源}:{方法}；插件来源与不可推导时拒绝。
+     */
+    private function modulePermission(BusinessModule $module, string $method): string
+    {
+        $route = $this->businessPermissionRoute($module);
+        if ((string) $module->lifecycle_status === 'dynamic_published') return $route . '/' . $method;
+        $form = Form::where('id', (int) $module->form_id)->first();
+        if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
+        return $this->generatedPermission((string) $form->form_key, $method);
+    }
+
+    /** 旧控制器资源路径：动态运行时的权限前缀，以及正式生成宿主 productionBinding.route 的绑定校验标识。 */
     private function businessPermissionRoute(BusinessModule $module): string
     {
         // 插件使用独立 manifest 权限，不能回退到同名核心路由授权。
@@ -504,9 +532,8 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         if ($copyCreate) {
-            $route = $this->businessPermissionRoute($published['module']);
             foreach (['detail', 'create'] as $operation) {
-                if (!($this->permissionChecker)($route . '/' . $operation)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+                if (!($this->permissionChecker)($this->modulePermission($published['module'], $operation))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
             }
             $this->assertPublishedSchemaHash($schemaHash, $published['schemaHash']);
         }
@@ -956,7 +983,10 @@ final class FormDataService
         $catalog = $actions->listCatalog($this->permissionChecker, $location, $target);
         if ($source) $catalog = array_filter($catalog, static fn (array $action): bool => $action['effect'] === 'read' || in_array($action['permission'], $source['writePermissions'][$location], true));
         $resources = \app\common\form\registry\FormRegistryFactory::production()->listResources();
-                return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog, 'resources' => (object) $resources->catalog($this->permissionChecker), 'resourceHash' => $resources->hash()]
+        // Schema 声明但注册表中完全不存在（尚未正式生成）的自定义动作键，与权限无关；前端据此显示「正式生成后可用」，
+        // 已生成但无权限的动作不在此列表中，仍按原规则隐藏。
+        $pendingKeys = array_values(array_diff(array_keys(\app\common\form\action\CustomActions::fromSchema((array) $runtime['schema'])), array_keys($actions->definitions())));
+                return ['schemaHash' => $runtime['schemaHash'], 'actions' => (object) $catalog, 'resources' => (object) $resources->catalog($this->permissionChecker), 'resourceHash' => $resources->hash(), 'pendingKeys' => $pendingKeys]
             + ($source ? ['sourceSchemaHash' => $source['schemaHash'], 'sourceKey' => (string) $source['form']->form_key] : []);
     }
 
@@ -973,7 +1003,7 @@ final class FormDataService
         $button = array_values(array_filter($buttons, static fn (array $b): bool => ($b['id'] ?? '') === ($request['buttonId'] ?? null)))[0] ?? [];
         $factory = \app\common\form\registry\FormRegistryFactory::production();
         $executor ??= ($button['action']['type'] ?? '') === 'registered' ? $factory->listExecutor() : $factory->resourceExecutor();
-        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->productionBinding['route'] . '/export' : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->generatedPermission($key, 'export') : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
         $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
         if ($categoryLocation || array_key_exists('category', $request)) {
@@ -1018,7 +1048,7 @@ final class FormDataService
             $source = $this->publishedRuntime($form) + ['form' => $form];
         }
         if (($source['module']->metadata['target']['type'] ?? 'core') !== 'core') throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
-        if (!($this->permissionChecker)($this->businessPermissionRoute($source['module']) . '/index')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        if (!($this->permissionChecker)($this->modulePermission($source['module'], 'index'))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $primary = $this->primaryKey($this->tableFields(Db::connection((string) $source['form']->connection), (string) $source['form']->table_name));
         if (($tree['mapping']['valueField'] ?? '') !== $primary['name']) throw new InvalidArgumentException('FORM_LIST_CATEGORY_UNAVAILABLE');
         foreach ($tree['mapping'] as $binding => $name) {
@@ -1034,10 +1064,10 @@ final class FormDataService
                 || !empty($field['control_props']['multiple'])) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
         }
         $source['writePermissions'] = ['categoryToolbar' => [], 'categoryNode' => []];
-        $route = $this->businessPermissionRoute($source['module']);
         foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
             if (($tree['actions'][$action] ?? false) !== true || ($action === 'addChild' && empty($tree['mapping']['parentField']))) continue;
-            if (($this->permissionChecker)($route . '/' . $operation)) $source['writePermissions'][$action === 'create' ? 'categoryToolbar' : 'categoryNode'][] = $route . '/' . $operation;
+            $permission = $this->modulePermission($source['module'], $operation);
+            if (($this->permissionChecker)($permission)) $source['writePermissions'][$action === 'create' ? 'categoryToolbar' : 'categoryNode'][] = $permission;
         }
         return $source;
     }
@@ -1118,14 +1148,30 @@ final class FormDataService
                 throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
             }
             $this->assertPublishedSchemaHash((string) ($binding['schemaHash'] ?? ''), $runtime['schemaHash']);
-            if (!($this->permissionChecker)($route . '/' . $entry)) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            // 正式生成宿主按生成控制器方法推导的权限码准入（与其路由权限一致），不再使用旧控制器资源路径。
+            $method = ['listactions' => 'listActions', 'listaction' => 'listAction'][$entry] ?? '';
+            if (!($this->permissionChecker)($this->generatedPermission($key, $method))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            $readPermission = $this->generatedPermission($key, 'index');
         } elseif ((string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
             throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         }
-        if (!($this->permissionChecker)($route . '/index')) {
+        if (!($this->permissionChecker)($readPermission ?? $route . '/index')) {
             throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         }
         return $runtime + ['form' => $form];
+    }
+
+    /**
+     * 正式生成模块控制器方法的权限码（PermissionCode::derive，与 generated:{资源}:{方法} 路由权限一致）。
+     * 推导失败时拒绝，不回退到任何放宽的检查。
+     */
+    private function generatedPermission(string $formKey, string $method): string
+    {
+        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', $formKey))) . 'Controller';
+        $code = $method === '' || preg_match('/^[a-z][a-z0-9_]*$/D', $formKey) !== 1 ? null
+            : \app\admin\authorization\service\PermissionCode::derive('app\\admin\\generated\\' . $formKey . '\\controller\\' . $class, $method);
+        if ($code === null) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        return $code;
     }
 
     /** 执行已发布 Schema 明确引用的生产动作。 */

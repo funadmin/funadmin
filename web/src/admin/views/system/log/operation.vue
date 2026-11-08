@@ -105,18 +105,12 @@
       </template>
     </DataTableShell>
 
-    <div class="app-pagination-bar">
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        background
-        @current-change="loadData"
-        @size-change="loadData"
-      />
-    </div>
+    <TablePagination
+      v-model:current-page="query.page"
+      v-model:page-size="query.pageSize"
+      :total="total"
+      @change="loadData"
+    />
 
     <el-drawer v-model="detailVisible" :title="t('systemLog.detailTitle', '操作日志详情')" size="560px">
       <el-descriptions v-if="detail" :column="1" border>
@@ -140,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
 import { ElMessageBox } from 'element-plus';

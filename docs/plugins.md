@@ -282,6 +282,23 @@ app\admin\plugins\shop\controller\admin\OrderController::close → shop:admin-or
 
 插件闭包路由（`PluginRoute::adminGroup`）没有控制器方法可推导，仍使用清单中声明的权限码。
 
+### 权限资源树中的分组
+
+权限资源树按权限码 `模块:资源:操作` 自动分组，结构是：插件分组 → 资源分组 → 接口或能力权限。宿主的 `PermissionTreeService` 会在同步权限和插件登记资源后自动整理。
+
+- 插件分组名取插件名称。
+- 资源分组名优先取 `adminWeb.permissionGroups` 里的声明（资源标识 → 名称），其次取绑定菜单的名称，最后退回资源标识本身。
+- 多个资源声明同一个名称时合并为一组。比如站点操作的能力权限 `cms:site:*` 和对应接口 `cms:sites:*` 都映射为“站点管理”，就会落在同一个分组里。
+
+```json
+"adminWeb": {
+  "permissions": [ ... ],
+  "permissionGroups": { "site": "站点管理", "sites": "站点管理", "moderation": "问答审核" }
+}
+```
+
+分组行归属本插件（`source_type=plugin`、`source_name=插件名`），卸载插件时随插件权限一并删除。
+
 CRUD 生成器与插件脚手架生成的插件控制器不带权限注解，生成的清单与前端使用推导码；插件 CRUD 的 `permissionPrefix` 必须等于 `{插件}:{资源}`。
 
 ## 中间件命名

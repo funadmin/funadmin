@@ -74,6 +74,8 @@ final class PermissionSyncService
             }
         });
 
+        // 新登记的权限挂到 模块 → 资源 分组下（按权限码推导，已整理时不写入）。
+        (new PermissionTreeService())->organize();
         $stale = $this->staleCodes($plugin, $derived);
         if ($added !== [] || $updated !== []) {
             CasbinService::instance()->reload();

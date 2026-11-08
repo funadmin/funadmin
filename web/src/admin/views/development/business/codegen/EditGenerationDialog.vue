@@ -51,10 +51,10 @@
             <ConfigTab :doc="doc" :publish="publish" :form="form" :module="editor.module.value" :menus="editor.menus.value" :adopted="adopted" @update:doc="setDoc" @update:publish="setPublish" />
           </el-tab-pane>
           <el-tab-pane name="fields" :label="t('business.codegen.edit.tabFields', '字段配置')">
-            <FieldTab :doc="doc" :adopted="adopted" @update:doc="setDoc" @open-designer="openDesigner" />
+            <FieldTab :doc="doc" :adopted="adopted" :hide-designer-link="hideDesignerLink" @update:doc="setDoc" @open-designer="openDesigner" />
           </el-tab-pane>
-          <el-tab-pane name="relations" :label="t('business.codegen.edit.tabRelations', '关联配置')">
-            <RelationTab :key="editor.schemaRevision.value" :doc="doc" @update:doc="setDoc" @update:pending="(value: boolean) => (editor.pendingRelations.value = value)" @open-designer="openDesigner" />
+          <el-tab-pane name="relations" lazy :label="t('business.codegen.edit.tabRelations', '关联配置')">
+            <RelationTab :key="editor.schemaRevision.value" :doc="doc" :catalog="relationCatalog" :hide-designer-link="hideDesignerLink" @update:doc="setDoc" @update:pending="(value: boolean) => (editor.pendingRelations.value = value)" @open-designer="openDesigner" />
           </el-tab-pane>
           <el-tab-pane name="menu" :label="t('business.codegen.edit.tabMenu', '菜单与权限')">
             <MenuTab :publish="publish" :menus="editor.menus.value" :form-key="doc.key || form.form_key" :plugin-code="pluginCode" @update:publish="setPublish" />
@@ -97,6 +97,7 @@ import { hasPermission } from '@/utils/permission';
 import type { FormSchemaDocument } from '@/views/form/schema/types';
 import VersionHistoryDrawer from '@/views/form/designer/components/VersionHistoryDrawer.vue';
 import { isAdoptedTable } from './fieldControl';
+import { createRelationCatalog } from './relationCatalog';
 import { PERM_SAVE_SCHEMA, useGenerationEditor } from './useGenerationEditor';
 import SchemaConflictDialog from './SchemaConflictDialog.vue';
 import ConfigTab from './tabs/ConfigTab.vue';
@@ -106,7 +107,8 @@ import MenuTab from './tabs/MenuTab.vue';
 
 export type EditGenerationTab = 'config' | 'fields' | 'relations' | 'menu';
 
-const props = defineProps<{ modelValue: boolean; moduleId: number; initialTab?: EditGenerationTab }>();
+// hideDesignerLink：设计器内的「表单设置」打开本弹窗时隐藏「打开表单设计器」入口。
+const props = withDefaults(defineProps<{ modelValue: boolean; moduleId: number; initialTab?: EditGenerationTab; hideDesignerLink?: boolean }>(), { initialTab: undefined, hideDesignerLink: false });
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: []; preview: [] }>();
 
 const { t } = useI18n();
@@ -147,6 +149,8 @@ const pluginCode = computed(() => {
   const target = editor.module.value?.metadata?.target;
   return target?.type === 'plugin' ? target.pluginCode : null;
 });
+// 关联页签的数据表/字段目录：按模块连接缓存，每次打开弹窗（或切换模块）时重置
+const relationCatalog = createRelationCatalog(() => form.value?.connection || editor.module.value?.connection_name || 'mysql');
 const headerName = computed(() => form.value?.table_name || editor.module.value?.table_name || editor.module.value?.code || '');
 const canViewVersions = computed(() => hasPermission('development:business:schema-versions'));
 
@@ -154,6 +158,7 @@ watch(() => [props.modelValue, props.moduleId] as const, ([visible, id], previou
   if (!visible || !id) return;
   if (previous && previous[0] && previous[1] === id) return;
   activeTab.value = props.initialTab ?? 'config';
+  relationCatalog.reset();
   void editor.load();
 }, { immediate: true });
 

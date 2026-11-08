@@ -126,7 +126,7 @@ import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListButtonBar from './components/ListButtonBar.vue';
 import { resolveListButtons } from './schema/listButtons';
-import { provideListButtonAdapter, defaultListButtons, listActionKey, listButtonState, type ListButtonHandlers } from './runtime/listButtonHost';
+import { provideListButtonAdapter, defaultListButtons, listActionKey, declaredCustomActionButton, listButtonState, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { FormListButton } from './schema/types';
 import { useUserStore } from '@/store/modules/user';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
@@ -191,7 +191,7 @@ const buttonHandlers: ListButtonHandlers = {
   },
   import: () => { importVisible.value = true; }
 };
-const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && buttonAllowed(button)));
+const hasRowButtons = computed(() => rowButtons.value.some(button => !button.hidden && (buttonAllowed(button) || declaredCustomActionButton(button, meta.value?.schema))));
 const route = useRoute();
 const formKey = computed(() => String(route.params.key ?? ''));
 const loading = ref(false);

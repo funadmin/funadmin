@@ -20,7 +20,7 @@ import { pluginApi } from '@/api/system/plugin';
 
 const { t } = useI18n();
 const visible = defineModel<boolean>({ default: false });
-const emit = defineEmits<{ installed: [] }>();
+const emit = defineEmits<{ installed: [result: unknown] }>();
 const file = ref<File | null>(null);
 const loading = ref(false);
 
@@ -32,10 +32,10 @@ async function install() { if (!(hasPermission('plugin:plugin:install-local'))) 
   if (!file.value) return;
   loading.value = true;
   try {
-    await pluginApi.installLocal(file.value);
+    const result = await pluginApi.installLocal(file.value);
     file.value = null;
     visible.value = false;
-    emit('installed');
+    emit('installed', result);
   } catch (reason) {
     if (reason !== 'cancel' && reason !== 'close') throw reason;
   } finally {

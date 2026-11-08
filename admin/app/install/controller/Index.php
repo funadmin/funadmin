@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\install\controller;
 
+use app\admin\authentication\service\AdminLoginPath;
 use app\common\service\install\InstallSupport;
 use DomainException;
 use support\Request;
@@ -21,13 +22,13 @@ final class Index
     #[Get('')]
     public function index(Request $request): Response
     {
-        return redirect('/#/admin/' . ($this->installed() ? 'login' : 'install'));
+        return redirect($this->installed() ? $this->adminLoginUrl() : '/#/admin/install');
     }
 
     #[Get('/step2')]
     public function step2(Request $request): Response
     {
-        if ($this->installed()) return $this->result(['installed' => true]);
+        if ($this->installed()) return $this->result(['installed' => true, 'backend' => $this->adminLoginUrl()]);
         $token = $request->cookie(self::COOKIE, '');
         if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/', $token)) $token = bin2hex(random_bytes(32));
         return $this->result([
@@ -46,7 +47,7 @@ final class Index
             foreach ($this->buildEnvironmentChecks() as $check) {
                 if ($check['required'] && !$check['passed']) throw new DomainException($check['label'] . '不满足安装要求', 422);
             }
-            $result = InstallSupport::install($input['db'], $input['admin'], $input['debug'], base_path());
+            $result = InstallSupport::install($input['db'], $input['admin'], $input['debug'], base_path(), '5.7', null, $input['adminLoginPath']);
             return $this->result($result, '安装成功');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());
@@ -61,7 +62,7 @@ final class Index
         try {
             $this->assertCsrf($request);
             if (!$this->installed()) throw new DomainException('系统尚未完成安装', 409);
-            return $this->result(['installed' => true, 'backend' => '/#/admin/login'], '安装完成')
+            return $this->result(['installed' => true, 'backend' => $this->adminLoginUrl()], '安装完成')
                 ->cookie(self::COOKIE, '', 0, '/install', '', $this->secure(), true, 'Strict');
         } catch (DomainException $error) {
             return $this->result(null, $error->getMessage(), $error->getCode());
@@ -98,7 +99,7 @@ final class Index
     private function collectInstallInput(Request $request): array
     {
         $values = [];
-        foreach (['hostname', 'port', 'database', 'prefix', 'username', 'password', 'adminUserName', 'adminPassword', 'rePassword', 'email'] as $key) {
+        foreach (['hostname', 'port', 'database', 'prefix', 'username', 'password', 'adminUserName', 'adminPassword', 'rePassword', 'email', 'adminLoginPath'] as $key) {
             $value = $request->post($key, '');
             if (!is_string($value)) throw new DomainException('安装配置必须为字符串', 422);
             $values[$key] = $value;
@@ -111,7 +112,14 @@ final class Index
             'db' => ['driver' => $driver, 'host' => $values['hostname'], 'port' => $values['port'], 'database' => $values['database'], 'prefix' => $values['prefix'], 'username' => $values['username'], 'password' => $values['password']],
             'admin' => ['username' => $values['adminUserName'], 'password' => $values['adminPassword'], 'repassword' => $values['rePassword'], 'email' => $values['email']],
             'debug' => $debug,
+            'adminLoginPath' => $values['adminLoginPath'] !== '' ? $values['adminLoginPath'] : AdminLoginPath::DEFAULT,
         ];
+    }
+
+    private function adminLoginUrl(): string
+    {
+        $entry = AdminLoginPath::current();
+        return '/#/admin/' . ($entry === AdminLoginPath::DEFAULT ? '' : $entry . '/') . 'login';
     }
 
     private function buildEnvironmentChecks(): array

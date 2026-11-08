@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 import qs from 'qs';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { APP_CONFIG, ADMIN_LOGIN_PATH, RESP_CODE } from '@/config';
+import { APP_CONFIG, adminLoginEntryFromRoute, adminLoginPath, RESP_CODE } from '@/config';
 import { i18n } from '@/locales';
 import { clearAuth, getCsrfToken, setCsrfToken } from '@/utils/auth';
 
@@ -149,7 +149,8 @@ function handleUnauthorized(message: string): Promise<never> {
   clearAuth();
   const current = location.hash.replace(/^#/, '');
   // 已在登录页无需提示；并发 401 只弹一次。
-  if (current.startsWith(ADMIN_LOGIN_PATH) || unauthorizedPrompting) return Promise.reject(new Error(message));
+  const loginPath = adminLoginPath(adminLoginEntryFromRoute(current));
+  if (current.startsWith(loginPath) || unauthorizedPrompting) return Promise.reject(new Error(message));
   unauthorizedPrompting = true;
   ElMessageBox.confirm(message, tr('http.systemTip', '系统提示'), {
     confirmButtonText: tr('http.relogin', '重新登录'),
@@ -159,8 +160,8 @@ function handleUnauthorized(message: string): Promise<never> {
     .then(() => {
       const redirect = current ? `?redirect=${encodeURIComponent(current)}` : '';
       const onBasePath = location.pathname === import.meta.env.BASE_URL;
-      location.href = `${import.meta.env.BASE_URL}#${ADMIN_LOGIN_PATH}${redirect}`;
-      // 仅 hash 变化不会刷新页面，内存中的登录态仍在，守卫会把 /admin/login 弹回首页。
+      location.href = `${import.meta.env.BASE_URL}#${loginPath}${redirect}`;
+      // 仅 hash 变化不会刷新页面，内存中的登录态仍在，守卫会把登录页弹回首页。
       if (onBasePath) location.reload();
     })
     .catch(() => {})
@@ -202,7 +203,58 @@ export const http = {
       requestOptions: { ...(config?.requestOptions || {}), isReturnNativeResponse: true }
     })) as unknown as AxiosResponse<Blob>;
     return res.data;
+  },
+  /**
+   * 以 POST 下载二进制（携带 CSRF 头，与其他写请求一致）。服务端失败时返回 JSON 而非文件：
+   * 解析为统一响应后按 requestOptions 提示并拒绝，避免把错误 JSON 当作文件保存。
+   */
+  downloadPost: async (url: string, data?: any, config?: AdminRequestConfig): Promise<Blob> => {
+    const opt = { ...DEFAULT_REQUEST_OPTIONS, ...config?.requestOptions };
+    const res = (await request<AxiosResponse<Blob>>({
+      ...config,
+      url,
+      method: 'POST',
+      data,
+      responseType: 'blob',
+      // 4xx 的错误体同样是 JSON Blob，交给下面统一解析；5xx 仍走拦截器的通用故障提示。
+      validateStatus: (status) => status >= 200 && status < 500,
+      requestOptions: { ...(config?.requestOptions || {}), isReturnNativeResponse: true }
+    })) as unknown as AxiosResponse<Blob>;
+    const blob = res.data;
+    if (!isJsonBlob(blob) && res.status < 400) return blob;
+    const payload = await blobPayload(blob);
+    const msg = businessMessage(payload);
+    if (payload?.code === RESP_CODE.UNAUTHORIZED || res.status === 401) {
+      if (!opt.ignoreUnauthorized) return handleUnauthorized(msg || tr('http.unauthorized', '登录已失效，请重新登录'));
+    }
+    const fallback = res.status === 403 ? tr('http.forbidden', '没有访问权限') : res.status === 404 ? tr('http.notFound', '请求资源不存在') : tr('http.requestFailed', '请求失败');
+    if (opt.showErrorMsg) showError(msg || fallback, opt.errorMessageMode);
+    return Promise.reject(payload ?? { code: res.status, msg: fallback, message: fallback, data: null });
   }
 };
+
+function readBlobText(blob: Blob): Promise<string> {
+  if (typeof blob.text === 'function') return blob.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
+function isJsonBlob(blob: unknown): blob is Blob {
+  return blob instanceof Blob && /^application\/(?:[\w.+-]+\+)?json\b/i.test(blob.type);
+}
+
+async function blobPayload(blob: unknown): Promise<API.Response | undefined> {
+  if (!(blob instanceof Blob)) return undefined;
+  try {
+    const value = JSON.parse(await readBlobText(blob));
+    return value && typeof value === 'object' ? value as API.Response : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export default http;

@@ -315,13 +315,11 @@ async function defaultProfile(id: number) {
     profiles.value = profiles.value.map((item) => ({ ...item, is_default: item.id === id }));
   });
 }
-async function fetchProfileModels(id: number | null, payload: Partial<AiProfileInput>) {
+async function fetchProfileModels(id: number | null, payload: Partial<AiProfileInput> & { profile_id?: number | null }) {
   if (!hasPermission('development:ai:configure') || !hasPermission('ai:profiles:models')) return;
   const generation = profileGeneration;
   await profileOperation(async () => {
-    const result = id !== null && !payload.api_key && !payload.base_url?.includes('192.168.')
-      ? await aiDevelopmentApi.profileModels(id)
-      : await aiDevelopmentApi.profileModelsPreview(payload);
+    const result = await aiDevelopmentApi.profileModelsPreview(payload);
     if (generation !== profileGeneration) return;
     profileModels.value = result;
     if (!result.length) profileNotice.value = t('aiDevelopment.profiles.emptyModels');

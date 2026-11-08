@@ -137,9 +137,15 @@ final class ListButtonExecutor
             }
         }
         try {
-            $result = $this->registry->invokeList($key, $parameters, $permission);
+            // 处理器上下文只含已授权并重新加载的记录 ID，不接受请求另行提供。
+            $context = ['location' => $location, 'ids' => $ids] + ($location === 'row' ? ['id' => $ids[0]] : []);
+            $result = $this->registry->invokeList($key, $parameters, $permission, $context);
+        } catch (FormActionUserException|FormActionNotImplementedException $exception) {
+            // 处理器明确声明「未成功」（须在做出任何更改之前抛出）：释放占位，同一请求可原样重试。
+            if ($definition['effect'] === 'write') $this->store->release($scope, $digest);
+            throw $exception;
         } catch (\Throwable $exception) {
-            // 处理器可能已经产生外部副作用，任何抛错均保守标记未知，禁止自动重试。
+            // 其他抛错可能已经产生外部副作用，保守标记未知，禁止自动重试。
             if ($definition['effect'] === 'write') $this->store->finish($scope, $digest, 'unknown', null);
             throw $exception;
         }

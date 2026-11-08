@@ -7,6 +7,7 @@ namespace Tests;
 use app\common\service\install\InstallSupport;
 use app\common\service\database\MigrationService;
 use app\admin\authentication\service\AdminSessionService;
+use app\admin\authentication\service\AdminLoginPath;
 use app\admin\authorization\service\AuthorizationService;
 use app\install\controller\Index;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -42,6 +43,17 @@ final class InstallTest extends TestCase
         self::assertSame('false', $parsedTemplate['COOKIE_SECURE']);
     }
 
+    public function test_install_no_longer_writes_a_list_confirmation_secret(): void
+    {
+        [$db] = $this->inputs();
+        $key = 'FORM_LIST_CONFIRMATION_SECRET';
+        // 确认密钥由运行时自动生成并保存在数据库，模板与安装生成的 .env 均不含该键；已有 .env 中的旧值原样保留、不再读取。
+        self::assertStringNotContainsString($key, (string) file_get_contents(base_path() . '/.env.example'));
+        self::assertStringNotContainsString($key, InstallSupport::renderEnv(base_path() . '/.env.example', null, $db, false));
+        self::assertStringNotContainsString($key, InstallSupport::renderEnv(base_path() . '/.env.example', "CUSTOM=value\n", $db, false));
+        self::assertStringContainsString("{$key}=legacy", InstallSupport::renderEnv(base_path() . '/.env.example', "CUSTOM=value\n{$key}=legacy\n", $db, false));
+    }
+
     public function test_installer_only_accepts_mysql_and_rejects_other_drivers_before_connecting(): void
     {
         [$db, $admin] = $this->inputs();
@@ -67,6 +79,14 @@ final class InstallTest extends TestCase
         [$db, $admin] = $this->inputs();
         $admin['password'] = $admin['repassword'] = '';
         self::assertNotSame('', InstallSupport::validate($db, $admin));
+    }
+
+    public function test_install_input_rejects_reserved_admin_login_entry(): void
+    {
+        [$db, $admin] = $this->inputs();
+        self::assertNotSame('', InstallSupport::validate($db, $admin, 'auth'));
+        self::assertSame('', InstallSupport::validate($db, $admin, 'secure-login'));
+        self::assertSame('secure-login', AdminLoginPath::normalize('secure-login'));
     }
 
     public function test_empty_database_initializes_a_login_capable_super_administrator(): void

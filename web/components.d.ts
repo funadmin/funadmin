@@ -99,6 +99,7 @@ declare module 'vue' {
     SearchForm: typeof import('./src/shared/components/SearchForm/index.vue')['default']
     Setting: typeof import('./src/shared/components/Setting/index.vue')['default']
     SvgIcon: typeof import('./src/shared/components/SvgIcon/index.vue')['default']
+    TablePagination: typeof import('./src/shared/components/TablePagination/index.vue')['default']
     Upload: typeof import('./src/shared/components/Upload/index.vue')['default']
   }
   export interface GlobalDirectives {
@@ -195,5 +196,6 @@ declare global {
   const SearchForm: typeof import('./src/shared/components/SearchForm/index.vue')['default']
   const Setting: typeof import('./src/shared/components/Setting/index.vue')['default']
   const SvgIcon: typeof import('./src/shared/components/SvgIcon/index.vue')['default']
+  const TablePagination: typeof import('./src/shared/components/TablePagination/index.vue')['default']
   const Upload: typeof import('./src/shared/components/Upload/index.vue')['default']
 }

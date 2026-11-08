@@ -196,6 +196,16 @@ final class Manifest
             }
             $declared[$code] = true;
         }
+        // 可选：权限资源树中的资源分组名（资源标识 → 名称）；同名资源合并为一组。
+        $groups = $adminWeb['permissionGroups'] ?? [];
+        if (!is_array($groups) || ($groups !== [] && array_is_list($groups))) {
+            throw new RuntimeException('plugin.json adminWeb.permissionGroups 必须是 资源标识 → 名称 的对象');
+        }
+        foreach ($groups as $resource => $label) {
+            if (preg_match('/^[a-z][a-z0-9-]*$/D', (string) $resource) !== 1 || !is_string($label) || trim($label) === '' || mb_strlen($label) > 100) {
+                throw new RuntimeException('plugin.json adminWeb.permissionGroups 资源标识或名称无效：' . $resource);
+            }
+        }
         $routes = [];
         foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
             if (!str_starts_with($route['path'], '/plugin/' . $pluginCode . '/')) {

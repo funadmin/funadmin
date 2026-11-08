@@ -6,8 +6,13 @@ import {
   GENERATION_STATUS_META,
   LIFECYCLE_STATUS_META,
   RECOVERY_STATUS_META,
+  createVisualPayload,
+  defaultCreatedTable,
   deriveAdoptedBusiness,
+  designerLocation,
   normalizeBusinessCode,
+  parseCreationError,
+  suggestBusinessCode,
   normalizeGenerationStatus,
   type BusinessStatusMeta
 } from './constants';
@@ -66,5 +71,35 @@ describe('数据库采纳的业务默认值', () => {
 
   it('normalizeBusinessCode 去空白、转小写、非法字符替换为下划线', () => {
     expect(normalizeBusinessCode('  Customer Order ')).toBe('customer_order');
+  });
+});
+
+describe('新建表共用规则（创建向导与新建表弹窗）', () => {
+  it('suggestBusinessCode 从英文名称建议合法标识，中文或无字母名称不建议', () => {
+    expect(suggestBusinessCode('Customer Order')).toBe('customer_order');
+    expect(suggestBusinessCode('  2024 Sales--Report! ')).toBe('sales_report');
+    expect(suggestBusinessCode('客户订单')).toBe('');
+    expect(suggestBusinessCode('订单 Order')).toBe('order');
+  });
+
+  it('defaultCreatedTable：核心目标为业务标识，插件目标补插件前缀；连接表前缀由服务端补齐', () => {
+    expect(defaultCreatedTable('customer_order')).toBe('customer_order');
+    expect(defaultCreatedTable('customer_order', 'demo')).toBe('demo_customer_order');
+    expect(defaultCreatedTable('', 'demo')).toBe('');
+  });
+
+  it('createVisualPayload 保持原创建向导的 payload 结构', () => {
+    expect(createVisualPayload({ name: '客户订单', code: 'customer_order', table: 'customer_order', connection: 'mysql', remark: '', treeEnabled: false, treeParentField: '', treeSelectionMode: 'single' }, { type: 'core' }))
+      .toEqual({ name: '客户订单', code: 'customer_order', table: 'customer_order', connection: 'mysql', remark: '', treeEnabled: false, treeParentField: '', treeSelectionMode: 'single', listConfig: {}, target: { type: 'core' } });
+  });
+
+  it('designerLocation 指向表单设计器并带上表单与模块 ID', () => {
+    expect(designerLocation({ id: 7, form_id: 11 })).toEqual({ path: '/admin/development/business/designer', query: { id: '11', moduleId: '7' } });
+  });
+
+  it('parseCreationError 读取 fieldErrors（对象或数组）与 409 冲突', () => {
+    expect(parseCreationError({ code: 422, data: { error: { details: { fieldErrors: { code: ['已存在'] } } } } })).toEqual({ fieldErrors: { code: '已存在' }, status: 422, message: undefined });
+    expect(parseCreationError({ data: { fieldErrors: [{ path: 'table', message: '不合法' }] } }).fieldErrors).toEqual({ table: '不合法' });
+    expect(parseCreationError({ code: 409, msg: '业务标识已存在' })).toEqual({ fieldErrors: {}, status: 409, message: '业务标识已存在' });
   });
 });

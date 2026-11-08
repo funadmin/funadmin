@@ -51,6 +51,8 @@ export interface FormListActionCatalog {
   schemaHash: string;
   sourceSchemaHash?: string;
   sourceKey?: string;
+  /** Schema 声明但尚未正式生成（注册表中不存在）的自定义动作注册键，与权限无关。 */
+  pendingKeys?: string[];
   actions: Record<string, { permission: string; capabilityVersion: string; locations: string[]; targets: string[]; batch: boolean; effect: string; resultContract: string }>;
 }
 export interface FormListActionRequest {

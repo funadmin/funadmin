@@ -3,14 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(() => { document.body.innerHTML = ''; });
 import ElementPlus from 'element-plus';
 import Editor from './ListButtonEditor.vue';
+import Inspector from './ButtonInspector.vue';
 import type { FormListButton } from '../../schema/types';
 const button: FormListButton = { id: 'edit', label: '编辑', action: { type: 'builtin', key: 'edit' } };
-const render = () => mount(Editor, { props: { title: '行操作', location: 'row', modelValue: [button] }, global: { plugins: [ElementPlus] } });
+// 原抽屉表单迁入右栏 ButtonInspector：「配置」= 选中按钮（buttonId），「添加按钮」= creating 草稿，「重载」= 回传 buttons。
+const inspect = (props: Record<string, unknown>) => mount(Inspector, { attachTo: document.body, props: { title: '行操作', location: 'row', ...props } as never, global: { plugins: [ElementPlus] } });
+const render = () => inspect({ buttons: [button], buttonId: 'edit' });
 const resources = { customer: { type: 'navigate', permission: 'customer:view', capabilityVersion: 'v2', route: 'customer', params: ['code'], query: ['keyword'] } };
-async function clickText(wrapper: ReturnType<typeof mount>, text: string) {
-  await wrapper.findAll('button').find(item => item.text() === text)!.trigger('click');
-  await flushPromises();
-}
 async function choose(label: string, option: string) {
   const input = document.querySelector(`[aria-label="${label}"]`) as HTMLElement;
   expect(input, label).toBeTruthy(); (input.closest('.el-select')?.querySelector('.el-select__wrapper') as HTMLElement ?? input).click(); await flushPromises();
@@ -20,28 +19,27 @@ async function choose(label: string, option: string) {
   expect(item, `${option}: ${document.body.textContent}`).toBeTruthy(); item.click(); await flushPromises();
 }
 async function drawerClick(text: string) {
-  const button = [...document.querySelectorAll('.el-drawer button')].find(item => item.textContent?.trim() === text) as HTMLElement;
+  const button = [...document.querySelectorAll('.button-inspector button')].find(item => item.textContent?.trim() === text) as HTMLElement;
   expect(button, text).toBeTruthy(); button.click(); await flushPromises();
 }
 describe('按钮配置编辑器', () => {
   it('顶部数量可配置并重载，倒置范围拒绝，清除恢复实际能力限制', async () => {
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '顶部操作', location: 'toolbar', modelValue: [{ ...button, action: { type: 'refresh' } }] }, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '配置');
+    const wrapper = inspect({ title: '顶部操作', location: 'toolbar', buttons: [{ ...button, action: { type: 'refresh' } }], buttonId: 'edit' }); await flushPromises();
     for (const [label, value] of [['最少选择数量', '2'], ['最多选择数量', '3']]) {
       const input = document.querySelector(`[aria-label="${label}"]`) as HTMLInputElement;
       expect(input).toBeTruthy(); input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); await flushPromises();
     }
     await drawerClick('应用'); const saved = wrapper.emitted('update')!.at(-1)![0] as FormListButton[];
     expect(saved[0].selection).toEqual({ min: 2, max: 3 });
-    await wrapper.setProps({ modelValue: saved }); await clickText(wrapper, '配置');
+    await wrapper.setProps({ buttons: saved } as never); await flushPromises();
     const state = (wrapper.vm as any).$.setupState; state.draft.selection = { min: 4, max: 3 }; state.save(); expect(wrapper.emitted('update')).toHaveLength(1);
     await drawerClick('清除数量约束'); await drawerClick('应用'); expect((wrapper.emitted('update')!.at(-1)![0] as FormListButton[])[0].selection).toBeUndefined(); wrapper.unmount();
   });
   it('注册元数据自动生成表单，重命名输入同步绑定，抽屉模拟无副作用', async () => {
     const actions = { approve: { permission: 'approve', capabilityVersion: 'v1', parameters: ['reason'], parameterTypes: { reason: 'string' }, locations: ['row'], targets: ['record'], batch: false, effect: 'write', resultContract: 'json', requiresConfirmation: true } };
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '行操作', location: 'row', modelValue: [button], actions } as never, global: { plugins: [ElementPlus] } });
+    const wrapper = inspect({ buttons: [button], buttonId: 'edit', actions });
     const open = vi.spyOn(window, 'open');
-    await clickText(wrapper, '配置'); await choose('动作', '注册动作 · approve');
+    await flushPromises(); await choose('动作', '注册动作 · approve');
     const input = document.querySelector('[aria-label="输入字段 1 名称"]') as HTMLInputElement;
     input.value = 'memo'; input.dispatchEvent(new Event('input', { bubbles: true })); await flushPromises();
     const radio = [...document.querySelectorAll('.el-radio')].find(item => item.textContent?.trim() === '抽屉')! as HTMLElement;
@@ -57,26 +55,26 @@ describe('按钮配置编辑器', () => {
   });
   it('拒绝空条件组；切换交互后返回保留原输入字段', async () => {
     const initial = { ...button, interaction: { type: 'form', presentation: 'drawer', fields: [{ name: 'memo', label: '备注', type: 'textarea' }] } } as FormListButton;
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '行操作', location: 'row', modelValue: [initial], fields: ['status'] }, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '配置'); await choose('交互', '确认'); await choose('交互', '参数表单');
+    const wrapper = inspect({ buttons: [initial], buttonId: 'edit', fields: ['status'] });
+    await flushPromises(); await choose('交互', '确认'); await choose('交互', '参数表单');
     (wrapper.vm as any).$.setupState.draft.visibleWhen = { op: 'and', conditions: [] };
     (wrapper.vm as any).$.setupState.save(); expect(wrapper.emitted('update')).toBeUndefined();
     (wrapper.vm as any).$.setupState.draft.visibleWhen = undefined; await drawerClick('应用');
     expect((wrapper.emitted('update')!.at(-1)![0] as FormListButton[])[0].interaction).toEqual(initial.interaction); wrapper.unmount();
   });
   it('显示条件可视编辑组合规则并保存重载', async () => {
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '行操作', location: 'row', modelValue: [button], fields: ['status'] }, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '配置'); await choose('显示条件规则', '全部满足');
+    const wrapper = inspect({ buttons: [button], buttonId: 'edit', fields: ['status'] });
+    await flushPromises(); await choose('显示条件规则', '全部满足');
     await drawerClick('添加条件'); await choose('条件字段', 'status');
     await drawerClick('应用');
     const saved = wrapper.emitted('update')!.at(-1)![0] as FormListButton[];
     expect(saved[0].visibleWhen).toEqual({ op: 'and', conditions: [{ field: 'status', op: 'eq', value: '' }] });
-    await wrapper.setProps({ modelValue: JSON.parse(JSON.stringify(saved)) }); await clickText(wrapper, '配置'); await drawerClick('应用');
+    await wrapper.setProps({ buttons: JSON.parse(JSON.stringify(saved)) } as never); await flushPromises(); await drawerClick('应用');
     expect(wrapper.emitted('update')!.at(-1)![0]).toEqual(saved); wrapper.unmount();
   });
-  it('真实抽屉选择导航和字段，应用后重载保留版本绑定，切换再返回不丢草稿', async () => {
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '行操作', location: 'row', modelValue: [button], fields: ['code', 'title'], resources } as never, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '配置');
+  it('真实右栏选择导航和字段，应用后重载保留版本绑定，切换再返回不丢草稿', async () => {
+    const wrapper = inspect({ buttons: [button], buttonId: 'edit', fields: ['code', 'title'], resources });
+    await flushPromises();
     await choose('动作', '站内导航 · customer');
     await choose('参数 code 来源', '当前记录');
     await choose('参数 code 字段', 'code');
@@ -85,14 +83,14 @@ describe('按钮配置编辑器', () => {
     await drawerClick('应用');
     const saved = wrapper.emitted('update')!.at(-1)![0] as FormListButton[];
     expect(saved[0]).toMatchObject({ id: 'edit', action: { type: 'navigate', key: 'customer', capabilityVersion: 'v2' }, permission: 'customer:view', params: { code: { source: 'row', field: 'code' } } });
-    await wrapper.setProps({ modelValue: JSON.parse(JSON.stringify(saved)) });
-    await clickText(wrapper, '配置'); await drawerClick('应用');
+    await wrapper.setProps({ buttons: JSON.parse(JSON.stringify(saved)) } as never);
+    await flushPromises(); await drawerClick('应用');
     expect(wrapper.emitted('update')!.at(-1)![0]).toEqual(saved);
     wrapper.unmount();
   });
   it.each(['row', 'categoryNode', 'toolbar'] as const)('%s 仅提供真实上下文来源，复制与导出可保存', async location => {
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '按钮', location, modelValue: [], fields: ['title'], categoryFields: ['title'] }, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '添加按钮'); await choose('动作', location === 'toolbar' ? '授权导出下载' : '复制字段文本');
+    const wrapper = inspect({ title: '按钮', location, buttons: [], creating: true, fields: ['title'], categoryFields: ['title'] });
+    await flushPromises(); await choose('动作', location === 'toolbar' ? '授权导出下载' : '复制字段文本');
     if (location !== 'toolbar') await choose('参数 text 字段', 'title');
     await drawerClick('应用');
     expect((wrapper.emitted('update')!.at(-1)![0] as FormListButton[])[0]).toMatchObject(location === 'toolbar' ? { action: { type: 'download', key: 'export' } } : { action: { type: 'copy' }, params: { text: { source: location === 'row' ? 'row' : 'category', field: 'title' } } });
@@ -100,24 +98,41 @@ describe('按钮配置编辑器', () => {
   });
   it('未知目录元数据有诊断但应用不静默丢弃参数', async () => {
     const unknown = { ...button, action: { type: 'registered', key: 'missing', capabilityVersion: 'old' }, params: { code: { source: 'row', field: 'code' } } } as FormListButton;
-    const wrapper = mount(Editor, { attachTo: document.body, props: { title: '行操作', location: 'row', modelValue: [unknown], fields: ['code'] }, global: { plugins: [ElementPlus] } });
-    await clickText(wrapper, '配置');
+    const wrapper = inspect({ buttons: [unknown], buttonId: 'edit', fields: ['code'] });
+    await flushPromises();
     expect(document.body.textContent).toContain('未注册、无权限或目录不可用');
     await drawerClick('应用'); expect(wrapper.emitted('update')!.at(-1)![0]).toEqual([unknown]);
     wrapper.unmount();
   });
   it('显示配置编辑不改变稳定动作，空集合与恢复默认分别发出', async () => {
     const wrapper = render(); const state = (wrapper.vm as any).$.setupState;
-    state.edit(0); state.draft.label = '修改'; state.draft.color = 'warning'; state.draft.icon = 'edit'; state.draft.tips = '提示'; state.save();
+    state.draft.label = '修改'; state.draft.color = 'warning'; state.draft.icon = 'edit'; state.draft.tips = '提示'; state.save();
     expect(wrapper.emitted('update')?.[0]?.[0]).toEqual([{ ...button, label: '修改', color: 'warning', icon: 'edit', tips: '提示' }]);
-    const controls = wrapper.findAll('button'); await controls.find(item => item.text() === '全部隐藏')!.trigger('click'); expect(wrapper.emitted('update')?.at(-1)).toEqual([[]]);
-    await controls.find(item => item.text() === '恢复默认')!.trigger('click'); expect(wrapper.emitted('update')?.at(-1)).toEqual([undefined]); wrapper.unmount();
+    wrapper.unmount();
+    // 「全部隐藏 / 恢复默认」两个按钮改为左栏位置块的来源分段切换（全部隐藏 / 继承默认）。
+    const block = mount(Editor, { props: { title: '行操作', location: 'row', modelValue: [button] }, global: { plugins: [ElementPlus] } });
+    const controls = block.findAll('[role="radio"]'); await controls.find(item => item.text() === '全部隐藏')!.trigger('click'); expect(block.emitted('update')?.at(-1)).toEqual([[]]);
+    await controls.find(item => item.text() === '继承默认')!.trigger('click'); expect(block.emitted('update')?.at(-1)).toEqual([undefined]); block.unmount();
   });
   it('可编辑有限字段条件与成功效果，拒绝无效输入字段名', async () => {
     const wrapper = render(); const state = (wrapper.vm as any).$.setupState;
-    state.edit(0); state.setCondition('visibleWhen', 'status');
+    state.setCondition('visibleWhen', 'status');
     expect(state.draft.visibleWhen).toEqual({ field: 'status', op: 'eq', value: '' });
     state.changeInteraction('input'); state.draft.interaction.fields[0].name = 'constructor'; state.save();
     expect(wrapper.emitted('update')).toBeUndefined(); wrapper.unmount();
+  });
+  it('左栏位置块：点击选中、上移/下移/移除与拖拽都整组写回并重排 order', async () => {
+    const block = mount(Editor, { props: { title: '行操作', location: 'row', modelValue: [button, { id: 'view', label: '查看', action: { type: 'builtin', key: 'detail' } }, { id: 'drop', label: '删除', action: { type: 'builtin', key: 'delete' } }] }, global: { plugins: [ElementPlus] } });
+    await block.get('[data-button-id="view"]').trigger('click'); expect(block.emitted('select')?.at(-1)).toEqual(['view']);
+    await block.get('[data-button-id="view"] [aria-label="上移"]').trigger('click');
+    expect((block.emitted('update')!.at(-1)![0] as FormListButton[]).map(item => [item.id, item.order])).toEqual([['view', 0], ['edit', 1], ['drop', 2]]);
+    await block.get('[data-button-id="edit"] [aria-label="下移"]').trigger('click');
+    expect((block.emitted('update')!.at(-1)![0] as FormListButton[]).map(item => item.id)).toEqual(['view', 'edit', 'drop']);
+    await block.get('[data-button-id="edit"] [aria-label="移除"]').trigger('click');
+    expect((block.emitted('update')!.at(-1)![0] as FormListButton[]).map(item => item.id)).toEqual(['view', 'drop']);
+    await block.get('[data-button-id="drop"]').trigger('dragstart'); await block.get('[data-button-id="edit"]').trigger('drop');
+    expect((block.emitted('update')!.at(-1)![0] as FormListButton[]).map(item => [item.id, item.order])).toEqual([['drop', 0], ['edit', 1], ['view', 2]]);
+    await block.findAll('button').find(item => item.text().includes('添加按钮'))!.trigger('click'); expect(block.emitted('add')).toHaveLength(1);
+    block.unmount();
   });
 });

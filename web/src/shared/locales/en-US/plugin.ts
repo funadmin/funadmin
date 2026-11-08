@@ -120,6 +120,7 @@ export default {
     version: 'Version', versionHistory: 'Version Package History', signatureVerified: 'Signature verified',
     redeploy: 'Redeploy', redeployConfirm: 'Redeploy plugin {code} to historical version {version}? The database will not be downgraded automatically.', redeployTitle: 'Redeploy Historical Version',
     purgeRequireCode: 'You must enter the plugin code {code} to purge data',
+    backendReloaded: 'Backend reloaded; the new page will be available shortly', restartRequired: 'Restart the backend service to activate the new API (reason: {reason})',
     devTitle: 'Plugin Development Tools', devTabMaintain: 'Validate/Package', devFieldPlugin: 'Plugin', devFieldName: 'Plugin Code', devFieldTitle: 'Plugin Name', devNamePlaceholder: 'Starts with a lowercase letter; letters and digits only',
     devConfirmCreate: 'Confirm Creation', devCreateSuccess: 'Plugin created, audit ID: {id}', devAuditId: 'Audit ID', devValidateLabel: 'Validate', devValidateSuccess: 'Plugin validation passed', devManifestValid: 'Manifest v2 is valid',
     devPackageSuccess: 'Plugin packaged successfully', devDownloadPackage: 'Download Package', devDownloadPath: 'Download Path', devPlanPath: 'Target File', devSha256: 'SHA-256 Digest',

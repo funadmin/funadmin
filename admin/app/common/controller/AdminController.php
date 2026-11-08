@@ -32,6 +32,14 @@ abstract class AdminController extends BaseController
     /** 列表动作只公开精确协议码，不信任处理器提供的异常文本。 */
     protected function listActionFailure(\Throwable $error): \support\Response
     {
+        // 生成的自定义动作方法桩尚未实现：消息由框架按动作名称构造，可直接展示。
+        if ($error instanceof \app\common\form\action\FormActionNotImplementedException) {
+            return $this->fail(msg: $error->getMessage(), data: ['code' => 'FORM_ACTION_NOT_IMPLEMENTED'], code: 422);
+        }
+        // 处理器主动拒绝：消息由处理器编写，面向操作者展示。
+        if ($error instanceof \app\common\form\action\FormActionUserException) {
+            return $this->fail(msg: $error->getMessage(), data: ['code' => 'FORM_ACTION_USER_ERROR'], code: 422);
+        }
         if (!$error instanceof \InvalidArgumentException) {
             return $this->fail(msg: '服务器内部错误', code: 500);
         }

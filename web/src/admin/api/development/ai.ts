@@ -347,7 +347,7 @@ export const aiDevelopmentApi = {
   makeDefaultProfile: (id: number) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/default`).then(aiRecord),
   copyProfile: (id: number, name: string) => http.post<AiProfile>(`${PREFIX}/profiles/${id}/copy`, { name }).then(aiRecord),
   profileModels: (id: number) => http.post<AiCatalogModel[]>(`${PREFIX}/profiles/${id}/models`),
-  profileModelsPreview: (payload: Partial<AiProfileInput>) => http.post<AiCatalogModel[]>('/development/ai/profiles/models-preview', payload),
+  profileModelsPreview: (payload: Partial<AiProfileInput> & { profile_id?: number | null }) => http.post<AiCatalogModel[]>('/development/ai/profiles/models-preview', payload),
   conversationPage: (params: AiConversationQuery = {}) => http.get<AiPage<AiConversation>>(`${PREFIX}/conversations`, params).then(page => ({ ...page, items: aiRecords(page.items) })),
   messagePage: (id: number, params: AiMessageQuery = {}) => http.get<AiPage<AiMessage>>(`${PREFIX}/conversations/${id}/messages`, params).then(page => ({ ...page, items: aiRecords(page.items) })),
   conversations: () => http.get<AiPage<AiConversation>>(`${PREFIX}/conversations`).then(page => aiRecords(page.items)),

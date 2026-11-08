@@ -50,6 +50,7 @@
           <div class="form-grid">
             <el-form-item :label="t('install.adminUser', '管理员账号')" required><el-input v-model="form.adminUserName" /></el-form-item>
             <el-form-item :label="t('install.adminEmail', '管理员邮箱')" required><el-input v-model="form.email" maxlength="60" /></el-form-item>
+            <el-form-item :label="t('install.adminLoginPath', '后台登录入口')" required><el-input v-model="form.adminLoginPath" placeholder="admin" /></el-form-item>
             <el-form-item :label="t('install.adminPassword', '管理员密码')" required><el-input v-model="form.adminPassword" type="password" show-password autocomplete="new-password" /></el-form-item>
             <el-form-item :label="t('install.confirmPassword', '确认密码')" required><el-input v-model="form.rePassword" type="password" show-password autocomplete="new-password" /></el-form-item>
           </div>
@@ -81,12 +82,15 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import LogoMark from '@/components/LogoMark.vue';
-import { ADMIN_LOGIN_PATH, isWebmanBackend } from '@/config';
+import { adminLoginPath, isWebmanBackend } from '@/config';
 import { installApi, type InstallResult } from '@/api/install';
 import { canContinueInstallation, validateInstallForm, type EnvironmentCheck, type InstallForm } from './install';
 
 const { t } = useI18n();
-const adminLoginUrl = `${import.meta.env.BASE_URL}#${ADMIN_LOGIN_PATH}`;
+const adminLoginUrl = computed(() => {
+  if (result.value?.backend) return result.value.backend;
+  try { return `${import.meta.env.BASE_URL}#${adminLoginPath(form.adminLoginPath)}`; } catch { return `${import.meta.env.BASE_URL}#/admin/login`; }
+});
 
 const active = ref(0);
 const agreed = ref(false);
@@ -96,7 +100,7 @@ const siteName = ref('FunAdmin');
 const siteVersion = ref('');
 const environmentChecks = ref<EnvironmentCheck[]>([]);
 const result = ref<InstallResult>();
-const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', appDebug: false });
+const form = reactive<InstallForm>({ hostname: '127.0.0.1', port: '3306', database: 'funadmin', prefix: 'fun_', username: 'root', password: '', adminUserName: 'admin', adminPassword: '', rePassword: '', email: 'admin@admin.com', adminLoginPath: 'admin', appDebug: false });
 const canNext = computed(() => active.value === 0 ? agreed.value : canContinueInstallation(environmentChecks.value));
 
 const loadEnvironment = async () => {
@@ -104,7 +108,7 @@ const loadEnvironment = async () => {
   environmentChecks.value = [];
   try {
     const data = await installApi.environment();
-    if (data.installed) return location.replace(adminLoginUrl);
+    if (data.installed) return location.replace(data.backend || `${import.meta.env.BASE_URL}#${adminLoginPath()}`);
     siteName.value = data.siteName;
     siteVersion.value = data.siteVersion;
     environmentChecks.value = data.checks;
@@ -139,7 +143,7 @@ const submitInstall = async () => {
 
 const enterAdmin = async () => {
   try { await installApi.finish(); } catch {}
-  location.href = adminLoginUrl;
+  location.href = result.value?.backend || adminLoginUrl.value;
 };
 
 onMounted(loadEnvironment);

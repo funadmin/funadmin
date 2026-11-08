@@ -21,7 +21,7 @@
 
 <h2>Webman 插件开发与部署</h2>
 
-<p>核心 CRUD 生成的 PHP 源码位于 <code>app/admin/generated/{entity}/</code>，前端 API 与页面写入同级 <code>web/src/admin/api/generated/</code> 和 <code>web/src/admin/views/generated/</code>。可通过 <code>PLUGIN_ADMIN_WEB_PATH</code> 指定前端源码根目录；前后端源码须处于同一文件系统，保证文件提交及失败回滚。预览或恢复过程中变更该目录会阻断旧计划，须恢复原配置或重新预览。页面生成后重新构建前端，并 reload Webman 以加载新增控制器。</p>
+<p>核心 CRUD 生成的 PHP 源码位于 <code>app/admin/generated/{entity}/</code>，前端 API 与页面写入同级 <code>web/src/admin/api/generated/</code> 和 <code>web/src/admin/views/generated/</code>。可通过 <code>PLUGIN_ADMIN_WEB_PATH</code> 指定前端源码根目录；前后端源码须处于同一文件系统，保证文件提交及失败回滚。预览或恢复过程中变更该目录会阻断旧计划，须恢复原配置或重新预览。页面生成后重新构建前端。正式生成成功后后端会自动向 Webman 主进程发送 reload 信号以加载新增控制器的注解路由（读取 <code>config/server.php</code> 的 <code>pid_file</code>，需要 posix 扩展）；无法自动重载时生成结果返回 <code>reloadRequested: false</code> 与原因，请手动执行 <code>php start.php reload</code>。</p>
 
 <p>运行 <code>php webman plugin:make demo --title=示例</code> 生成 Manifest v2 插件。源包中的后台目录为 <code>plugins/demo/app/admin/plugins/demo/{layer}</code>，安装到 <code>app/admin/plugins/demo/{layer}</code>，目录与命名空间保持一致。前端源码为 <code>plugins/demo/web/src/admin/modules/demo</code>，静态资源为 <code>plugins/demo/public/plugin-assets/demo/public</code>。完整目录见仓库根目录的 <code>docs/plugins.md</code>。后台路由使用 <code>/admin/plugin/demo</code>，独立应用使用 <code>/demo</code>。</p>
 <p>后台插件控制器继承宿主后台控制器，权限码由控制器与方法自动推导，必须属于当前插件，并在 <code>plugin.json</code> 的 <code>adminWeb.permissions</code> 中声明并安装注册。自定义路由组使用 <code>PluginRoute::adminGroup()</code>，保留登录、权限、CSRF 和激活检查。禁用、忙碌或已卸载插件返回 404，激活清单损坏时返回 503。</p>
@@ -102,6 +102,7 @@ The webman is open-sourced software licensed under the MIT.
 - PHP 迁移：`admin/database/migrations/`，目前只有 `001_baseline.php`（2026-11-07 由 001–037 合并，结构与种子和原链路终态等价，同样剔除停用权限）。末尾按当前代码同步宿主与插件权限，新增控制器方法在全新安装时也会登记。旧文件在 `archive/`，不执行。不与核心 SQL 混用。
 - 插件迁移：CMS 合并为单个 `plugins/cms/database/migrations/001_cms.sql`，内容依次由 `Schema`、`SiteRoleSchema`、`ContributionSchema` 导出。
 - 权限按方法细分的升级工具（`PermissionGrantMigration`、`HostPermissionMigration`、`PermissionMigrationPlan`、`tools/permission-migrations/`）已随基线合并移除；`database/permission-maps/host-per-method.php` 仍保留，供运行时把旧资源路径换算为新权限码。
+- 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限，由 `PermissionTreeService` 在同步权限和插件登记资源后自动整理。管理员手工创建的权限保持原位，被菜单引用的分组不删除。两份基线都已按这个结构整理，并删除了没有对应后台方法的旧格式权限码。
 - 只向前守卫没有白名单：迁移 SQL 中任何 `DROP` / `TRUNCATE` / `RENAME` 都会被拒绝。
 - `CORE_DATABASE_PATH` 可覆盖核心 SQL 的父目录（其下必须有 `migrations/001_baseline.sql`）；未设置时默认 `admin/database/core/`。
 - 在 `admin/` 中执行 `php bin/console.php migrate`。MySQL 使用核心 SQL，其他受支持驱动沿用 PHP 迁移。

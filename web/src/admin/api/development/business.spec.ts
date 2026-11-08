@@ -1,12 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), download: vi.fn() }));
+const httpMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn(), download: vi.fn(), downloadPost: vi.fn() }));
 vi.mock('@/utils/http', () => ({ default: httpMocks }));
 
 import { businessDevelopmentApi, isBusinessApiError } from './business';
 
 describe('businessDevelopmentApi', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('modules 透传生成目标筛选 target', async () => {
+    httpMocks.get.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
+    await businessDevelopmentApi.modules({ page: 1, pageSize: 20, target: 'plugin' });
+    expect(httpMocks.get).toHaveBeenCalledWith('/development/business/modules', { page: 1, pageSize: 20, target: 'plugin' });
+  });
+
+  it('removeModule 默认提示成功与失败，批量删除可关闭逐条提示', async () => {
+    httpMocks.delete.mockResolvedValue({ removed: 1 });
+    await businessDevelopmentApi.removeModule(5);
+    expect(httpMocks.delete).toHaveBeenLastCalledWith('/development/business/modules/5', undefined, { requestOptions: { showSuccessMsg: true, showErrorMsg: true } });
+    await businessDevelopmentApi.removeModule(6, { showSuccessMsg: false, showErrorMsg: false });
+    expect(httpMocks.delete).toHaveBeenLastCalledWith('/development/business/modules/6', undefined, { requestOptions: { showSuccessMsg: false, showErrorMsg: false } });
+  });
 
   it('读取服务端目标候选与默认连接，不使用插件中心列表替代', async () => {
     const response = { list: [{ type: 'plugin', pluginCode: 'demo', name: '演示', scope: 'console' }], defaultConnection: 'mysql', migrationPath: 'database/migrations' };
@@ -46,12 +60,23 @@ describe('businessDevelopmentApi', () => {
     expect(httpMocks.post).toHaveBeenCalledWith('/development/business/modules/12/schema/database-sync');
   });
 
-  it('formalGenerationArchive 以 GET 下载 zip Blob', async () => {
+  it('formalGenerationArchive 以带 CSRF 的 POST 下载 zip Blob，并透传预览 nonce', async () => {
     const blob = new Blob(['zip'], { type: 'application/zip' });
-    httpMocks.download.mockResolvedValue(blob);
-    expect(await businessDevelopmentApi.formalGenerationArchive(12)).toBe(blob);
-    expect(httpMocks.download).toHaveBeenCalledWith('/development/business/modules/12/formal-generation/archive');
-    expect(httpMocks.post).not.toHaveBeenCalled();
+    httpMocks.downloadPost.mockResolvedValue(blob);
+    expect(await businessDevelopmentApi.formalGenerationArchive(12, 'nonce-1')).toBe(blob);
+    expect(httpMocks.downloadPost).toHaveBeenCalledWith(
+      '/development/business/modules/12/formal-generation/archive',
+      { nonce: 'nonce-1' },
+      { requestOptions: { showErrorMsg: false } }
+    );
+    expect(httpMocks.download).not.toHaveBeenCalled();
+  });
+
+  it('adoptResolvedBaseline 按模块 POST 采纳已解决的 conflict-no-base 文件', async () => {
+    httpMocks.post.mockResolvedValue({ adopted: true });
+    const input = { generationId: 42, path: 'app/a.php', localHash: 'a'.repeat(64), remoteHash: 'a'.repeat(64) };
+    expect(await businessDevelopmentApi.adoptResolvedBaseline(12, input)).toEqual({ adopted: true });
+    expect(httpMocks.post).toHaveBeenCalledWith('/development/business/modules/12/baselines/adopt-resolved', input);
   });
 
   it('识别统一响应中的结构化安全错误', () => {

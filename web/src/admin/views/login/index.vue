@@ -176,7 +176,7 @@ import { useI18n } from 'vue-i18n';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { authApi } from '@/api/auth';
-import { APP_CONFIG, ADMIN_HOME_PATH, isMockModeEnabled } from '@/config';
+import { APP_CONFIG, ADMIN_HOME_PATH, adminLoginEntryFromRoute, isMockModeEnabled } from '@/config';
 import Captcha from '@/components/Captcha/index.vue';
 import LogoMark from '@/components/LogoMark.vue';
 
@@ -196,6 +196,7 @@ const loading = ref(false);
 const captchaEnabled = ref(false);
 // 演示账号只存在于 Mock 数据；真实环境密码由安装向导设置（须含字母和数字），不可预填或提示。
 const mockMode = isMockModeEnabled();
+const loginEntry = computed(() => adminLoginEntryFromRoute(route.path));
 
 const form = reactive({
   username: 'admin',
@@ -211,7 +212,7 @@ const rules = computed<FormRules>(() => ({
 }));
 
 onMounted(async () => {
-  try { captchaEnabled.value = (await authApi.csrf()).captchaEnabled; } catch { captchaEnabled.value = false; }
+  try { captchaEnabled.value = (await authApi.csrf(loginEntry.value)).captchaEnabled; } catch { captchaEnabled.value = false; }
 });
 
 async function onSubmit() {
@@ -225,7 +226,7 @@ async function onSubmit() {
       password: form.password,
       captcha: form.captcha,
       remember: form.remember
-    });
+    }, loginEntry.value);
     const redirect = (route.query.redirect as string) || ADMIN_HOME_PATH;
     router.replace(redirect);
   } catch {

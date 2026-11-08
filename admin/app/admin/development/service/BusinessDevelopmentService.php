@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\development\service;
 
+use app\common\service\runtime\WorkerReloader;
 use app\common\crud\CrudDefinition;
 use app\common\form\action\FormActionRegistry;
 use app\common\form\action\ListResourceRegistry;
@@ -33,7 +34,8 @@ final class BusinessDevelopmentService
         private readonly FormDataService $data,
         private readonly DevCrudService $crud,
         private readonly FieldCapabilityRegistry $fieldCapabilities,
-        private readonly ?BusinessTargetService $targetService = null
+        private readonly ?BusinessTargetService $targetService = null,
+        private readonly ?WorkerReloader $reloader = null
     ) {
     }
 
@@ -59,11 +61,12 @@ final class BusinessDevelopmentService
         return ($this->targetService ?? new BusinessTargetService(base_path(), (string) config('database.default', 'mysql')))->candidates();
     }
 
-    public function modules(int $page, int $pageSize, string $keyword, string $status, string $origin): array
+    public function modules(int $page, int $pageSize, string $keyword, string $status, string $origin, string $target = ''): array
     {
         self::assertEnum($status, ['', 'draft', 'published', 'dynamic_published', 'disabled'], 'status');
         self::assertEnum($origin, ['', 'visual', 'database'], 'origin');
-        return $this->modules->listing($page, $pageSize, $keyword, $status, $origin);
+        self::assertEnum($target, ['', 'core', 'plugin'], 'target');
+        return $this->modules->listing($page, $pageSize, $keyword, $status, $origin, $target);
     }
 
     public function module(int $id): array
@@ -232,7 +235,7 @@ final class BusinessDevelopmentService
             throw new InvalidArgumentException('业务模块表单不存在');
         }
         $merged = array_replace((array) ($form->publish_config ?? []), $config);
-        $form->save(['publish_config' => $merged]);
+        $form->fill(['publish_config' => $merged])->save();
         return ['publishConfig' => (object) $merged];
     }
 
@@ -409,7 +412,24 @@ final class BusinessDevelopmentService
         self::assertPositiveId($generationId);
         $this->assertFormalGenerationInput($input);
         if ($confirmToken === '' || strlen($confirmToken) > 2048) throw new InvalidArgumentException('confirmToken 不合法');
-        return $this->managed->execute($moduleId, $generationId, $confirmToken);
+        $targetType = $this->modules->designTarget($moduleId);
+        $result = $this->managed->execute($moduleId, $generationId, $confirmToken);
+        return self::withWorkerReload($result, $targetType, $this->reloader ?? WorkerReloader::production(), ($input['deferReload'] ?? false) === true);
+    }
+
+    /**
+     * 核心目标正式生成成功后请求平滑重载 worker：新控制器的注解路由只在 worker 启动时注册。
+     * 插件目标由插件安装/启用生命周期激活，不重载。重载不可用时返回 reloadRequested=false 与原因，不影响生成结果。
+     * 批量生成时除最后一个模块外都传 deferReload：Workerman 重载进行中会忽略新的重载信号，逐个重载可能漏掉后续模块的路由。
+     */
+    public static function withWorkerReload(array $result, string $targetType, WorkerReloader $reloader, bool $deferReload = false): array
+    {
+        $reload = match (true) {
+            $targetType !== 'core' => ['requested' => false, 'reason' => 'plugin_target'],
+            $deferReload => ['requested' => false, 'reason' => 'deferred'],
+            default => $reloader->reload(),
+        };
+        return $result + ['reloadRequested' => $reload['requested'], 'reloadReason' => $reload['reason']];
     }
 
     public function generations(int $page, int $pageSize, int $moduleId, string $status): array
@@ -588,6 +608,9 @@ final class BusinessDevelopmentService
         ));
         if ($unsupported !== []) {
             throw new BusinessOperationException('UNSUPPORTED_GENERATION_INPUT', ['fields' => $unsupported]);
+        }
+        if (array_key_exists('deferReload', $input) && !is_bool($input['deferReload'])) {
+            throw new InvalidArgumentException('deferReload 不合法');
         }
     }
 

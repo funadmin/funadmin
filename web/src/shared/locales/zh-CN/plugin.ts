@@ -17,6 +17,7 @@ export default {
     installConfirm: '确认安装发现目录中的插件 {code} 吗？', installTitle: '安装确认', marketInstallConfirm: '确认安装插件 {code} {version} 吗？',
     uninstallConfirm: '确认卸载插件 {code} 吗？业务数据与配置将保留。', uninstallTitle: '卸载确认',
     purgePrompt: '此操作仅清除插件业务数据，不卸载插件。请输入插件标识 {code} 二次确认', purgeTitle: '危险操作', purgeRequireCode: '彻底清理数据时必须输入插件标识 {code}',
+    backendReloaded: '后端已重新加载，新页面稍后可用', restartRequired: '请重启后端服务使新接口生效（原因：{reason}）',
     deleteConfirm: '确认删除本地插件包 {code} 吗？', deleteTitle: '删除确认',
     capManifest: '清单协议 v{v}', capNative: '原生应用包', capOther: '其他格式包', capNone: '无应用能力', capSigned: 'Ed25519 签名', capSignedBy: '{alg} 签名', capUnsigned: '未签名', capDb: '数据库 {v}', capDbNone: '数据库无迁移要求',
     noAutoUpdate: '当前版本不允许自动更新',

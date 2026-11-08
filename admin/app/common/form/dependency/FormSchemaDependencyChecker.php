@@ -35,7 +35,7 @@ final class FormSchemaDependencyChecker
             }
         }
         $this->checkActions((array) ($schema['actions'] ?? []), '/actions', $diagnostics, $dependencies);
-        $this->checkListButtons((array) ($schema['list']['buttons'] ?? []), $diagnostics, $dependencies, $listHost);
+        $this->checkListButtons((array) ($schema['list']['buttons'] ?? []), $diagnostics, $dependencies, $listHost, \app\common\form\action\CustomActions::fromSchema($schema));
         return [
             'diagnostics' => $diagnostics,
             'dependencyHash' => hash('sha256', CrudDefinition::canonicalJson($dependencies)),
@@ -43,7 +43,12 @@ final class FormSchemaDependencyChecker
     }
 
     /** 未完成宿主授权与发布绑定的能力不能借旧 request 入口发布。 */
-    private function checkListButtons(array $collections, array &$diagnostics, array &$dependencies, string $host): void
+    /**
+     * @param array<string, array> $customActions 本 Schema 声明的自定义动作（注册键 → 描述）。
+     *        正式生成会按它产生注册定义，因此核心宿主以 Schema 元数据为准校验绑定；
+     *        动态宿主上尚未生成的自定义动作不阻断发布，运行时目录缺少该键时按钮禁用。
+     */
+    private function checkListButtons(array $collections, array &$diagnostics, array &$dependencies, string $host, array $customActions = []): void
     {
         foreach ($collections as $location => $buttons) {
             foreach ((array) $buttons as $index => $button) {
@@ -70,7 +75,8 @@ final class FormSchemaDependencyChecker
                 }
                 if ($type === 'registered') {
                     $key = (string) ($action['key'] ?? '');
-                    $definition = $this->actions->definitions()[$key] ?? null;
+                    $custom = in_array($host, ['core-dynamic', 'core-generated'], true) ? ($customActions[$key] ?? null) : null;
+                    $definition = $custom ?? $this->actions->definitions()[$key] ?? null;
                     if ($definition === null) {
                         $this->diagnostic($diagnostics, $path . '/action/key', 'FORM_ACTION_NOT_REGISTERED', '列表动作未注册：' . $key);
                         continue;
@@ -86,13 +92,30 @@ final class FormSchemaDependencyChecker
                         }
                     }
                     $target = match ($location) { 'row' => 'record', 'toolbar' => 'selection', 'categoryNode' => 'category', 'categoryToolbar' => 'none', default => '' };
-                    $contract = isset($this->actions->listCatalog(static fn (): bool => true, (string) $location, $target)[$key])
+                    $catalog = $custom === null ? $this->actions->listCatalog(static fn (): bool => true, (string) $location, $target)
+                        : (new FormActionRegistry([$key => $custom + ['handler' => static fn (): null => null]]))->listCatalog(static fn (): bool => true, (string) $location, $target);
+                    $missing = array_values(array_diff($definition['parameters'], array_keys((array) ($button['params'] ?? []))));
+                    $contract = isset($catalog[$key])
                         && ($location !== 'toolbar' || $definition['batch'])
-                        && !array_diff($definition['parameters'], array_keys((array) ($button['params'] ?? [])));
+                        && $missing === [];
                     $ready = in_array($host, ['core-dynamic', 'core-generated'], true) && $contract && is_callable($this->listAdapterReady) && ($this->listAdapterReady)();
                     $dependencies['listActions'][$key] = $definition;
                     $dependencies['listHost'] = ['host' => $host, 'ready' => $ready, 'version' => '2'];
                     if ($ready) continue;
+                    // 尚未正式生成的自定义动作：动态运行时按钮禁用并提示，不阻断动态发布。
+                    if ($custom !== null && $host === 'core-dynamic' && !isset($this->actions->definitions()[$key])) {
+                        $dependencies['pendingCustomActions'][$key] = true;
+                        continue;
+                    }
+                    // 动作参数改动后按钮未同步绑定：逐个指明按钮与缺失参数，而不是笼统的宿主适配错误。
+                    if ($missing !== [] && in_array($host, ['core-dynamic', 'core-generated'], true)) {
+                        $name = (string) ($button['label'] ?? $button['id'] ?? $index);
+                        foreach ($missing as $parameter) {
+                            $this->diagnostic($diagnostics, $path . '/params/' . $this->escape((string) $parameter), 'FORM_ACTION_PARAMETER_MISSING',
+                                '按钮「' . $name . '」未绑定动作参数：' . $parameter . '（动作 ' . $key . ' 新增了该参数，请在按钮的参数绑定中补充）');
+                        }
+                        continue;
+                    }
                 }
                 if (!empty($button['params']) || in_array($type, ['registered', 'navigate', 'external', 'download', 'copy'], true)) {
                     $this->diagnostic($diagnostics, $path . '/action', 'FORM_LIST_ACTION_ADAPTER_UNAVAILABLE', '该列表动作尚无完整的安全宿主适配，禁止发布');

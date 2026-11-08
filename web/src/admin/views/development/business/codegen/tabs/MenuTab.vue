@@ -1,5 +1,5 @@
 <template>
-  <el-form class="codegen-menu" label-width="108px" @submit.prevent>
+  <el-form class="codegen-menu" label-width="auto" @submit.prevent>
     <el-form-item data-menu="menuEnabled" :label="t('business.codegen.edit.menuEnabled', '生成菜单')">
       <el-switch :model-value="publish.menuEnabled" @update:model-value="(value: unknown) => emitPublish({ menuEnabled: Boolean(value) })" />
     </el-form-item>
@@ -57,6 +57,10 @@ const emitPublish = (patch: Partial<FormPublishConfig>) => emit('update:publish'
 .codegen-menu {
   max-width: 760px;
   padding: 4px 4px 8px;
+}
+
+.codegen-menu :deep(.el-form-item__label) {
+  white-space: nowrap;
 }
 
 .codegen-menu__codes {

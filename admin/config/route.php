@@ -17,6 +17,12 @@ use Webman\Route;
 Route::disableDefaultRoute();
 Route::get('/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
 Route::get('/admin/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
+// 默认入口保持兼容；自定义入口由 AdminAuth 的动态路由承载，入口不匹配时控制器返回 404。
+Route::get('/admin/auth/csrf', [\app\admin\authentication\controller\AdminAuth::class, 'csrf']);
+Route::post('/admin/auth/login', [\app\admin\authentication\controller\AdminAuth::class, 'login']);
+Route::get('/admin/auth/me', [\app\admin\authentication\controller\AdminAuth::class, 'me']);
+Route::get('/admin/auth/menus', [\app\admin\authentication\controller\AdminAuth::class, 'menus']);
+Route::post('/admin/auth/logout', [\app\admin\authentication\controller\AdminAuth::class, 'logout']);
 Route::group('/api/v2', static function (): void {
     Route::post('/token', [\app\api\controller\v2\Token::class, 'build']);
     Route::post('/token/refresh', [\app\api\controller\v2\Token::class, 'refresh']);

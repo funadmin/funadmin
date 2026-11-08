@@ -5,13 +5,20 @@ import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
 import { checkPermission } from '@/utils/permission';
 import { memberSession } from '@/web/session/memberSession';
-import { APP_CONFIG, ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, MEMBER_LOGIN_PATH, ROUTE_WHITELIST, isWebmanBackend } from '@/config';
+import { APP_CONFIG, ADMIN_HOME_PATH, ADMIN_LOGIN_PATH, ADMIN_ROUTE_PREFIX, MEMBER_LOGIN_PATH, ROUTE_WHITELIST, adminLoginPath, getAdminLoginEntry, isWebmanBackend } from '@/config';
 import { isSystemInstalled } from '@/api/install';
 import { i18n } from '@/locales';
 import { loadPluginModulesSafely } from '@/router/pluginStartup';
 
-const LOGIN_PATH = ADMIN_LOGIN_PATH;
 const HOME_PATH = ADMIN_HOME_PATH;
+
+function isAdminLoginRoute(to: RouteLocationNormalized): boolean {
+  return to.name === 'Login' || to.name === 'LoginDynamic';
+}
+
+function loginPathFor(to: RouteLocationNormalized): string {
+  return typeof to.params.loginEntry === 'string' ? adminLoginPath(to.params.loginEntry) : adminLoginPath(getAdminLoginEntry());
+}
 
 function translateRouteTitle(to: RouteLocationNormalized): string {
   const name = to.name != null ? String(to.name) : '';
@@ -35,10 +42,11 @@ export function setupRouterGuard(router: Router) {
       return next({ path: MEMBER_LOGIN_PATH, query: { redirect: to.fullPath } });
     }
     if (to.meta.public) return next();
-    if (to.path === LOGIN_PATH && isWebmanBackend() && !(await isSystemInstalled())) {
+    const loginPath = loginPathFor(to);
+    if (isAdminLoginRoute(to) && isWebmanBackend() && !(await isSystemInstalled())) {
       return next({ path: `${ADMIN_ROUTE_PREFIX}/install`, replace: true });
     }
-    if (to.path === LOGIN_PATH && isWebmanBackend() && !userStore.isLoggedIn) {
+    if (isAdminLoginRoute(to) && isWebmanBackend() && !userStore.isLoggedIn) {
       try {
         await userStore.fetchUserInfo(true);
       } catch {
@@ -46,10 +54,10 @@ export function setupRouterGuard(router: Router) {
       }
     }
     if (!userStore.isLoggedIn) {
-      if (ROUTE_WHITELIST.includes(to.path)) return next();
-      return next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });
+      if (ROUTE_WHITELIST.includes(to.path) || isAdminLoginRoute(to)) return next();
+      return next({ path: loginPath, query: { redirect: to.fullPath } });
     }
-    if (to.path === LOGIN_PATH) return next({ path: HOME_PATH });
+    if (isAdminLoginRoute(to)) return next({ path: HOME_PATH });
     const hasRoutePermission = (permission: unknown): boolean => {
       if (!permission) return true;
       const required = Array.isArray(permission) ? permission.map(String) : [String(permission)];
@@ -84,7 +92,7 @@ export function setupRouterGuard(router: Router) {
       ElMessage.error(e?.message || (i18n.global.t('common.fetchPermissionFailed') as string));
       userStore.resetState();
       permissionStore.reset();
-      next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });
+      next({ path: loginPath, query: { redirect: to.fullPath } });
     }
   });
 

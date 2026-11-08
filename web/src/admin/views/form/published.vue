@@ -70,7 +70,7 @@ import type { PageSchema } from '@/components/DataTable/pageSchema';
 import ListButtonBar from './components/ListButtonBar.vue';
 import FormDataImportDialog from './components/FormDataImportDialog.vue';
 import { resolveListButtons } from './schema/listButtons';
-import { provideListButtonAdapter, defaultListButtons, listActionKey, type ListButtonHandlers } from './runtime/listButtonHost';
+import { provideListButtonAdapter, defaultListButtons, listActionKey, declaredCustomActionButton, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
 import type { FormListButton } from './schema/types';
 import { formatFieldValue, resolveFieldOptions, useSuppliedFieldOptions, presentationNodes, isDynamicFieldOptions } from './runtime/fieldPresentation';
@@ -181,7 +181,7 @@ const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'pu
     ...(toolbarButtons.value.some(button => button.action.type === 'registered' || listActionKey(button) === 'batchDelete') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
     { key: 'primary', prop: primaryKey.value, label: 'ID', width: 100, sortable: true },
     ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
-    ...(rowButtons.value.some(button => !button.hidden && buttonAllowed(button)) ? [{ key: 'actions', label: t('common.operation', '操作'), slot: 'actions', width: 180, fixed: 'right' as const }] : [])
+    ...(rowButtons.value.some(button => !button.hidden && (buttonAllowed(button) || declaredCustomActionButton(button, meta.value?.schema))) ? [{ key: 'actions', label: t('common.operation', '操作'), slot: 'actions', width: 180, fixed: 'right' as const }] : [])
   ], pagination: { pageSize: 20, pageSizes: [10, 20, 50, 100], enabled: !treeEnabled.value }
 }));
 watch(() => JSON.stringify([filters, query, leftSelection.value]), clearSelection, { flush: 'sync' });

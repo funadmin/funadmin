@@ -64,6 +64,10 @@
           "type": "object", "additionalProperties": false,
           "properties": { "enabled": { "type": "boolean" }, "parentField": { "type": "string" } },
           "allOf": [{ "if": { "required": ["enabled"], "properties": { "enabled": { "const": true } } }, "then": { "required": ["parentField"] } }]
+        },
+        "customActions": {
+          "description": "可选；缺省或空数组时不进入 canonical 文档，生成结果与哈希不变。非空时 generationTargets/templates 必须声明 customActions 与 customActionsConfig，插件目标拒绝。",
+          "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/customAction" }
         }
       }
     },
@@ -72,7 +76,27 @@
   "$defs": {
     "coreTarget": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "core" } } },
     "pluginTarget": { "type": "object", "additionalProperties": false, "required": ["type", "plugin", "scope"], "properties": { "type": { "const": "plugin" }, "plugin": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" }, "scope": { "enum": ["application", "admin", "both"] } } },
-    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },
+    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn", "memberApiController", "customActions", "customActionsConfig"] },
+    "customAction": {
+      "description": "设计器新建的列表自定义动作。正式生成（仅核心目标）产生 action/{Class}Actions.php 方法桩、config/actions.php 注册清单（键 generated.{entity}.{key}）与权限 generated:{entity}:action-{kebab(key)}。",
+      "type": "object", "additionalProperties": false,
+      "required": ["key", "label", "locations", "batch", "requiresConfirmation", "effect", "parameters"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,40}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "locations": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["row", "toolbar"] } },
+        "batch": { "type": "boolean", "description": "仅 toolbar 位置可为 true" },
+        "requiresConfirmation": { "type": "boolean" },
+        "effect": { "enum": ["write", "read"] },
+        "parameters": {
+          "type": "array", "maxItems": 5,
+          "items": { "type": "object", "additionalProperties": false, "required": ["name", "type"], "properties": {
+            "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+            "type": { "enum": ["string", "integer", "number", "boolean"] }
+          } }
+        }
+      }
+    },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
     "templatePath": { "type": "string", "pattern": "^(admin|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
     "artifacts": { "type": "object", "propertyNames": { "anyOf": [{ "$ref": "#/$defs/artifactNames" }, { "pattern": "^relationModel:[A-Z][A-Za-z0-9]*$" }] }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn"] },

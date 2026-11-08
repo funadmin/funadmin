@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { onBeforeRouteLeave } from 'vue-router';
@@ -171,7 +172,7 @@ function jumpTo(index: number) {
       </div>
       <div class="doc-list-count">{{ t('pluginDocument.count', { n: store.total }) }}</div>
       <DocumentList :documents="store.documents" :current-id="store.current?.id ?? null" :loading="store.loadingList" @open="open" />
-      <el-pagination
+      <TablePagination
         v-if="store.total > store.query.pageSize"
         small layout="prev, pager, next" :total="store.total" :page-size="store.query.pageSize" :current-page="store.query.page"
         @current-change="(p: number) => store.loadList({ page: p })"

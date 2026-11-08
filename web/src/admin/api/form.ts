@@ -151,6 +151,8 @@ export interface FormDefinition {
   schema_version?: number;
   schema_document?: FormSchemaDocument | null;
   schema_hash?: string | null;
+  /** 最近一次（动态）发布的 Schema hash；核心目标正式生成读取该版本。 */
+  published_schema_hash?: string | null;
   schema_origin?: FormSchemaOrigin;
   publish_config?: Partial<FormPublishConfig> | null;
   publish_status?: FormPublishStatus;

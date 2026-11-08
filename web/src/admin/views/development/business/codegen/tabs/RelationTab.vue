@@ -4,6 +4,12 @@
       <el-button size="small" plain type="primary" data-action="add-relation" @click="addRow">{{ t('business.codegen.edit.addRelation', '＋ 新增关联') }}</el-button>
     </div>
     <el-alert class="codegen-relations__note" type="info" :closable="false" :title="t('business.codegen.edit.relationsNote', 'hasOne、hasMany、belongsToMany 只影响正式生成的模型代码，动态发布与运行时不使用；belongsTo 与字段的「关联数据」控件是同一份配置。')" />
+    <el-alert v-if="catalog.tablesState.value === 'error'" data-testid="relation-tables-error" class="codegen-relations__note" type="warning" :closable="false" :title="t('business.codegen.edit.relationTablesFailed', { msg: catalog.tablesError.value }, '数据表加载失败：{msg}')">
+      <el-button link type="primary" size="small" data-action="relation-retry-tables" @click="catalog.loadTables(true)">{{ t('business.codegen.edit.relationRetry', '重试') }}</el-button>
+    </el-alert>
+    <el-alert v-if="columnErrors.length" data-testid="relation-columns-error" class="codegen-relations__note" type="warning" :closable="false" :title="t('business.codegen.edit.relationColumnsFailed', { tables: columnErrors.map((item) => `${item.table}（${item.error}）`).join('、') }, '字段加载失败：{tables}')">
+      <el-button link type="primary" size="small" data-action="relation-retry-columns" @click="retryColumns">{{ t('business.codegen.edit.relationRetry', '重试') }}</el-button>
+    </el-alert>
     <el-alert v-if="error" data-testid="relation-error" class="codegen-relations__note" type="warning" :closable="false" :title="t('business.codegen.edit.relationPending', { msg: error }, '关联尚未写入：{msg}')" />
 
     <div class="codegen-relations__scroll">
@@ -30,7 +36,10 @@
               <td data-col="foreignField">{{ row.foreignField || '—' }}</td>
               <td>—</td>
               <td>—</td>
-              <td><el-button link type="primary" data-action="relation-open-designer" @click="emit('open-designer')">{{ t('business.codegen.edit.subformInDesigner', '子表单，在设计器中编辑') }}</el-button></td>
+              <td>
+                <span v-if="hideDesignerLink" class="codegen-relations__ro">{{ t('business.codegen.edit.subformInDesignerHere', '子表单，请在画布中编辑') }}</span>
+                <el-button v-else link type="primary" data-action="relation-open-designer" @click="emit('open-designer')">{{ t('business.codegen.edit.subformInDesigner', '子表单，在设计器中编辑') }}</el-button>
+              </td>
             </template>
             <template v-else>
               <td data-col="type">
@@ -42,22 +51,50 @@
                 <template v-if="row.origin === 'field'">{{ row.name || '—' }}</template>
                 <el-input v-else size="small" :model-value="row.name" @update:model-value="(value: string) => update(row, { name: value })" />
               </td>
-              <td data-col="table"><el-input size="small" :model-value="row.table" @update:model-value="(value: string) => update(row, { table: value })" /></td>
+              <td data-col="table">
+                <div class="codegen-relations__cell">
+                  <el-select size="small" filterable :allow-create="false" :loading="tablesLoading" :placeholder="t('business.codegen.edit.relationTablePlaceholder', '选择数据表')" :model-value="row.table" @update:model-value="(value: unknown) => changeTable(row, text(value))">
+                    <el-option v-for="option in tableOptions(row.table)" :key="option.value" :label="option.label" :value="option.value" />
+                  </el-select>
+                  <el-tag v-if="tableMissing(row.table)" data-missing size="small" type="warning" effect="light">{{ t('business.codegen.edit.tableMissing', '表不存在') }}</el-tag>
+                </div>
+              </td>
               <td data-col="localField">
                 <el-select size="small" filterable :model-value="row.localField" @update:model-value="(value: unknown) => update(row, { localField: String(value) })">
                   <el-option v-for="field in localFieldOptions(row)" :key="field" :label="field" :value="field" />
                 </el-select>
               </td>
-              <td data-col="foreignField"><el-input size="small" :model-value="row.foreignField" @update:model-value="(value: string) => update(row, { foreignField: value })" /></td>
+              <td data-col="foreignField">
+                <div class="codegen-relations__cell">
+                  <el-select size="small" filterable clearable :allow-create="false" :loading="columnsLoading(row.table)" :placeholder="t('business.codegen.edit.relationFieldPlaceholder', '选择字段')" :model-value="row.foreignField" @update:model-value="(value: unknown) => update(row, { foreignField: text(value) })">
+                    <el-option v-for="option in columnOptions(row.table, row.foreignField)" :key="option.value" :label="option.label" :value="option.value" />
+                  </el-select>
+                  <el-tag v-if="fieldMissing(row.table, row.foreignField)" data-missing size="small" type="warning" effect="light">{{ t('business.codegen.edit.fieldMissing', '字段不存在') }}</el-tag>
+                </div>
+              </td>
               <td data-col="labelField">
-                <el-input v-if="row.origin === 'field'" size="small" :model-value="row.labelField" @update:model-value="(value: string) => update(row, { labelField: value })" />
+                <div v-if="row.origin === 'field'" class="codegen-relations__cell">
+                  <el-select size="small" filterable clearable :allow-create="false" :loading="columnsLoading(row.table)" :placeholder="t('business.codegen.edit.relationFieldPlaceholder', '选择字段')" :model-value="row.labelField" @update:model-value="(value: unknown) => update(row, { labelField: text(value) })">
+                    <el-option v-for="option in columnOptions(row.table, row.labelField ?? '')" :key="option.value" :label="option.label" :value="option.value" />
+                  </el-select>
+                  <el-tag v-if="fieldMissing(row.table, row.labelField ?? '')" data-missing size="small" type="warning" effect="light">{{ t('business.codegen.edit.fieldMissing', '字段不存在') }}</el-tag>
+                </div>
                 <span v-else>—</span>
               </td>
               <td data-col="pivot">
                 <div v-if="row.type === 'belongsToMany'" class="codegen-relations__pivot">
-                  <el-input size="small" data-pivot="table" :placeholder="t('business.codegen.edit.pivotTable', '中间表')" :model-value="row.pivot?.table" @update:model-value="(value: string) => updatePivot(row, { table: value })" />
-                  <el-input size="small" data-pivot="localKey" :placeholder="t('business.codegen.edit.pivotLocalKey', '指向本表的列')" :model-value="row.pivot?.localKey" @update:model-value="(value: string) => updatePivot(row, { localKey: value })" />
-                  <el-input size="small" data-pivot="foreignKey" :placeholder="t('business.codegen.edit.pivotForeignKey', '指向对方表的列')" :model-value="row.pivot?.foreignKey" @update:model-value="(value: string) => updatePivot(row, { foreignKey: value })" />
+                  <div class="codegen-relations__cell">
+                    <el-select size="small" filterable :allow-create="false" data-pivot="table" :loading="tablesLoading" :placeholder="t('business.codegen.edit.pivotTable', '中间表')" :model-value="row.pivot?.table" @update:model-value="(value: unknown) => changePivotTable(row, text(value))">
+                      <el-option v-for="option in tableOptions(row.pivot?.table ?? '')" :key="option.value" :label="option.label" :value="option.value" />
+                    </el-select>
+                    <el-tag v-if="tableMissing(row.pivot?.table ?? '')" data-missing size="small" type="warning" effect="light">{{ t('business.codegen.edit.tableMissing', '表不存在') }}</el-tag>
+                  </div>
+                  <div v-for="key in PIVOT_KEYS" :key="key" class="codegen-relations__cell">
+                    <el-select size="small" filterable clearable :allow-create="false" :data-pivot="key" :loading="columnsLoading(row.pivot?.table ?? '')" :placeholder="key === 'localKey' ? t('business.codegen.edit.pivotLocalKey', '指向本表的列') : t('business.codegen.edit.pivotForeignKey', '指向对方表的列')" :model-value="row.pivot?.[key]" @update:model-value="(value: unknown) => updatePivot(row, { [key]: text(value) })">
+                      <el-option v-for="option in columnOptions(row.pivot?.table ?? '', row.pivot?.[key] ?? '')" :key="option.value" :label="option.label" :value="option.value" />
+                    </el-select>
+                    <el-tag v-if="fieldMissing(row.pivot?.table ?? '', row.pivot?.[key] ?? '')" data-missing size="small" type="warning" effect="light">{{ t('business.codegen.edit.fieldMissing', '字段不存在') }}</el-tag>
+                  </div>
                 </div>
                 <span v-else>—</span>
               </td>
@@ -72,13 +109,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FormSchemaDocument } from '@/views/form/schema/types';
+import type { RelationCatalog } from '../relationCatalog';
 import { applyRelationRows, schemaToRelationRows, type RelationRow } from '../relationTable';
 import { schemaFieldNodes } from '../schemaFields';
 
-const props = defineProps<{ doc: FormSchemaDocument }>();
+// catalog：宿主弹窗按模块连接创建并在每次打开时重置，页签重建（保存后按 key 重新挂载）时复用缓存。
+const props = defineProps<{ doc: FormSchemaDocument; catalog: RelationCatalog; hideDesignerLink?: boolean }>();
 const emit = defineEmits<{ 'update:doc': [doc: FormSchemaDocument]; 'update:pending': [pending: boolean]; 'open-designer': [] }>();
 
 const { t } = useI18n();
@@ -164,6 +203,76 @@ const changeType = (row: DraftRow, type: RelationRow['type']) => {
   commit();
 };
 
+// ---- 关联表与字段目录：只能选择数据库中存在的表与列；已保存但已不存在的值保留显示并标记 ----
+type PivotKey = 'localKey' | 'foreignKey';
+const PIVOT_KEYS: PivotKey[] = ['localKey', 'foreignKey'];
+type Option = { value: string; label: string };
+const text = (value: unknown): string => (value === undefined || value === null ? '' : String(value));
+const { catalog } = props;
+const tablesLoading = computed(() => catalog.tablesState.value === 'loading');
+const tableOptions = (current: string): Option[] => {
+  const options = catalog.tables.value.map((table) => ({ value: table.name, label: table.comment ? `${table.name} — ${table.comment}` : table.name }));
+  return current && !options.some((option) => option.value === current) ? [...options, { value: current, label: current }] : options;
+};
+const tableMissing = (table: string): boolean => Boolean(table) && catalog.tableExists(table) === false;
+const columnsOf = (table: string) => (table ? catalog.columns.get(table) : undefined);
+const columnsLoading = (table: string): boolean => columnsOf(table)?.state === 'loading';
+const columnOptions = (table: string, current: string): Option[] => {
+  const options = (columnsOf(table)?.columns ?? []).map((column) => {
+    const meta = [column.comment ? ` — ${column.comment}` : '', column.type ? ` · ${column.type}` : ''].join('');
+    return { value: column.name, label: `${column.name}${meta}` };
+  });
+  return current && !options.some((option) => option.value === current) ? [...options, { value: current, label: current }] : options;
+};
+// 只有该表字段已成功加载时才能判断字段是否存在
+const fieldMissing = (table: string, field: string): boolean => {
+  const entry = columnsOf(table);
+  return Boolean(field) && entry?.state === 'ready' && !entry.columns.some((column) => column.name === field);
+};
+const columnErrors = computed(() => [...catalog.columns.entries()]
+  .filter(([, entry]) => entry.state === 'error')
+  .map(([table, entry]) => ({ table, error: entry.error })));
+const retryColumns = () => { for (const { table } of columnErrors.value) void catalog.loadColumns(table, true); };
+
+// 加载已引用且存在的表的字段（表列表加载完成后才知道是否存在）
+const referencedTables = computed(() => [...new Set(rows.value.filter((row) => row.editable).flatMap((row) => [row.table, row.pivot?.table ?? '']).filter(Boolean))]);
+const loadReferencedColumns = () => {
+  for (const table of referencedTables.value) if (catalog.tableExists(table)) void catalog.loadColumns(table);
+};
+onMounted(() => { void catalog.loadTables(); });
+watch([referencedTables, () => catalog.tablesState.value], loadReferencedColumns, { immediate: true });
+
+/** 换表后等字段加载完成，再清掉新表中不存在的字段；加载失败或期间又换了表时不动。 */
+const columnNamesAfterLoad = async (table: string): Promise<{ names: Set<string>; primary: string } | null> => {
+  await catalog.loadTables();
+  if (!catalog.tableExists(table)) return null;
+  await catalog.loadColumns(table);
+  const entry = columnsOf(table);
+  if (entry?.state !== 'ready') return null;
+  return { names: new Set(entry.columns.map((column) => column.name)), primary: entry.columns.find((column) => column.primary)?.name ?? '' };
+};
+const changeTable = async (row: DraftRow, table: string) => {
+  update(row, { table });
+  const loaded = await columnNamesAfterLoad(table);
+  if (!loaded || row.table !== table || !rows.value.includes(row)) return;
+  const patch: Partial<RelationRow> = {};
+  if (row.foreignField && !loaded.names.has(row.foreignField)) patch.foreignField = '';
+  if (row.origin === 'field') {
+    if (row.labelField && !loaded.names.has(row.labelField)) patch.labelField = '';
+    // belongsTo 的值字段不能为空：失效时改用新表主键
+    if ((patch.foreignField ?? row.foreignField) === '' && loaded.primary) patch.foreignField = loaded.primary;
+  }
+  if (Object.keys(patch).length) update(row, patch);
+};
+const changePivotTable = async (row: DraftRow, table: string) => {
+  updatePivot(row, { table });
+  const loaded = await columnNamesAfterLoad(table);
+  if (!loaded || row.pivot?.table !== table || !rows.value.includes(row)) return;
+  const patch: Partial<NonNullable<RelationRow['pivot']>> = {};
+  for (const key of PIVOT_KEYS) if (row.pivot[key] && !loaded.names.has(row.pivot[key])) patch[key] = '';
+  if (Object.keys(patch).length) updatePivot(row, patch);
+};
+
 const addRow = () => {
   rows.value.push({ origin: 'model', type: 'hasOne', name: '', table: '', localField: 'id', foreignField: '', editable: true, key: ++nextKey });
   commit();
@@ -175,6 +284,11 @@ const removeRow = (index: number) => {
 </script>
 
 <style scoped>
+.codegen-relations__ro {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
 .codegen-relations__bar {
   display: flex;
   gap: 8px;
@@ -193,7 +307,7 @@ const removeRow = (index: number) => {
 
 .codegen-relations__table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 1280px;
   border-collapse: collapse;
   font-size: 12.5px;
 }
@@ -224,8 +338,24 @@ const removeRow = (index: number) => {
 
 .codegen-relations__pivot {
   display: grid;
-  grid-template-columns: repeat(3, minmax(96px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 4px;
+}
+
+.codegen-relations__cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.codegen-relations__cell > .el-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.codegen-relations__cell > .el-tag {
+  flex: none;
 }
 
 .codegen-relations__empty {

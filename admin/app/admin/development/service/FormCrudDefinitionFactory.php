@@ -83,6 +83,7 @@ final class FormCrudDefinitionFactory
             $relations[] = $this->schemaRelation((array) $relation, $prefix);
         }
         [$relations, $relationModels] = $this->relationModels(array_values($relations), $table, $entity, $class, $prefix);
+        $customActions = ($formSchema->document()['list']['customActions'] ?? []) !== [];
         foreach (['created_at', 'updated_at', 'deleted_at'] as $managed) {
             if (in_array($managed, array_column($fields, 'name'), true)) continue;
             if ($adopted) {
@@ -108,12 +109,12 @@ final class FormCrudDefinitionFactory
             'primaryKey' => $primaryKey,
             'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
             'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
-            'generationTargets' => $this->targets($entity, $class, $memberApi, $relationModels),
+            'generationTargets' => $this->targets($entity, $class, $memberApi, $relationModels, $customActions),
             'permissionPrefix' => 'generated:' . $entity,
             'fields' => $fields,
             'relations' => $relations,
             'optionsSource' => array_values($optionSources),
-            'templates' => $this->templates($memberApi, $relationModels !== []),
+            'templates' => $this->templates($memberApi, $relationModels !== [], $customActions),
             'capabilities' => [
                 'list' => true, 'search' => true, 'form' => true, 'detail' => true,
                 'create' => true, 'update' => true, 'delete' => true,
@@ -332,11 +333,16 @@ final class FormCrudDefinitionFactory
         return $size;
     }
 
-    private function targets(string $entity, string $class, bool $memberApi = false, array $relationModels = []): array
+    private function targets(string $entity, string $class, bool $memberApi = false, array $relationModels = [], bool $customActions = false): array
     {
         $relationTargets = [];
         foreach ($relationModels as $model) {
             $relationTargets['relationModel:' . $model] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/relation/{$model}.php";
+        }
+        // 自定义动作：处理方法类与注册清单作为普通生成文件参与预览、三方合并与基线跟踪。
+        if ($customActions) {
+            $relationTargets['customActions'] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/action/{$class}Actions.php";
+            $relationTargets['customActionsConfig'] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/config/actions.php";
         }
         return ($memberApi ? ['memberApiController' => "app/api/controller/generated/{$class}Controller.php"] : []) + [
             'migration' => "database/generated/{$entity}.sql",
@@ -357,7 +363,7 @@ final class FormCrudDefinitionFactory
         ] + $relationTargets;
     }
 
-    private function templates(bool $memberApi = false, bool $relationModels = false): array
+    private function templates(bool $memberApi = false, bool $relationModels = false, bool $customActions = false): array
     {
         return ($memberApi ? ['memberApiController' => 'admin/member-controller.php.tpl'] : []) + [
             'migration' => 'database/migration.sql.tpl', 'model' => 'admin/model.php.tpl',
@@ -367,7 +373,8 @@ final class FormCrudDefinitionFactory
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
             'phpTest' => 'tests/php-test.php.tpl', 'vitestTest' => 'tests/vitest-test.ts.tpl',
             'langMigration' => 'database/lang.sql.tpl', 'langZh' => 'admin/lang-zh.php.tpl', 'langEn' => 'admin/lang-en.php.tpl',
-        ] + ($relationModels ? ['relationModel' => 'admin/relation-model.php.tpl'] : []);
+        ] + ($relationModels ? ['relationModel' => 'admin/relation-model.php.tpl'] : [])
+            + ($customActions ? ['customActions' => 'admin/custom-actions.php.tpl', 'customActionsConfig' => 'admin/custom-actions-config.php.tpl'] : []);
     }
 
     private function adoptedPrimaryKey(array $schema): string

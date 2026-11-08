@@ -4,6 +4,7 @@ import { authApi } from '@/api/auth';
 import { applyRemotePack } from '@/locales/remotePack';
 import { useAppStore } from '@/store/modules/app';
 import { clearAuth, hasSession, markSession, setCsrfToken } from '@/utils/auth';
+import { getAdminLoginEntry, setAdminLoginEntry } from '@/config';
 
 interface UserState {
   authenticated: boolean;
@@ -28,18 +29,20 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     async ensureCsrf() {
-      const result = await authApi.csrf();
+      const result = await authApi.csrf(getAdminLoginEntry());
       setCsrfToken(result.csrfToken);
       return result;
     },
 
-    async login(params: API.LoginParams) {
+    async login(params: API.LoginParams, entry?: string) {
+      if (entry) setAdminLoginEntry(entry);
+      const selectedEntry = getAdminLoginEntry();
       await this.ensureCsrf();
-      const result = await authApi.login(params);
+      const result = await authApi.login(params, selectedEntry);
       markSession();
       this.authenticated = true;
       try {
-        await this.fetchUserInfo();
+        await this.fetchUserInfo(false, selectedEntry);
       } catch (error) {
         this.resetState();
         throw error;
@@ -48,9 +51,9 @@ export const useUserStore = defineStore('user', {
       return result;
     },
 
-    async fetchUserInfo(silent = false) {
+    async fetchUserInfo(silent = false, entry?: string) {
       await this.ensureCsrf();
-      const info = await authApi.me(silent);
+      const info = await authApi.me(silent, entry ?? getAdminLoginEntry());
       this.userInfo = info;
       this.roles = info.roles || [];
       this.permissions = info.permissions || [];
@@ -69,7 +72,7 @@ export const useUserStore = defineStore('user', {
       hooks.clear();
       try {
         await this.ensureCsrf();
-        await authApi.logout();
+        await authApi.logout(getAdminLoginEntry());
       } catch {
         // 服务端会话失效时仍需清理本地状态。
       }

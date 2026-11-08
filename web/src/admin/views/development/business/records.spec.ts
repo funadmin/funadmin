@@ -1,4 +1,5 @@
-vi.mock('@/utils/permission', () => ({ hasPermission: () => true }));
+// 拥有 development:business:modules 的账号会被旧路由跳到代码生成页（见 codegen/legacyRoutes.spec.ts）；这里验证原页面本身。
+vi.mock('@/utils/permission', () => ({ hasPermission: (required: unknown) => required !== 'development:business:modules' }));
 import { defineComponent, h, inject, nextTick, provide, reactive, ref, type Ref } from 'vue';
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

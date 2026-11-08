@@ -139,7 +139,7 @@
         <el-button link type="primary" :loading="dataSourceState.loading" @click="dataSourceState.retry">{{ t('common.retry', '重试') }}</el-button>
       </template>
     </el-alert>
-    <el-pagination
+    <TablePagination
       v-if="dataSourceState?.paginated && dataSourceState.total > dataSourceState.pageSize"
       small
       background
@@ -148,7 +148,6 @@
       :page-size="dataSourceState.pageSize"
       :total="dataSourceState.total"
       :disabled="dataSourceState.loading"
-      class="data-source-pagination"
       @current-change="dataSourceState.setPage"
     />
   </div>
@@ -180,6 +179,7 @@
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { computed, defineComponent, h, type PropType, type VNode } from 'vue';
 import { ElOption, ElOptionGroup } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -297,5 +297,4 @@ const emitEvent = (name: string, payload?: unknown) => {
 .layout-placeholder { padding: 12px; border: 1px dashed var(--el-border-color); border-radius: 4px; text-align: center; color: var(--el-text-color-secondary); }
 .data-source-control { width: 100%; }
 .data-source-error { margin-top: 8px; }
-.data-source-pagination { justify-content: flex-end; margin-top: 8px; }
 </style>

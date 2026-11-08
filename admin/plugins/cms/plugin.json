@@ -204,6 +204,22 @@
         "name": "查看站点成员与角色"
       }
     ],
+    "permissionGroups": {
+      "site": "站点管理",
+      "sites": "站点管理",
+      "category": "栏目管理",
+      "categories": "栏目管理",
+      "content": "内容管理",
+      "model": "内容模型",
+      "models": "内容模型",
+      "menu": "导航管理",
+      "menus": "导航管理",
+      "tag": "模板标签",
+      "tags": "模板标签",
+      "submission": "会员投稿",
+      "contributions": "会员投稿",
+      "access": "站点权限"
+    },
     "menu": [
       {
         "name": "CMS 内容管理",

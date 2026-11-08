@@ -80,16 +80,12 @@
             </template>
           </el-table-column>
         </el-table>
-        <div class="mt-4 flex justify-end">
-          <el-pagination
-            v-model:current-page="query.page"
-            v-model:page-size="query.pageSize"
-            :total="total"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @change="loadData"
-          />
-        </div>
+        <TablePagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          @change="loadData"
+        />
       </template>
     </DataTableShell>
 
@@ -98,6 +94,7 @@
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';

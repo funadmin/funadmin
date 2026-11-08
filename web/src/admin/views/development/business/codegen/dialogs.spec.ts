@@ -196,7 +196,7 @@ describe('LoadTablesDialog', () => {
     expect(wrapper.find('[data-table-note="fun_shop_order"]').text()).toBe('');
   });
 
-  it('按 inspect → from-database 顺序逐张装载，逐行显示结果，部分失败不影响其他表', async () => {
+  it('按数据表顺序逐张执行 inspect → from-database，逐行显示结果，部分失败不影响其他表', async () => {
     const wrapper = await open();
     for (const name of ['fun_shop_order', 'fun_admin', 'fun_shop_order_item']) {
       await wrapper.find(`[data-select="${name}"]`).setValue(true);
@@ -208,8 +208,8 @@ describe('LoadTablesDialog', () => {
 
     expect(mocks.calls).toEqual([
       'inspect:fun_shop_order', 'create:fun_shop_order',
-      'inspect:fun_admin',
-      'inspect:fun_shop_order_item', 'create:fun_shop_order_item'
+      'inspect:fun_shop_order_item', 'create:fun_shop_order_item',
+      'inspect:fun_admin'
     ]);
     expect(mocks.createFromDatabase).toHaveBeenNthCalledWith(1, expect.objectContaining({
       name: '订单', code: 'shop_order', connection: 'mysql', table: 'fun_shop_order',
@@ -234,6 +234,20 @@ describe('LoadTablesDialog', () => {
     await action(wrapper, 'load-submit').trigger('click');
     await flushPromises();
     expect(mocks.createFromDatabase).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'plugin', pluginCode: 'cms' } }));
+  });
+
+  it('生成目标默认选中核心目标（真实 el-select 显示核心而非「请选择」）', async () => {
+    const { ElSelect, ElOption, default: ElementPlus } = await vi.importActual<typeof import('element-plus')>('element-plus');
+    const wrapper = mount(LoadTablesDialog, { props: { modelValue: true }, global: { plugins: [ElementPlus], stubs: { ...stubs, ElSelect, ElOption } } });
+    await flushPromises();
+    const select = wrapper.find('[data-field="target"]');
+    const target = select.exists() ? select : wrapper.find('.codegen-load__target');
+    expect(target.find('.el-select__placeholder').classes()).not.toContain('is-transparent');
+    expect(target.find('.el-select__placeholder').text()).toBe('核心');
+    await wrapper.find('[data-select="fun_shop_order"]').setValue(true);
+    await action(wrapper, 'load-submit').trigger('click');
+    await flushPromises();
+    expect(mocks.createFromDatabase).toHaveBeenCalledWith(expect.objectContaining({ target: { type: 'core' } }));
   });
 
   it('缺少主键时该行失败，不调用 from-database', async () => {
@@ -431,8 +445,8 @@ describe('BatchGenerateDialog', () => {
     await action(wrapper, 'batch-confirm').trigger('click');
     await flushPromises();
     expect(mocks.calls).toEqual(['generate:1', 'generate:3']);
-    expect(mocks.formalGeneration).toHaveBeenNthCalledWith(1, 1, 51, 'token-1');
-    expect(mocks.formalGeneration).toHaveBeenNthCalledWith(2, 3, 53, 'token-3');
+    expect(mocks.formalGeneration).toHaveBeenNthCalledWith(1, 1, 51, 'token-1', { deferReload: true });
+    expect(mocks.formalGeneration).toHaveBeenNthCalledWith(2, 3, 53, 'token-3', { deferReload: false });
     expect(wrapper.find('[data-batch-result="1"]').text()).toBe('生成成功');
     expect(wrapper.find('[data-batch-result="3"]').text()).toContain('令牌已失效');
     expect(wrapper.find('[data-batch-result="2"]').text()).toBe('已跳过');
@@ -440,6 +454,72 @@ describe('BatchGenerateDialog', () => {
     expect(mocks.refreshBusinessMenu).toHaveBeenCalledTimes(1);
     expect(wrapper.emitted('generated')).toHaveLength(1);
     expect(action(wrapper, 'batch-confirm').exists()).toBe(false);
+  });
+
+  it('只有最后一个可生成模块请求后端重载，其余都 deferReload；重载后提示稍后可用并约 1.5 秒后刷新菜单', async () => {
+    const ready = [modules[0], modules[2], { ...baseModule, id: 5, code: 'e', table_name: 'fun_e' }];
+    mocks.formalGeneration.mockImplementation(async (id: number, generationId: number, _token: string, options?: { deferReload?: boolean }) => (
+      options?.deferReload
+        ? { generationId, state: 'completed', resourceApplyStatus: 'applied', reloadRequested: false, reloadReason: 'deferred' }
+        : { generationId, state: 'completed', resourceApplyStatus: 'applied', reloadRequested: true, reloadReason: null }
+    ));
+    const wrapper = await open(ready);
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      await action(wrapper, 'batch-confirm').trigger('click');
+      await flushPromises();
+      expect(mocks.formalGeneration.mock.calls.map(([id, , , options]) => [id, options])).toEqual([
+        [1, { deferReload: true }],
+        [3, { deferReload: true }],
+        [5, { deferReload: false }]
+      ]);
+      expect(mocks.message.success).toHaveBeenCalledWith('后端已重新加载，新页面稍后可用');
+      expect(mocks.message.warning).not.toHaveBeenCalled();
+      expect(mocks.refreshBusinessMenu).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1500);
+      await flushPromises();
+      expect(mocks.refreshBusinessMenu).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('[data-batch-summary]').text()).toContain('成功 3 个');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('最后一个可生成模块失败时（前面模块已延后重载）警告需要重启后端，不提示已重载', async () => {
+    const wrapper = await open();
+    await action(wrapper, 'batch-confirm').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-batch-result="1"]').text()).toBe('生成成功');
+    expect(wrapper.find('[data-batch-result="3"]').text()).toContain('令牌已失效');
+    expect(mocks.message.warning).toHaveBeenCalledWith('请重启后端服务使新生成的接口生效');
+    expect(mocks.message.success).not.toHaveBeenCalledWith('后端已重新加载，新页面稍后可用');
+    expect(mocks.refreshBusinessMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('全部为插件模块时不提示重启或重载', async () => {
+    const plugin = (module: BusinessModule): BusinessModule => ({ ...module, metadata: { target: { type: 'plugin', pluginCode: 'cms', scope: 'admin' } } });
+    mocks.formalGeneration.mockImplementation(async (_id: number, generationId: number) => ({ generationId, state: 'completed', resourceApplyStatus: 'applied', reloadRequested: false, reloadReason: 'plugin_target' }));
+    const wrapper = await open([plugin(modules[0]), plugin(modules[2])]);
+    await action(wrapper, 'batch-confirm').trigger('click');
+    await flushPromises();
+    expect(mocks.message.warning).not.toHaveBeenCalled();
+    expect(mocks.message.success).not.toHaveBeenCalled();
+    expect(mocks.refreshBusinessMenu).not.toHaveBeenCalled();
+  });
+
+  it('表单从未发布的模块显示简短原因（核心：需先动态发布；插件：需先在设计器发布），不显示原始错误', async () => {
+    const notPublished = apiError('表单尚未发布', 'VALIDATION_ERROR', 'req-np');
+    mocks.previewFormalGeneration.mockImplementation(async (id: number) => {
+      if (id === 1 || id === 2) throw notPublished;
+      return previewOf({ generationId: 50 + id, sensitive: { confirmToken: `token-${id}` } });
+    });
+    const plugin: BusinessModule = { ...modules[1], metadata: { target: { type: 'plugin', pluginCode: 'cms', scope: 'admin' } } };
+    const wrapper = await open([modules[0], plugin, modules[2]]);
+    expect(wrapper.find('[data-batch-status="1"]').text()).toBe('未发布，需先动态发布');
+    expect(wrapper.find('[data-batch-status="2"]').text()).toBe('未发布，需先在表单设计器发布');
+    expect(wrapper.text()).not.toContain('表单尚未发布');
+    expect(wrapper.find('[data-batch-status="3"]').text()).toBe('可生成');
+    expect(action(wrapper, 'batch-confirm').text()).toContain('确认生成 1 个模块');
   });
 
   it('没有生成权限时只预览，不能确认生成', async () => {

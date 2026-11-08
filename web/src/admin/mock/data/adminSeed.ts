@@ -432,14 +432,14 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           component: 'development/business/mine',
           type: 'C',
           icon: 'i-ep-briefcase',
-          name: '业务开发',
+          name: '代码生成',
           sort: 1,
           hidden: false,
           keepAlive: true,
           affix: false,
           permission: 'development:business:modules',
           children: [
-            { id: 202, parentId: 201, routeName: 'BusinessMine', path: '/development/business/', redirect: '/development/business/mine', component: 'development/business/mine', type: 'C', name: '业务开发', sort: 10, hidden: true, keepAlive: true, affix: false, permission: 'development:business:modules' },
+            { id: 202, parentId: 201, routeName: 'BusinessMine', path: '/development/business/', redirect: '/development/business/mine', component: 'development/business/mine', type: 'C', name: '代码生成', sort: 10, hidden: true, keepAlive: true, affix: false, permission: 'development:business:modules' },
             { id: 203, parentId: 201, routeName: 'BusinessVisual', path: '/development/business/visual', component: 'development/business/visual', type: 'C', name: '可视化创建', sort: 20, hidden: true, keepAlive: false, affix: false, permission: 'development:business:create-visual' },
             { id: 204, parentId: 201, routeName: 'BusinessDatabase', path: '/development/business/database', component: 'development/business/database', type: 'C', name: '从数据库生成', sort: 30, hidden: true, keepAlive: false, affix: false, permission: 'development:business:inspect-database' },
             { id: 205, parentId: 201, routeName: 'BusinessRecords', path: '/development/business/records', component: 'development/business/records', type: 'C', name: '生成与发布记录', sort: 40, hidden: true, keepAlive: true, affix: false, permission: 'development:business:generations' }

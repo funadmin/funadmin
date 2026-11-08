@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper :title="t('business.visual.title', '创建业务')" :subtitle="t('business.visual.subtitle', '创建业务模块草稿后进入统一 FormSchema v2 设计器')">
+  <PageWrapper v-if="!redirected" :title="t('business.visual.title', '创建业务')" :subtitle="t('business.visual.subtitle', '创建业务模块草稿后进入统一 FormSchema v2 设计器')">
     <el-card shadow="never">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="left" label-width="100px" class="business-form max-w-4xl">
         <el-form-item :label="t('business.visual.mode', '创建方式')">
@@ -114,13 +114,23 @@ import BusinessPageState from './components/BusinessPageState.vue';
 import { useLatestRequest } from './composables/useLatestRequest';
 import { useDirtyGuard } from './composables/useDirtyGuard';
 import { useBusinessTarget } from './composables/useBusinessTarget';
-import { deriveAdoptedBusiness, normalizeBusinessCode } from './constants';
+import { useLegacyCodegenRedirect } from './codegen/useLegacyCodegenRedirect';
+import { BUSINESS_CODE_PATTERN, IDENTIFIER_PATTERN, applyFieldErrors, createVisualPayload, defaultCreatedTable, deriveAdoptedBusiness, designerLocation, normalizeBusinessCode, parseCreationError } from './constants';
 
 defineOptions({ name: 'BusinessVisual' });
 const props = defineProps<{ initialMode?: 'created' | 'adopted' }>();
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
+// 旧「可视化创建」路由：有代码生成页权限时跳到代码生成页并打开「新建表」弹窗（mode=adopted 的旧链接打开「装载数据表」）；
+// 缺少首选入口的创建权限时改开另一个有权限的弹窗，两种创建权限都没有时不跳转。
+// 其余账号继续使用本页面。database.vue 以 initialMode 内嵌本页时由它自己处理跳转。
+const legacyIntent = () => {
+  const create = hasPermission('development:business:create-visual') ? { create: '1' } : null;
+  const load = hasPermission('development:business:create-from-database') ? { load: '1' } : null;
+  return route.query.mode === 'adopted' ? load ?? create : create ?? load;
+};
+const { redirected } = props.initialMode ? { redirected: ref(false) } : useLegacyCodegenRedirect(legacyIntent);
 // 合并的 save/inspect 别名不能推导后台独立动作授权。
 // 每个按钮对应一个后台方法：development:business:{方法}。
 const hasAction = (action: string) => hasPermission(`development:business:${action}`);
@@ -129,7 +139,7 @@ const canListTables = computed(() => hasAction('database-tables'));
 const canCreate = computed(() => hasAction('create-visual'));
 const canCreateFromDatabase = computed(() => hasAction('create-from-database'));
 const canLoadTargets = computed(() => hasAction('modules') && (canCreate.value || canCreateFromDatabase.value));
-const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget(() => canLoadTargets.value);
+const { selected, candidates, candidateLabel, defaultConnection, loading: targetsLoading, notice: targetNotice, available: targetAvailable, target, loadTargets } = useBusinessTarget(() => !redirected.value && canLoadTargets.value);
 const submitting = ref(false);
 const dirty = ref(false);
 const formRef = ref<FormInstance>();
@@ -142,10 +152,10 @@ const permissionNotice = computed(() => mode.value === 'created'
 const inspectPending = ref(false);
 const form = reactive({ name: '', code: '', table: '', existingTable: '', connection: 'mysql', remark: '', treeEnabled: false, treeParentField: '', treeSelectionMode: 'single' as 'single' | 'multiple' });
 const scalarInspectionFields = computed(() => (inspection.value?.fields ?? []).filter((field: Record<string, unknown>) => !field.primary && !/(text|json|blob|binary|date|time)/i.test(String(field.dbType ?? ''))));
-const identifier = /^[a-z_][a-z0-9_]*$/;
+const identifier = IDENTIFIER_PATTERN;
 const rules: FormRules = {
   name: [{ required: true, message: t('business.visual.nameRequired', '请输入业务名称'), trigger: 'blur' }],
-  code: [{ required: true, pattern: /^[a-z][a-z0-9_]{0,60}$/, message: t('business.visual.codeInvalid', '以小写字母开头，只能包含小写字母、数字和下划线'), trigger: 'blur' }],
+  code: [{ required: true, pattern: BUSINESS_CODE_PATTERN, message: t('business.visual.codeInvalid', '以小写字母开头，只能包含小写字母、数字和下划线'), trigger: 'blur' }],
   table: [{ validator: (_rule, value, callback) => !value || identifier.test(value) ? callback() : callback(new Error(t('business.visual.tableInvalid', '数据表标识不合法'))), trigger: 'blur' }],
   connection: [{ required: true, pattern: identifier, message: t('business.visual.connectionInvalid', '连接标识不合法'), trigger: 'blur' }],
   existingTable: [{ required: true, message: t('business.visual.existingTableRequired', '请选择已有数据表'), trigger: 'change' }]
@@ -225,66 +235,7 @@ watch(form, () => { dirty.value = true; }, { deep: true, flush: 'sync' });
 
 function normalize() {
   form.code = normalizeBusinessCode(form.code);
-  if (mode.value === 'created' && !form.table && form.code) form.table = `${selected.value ? `${selected.value}_` : ''}${form.code}`;
-}
-
-function fieldErrorMessage(value: unknown): string | undefined {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.find((item): item is string => typeof item === 'string');
-  if (value && typeof value === 'object' && 'message' in value && typeof value.message === 'string') return value.message;
-  return undefined;
-}
-
-function errorRecord(reason: unknown): Record<string, unknown> {
-  return reason && typeof reason === 'object' ? reason as Record<string, unknown> : {};
-}
-
-function responseDetails(reason: unknown): Record<string, unknown> {
-  const response = errorRecord(reason);
-  const data = errorRecord(response.data);
-  const error = errorRecord(data.error);
-  return errorRecord(response.details ?? data.details ?? error.details);
-}
-
-function responseFieldErrors(reason: unknown): Record<string, string> {
-  const response = errorRecord(reason);
-  const data = errorRecord(response.data);
-  const details = responseDetails(reason);
-  const source = details.fieldErrors ?? data.fieldErrors ?? response.fieldErrors;
-  if (Array.isArray(source)) {
-    return Object.fromEntries(source.flatMap((item) => {
-      const error = errorRecord(item);
-      const field = typeof error.path === 'string' ? error.path : typeof error.field === 'string' ? error.field : '';
-      const message = fieldErrorMessage(error.message);
-      return field && message ? [[field, message]] : [];
-    }));
-  }
-  return Object.fromEntries(
-    Object.entries(errorRecord(source)).flatMap(([field, value]) => {
-      const message = fieldErrorMessage(value);
-      return message ? [[field, message]] : [];
-    })
-  );
-}
-
-function responseCode(reason: unknown): number | undefined {
-  const response = errorRecord(reason);
-  const data = errorRecord(response.data);
-  return [response.status, response.code, data.status, data.code].find((value): value is number => typeof value === 'number');
-}
-
-function setFieldErrors(errors: Record<string, string>) {
-  formRef.value?.clearValidate();
-  for (const [field, message] of Object.entries(errors)) {
-    const context = formRef.value?.fields.find((item) => item.prop === field);
-    if (!context) continue;
-    context.validateState = 'error';
-    context.validateMessage = message;
-  }
-  const first = Object.keys(errors)[0];
-  if (!first) return;
-  formRef.value?.scrollToField(first);
-  formRef.value?.fields.find((item) => item.prop === first)?.$el?.querySelector<HTMLElement>('input, textarea, select, [tabindex]')?.focus();
+  if (mode.value === 'created' && !form.table && form.code) form.table = defaultCreatedTable(form.code, selected.value);
 }
 
 function cancel() {
@@ -315,25 +266,22 @@ async function submit() {
       if (!canSubmitMode.value || !canLoadTargets.value || !targetAvailable.value || selectedTarget !== JSON.stringify(target.value) || inspection.value !== inspected || !canAdopt.value) return;
       result = await businessDevelopmentApi.createFromDatabase({ ...visualForm, listConfig, name: form.name.trim(), code: form.code.trim(), connection: form.connection.trim(), table: existingTable, target: target.value, expectedInspectionHash: inspected.snapshotHash });
     } else {
-      result = await businessDevelopmentApi.createVisual({ ...visualForm, listConfig, target: target.value });
+      result = await businessDevelopmentApi.createVisual(createVisualPayload(visualForm, target.value));
     }
     dirty.value = false;
-    await router.push({ path: '/admin/development/business/designer', query: { id: String(result.module.form_id), moduleId: String(result.module.id) } });
+    await router.push(designerLocation(result.module));
   } catch (reason) {
     if (isBusinessApiError(reason) && reason.data.error.code === 'DATABASE_INSPECTION_STALE') {
       invalidateInspection(t('business.visual.inspectionStale', '数据库结构已变化，请重新检查'));
       return;
     }
-    const fieldErrors = responseFieldErrors(reason);
+    const { fieldErrors, status, message } = parseCreationError(reason);
     if (mode.value === 'adopted' && fieldErrors.table) {
       fieldErrors.existingTable = fieldErrors.table;
       delete fieldErrors.table;
     }
-    if (Object.keys(fieldErrors).length) setFieldErrors(fieldErrors);
-    else if (responseCode(reason) === 409) {
-      const response = errorRecord(reason);
-      setFieldErrors({ code: typeof response.msg === 'string' ? response.msg : t('business.visual.codeExists', '业务标识已存在') });
-    }
+    if (Object.keys(fieldErrors).length) applyFieldErrors(formRef.value, fieldErrors);
+    else if (status === 409) applyFieldErrors(formRef.value, { code: message ?? t('business.visual.codeExists', '业务标识已存在') });
   } finally {
     submitting.value = false;
   }

@@ -89,6 +89,8 @@ export const RESP_CODE = {
 } as const;
 
 export const ADMIN_ROUTE_PREFIX = '/admin';
+export const DEFAULT_ADMIN_LOGIN_ENTRY = 'admin';
+export const ADMIN_LOGIN_ENTRY_KEY = 'ADMIN_LOGIN_ENTRY';
 export const MEMBER_LOGIN_PATH = '/web/login';
 export const MEMBER_REGISTER_PATH = '/web/register';
 export const MEMBER_PROFILE_PATH = '/web/profile';
@@ -96,6 +98,55 @@ export const MEMBER_PROFILE_PATH = '/web/profile';
 
 export const ADMIN_LOGIN_PATH = `${ADMIN_ROUTE_PREFIX}/login`;
 export const ADMIN_HOME_PATH = `${ADMIN_ROUTE_PREFIX}/dashboard`;
+
+const ADMIN_LOGIN_ENTRY_PATTERN = /^[a-z][a-z0-9-]{3,31}$/;
+const ADMIN_LOGIN_ENTRY_RESERVED = new Set(['auth', 'api', 'install', 'system', 'login', 'health']);
+
+export function normalizeAdminLoginEntry(value: unknown): string {
+  const entry = String(value ?? '').trim().toLowerCase();
+  if (!ADMIN_LOGIN_ENTRY_PATTERN.test(entry) || ADMIN_LOGIN_ENTRY_RESERVED.has(entry)) {
+    throw new Error('后台登录入口格式不正确');
+  }
+  return entry;
+}
+
+export function getAdminLoginEntry(): string {
+  if (typeof window === 'undefined') return DEFAULT_ADMIN_LOGIN_ENTRY;
+  try {
+    const value = window.localStorage.getItem(ADMIN_LOGIN_ENTRY_KEY);
+    return value ? normalizeAdminLoginEntry(value) : DEFAULT_ADMIN_LOGIN_ENTRY;
+  } catch {
+    return DEFAULT_ADMIN_LOGIN_ENTRY;
+  }
+}
+
+export function setAdminLoginEntry(value: unknown): string {
+  const entry = normalizeAdminLoginEntry(value);
+  if (typeof window !== 'undefined') {
+    try { window.localStorage.setItem(ADMIN_LOGIN_ENTRY_KEY, entry); } catch { /* storage may be unavailable */ }
+  }
+  return entry;
+}
+
+export function adminLoginPath(entry?: unknown): string {
+  const normalized = entry === undefined ? getAdminLoginEntry() : normalizeAdminLoginEntry(entry);
+  return normalized === DEFAULT_ADMIN_LOGIN_ENTRY
+    ? ADMIN_LOGIN_PATH
+    : `${ADMIN_ROUTE_PREFIX}/${normalized}/login`;
+}
+
+export function adminAuthPrefix(entry?: unknown): string {
+  const normalized = entry === undefined ? getAdminLoginEntry() : normalizeAdminLoginEntry(entry);
+  return normalized === DEFAULT_ADMIN_LOGIN_ENTRY
+    ? `${ADMIN_ROUTE_PREFIX}/auth`
+    : `${ADMIN_ROUTE_PREFIX}/${normalized}/auth`;
+}
+
+export function adminLoginEntryFromRoute(path: string): string {
+  const match = path.match(/^\/admin\/([^/]+)\/login(?:$|\/)/);
+  if (!match) return DEFAULT_ADMIN_LOGIN_ENTRY;
+  try { return normalizeAdminLoginEntry(match[1]); } catch { return DEFAULT_ADMIN_LOGIN_ENTRY; }
+}
 
 /**
  * 免登录路由白名单（path 前缀匹配）

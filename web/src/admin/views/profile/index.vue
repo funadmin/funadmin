@@ -98,7 +98,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { profileApi, type ProfileInfo } from '@/api/profile';
 import { useUserStore } from '@/store/modules/user';
-import { ADMIN_LOGIN_PATH, isWebmanBackend } from '@/config';
+import { adminLoginPath, getAdminLoginEntry, isWebmanBackend } from '@/config';
 import PageWrapper from '@/components/PageWrapper/index.vue';
 import Upload from '@/components/Upload/index.vue';
 
@@ -190,7 +190,7 @@ async function onChangePwd() {
     userStore.resetState();
     resetPassword();
     ElMessage.success(t('profile.passwordUpdated', '密码已更新，请重新登录'));
-    await router.replace(ADMIN_LOGIN_PATH);
+    await router.replace(adminLoginPath(getAdminLoginEntry()));
   } finally {
     pwdLoading.value = false;
   }

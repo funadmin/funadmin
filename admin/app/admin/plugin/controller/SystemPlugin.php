@@ -466,7 +466,7 @@ final class SystemPlugin extends AdminController
             return $this->fail(msg: '插件安装包 MIME 类型无效', code: 422);
         }
         set_time_limit(0);
-        return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
+        return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功', reload: true);
     }
 
     /**
@@ -502,7 +502,7 @@ final class SystemPlugin extends AdminController
                     unlink($archive);
                 }
             }
-        }, '安装成功');
+        }, '安装成功', reload: true);
     }
 
     /**
@@ -534,7 +534,7 @@ final class SystemPlugin extends AdminController
             $result = $this->marketplace->installCloud($code, $this->version());
             $this->telemetry->report('install', MarketplaceTelemetry::pluginRecord($code));
             return $result;
-        }, '安装成功');
+        }, '安装成功', reload: true);
     }
 
     /**
@@ -582,7 +582,7 @@ final class SystemPlugin extends AdminController
             $file->getPathname(),
             $code,
             $this->boolean('migrate', true)
-        ), '更新成功');
+        ), '更新成功', reload: true);
     }
 
     /**
@@ -621,7 +621,7 @@ final class SystemPlugin extends AdminController
             $result = $this->marketplace->updateCloud($code, $this->version(), $this->boolean('migrate', true));
             $this->telemetry->report('update', MarketplaceTelemetry::pluginRecord($code), (string) ($result['from_version'] ?? ''));
             return $result;
-        }, '更新成功');
+        }, '更新成功', reload: true);
     }
 
     /**
@@ -675,11 +675,11 @@ final class SystemPlugin extends AdminController
     #[Post('/{code:[a-z][a-z0-9]*}/enable')]
     public function enable(string $code): Response
     {
-        return $this->execute(function () use ($code): mixed {
+        return $this->execute(function () use ($code): array {
             $result = $this->plugins->enablePlugin($code);
             $this->telemetry->report('enable', MarketplaceTelemetry::pluginRecord($code));
-            return $result;
-        }, '启用成功');
+            return ['enabled' => $result];
+        }, '启用成功', reload: true);
     }
 
     /**
@@ -706,11 +706,11 @@ final class SystemPlugin extends AdminController
     #[Post('/{code:[a-z][a-z0-9]*}/disable')]
     public function disable(string $code): Response
     {
-        return $this->execute(function () use ($code): mixed {
+        return $this->execute(function () use ($code): array {
             $result = $this->plugins->disablePlugin($code);
             $this->telemetry->report('disable', MarketplaceTelemetry::pluginRecord($code));
-            return $result;
-        }, '禁用成功');
+            return ['disabled' => $result];
+        }, '禁用成功', reload: true);
     }
 
     /**
@@ -805,7 +805,7 @@ final class SystemPlugin extends AdminController
             $this->plugins->uninstallPlugin($code);
             $this->telemetry->report('uninstall', $record);
             return ['uninstalled' => true];
-        }, '卸载成功，业务数据与迁移历史已保留');
+        }, '卸载成功，业务数据与迁移历史已保留', reload: true);
     }
 
     /**
@@ -997,7 +997,7 @@ final class SystemPlugin extends AdminController
                 $package['version'],
                 $this->boolean('migrate', false)
             );
-        }, '历史版本已重部署');
+        }, '历史版本已重部署', reload: true);
     }
 
     /**
@@ -1056,13 +1056,18 @@ final class SystemPlugin extends AdminController
         return $this->execute(fn () => $this->center->enabledModules((array) ($this->request->context['admin_permissions'] ?? [])));
     }
 
-    private function execute(callable $operation, string $message = '操作成功'): Response
+    /**
+     * @param bool $reload 改变插件路由集合的生命周期操作（安装/更新/重部署/启用/禁用/卸载）：整个请求完整成功后请求一次 worker 平滑重载，
+     *                     响应附带 reloadRequested/reloadReason；失败（含 Composer 冲突待确认）不重载。
+     */
+    private function execute(callable $operation, string $message = '操作成功', bool $reload = false): Response
     {
         try {
-            return $this->ok($message, $this->plugins->withComposerConflictAcceptance(
+            $run = fn (): mixed => $this->plugins->withComposerConflictAcceptance(
                 $this->boolean('acceptComposerConflicts', false), $operation,
                 (string) ($this->request->context['admin']['id'] ?? '')
-            ));
+            );
+            return $this->ok($message, $reload ? $this->plugins->withWorkerReload($run) : $run());
         } catch (\app\common\plugin\sdk\ComposerConflictException $exception) {
             return $this->fail(msg: $exception->getMessage(), data: [
                 'reason'=>'composer_conflict', 'conflicts'=>$exception->conflicts,

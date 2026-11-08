@@ -12,6 +12,7 @@ use app\common\plugin\sdk\DatabaseCapabilityGuard;
 use app\common\plugin\sdk\LifecycleLock;
 use app\common\plugin\sdk\LifecycleState;
 use app\common\plugin\sdk\PluginPurgeCoordinator;
+use app\common\service\runtime\WorkerReloader;
 use RuntimeException;
 
 class PluginService extends AbstractService
@@ -19,8 +20,38 @@ class PluginService extends AbstractService
     use PluginServiceSupport;
     use \app\admin\plugin\service\concern\PluginComposerDependencies;
 
-    public function __construct(private readonly ?string $projectRoot = null)
+    /** @param WorkerReloader|null $workerReloader 测试注入；默认按 config('server.pid_file') 构造生产重载器。 */
+    public function __construct(private readonly ?string $projectRoot = null, private readonly ?WorkerReloader $workerReloader = null)
     {
+    }
+
+    /** 当前嵌套的 withWorkerReload 层数：只有最外层在完整成功后请求重载。 */
+    private int $workerReloadDepth = 0;
+
+    /**
+     * 执行一次会改变插件路由集合的生命周期操作（安装/启用/禁用/更新/重部署/卸载），完整成功后请求一次 worker 平滑重载。
+     * 插件控制器的注解路由只在 worker 启动时注册，文件监控默认关闭，不重载则新路由在手动重启前一直 404。
+     * 嵌套调用（如安装流水线内部再调用生命周期方法）只由最外层重载一次；任何异常直接抛出且不重载。
+     * operate() 在返回前已完成状态落库、激活快照与缓存重建并释放生命周期锁，因此这里拿到结果即代表全部步骤已提交。
+     * 重载不可用时返回 reloadRequested=false 与原因，不影响操作结果。
+     *
+     * @return array<string, mixed> 操作结果（非数组结果放在 result 键）附加 reloadRequested/reloadReason
+     */
+    public function withWorkerReload(callable $operation): mixed
+    {
+        $outermost = $this->workerReloadDepth === 0;
+        $this->workerReloadDepth++;
+        try {
+            $result = $operation();
+        } finally {
+            $this->workerReloadDepth--;
+        }
+        if (!$outermost) {
+            return $result;
+        }
+        $reload = ($this->workerReloader ?? WorkerReloader::production())->reload();
+        return (is_array($result) ? $result : ['result' => $result])
+            + ['reloadRequested' => $reload['requested'], 'reloadReason' => $reload['reason']];
     }
 
     private bool $deploymentRollbackAllowed = true;

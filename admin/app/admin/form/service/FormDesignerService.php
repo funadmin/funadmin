@@ -278,7 +278,7 @@ final class FormDesignerService
         if (!$form) {
             throw new InvalidArgumentException('表单不存在');
         }
-        $form->save(['status' => $status === 1 ? 1 : 0]);
+        $form->fill(['status' => $status === 1 ? 1 : 0])->save();
         return ['status' => (int) $form->status];
     }
 
@@ -351,7 +351,7 @@ final class FormDesignerService
         $ddlApplied = false;
         try {
             \app\common\service\database\DdlEncodingGuard::check($connection, (string) $preview['sql']);
-            $connection->execute(rtrim(trim((string) $preview['sql']), ';'));
+            $connection->statement(rtrim(trim((string) $preview['sql']), ';'));
             $ddlApplied = true;
         } catch (Throwable $exception) {
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);

@@ -114,3 +114,23 @@ export function createListButtonExecutor(host: ListButtonExecutionHost) {
     }
   };
 }
+
+/** 后端允许直接展示给操作者的错误码：生成的方法桩未实现、处理器抛出 FormActionUserException。 */
+const DISPLAYABLE_ERROR_CODES = ['FORM_ACTION_NOT_IMPLEMENTED', 'FORM_ACTION_USER_ERROR'];
+/** 列表动作失败提示：上述错误码展示后端消息，其余非 Error 拒绝（含服务端内部错误）使用通用文本。 */
+export function listButtonErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const { msg, data } = error as { msg?: unknown; data?: unknown };
+    const code = data && typeof data === 'object' ? (data as { code?: unknown }).code : undefined;
+    if (typeof code === 'string' && DISPLAYABLE_ERROR_CODES.includes(code) && typeof msg === 'string' && msg.trim()) return msg;
+  }
+  return fallback;
+}
+/** 成功提示：按钮配置的 success.message 优先；未配置时注册动作使用处理器返回的字符串 result.message。 */
+export function listButtonSuccessMessage(button: FormListButton, result: unknown): string {
+  if (button.success?.message) return button.success.message;
+  if (button.action.type !== 'registered') return '';
+  const message = result && typeof result === 'object' && !Array.isArray(result) ? (result as { message?: unknown }).message : undefined;
+  return typeof message === 'string' ? message.trim() : '';
+}

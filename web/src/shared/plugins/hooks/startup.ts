@@ -1,13 +1,13 @@
 import type { Router } from 'vue-router';
 import { watch } from 'vue';
-import { APP_CONFIG } from '@/config';
+import { APP_CONFIG, adminLoginEntryFromRoute } from '@/config';
 import { hooks, HookRuntime } from './runtime';
 import type { HookAudience, HookModule } from './types';
 export function routeAudience(route: {
     path: string;
     meta: Record<string, unknown>;
 }): HookAudience {
-    if (route.meta.public || ['/admin/login', '/admin/install'].includes(route.path))
+    if (route.meta.public || route.path === '/admin/install' || route.path.endsWith('/login') && adminLoginEntryFromRoute(route.path) !== '')
         return 'public';
     return route.meta.member ? 'member' : 'admin';
 }

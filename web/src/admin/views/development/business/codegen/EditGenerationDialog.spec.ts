@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   module: vi.fn(),
   saveSchema: vi.fn(),
   savePublishConfig: vi.fn(),
+  databaseTables: vi.fn(),
+  databaseTableSchema: vi.fn(),
   menuTree: vi.fn(),
   dictTypes: vi.fn(),
   push: vi.fn(),
@@ -25,7 +27,9 @@ vi.mock('@/api/development/business', async (importOriginal) => {
       ...actual.businessDevelopmentApi,
       module: mocks.module,
       saveSchema: mocks.saveSchema,
-      savePublishConfig: mocks.savePublishConfig
+      savePublishConfig: mocks.savePublishConfig,
+      databaseTables: mocks.databaseTables,
+      databaseTableSchema: mocks.databaseTableSchema
     }
   };
 });
@@ -117,7 +121,7 @@ const stubs = {
   }),
   ElTabs: defineComponent({ props: ['modelValue'], template: '<div data-tabs :data-active="modelValue"><slot /></div>' }),
   ElTabPane: defineComponent({ props: ['name', 'label'], template: '<section :data-tab-pane="name"><h2>{{ label }}</h2><slot /></section>' }),
-  ElForm: defineComponent({ template: '<form @submit.prevent><slot /></form>' }),
+  ElForm: defineComponent({ props: ['labelWidth'], template: '<form :data-label-width="labelWidth" @submit.prevent><slot /></form>' }),
   ElFormItem: defineComponent({ props: ['label', 'required'], template: '<div class="form-item"><span class="form-item__label">{{ label }}</span><slot /></div>' }),
   ElInput: defineComponent({
     inheritAttrs: false,
@@ -177,6 +181,8 @@ beforeEach(() => {
   mocks.saveSchema.mockImplementation(async (_id: number, schema: FormSchemaDocument) => ({ schemaHash: 'hash-2', document: schema }));
   mocks.savePublishConfig.mockImplementation(async (_id: number, config: Record<string, unknown>) => ({ publishConfig: { sortOrder: 10, ...config } }));
   mocks.menuTree.mockResolvedValue([]);
+  mocks.databaseTables.mockResolvedValue(['shop_category', 'shop_sku', 'shop_goods_ext', 'shop_profile', 'shop_goods_profile'].map((name) => ({ name, comment: '' })));
+  mocks.databaseTableSchema.mockImplementation(async (_connection: string, table: string) => ({ table, columns: [{ name: 'id', type: 'bigint', comment: '', primary: true }, { name: 'goods_id', type: 'bigint', comment: '', primary: false }, { name: 'name', type: 'varchar(60)', comment: '', primary: false }] }));
   mocks.dictTypes.mockResolvedValue({ list: [], total: 0 });
   mocks.confirm.mockResolvedValue('confirm');
 });
@@ -211,6 +217,17 @@ describe('EditGenerationDialog', () => {
     const parentOptions = configItem(wrapper, 'treeParentField').findAll('option').map((option) => option.attributes('value'));
     expect(parentOptions).toContain('parent_id');
     expect(parentOptions).not.toContain('items');
+  });
+
+  it('配置信息与菜单页签的标签不换行：表名称标签简短，标签宽度按最长标签自适应', async () => {
+    const wrapper = await open();
+    const tableName = configItem(wrapper, 'tableName');
+    expect(tableName.find('.form-item__label').text()).toBe('表名称');
+    expect(tableName.find('[title="即绑定的数据表"]').exists()).toBe(true);
+    // 固定 108px 时「新增页父级选择」「回收站（软删除）」及英文标签会折行；auto 由 el-form 取最长标签宽度。
+    for (const pane of ['config', 'menu']) {
+      expect(wrapper.find(`[data-tab-pane="${pane}"] form`).attributes('data-label-width'), pane).toBe('auto');
+    }
   });
 
   it('生成目标只读展示', async () => {
@@ -401,6 +418,54 @@ describe('EditGenerationDialog', () => {
     expect(mocks.push).toHaveBeenCalledWith({ path: '/admin/development/business/designer', query: { id: '3', moduleId: '7' } });
   });
 
+  it('hideDesignerLink：从设计器内打开时隐藏「打开表单设计器」与子表单的设计器入口，默认显示', async () => {
+    const shown = await open();
+    expect(action(shown, 'open-designer').exists()).toBe(true);
+    expect(action(shown, 'relation-open-designer').exists()).toBe(true);
+    const hidden = await open({ hideDesignerLink: true });
+    expect(action(hidden, 'open-designer').exists()).toBe(false);
+    expect(action(hidden, 'relation-open-designer').exists()).toBe(false);
+    expect(hidden.find('[data-relation-row="items"]').text()).toContain('子表单');
+  });
+
+  it('启用会员端 API 但归属字段不是整数字段时不保存发布设置', async () => {
+    const wrapper = await open();
+    wrapper.findComponent({ name: 'ConfigTab' }).vm.$emit('update:publish', { memberApiEnabled: true, memberApiOwnerField: 'title' });
+    await flushPromises();
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.savePublishConfig).not.toHaveBeenCalled();
+    expect(mocks.message.warning).toHaveBeenCalledWith(expect.stringContaining('会员归属字段'));
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+  });
+
+  it('模块名：默认 generated，可编辑并只提交改动键；不合法时拒绝保存', async () => {
+    const wrapper = await open();
+    const input = () => configItem(wrapper, 'module').find('input');
+    expect((input().element as HTMLInputElement).value).toBe('generated');
+    await input().setValue('Shop_1');
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.savePublishConfig).not.toHaveBeenCalled();
+    expect(mocks.message.warning).toHaveBeenCalledWith('模块名须以小写字母开头，仅包含小写字母、数字和短横线');
+    await input().setValue('shop-admin');
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.saveSchema).not.toHaveBeenCalled();
+    expect(mocks.savePublishConfig).toHaveBeenCalledWith(7, { module: 'shop-admin' });
+  });
+
+  it('模块名：插件目标由插件标识决定，只读展示', async () => {
+    mocks.module.mockImplementation(async () => {
+      const detail = makeDetail();
+      detail.module.metadata = { target: { type: 'plugin', pluginCode: 'demo', scope: 'admin' } };
+      return detail;
+    });
+    const wrapper = await open();
+    expect(configItem(wrapper, 'module').find('input').exists()).toBe(false);
+    expect(configItem(wrapper, 'module').text()).toContain('demo');
+  });
+
   it('取消：有改动时先确认放弃', async () => {
     const wrapper = await open();
     await configItem(wrapper, 'title').find('input').setValue('商品管理');
@@ -472,7 +537,7 @@ describe('EditGenerationDialog', () => {
     // 补全草稿后写回当前文档（含标题改动）
     const row = wrapper.find('[data-relation-row^="new-"]');
     await row.find('[data-col="name"] input').setValue('profile');
-    await wrapper.find('[data-relation-row="profile"] [data-col="table"] input').setValue('shop_profile');
+    await wrapper.find('[data-relation-row="profile"] [data-col="table"] select').setValue('shop_profile');
     expect(wrapper.find('[data-testid="relation-error"]').exists()).toBe(false);
     await action(wrapper, 'save').trigger('click');
     await flushPromises();
@@ -483,10 +548,10 @@ describe('EditGenerationDialog', () => {
 
   it('删除关联行后其余行的元素不被复用错位（稳定 key）', async () => {
     const wrapper = await open();
-    const before = wrapper.find('[data-relation-row="detail"] [data-col="table"] input').element;
+    const before = wrapper.find('[data-relation-row="detail"] [data-col="table"] select').element;
     await wrapper.find('[data-relation-row="category"] [data-action="remove-relation"]').trigger('click');
     expect(wrapper.find('[data-relation-row="category"]').exists()).toBe(false);
-    expect(wrapper.find('[data-relation-row="detail"] [data-col="table"] input').element).toBe(before);
+    expect(wrapper.find('[data-relation-row="detail"] [data-col="table"] select').element).toBe(before);
   });
 
   it('切换模块后加载失败：不显示也不能保存上一个模块的数据', async () => {
@@ -534,13 +599,33 @@ describe('EditGenerationDialog', () => {
     expect(mocks.savePublishConfig).toHaveBeenCalledWith(9, { apiPrefix: '/other/x' });
   });
 
+  it('关联页签：按模块连接加载数据表，一次打开内只加载一次（保存后重建页签复用），重新打开时重新加载', async () => {
+    const detail = makeDetail();
+    detail.form = { ...detail.form!, connection: 'shop_db' };
+    mocks.module.mockImplementation(async () => detail);
+    const wrapper = await open();
+    expect(mocks.databaseTables).toHaveBeenCalledTimes(1);
+    expect(mocks.databaseTables).toHaveBeenCalledWith('shop_db');
+    expect(mocks.databaseTableSchema).toHaveBeenCalledWith('shop_db', 'shop_goods_ext');
+    await wrapper.find('[data-relation-row="detail"] [data-col="table"] select').setValue('shop_profile');
+    await flushPromises();
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.databaseTables).toHaveBeenCalledTimes(1);
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+    expect(mocks.databaseTables).toHaveBeenCalledTimes(2);
+  });
+
   it('关联页签：字段关联名称只读，子表只读，模型关联可编辑写入 relations', async () => {
     const wrapper = await open();
     const fieldRow = wrapper.find('[data-relation-row="category"]');
     expect(fieldRow.find('[data-col="name"] input').exists()).toBe(false);
     expect(fieldRow.find('[data-col="name"]').text()).toBe('category');
     expect(wrapper.find('[data-relation-row="items"]').findAll('input, select').length).toBe(0);
-    await wrapper.find('[data-relation-row="detail"] [data-col="table"] input').setValue('shop_goods_profile');
+    await wrapper.find('[data-relation-row="detail"] [data-col="table"] select').setValue('shop_goods_profile');
+    await flushPromises();
     await action(wrapper, 'save').trigger('click');
     await flushPromises();
     expect(lastSavedSchema().relations).toEqual([{ type: 'hasOne', name: 'detail', table: 'shop_goods_profile', localField: 'id', foreignField: 'goods_id' }]);
@@ -582,5 +667,44 @@ describe('EditGenerationDialog', () => {
     expect(wrapper.find('[role="dialog"]').attributes('data-fullscreen')).toBe('true');
     await action(wrapper, 'version-history').trigger('click');
     expect(wrapper.find('[data-version-history]').attributes('data-hash')).toBe('hash-1');
+  });
+});
+
+describe('保存前兜底：分类树映射未补全按未开启保存', () => {
+  const staleTree = { enabled: true, source: { type: 'current' as const }, mapping: { valueField: 'id', labelField: '', targetField: '' } };
+  const staleDetail = (): BusinessModuleDetail => {
+    const detail = makeDetail();
+    const document = { ...makeDoc(), list: { leftTree: staleTree } };
+    return { ...detail, form: { ...detail.form!, schema_document: document as unknown as NonNullable<FormDefinition['schema_document']> } };
+  };
+
+  it('保存 Schema 时发送关闭的分类树并提示缺少项，本地采用已保存值后不再重复保存', async () => {
+    mocks.module.mockImplementation(async () => staleDetail());
+    const wrapper = await open();
+    await editTitleAndApiPrefix(wrapper);
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.saveSchema).toHaveBeenCalledTimes(1);
+    expect(lastSavedSchema().list?.leftTree).toEqual({ ...staleTree, enabled: false });
+    expect(mocks.message.warning).toHaveBeenCalledWith('左侧分类树的字段对应未填完（缺少：显示字段 / 右表关联字段），已按未开启保存');
+    expect(wrapper.emitted('saved')).toHaveLength(1);
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    expect(mocks.saveSchema).toHaveBeenCalledTimes(1);
+  });
+
+  it('冲突核对后采用本地同样发送关闭的分类树', async () => {
+    mocks.module.mockImplementation(async () => staleDetail());
+    mocks.saveSchema.mockRejectedValueOnce(conflictError);
+    const wrapper = await open();
+    await editTitleAndApiPrefix(wrapper);
+    await action(wrapper, 'save').trigger('click');
+    await flushPromises();
+    await action(wrapper, 'review-conflict').trigger('click');
+    await flushPromises();
+    await action(wrapper, 'conflict-use-local').trigger('click');
+    await flushPromises();
+    expect(mocks.saveSchema).toHaveBeenCalledTimes(2);
+    expect(mocks.saveSchema.mock.calls[1][1].list.leftTree).toEqual({ ...staleTree, enabled: false });
   });
 });

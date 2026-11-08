@@ -700,7 +700,7 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $discovered = array_map(static fn ($file): string => $file->meta()['class'], ControllerFinder::files());
         foreach ([
-            'app\\admin\\authentication\\controller\\AdminAuth' => '/admin/auth',
+            'app\\admin\\authentication\\controller\\AdminAuth' => '/admin/{entry:[a-z][a-z0-9-]{3,31}}/auth',
             'app\\admin\\authentication\\controller\\ApiAuth' => '/api/auth',
         ] as $class => $prefix) {
             self::assertContains($class, $discovered);
@@ -754,13 +754,13 @@ final class BusinessModuleLayoutTest extends TestCase
         $routes = file_get_contents(__DIR__ . '/../config/route.php');
         self::assertStringContainsString('Route::disableDefaultRoute()', $routes);
         self::assertStringContainsString('Route::fallback(', $routes);
-        self::assertStringNotContainsString('/admin/auth/', $routes);
+        self::assertStringContainsString('/admin/auth/', $routes);
         self::assertStringNotContainsString('/api/auth/', $routes);
         self::assertStringNotContainsString('/admin/management/', $routes);
         $businessRoutes = array_filter(Route::getRoutes(), static function ($route) use ($admin, $api): bool {
             $callback = $route->getCallback();
             return is_array($callback) && in_array($callback[0], [$admin, $api], true);
         });
-        self::assertCount(8, $businessRoutes);
+        self::assertCount(13, $businessRoutes);
     }
 }

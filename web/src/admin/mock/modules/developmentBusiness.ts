@@ -2,15 +2,15 @@ import { ok, page, type MockRoute } from '../types';
 
 const now = '2026-09-09 12:00:00';
 const modules = [
-  { id: 1, code: 'customer_order', name: '客户订单', origin: 'visual', lifecycle_status: 'dynamic_published', generation_status: 'completed', table_name: 'fun_customer_order', connection_name: 'mysql', runtime_route: '/development/business/runtime/customer_order', form_id: 1, updated_at: now },
-  { id: 2, code: 'inventory', name: '库存管理', origin: 'database', lifecycle_status: 'draft', generation_status: 'idle', table_name: 'fun_inventory', connection_name: 'mysql', runtime_route: '/development/business/runtime/inventory', form_id: 2, updated_at: now }
+  { id: 1, code: 'customer_order', name: '客户订单', origin: 'visual', lifecycle_status: 'dynamic_published', generation_status: 'completed', table_name: 'fun_customer_order', connection_name: 'mysql', runtime_route: '/development/business/runtime/customer_order', form_id: 1, tree_enabled: false, metadata: { target: { type: 'core' } }, updated_at: now },
+  { id: 2, code: 'inventory', name: '库存管理', origin: 'database', lifecycle_status: 'draft', generation_status: 'idle', table_name: 'fun_inventory', connection_name: 'mysql', runtime_route: '/development/business/runtime/inventory', form_id: 2, tree_enabled: false, metadata: { target: { type: 'core' } }, updated_at: now }
 ];
 
 export const developmentBusinessMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/development/business/field-capabilities', handler: () => ok({ registryVersion: 'mock-v1', schemaVersion: 2, registryHash: 'd'.repeat(64), capabilities: [], diagnostics: [] }) },
   { method: 'GET', url: '/development/business/modules', handler: ({ params }) => {
     const keyword = String(params.keyword || '').toLowerCase();
-    const list = modules.filter((item) => (!keyword || item.name.includes(keyword) || item.code.includes(keyword)) && (!params.status || item.lifecycle_status === params.status) && (!params.origin || item.origin === params.origin));
+    const list = modules.filter((item) => (!keyword || item.table_name.includes(keyword) || item.name.includes(keyword) || item.code.includes(keyword)) && (!params.status || item.lifecycle_status === params.status) && (!params.origin || item.origin === params.origin) && (!params.target || (item.metadata.target.type ?? 'core') === params.target));
     return ok(page(list, list.length, Number(params.page || 1), Number(params.pageSize || 20)));
   } },
   { method: 'GET', url: /^\/development\/business\/modules\/(\d+)$/, paramNames: ['id'], handler: ({ pathParams }) => {

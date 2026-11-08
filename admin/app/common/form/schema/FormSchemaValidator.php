@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\form\schema;
 
+use app\common\form\action\CustomActions;
 use app\common\form\component\PluginFormComponentRegistry;
 use app\common\form\registry\FieldCapabilityRegistry;
 use app\common\form\validation\FormSchemaDataValidator;
@@ -143,7 +144,7 @@ final class FormSchemaValidator
         $this->validateTopLevelDataSourceReferences((array) ($schema['dataSources'] ?? []), '/dataSources', $fields);
         $this->validateGlobalActionReferences((array) ($schema['actions'] ?? []), '/actions', $fields);
         $this->validateConditionCycles($edges);
-        $this->validateListConfiguration((array) ($schema['list'] ?? []), $schema['nodes']);
+        $this->validateListConfiguration((array) ($schema['list'] ?? []), $schema['nodes'], (string) $schema['key']);
         if (array_key_exists('relations', $schema)) $this->validateRelations($schema['relations'], $fields);
     }
 
@@ -186,6 +187,10 @@ final class FormSchemaValidator
             if (isset($fields[$name])) {
                 throw new FormSchemaException('关联名称与字段名冲突：' . $name, $path . '/name');
             }
+            // 关联名直接成为生成模型的方法名：不得覆盖 Eloquent 模型（含 BaseModel）自带方法
+            if (method_exists(\app\common\model\BaseModel::class, $name)) {
+                throw new FormSchemaException('关联名称与模型内置方法冲突：' . $name, $path . '/name');
+            }
             $names[$name] = true;
             if ($relation['localField'] !== 'id' && !isset($fields[$relation['localField']])) {
                 throw new FormSchemaException('关联本表字段不存在：' . $relation['localField'], $path . '/localField');
@@ -214,7 +219,7 @@ final class FormSchemaValidator
     }
 
     /** 列表只能引用本表可读标量字段，分类源限定静态选项或字典。 */
-    public function validateListConfiguration(array $list, array $nodes): void
+    public function validateListConfiguration(array $list, array $nodes, ?string $formKey = null): void
     {
         $fields = [];
         $collect = function (array $items) use (&$collect, &$fields): void {
@@ -226,6 +231,7 @@ final class FormSchemaValidator
         $collect($nodes);
         (new ListButtonSchemaValidator())->validate($list, $fields);
         if (array_key_exists('leftTree', $list)) $this->validateLeftTree($list['leftTree'], $fields);
+        if (array_key_exists('customActions', $list)) $this->validateCustomActions($list['customActions'], $formKey);
         foreach (['category' => 'field', 'tree' => 'parentField'] as $kind => $binding) {
             if (!array_key_exists($kind, $list)) continue;
             $config = $list[$kind];
@@ -255,6 +261,71 @@ final class FormSchemaValidator
                         if (!is_array($option) || !is_string($option['label'] ?? null) || (!is_string($option['value'] ?? null) && !is_int($option['value'] ?? null))) throw new FormSchemaException('分类选项必须具有文字标签和标量值', '/list/category/field');
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * 设计器新建的列表自定义动作：只声明元数据，处理代码与权限在正式生成时产生。
+     * 注册键 generated.{entity}.{key}、权限码与方法名的换算见 CustomActions。
+     */
+    public function validateCustomActions(mixed $actions, ?string $formKey = null): void
+    {
+        $fail = static fn (string $message, string $path): never => throw new FormSchemaException($message, '/list/customActions' . $path, 'FORM_LIST_CUSTOM_ACTION_INVALID');
+        if (!is_array($actions) || !array_is_list($actions)) $fail('customActions 必须为数组', '');
+        if (count($actions) > CustomActions::MAX_ACTIONS) $fail('自定义动作最多 ' . CustomActions::MAX_ACTIONS . ' 个', '');
+        $keys = [];
+        $methods = [];
+        $required = ['key', 'label', 'locations', 'batch', 'requiresConfirmation', 'effect', 'parameters'];
+        foreach ($actions as $index => $action) {
+            $at = '/' . $index;
+            if (!is_array($action) || ($action !== [] && array_is_list($action))
+                || array_diff(array_keys($action), $required) !== [] || array_diff($required, array_keys($action)) !== []) {
+                $fail('自定义动作必须且只能包含 ' . implode('、', $required), $at);
+            }
+            $key = $action['key'];
+            if (!is_string($key) || preg_match(CustomActions::KEY_PATTERN, $key) !== 1) $fail('动作标识须以小写字母开头，仅含小写字母、数字和下划线，最多 41 个字符', $at . '/key');
+            if (isset($keys[$key])) $fail('动作标识重复：' . $key, $at . '/key');
+            // PHP 方法名不区分大小写：mark_paid 与 markpaid 会生成同名方法。
+            $method = strtolower(CustomActions::method($key));
+            if (isset($methods[$method])) $fail('动作标识生成的方法名与「' . $methods[$method] . '」重复', $at . '/key');
+            if ($formKey !== null && strlen(CustomActions::registryKey(CustomActions::entity($formKey), $key)) > CustomActions::MAX_REGISTRY_KEY) {
+                $fail('注册键 generated.{业务}.{标识} 超过 ' . CustomActions::MAX_REGISTRY_KEY . ' 个字符，请缩短动作标识', $at . '/key');
+            }
+            $keys[$key] = true;
+            $methods[$method] = $key;
+            $label = $action['label'];
+            if (!is_string($label) || trim($label) === '' || mb_strlen($label) > 50 || preg_match('/[\x00-\x1f\x7f]/', $label) === 1) {
+                $fail('动作名称须为 1–50 个字符', $at . '/label');
+            }
+            $locations = $action['locations'];
+            if (!is_array($locations) || !array_is_list($locations) || $locations === []
+                || array_diff($locations, CustomActions::LOCATIONS) !== [] || count(array_unique($locations)) !== count($locations)) {
+                $fail('位置须为 row / toolbar 的非空且不重复的集合', $at . '/locations');
+            }
+            foreach (['batch', 'requiresConfirmation'] as $flag) {
+                if (!is_bool($action[$flag])) $fail($flag . ' 必须为布尔值', $at . '/' . $flag);
+            }
+            // 列表顶部（toolbar）的注册动作总是作用于已选记录：toolbar ⇔ batch，二者不一致即拒绝。
+            if ($action['batch'] !== in_array('toolbar', $locations, true)) {
+                $fail($action['batch'] ? '批量动作必须放在列表顶部（toolbar）' : '列表顶部（toolbar）的动作作用于已选记录，batch 必须为 true', $at . '/batch');
+            }
+            if (!in_array($action['effect'], ['write', 'read'], true)) $fail('effect 仅支持 write 或 read', $at . '/effect');
+            $parameters = $action['parameters'];
+            if (!is_array($parameters) || !array_is_list($parameters) || count($parameters) > CustomActions::MAX_PARAMETERS) {
+                $fail('参数须为最多 ' . CustomActions::MAX_PARAMETERS . ' 项的数组', $at . '/parameters');
+            }
+            $names = [];
+            foreach ($parameters as $position => $parameter) {
+                $pat = $at . '/parameters/' . $position;
+                if (!is_array($parameter) || array_diff(array_keys($parameter), ['name', 'type']) !== [] || array_diff(['name', 'type'], array_keys($parameter)) !== []) {
+                    $fail('参数必须且只能包含 name、type', $pat);
+                }
+                $name = $parameter['name'];
+                if (!is_string($name) || preg_match(CustomActions::PARAMETER_PATTERN, $name) !== 1) $fail('参数名须以小写字母开头，仅含小写字母、数字和下划线', $pat . '/name');
+                if (isset($names[$name])) $fail('参数名重复：' . $name, $pat . '/name');
+                $names[$name] = true;
+                if (!in_array($parameter['type'], CustomActions::PARAMETER_TYPES, true)) $fail('参数类型仅支持 string / integer / number / boolean', $pat . '/type');
             }
         }
     }

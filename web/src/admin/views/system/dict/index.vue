@@ -81,18 +81,14 @@
           </template>
         </DataTableShell>
 
-        <div class="dict-layout__pagination">
-          <el-pagination
-            v-model:current-page="typeQuery.page"
-            v-model:page-size="typeQuery.pageSize"
-            :total="typeTotal"
-            small
-            background
-            layout="total, prev, pager, next"
-            @current-change="reloadTypes"
-            @size-change="reloadTypes"
-          />
-        </div>
+        <TablePagination
+          v-model:current-page="typeQuery.page"
+          v-model:page-size="typeQuery.pageSize"
+          :total="typeTotal"
+          small
+          layout="total, prev, pager, next"
+          @change="reloadTypes"
+        />
       </div>
 
       <!-- 右：字典项 -->
@@ -188,19 +184,14 @@
             </template>
           </DataTableShell>
 
-          <div class="dict-layout__pagination">
-            <el-pagination
-              v-model:current-page="itemQuery.page"
-              v-model:page-size="itemQuery.pageSize"
-              :total="itemTotal"
-              small
-              background
-              :page-sizes="[10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @current-change="reloadItems"
-              @size-change="reloadItems"
-            />
-          </div>
+          <TablePagination
+            v-model:current-page="itemQuery.page"
+            v-model:page-size="itemQuery.pageSize"
+            :total="itemTotal"
+            small
+            :page-sizes="[10, 20, 50]"
+            @change="reloadItems"
+          />
         </template>
       </div>
     </div>
@@ -217,6 +208,7 @@
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -464,13 +456,6 @@ onMounted(reloadTypes);
     flex-direction: column;
     padding-left: 16px;
     overflow: hidden;
-  }
-
-  &__pagination {
-    padding: 8px 0;
-    display: flex;
-    justify-content: flex-end;
-    border-top: 1px solid var(--el-border-color-lighter);
   }
 
   &__empty {

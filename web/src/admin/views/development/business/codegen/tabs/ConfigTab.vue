@@ -1,8 +1,8 @@
 <template>
-  <el-form class="codegen-config" label-width="108px" label-position="right" @submit.prevent>
+  <el-form class="codegen-config" label-width="auto" label-position="right" @submit.prevent>
     <h4 class="codegen-config__section">{{ t('business.codegen.edit.sectionBasic', '基础信息') }}</h4>
-    <el-form-item data-config="tableName" :label="t('business.codegen.edit.tableName', '表名称（绑定表）')">
-      <span class="codegen-config__ro">{{ tableName }}</span>
+    <el-form-item data-config="tableName" :label="t('business.codegen.edit.tableName', '表名称')">
+      <span class="codegen-config__ro" :title="t('business.codegen.edit.tableNameHint', '即绑定的数据表')">{{ tableName }}</span>
     </el-form-item>
     <el-form-item data-config="title" :label="t('business.codegen.edit.tableComment', '表描述')" required>
       <el-input :model-value="doc.title" maxlength="100" :placeholder="t('business.codegen.edit.tableCommentPlaceholder', '如：商品')" @update:model-value="updateTitle" />
@@ -63,6 +63,13 @@
         </el-radio-group>
       </el-form-item>
     </template>
+    <el-form-item data-config="module" :label="t('business.codegen.edit.moduleName', '模块名')" :required="!pluginTarget">
+      <template v-if="pluginTarget">
+        <span class="codegen-config__ro">{{ target?.pluginCode }}</span>
+        <div class="codegen-config__tip">{{ t('business.codegen.edit.moduleNamePluginTip', '插件目标的模块名固定为插件标识。') }}</div>
+      </template>
+      <el-input v-else :model-value="publish.module" maxlength="64" @update:model-value="(module: string) => emitPublish({ module })" />
+    </el-form-item>
     <el-form-item data-config="apiPrefix" :label="t('business.codegen.edit.apiPrefix', '接口前缀')" required>
       <el-input :model-value="publish.apiPrefix" @update:model-value="(apiPrefix: string) => emitPublish({ apiPrefix })" />
     </el-form-item>
@@ -157,6 +164,8 @@ const connection = computed(() => String(database.value.connection || props.form
 const formKey = computed(() => props.doc.key || props.form.form_key);
 const className = computed(() => classNameOf(formKey.value));
 const target = computed(() => props.module?.metadata?.target);
+// 插件目标在 FormCrudDefinitionFactory::forBusinessTarget 中以插件标识覆盖 module。
+const pluginTarget = computed(() => target.value?.type === 'plugin');
 const targetLabel = computed(() => target.value?.type === 'plugin'
   ? t('business.codegen.edit.targetPlugin', { code: target.value.pluginCode ?? '' }, '插件 {code}')
   : t('business.codegen.edit.targetCore', '核心（app/admin/generated）'));
@@ -194,6 +203,11 @@ const updateParentMenu = (value: unknown) => emitPublish({ parentSourceName: Str
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 28px;
   padding: 4px 4px 8px;
+}
+
+/* 标签宽度由 el-form 取最长标签（label-width="auto"），标签本身不折行。 */
+.codegen-config :deep(.el-form-item__label) {
+  white-space: nowrap;
 }
 
 .codegen-config__section {

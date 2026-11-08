@@ -24,16 +24,14 @@
         </template>
       </el-table-column>
     </el-table>
-    <div class="mt-4 flex justify-end">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[20, 50, 100]"
-        layout="total, sizes, prev, pager, next"
-        @change="reload()"
-      />
-    </div>
+    <TablePagination
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      :total="total"
+      :page-sizes="[20, 50, 100]"
+      layout="total, sizes, prev, pager, next"
+      @change="reload()"
+    />
 
     <el-dialog v-model="addVisible" :title="t('systemLanguage.addLine', '新增译文')" width="min(560px, 90vw)" append-to-body>
       <el-form label-width="80px">
@@ -55,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { computed, ref, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';

@@ -27,7 +27,8 @@ final class DefinitionValidator
         'langMigration', 'langZh', 'langEn',
     ];
     /** 仅在 memberApi 启用时出现的附加制品。 */
-    private const OPTIONAL_ARTIFACT_KEYS = ['memberApiController'];
+    /** memberApi 启用时的前台控制器；list.customActions 非空时的动作类与注册清单。 */
+    private const OPTIONAL_ARTIFACT_KEYS = ['memberApiController', 'customActions', 'customActionsConfig'];
     private const COMPONENTS = [
         'input', 'password', 'textarea', 'mention', 'inputNumber', 'select', 'selectV2', 'treeSelect', 'cascader',
         'radio', 'checkbox', 'switch', 'transfer', 'datetime', 'date', 'daterange', 'datetimerange', 'time',
@@ -139,17 +140,32 @@ final class DefinitionValidator
                 'database' => ['columnType' => $field['dbType']], 'valueType' => $field['valueType'] ?? 'string',
                 'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['controlProps']['sensitive'] ?? false) || ($field['detail'] ?? true) === false]), 'dataSource' => $source];
         }
-        (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes);
+        (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes, isset($data['formSchema']['key']) ? (string) $data['formSchema']['key'] : null);
+        $this->customActions($data, $target['type']);
         foreach ($data['list']['buttons'] ?? [] as $location => $buttons) {
             foreach ($buttons as $index => $button) {
                 if (in_array($button['action']['type'], ['registered', 'navigate', 'external', 'download', 'copy', 'refresh'], true) && ($data['target']['type'] ?? 'core') === 'core'
                     && !empty($data['formSchema']['key']) && ($data['capabilities']['list'] ?? true)) {
                     $schema = ['list' => ['buttons' => [$location => [$button]]]];
+                    if (($data['list']['customActions'] ?? []) !== []) {
+                        // 本模块自定义动作在正式生成时才进入注册表，绑定按 Schema 元数据校验。
+                        $schema = ['key' => (string) $data['formSchema']['key'], 'list' => $schema['list'] + ['customActions' => $data['list']['customActions']]];
+                    }
                     try {
                         $result = $this->listDependencies !== null
                             ? $this->listDependencies->check($schema, 'core-generated')
                             : (new \app\admin\form\repository\FormSchemaRepository())->checkDependencies($schema, 'core-generated');
                         if ($result['diagnostics'] === [] && ($button['action']['type'] !== 'download' || ($data['features']['export'] ?? false))) continue;
+                        // 能定位到具体原因的诊断（如按钮未绑定新增的动作参数）直接给出，便于用户修正。
+                        foreach ($result['diagnostics'] as $diagnostic) {
+                            if (($diagnostic['code'] ?? '') === 'FORM_ACTION_PARAMETER_MISSING') {
+                                throw new InvalidArgumentException(preg_replace('#^/list/buttons/[^/]+/0#', "/list/buttons/{$location}/{$index}", (string) $diagnostic['path']) . '：' . $diagnostic['message']);
+                            }
+                        }
+                    } catch (InvalidArgumentException $error) {
+                        // 注册表自身的明确错误（注册键冲突、注册清单不合法）与参数缺失诊断原样给出；
+                        // 其文本由本系统构造，不含连接信息（底层 PDO 异常已在注册表工厂内转换）。
+                        throw $error;
                     } catch (\Throwable) {
                         // CLI 未初始化生产注册表或安全存储不可用时保持阻断，不泄露连接信息。
                     }
@@ -188,6 +204,44 @@ final class DefinitionValidator
         }
         $this->menu($data['menu'] ?? null);
         $this->permission($data['permission'] ?? null);
+    }
+
+    /**
+     * list.customActions 只在核心列表动作宿主上生成：动作类与注册清单路径固定在模块目录，
+     * 未声明自定义动作时不得出现对应制品（保持既有生成结果不变）。
+     */
+    private function customActions(array $data, string $targetType): void
+    {
+        $declared = ($data['list']['customActions'] ?? []) !== [];
+        $artifacts = array_intersect(['customActions', 'customActionsConfig'], [...array_keys((array) ($data['generationTargets'] ?? [])), ...array_keys((array) ($data['templates'] ?? []))]);
+        if ($declared && $targetType === 'plugin') {
+            throw new InvalidArgumentException('插件目标暂不支持自定义动作，请改为生成到核心目标或移除 list.customActions');
+        }
+        if (!$declared) {
+            if ($artifacts !== []) throw new InvalidArgumentException('未声明 list.customActions 时不得声明制品：' . implode(', ', $artifacts));
+            return;
+        }
+        if (empty($data['formSchema']['key']) || ($data['capabilities']['list'] ?? true) !== true) {
+            throw new InvalidArgumentException('自定义动作需要列表动作宿主：核心目标、启用列表能力并携带 formSchema');
+        }
+        $entity = (string) $data['entity'];
+        if (\app\common\form\action\CustomActions::entity((string) $data['formSchema']['key']) !== $entity) {
+            throw new InvalidArgumentException('自定义动作注册键依赖实体名：entity 必须为表单标识的 kebab 形式');
+        }
+        $directory = str_replace('-', '_', $entity);
+        $class = implode('', array_map('ucfirst', preg_split('/[-_]/', $entity) ?: []));
+        $expected = [
+            'customActions' => "app/admin/generated/{$directory}/action/{$class}Actions.php",
+            'customActionsConfig' => "app/admin/generated/{$directory}/config/actions.php",
+        ];
+        foreach ($expected as $type => $path) {
+            if (($data['generationTargets'][$type] ?? null) !== $path) {
+                throw new InvalidArgumentException("generationTargets.{$type} 必须为 {$path}");
+            }
+            if (!isset($data['templates'][$type])) {
+                throw new InvalidArgumentException('templates 缺少制品：' . $type);
+            }
+        }
     }
 
     private function target(mixed $target, string $projectRoot): array
@@ -386,6 +440,10 @@ final class DefinitionValidator
             $this->identifier($relation['name'], '关系名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
             if (isset($names[$relation['name']])) {
                 throw new InvalidArgumentException('关系名重复：' . $relation['name']);
+            }
+            // 关系名直接成为生成模型的方法名：不得覆盖 Eloquent 模型（含 BaseModel）自带方法
+            if (method_exists(\app\common\model\BaseModel::class, $relation['name'])) {
+                throw new InvalidArgumentException('关系名与模型内置方法冲突：' . $relation['name']);
             }
             if (!in_array($relation['type'], ['belongsTo', 'hasOne', 'hasMany', 'belongsToMany'], true)) {
                 throw new InvalidArgumentException('关系类型不合法');

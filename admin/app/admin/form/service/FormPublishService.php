@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\form\service;
 
+use app\common\crud\SchemaInspector;
 use app\common\form\schema\FormSchema;
 use app\common\form\schema\FormSchemaException;
 use app\admin\form\exception\FormMigrationException;
@@ -230,7 +231,7 @@ final class FormPublishService
                 $module = $this->createOrReloadBusinessModule($formId, $code, $baseline);
             }
             $now = date('Y-m-d H:i:s');
-            $module->save([
+            $module->fill([
                 'code' => $code,
                 'name' => (string) ($compiled->document()['title'] ?? ''),
                 'form_id' => $formId,
@@ -249,14 +250,14 @@ final class FormPublishService
                 ]),
                 'updated_at' => $now,
                 'created_at' => $module->id ? $module->created_at : $now,
-            ]);
-            $form->save([
+            ])->save();
+            $form->fill([
                 'business_module_id' => (int) $module->id,
                 'publish_mode' => 'dynamic',
                 'publish_status' => 'published',
                 'published_schema_hash' => $compiled->hash(),
                 'published_at' => $now,
-            ]);
+            ])->save();
             return $module->toArray();
         });
     }
@@ -268,7 +269,8 @@ final class FormPublishService
         } catch (Throwable $exception) {
             throw new InvalidArgumentException('无法检查 077_business_development_center 迁移：' . $exception->getMessage(), 0, $exception);
         }
-        $normalized = array_map(static fn (string $table): string => preg_replace('/^.*\./', '', $table) ?? $table, $tables);
+        // Laravel getTables() 返回 ['name' => ..., 'schema' => ...] 行而非表名字符串。
+        $normalized = array_map(static fn (array $table): string => preg_replace('/^.*\./', '', (string) ($table['name'] ?? '')) ?? '', $tables);
         if (!in_array('fun_business_module', $normalized, true) && !in_array('business_module', $normalized, true)) {
             throw new InvalidArgumentException('业务模块存储不可用，请先执行 077_business_development_center 迁移');
         }
@@ -318,7 +320,7 @@ final class FormPublishService
     {
         try {
             $module = new BusinessModule();
-            $module->save(['code' => $code, 'form_id' => $formId]);
+            $module->fill(['code' => $code, 'form_id' => $formId])->save();
             return $module;
         } catch (Throwable $exception) {
             if (!$this->isDuplicateKey($exception)) {
@@ -341,12 +343,14 @@ final class FormPublishService
 
     private function assertStructure(array $payload): void
     {
-        $actual = Db::connection((string) ($payload['connection'] ?? 'mysql'))->getSchemaBuilder()->getColumnListing((string) ($payload['table_name'] ?? ''));
+        // table_name 为带前缀物理表名：按零前缀读取物理列，避免 Schema Builder 重复加前缀；getColumnListing 返回列表而非映射。
+        $metadata = SchemaInspector::forConnection((string) ($payload['connection'] ?? 'mysql'))->inspect((string) ($payload['table_name'] ?? ''));
+        $actual = array_column((array) ($metadata['columns'] ?? []), 'name');
         foreach ((array) ($payload['fields'] ?? []) as $field) {
             $virtual = in_array((string) ($field['type'] ?? ''), ['group', 'grid', 'divider', 'text', 'collapse', 'tabs', 'repeatable', 'subform'], true)
                 || (string) ($field['relation_type'] ?? 'none') === 'has_many';
             $name = (string) ($field['field_name'] ?? '');
-            if (!$virtual && !array_key_exists($name, $actual)) {
+            if (!$virtual && !in_array($name, $actual, true)) {
                 throw new InvalidArgumentException('DDL 结构验证失败，缺少字段：' . $name);
             }
         }

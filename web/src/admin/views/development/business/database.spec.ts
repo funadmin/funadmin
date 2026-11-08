@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import DatabasePage from './database.vue';
 import databaseSource from './database.vue?raw';
 
+// 无代码生成页权限时渲染原页面；有权限时的跳转见 codegen/legacyRoutes.spec.ts。
+vi.mock('@/utils/permission', () => ({ hasPermission: () => false }));
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock('./visual.vue', () => ({
   default: defineComponent({
     name: 'BusinessVisual',

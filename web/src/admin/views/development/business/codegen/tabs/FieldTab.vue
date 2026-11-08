@@ -5,7 +5,7 @@
       <el-button size="small" plain type="primary" data-action="select-all-filter" :disabled="!editableRows.length" @click="toggleAll('filter')">{{ t('business.codegen.edit.selectAllFilter', '全选查询') }}</el-button>
       <el-button size="small" plain type="success" data-action="suggest-controls" :disabled="!editableRows.length" @click="openSuggestions">{{ t('business.codegen.edit.suggestControls', '按字段名推荐控件') }}</el-button>
       <span class="codegen-fields__spacer" />
-      <el-button size="small" plain type="warning" data-action="open-designer" @click="emit('open-designer')">{{ t('business.codegen.edit.openDesigner', '打开表单设计器（复杂布局）') }}</el-button>
+      <el-button v-if="!hideDesignerLink" size="small" plain type="warning" data-action="open-designer" @click="emit('open-designer')">{{ t('business.codegen.edit.openDesigner', '打开表单设计器（复杂布局）') }}</el-button>
     </div>
     <p class="codegen-fields__tip">{{ t('business.codegen.edit.fieldsTip', '拖动左侧手柄只能在同一分组内调整顺序；跨分组移动、子表字段和复杂数据源请在表单设计器中编辑。') }}</p>
 
@@ -130,7 +130,8 @@ import { applyFieldPatches, dataSourceKind, moveFieldWithinParent, schemaToField
 import { changeFieldControl, defaultFilterFor } from '../fieldControl';
 import { suggestControl } from '../suggestControl';
 
-const props = defineProps<{ doc: FormSchemaDocument; adopted: boolean }>();
+// hideDesignerLink：从设计器内部打开时不再提供回到设计器的入口。
+const props = defineProps<{ doc: FormSchemaDocument; adopted: boolean; hideDesignerLink?: boolean }>();
 const emit = defineEmits<{ 'update:doc': [doc: FormSchemaDocument]; 'open-designer': [] }>();
 
 const { t } = useI18n();

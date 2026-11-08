@@ -68,9 +68,17 @@ final class AiConfigurationProfileService
     }
 
     /** 使用当前未保存表单临时查询模型目录，不写入档案。 */
-    public function modelsPreview(array $input): array
+    public function modelsPreview(int $adminId, array $input): array
     {
-        $config = self::validate(array_replace($input, ['model' => trim((string) ($input['model'] ?? '')) ?: '__model_discovery__']));
+        $profileId = $input['profile_id'] ?? null;
+        if (is_int($profileId) && $profileId > 0 && !array_key_exists('api_key', $input)) {
+            $row = $this->repository->find($adminId, $profileId);
+            $cipher = (string) $row->getAttribute('secret_ciphertext');
+            $config = self::validate(array_merge($row->configuration, ['name'=>$row->name, 'api_key'=>$cipher === '' ? '' : $this->secrets->open($cipher, $adminId)]));
+        } else {
+            unset($input['profile_id']);
+            $config = self::validate(array_replace($input, ['model' => trim((string) ($input['model'] ?? '')) ?: '__model_discovery__']));
+        }
         $gateway = $this->gatewayFactory !== null
             ? ($this->gatewayFactory)($config)
             : new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(), $config);

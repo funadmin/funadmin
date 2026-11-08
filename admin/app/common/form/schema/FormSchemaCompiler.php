@@ -19,6 +19,8 @@ final class FormSchemaCompiler
         $schema = $this->applyTreeControl($schema);
         // 空 relations 不进入 canonical 文档，保证未配置关联的 schemaHash 不变。
         if (($schema['relations'] ?? null) === []) unset($schema['relations']);
+        // 空 list.customActions 同理剔除，未新建自定义动作的模块 schemaHash 不变。
+        if (is_array($schema['list'] ?? null) && ($schema['list']['customActions'] ?? null) === []) unset($schema['list']['customActions']);
         $canonical = $this->canonicalize($schema);
         try {
             $json = json_encode($canonical, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

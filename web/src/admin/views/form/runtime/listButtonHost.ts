@@ -55,6 +55,17 @@ export function defaultListButtons(location: FormListButtonLocation): FormListBu
   if (location === 'toolbar') buttons.push({ id: 'refresh', label: t('common.refresh', '刷新'), color: 'default', action: { type: 'refresh' } });
   return buttons;
 }
+/**
+ * 按钮是否绑定本模块 Schema 声明的自定义动作（generated.{entity}.{key}）。页面层没有运行时目录，
+ * 无法区分「尚未生成」与「无权限」，仅用于决定操作列是否保留：待生成按钮须禁用提示而不是连列一起隐藏；
+ * 按钮本身的显示仍由 ListButtonBar 依据服务端 pendingKeys 判断。
+ */
+export function declaredCustomActionButton(button: FormListButton, schema?: { key?: string; list?: { customActions?: Array<{ key: string }> } }): boolean {
+  if (button.action.type !== 'registered' || !schema?.key) return false;
+  const entity = schema.key.replace(/_/g, '-');
+  const key = button.action.key;
+  return (schema.list?.customActions ?? []).some(action => `generated.${entity}.${action.key}` === key);
+}
 export function listActionKey(button: FormListButton): string {
   return button.action.type === 'builtin' ? button.action.key : button.action.type === 'form' ? 'edit' : button.action.type;
 }

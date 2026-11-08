@@ -140,8 +140,22 @@ export interface FormListButton {
   success?: { message?: string; refresh?: boolean; clearSelection?: boolean; close?: boolean };
 }
 
+/** 设计器新建的列表自定义动作；正式生成后得到注册动作 generated.{entity}.{key}（toolbar 动作总是批量）。 */
+export type FormListCustomActionLocation = 'row' | 'toolbar';
+export type FormListCustomActionParameterType = 'string' | 'integer' | 'number' | 'boolean';
+export interface FormListCustomAction {
+  key: string;
+  label: string;
+  locations: FormListCustomActionLocation[];
+  batch: boolean;
+  requiresConfirmation: boolean;
+  effect: 'write' | 'read';
+  parameters: Array<{ name: string; type: FormListCustomActionParameterType }>;
+}
+
 export interface FormListConfiguration {
   buttons?: Partial<Record<FormListButtonLocation, FormListButton[]>>;
+  customActions?: FormListCustomAction[];
   tools?: Partial<Record<'refresh' | 'search' | 'columns' | 'density' | 'fullscreen', boolean>>;
   leftTree?: FormLeftTreeConfiguration;
   category?: { enabled: boolean; field?: string };

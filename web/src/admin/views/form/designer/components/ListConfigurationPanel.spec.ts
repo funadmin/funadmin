@@ -2,6 +2,7 @@ import { defineComponent } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Panel from './ListConfigurationPanel.vue';
+import { useDesigner } from '../../composables/useDesigner';
 import ElementPlus from 'element-plus';
 
 const api = vi.hoisted(() => ({ modules: vi.fn(), module: vi.fn(), meta: vi.fn(), sourceCandidates: vi.fn(), sourceMeta: vi.fn(), fieldCapabilities: vi.fn(), listActions: vi.fn(), designActionCatalog: vi.fn() }));
@@ -23,10 +24,12 @@ describe('独立分类配置入口', () => {
     expect(api.designActionCatalog).toHaveBeenCalledWith(7);
     expect(api.fieldCapabilities).not.toHaveBeenCalled();
     expect(api.listActions).not.toHaveBeenCalled();
-    expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })[1]!.props('resources')).toHaveProperty('customer');
-    const editor = wrapper.findAllComponents({ name: 'ListButtonEditor' })[1]!;
+    expect(wrapper.findComponent({ name: 'ButtonsWorkspace' }).props('resources')).toHaveProperty('customer');
+    (wrapper.findComponent({ name: 'ButtonsWorkspace' }).vm as any).add('row'); await flushPromises();
+    const editor = wrapper.findComponent({ name: 'ButtonInspector' });
+    expect(editor.props('resources')).toHaveProperty('customer');
     const state = (editor.vm as any).$.setupState;
-    state.add(); state.changeAction('registered:inspect'); state.save();
+    state.changeAction('registered:inspect'); state.save();
     const saved = (wrapper.emitted('update')?.at(-1)?.[0] as any).buttons;
     expect(saved.row.at(-1).action).toEqual({ type: 'registered', key: 'inspect', capabilityVersion: 'v3' });
     await wrapper.setProps({ modelValue: { ...config(), buttons: saved } });
@@ -36,6 +39,7 @@ describe('独立分类配置入口', () => {
     expect(wrapper.emitted('update')?.length).toBe(updates);
     expect(wrapper.props('modelValue').buttons).toEqual(saved);
     expect(editor.props('catalogError')).toContain('保留');
+    expect(wrapper.findComponent({ name: 'ButtonsWorkspace' }).props('catalogFailed')).toBe(true);
     wrapper.unmount();
   });
   it('右表允许选择真实 belongs_to 外键，但选项筛选仍排除关系字段', async () => {
@@ -44,6 +48,17 @@ describe('独立分类配置入口', () => {
     const state = (wrapper.vm as any).$.setupState;
     expect(state.targetFields?.map((field: any) => field.field_name)).toEqual(['category_id']);
     expect(state.scalarFields).toEqual([]);
+    wrapper.unmount();
+  });
+  it('页签行「刷新目录」调用原目录加载并更新目录规模', async () => {
+    api.designActionCatalog.mockResolvedValue({ moduleId: 7, designOnly: true, executable: false, resources: {}, actions: { row: { inspect: { permission: 'inspect', capabilityVersion: 'v3', parameters: [], parameterTypes: {}, locations: ['row'], targets: ['record'], effect: 'read', batch: false, requiresConfirmation: false, resultContract: 'json' } } } });
+    const wrapper = render('buttons');
+    await wrapper.setProps({ moduleId: 7 } as never); await flushPromises();
+    expect(api.designActionCatalog).toHaveBeenCalledTimes(1);
+    const workspace = wrapper.findComponent({ name: 'ButtonsWorkspace' });
+    expect(workspace.props('catalogCount')).toBe(1);
+    await workspace.findAll('button').find(item => item.text() === '刷新目录')!.trigger('click'); await flushPromises();
+    expect(api.designActionCatalog).toHaveBeenCalledTimes(2);
     wrapper.unmount();
   });
   it('配置面板提供四个共享按钮编辑器和工具开关', () => { const wrapper = render('buttons'); expect(wrapper.findAllComponents({ name: 'ListButtonEditor' })).toHaveLength(4); expect(wrapper.text()).toContain('通用工具'); wrapper.unmount(); });
@@ -57,7 +72,28 @@ describe('独立分类配置入口', () => {
     expect(wrapper.text()).toContain('通用工具');
     wrapper.unmount();
   });
-  it('明确区分可管理分类与选项筛选', () => { const wrapper = render(); const labels = wrapper.findAll('[data-label]').map(item => item.attributes('data-label')); expect(labels).toContain('可管理分类'); expect(labels).toContain('选项筛选'); wrapper.unmount(); });
+  it('明确区分可管理分类与选项筛选：以互斥的三张分类方式图卡呈现', () => { const wrapper = render('categories'); const cards = wrapper.findAll('[role="radio"][data-category-mode]'); expect(cards.map(item => item.attributes('data-category-mode'))).toEqual(['none', 'tabs', 'tree']); expect(wrapper.text()).toContain('顶部选项页签'); expect(wrapper.text()).toContain('左侧分类树'); expect(cards.filter(item => item.attributes('aria-checked') === 'true')).toHaveLength(1); wrapper.unmount(); });
+  it('分类方式图卡沿用原互斥规则写回：页签关闭分类树、分类树关闭页签、不分类只关闭已开启的一方', async () => {
+    const wrapper = render('categories');
+    await wrapper.get('[data-category-mode="tabs"]').trigger('click');
+    expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ category: { enabled: true, field: 'mention' }, leftTree: { enabled: false, mapping: { targetField: 'category_id' } } });
+    await wrapper.setProps({ modelValue: { ...config(), leftTree: { ...config().leftTree, enabled: false } } });
+    await wrapper.get('[data-category-mode="tree"]').trigger('click');
+    // 来源主键/显示字段为空：不写入 enabled: true，界面保持分类树选中（待完成）。
+    expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { enabled: false, actions: { addChild: false } }, category: { enabled: false, field: 'mention' } });
+    expect(wrapper.get('[data-category-mode="tree"]').attributes('aria-checked')).toBe('true');
+    await wrapper.setProps({ modelValue: config() });
+    // 与原先关闭「可管理分类」开关写回一致：无父级字段时 addChild / includeDescendants 被清为 false。
+    const closedTree = { ...config().leftTree, enabled: false, actions: { addChild: false }, selection: { includeDescendants: false } };
+    await wrapper.get('[data-category-mode="none"]').trigger('click');
+    expect(wrapper.emitted('update')?.at(-1)?.[0]).toEqual({ category: { enabled: false, field: 'mention' }, leftTree: closedTree });
+    (wrapper.vm as any).$.setupState.updateLeft({ enabled: false });
+    expect((wrapper.emitted('update')?.at(-1)?.[0] as any).leftTree).toEqual(closedTree);
+    await wrapper.setProps({ modelValue: { leftTree: config().leftTree } });
+    await wrapper.get('[data-category-mode="none"]').trigger('click');
+    expect(wrapper.emitted('update')?.at(-1)?.[0]).toEqual({ leftTree: closedTree });
+    wrapper.unmount();
+  });
   it('没有父级字段时禁用新增子节点，并在更新时清除旧开关', async () => { const wrapper = render(); expect(wrapper.get('[data-label="新增子节点"] button').attributes('disabled')).toBeDefined(); const state = (wrapper.vm as any).$.setupState; state.updateLeft({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { actions: { addChild: false } }, category: { enabled: false } }); wrapper.unmount(); });
   it('开启选项筛选会关闭可管理分类，保留原映射', () => { const wrapper = render(); (wrapper.vm as any).$.setupState.category({ enabled: true }); expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { enabled: false, mapping: { targetField: 'category_id' } } }); wrapper.unmount(); });
   it('候选与选择只使用专用安全元数据，绝不请求完整模块详情或运行态 meta', async () => {
@@ -88,6 +124,116 @@ describe('独立分类配置入口', () => {
     await (wrapper.vm as any).$.setupState.chooseModule('allowed');
     expect((wrapper.vm as any).$.setupState.externalFields).toEqual([]);
     expect(wrapper.emitted('update')).toBeUndefined();
+    wrapper.unmount();
+  });
+  describe('分类树待完成：必填映射为空时不写入 enabled: true', () => {
+    const fields = [
+      { field_name: 'sort', label: '排序', type: 'number', column_type: 'int', relation_type: 'none' },
+      { field_name: 'title', label: '标题', type: 'input', column_type: 'varchar(100)', relation_type: 'none' },
+      { field_name: 'remark', label: '备注', type: 'textarea', column_type: 'text', relation_type: 'none' },
+      { field_name: 'category_id', label: '分类', type: 'number', column_type: 'bigint', relation_type: 'none' }
+    ];
+    const empty = { enabled: false, source: { type: 'current' as const }, mapping: { valueField: '', labelField: '', targetField: '' } };
+    const mountPanel = (modelValue: Record<string, unknown>) => mount(Panel, { props: { modelValue, fields, mode: 'categories' } as never, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElSwitch: switchStub, ElSelect: box, ElOption: true } } });
+    const lastUpdate = (wrapper: ReturnType<typeof mountPanel>) => wrapper.emitted('update')?.at(-1)?.[0] as any;
+    const checked = (wrapper: ReturnType<typeof mountPanel>) => wrapper.findAll('[data-category-mode][aria-checked="true"]').map(item => item.attributes('data-category-mode'));
+    const missing = (wrapper: ReturnType<typeof mountPanel>) => wrapper.findAll('[data-category-pending] [data-missing-mapping]').map(item => item.attributes('data-missing-mapping'));
+
+    it('选择分类树（当前业务）预填主键与首个文本字段，缺右表关联字段时写回 enabled: false 并显示待完成；补全后一并写入 enabled: true', async () => {
+      const wrapper = mountPanel({ category: { enabled: true, field: 'status' }, leftTree: empty });
+      await wrapper.get('[data-category-mode="tree"]').trigger('click');
+      expect(lastUpdate(wrapper)).toMatchObject({ leftTree: { enabled: false, source: { type: 'current' }, mapping: { valueField: 'id', labelField: 'title', targetField: '' } }, category: { enabled: false, field: 'status' } });
+      await wrapper.setProps({ modelValue: lastUpdate(wrapper) });
+      expect(checked(wrapper)).toEqual(['tree']);
+      expect(missing(wrapper)).toEqual(['targetField']);
+      (wrapper.vm as any).$.setupState.updateLeft({ mapping: { ...lastUpdate(wrapper).leftTree.mapping, targetField: 'category_id' } });
+      expect(lastUpdate(wrapper).leftTree).toMatchObject({ enabled: true, mapping: { valueField: 'id', labelField: 'title', targetField: 'category_id' } });
+      await wrapper.setProps({ modelValue: lastUpdate(wrapper) });
+      expect(checked(wrapper)).toEqual(['tree']);
+      expect(wrapper.find('[data-category-pending]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it('已有映射不被预填覆盖；其他已发布业务来源不预填', async () => {
+      const wrapper = mountPanel({ leftTree: { ...empty, mapping: { valueField: '', labelField: 'remark', targetField: 'category_id' } } });
+      await wrapper.get('[data-category-mode="tree"]').trigger('click');
+      expect(lastUpdate(wrapper).leftTree).toMatchObject({ enabled: true, mapping: { valueField: 'id', labelField: 'remark', targetField: 'category_id' } });
+      const external = mountPanel({ leftTree: { ...empty, source: { type: 'module' as const } } });
+      await external.get('[data-category-mode="tree"]').trigger('click');
+      expect(lastUpdate(external).leftTree).toMatchObject({ enabled: false, mapping: { valueField: '', labelField: '', targetField: '' } });
+      expect(checked(external)).toEqual(['tree']);
+      wrapper.unmount(); external.unmount();
+    });
+
+    it('待完成时选择不分类或顶部选项页签清除待完成状态', async () => {
+      const wrapper = mountPanel({ leftTree: empty });
+      await wrapper.get('[data-category-mode="tree"]').trigger('click');
+      await wrapper.setProps({ modelValue: lastUpdate(wrapper) });
+      const updates = wrapper.emitted('update')!.length;
+      await wrapper.get('[data-category-mode="none"]').trigger('click');
+      // 已保存配置中两者都未开启：只清除界面状态，不写回
+      expect(wrapper.emitted('update')!.length).toBe(updates);
+      expect(checked(wrapper)).toEqual(['none']);
+      expect(wrapper.find('[data-category-pending]').exists()).toBe(false);
+      await wrapper.get('[data-category-mode="tree"]').trigger('click');
+      expect(checked(wrapper)).toEqual(['tree']);
+      await wrapper.get('[data-category-mode="tabs"]').trigger('click');
+      expect(lastUpdate(wrapper)).toMatchObject({ category: { enabled: true }, leftTree: { enabled: false } });
+      await wrapper.setProps({ modelValue: lastUpdate(wrapper) });
+      expect(checked(wrapper)).toEqual(['tabs']);
+      wrapper.unmount();
+    });
+
+    it('已开启的分类树清空必填映射时写回 enabled: false，界面保持分类树并显示待完成', async () => {
+      const complete = { ...empty, enabled: true, mapping: { valueField: 'id', labelField: 'title', targetField: 'category_id' } };
+      const wrapper = mountPanel({ leftTree: complete });
+      (wrapper.vm as any).$.setupState.updateLeft({ mapping: { ...complete.mapping, labelField: '' } });
+      expect(lastUpdate(wrapper).leftTree).toMatchObject({ enabled: false, mapping: { labelField: '' } });
+      await wrapper.setProps({ modelValue: lastUpdate(wrapper) });
+      expect(checked(wrapper)).toEqual(['tree']);
+      expect(missing(wrapper)).toEqual(['labelField']);
+      wrapper.unmount();
+    });
+
+    it('外部把未补全的已开启分类树改为关闭（保存前兜底）时保留分类树选中与待完成；本面板选择不分类则不保留', async () => {
+      const stale = { ...empty, enabled: true, mapping: { valueField: 'id', labelField: '', targetField: '' } };
+      const wrapper = mountPanel({ leftTree: stale });
+      expect(checked(wrapper)).toEqual(['tree']);
+      await wrapper.setProps({ modelValue: { leftTree: { ...stale, enabled: false } } });
+      expect(checked(wrapper)).toEqual(['tree']);
+      expect(missing(wrapper)).toEqual(['labelField', 'targetField']);
+      expect(wrapper.emitted('update')).toBeUndefined();
+      wrapper.unmount();
+
+      const cleared = mountPanel({ leftTree: stale });
+      await cleared.get('[data-category-mode="none"]').trigger('click');
+      expect(lastUpdate(cleared).leftTree).toMatchObject({ enabled: false });
+      await cleared.setProps({ modelValue: lastUpdate(cleared) });
+      expect(checked(cleared)).toEqual(['none']);
+      expect(cleared.find('[data-category-pending]').exists()).toBe(false);
+      cleared.unmount();
+    });
+  });
+});
+describe('自定义动作写回', () => {
+  it('按表单标识推导 entity、插件目标屏蔽入口；删除写回 undefined 并合并按钮，设计器不保留空数组', async () => {
+    api.designActionCatalog.mockResolvedValue({ moduleId: 7, designOnly: true, executable: false, resources: {}, actions: {} });
+    const action = { key: 'approve', label: '审批', locations: ['row' as const], batch: false, requiresConfirmation: true, effect: 'write' as const, parameters: [] };
+    const toolbar = [{ id: 't', label: 'T', action: { type: 'refresh' as const } }];
+    const wrapper = mount(Panel, { props: { modelValue: { customActions: [action], buttons: { toolbar, row: [] } }, fields: [], mode: 'buttons', formKey: 'fun_order' }, global: { plugins: [ElementPlus] } });
+    const workspace = wrapper.findComponent({ name: 'ButtonsWorkspace' });
+    expect(workspace.props('customActionEntity')).toBe('fun-order');
+    expect(workspace.props('customActionsBlocked')).toBeFalsy();
+    workspace.vm.$emit('updateCustomActions', undefined, { row: [] });
+    const patch = wrapper.emitted('update')!.at(-1)![0] as Record<string, unknown>;
+    expect(patch).toEqual({ customActions: undefined, buttons: { toolbar, row: [] } });
+    const store = useDesigner();
+    store.updateList({ customActions: [action] });
+    expect(store.schemaDocument.value.list?.customActions).toEqual([action]);
+    store.updateList(patch);
+    expect(store.schemaDocument.value.list).not.toHaveProperty('customActions');
+    await wrapper.setProps({ pluginTarget: true });
+    expect(workspace.props('customActionsBlocked')).toBe(true);
     wrapper.unmount();
   });
 });

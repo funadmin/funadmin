@@ -76,6 +76,8 @@ final class ProductionTemplateContext
             'migrationContent' => self::migration($data, $primary),
             'modelContent' => self::model($data, $class, $primary),
             'relationModels' => self::relationModels($data),
+            'customActionsContent' => self::customActionsClass($data, $class),
+            'customActionsConfigContent' => self::customActionsConfig($data, $class),
             'validateContent' => self::validator($data, $class, $primary),
             'serviceContent' => self::service($data, $class, $primary),
             'controllerContent' => self::controller($data, $class, $primary),
@@ -266,6 +268,92 @@ final class ProductionTemplateContext
         }
         ksort($models, SORT_STRING);
         return $models;
+    }
+
+    /** 自定义动作（list.customActions）声明；插件目标与未声明时为空。 */
+    private static function declaredCustomActions(array $data): array
+    {
+        if (($data['target']['type'] ?? 'core') !== 'core') return [];
+        $actions = $data['list']['customActions'] ?? [];
+        return is_array($actions) ? array_values(array_filter($actions, 'is_array')) : [];
+    }
+
+    private static function customActionsNamespace(array $data): string
+    {
+        return 'app\\admin\\generated\\' . str_replace('-', '_', (string) $data['entity']) . '\\action';
+    }
+
+    /**
+     * 每个自定义动作一个 public 方法桩；未实现时抛出 FormActionNotImplementedException，
+     * 列表动作入口映射为「未实现：{名称}」。本文件作为普通生成文件参与三方合并，手写逻辑再次生成时保留。
+     */
+    private static function customActionsClass(array $data, string $class): string
+    {
+        $actions = self::declaredCustomActions($data);
+        if ($actions === []) return '';
+        $entity = (string) $data['entity'];
+        $methods = [];
+        foreach ($actions as $action) {
+            $key = (string) $action['key'];
+            $parameters = array_map(static fn (array $parameter): string => $parameter['name'] . ': ' . $parameter['type'], (array) $action['parameters']);
+            $methods[] = "    /**\n"
+                . '     * 注册键 ' . \app\common\form\action\CustomActions::registryKey($entity, $key) . '，权限 ' . \app\common\form\action\CustomActions::permission($entity, $key) . "。\n"
+                . '     * 参数：' . ($parameters === [] ? '无' : implode(', ', $parameters)) . "；返回值须可 JSON 序列化。\n"
+                . "     * context：key 注册键；location 触发位置；ids 已授权并重新加载的记录 ID（行内为该行，顶部为已选记录）；行内另有 id。\n"
+                . "     *\n"
+                . "     * @param array{key: string, location: 'row'|'toolbar', ids: list<int|string>, id?: int|string} \$context\n"
+                . "     */\n"
+                . '    public function ' . \app\common\form\action\CustomActions::method($key) . "(array \$parameters, array \$context): array\n    {\n"
+                . '        throw new \\app\\common\\form\\action\\FormActionNotImplementedException(' . var_export((string) $action['label'], true) . ");\n    }";
+        }
+        return "<?php\n\ndeclare(strict_types=1);\n\nnamespace " . self::customActionsNamespace($data) . ";\n\n"
+            . "/**\n * 列表自定义动作的处理方法：在方法内实现业务逻辑，再次生成时按三方合并保留。\n"
+            . " * 权限、二次确认、参数类型与幂等由注册动作执行链（config/actions.php）统一校验。\n"
+            . " *\n"
+            . " * 返回 ['message' => '已审核 1 条'] 时，按钮未配置成功提示则以该文本作为成功提示。\n"
+            . " * 需要拒绝执行并提示操作者时抛出 \\app\\common\\form\\action\\FormActionUserException('提示文本')，入口返回 422 并展示该文本；\n"
+            . " * 该异常须在做出任何更改之前抛出：它被视为「未发生」，同一请求（相同 idempotencyKey）允许原样重试。\n"
+            . " * 其他异常只显示通用失败提示，且结果记为未知、不允许重试。执行时限见 config/actions.php 的 timeoutMs（默认 3000 毫秒）。\n */\n"
+            . "final class {$class}Actions\n{\n" . implode("\n\n", $methods) . "\n}\n";
+    }
+
+    /** 注册清单：FormRegistryFactory 合并所有 app/admin/generated/{模块}/config/actions.php。 */
+    private static function customActionsConfig(array $data, string $class): string
+    {
+        $actions = self::declaredCustomActions($data);
+        if ($actions === []) return '';
+        $entity = (string) $data['entity'];
+        $handlerClass = '\\' . self::customActionsNamespace($data) . '\\' . $class . 'Actions';
+        $entries = [];
+        foreach ($actions as $action) {
+            $key = (string) $action['key'];
+            $registryKey = \app\common\form\action\CustomActions::registryKey($entity, $key);
+            $descriptor = \app\common\form\action\CustomActions::descriptor($entity, $action);
+            $lines = ['        \'handler\' => static fn (array $parameters, array $context): array => (new ' . $handlerClass . '())->'
+                . \app\common\form\action\CustomActions::method($key) . '($parameters, [\'key\' => ' . var_export($registryKey, true) . '] + $context),'];
+            foreach (['permission', 'capabilityVersion', 'locations', 'targets', 'parameters', 'parameterTypes', 'effect', 'batch', 'requiresConfirmation', 'resultContract'] as $name) {
+                $lines[] = '        ' . var_export($name, true) . ' => ' . self::inlinePhp($descriptor[$name]) . ',';
+            }
+            // 处理器执行时限（毫秒），超时返回 FORM_ACTION_TIMEOUT；可按需调整，再次生成时按三方合并保留。
+            $lines[] = "        'timeoutMs' => 3000,";
+            // 执行器以第二个参数传入已授权记录上下文（location、ids，行内另有 id）。
+            $lines[] = "        'receivesContext' => true,";
+            $entries[] = '    ' . var_export($registryKey, true) . " => [\n" . implode("\n", $lines) . "\n    ],";
+        }
+        return "<?php\n\ndeclare(strict_types=1);\n\n"
+            . "// 列表自定义动作注册定义（处理器、权限、位置、参数类型）。由代码生成器维护，业务逻辑写在 action/{$class}Actions.php。\n"
+            . "return [\n" . implode("\n", $entries) . "\n];\n";
+    }
+
+    /** 单行 PHP 字面量：列表与映射写成短数组语法，便于审阅与三方合并。 */
+    private static function inlinePhp(mixed $value): string
+    {
+        if (!is_array($value)) return var_export($value, true);
+        if ($value === []) return '[]';
+        if (array_is_list($value)) return '[' . implode(', ', array_map([self::class, 'inlinePhp'], $value)) . ']';
+        $pairs = [];
+        foreach ($value as $key => $item) $pairs[] = var_export($key, true) . ' => ' . self::inlinePhp($item);
+        return '[' . implode(', ', $pairs) . ']';
     }
 
     /**

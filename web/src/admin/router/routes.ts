@@ -63,6 +63,12 @@ export const staticRoutes: RouteRecordRaw[] = [
     meta: { title: '登录', hidden: true }
   },
   {
+    path: `${ADMIN_ROUTE_PREFIX}/:loginEntry([a-z][a-z0-9-]{3,31})/login`,
+    name: 'LoginDynamic',
+    component: () => import('@/views/login/index.vue'),
+    meta: { title: '登录', hidden: true }
+  },
+  {
     path: `${ADMIN_ROUTE_PREFIX}/redirect`,
     component: Layout,
     meta: { hidden: true },

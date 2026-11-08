@@ -468,9 +468,12 @@ export function useDesigner() {
   };
   const updateList = (patch: NonNullable<FormSchemaDocument['list']>) => {
     pushHistory();
+    const list: NonNullable<FormSchemaDocument['list']> = { ...schemaDocument.value.list, ...clone(patch) };
+    // 值为 undefined 的键表示删除（如清空 customActions 时不保留空数组）。
+    for (const [key, value] of Object.entries(patch)) if (value === undefined) delete list[key];
     form.value = {
       ...form.value,
-      schema_document: { ...schemaDocument.value, list: { ...schemaDocument.value.list, ...clone(patch) } }
+      schema_document: { ...schemaDocument.value, list }
     };
   };
   const schemaDocument = computed<FormSchemaDocument>(() => ({

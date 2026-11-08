@@ -9,13 +9,16 @@
     :data-parent-id="parentId ?? ''"
   >
     <DesignerCanvasNode
-      v-for="node in nodes"
+      v-for="(node, index) in nodes"
       :key="node.id"
       :node="node"
       :store="store"
       :depth="depth"
+      :index="index"
+      :count="nodes.length"
     />
     <div v-if="!nodes.length" class="designer-drop-placeholder">{{ root ? t('formDesigner.dropHintRoot', '从左侧拖入控件开始设计') : t('formDesigner.dropHintContainer', '拖入控件到此容器') }}</div>
+    <div v-else-if="root" class="designer-drop-placeholder is-tail">{{ t('formDesigner.layout.dropHintTail', '把控件拖到这里，或在左侧点击控件追加到选中位置之后') }}</div>
   </div>
 </template>
 
@@ -92,21 +95,25 @@ onBeforeUnmount(() => sortable?.destroy());
 .designer-drop-zone {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 54px;
-  padding: 8px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
 }
 .designer-root-zone {
-  min-height: max(520px, calc(100vh - 260px));
+  min-height: max(480px, calc(100vh - 300px));
+  padding: 4px 0;
 }
 .designer-drop-placeholder {
   align-items: center;
-  border: 1px dashed var(--el-border-color);
-  border-radius: 4px;
-  color: var(--el-text-color-placeholder);
+  border: 1.5px dashed var(--el-color-primary-light-7);
+  border-radius: 10px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   display: flex;
   font-size: 12px;
   justify-content: center;
   min-height: 38px;
+  padding: 8px;
+  text-align: center;
 }
 </style>

@@ -17,7 +17,7 @@ final class AiCrudProposalService
 {
     private const FORBIDDEN = ['bundle', 'trustedBundle', 'files', 'outputPath', 'routePath', 'confirmToken', 'confirmationToken'];
     private const FORBIDDEN_DOCUMENT_KEYS = ['bundle', 'trustedBundle', 'files', 'outputPath', 'routePath', 'apiPrefix', 'generationTargets', 'paths', 'templates', 'confirmToken', 'confirmationToken'];
-    private const DOCUMENT_KEYS = ['schemaVersion', 'key', 'title', 'model', 'layout', 'nodes', 'dataSources', 'actions', 'form', 'submit', 'list', 'database', 'extensions'];
+    private const DOCUMENT_KEYS = ['schemaVersion', 'key', 'title', 'model', 'layout', 'nodes', 'dataSources', 'actions', 'form', 'submit', 'list', 'database', 'extensions', 'relations'];
 
     private readonly Closure $moduleReader;
     private readonly Closure $schemaValidator;

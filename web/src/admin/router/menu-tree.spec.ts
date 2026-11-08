@@ -203,8 +203,8 @@ describe('混合布局菜单全树路由', () => {
   });
 
   it('业务列表菜单与兼容入口中英文标题统一', () => {
-    expect(zh.menu).toMatchObject({ BusinessDevelopment: '业务开发', BusinessMine: '业务开发' });
-    expect(en.menu).toMatchObject({ BusinessDevelopment: 'Business Development', BusinessMine: 'Business Development' });
+    expect(zh.menu).toMatchObject({ BusinessDevelopment: '代码生成', BusinessMine: '代码生成' });
+    expect(en.menu).toMatchObject({ BusinessDevelopment: 'Code Generator', BusinessMine: 'Code Generator' });
     const designer = staticRoutes.flatMap((route) => route.children || []).find((route) => route.name === 'BusinessDesigner');
     expect(designer?.meta?.activeMenu).toBe(`${ADMIN_ROUTE_PREFIX}/development/business/mine`);
   });

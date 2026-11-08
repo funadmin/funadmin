@@ -55,6 +55,8 @@ export interface BusinessModule {
   module_route?: string;
   form_id?: number | null;
   updated_at?: string;
+  /** 列表投影：模块表单已保存 Schema 的 list.tree.enabled（树表 CRUD）。 */
+  tree_enabled?: boolean;
 }
 
 export type BusinessGenerationAction = 'recover' | 'retry-resources';
@@ -152,6 +154,10 @@ export interface BusinessFormalGenerationResult {
   routePath?: string;
   definitionHash?: string;
   schemaHash?: string;
+  /** 核心目标生成成功后是否已请求后端平滑重载 worker（新注解路由需重载后生效）；插件目标恒为 false。 */
+  reloadRequested?: boolean;
+  /** 未请求重载的原因，如 plugin_target、deferred（批量生成延后重载）、pid_file_missing、posix_unavailable、master_not_running。 */
+  reloadReason?: string | null;
 }
 
 export interface BusinessModuleDetail {
@@ -198,10 +204,14 @@ export function isBusinessApiError(value: unknown): value is BusinessApiErrorRes
 
 export const businessDevelopmentApi = {
   targets: () => http.get<BusinessTargetCandidates>(`${PREFIX}/targets`),
-  modules: (params: { page?: number; pageSize?: number; keyword?: string; status?: string; origin?: string } = {}) =>
+  modules: (params: { page?: number; pageSize?: number; keyword?: string; status?: string; origin?: string; target?: '' | 'core' | 'plugin' } = {}) =>
     http.get<BusinessPageResult<BusinessModule>>(`${PREFIX}/modules`, params),
   module: (id: number) => http.get<BusinessModuleDetail>(`${PREFIX}/modules/${id}`),
-  removeModule: (id: number) => http.delete<{ removed: number }>(`${PREFIX}/modules/${id}`, undefined, { requestOptions: { showSuccessMsg: true } }),
+  /** 批量删除时传 showSuccessMsg/showErrorMsg: false，由调用方汇总一条提示。 */
+  removeModule: (id: number, options: { showSuccessMsg?: boolean; showErrorMsg?: boolean } = {}) =>
+    http.delete<{ removed: number }>(`${PREFIX}/modules/${id}`, undefined, {
+      requestOptions: { showSuccessMsg: options.showSuccessMsg ?? true, showErrorMsg: options.showErrorMsg ?? true }
+    }),
   createVisual: (payload: Record<string, unknown>) => http.post<BusinessModuleDetail>(`${PREFIX}/modules/visual`, payload),
   inspectDatabase: (connection: string, table: string) =>
     http.post<BusinessFieldInspection>(`${PREFIX}/modules/from-database/inspect`, { connection, table }),
@@ -237,9 +247,15 @@ export const businessDevelopmentApi = {
   runtimeMeta: (id: number) => http.get<Record<string, unknown>>(`${PREFIX}/modules/${id}/runtime-meta`),
   previewFormalGeneration: (id: number, nonce = '') =>
     http.post<BusinessFormalGenerationPreview>(`${PREFIX}/modules/${id}/formal-generation/preview`, { nonce }),
-  formalGeneration: (id: number, generationId: number, confirmToken: string) =>
-    http.post<BusinessFormalGenerationResult>(`${PREFIX}/modules/${id}/formal-generation`, { generationId, confirmToken }),
-  formalGenerationArchive: (id: number) => http.download(`${PREFIX}/modules/${id}/formal-generation/archive`),
+  /** deferReload：批量生成中非最后一个模块传 true，后端跳过 worker 重载（返回 reloadReason=deferred），由最后一个模块统一重载。 */
+  formalGeneration: (id: number, generationId: number, confirmToken: string, options: { deferReload?: boolean } = {}) =>
+    http.post<BusinessFormalGenerationResult>(`${PREFIX}/modules/${id}/formal-generation`, { generationId, confirmToken, ...options }),
+  /** POST（带 CSRF）下载 zip；传入当前预览的 nonce，服务端复用同一生成记录，不让已打开的预览失效。错误由调用方提示。 */
+  formalGenerationArchive: (id: number, nonce: string) =>
+    http.downloadPost(`${PREFIX}/modules/${id}/formal-generation/archive`, { nonce }, { requestOptions: { showErrorMsg: false } }),
+  /** 采纳最近冲突计划中本地已改成生成内容（Local hash = Remote hash）的 conflict-no-base 文件为新 baseline。 */
+  adoptResolvedBaseline: (id: number, input: { generationId: number; path: string; localHash: string; remoteHash: string }) =>
+    http.post<Record<string, unknown>>(`${PREFIX}/modules/${id}/baselines/adopt-resolved`, input),
   generations: (params: { page?: number; pageSize?: number; moduleId?: number; status?: string } = {}) =>
     http.get<BusinessPageResult<BusinessGeneration>>(`${PREFIX}/generations`, params),
   generation: (id: number) => http.get<BusinessGeneration>(`${PREFIX}/generations/${id}`),

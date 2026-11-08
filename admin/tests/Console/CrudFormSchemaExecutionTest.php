@@ -114,7 +114,8 @@ class CrudFormSchemaExecutionTest extends TestCase
         $class = \app\admin\model\generated\ConsoleFormTree::class;
         $root = $class::create(['title' => '根节点']);
         $child = $class::create(['title' => '子节点', 'parent_id' => $root->id]);
-        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => str_ends_with($permission, '/index'));
+        // 正式生成模块：左树端点检查 generated:{资源}:left-tree 与 index，列表左树筛选检查 index；无 mutate-left-tree/remove 等时写动作关闭。
+        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => in_array($permission, ['generated:console-form-tree:left-tree', 'generated:console-form-tree:index'], true));
         $tree = $service->leftTree('console_form_tree');
         self::assertSame([$root->id, $child->id], array_column($tree['nodes'], 'id'));
         self::assertSame($root->id, $tree['nodes'][1]['parent']);
@@ -386,7 +387,7 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_source_metadata_candidates_are_published_and_permission_scoped(): void
     {
-        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $route): bool => str_ends_with($route, '/index'));
+        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => $permission === 'generated:console-form-tree:index');
         $source = $service->sourceMeta('console_form_tree');
         self::assertSame('id', $source['primaryKey']['name']);
         self::assertSame('console_form_tree', $source['formKey']);

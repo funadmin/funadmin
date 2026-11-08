@@ -129,24 +129,19 @@
       </template>
     </DataTableShell>
 
-    <div class="app-pagination-bar">
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        background
-        @current-change="loadData"
-        @size-change="loadData"
-      />
-    </div>
+    <TablePagination
+      v-model:current-page="query.page"
+      v-model:page-size="query.pageSize"
+      :total="total"
+      @change="loadData"
+    />
 
     <UserFormDialog v-model="dialogVisible" :row="current" @success="loadData" />
   </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -250,13 +245,4 @@ async function onResetPwd(row: UserModel) {
   justify-content: center;
 }
 
-/* 分页条：放在 PageWrapper 底部，与表格统一视觉 */
-.app-pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding-top: 12px;
-  margin-top: 12px;
-  border-top: 1px solid var(--app-border, #ebeef5);
-}
 </style>

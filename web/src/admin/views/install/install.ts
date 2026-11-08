@@ -18,6 +18,7 @@ export interface InstallForm {
   adminPassword: string;
   rePassword: string;
   email: string;
+  adminLoginPath: string;
   appDebug: boolean;
 }
 
@@ -30,6 +31,10 @@ export const canContinueInstallation = (checks: EnvironmentCheck[]) =>
 export const validateInstallForm = (form: InstallForm): string => {
   if (!form.hostname.trim() || !form.port.trim() || !form.database.trim()) return i18n.global.t('install.validation.dbIncomplete', '数据库配置不完整');
   if (!form.adminUserName.trim()) return i18n.global.t('install.validation.adminRequired', '管理员账号不能为空');
+  const entry = form.adminLoginPath.trim().toLowerCase();
+  if (!/^[a-z][a-z0-9-]{3,31}$/.test(entry) || ['auth', 'api', 'install', 'system', 'login', 'health'].includes(entry)) {
+    return i18n.global.t('install.validation.adminLoginPath', '后台登录入口需为 4～32 位小写字母、数字或短横线，且不能使用保留名称');
+  }
   if (import.meta.env.VITE_APP_BACKEND === 'webman') {
     const bytes = new TextEncoder().encode(form.adminPassword).length;
     if (bytes < 12 || bytes > 72) return i18n.global.t('install.validation.webmanPasswordLength', '管理员密码需为12～72字节');

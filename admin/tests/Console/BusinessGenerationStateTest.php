@@ -8,6 +8,7 @@ use app\admin\development\repository\DatabaseGenerationStateRepository;
 use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use app\admin\development\model\GeneratedFileBaseline;
+use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -93,8 +94,17 @@ final class BusinessGenerationStateTest extends TestCase
         $form = Db::table('form')->insertGetId([]);
         Db::table('business_module')->where('id', $module)->update(['form_id' => $form]);
         Db::table('crud_generation')->where('id', $generation)->update(['form_id' => $form]);
-        $state = new DatabaseGenerationStateRepository();
-        $state->commitGeneration($module, $generation, [], bin2hex(random_bytes(16)), str_repeat('d', 64));
+        Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document');
+        });
+        try {
+            Db::table('form_schema_version')->insert(['form_id' => $form, 'version' => 4, 'schema_hash' => str_repeat('b', 64), 'schema_document' => '{}']);
+            $state = new DatabaseGenerationStateRepository();
+            $state->commitGeneration($module, $generation, [], bin2hex(random_bytes(16)), str_repeat('d', 64));
+            self::assertSame(4, (int) Db::table('business_module')->where('id', $module)->value('published_schema_version'));
+        } finally {
+            Db::schema()->dropIfExists('form_schema_version');
+        }
         self::assertSame('generated', Db::table('form')->where('id', $form)->value('publish_mode'));
         self::assertSame($generation, (int) Db::table('form')->where('id', $form)->value('crud_generation_id'));
         self::assertSame('published', Db::table('form')->where('id', $form)->value('publish_status'));

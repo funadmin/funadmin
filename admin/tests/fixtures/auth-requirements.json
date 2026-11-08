@@ -349,11 +349,6 @@
         "login": true,
         "permission": "development:business:module"
     },
-    "GET /admin/development/business/modules/{id:\\d+}/formal-generation/archive => app\\admin\\development\\controller\\Business::formalGenerationArchive": {
-        "guard": "admin",
-        "login": true,
-        "permission": "development:business:formal-generation-archive"
-    },
     "GET /admin/development/business/modules/{id:\\d+}/runtime-meta => app\\admin\\development\\controller\\Business::runtimeMeta": {
         "guard": "admin",
         "login": true,
@@ -914,6 +909,21 @@
         "login": true,
         "permission": "authorization:admin:detail"
     },
+    "GET /admin/{entry:[a-z][a-z0-9-]{3,31}}/auth/csrf => app\\admin\\authentication\\controller\\AdminAuth::csrf": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /admin/{entry:[a-z][a-z0-9-]{3,31}}/auth/me => app\\admin\\authentication\\controller\\AdminAuth::me": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /admin/{entry:[a-z][a-z0-9-]{3,31}}/auth/menus => app\\admin\\authentication\\controller\\AdminAuth::menus": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
     "GET /api/auth/me => app\\admin\\authentication\\controller\\ApiAuth::me": {
         "guard": "self",
         "login": false,
@@ -1084,6 +1094,11 @@
         "login": true,
         "permission": "ai:profiles:create"
     },
+    "POST /admin/development/ai/profiles/models-preview => app\\admin\\ai\\controller\\Profiles::modelsPreview": {
+        "guard": "admin",
+        "login": true,
+        "permission": "ai:profiles:models-preview"
+    },
     "POST /admin/development/ai/profiles/{id:\\d+}/copy => app\\admin\\ai\\controller\\Profiles::copy": {
         "guard": "admin",
         "login": true,
@@ -1153,6 +1168,11 @@
         "guard": "admin",
         "login": true,
         "permission": "development:business:formal-generation"
+    },
+    "POST /admin/development/business/modules/{id:\\d+}/formal-generation/archive => app\\admin\\development\\controller\\Business::formalGenerationArchive": {
+        "guard": "admin",
+        "login": true,
+        "permission": "development:business:formal-generation-archive"
     },
     "POST /admin/development/business/modules/{id:\\d+}/formal-generation/preview => app\\admin\\development\\controller\\Business::previewFormalGeneration": {
         "guard": "admin",
@@ -1688,6 +1708,16 @@
         "guard": "admin",
         "login": true,
         "permission": "system:admin-upload:upload"
+    },
+    "POST /admin/{entry:[a-z][a-z0-9-]{3,31}}/auth/login => app\\admin\\authentication\\controller\\AdminAuth::login": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "POST /admin/{entry:[a-z][a-z0-9-]{3,31}}/auth/logout => app\\admin\\authentication\\controller\\AdminAuth::logout": {
+        "guard": "self",
+        "login": false,
+        "permission": null
     },
     "POST /api/auth/login => app\\admin\\authentication\\controller\\ApiAuth::login": {
         "guard": "self",

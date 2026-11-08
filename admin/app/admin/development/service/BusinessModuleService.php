@@ -49,12 +49,23 @@ final class BusinessModuleService
         ];
     }
 
-    public function listing(int $page, int $pageSize, string $keyword, string $status, string $origin): array
+    public function listing(int $page, int $pageSize, string $keyword, string $status, string $origin, string $target = ''): array
     {
         $query = BusinessModule::query()->orderBy('updated_at', 'desc')->orderBy('id', 'desc');
+        // metadata 是 JSON 列；Laravel 的 JSON 路径在 SQLite（json_extract）与 MySQL（json_unquote(json_extract)）下都可移植。
+        // 目标缺省时按 core 处理，与 designTarget()/生成服务的 `?? 'core'` 语义一致。
+        if ($target === 'plugin') $query->where('metadata->target->type', 'plugin');
+        if ($target === 'core') {
+            $query->where(function ($builder): void {
+                $builder->whereNull('metadata->target->type')->orWhere('metadata->target->type', 'core');
+            });
+        }
         if ($keyword !== '') {
             $query->where(function ($builder) use ($keyword): void {
-                $builder->where('name', 'like', '%' . $keyword . '%')->orWhere('code', 'like', '%' . $keyword . '%');
+                // 关键词覆盖 表名称 / 表描述（业务名称）/ 业务标识。
+                $builder->where('table_name', 'like', '%' . $keyword . '%')
+                    ->orWhere('name', 'like', '%' . $keyword . '%')
+                    ->orWhere('code', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== '') $query->where('lifecycle_status', $status);
@@ -68,6 +79,16 @@ final class BusinessModuleService
             return $row;
         }, $result->items());
         if ($list !== []) {
+            // 生成类型：只投影 Schema 文档里的 list.tree.enabled 布尔值，不把整份 schema_document 读出或返回。
+            $formIds = array_values(array_filter(array_column($list, 'form_id')));
+            $treeFlags = $formIds === [] ? [] : Form::query()->whereIn('id', $formIds)
+                ->get(['id', 'schema_document->list->tree->enabled as tree_enabled'])
+                ->mapWithKeys(static fn ($form): array => [(int) $form->getAttribute('id') => self::jsonTrue($form->getAttribute('tree_enabled'))])
+                ->all();
+            foreach ($list as &$module) {
+                $module['tree_enabled'] = (bool) ($treeFlags[(int) ($module['form_id'] ?? 0)] ?? false);
+            }
+            unset($module);
             // 成功指针不代表最新尝试；按本页模块批量投影生成状态，不暴露制品内容。
             $latestIds = CrudGeneration::whereIn('business_module_id', array_column($list, 'id'))
                 ->groupBy('business_module_id')->selectRaw('MAX(id) as id')->pluck('id')->all();
@@ -82,6 +103,12 @@ final class BusinessModuleService
             unset($module);
         }
         return ['list' => $list, 'total' => $result->total(), 'page' => $page, 'pageSize' => $pageSize];
+    }
+
+    /** JSON 路径取出的布尔值：SQLite 返回 1/0，MySQL（json_unquote）返回 'true'/'false'。 */
+    private static function jsonTrue(mixed $value): bool
+    {
+        return in_array($value, [true, 1, '1', 'true'], true);
     }
 
     /** 设计目录只读取模块身份，不加载字段、默认值或发布版本。 */
