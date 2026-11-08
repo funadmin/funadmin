@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import type { JSONContent } from '@tiptap/core';
-import { NodeSelection } from '@tiptap/pm/state';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { documentExtensions } from './extensions';
 import { sanitizeDocumentUrl } from './url';
 import { uploadApi } from '@/api/common/upload';
@@ -36,10 +36,14 @@ onBeforeUnmount(() => editor.value?.destroy());
 const run = (fn: (chain: any) => any) => editor.value && fn(editor.value.chain().focus()).run();
 const active = (name: string, attrs?: Record<string, unknown>) => !!editor.value?.isActive(name, attrs);
 
-/** 当前选中的 Mermaid 图表（点击图表即选中整个节点）。 */
+/**
+ * 当前选中的 Mermaid 图表（点击图表即选中整个节点）。
+ * 按“节点选区才带 node 属性”判断，不用 instanceof：ProseMirror/Tiptap 被重复安装（例如 npm 与 pnpm 混装）时，
+ * 组件导入的 NodeSelection 可能不是编辑器创建选区所用的同一个类，instanceof 会误判为未选中。
+ */
 const selectedMermaid = computed(() => {
-  const selection = editor.value?.state.selection;
-  return selection instanceof NodeSelection && selection.node.type.name === 'mermaid' ? selection.node : null;
+  const node = (editor.value?.state.selection as { node?: ProseMirrorNode } | undefined)?.node;
+  return node?.type.name === 'mermaid' ? node : null;
 });
 
 async function setLink() {
